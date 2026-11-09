@@ -1073,20 +1073,25 @@ public class RXTilePane extends Pane {
         // justify-content on that row. With multiple rows the short final row
         // keeps the full-row metrics so columns stay aligned across rows.
         int justifyColumns = rows == 1 ? Math.min(columns, managed.size()) : columns;
+        // Justify within the content width floored to the pixel grid: tile widths and
+        // gaps are on the grid too, so every rounded tile x stays monotonic, keeps at
+        // least hgap to its neighbour and leaves the last tile inside the content area.
+        // A content width off the grid would let rounding push the last tile out.
+        double rowWidth = snapFloorX(contentWidth);
         double preferredRowWidth = justifyColumns * nominalTileWidth + (justifyColumns - 1) * hgapValue;
-        if (justifyColumns == 1 && preferredRowWidth > contentWidth) {
-            tileWidth = Math.max(0.0, contentWidth);
+        if (justifyColumns == 1 && preferredRowWidth > rowWidth) {
+            tileWidth = Math.max(0.0, rowWidth);
             effectiveHgap = hgapValue;
             startX = 0.0;
         } else if (mode == ItemsJustify.STRETCH) {
-            double ideal = (contentWidth - (justifyColumns - 1) * hgapValue) / justifyColumns;
+            double ideal = (rowWidth - (justifyColumns - 1) * hgapValue) / justifyColumns;
             double cap = maxTileWidthOrUnbounded();
             double effectiveCap = cap > 0.0 ? Math.max(snapSizeX(cap), nominalTileWidth) : 0.0;
             effectiveHgap = hgapValue;
             if (effectiveCap > 0.0 && ideal > effectiveCap) {
                 tileWidth = effectiveCap;
                 double used = justifyColumns * tileWidth + (justifyColumns - 1) * hgapValue;
-                startX = Math.max(0.0, (contentWidth - used) / 2.0);
+                startX = Math.max(0.0, (rowWidth - used) / 2.0);
             } else {
                 // Floored, not ceiled (snapSizeX): ceiling each tile overruns the content
                 // area by up to a pixel per column, into the right padding and past the
@@ -1094,7 +1099,7 @@ public class RXTilePane extends Pane {
                 // the row still fills edge to edge.
                 tileWidth = snapFloorX(Math.max(0.0, ideal));
                 double spare = Math.max(0.0,
-                        contentWidth - (justifyColumns * tileWidth + (justifyColumns - 1) * hgapValue));
+                        rowWidth - (justifyColumns * tileWidth + (justifyColumns - 1) * hgapValue));
                 effectiveHgap = hgapValue + (justifyColumns > 1 ? spare / (justifyColumns - 1) : 0.0);
                 startX = 0.0;
             }
@@ -1102,7 +1107,7 @@ public class RXTilePane extends Pane {
             effectiveHgap = hgapValue;
             startX = 0.0;
             tileWidth = nominalTileWidth;
-            double slack = Math.max(0.0, contentWidth - preferredRowWidth);
+            double slack = Math.max(0.0, rowWidth - preferredRowWidth);
             switch (mode) {
                 case CENTER -> startX = slack / 2.0;
                 case END -> startX = slack;
@@ -1127,14 +1132,11 @@ public class RXTilePane extends Pane {
         boolean collectMoves = animate || animator.hasActiveState();
         double baselineOffset = computeBaselineOffset(managed, tileAlignmentValue, tileWidth, tileHeight);
         List<PaneRelayoutAnimator.Move> moves = null;
-        // The rounded x is capped so the last tile's edge cannot pass the content width
-        // (which need not sit on the pixel grid).
-        double maxX = snapFloorX(contentWidth - tileWidth);
         for (int i = 0; i < managed.size(); i++) {
             Node child = managed.get(i);
             int column = i % columns;
             int row = i / columns;
-            double x = left + Math.min(snapPositionX(startX + column * (tileWidth + effectiveHgap)), maxX);
+            double x = left + snapPositionX(startX + column * (tileWidth + effectiveHgap));
             double y = top + snapPositionY(startY + row * (tileHeight + vgapValue));
             // FLIP: capture the current on-screen position before relocating so the
             // animator can invert the move and tween translate back to zero. An

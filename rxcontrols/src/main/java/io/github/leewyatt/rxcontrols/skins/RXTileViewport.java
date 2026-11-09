@@ -492,12 +492,10 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
                     firstDataRow = info.dataRowIndex();
                 }
                 // Each x is derived from the row start, not the previous snapped x, so
-                // fractional justify gaps never accumulate rounding; the rounded x is
-                // capped so the last cell's edge cannot pass the clipped content width.
+                // fractional justify gaps never accumulate rounding.
                 double step = cellWidth + hgap;
-                double maxX = snapFloorX(contentWidth - cellWidth);
                 for (int column = 0; column < cellsInRow; column++) {
-                    double x = Math.min(snapPositionX(startX + column * step), maxX);
+                    double x = snapPositionX(startX + column * step);
                     int itemIndex = rowStart + column;
                     RXTileCell<T> prior = reorderPass ? priorItemToCell.get(itemIndex) : null;
                     RXTileCell<T> cell = reorderPass
@@ -541,7 +539,11 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
         visibleLastRow = lastDataRow;
     }
 
-    private CellGeometry cellGeometry(double contentWidth) {
+    private CellGeometry cellGeometry(double availableWidth) {
+        // Justify within the content width floored to the pixel grid: cell widths and
+        // gaps are on the grid too, so every rounded cell x stays monotonic, keeps at
+        // least hgap to its neighbour and leaves the last cell inside the clip.
+        double contentWidth = snapFloorX(availableWidth);
         double hgap = snapSpaceX(RXTileViewSkin.gapOrZero(control.getHgap()));
         double cellHeight = snapSizeY(RXTileViewSkin.prefTileHeightOrDefault(control));
         int resolvedCols = Math.max(1, rowPlan == null ? 1 : rowPlan.columns());

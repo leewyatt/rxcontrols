@@ -916,6 +916,10 @@ public class RXTileViewSkinTest {
                     List<RXTileCell<?>> row = rowCells(view, 0);
                     RXTileCell<?> last = row.get(row.size() - 1);
                     assertSame(contentLayer, last.getParent(), "cells live in the clipped content layer");
+                    for (int i = 1; i < row.size(); i++) {
+                        double gap = row.get(i).getLayoutX() - (row.get(i - 1).getLayoutX() + row.get(i - 1).getWidth());
+                        assertTrue(gap >= 10.0 - 1e-9, mode + " at width " + width + ": cell gap " + gap + " < hgap");
+                    }
                     double edge = last.getLayoutX() + last.getWidth();
                     double clipRight = clip.getX() + clip.getWidth();
                     assertTrue(edge <= clipRight + 1e-9, mode + " at width " + width

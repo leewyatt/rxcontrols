@@ -294,7 +294,6 @@ public class RXTilePaneTest {
     public void justifiedRowsStayInsideTheContentArea() {
         RXTilePane pane = new RXTilePane();
         pane.setPadding(new Insets(10));
-        pane.setHgap(10);
         pane.setPrefTileWidth(60);
         for (int i = 0; i < 12; i++) {
             // Unbounded max width: each tile fills its whole tile area, so the area edges show.
@@ -302,30 +301,59 @@ public class RXTilePaneTest {
             tile.setPrefSize(60, 40);
             pane.getChildren().add(tile);
         }
-        for (ItemsJustify mode : List.of(ItemsJustify.STRETCH, ItemsJustify.CENTER, ItemsJustify.END,
-                ItemsJustify.SPACE_BETWEEN, ItemsJustify.SPACE_AROUND, ItemsJustify.SPACE_EVENLY)) {
-            pane.setItemsJustify(mode);
-            // Most widths (half-pixel steps included) leave a fractional tile width or gap.
-            for (double width = 300.0; width <= 700.0; width += 0.5) {
-                layout(pane, width, 300);
-                double left = pane.snappedLeftInset();
-                double right = pane.getWidth() - pane.snappedRightInset();
-                double minX = Double.MAX_VALUE;
-                double maxEdge = 0.0;
-                for (Node child : pane.getChildren()) {
-                    minX = Math.min(minX, child.getLayoutX());
-                    maxEdge = Math.max(maxEdge, child.getLayoutX() + ((Region) child).getWidth());
-                }
-                assertTrue(maxEdge <= right + 1e-9,
-                        mode + " at width " + width + ": tile edge " + maxEdge + " > content right " + right);
-                if (mode == ItemsJustify.STRETCH) {
-                    // An uncapped stretch fills the row edge to edge.
-                    assertEquals(left, minX, 1e-9, "STRETCH first tile x at width " + width);
-                    assertTrue(maxEdge >= right - 1.0,
-                            "STRETCH fills the row at width " + width + ": " + maxEdge + " < " + right);
+        for (double hgap : new double[] {10.0, 0.0}) {
+            pane.setHgap(hgap);
+            for (ItemsJustify mode : List.of(ItemsJustify.STRETCH, ItemsJustify.CENTER, ItemsJustify.END,
+                    ItemsJustify.SPACE_BETWEEN, ItemsJustify.SPACE_AROUND, ItemsJustify.SPACE_EVENLY)) {
+                pane.setItemsJustify(mode);
+                // Half-pixel widths leave the content width off the pixel grid as well.
+                for (double width = 300.0; width <= 700.0; width += 0.5) {
+                    layout(pane, width, 300);
+                    String at = mode + " hgap " + hgap + " at width " + width;
+                    double left = pane.snappedLeftInset();
+                    double right = pane.getWidth() - pane.snappedRightInset();
+                    List<Node> tiles = pane.getChildren();
+                    int columns = pane.getActualColumnCount();
+                    double maxEdge = 0.0;
+                    for (int i = 0; i < tiles.size(); i++) {
+                        Region tile = (Region) tiles.get(i);
+                        maxEdge = Math.max(maxEdge, tile.getLayoutX() + tile.getWidth());
+                        if (i % columns > 0) {
+                            Region previous = (Region) tiles.get(i - 1);
+                            double gap = tile.getLayoutX() - (previous.getLayoutX() + previous.getWidth());
+                            assertTrue(gap >= hgap - 1e-9, at + ": tile " + i + " gap " + gap + " < hgap");
+                        }
+                    }
+                    assertTrue(maxEdge <= right + 1e-9, at + ": tile edge " + maxEdge + " > content right " + right);
+                    if (mode == ItemsJustify.STRETCH) {
+                        // An uncapped stretch fills the row edge to edge.
+                        assertEquals(left, tiles.get(0).getLayoutX(), 1e-9, at + ": STRETCH first tile x");
+                        assertTrue(maxEdge >= right - 1.0, at + ": STRETCH fills the row, " + maxEdge + " < " + right);
+                    }
                 }
             }
         }
+    }
+
+    @Test
+    public void endJustifyOnAHalfPixelWidthDoesNotOverlapTiles() {
+        RXTilePane pane = new RXTilePane();
+        pane.setHgap(0);
+        pane.setPrefTileWidth(60);
+        pane.setMaxColumns(2);
+        pane.setItemsJustify(ItemsJustify.END);
+        for (int i = 0; i < 2; i++) {
+            Region tile = new Region();
+            tile.setPrefSize(60, 40);
+            pane.getChildren().add(tile);
+        }
+        layout(pane, 120.5, 100);
+
+        Region first = (Region) pane.getChildren().get(0);
+        Region second = (Region) pane.getChildren().get(1);
+        assertTrue(second.getLayoutX() >= first.getLayoutX() + first.getWidth(),
+                "tiles do not overlap: " + first.getLayoutX() + " + " + first.getWidth() + " > " + second.getLayoutX());
+        assertTrue(second.getLayoutX() + second.getWidth() <= 120.5, "the last tile stays inside the pane");
     }
 
     @Test
