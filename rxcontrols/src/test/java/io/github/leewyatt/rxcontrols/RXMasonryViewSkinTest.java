@@ -979,7 +979,7 @@ public class RXMasonryViewSkinTest {
             StackPane root = host(view, 300, 400);
             Stage stage = new Stage();
             stage.setScene(root.getScene());
-            for (double scale : new double[] {1.0, 1.5, 2.0}) {
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
                 stage.setRenderScaleX(scale);
                 for (double width = 300.0; width <= 500.0; width += 0.5) {
                     root.resize(width, 400);

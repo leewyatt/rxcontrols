@@ -115,9 +115,12 @@ public final class MasonryColumns {
         public double spanWidth(double startX, int startColumn, int span) {
             if (fillWidth) {
                 // From the first column's left edge to the last column's right edge, so a
-                // spanning item ends exactly where its last column does.
+                // spanning item ends exactly where its last column does. The difference of
+                // grid values is on the grid; rounding drops the floating-point residue a
+                // later ceiling snap (as in layoutInArea) would push one pixel wider.
                 int lastColumn = startColumn + Math.max(1, span) - 1;
-                return columnX(startX, lastColumn) + trackWidth - columnX(startX, startColumn);
+                return snapRound(columnX(startX, lastColumn) + trackWidth - columnX(startX, startColumn),
+                        snapScale);
             }
             int count = Math.max(1, span);
             return snapCeil(count * trackWidth + (count - 1) * hgap, snapScale);

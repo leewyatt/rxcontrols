@@ -9,10 +9,14 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.Region;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -809,6 +813,163 @@ public class RXMasonryPaneTest {
         assertTrue(hasCssProperty("-rx-animation-duration"));
     }
 
+    /**
+     * Verifies filled columns stay inside the padded content area at every width and
+     * render scale, keep at least the hgap between them, share one snapped width and
+     * reach both content edges.
+     */
+    @Test
+    public void filledColumnsStayInsideTheContentArea() throws Exception {
+        runOnFx(() -> {
+            Region[] cards = new Region[18];
+            for (int i = 0; i < cards.length; i++) {
+                cards[i] = card(40.0, 30.0);
+            }
+            RXMasonryPane pane = paddedFilledPane(cards);
+            Stage stage = stageFor(pane);
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                stage.setRenderScaleX(scale);
+                for (double width = 300.0; width <= 520.0; width += 0.25) {
+                    layout(pane, width, 600.0);
+                    String at = "scale " + scale + ", width " + width;
+                    List<Region> row = new ArrayList<>();
+                    for (Region card : cards) {
+                        if (card.getLayoutY() == pane.snappedTopInset()) {
+                            row.add(card);
+                        }
+                    }
+                    row.sort(Comparator.comparingDouble(Region::getLayoutX));
+                    assertEquals(pane.getActualColumnCount(), row.size(), at + ": first row is full");
+                    assertClose(pane.snappedLeftInset(), row.get(0).getLayoutX(), at + ": left edge");
+                    double contentRight = pane.getWidth() - pane.snappedRightInset();
+                    Region last = row.get(row.size() - 1);
+                    double edge = last.getLayoutX() + last.getWidth();
+                    assertTrue(edge <= contentRight + 1e-9, at + ": edge " + edge + " > " + contentRight);
+                    assertTrue(edge > contentRight - 1.0 / scale - 1e-9, at + ": edge " + edge + " stops short");
+                    for (int i = 0; i < row.size(); i++) {
+                        Region card = row.get(i);
+                        assertOnGrid(card.getLayoutX(), scale, at + ": x of column " + i);
+                        assertClose(row.get(0).getWidth(), card.getWidth(), at + ": width of column " + i);
+                        if (i > 0) {
+                            Region previous = row.get(i - 1);
+                            double gap = card.getLayoutX() - (previous.getLayoutX() + previous.getWidth());
+                            assertTrue(gap >= 10.0 - 1e-9, at + ": gap " + gap + " before column " + i);
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies filled spanning children stay inside the content area and keep the hgap
+     * from every child beside them, wherever they land.
+     */
+    @Test
+    public void filledSpanningChildrenStayInsideTheContentArea() throws Exception {
+        runOnFx(() -> {
+            Region[] cards = new Region[24];
+            for (int i = 0; i < cards.length; i++) {
+                cards[i] = card(40.0, 20.0 + (i * 13) % 50);
+                RXMasonryPane.setColumnSpan(cards[i], i % 5 == 2 ? 2 : i % 11 == 6 ? 3 : 1);
+            }
+            RXMasonryPane pane = paddedFilledPane(cards);
+            Stage stage = stageFor(pane);
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                stage.setRenderScaleX(scale);
+                for (double width = 300.0; width <= 520.0; width += 0.25) {
+                    layout(pane, width, 800.0);
+                    String at = "scale " + scale + ", width " + width;
+                    double contentRight = pane.getWidth() - pane.snappedRightInset();
+                    for (Region a : cards) {
+                        double right = a.getLayoutX() + a.getWidth();
+                        assertTrue(right <= contentRight + 1e-9, at + ": edge " + right + " > " + contentRight);
+                        assertOnGrid(a.getLayoutX(), scale, at + ": x");
+                        assertOnGrid(right, scale, at + ": right edge");
+                        for (Region b : cards) {
+                            boolean beside = a != b && a.getLayoutX() < b.getLayoutX()
+                                    && a.getLayoutY() < b.getLayoutY() + b.getHeight()
+                                    && b.getLayoutY() < a.getLayoutY() + a.getHeight();
+                            if (beside) {
+                                double gap = b.getLayoutX() - right;
+                                assertTrue(gap >= 10.0 - 1e-9, at + ": gap " + gap);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a width-dependent child is measured at the width it is laid out at, for
+     * single and spanning children at fractional render scales.
+     */
+    @Test
+    public void childHeightIsMeasuredAtTheLaidOutWidth() throws Exception {
+        runOnFx(() -> {
+            WidthRecordingRegion[] cards = new WidthRecordingRegion[16];
+            for (int i = 0; i < cards.length; i++) {
+                cards[i] = new WidthRecordingRegion();
+                RXMasonryPane.setColumnSpan(cards[i], i % 3 == 1 ? 2 : 1);
+            }
+            RXMasonryPane pane = paddedFilledPane(cards);
+            Stage stage = stageFor(pane);
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                stage.setRenderScaleX(scale);
+                for (double width = 300.0; width <= 420.0; width += 0.25) {
+                    for (WidthRecordingRegion card : cards) {
+                        card.askedWidths.clear();
+                    }
+                    layout(pane, width, 2000.0);
+                    for (int i = 0; i < cards.length; i++) {
+                        for (double asked : cards[i].askedWidths) {
+                            assertEquals(cards[i].getWidth(), asked, 1e-9,
+                                    "card " + i + " at scale " + scale + ", width " + width);
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a filled child whose minimum width exceeds its column keeps that minimum
+     * width, as layoutInArea gives it, instead of being squeezed into the slot.
+     */
+    @Test
+    public void filledChildKeepsAMinimumWidthWiderThanItsColumn() throws Exception {
+        runOnFx(() -> {
+            Region wide = card(40.0, 30.0);
+            wide.setMinWidth(120.0);
+            RXMasonryPane pane = pane(60.0, 10.0, 6.0, wide, card(40.0, 30.0), card(40.0, 30.0));
+            pane.setAnimated(false);
+            Stage stage = stageFor(pane);
+            stage.setRenderScaleX(1.75);
+            layout(pane, 301.0, 400.0);
+            assertClose(120.0, wide.getWidth(), "min width");
+        });
+    }
+
+    /**
+     * Verifies fixed-width columns are unaffected by the render scale snapping of filled
+     * columns: they keep the configured hgap.
+     */
+    @Test
+    public void fixedColumnsKeepTheConfiguredGapAtAnyScale() throws Exception {
+        runOnFx(() -> {
+            Region first = card(40.0, 30.0);
+            Region second = card(40.0, 30.0);
+            RXMasonryPane pane = pane(60.0, 10.0, 6.0, first, second);
+            pane.setFillWidth(false);
+            Stage stage = stageFor(pane);
+            stage.setRenderScaleX(1.5);
+            layout(pane, 301.0, 400.0);
+            assertBox(first, 0.0, 0.0, 40.0, 30.0, "first");
+            assertBox(second, 70.0, 0.0, 40.0, 30.0, "second");
+        });
+    }
+
     // ==================== Assertions ====================
 
     private static void assertBox(Region region, double x, double y, double width, double height,
@@ -823,6 +984,10 @@ public class RXMasonryPaneTest {
         assertEquals(expected, actual, EPSILON, label);
     }
 
+    private static void assertOnGrid(double value, double scale, String label) {
+        assertEquals(Math.round(value * scale), value * scale, 1e-6, label + " " + value + " off the grid");
+    }
+
     // ==================== Helpers ====================
 
     private static RXMasonryPane pane(double columnWidth, double hgap, double vgap, Region... cards) {
@@ -831,6 +996,20 @@ public class RXMasonryPaneTest {
         pane.setHgap(hgap);
         pane.setVgap(vgap);
         return pane;
+    }
+
+    private static RXMasonryPane paddedFilledPane(Region... cards) {
+        RXMasonryPane pane = pane(60.0, 10.0, 6.0, cards);
+        pane.setAnimated(false);
+        pane.setPadding(new Insets(3.0, 7.5, 3.0, 4.25));
+        return pane;
+    }
+
+    // The stage is never shown: it only supplies the render scale the pane snaps to.
+    private static Stage stageFor(Region root) {
+        Stage stage = new Stage();
+        stage.setScene(new Scene(root));
+        return stage;
     }
 
     private static Region card(double prefWidth, double prefHeight) {
@@ -874,6 +1053,32 @@ public class RXMasonryPaneTest {
     }
 
     private static final class FixedRegion extends Region {
+    }
+
+    /**
+     * A horizontal content-bias region that records every width its height is asked at.
+     */
+    private static final class WidthRecordingRegion extends Region {
+
+        private final List<Double> askedWidths = new ArrayList<>();
+
+        @Override
+        public Orientation getContentBias() {
+            return Orientation.HORIZONTAL;
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            if (width >= 0.0) {
+                askedWidths.add(width);
+            }
+            return width <= 0.0 ? 40.0 : 6000.0 / width;
+        }
+
+        @Override
+        protected double computePrefWidth(double height) {
+            return 40.0;
+        }
     }
 
     /**

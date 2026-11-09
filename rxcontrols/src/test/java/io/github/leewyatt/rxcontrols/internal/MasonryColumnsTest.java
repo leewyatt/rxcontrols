@@ -200,8 +200,10 @@ public class MasonryColumnsTest {
 
     @Test
     public void filledEdgesStayOnTheGridAndInsideTheWidth() {
-        for (double scale : new double[] {1.0, 1.5, 2.0}) {
-            for (double hgap : new double[] {10.0, 0.0, -10.0}) {
+        for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+            for (double rawGap : new double[] {10.0, 0.0, -10.0}) {
+                // Callers pass a snapped gap (snapSpaceX); 10 px is off the 1.25 and 1.75 grids.
+                double hgap = Math.round(rawGap * scale) / scale;
                 // Steps of 1/12 px land between the 1, 1.5 and 2 grids (thirds and halves).
                 for (double width = 300.0; width <= 500.0; width += 1.0 / 12.0) {
                     Resolution r = MasonryColumns.resolve(width, width, 0, 60.0, hgap, 0, true,
@@ -245,7 +247,7 @@ public class MasonryColumnsTest {
     @Test
     public void fixedWidthEdgesSnapLikeANode() {
         // fillWidth=false keeps the node snapping it had: positions round, widths ceil.
-        for (double scale : new double[] {1.0, 1.5, 2.0}) {
+        for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
             Resolution r = MasonryColumns.resolve(500.0, 500.0, 0, 60.0, 10.3, 0, false,
                     RXBreakpointProfile.ANT_DESIGN, Map.of(), scale);
             assertEquals(60.0, r.trackWidth(), DELTA, "fixed track keeps columnWidth @ " + scale);

@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.layout;
 
 import io.github.leewyatt.rxcontrols.internal.MasonryColumns;
+import io.github.leewyatt.rxcontrols.internal.MasonryColumns.Resolution;
 import io.github.leewyatt.rxcontrols.internal.MasonryLayoutEngine;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
@@ -34,7 +35,9 @@ import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
+import javafx.stage.Window;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -1285,11 +1288,18 @@ public class RXMasonryPane extends Pane {
     // ==================== Layout Cache ====================
 
     private double cachedWidth = -1.0;
+    private double cachedSnapScale = -1.0;
     private LayoutMetrics cachedMetrics;
 
-    private record LayoutMetrics(int columns, double trackWidth, double usedWidth, double hgap,
-                                 List<Node> managed, int[] spans, double[] blockHeights,
-                                 MasonryLayoutEngine.Result result) {
+    // areaWidths holds each child's laid-out area width, the width its height was
+    // measured at, so measure and layout never disagree on a child's slot.
+    private record LayoutMetrics(Resolution resolution, List<Node> managed,
+                                 double[] areaWidths, double[] blockHeights,
+                                 MasonryLayoutEngine.OutlineResult result) {
+
+        int columns() {
+            return resolution.columns();
+        }
     }
 
     // ==================== Layout ====================
@@ -1372,12 +1382,12 @@ public class RXMasonryPane extends Pane {
         Pos align = alignmentOrDefault();
         HPos hpos = align.getHpos();
         VPos vpos = align.getVpos();
-        double xOffset = computeXOffset(contentWidth, metrics.usedWidth(), hpos);
+        Resolution resolution = metrics.resolution();
+        boolean fill = resolution.fillWidth();
+        // Filled tracks already span the content width, so the alignment has no slack to
+        // place; the few sub-pixel leftovers of the floored width stay at the trailing edge.
+        double xOffset = fill ? 0.0 : computeXOffset(contentWidth, resolution.usedWidth(), hpos);
         double yOffset = computeYOffset(contentHeight, metrics.result().contentHeight(), vpos);
-
-        double trackWidth = metrics.trackWidth();
-        double gap = metrics.hgap();
-        boolean fill = isFillWidth();
         boolean animate = isAnimated() && firstLayoutDone && getScene() != null
                 && isAnimationDurationPositive();
         // With animation off and nothing in flight the animator pass would be a
@@ -1391,10 +1401,9 @@ public class RXMasonryPane extends Pane {
         for (int i = 0, size = managed.size(); i < size; i++) {
             Node child = managed.get(i);
             Insets margin = getMargin(child);
-            int span = metrics.spans()[i];
-            double areaWidth = span * trackWidth + (span - 1) * gap;
+            double areaWidth = metrics.areaWidths()[i];
             double areaHeight = metrics.blockHeights()[i];
-            double x = left + xOffset + startColumns[i] * (trackWidth + gap);
+            double x = left + columnX(resolution, xOffset, startColumns[i]);
             double y = top + yOffset + tops[i];
 
             // FLIP: record the current on-screen position before relocating, so the
@@ -1406,6 +1415,9 @@ public class RXMasonryPane extends Pane {
                 oldVisualY = child.getLayoutY() + child.getTranslateY();
             }
             layoutInArea(child, x, y, areaWidth, areaHeight, -1.0, margin, fill, false, hpos, VPos.TOP);
+            if (fill) {
+                keepInsideSlot(child, x, areaWidth, margin);
+            }
             if (!collectMoves) {
                 continue;
             }
@@ -1432,50 +1444,76 @@ public class RXMasonryPane extends Pane {
     }
 
     private LayoutMetrics computeMetrics(double contentWidth) {
-        if (cachedMetrics != null && contentWidth == cachedWidth) {
+        if (cachedMetrics != null && contentWidth == cachedWidth && snapScaleX() == cachedSnapScale) {
             return cachedMetrics;
         }
 
-        int columns = computeColumns(contentWidth);
-        double gap = snapSpaceX(sanitizedHgap());
-        double trackWidth;
-        if (isFillWidth()) {
-            trackWidth = Math.max(0.0, (contentWidth - (columns - 1) * gap) / columns);
-        } else {
-            trackWidth = snapSizeX(columnWidthOrDefault());
-        }
+        double snapScale = snapScaleX();
+        Resolution resolution = resolveColumns(contentWidth, snapScale);
+        int columns = resolution.columns();
 
         List<Node> managed = getManagedChildren();
         int count = managed.size();
         int[] spans = new int[count];
+        double[] areaWidths = new double[count];
         double[] blockHeights = new double[count];
         for (int i = 0; i < count; i++) {
-            Node child = managed.get(i);
-            Insets margin = getMargin(child);
-            int span = clampColumnSpan(childColumnSpan(child), columns);
-            double areaWidth = span * trackWidth + (span - 1) * gap;
-            spans[i] = span;
-            blockHeights[i] = computeChildBlockHeight(child, areaWidth, margin);
+            spans[i] = clampColumnSpan(childColumnSpan(managed.get(i)), columns);
         }
+        // The column choice ignores a child's own height, so each child is measured once
+        // its columns are known, at the width it is laid out at.
+        MasonryLayoutEngine.OutlineResult result = MasonryLayoutEngine.place(new double[Math.max(1, columns)],
+                snapSpaceY(sanitizedVgap()), spans, (index, startColumn, span) -> {
+                    Node child = managed.get(index);
+                    areaWidths[index] = areaWidth(resolution, startColumn, span);
+                    blockHeights[index] = computeChildBlockHeight(child, areaWidths[index], getMargin(child));
+                    return blockHeights[index];
+                });
 
-        MasonryLayoutEngine.Result result =
-                MasonryLayoutEngine.place(columns, snapSpaceY(sanitizedVgap()), spans, blockHeights);
-        double usedWidth = columns * trackWidth + (columns - 1) * gap;
-
-        LayoutMetrics metrics = new LayoutMetrics(columns, trackWidth, usedWidth, gap,
-                managed, spans, blockHeights, result);
+        LayoutMetrics metrics = new LayoutMetrics(resolution, managed, areaWidths, blockHeights, result);
         cachedWidth = contentWidth;
+        cachedSnapScale = snapScale;
         cachedMetrics = metrics;
         return metrics;
     }
 
     // A node-based pane has no scrollbar, so the breakpoint-driving width and the
     // track-driving width are the same content width.
-    private int computeColumns(double contentWidth) {
+    private Resolution resolveColumns(double contentWidth, double snapScale) {
         return MasonryColumns.resolve(contentWidth, contentWidth, getColumnCount(),
                 snapSizeX(columnWidthOrDefault()), snapSpaceX(sanitizedHgap()),
                 getMaxColumns(), isFillWidth(), breakpointProfileOrDefault(),
-                breakpointColumns, 0.0).columns();
+                breakpointColumns, snapScale);
+    }
+
+    // Filled columns take their snapped edges from the resolution, so a spanning child
+    // runs from its first column's left edge to its last column's right edge and none
+    // passes the content width. Fixed-width columns keep the continuous geometry and
+    // leave the snapping to layoutInArea.
+    private static double columnX(Resolution resolution, double xOffset, int column) {
+        if (resolution.fillWidth()) {
+            return resolution.columnX(0.0, column);
+        }
+        return xOffset + column * (resolution.trackWidth() + resolution.hgap());
+    }
+
+    private static double areaWidth(Resolution resolution, int startColumn, int span) {
+        if (resolution.fillWidth()) {
+            return resolution.spanWidth(0.0, startColumn, span);
+        }
+        return span * resolution.trackWidth() + (span - 1) * resolution.hgap();
+    }
+
+    // The render scale column edges snap to: the window's, 1 before the pane is in a
+    // window, or 0 when it does not snap to pixels.
+    private double snapScaleX() {
+        if (!isSnapToPixel()) {
+            return 0.0;
+        }
+        Scene scene = getScene();
+        Window window = scene == null ? null : scene.getWindow();
+        double scale = window == null ? 1.0 : window.getRenderScaleX();
+        return Double.isFinite(scale) && scale > 0.0 ? scale : 1.0;
     }
 
     private int childColumnSpan(Node child) {
@@ -1521,6 +1559,25 @@ public class RXMasonryPane extends Pane {
     private double boundedChildWidth(Node child, double contentWidth) {
         double pref = isFillWidth() ? contentWidth : Math.min(contentWidth, child.prefWidth(-1));
         return RXMath.clamp(pref, child.minWidth(-1), child.maxWidth(-1));
+    }
+
+    // layoutInArea ceils the child width to the pixel grid, and at some fractional
+    // scales (1.75) the ceiling of an on-grid width lands one device pixel wider. A
+    // filled child is pulled back to its slot width, unless its minimum width alone
+    // already overflows the slot.
+    private void keepInsideSlot(Node child, double areaX, double areaWidth, Insets margin) {
+        if (!child.isResizable()) {
+            return;
+        }
+        double slotWidth = Math.max(0.0, areaWidth - leftSpace(margin) - rightSpace(margin));
+        double height = child.getLayoutBounds().getHeight();
+        double minWidth = child.getContentBias() == Orientation.VERTICAL
+                ? child.minWidth(height)
+                : child.minWidth(-1.0);
+        if (child.getLayoutBounds().getWidth() > slotWidth && minWidth <= slotWidth) {
+            child.resize(slotWidth, height);
+            child.relocate(snapPositionX(areaX + leftSpace(margin)), child.getLayoutY());
+        }
     }
 
     private double computeXOffset(double width, double contentWidth, HPos hpos) {
