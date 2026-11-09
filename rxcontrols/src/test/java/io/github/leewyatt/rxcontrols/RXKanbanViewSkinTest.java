@@ -43,6 +43,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -1793,6 +1794,29 @@ public class RXKanbanViewSkinTest {
         return node.getPseudoClassStates().stream().anyMatch(pc -> pc.getPseudoClassName().equals(name));
     }
 
+
+    @Test
+    public void recycledCardKeepsItsRippleClip() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 3);
+            StackPane root = host(board, 400, 500);
+            pump(root);
+            RXKanbanCardCell<?> cell = cellByText(board, "card-0");
+            Node rippleLayer = cell.getChildrenUnmodifiable().get(0);
+            assertNotNull(rippleLayer.getClip(), "the ripple layer is clipped to the rounded card");
+            Event.fireEvent(cell, mouse(MouseEvent.MOUSE_ENTERED, 5, 5, cell));
+            int index = cell.getIndex();
+
+            // Moving the hovered card re-indexes its cell at an unchanged size, so it is not re-laid out.
+            ObservableList<String> cards = board.getColumns().get(0).getCards();
+            cards.add(cards.remove(0));
+            pump(root);
+            assertNotEquals(index, cell.getIndex(), "the cell was re-indexed");
+            Event.fireEvent(cell, mouse(MouseEvent.MOUSE_EXITED, 5, 5, cell));
+            Event.fireEvent(cell, mouse(MouseEvent.MOUSE_ENTERED, 5, 5, cell));
+            assertNotNull(rippleLayer.getClip(), "the hover overlay of a recycled card stays clipped");
+        });
+    }
 
     @SafeVarargs
     private static RXKanbanView<String> board(Object... titleThenCount) {
