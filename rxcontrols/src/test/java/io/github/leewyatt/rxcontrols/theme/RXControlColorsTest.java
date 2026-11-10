@@ -89,6 +89,8 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("segmented.indicator", "#0096c9ff");
         DEFAULT_MODENA.put("seek.track", "#e0e0e0ff");
         DEFAULT_MODENA.put("seek.secondary", "#00000040");
+        DEFAULT_MODENA.put("seek.bar", "#0096c9ff");
+        DEFAULT_MODENA.put("seek.thumb", "#0096c9ff");
         DEFAULT_MODENA.put("slider.track", "#e0e0e0ff");
         DEFAULT_MODENA.put("slider.indicator", "#424242ff");
         DEFAULT_MODENA.put("slider.indicator.text", "#ffffffff");
@@ -137,6 +139,8 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("segmented.indicator", "#0969daff");
         PRIMER_LIGHT.put("seek.track", "#d0d7deff");
         PRIMER_LIGHT.put("seek.secondary", "#6e7781ff");
+        PRIMER_LIGHT.put("seek.bar", "#0969daff");
+        PRIMER_LIGHT.put("seek.thumb", "#0969daff");
         PRIMER_LIGHT.put("slider.track", "#d0d7deff");
         PRIMER_LIGHT.put("slider.indicator", "#424242ff");
         PRIMER_LIGHT.put("slider.indicator.text", "#ffffffff");
@@ -186,6 +190,8 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("segmented.indicator", "#1f6febff");
         PRIMER_DARK.put("seek.track", "#30363dff");
         PRIMER_DARK.put("seek.secondary", "#6e7681ff");
+        PRIMER_DARK.put("seek.bar", "#1f6febff");
+        PRIMER_DARK.put("seek.thumb", "#1f6febff");
         PRIMER_DARK.put("slider.track", "#30363dff");
         PRIMER_DARK.put("slider.indicator", "#e0e0e0ff");
         PRIMER_DARK.put("slider.indicator.text", "#000000de");
@@ -315,6 +321,8 @@ public class RXControlColorsTest {
         assertEquals(roles.get("on-primary"), samples.get("segmented.selected"), "selected segment label on the pill");
         assertEquals(roles.get("outline"), samples.get("seek.track"), "seek bar track");
         assertEquals(roles.get("on-surface-disabled"), samples.get("seek.secondary"), "seek bar buffer");
+        assertEquals(roles.get("primary"), samples.get("seek.bar"), "seek bar progress");
+        assertEquals(roles.get("primary"), samples.get("seek.thumb"), "seek bar thumb");
         assertEquals(roles.get("outline"), samples.get("slider.track"), "slider track");
         assertEquals(roles.get("surface-variant"), samples.get("wave.container"), "wave container");
         assertEquals("#757575ff", samples.get("avatar.icon-disc"), "avatar placeholder disc");

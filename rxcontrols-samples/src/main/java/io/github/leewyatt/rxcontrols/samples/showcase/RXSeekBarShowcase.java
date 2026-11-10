@@ -6,14 +6,18 @@ import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.samples.support.SampleColors;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import javafx.scene.text.TextAlignment;
 
 import java.util.List;
@@ -23,17 +27,14 @@ import java.util.Locale;
  * Showcase application for {@link RXSeekBar}.
  *
  * <p>Exposes the normalized primary and secondary progress values and the
- * looked-up colors used by the default stylesheet. For a minimal example see
+ * looked-up colors used by the default stylesheet. The colors follow the active
+ * theme until "Custom colors" is checked. For a minimal example see
  * {@link RXSeekBarDemo}.</p>
  */
 public class RXSeekBarShowcase extends RXShowcaseApplication {
 
     private RXSeekBar seekBar;
     private Slider progressSlider;
-    private ColorPicker trackPicker;
-    private ColorPicker secondaryPicker;
-    private ColorPicker barPicker;
-    private ColorPicker thumbPicker;
     private boolean syncingProgress;
 
     // ==================== Showcase wiring ====================
@@ -119,36 +120,63 @@ public class RXSeekBarShowcase extends RXShowcaseApplication {
     }
 
     private Node buildColorGrid() {
-        trackPicker = createColorPicker(Color.web("#eaeaea"));
-        secondaryPicker = createColorPicker(Color.web("#dadada"));
-        barPicker = createColorPicker(Color.web("#1ecc94"));
-        thumbPicker = createColorPicker(Color.web("#1fdba4"));
-        updateSeekBarStyle();
+        CheckBox customColors = new CheckBox("Custom colors");
+        BooleanBinding usingThemeColors = customColors.selectedProperty().not();
+        ColorPicker trackPicker = createColorPicker(usingThemeColors);
+        ColorPicker secondaryPicker = createColorPicker(usingThemeColors);
+        ColorPicker barPicker = createColorPicker(usingThemeColors);
+        ColorPicker thumbPicker = createColorPicker(usingThemeColors);
+
+        // Inline styles beat every stylesheet, and clearing them gives the colors back
+        // to the theme.
+        Runnable applyColors = () -> seekBar.setStyle(customColors.isSelected()
+                ? String.format(Locale.ROOT,
+                        "-rx-track-fill: %s; -rx-secondary-fill: %s; -rx-bar-fill: %s; -rx-thumb-fill: %s;",
+                        SampleColors.toCss(trackPicker.getValue()),
+                        SampleColors.toCss(secondaryPicker.getValue()),
+                        SampleColors.toCss(barPicker.getValue()),
+                        SampleColors.toCss(thumbPicker.getValue()))
+                : "");
+        customColors.selectedProperty().addListener((obs, wasCustom, custom) -> {
+            if (custom) {
+                // Read every themed fill first: seeding a picker applies an inline style,
+                // which resets the fills until CSS is applied again.
+                Paint track = fillOf(".track");
+                Paint secondary = fillOf(".secondary-bar");
+                Paint bar = fillOf(".bar");
+                Paint thumb = fillOf(".thumb");
+                SampleColors.seed(trackPicker, track);
+                SampleColors.seed(secondaryPicker, secondary);
+                SampleColors.seed(barPicker, bar);
+                SampleColors.seed(thumbPicker, thumb);
+            }
+            applyColors.run();
+        });
+        for (ColorPicker picker : List.of(trackPicker, secondaryPicker, barPicker, thumbPicker)) {
+            picker.valueProperty().addListener((obs, oldColor, color) -> applyColors.run());
+        }
 
         return createGrid(
+                row(customColors),
                 row("Track", trackPicker),
                 row("Secondary", secondaryPicker),
                 row("Bar", barPicker),
                 row("Thumb", thumbPicker));
     }
 
-    private ColorPicker createColorPicker(Color color) {
-        ColorPicker picker = new ColorPicker(color);
+    private ColorPicker createColorPicker(BooleanBinding disabled) {
+        ColorPicker picker = new ColorPicker();
         picker.setMaxWidth(Double.MAX_VALUE);
-        picker.setOnAction(e -> updateSeekBarStyle());
+        picker.disableProperty().bind(disabled);
         return picker;
     }
 
-    private void updateSeekBarStyle() {
-        if (seekBar == null || trackPicker == null) {
-            return;
-        }
-        seekBar.setStyle(String.format(Locale.ROOT,
-                "-rx-track-fill: %s; -rx-secondary-fill: %s; -rx-bar-fill: %s; -rx-thumb-fill: %s;",
-                SampleColors.toCss(trackPicker.getValue()),
-                SampleColors.toCss(secondaryPicker.getValue()),
-                SampleColors.toCss(barPicker.getValue()),
-                SampleColors.toCss(thumbPicker.getValue())));
+    private Paint fillOf(String selector) {
+        Region region = (Region) seekBar.lookup(selector);
+        Background background = region == null ? null : region.getBackground();
+        return background == null || background.getFills().isEmpty()
+                ? null
+                : background.getFills().get(0).getFill();
     }
 
     /**

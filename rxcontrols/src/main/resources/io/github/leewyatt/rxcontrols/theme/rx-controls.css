@@ -682,8 +682,8 @@
 .rx-seek-bar {
     -rx-track-fill: ladder(-rx-surface, -rx-outline 45%, #e0e0e0 46%);
     -rx-secondary-fill: -rx-on-surface-disabled;
-    -rx-bar-fill: #1ecc94;
-    -rx-thumb-fill: #1fdba4;
+    -rx-bar-fill: -rx-primary;
+    -rx-thumb-fill: -rx-primary;
 }
 
 .rx-theme-atlantafx .rx-seek-bar,
@@ -712,17 +712,15 @@
     -fx-background-radius: 50%;
     -fx-pref-width: 12px;
     -fx-pref-height: 12px;
-    -fx-effect: dropshadow(three-pass-box, #57b479, 5, 0.5, 0, 0);
 }
 
 .rx-seek-bar > .thumb:hover {
     -fx-scale-x: 1.18;
     -fx-scale-y: 1.18;
-    -fx-effect: dropshadow(three-pass-box, #4f9a8e, 5, 0.5, 0, 0);
 }
 
 .rx-seek-bar:focused > .thumb {
-    -fx-effect: dropshadow(three-pass-box, #1f8f76, 7, 0.5, 0, 0);
+    -fx-effect: dropshadow(three-pass-box, derive(-rx-thumb-fill, -20%), 7, 0.5, 0, 0);
 }
 
 .rx-seek-bar:disabled {
