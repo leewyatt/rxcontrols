@@ -26,7 +26,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class RXTabPanePixelGridTest {
 
     private static final double EPSILON = 1.0e-9;
-    private static final double[] SCALES = {1.0, 1.25, 1.5, 1.75, 2.0};
+    // X and Y scales differ in the last two pairs so a vertical strip snapped with the X
+    // scale would be caught.
+    private static final double[][] SCALES = {{1.0, 1.0}, {1.25, 1.25}, {1.5, 1.5}, {1.75, 1.75}, {2.0, 2.0},
+            {1.5, 1.25}, {1.25, 1.5}};
     private static final double[] FRACTIONS = {0.0, 0.25, 0.5, 0.75, 1.0 / 3.0, 2.0 / 3.0};
 
     @BeforeAll
@@ -52,12 +55,13 @@ public class RXTabPanePixelGridTest {
             for (Side side : Side.values()) {
                 boolean vertical = side.isVertical();
                 for (int count = 2; count <= 7; count++) {
-                    for (double scale : SCALES) {
+                    for (double[] scales : SCALES) {
+                        double scale = vertical ? scales[1] : scales[0];
                         RXTabPane tabPane = tabPane(side, count);
                         Pane root = new Pane(tabPane);
                         Stage stage = stageFor(root);
-                        stage.setRenderScaleX(scale);
-                        stage.setRenderScaleY(scale);
+                        stage.setRenderScaleX(scales[0]);
+                        stage.setRenderScaleY(scales[1]);
                         for (int base = 150; base < 260; base++) {
                             for (double fraction : FRACTIONS) {
                                 double extent = base + fraction;
@@ -68,7 +72,7 @@ public class RXTabPanePixelGridTest {
                                 }
                                 root.applyCss();
                                 tabPane.layout();
-                                assertStrip(tabPane, vertical, scale, side + ", " + count + " tabs, scale " + scale
+                                assertStrip(tabPane, vertical, scale, side + ", " + count + " tabs, scale " + scales[0] + "/" + scales[1]
                                         + ", extent " + extent);
                             }
                         }

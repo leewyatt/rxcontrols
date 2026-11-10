@@ -151,6 +151,32 @@ public class RXSegmentedControlPixelGridTest {
     }
 
     /**
+     * Verifies equal segments with the theme padding and no spacing end exactly on the
+     * content edge, where ceiling each cumulative edge used to overshoot it.
+     */
+    @Test
+    public void themePaddingWithoutSpacingEndsOnTheContentEdge() throws Exception {
+        runOnFx(() -> {
+            RXSegmentedControl<String> control = new RXSegmentedControl<>();
+            for (int i = 0; i < 3; i++) {
+                control.getItems().add(new RXSegmentedItem<>("v" + i, "Item " + i));
+            }
+            control.setBlock(true);
+            control.setAnimated(false);
+            control.setManaged(false);
+            Pane root = new Pane(control);
+            stageFor(root).setRenderScaleX(1.5);
+            for (double width = 300.0; width < 320.0; width += 0.25) {
+                layout(root, control, width);
+                double hi = snapCeil(control.getWidth(), 1.5) - control.snappedRightInset();
+                List<Region> segments = segments(control);
+                Region last = segments.get(segments.size() - 1);
+                assertEquals(hi, last.getLayoutX() + last.getWidth(), EPSILON, "width " + width + ": trailing edge");
+            }
+        });
+    }
+
+    /**
      * Verifies a width below the total gaps collapses the segments to zero width while the
      * gaps keep their snapped size.
      */
