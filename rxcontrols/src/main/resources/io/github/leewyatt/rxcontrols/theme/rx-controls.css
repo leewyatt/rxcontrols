@@ -725,6 +725,10 @@
     -fx-effect: dropshadow(three-pass-box, #1f8f76, 7, 0.5, 0, 0);
 }
 
+.rx-seek-bar:disabled {
+    -fx-opacity: 0.4;
+}
+
 /*******************************************************************************
  *                                                                             *
  * RXSlider / RXRangeSlider                                                     *

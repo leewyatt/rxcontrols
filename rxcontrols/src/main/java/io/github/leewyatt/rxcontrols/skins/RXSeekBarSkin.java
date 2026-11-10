@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXSeekBar;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
+import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
 import javafx.geometry.Point2D;
 import javafx.scene.AccessibleAction;
@@ -10,6 +11,7 @@ import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -64,6 +66,8 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
         thumb.getStyleClass().add("thumb");
         thumb.setAccessibleRole(AccessibleRole.THUMB);
 
+        // The hit area under the bars takes every press on the content area.
+        track.setMouseTransparent(true);
         secondaryBar.setMouseTransparent(true);
         bar.setMouseTransparent(true);
 
@@ -80,10 +84,6 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
         disposer.registerEventHandler(hitArea, MouseEvent.MOUSE_DRAGGED, this::onHitAreaDragged);
         disposer.registerEventHandler(hitArea, MouseEvent.MOUSE_RELEASED, this::onPointerReleased);
 
-        disposer.registerEventHandler(track, MouseEvent.MOUSE_PRESSED, this::onTrackPressed);
-        disposer.registerEventHandler(track, MouseEvent.MOUSE_DRAGGED, this::onTrackDragged);
-        disposer.registerEventHandler(track, MouseEvent.MOUSE_RELEASED, this::onPointerReleased);
-
         disposer.registerEventHandler(thumb, MouseEvent.MOUSE_PRESSED, this::onThumbPressed);
         disposer.registerEventHandler(thumb, MouseEvent.MOUSE_DRAGGED, this::onThumbDragged);
         disposer.registerEventHandler(thumb, MouseEvent.MOUSE_RELEASED, this::onPointerReleased);
@@ -96,6 +96,9 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
     // ==================== Pointer interaction ====================
 
     private void onHitAreaPressed(MouseEvent event) {
+        if (event.getButton() != MouseButton.PRIMARY) {
+            return;
+        }
         beginPointerSeek();
         setProgressFromNode(hitArea, event);
         event.consume();
@@ -108,20 +111,10 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
         }
     }
 
-    private void onTrackPressed(MouseEvent event) {
-        beginPointerSeek();
-        setProgressFromNode(track, event);
-        event.consume();
-    }
-
-    private void onTrackDragged(MouseEvent event) {
-        if (pointerSeeking) {
-            setProgressFromNode(track, event);
-            event.consume();
-        }
-    }
-
     private void onThumbPressed(MouseEvent event) {
+        if (event.getButton() != MouseButton.PRIMARY) {
+            return;
+        }
         beginPointerSeek();
         dragStart = thumb.localToParent(event.getX(), event.getY());
         preDragProgress = RXMath.clamp0To1(getSkinnable().getProgress());
@@ -143,7 +136,7 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
     }
 
     private void onPointerReleased(MouseEvent event) {
-        if (pointerSeeking) {
+        if (pointerSeeking && event.getButton() == MouseButton.PRIMARY) {
             pointerSeeking = false;
             dragStart = null;
             getSkinnable().setSeeking(false);
@@ -174,14 +167,22 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
     // ==================== Discrete interaction ====================
 
     private void onKeyPressed(KeyEvent event) {
+        if (pointerSeeking) {
+            // A key commit would end the pointer seek before the button is released.
+            return;
+        }
         RXSeekBar control = getSkinnable();
         double current = RXMath.clamp0To1(control.getProgress());
         KeyCode code = event.getCode();
-        if (code == KeyCode.LEFT) {
-            commitUserValue(current - DEFAULT_KEYBOARD_STEP);
+        // Mirrored for right-to-left: the arrow moves the thumb in its own direction.
+        double step = control.getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT
+                ? -DEFAULT_KEYBOARD_STEP
+                : DEFAULT_KEYBOARD_STEP;
+        if (code == KeyCode.LEFT || code == KeyCode.KP_LEFT) {
+            commitUserValue(current - step);
             event.consume();
-        } else if (code == KeyCode.RIGHT) {
-            commitUserValue(current + DEFAULT_KEYBOARD_STEP);
+        } else if (code == KeyCode.RIGHT || code == KeyCode.KP_RIGHT) {
+            commitUserValue(current + step);
             event.consume();
         } else if (code == KeyCode.HOME) {
             commitUserValue(0.0);
@@ -245,9 +246,9 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
     @Override
     protected double computeMinWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
+        // A track two thumbs long, plus half a thumb past each end.
         double thumbW = thumb.prefWidth(-1);
-        double minTrackLength = 2.0 * thumbW;
-        return leftInset + minTrackLength + thumb.minWidth(-1) + rightInset;
+        return leftInset + 3.0 * thumbW + rightInset;
     }
 
     @Override
@@ -285,6 +286,17 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
     public double computeBaselineOffset(double topInset, double rightInset,
                                         double bottomInset, double leftInset) {
         return Node.BASELINE_OFFSET_SAME_AS_HEIGHT;
+    }
+
+    // ==================== Dispose ====================
+
+    @Override
+    protected void disposeSkin() {
+        if (pointerSeeking) {
+            pointerSeeking = false;
+            dragStart = null;
+            getSkinnable().setSeeking(false);
+        }
     }
 
     // ==================== Accessibility ====================
