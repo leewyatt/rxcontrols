@@ -1019,14 +1019,13 @@ public class RXMasonryPaneTest {
         runOnFx(() -> {
             for (Pos pos : new Pos[] {Pos.TOP_LEFT, Pos.TOP_CENTER, Pos.TOP_RIGHT}) {
                 // Ten full-width cards fill the first rows; a margined card and a card
-                // capped narrower than its column follow below them.
+                // narrower than its column follow below them.
                 Region[] cards = new Region[12];
                 cards[0] = card(130.0, 30.0);
                 for (int i = 1; i < cards.length; i++) {
                     cards[i] = card(60.0, 30.0);
                 }
                 cards[11].setPrefWidth(40.0);
-                cards[11].setMaxWidth(Region.USE_PREF_SIZE);
                 RXMasonryPane pane = paddedFilledPane(cards);
                 RXMasonryPane.setColumnSpan(cards[0], 2);
                 RXMasonryPane.setMargin(cards[10], new Insets(1.5, 2.0, 0.0, 3.0));
@@ -1054,6 +1053,7 @@ public class RXMasonryPaneTest {
                                     firstRow.add(card);
                                 }
                             }
+                            assertTrue(firstRow.size() >= 2, at + ": first row holds " + firstRow.size() + " cards");
                             firstRow.sort(Comparator.comparingDouble(Region::getLayoutX));
                             for (int i = 1; i < firstRow.size(); i++) {
                                 Region previous = firstRow.get(i - 1);
@@ -1063,6 +1063,12 @@ public class RXMasonryPaneTest {
                             }
                             assertTrue(first >= left - 1e-9, at + ": first " + first + " < " + left);
                             assertTrue(last <= right + 1e-9, at + ": last " + last + " > " + right);
+                            double columnX = cards[10].getLayoutX() - Math.round(3.0 * scale) / scale;
+                            boolean onColumn = false;
+                            for (int i = 0; i < 10; i++) {
+                                onColumn |= Math.abs(cards[i].getLayoutX() - columnX) < 1e-9;
+                            }
+                            assertTrue(onColumn, at + ": the margined card is not inset from a column");
                             double unit = 1.0 / scale;
                             switch (pos.getHpos()) {
                                 case LEFT -> assertClose(left, first, at + ": leading edge");
@@ -1090,8 +1096,10 @@ public class RXMasonryPaneTest {
             pane.setAlignment(Pos.TOP_CENTER);
             stageFor(pane).setRenderScaleX(1.5);
             // The content width 301 - 4 - 22/3 holds four 60 px columns (270 px). Half the
-            // slack is 14.625 device pixels and rounds to 15; the floored width would leave
-            // just under 14.5 and round to 14.
+            // slack is 14.75 device pixels and rounds to 15. Flooring the width would leave
+            // exactly 14.5, which still rounds to 15 in exact arithmetic; in doubles it lands
+            // just below and rounds to 14. The sample tells the two apart only through that
+            // tie, which a 1x or 2x scale would not produce.
             layout(pane, 301.0, 600.0);
             assertEquals(4, pane.getActualColumnCount());
             assertClose(4.0 + 15.0 / 1.5, cards[0].getLayoutX(), "first column x");
