@@ -26,6 +26,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
 
 import java.util.List;
 
@@ -72,7 +73,7 @@ public class RXRowShowcase extends RXShowcaseApplication {
 
     @Override
     protected String windowTitle() {
-        return "RXResponsiveLayout Showcase";
+        return "RXRow Showcase";
     }
 
     @Override
@@ -325,6 +326,15 @@ public class RXRowShowcase extends RXShowcaseApplication {
         VBox tile = new VBox(8.0, header, bodyPane);
         tile.getStyleClass().add("tile");
         VBox.setVgrow(bodyPane, Priority.ALWAYS);
+        // Tiles compress to whatever width their column gets, so the tile always shows the
+        // column itself: labels ellipsize and content wider than the column is clipped.
+        header.setMinWidth(0.0);
+        bodyPane.setMinWidth(0.0);
+        tile.setMinWidth(0.0);
+        Rectangle clip = new Rectangle();
+        clip.widthProperty().bind(tile.widthProperty());
+        clip.heightProperty().bind(tile.heightProperty());
+        tile.setClip(clip);
         return tile;
     }
 
