@@ -1010,20 +1010,26 @@ public class RXMasonryPaneTest {
     }
 
     /**
-     * Verifies fixed columns stay inside the content area for every alignment, with a
-     * right-aligned block flush with the content edge, at any render scale.
+     * Verifies fixed columns stay inside the content area and on the pixel grid for every
+     * alignment at any render scale: a right-aligned block ends within a device pixel of
+     * the content edge.
      */
     @Test
     public void fixedColumnsStayInsideTheContentAreaForEveryAlignment() throws Exception {
         runOnFx(() -> {
             for (Pos pos : new Pos[] {Pos.TOP_LEFT, Pos.TOP_CENTER, Pos.TOP_RIGHT}) {
-                Region[] cards = new Region[10];
+                // Ten full-width cards fill the first rows; a margined card and a card
+                // capped narrower than its column follow below them.
+                Region[] cards = new Region[12];
                 cards[0] = card(130.0, 30.0);
                 for (int i = 1; i < cards.length; i++) {
                     cards[i] = card(60.0, 30.0);
                 }
+                cards[11].setPrefWidth(40.0);
+                cards[11].setMaxWidth(Region.USE_PREF_SIZE);
                 RXMasonryPane pane = paddedFilledPane(cards);
                 RXMasonryPane.setColumnSpan(cards[0], 2);
+                RXMasonryPane.setMargin(cards[10], new Insets(1.5, 2.0, 0.0, 3.0));
                 pane.setFillWidth(false);
                 pane.setAlignment(pos);
                 Stage stage = stageFor(pane);
@@ -1038,10 +1044,22 @@ public class RXMasonryPaneTest {
                             double right = pane.getWidth() - pane.snappedRightInset();
                             double first = Double.MAX_VALUE;
                             double last = -Double.MAX_VALUE;
+                            List<Region> firstRow = new ArrayList<>();
                             for (Region card : cards) {
                                 assertOnGrid(card.getLayoutX(), scale, at + ": x");
+                                assertOnGrid(card.getLayoutX() + card.getWidth(), scale, at + ": end");
                                 first = Math.min(first, card.getLayoutX());
                                 last = Math.max(last, card.getLayoutX() + card.getWidth());
+                                if (card.getLayoutY() == pane.snappedTopInset()) {
+                                    firstRow.add(card);
+                                }
+                            }
+                            firstRow.sort(Comparator.comparingDouble(Region::getLayoutX));
+                            for (int i = 1; i < firstRow.size(); i++) {
+                                Region previous = firstRow.get(i - 1);
+                                assertTrue(firstRow.get(i).getLayoutX()
+                                        >= previous.getLayoutX() + previous.getWidth() - 1e-9,
+                                        at + ": card " + i + " overlaps the one before");
                             }
                             assertTrue(first >= left - 1e-9, at + ": first " + first + " < " + left);
                             assertTrue(last <= right + 1e-9, at + ": last " + last + " > " + right);
@@ -1057,6 +1075,26 @@ public class RXMasonryPaneTest {
                     }
                 }
             }
+        });
+    }
+
+    /**
+     * Verifies a centred fixed block keeps its offset from the unfloored content width.
+     */
+    @Test
+    public void centredFixedColumnsKeepTheUnflooredOffset() throws Exception {
+        runOnFx(() -> {
+            Region[] cards = {card(60.0, 30.0), card(60.0, 30.0), card(60.0, 30.0), card(60.0, 30.0)};
+            RXMasonryPane pane = paddedFilledPane(cards);
+            pane.setFillWidth(false);
+            pane.setAlignment(Pos.TOP_CENTER);
+            stageFor(pane).setRenderScaleX(1.5);
+            // The content width 301 - 4 - 22/3 holds four 60 px columns (270 px). Half the
+            // slack is 14.625 device pixels and rounds to 15; the floored width would leave
+            // just under 14.5 and round to 14.
+            layout(pane, 301.0, 600.0);
+            assertEquals(4, pane.getActualColumnCount());
+            assertClose(4.0 + 15.0 / 1.5, cards[0].getLayoutX(), "first column x");
         });
     }
 
