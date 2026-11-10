@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal.slider;
 
+import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
 
@@ -17,9 +18,6 @@ public final class SliderValueText {
     private static final int MAX_FRACTION_DIGITS = 4;
     // Absorbs the rounding in log10 for exact powers of ten.
     private static final double LOG_TOLERANCE = 1.0e-9;
-    // A value is taken as whole when it is this many ulps from an integer: enough for
-    // the rounding of a few multiplications by ten, far below any real fraction.
-    private static final double WHOLE_ULPS = 8.0;
 
     private SliderValueText() {
     }
@@ -71,15 +69,12 @@ public final class SliderValueText {
         return (int) Math.ceil(-Math.log10(step) - LOG_TOLERANCE);
     }
 
-    // 25 -> 0, 0.5 -> 1, -0.25 -> 2; a repeating fraction such as 1/3 takes the cap.
+    // The decimals left after rounding to the shown precision: 25 -> 0, 0.5 -> 1,
+    // -0.25 -> 2, 1/3 -> 4, and 0.1 * 3 (0.30000000000000004) -> 1.
     private static int decimalsOf(double number) {
-        double scaled = Math.abs(number);
-        for (int digits = 0; digits < MAX_FRACTION_DIGITS; digits++) {
-            if (Math.abs(scaled - Math.rint(scaled)) <= WHOLE_ULPS * Math.ulp(scaled)) {
-                return digits;
-            }
-            scaled *= 10.0;
-        }
-        return MAX_FRACTION_DIGITS;
+        BigDecimal shown = BigDecimal.valueOf(number)
+                .setScale(MAX_FRACTION_DIGITS, RoundingMode.HALF_UP)
+                .stripTrailingZeros();
+        return Math.max(0, shown.scale());
     }
 }

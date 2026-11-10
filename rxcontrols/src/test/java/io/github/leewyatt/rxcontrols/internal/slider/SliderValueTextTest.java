@@ -45,11 +45,15 @@ public class SliderValueTextTest {
         assertEquals("-99" + SEP + "5", SliderValueText.format(-99.5, -99.5, 0.5, 25.0));
     }
 
-    /** Verifies a large tick unit keeps its real fraction. */
+    /** Verifies a large tick unit keeps its real fraction, and float noise adds no digits. */
     @Test
-    public void largeTickUnitKeepsItsFraction() {
+    public void tickUnitDecimalsAreDecimalNotFloatNoise() {
         assertEquals("1000000000" + SEP + "5",
                 SliderValueText.format(1_000_000_000.5, 0.0, 2_000_000_000.0, 1_000_000_000.5));
+        // At this magnitude the double's shortest decimal form is ...0.12.
+        assertEquals("100000000000000" + SEP + "12",
+                SliderValueText.format(100_000_000_000_000.125, 0.0, 200_000_000_000_000.0, 100_000_000_000_000.125));
+        assertEquals("1" + SEP + "2", SliderValueText.format(1.2345, 0.0, 30.0, 0.1 * 3));
     }
 
     /** Verifies a value that rounds to zero shows 0, not -0. */
