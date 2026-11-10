@@ -47,6 +47,11 @@ import java.util.List;
  * keys / HOME / END move the focused thumb; keys the slider does not handle are
  * left unconsumed. A runtime tick toggle keeps both thumbs and the range bar. The
  * {@code *Changing} flags flip only during a pointer drag.</p>
+ *
+ * <p>With no gap a drag or key may carry a value past the other one; the values
+ * stay sorted and the thumb that now holds the dragged value takes focus, the
+ * active halo and the top of the stack. The last used thumb stays on top, so a
+ * press on coincident thumbs picks it.</p>
  */
 public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
 
@@ -83,12 +88,21 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
 
     // ==================== Pointer / focus state ====================
 
+    // A thumb or track drag keeps three things apart: the node that took the press
+    // (it keeps receiving the drag and release), the value being dragged, and the role
+    // that value holds once sorted against the other value, which may change as the
+    // drag crosses it.
+    private boolean thumbGesture;
+    private boolean gestureOwnerIsLow;
+    private boolean trackGesture;
+    private boolean trackDragging;
+    private boolean handOffDecided;
     private Point2D dragStart;
-    private double preDragValue;
-    private boolean dragging;
-    private boolean draggingLow;
+    private double draggedStart;
+    private double otherToken;
     private boolean pointerInLow;
     private boolean pointerInHigh;
+    // The role of the active thumb: the one being dragged, else the last used.
     private boolean activeThumbIsLow = true;
 
     private Point2D bandDragStart;
@@ -121,6 +135,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
 
         rebuildTicks();
         updateIndicatorTexts();
+        applyLayering();
         updateLowFeedback();
         updateHighFeedback();
     }
@@ -185,14 +200,16 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         disposer.registerListener(low.getThumb().pressedProperty(), this::updateLowFeedback);
         disposer.registerListener(high.getThumb().pressedProperty(), this::updateHighFeedback);
         disposer.registerListener(low.getThumb().focusedProperty(), () -> {
-            if (low.getThumb().isFocused()) {
+            if (low.getThumb().isFocused() && !activeThumbIsLow) {
                 activeThumbIsLow = true;
+                applyLayering();
             }
             updateLowFeedback();
         });
         disposer.registerListener(high.getThumb().focusedProperty(), () -> {
-            if (high.getThumb().isFocused()) {
+            if (high.getThumb().isFocused() && activeThumbIsLow) {
                 activeThumbIsLow = false;
+                applyLayering();
             }
             updateHighFeedback();
         });
@@ -204,9 +221,9 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
             if (control.isDisabled()) {
                 // A disabled node may never see the release, so end any in-flight
                 // gesture rather than strand an unreleased ripple or stuck flags.
+                endAllGestures();
                 low.clearInk();
                 high.clearInk();
-                cancelGestures();
             }
         });
         disposer.registerListener(control.rippleFillProperty(), () -> {
@@ -222,7 +239,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         disposer.registerListener(control.indicatorDisplayProperty(), this::updateBothFeedback);
         disposer.registerListener(control.rangeDraggableProperty(), () -> {
             fill.setMouseTransparent(!control.isRangeDraggable());
-            if (!control.isRangeDraggable() && bandDragging) {
+            if (!control.isRangeDraggable()) {
                 endBandDrag();
             }
         });
@@ -231,6 +248,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     private void registerPointerHandlers(RXRangeSlider control) {
         disposer.registerEventHandler(hitArea, MouseEvent.MOUSE_PRESSED, this::onTrackPressed);
         disposer.registerEventHandler(hitArea, MouseEvent.MOUSE_DRAGGED, this::onTrackDragged);
+        disposer.registerEventHandler(hitArea, MouseEvent.MOUSE_RELEASED, this::onTrackReleased);
 
         disposer.registerEventHandler(fill, MouseEvent.MOUSE_PRESSED, this::onBandPressed);
         disposer.registerEventHandler(fill, MouseEvent.MOUSE_DRAGGED, this::onBandDragged);
@@ -255,27 +273,24 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
             return;
         }
         RXRangeSlider control = getSkinnable();
-        SliderThumb unit = isLow ? low : high;
-        StackPane thumbNode = unit.getThumb();
-        thumbNode.requestFocus();
-        activeThumbIsLow = isLow;
-        if (isLow) {
-            control.setLowValueChanging(true);
-        } else {
-            control.setHighValueChanging(true);
-        }
-        dragging = true;
-        draggingLow = isLow;
+        StackPane thumbNode = unit(isLow).getThumb();
+        thumbGesture = true;
+        gestureOwnerIsLow = isLow;
+        handOffDecided = false;
         dragStart = thumbNode.localToParent(event.getX(), event.getY());
-        preDragValue = isLow ? control.getLowValue() : control.getHighValue();
+        draggedStart = valueOf(isLow);
+        otherToken = valueOf(!isLow);
+        setChanging(isLow);
+        setActiveRole(isLow);
         if (control.isRippleEnabled() && !control.isDisabled()) {
-            unit.pressInk(thumbNode.getWidth() * HALF, thumbNode.getHeight() * HALF);
+            unit(isLow).pressInk(thumbNode.getWidth() * HALF, thumbNode.getHeight() * HALF);
         }
+        updateBothFeedback();
         event.consume();
     }
 
     private void onThumbDragged(boolean isLow, MouseEvent event) {
-        if (!dragging || draggingLow != isLow || dragStart == null) {
+        if (!thumbGesture || gestureOwnerIsLow != isLow || dragStart == null) {
             return;
         }
         double trackLength = trackMainLength();
@@ -283,20 +298,18 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
             return;
         }
         RXRangeSlider control = getSkinnable();
-        StackPane thumbNode = (isLow ? low : high).getThumb();
-        Point2D current = thumbNode.localToParent(event.getX(), event.getY());
+        // The press target keeps the gesture, wherever its role has moved.
+        Point2D current = unit(isLow).getThumb().localToParent(event.getX(), event.getY());
         double mainDelta = vertical()
                 ? -(current.getY() - dragStart.getY())
                 : (current.getX() - dragStart.getX());
-        double deltaFraction = mainDelta / trackLength;
-        double newValue = preDragValue + deltaFraction * (control.getMax() - control.getMin());
-        // No snap during the drag; the property cross-clamps so the values never
-        // cross over.
-        if (isLow) {
-            control.setLowValue(newValue);
-        } else {
-            control.setHighValue(newValue);
+        double delta = mainDelta / trackLength * (control.getMax() - control.getMin());
+        if (!handOffDecided && delta != 0.0) {
+            handOffDecided = true;
+            handOffIfBlocked(delta);
         }
+        // No snap during the drag; the release snaps.
+        dragTo(draggedStart + delta);
         event.consume();
     }
 
@@ -304,20 +317,11 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         if (event.getButton() != MouseButton.PRIMARY) {
             return;
         }
-        (isLow ? low : high).releaseInk();
-        if (!dragging || draggingLow != isLow) {
+        if (!thumbGesture || gestureOwnerIsLow != isLow) {
+            unit(isLow).releaseInk();
             return;
         }
-        dragging = false;
-        dragStart = null;
-        RXRangeSlider control = getSkinnable();
-        if (isLow) {
-            control.setLowValueChanging(false);
-            control.adjustLowValue(control.getLowValue());
-        } else {
-            control.setHighValueChanging(false);
-            control.adjustHighValue(control.getHighValue());
-        }
+        endPointerGesture();
         event.consume();
     }
 
@@ -340,22 +344,37 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         } else {
             nearerLow = Math.abs(value - control.getLowValue()) <= Math.abs(value - control.getHighValue());
         }
-        activeThumbIsLow = nearerLow;
-        (nearerLow ? low : high).getThumb().requestFocus();
-        moveActiveThumb(value);
+        setActiveRole(nearerLow);
+        // A press alone is a discrete commit; only a following drag flips a flag.
+        adjustThumb(nearerLow, value);
+        trackGesture = true;
+        trackDragging = false;
         event.consume();
     }
 
     private void onTrackDragged(MouseEvent event) {
-        if (!event.isPrimaryButtonDown()
-                || low.getThumb().isPressed() || high.getThumb().isPressed()) {
+        if (!trackGesture || !event.isPrimaryButtonDown()) {
             return;
         }
         double value = valueFromPointer(event);
         if (Double.isNaN(value)) {
             return;
         }
-        moveActiveThumb(value);
+        if (!trackDragging) {
+            trackDragging = true;
+            otherToken = valueOf(!activeThumbIsLow);
+            setChanging(activeThumbIsLow);
+            updateBothFeedback();
+        }
+        dragTo(value);
+        event.consume();
+    }
+
+    private void onTrackReleased(MouseEvent event) {
+        if (event.getButton() != MouseButton.PRIMARY || !trackGesture) {
+            return;
+        }
+        endPointerGesture();
         event.consume();
     }
 
@@ -372,15 +391,6 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         return SliderGeometry.fractionToValue(fraction, control.getMin(), control.getMax());
     }
 
-    private void moveActiveThumb(double value) {
-        RXRangeSlider control = getSkinnable();
-        if (activeThumbIsLow) {
-            control.adjustLowValue(value);
-        } else {
-            control.adjustHighValue(value);
-        }
-    }
-
     private boolean vertical() {
         return getSkinnable().getOrientation() == Orientation.VERTICAL;
     }
@@ -389,14 +399,177 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         return vertical() ? track.getHeight() : track.getWidth();
     }
 
-    private void cancelGestures() {
+    // ==================== Crossing ====================
+
+    // Moves the dragged value to the candidate. With no gap the pair is re-sorted, so
+    // the dragged value passes the other one and its role flips; a candidate equal to
+    // the other value keeps the role. With a gap the active role stays and the
+    // property holds the gap.
+    private void dragTo(double candidate) {
         RXRangeSlider control = getSkinnable();
-        dragging = false;
+        double value = RXMath.clamp(candidate, control.getMin(), control.getMax());
+        if (gap() > 0.0) {
+            if (activeThumbIsLow) {
+                control.setLowValue(value);
+            } else {
+                control.setHighValue(value);
+            }
+            return;
+        }
+        boolean lowRole = value < otherToken || (value == otherToken && activeThumbIsLow);
+        if (lowRole != activeThumbIsLow) {
+            // Raise the second flag before the values move.
+            setChanging(lowRole);
+            moveInk(lowRole);
+            setActiveRole(lowRole);
+            updateBothFeedback();
+        }
+        writePair(lowRole ? value : otherToken, lowRole ? otherToken : value);
+    }
+
+    // With a gap the thumbs never cross. When they are drawn over each other and the
+    // first move of the pressed thumb heads toward the other one, the press moves to
+    // the other thumb, which can travel that way; it continues from its own value.
+    private void handOffIfBlocked(double delta) {
+        if (gap() <= 0.0 || !thumbsOverlap()) {
+            return;
+        }
+        boolean towardOther = activeThumbIsLow ? delta > 0.0 : delta < 0.0;
+        if (!towardOther) {
+            return;
+        }
+        boolean lowRole = !activeThumbIsLow;
+        double pressedValue = draggedStart;
+        draggedStart = otherToken;
+        otherToken = pressedValue;
+        setChanging(lowRole);
+        moveInk(lowRole);
+        setActiveRole(lowRole);
+        updateBothFeedback();
+    }
+
+    private boolean thumbsOverlap() {
+        RXRangeSlider control = getSkinnable();
+        double span = control.getMax() - control.getMin();
+        if (!(span > 0.0)) {
+            return false;
+        }
+        double distance = Math.abs(control.getHighValue() - control.getLowValue()) / span * trackMainLength();
+        return distance < low.getThumb().getWidth();
+    }
+
+    // Writes an ordered pair: moving up, the high value goes first, moving down the low
+    // value does, so every intermediate state keeps its order and gap and nothing is
+    // clamped on the way.
+    private void writePair(double lowValue, double highValue) {
+        RXRangeSlider control = getSkinnable();
+        if (lowValue > control.getLowValue()) {
+            control.setHighValue(highValue);
+            control.setLowValue(lowValue);
+        } else {
+            control.setLowValue(lowValue);
+            control.setHighValue(highValue);
+        }
+    }
+
+    // Ends a thumb or track gesture: snaps the dragged value, sorts it against the other
+    // value and writes the final pair, and only then clears the flags, so a commit on
+    // their falling edge reads the final values.
+    private void endPointerGesture() {
+        boolean dragged = thumbGesture || trackDragging;
+        boolean wasTrack = trackGesture;
+        thumbGesture = false;
+        trackGesture = false;
+        trackDragging = false;
         dragStart = null;
-        bandDragging = false;
-        bandDragStart = null;
+        if (!dragged) {
+            if (wasTrack) {
+                updateBothFeedback();
+            }
+            return;
+        }
+        RXRangeSlider control = getSkinnable();
+        double draggedValue = valueOf(activeThumbIsLow);
+        if (gap() > 0.0 || !(control.getMax() > control.getMin())) {
+            adjustThumb(activeThumbIsLow, draggedValue);
+        } else {
+            double snapped = snap(draggedValue);
+            boolean lowRole = snapped < otherToken || (snapped == otherToken && activeThumbIsLow);
+            if (lowRole != activeThumbIsLow) {
+                setChanging(lowRole);
+                setActiveRole(lowRole);
+            }
+            writePair(lowRole ? snapped : otherToken, lowRole ? otherToken : snapped);
+        }
+        low.releaseInk();
+        high.releaseInk();
         control.setLowValueChanging(false);
         control.setHighValueChanging(false);
+        updateBothFeedback();
+    }
+
+    private void endAllGestures() {
+        endBandDrag();
+        endPointerGesture();
+    }
+
+    private void setActiveRole(boolean isLow) {
+        if (activeThumbIsLow != isLow) {
+            activeThumbIsLow = isLow;
+            applyLayering();
+        }
+        unit(isLow).getThumb().requestFocus();
+    }
+
+    private void setChanging(boolean isLow) {
+        RXRangeSlider control = getSkinnable();
+        if (isLow) {
+            control.setLowValueChanging(true);
+        } else {
+            control.setHighValueChanging(true);
+        }
+    }
+
+    // Moves the press ink to the thumb that now holds the dragged value.
+    private void moveInk(boolean toLow) {
+        RXRangeSlider control = getSkinnable();
+        unit(!toLow).releaseInk();
+        if (control.isRippleEnabled() && !control.isDisabled()) {
+            StackPane thumbNode = unit(toLow).getThumb();
+            unit(toLow).pressInk(thumbNode.getWidth() * HALF, thumbNode.getHeight() * HALF);
+        }
+    }
+
+    // The active pair stacks above the other pair, each thumb above its own halo, and
+    // the value bubbles above every thumb; ticks and bars keep the default order 0.
+    private void applyLayering() {
+        SliderThumb top = activeThumbIsLow ? low : high;
+        SliderThumb bottom = activeThumbIsLow ? high : low;
+        bottom.getHalo().setViewOrder(-1.0);
+        bottom.getThumb().setViewOrder(-2.0);
+        top.getHalo().setViewOrder(-3.0);
+        top.getThumb().setViewOrder(-4.0);
+        lowIndicator.setViewOrder(-5.0);
+        highIndicator.setViewOrder(-5.0);
+    }
+
+    private SliderThumb unit(boolean isLow) {
+        return isLow ? low : high;
+    }
+
+    private double valueOf(boolean isLow) {
+        RXRangeSlider control = getSkinnable();
+        return isLow ? control.getLowValue() : control.getHighValue();
+    }
+
+    private double gap() {
+        return RXMath.sanitizeFiniteNonNegative(getSkinnable().getMinGap());
+    }
+
+    private double snap(double value) {
+        RXRangeSlider control = getSkinnable();
+        return SliderGeometry.snap(value, control.getMin(), control.getMax(),
+                control.getMajorTickUnit(), control.getMinorTickCount(), control.isSnapToTicks());
     }
 
     // ==================== Band drag ====================
@@ -412,6 +585,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         bandPreHigh = control.getHighValue();
         control.setLowValueChanging(true);
         control.setHighValueChanging(true);
+        updateBothFeedback();
         event.consume();
     }
 
@@ -443,15 +617,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
             newHigh = max;
             newLow = max - span;
         }
-        // Set in the direction of travel so neither value cross-clamps against
-        // the other's stale position mid-update.
-        if (deltaValue >= 0.0) {
-            control.setHighValue(newHigh);
-            control.setLowValue(newLow);
-        } else {
-            control.setLowValue(newLow);
-            control.setHighValue(newHigh);
-        }
+        writePair(newLow, newHigh);
         event.consume();
     }
 
@@ -459,19 +625,23 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         if (!bandDragging || event.getButton() != MouseButton.PRIMARY) {
             return;
         }
-        RXRangeSlider control = getSkinnable();
         endBandDrag();
-        control.adjustLowValue(control.getLowValue());
-        control.adjustHighValue(control.getHighValue());
         event.consume();
     }
 
+    // Ends a band drag: snaps both values first, then clears the flags.
     private void endBandDrag() {
+        if (!bandDragging) {
+            return;
+        }
         bandDragging = false;
         bandDragStart = null;
         RXRangeSlider control = getSkinnable();
+        control.adjustLowValue(control.getLowValue());
+        control.adjustHighValue(control.getHighValue());
         control.setLowValueChanging(false);
         control.setHighValueChanging(false);
+        updateBothFeedback();
     }
 
     // ==================== Keyboard interaction ====================
@@ -488,10 +658,10 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         boolean rtl = control.getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT;
 
         if (code == KeyCode.HOME) {
-            adjustThumb(isLow, control.getMin());
+            commitKey(isLow, control.getMin());
             event.consume();
         } else if (code == KeyCode.END) {
-            adjustThumb(isLow, control.getMax());
+            commitKey(isLow, control.getMax());
             event.consume();
         } else if (horizontal && (code == KeyCode.LEFT || code == KeyCode.KP_LEFT)) {
             stepThumb(isLow, rtl);
@@ -512,7 +682,24 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         RXRangeSlider control = getSkinnable();
         double step = control.isSnapToTicks() ? snapAwareStep() : control.getBlockIncrement();
         double current = isLow ? control.getLowValue() : control.getHighValue();
-        adjustThumb(isLow, current + (increment ? step : -step));
+        commitKey(isLow, current + (increment ? step : -step));
+    }
+
+    // A key commit: with no gap a value past the other one takes the other role and
+    // focus follows it; a value equal to the other keeps its role.
+    private void commitKey(boolean isLow, double value) {
+        RXRangeSlider control = getSkinnable();
+        if (gap() > 0.0 || !(control.getMax() > control.getMin())) {
+            adjustThumb(isLow, value);
+            return;
+        }
+        double snapped = snap(value);
+        double other = valueOf(!isLow);
+        boolean lowRole = snapped < other || (snapped == other && isLow);
+        if (lowRole != isLow) {
+            setActiveRole(lowRole);
+        }
+        writePair(lowRole ? snapped : other, lowRole ? other : snapped);
     }
 
     private void adjustThumb(boolean isLow, double value) {
@@ -551,7 +738,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         boolean enabled = control.isStateOverlayEnabled() && !control.isDisabled();
         StackPane thumbNode = low.getThumb();
         low.setState(enabled && pointerInLow, enabled && thumbNode.isFocused(),
-                enabled && thumbNode.isPressed(), enabled && control.isLowValueChanging());
+                enabled && thumbGesture && activeThumbIsLow, enabled && dragsRole(true));
         updateIndicatorVisibility();
     }
 
@@ -560,7 +747,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         boolean enabled = control.isStateOverlayEnabled() && !control.isDisabled();
         StackPane thumbNode = high.getThumb();
         high.setState(enabled && pointerInHigh, enabled && thumbNode.isFocused(),
-                enabled && thumbNode.isPressed(), enabled && control.isHighValueChanging());
+                enabled && thumbGesture && !activeThumbIsLow, enabled && dragsRole(false));
         updateIndicatorVisibility();
     }
 
@@ -578,14 +765,18 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         }
     }
 
+    // The halo and bubble follow the role the dragged value holds, not the press
+    // target or the changing flags, which both stay up across a crossing.
+    private boolean dragsRole(boolean isLow) {
+        return bandDragging || ((thumbGesture || trackDragging) && activeThumbIsLow == isLow);
+    }
+
     private boolean lowActive() {
-        StackPane thumbNode = low.getThumb();
-        return getSkinnable().isLowValueChanging() || thumbNode.isPressed() || thumbNode.isFocused();
+        return dragsRole(true) || low.getThumb().isFocused();
     }
 
     private boolean highActive() {
-        StackPane thumbNode = high.getThumb();
-        return getSkinnable().isHighValueChanging() || thumbNode.isPressed() || thumbNode.isFocused();
+        return dragsRole(false) || high.getThumb().isFocused();
     }
 
     private void updateIndicatorTexts() {
@@ -886,10 +1077,8 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
 
     @Override
     protected void disposeSkin() {
-        if (dragging || bandDragging) {
-            // End the drag so the *Changing flags do not stay true without a release.
-            cancelGestures();
-        }
+        // End a drag in flight so the changing flags do not stay true without a release.
+        endAllGestures();
         lowAnimator.dispose();
         highAnimator.dispose();
         low.dispose();

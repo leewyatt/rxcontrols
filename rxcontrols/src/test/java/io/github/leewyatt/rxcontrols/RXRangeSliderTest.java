@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
 import io.github.leewyatt.rxcontrols.skins.RXRangeSliderSkin;
 import javafx.application.Platform;
 import javafx.event.EventType;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.text.DecimalFormatSymbols;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -33,6 +35,7 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -170,7 +173,7 @@ public class RXRangeSliderTest {
      * @throws Exception if the FX action fails
      */
     @Test
-    public void thumbDragsFlipChangingFlagsAndDoNotCross() throws Exception {
+    public void thumbDragsFlipOnlyTheirOwnChangingFlag() throws Exception {
         runOnFx(() -> {
             RXRangeSlider slider = scened(200.0, 30.0);
             Region track = (Region) slider.lookup(".track");
@@ -185,12 +188,10 @@ public class RXRangeSliderTest {
             lowThumb.fireEvent(mouseAt(lowThumb, MouseEvent.MOUSE_DRAGGED,
                     cx + 0.2 * track.getWidth(), cy, MouseButton.PRIMARY, true));
             assertEquals(45.0, slider.getLowValue(), PIXEL_TOLERANCE);
-            // Drag past the high value: the low value clamps at the high value.
-            lowThumb.fireEvent(mouseAt(lowThumb, MouseEvent.MOUSE_DRAGGED,
-                    cx + 0.9 * track.getWidth(), cy, MouseButton.PRIMARY, true));
-            assertEquals(slider.getHighValue(), slider.getLowValue(), EPSILON);
+            // A drag that stays below the high value leaves the high flag alone.
+            assertFalse(slider.isHighValueChanging());
             lowThumb.fireEvent(mouseAt(lowThumb, MouseEvent.MOUSE_RELEASED,
-                    cx + 0.9 * track.getWidth(), cy, MouseButton.PRIMARY, false));
+                    cx + 0.2 * track.getWidth(), cy, MouseButton.PRIMARY, false));
             assertFalse(slider.isLowValueChanging());
 
             highThumb.fireEvent(mouseAt(highThumb, MouseEvent.MOUSE_PRESSED, cx, cy, MouseButton.PRIMARY, true));
@@ -737,7 +738,375 @@ public class RXRangeSliderTest {
         });
     }
 
+    // ==================== Crossing ====================
+
+    /**
+     * Verifies a thumb drag passes the other thumb and back within one gesture; focus
+     * and the active halo follow the role the dragged value holds, both changing
+     * flags stay up until the release, and nothing reports a commit mid-drag.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void thumbDragCrossesTheOtherThumbAndBack() throws Exception {
+        runOnFx(() -> {
+            RXRangeSlider slider = scened(200.0, 30.0);
+            slider.setLowValue(20.0);
+            slider.setHighValue(60.0);
+            slider.layout();
+            Region track = (Region) slider.lookup(".track");
+            Region lowThumb = roleThumb(slider, true);
+            Region highThumb = roleThumb(slider, false);
+            List<String> flagChanges = recordFlags(slider);
+            double w = track.getWidth();
+
+            // Pointer positions are track points: the pressed node keeps the gesture
+            // but moves with its role, so its local coordinates would drift.
+            pointerOnTrack(lowThumb, track, MouseEvent.MOUSE_PRESSED, 0.2 * w, true);
+            pointerOnTrack(lowThumb, track, MouseEvent.MOUSE_DRAGGED, 0.8 * w, true);
+            slider.layout();
+            assertEquals(60.0, slider.getLowValue(), PIXEL_TOLERANCE);
+            assertEquals(80.0, slider.getHighValue(), PIXEL_TOLERANCE);
+            assertTrue(slider.isLowValueChanging());
+            assertTrue(slider.isHighValueChanging());
+            assertSame(highThumb, slider.getScene().getFocusOwner());
+            assertTrue(haloOf(slider, highThumb).getTargetOpacity() > 0.0);
+            assertEquals(0.0, haloOf(slider, lowThumb).getTargetOpacity(), EPSILON);
+
+            // Back below the value it passed: the dragged value takes the low role again.
+            pointerOnTrack(lowThumb, track, MouseEvent.MOUSE_DRAGGED, 0.1 * w, true);
+            slider.layout();
+            assertEquals(10.0, slider.getLowValue(), PIXEL_TOLERANCE);
+            assertEquals(60.0, slider.getHighValue(), PIXEL_TOLERANCE);
+            assertSame(lowThumb, slider.getScene().getFocusOwner());
+            assertTrue(haloOf(slider, lowThumb).getTargetOpacity() > 0.0);
+            assertEquals(0.0, haloOf(slider, highThumb).getTargetOpacity(), EPSILON);
+            assertFalse(flagChanges.stream().anyMatch(change -> change.endsWith("false")),
+                    "no flag falls mid-drag: " + flagChanges);
+
+            pointerOnTrack(lowThumb, track, MouseEvent.MOUSE_RELEASED, 0.1 * w, false);
+            assertFalse(slider.isLowValueChanging());
+            assertFalse(slider.isHighValueChanging());
+        });
+    }
+
+    /**
+     * Verifies coincident thumbs at either end pull apart with a drag of the front
+     * thumb toward the free side.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void coincidentThumbsAtTheEndsPullApart() throws Exception {
+        runOnFx(() -> {
+            for (double end : new double[] {100.0, 0.0}) {
+                RXRangeSlider slider = scened(200.0, 30.0);
+                // Move the value nearer the end first, so the other one is not held back.
+                if (end > 0.0) {
+                    slider.setHighValue(end);
+                    slider.setLowValue(end);
+                } else {
+                    slider.setLowValue(end);
+                    slider.setHighValue(end);
+                }
+                slider.layout();
+                Region track = (Region) slider.lookup(".track");
+                Region front = frontThumb(slider);
+                double cx = front.getWidth() / 2.0;
+                double cy = front.getHeight() / 2.0;
+                double dx = (end > 0.0 ? -0.3 : 0.3) * track.getWidth();
+                front.fireEvent(mouseAt(front, MouseEvent.MOUSE_PRESSED, cx, cy, MouseButton.PRIMARY, true));
+                front.fireEvent(mouseAt(front, MouseEvent.MOUSE_DRAGGED, cx + dx, cy, MouseButton.PRIMARY, true));
+                front.fireEvent(mouseAt(front, MouseEvent.MOUSE_RELEASED, cx + dx, cy, MouseButton.PRIMARY, false));
+                assertEquals(30.0, slider.getHighValue() - slider.getLowValue(), PIXEL_TOLERANCE, "end " + end);
+            }
+        });
+    }
+
+    /**
+     * Verifies the keyboard steps a thumb onto the other value without swapping
+     * roles, then past it, moving focus to the thumb that now holds the value; HOME
+     * and END cross the same way.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void keyboardCrossesAtTheOtherValue() throws Exception {
+        runOnFx(() -> {
+            RXRangeSlider slider = scened(200.0, 30.0);
+            slider.setLowValue(50.0);
+            slider.setHighValue(60.0);
+            Region lowThumb = roleThumb(slider, true);
+            Region highThumb = roleThumb(slider, false);
+            pressRelease(lowThumb);
+
+            slider.fireEvent(key(KeyCode.RIGHT));
+            assertEquals(60.0, slider.getLowValue(), EPSILON);
+            assertSame(lowThumb, slider.getScene().getFocusOwner(), "equal values keep the role");
+
+            slider.fireEvent(key(KeyCode.RIGHT));
+            assertEquals(60.0, slider.getLowValue(), EPSILON);
+            assertEquals(70.0, slider.getHighValue(), EPSILON);
+            assertSame(highThumb, slider.getScene().getFocusOwner());
+
+            slider.fireEvent(key(KeyCode.HOME));
+            assertEquals(0.0, slider.getLowValue(), EPSILON);
+            assertEquals(60.0, slider.getHighValue(), EPSILON);
+            assertSame(lowThumb, slider.getScene().getFocusOwner());
+            assertFalse(slider.isLowValueChanging());
+            assertFalse(slider.isHighValueChanging());
+        });
+    }
+
+    /**
+     * Verifies a crossing drag ends by snapping, sorting and writing the final pair
+     * before the flags fall, on release and when the slider is disabled mid-drag;
+     * a snap may send the value back across.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void crossingDragCommitSeesTheSnappedPair() throws Exception {
+        runOnFx(() -> {
+            for (boolean disableMidDrag : new boolean[] {false, true}) {
+                RXRangeSlider slider = scened(200.0, 30.0);
+                slider.setLowValue(25.0);
+                slider.setHighValue(52.0);
+                slider.setMinorTickCount(0);
+                slider.setSnapToTicks(true);
+                slider.layout();
+                List<String> committed = new ArrayList<>();
+                slider.highValueChangingProperty().addListener((obs, was, now) -> {
+                    if (!now) {
+                        committed.add(slider.getLowValue() + "/" + slider.getHighValue());
+                    }
+                });
+                Region track = (Region) slider.lookup(".track");
+                Region lowThumb = roleThumb(slider, true);
+                double cx = lowThumb.getWidth() / 2.0;
+                double cy = lowThumb.getHeight() / 2.0;
+                lowThumb.fireEvent(mouseAt(lowThumb, MouseEvent.MOUSE_PRESSED, cx, cy, MouseButton.PRIMARY, true));
+                lowThumb.fireEvent(mouseAt(lowThumb, MouseEvent.MOUSE_DRAGGED,
+                        cx + 0.29 * track.getWidth(), cy, MouseButton.PRIMARY, true));
+                assertEquals(52.0, slider.getLowValue(), PIXEL_TOLERANCE);
+                assertEquals(54.0, slider.getHighValue(), PIXEL_TOLERANCE);
+                if (disableMidDrag) {
+                    slider.setDisable(true);
+                } else {
+                    lowThumb.fireEvent(mouseAt(lowThumb, MouseEvent.MOUSE_RELEASED,
+                            cx + 0.29 * track.getWidth(), cy, MouseButton.PRIMARY, false));
+                }
+                // 54 snaps to 50, below the passed 52: the value goes back to the low role.
+                assertEquals(List.of("50.0/52.0"), committed, "disabled mid-drag: " + disableMidDrag);
+                assertFalse(slider.isLowValueChanging());
+            }
+        });
+    }
+
+    /**
+     * Verifies a track press picks the nearest thumb without flipping a flag, and a
+     * drag from there crosses the other thumb like a thumb drag.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void trackPressDragCrossesTheOtherThumb() throws Exception {
+        runOnFx(() -> {
+            RXRangeSlider slider = scened(200.0, 30.0);
+            slider.setLowValue(20.0);
+            slider.setHighValue(60.0);
+            slider.layout();
+            Region track = (Region) slider.lookup(".track");
+            double mid = track.getHeight() / 2.0;
+            Node hitArea = slider.getChildrenUnmodifiable().get(0);
+
+            pressTrack(track, 0.2 * track.getWidth(), mid);
+            assertFalse(slider.isLowValueChanging(), "a press alone stays discrete");
+            Point2D to = hitArea.sceneToLocal(track.localToScene(0.8 * track.getWidth(), mid));
+            hitArea.fireEvent(mouseAt(hitArea, MouseEvent.MOUSE_DRAGGED, to.getX(), to.getY(),
+                    MouseButton.PRIMARY, true));
+            assertEquals(60.0, slider.getLowValue(), PIXEL_TOLERANCE);
+            assertEquals(80.0, slider.getHighValue(), PIXEL_TOLERANCE);
+            assertTrue(slider.isLowValueChanging());
+            assertTrue(slider.isHighValueChanging());
+            hitArea.fireEvent(mouseAt(hitArea, MouseEvent.MOUSE_RELEASED, to.getX(), to.getY(),
+                    MouseButton.PRIMARY, false));
+            assertFalse(slider.isLowValueChanging());
+            assertFalse(slider.isHighValueChanging());
+        });
+    }
+
+    /**
+     * Verifies that with a small positive gap the overlapping thumbs still pull apart
+     * either way: a drag of the front thumb toward the other hands it to the other.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void tinyMinGapOverlapPullsApartEitherWay() throws Exception {
+        runOnFx(() -> {
+            for (double direction : new double[] {-1.0, 1.0}) {
+                RXRangeSlider slider = scened(200.0, 30.0);
+                slider.setMinGap(0.1);
+                slider.setLowValue(50.0);
+                slider.setHighValue(50.1);
+                slider.layout();
+                Region track = (Region) slider.lookup(".track");
+                Region front = frontThumb(slider);
+                double cx = front.getWidth() / 2.0;
+                double cy = front.getHeight() / 2.0;
+                double dx = direction * 0.2 * track.getWidth();
+                front.fireEvent(mouseAt(front, MouseEvent.MOUSE_PRESSED, cx, cy, MouseButton.PRIMARY, true));
+                front.fireEvent(mouseAt(front, MouseEvent.MOUSE_DRAGGED, cx + dx, cy, MouseButton.PRIMARY, true));
+                assertTrue(slider.isLowValueChanging() || slider.isHighValueChanging());
+                front.fireEvent(mouseAt(front, MouseEvent.MOUSE_RELEASED, cx + dx, cy, MouseButton.PRIMARY, false));
+                assertEquals(20.1, slider.getHighValue() - slider.getLowValue(), PIXEL_TOLERANCE,
+                        "direction " + direction);
+                assertFalse(slider.isLowValueChanging());
+                assertFalse(slider.isHighValueChanging());
+            }
+        });
+    }
+
+    /**
+     * Verifies the last used thumb and its halo stack above the other pair, and the
+     * value bubbles above every thumb.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void lastUsedThumbStacksOnTop() throws Exception {
+        runOnFx(() -> {
+            RXRangeSlider slider = scened(200.0, 30.0);
+            Region lowThumb = roleThumb(slider, true);
+            Region highThumb = roleThumb(slider, false);
+            for (Region used : new Region[] {highThumb, lowThumb}) {
+                Region other = used == lowThumb ? highThumb : lowThumb;
+                pressRelease(used);
+                slider.layout();
+                assertTrue(used.getViewOrder() < haloOf(slider, used).getViewOrder());
+                assertTrue(haloOf(slider, used).getViewOrder() < other.getViewOrder());
+                assertTrue(other.getViewOrder() < haloOf(slider, other).getViewOrder());
+                for (Node bubble : slider.lookupAll(".value-indicator")) {
+                    assertTrue(bubble.getViewOrder() < used.getViewOrder());
+                }
+                assertSame(used, frontThumb(slider));
+            }
+        });
+    }
+
+    /**
+     * Verifies a band drag keeps its span with a gap, both ways: neither value is
+     * clamped against the other's stale position on the way.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void bandDragKeepsItsSpanWithAGap() throws Exception {
+        runOnFx(() -> {
+            for (double direction : new double[] {1.0, -1.0}) {
+                RXRangeSlider slider = scened(200.0, 30.0);
+                // A span exactly the gap: writing the trailing value first would clamp it.
+                slider.setMinGap(20.0);
+                slider.setLowValue(40.0);
+                slider.setHighValue(60.0);
+                slider.layout();
+                Region track = (Region) slider.lookup(".track");
+                Region fill = (Region) slider.lookup(".fill");
+                double fx = fill.getWidth() / 2.0;
+                double fy = fill.getHeight() / 2.0;
+                double dx = direction * 0.2 * track.getWidth();
+                fill.fireEvent(mouseAt(fill, MouseEvent.MOUSE_PRESSED, fx, fy, MouseButton.PRIMARY, true));
+                fill.fireEvent(mouseAt(fill, MouseEvent.MOUSE_DRAGGED, fx + dx, fy, MouseButton.PRIMARY, true));
+                assertEquals(40.0 + direction * 20.0, slider.getLowValue(), PIXEL_TOLERANCE);
+                assertEquals(60.0 + direction * 20.0, slider.getHighValue(), PIXEL_TOLERANCE);
+                fill.fireEvent(mouseAt(fill, MouseEvent.MOUSE_RELEASED, fx + dx, fy, MouseButton.PRIMARY, false));
+            }
+        });
+    }
+
+    /**
+     * Verifies a band drag snaps both values before its flags fall.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void bandDragCommitSeesTheSnappedPair() throws Exception {
+        runOnFx(() -> {
+            RXRangeSlider slider = scened(200.0, 30.0);
+            slider.setMinorTickCount(0);
+            slider.setSnapToTicks(true);
+            List<String> committed = new ArrayList<>();
+            slider.lowValueChangingProperty().addListener((obs, was, now) -> {
+                if (!now) {
+                    committed.add(slider.getLowValue() + "/" + slider.getHighValue());
+                }
+            });
+            Region track = (Region) slider.lookup(".track");
+            Region fill = (Region) slider.lookup(".fill");
+            double fx = fill.getWidth() / 2.0;
+            double fy = fill.getHeight() / 2.0;
+            fill.fireEvent(mouseAt(fill, MouseEvent.MOUSE_PRESSED, fx, fy, MouseButton.PRIMARY, true));
+            fill.fireEvent(mouseAt(fill, MouseEvent.MOUSE_DRAGGED,
+                    fx + 0.1 * track.getWidth(), fy, MouseButton.PRIMARY, true));
+            fill.fireEvent(mouseAt(fill, MouseEvent.MOUSE_RELEASED,
+                    fx + 0.1 * track.getWidth(), fy, MouseButton.PRIMARY, false));
+            assertEquals(List.of("25.0/75.0"), committed);
+        });
+    }
+
     // ==================== Helpers ====================
+
+    /** Returns the thumb node that holds the low or the high value. */
+    private static Region roleThumb(RXRangeSlider slider, boolean low) {
+        String side = low ? "lower" : "upper";
+        return slider.lookupAll(".thumb").stream()
+                .filter(node -> node.getPseudoClassStates().stream()
+                        .anyMatch(pseudo -> pseudo.getPseudoClassName().equals(side)))
+                .map(node -> (Region) node)
+                .findFirst()
+                .orElseThrow();
+    }
+
+    /**
+     * Returns the thumb a press at a shared point picks: the lower view order, then
+     * the later child, as JavaFX paints and picks.
+     */
+    private static Region frontThumb(RXRangeSlider slider) {
+        List<Node> children = slider.getChildrenUnmodifiable();
+        return slider.lookupAll(".thumb").stream()
+                .map(node -> (Region) node)
+                .min(Comparator.comparingDouble(Region::getViewOrder)
+                        .thenComparing(Comparator.comparingInt((Region node) -> children.indexOf(node)).reversed()))
+                .orElseThrow();
+    }
+
+    /** Returns the halo centered on the given thumb. */
+    private static StateLayer haloOf(RXRangeSlider slider, Region thumb) {
+        double center = thumb.getBoundsInParent().getCenterX();
+        return slider.lookupAll(".state-overlay").stream()
+                .map(node -> (StateLayer) node)
+                .min(Comparator.comparingDouble(halo -> Math.abs(halo.getBoundsInParent().getCenterX() - center)))
+                .orElseThrow();
+    }
+
+    /**
+     * Fires a pointer event at a point on the track, delivered to the node that holds
+     * the gesture, as a real pointer at that place would be.
+     */
+    private static void pointerOnTrack(Region target, Region track, EventType<MouseEvent> type,
+                                       double trackX, boolean primaryDown) {
+        Point2D local = target.sceneToLocal(track.localToScene(trackX, track.getHeight() / 2.0));
+        target.fireEvent(mouseAt(target, type, local.getX(), local.getY(), MouseButton.PRIMARY, primaryDown));
+    }
+
+    /** Records every changing-flag transition as {@code low:true}, {@code high:false} and so on. */
+    private static List<String> recordFlags(RXRangeSlider slider) {
+        List<String> changes = new ArrayList<>();
+        slider.lowValueChangingProperty().addListener((obs, was, now) -> changes.add("low:" + now));
+        slider.highValueChangingProperty().addListener((obs, was, now) -> changes.add("high:" + now));
+        return changes;
+    }
 
     /** Returns the two value-indicator nodes ordered {@code [low, high]} by layout x. */
     private static Region[] indicators(RXRangeSlider slider) {
