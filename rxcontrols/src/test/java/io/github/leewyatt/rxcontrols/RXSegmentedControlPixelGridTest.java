@@ -181,8 +181,7 @@ public class RXSegmentedControlPixelGridTest {
         Region last = segments.get(segments.size() - 1);
         double end = last.getLayoutX() + last.getWidth();
         assertEquals(lo, segments.get(0).getLayoutX(), EPSILON, at + ": leading edge");
-        assertTrue(end <= hi + EPSILON, at + ": last segment ends at " + end + " past " + hi);
-        assertTrue(end > hi - unit - EPSILON, at + ": last segment stops short at " + end + " of " + hi);
+        assertEquals(hi, end, EPSILON, at + ": trailing edge");
         assertTrue(maxWidth - minWidth <= unit + EPSILON, at + ": segment widths differ by more than a pixel");
 
         // Node bounds are kept in float precision.

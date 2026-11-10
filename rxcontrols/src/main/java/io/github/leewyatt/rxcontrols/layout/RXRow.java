@@ -978,7 +978,9 @@ public class RXRow extends Pane {
             scale = 1.0;
         }
         double scaled = value * scale;
-        return Math.floor(scaled + Math.ulp(scaled)) / scale;
+        // The tolerance absorbs the rounding a few subtractions leave on a value that is
+        // on the grid, which can exceed one ulp and would otherwise drop a whole pixel.
+        return Math.floor(scaled + 1.0e-9) / scale;
     }
 
     private int columnsOrDefault() {

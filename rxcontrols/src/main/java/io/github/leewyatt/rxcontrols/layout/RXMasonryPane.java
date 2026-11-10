@@ -1527,7 +1527,9 @@ public class RXMasonryPane extends Pane {
 
     private double snapFloorX(double value) {
         double scale = snapScaleX();
-        return scale > 0.0 ? Math.floor(value * scale + Math.ulp(value * scale)) / scale : value;
+        // The tolerance absorbs the rounding a few subtractions leave on a value that is
+        // on the grid, which can exceed one ulp and would otherwise drop a whole pixel.
+        return scale > 0.0 ? Math.floor(value * scale + 1.0e-9) / scale : value;
     }
 
     private int childColumnSpan(Node child) {

@@ -1072,8 +1072,8 @@ public class RXMasonryPaneTest {
                             double unit = 1.0 / scale;
                             switch (pos.getHpos()) {
                                 case LEFT -> assertClose(left, first, at + ": leading edge");
-                                case RIGHT -> assertTrue(last > right - unit - 1e-9,
-                                        at + ": trailing edge " + last + " stops short of " + right);
+                                case RIGHT -> assertClose(left + Math.floor((right - left) * scale + 1.0e-9) / scale,
+                                        last, at + ": trailing edge");
                                 default -> assertTrue(Math.abs((first - left) - (right - last)) <= unit + 1e-9,
                                         at + ": centred within a pixel");
                             }

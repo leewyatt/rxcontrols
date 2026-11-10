@@ -201,7 +201,8 @@ public class RXFlowPanePixelGridTest {
         assertTrue(last <= hi + EPSILON, at + ": last " + last + " > " + hi);
         switch (edge) {
             case 0 -> assertEquals(lo, first, EPSILON, at + ": leading edge");
-            case 2 -> assertTrue(last > hi - unit - EPSILON, at + ": trailing edge " + last + " stops short of " + hi);
+            case 2 -> assertEquals(lo + Math.floor((hi - lo) * scale + 1.0e-9) / scale, last, EPSILON,
+                    at + ": trailing edge");
             default -> assertTrue(Math.abs((first - lo) - (hi - last)) <= unit + EPSILON, at + ": centred within a pixel");
         }
     }

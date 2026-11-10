@@ -1483,7 +1483,9 @@ public class RXFlowPane extends Pane {
     private static double snapFloor(double value, double scale) {
         double safeScale = Double.isFinite(scale) && scale > 0.0 ? scale : 1.0;
         double scaled = value * safeScale;
-        return Math.floor(scaled + Math.ulp(scaled)) / safeScale;
+        // The tolerance absorbs the rounding a few subtractions leave on a value that is
+        // on the grid, which can exceed one ulp and would otherwise drop a whole pixel.
+        return Math.floor(scaled + 1.0e-9) / safeScale;
     }
 
     private static double blockHOffset(double area, double content, HPos hpos) {

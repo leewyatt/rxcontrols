@@ -210,7 +210,8 @@ public class RXRowPixelGridTest {
             assertEquals(left, first, EPSILON, at + ": leading edge");
         }
         if (flushRight) {
-            assertTrue(last > right - unit - EPSILON, at + ": trailing edge " + last + " stops short of " + right);
+            double flooredRight = left + Math.floor((right - left) * scale + 1.0e-9) / scale;
+            assertEquals(flooredRight, last, EPSILON, at + ": trailing edge");
         }
         if (justify == RXRow.Justify.CENTER && noOffsets) {
             assertTrue(Math.abs((first - left) - (right - last)) <= unit + EPSILON,
