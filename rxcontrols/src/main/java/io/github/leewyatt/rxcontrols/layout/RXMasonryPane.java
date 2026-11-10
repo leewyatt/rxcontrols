@@ -1392,7 +1392,10 @@ public class RXMasonryPane extends Pane {
         boolean fill = resolution.fillWidth();
         // Filled tracks already span the content width, so the alignment has no slack to
         // place; the few sub-pixel leftovers of the floored width stay at the trailing edge.
-        double xOffset = fill ? 0.0 : computeXOffset(contentWidth, resolution.usedWidth(), hpos);
+        // A right-aligned block measures from the floored content edge: the width need not
+        // sit on the pixel grid, and a rounded offset would push the last column past it.
+        double alignWidth = hpos == HPos.RIGHT ? snapFloorX(contentWidth) : contentWidth;
+        double xOffset = fill ? 0.0 : computeXOffset(alignWidth, resolution.usedWidth(), hpos);
         double yOffset = computeYOffset(contentHeight, metrics.result().contentHeight(), vpos);
         boolean animate = isAnimated() && firstLayoutDone && getScene() != null
                 && isAnimationDurationPositive();
@@ -1520,6 +1523,11 @@ public class RXMasonryPane extends Pane {
         Window window = scene == null ? null : scene.getWindow();
         double scale = window == null ? 1.0 : window.getRenderScaleX();
         return Double.isFinite(scale) && scale > 0.0 ? scale : 1.0;
+    }
+
+    private double snapFloorX(double value) {
+        double scale = snapScaleX();
+        return scale > 0.0 ? Math.floor(value * scale + Math.ulp(value * scale)) / scale : value;
     }
 
     private int childColumnSpan(Node child) {

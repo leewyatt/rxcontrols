@@ -1009,6 +1009,78 @@ public class RXMasonryPaneTest {
         });
     }
 
+    /**
+     * Verifies fixed columns stay inside the content area for every alignment, with a
+     * right-aligned block flush with the content edge, at any render scale.
+     */
+    @Test
+    public void fixedColumnsStayInsideTheContentAreaForEveryAlignment() throws Exception {
+        runOnFx(() -> {
+            for (Pos pos : new Pos[] {Pos.TOP_LEFT, Pos.TOP_CENTER, Pos.TOP_RIGHT}) {
+                Region[] cards = new Region[10];
+                cards[0] = card(130.0, 30.0);
+                for (int i = 1; i < cards.length; i++) {
+                    cards[i] = card(60.0, 30.0);
+                }
+                RXMasonryPane pane = paddedFilledPane(cards);
+                RXMasonryPane.setColumnSpan(cards[0], 2);
+                pane.setFillWidth(false);
+                pane.setAlignment(pos);
+                Stage stage = stageFor(pane);
+                for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                    stage.setRenderScaleX(scale);
+                    for (int base = 300; base < 420; base++) {
+                        for (double fraction : new double[] {0.0, 0.25, 0.5, 0.75, 1.0 / 3.0, 2.0 / 3.0}) {
+                            double width = base + fraction;
+                            layout(pane, width, 600.0);
+                            String at = pos + ", scale " + scale + ", width " + width;
+                            double left = pane.snappedLeftInset();
+                            double right = pane.getWidth() - pane.snappedRightInset();
+                            double first = Double.MAX_VALUE;
+                            double last = -Double.MAX_VALUE;
+                            for (Region card : cards) {
+                                assertOnGrid(card.getLayoutX(), scale, at + ": x");
+                                first = Math.min(first, card.getLayoutX());
+                                last = Math.max(last, card.getLayoutX() + card.getWidth());
+                            }
+                            assertTrue(first >= left - 1e-9, at + ": first " + first + " < " + left);
+                            assertTrue(last <= right + 1e-9, at + ": last " + last + " > " + right);
+                            double unit = 1.0 / scale;
+                            switch (pos.getHpos()) {
+                                case LEFT -> assertClose(left, first, at + ": leading edge");
+                                case RIGHT -> assertTrue(last > right - unit - 1e-9,
+                                        at + ": trailing edge " + last + " stops short of " + right);
+                                default -> assertTrue(Math.abs((first - left) - (right - last)) <= unit + 1e-9,
+                                        at + ": centred within a pixel");
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a right-aligned fixed block keeps the continuous geometry, flush with the
+     * content edge, when the pane does not snap to pixels.
+     */
+    @Test
+    public void unsnappedRightAlignedColumnsEndAtTheContentEdge() throws Exception {
+        runOnFx(() -> {
+            // Four 60 px columns with a 10 px gap fit the 285.3 px content width.
+            Region[] cards = {card(60.0, 30.0), card(60.0, 30.0), card(60.0, 30.0), card(60.0, 30.0)};
+            RXMasonryPane pane = paddedFilledPane(cards);
+            pane.setFillWidth(false);
+            pane.setAlignment(Pos.TOP_RIGHT);
+            pane.setSnapToPixel(false);
+            stageFor(pane).setRenderScaleX(1.5);
+            layout(pane, 297.05, 600.0);
+            assertEquals(4, pane.getActualColumnCount());
+            Region last = cards[3];
+            assertClose(297.05 - 7.5, last.getLayoutX() + last.getWidth(), "trailing edge");
+        });
+    }
+
     // ==================== Assertions ====================
 
     private static void assertBox(Region region, double x, double y, double width, double height,
