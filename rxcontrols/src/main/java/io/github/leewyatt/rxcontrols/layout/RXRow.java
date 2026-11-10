@@ -22,7 +22,9 @@ import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
+import javafx.stage.Window;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -615,15 +617,33 @@ public class RXRow extends Pane {
             LineItem item = line.items().get(i);
             Node child = item.child();
             double itemOffset = justifyMetrics.edgeOffset() + i * justifyMetrics.itemGap();
-            double rawX = contentX + justifyMetrics.lineOffset() + itemOffset
-                    + contentWidth * item.startColumn() / columnsCount;
-            double rawWidth = contentWidth * item.span() / columnsCount;
-            double x = snapPositionX(rawX);
-            double right = snapPositionX(rawX + rawWidth);
+            double lineX = contentX + justifyMetrics.lineOffset() + itemOffset;
+            // Both edges come from the same column-boundary expression, so a column ends
+            // exactly where the next one starts instead of rounding a separate sum.
+            double x = snapPositionX(lineX + contentWidth * item.startColumn() / columnsCount);
+            double right = snapPositionX(lineX
+                    + contentWidth * (item.startColumn() + item.span()) / columnsCount);
             double width = Math.max(0.0, right - x);
 
             layoutInArea(child, x, y, width, line.height(), 0.0, null,
                     true, fillHeight, HPos.LEFT, vpos);
+            keepInsideSlot(child, width);
+        }
+    }
+
+    // layoutInArea ceils the slot width, and the JFX 17 ceiling moves some widths that
+    // already sit on the pixel grid up one device pixel; pull the column back so it
+    // cannot overlap the next one. A minimum width wider than the slot still wins.
+    private static void keepInsideSlot(Node child, double width) {
+        if (!child.isResizable()) {
+            return;
+        }
+        double height = child.getLayoutBounds().getHeight();
+        double minWidth = child.getContentBias() == Orientation.VERTICAL
+                ? child.minWidth(height)
+                : child.minWidth(-1.0);
+        if (child.getLayoutBounds().getWidth() > width && minWidth <= width) {
+            child.resize(width, height);
         }
     }
 
@@ -937,9 +957,27 @@ public class RXRow extends Pane {
         return computePrefWidth(-1.0);
     }
 
+    // Measure and layout share this width. It runs between the snapped insets and is
+    // floored to the pixel grid, so the last column ends inside the content edge even
+    // when the row width is off the grid.
     private double contentWidth(double rowWidth) {
-        Insets insets = getInsets();
-        return Math.max(0.0, rowWidth - insets.getLeft() - insets.getRight());
+        return Math.max(0.0, snapFloorX(rowWidth - snappedLeftInset() - snappedRightInset()));
+    }
+
+    // Floors to the pixel grid of the row's window; a no-op when the row does not snap
+    // to pixels.
+    private double snapFloorX(double value) {
+        if (!isSnapToPixel()) {
+            return value;
+        }
+        Scene scene = getScene();
+        Window window = scene == null ? null : scene.getWindow();
+        double scale = window == null ? 1.0 : window.getRenderScaleX();
+        if (!Double.isFinite(scale) || scale <= 0.0) {
+            scale = 1.0;
+        }
+        double scaled = value * scale;
+        return Math.floor(scaled + Math.ulp(scaled)) / scale;
     }
 
     private int columnsOrDefault() {
