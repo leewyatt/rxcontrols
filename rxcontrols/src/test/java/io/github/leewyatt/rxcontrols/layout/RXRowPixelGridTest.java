@@ -144,6 +144,25 @@ public class RXRowPixelGridTest {
     }
 
     /**
+     * Verifies a row laid out at its own preferred width keeps its column at the
+     * column's preferred width.
+     */
+    @Test
+    public void preferredWidthKeepsTheColumnAtItsPreference() throws Exception {
+        runOnFx(() -> {
+            RXCol col = new RXCol(fixedRegion(50.0, 61.0));
+            RXRow row = new RXRow(col);
+            row.setGutter(10.0);
+            row.setPadding(new Insets(0.0, 10.0, 0.0, 0.0));
+            stageFor(row).setRenderScaleX(1.75);
+            double pref = row.prefWidth(-1.0);
+            layout(row, Math.ceil(pref * 1.75 - 1.0e-14) / 1.75);
+            assertTrue(col.getWidth() >= col.prefWidth(-1.0) - EPSILON,
+                    "column width " + col.getWidth() + " below its preference " + col.prefWidth(-1.0));
+        });
+    }
+
+    /**
      * Verifies a column whose minimum width exceeds its slot keeps that minimum width.
      */
     @Test
