@@ -119,9 +119,38 @@ public class RXFlowPanePixelGridTest {
             }
             stageFor(pane).setRenderScaleX(1.5);
             // The 200 px block in the 303 - 4 - 22/3 inside width sits 74.75 device pixels
-            // from the origin and rounds to 75; the floored width would round to 74.
+            // from the origin and rounds to 75. The floored width would place it at exactly
+            // 74.5, which still rounds to 75 in exact arithmetic; in doubles it lands just
+            // below and rounds to 74. The sample tells the two apart only through that tie.
             layout(pane, 303.0, 400.0);
             assertEquals(50.0, pane.getChildren().get(0).getLayoutX(), EPSILON, "block x");
+        });
+    }
+
+    /**
+     * Verifies runs wrap at the unfloored inside width, even where the summed run length
+     * carries floating-point noise above a grid value the floored width would hold.
+     */
+    @Test
+    public void runsWrapAtTheUnflooredInsideWidth() throws Exception {
+        runOnFx(() -> {
+            RXFlowPane pane = new RXFlowPane(Orientation.HORIZONTAL, 10.0, 6.0);
+            pane.setPadding(new Insets(3.0, 7.5, 3.5, 4.25));
+            pane.setAnimated(false);
+            Region first = box(37.3, 20.0);
+            Region second = box(52.6, 20.0);
+            Region third = box(44.4, 20.0);
+            Region fourth = box(71.05, 20.0);
+            RXFlowPane.setMargin(second, new Insets(0.0, 0.3, 0.0, 1.25));
+            RXFlowPane.setMargin(fourth, new Insets(0.0, 2.6, 0.0, 0.7));
+            pane.getChildren().addAll(first, second, third, fourth);
+            stageFor(pane).setRenderScaleX(1.5);
+            // At 1.5x the four areas and gaps sum to 361 device pixels, one ulp above the
+            // double the floored inside width of this pane holds; the unfloored width fits them.
+            layout(pane, 252.25, 400.0);
+            for (Node child : pane.getChildren()) {
+                assertEquals(first.getLayoutY(), child.getLayoutY(), EPSILON, "every box stays in the first run");
+            }
         });
     }
 
