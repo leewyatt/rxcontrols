@@ -20,8 +20,8 @@ public class RXSeekBarDemo extends Application {
     /** {@inheritDoc} */
     @Override
     public void start(Stage primaryStage) {
-        RXSeekBar seekBar = new RXSeekBar(0.68);
-        seekBar.setSecondaryProgress(0.42);
+        RXSeekBar seekBar = new RXSeekBar(0.42);
+        seekBar.setSecondaryProgress(0.68);
         seekBar.setPrefWidth(320.0);
 
         StackPane root = new StackPane(seekBar);

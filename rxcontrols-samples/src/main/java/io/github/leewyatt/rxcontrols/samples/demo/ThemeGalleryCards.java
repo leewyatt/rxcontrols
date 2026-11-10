@@ -818,8 +818,8 @@ final class ThemeGalleryCards {
     }
 
     private static Node buildRXSeekBar() {
-        RXSeekBar seekBar = new RXSeekBar(0.72);
-        seekBar.setSecondaryProgress(0.36);
+        RXSeekBar seekBar = new RXSeekBar(0.36);
+        seekBar.setSecondaryProgress(0.72);
         seekBar.setPrefWidth(280.0);
         seekBar.setMaxWidth(Double.MAX_VALUE);
         StackPane box = new StackPane(seekBar);

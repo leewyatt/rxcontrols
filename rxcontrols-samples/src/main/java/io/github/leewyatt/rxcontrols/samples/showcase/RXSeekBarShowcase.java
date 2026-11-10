@@ -60,8 +60,8 @@ public class RXSeekBarShowcase extends RXShowcaseApplication {
 
     @Override
     protected Node createPreview() {
-        seekBar = new RXSeekBar(0.72);
-        seekBar.setSecondaryProgress(0.36);
+        seekBar = new RXSeekBar(0.36);
+        seekBar.setSecondaryProgress(0.72);
         seekBar.setPrefWidth(460.0);
 
         Label stateLabel = new Label();
