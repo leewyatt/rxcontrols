@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXSegmentedProgressBar;
+import io.github.leewyatt.rxcontrols.internal.PixelGrid;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
@@ -103,8 +104,8 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
     /** Cached layout numbers used by {@link #applyFills()} to avoid re-querying geometry. */
     private double cachedContentX;
     private double cachedContentWidth;
-    private double cachedSegmentWidth;
     private double[] cachedSegmentStartX = new double[0];
+    private double[] cachedSegmentWidths = new double[0];
 
     /**
      * Creates a skin for the given control.
@@ -218,8 +219,8 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
         }
         getChildren().setAll(children);
         cachedContentWidth = 0.0;
-        cachedSegmentWidth = 0.0;
         cachedSegmentStartX = new double[n];
+        cachedSegmentWidths = new double[n];
     }
 
     // ==================== Determinate progress ====================
@@ -322,7 +323,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
         if (n == 0) {
             return;
         }
-        if (cachedSegmentWidth <= 0.0 || cachedContentWidth <= 0.0) {
+        if (cachedContentWidth <= 0.0) {
             clearFills();
             return;
         }
@@ -338,7 +339,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
             double bandLeft = bandRight - bandWidth;
             for (int i = 0; i < n; i++) {
                 double segmentStart = cachedSegmentStartX[i];
-                double segmentEnd = segmentStart + cachedSegmentWidth;
+                double segmentEnd = segmentStart + cachedSegmentWidths[i];
                 double overlapStart = Math.max(segmentStart, bandLeft);
                 double overlapEnd = Math.min(segmentEnd, bandRight);
                 double overlap = Math.max(0.0, overlapEnd - overlapStart);
@@ -356,7 +357,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
             } else if (ratio > 1.0) {
                 ratio = 1.0;
             }
-            setFillClip(i, 0.0, cachedSegmentWidth * ratio);
+            setFillClip(i, 0.0, cachedSegmentWidths[i] * ratio);
         }
     }
 
@@ -392,8 +393,8 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
             }
             cachedContentX = contentX;
             cachedContentWidth = 0.0;
-            cachedSegmentWidth = 0.0;
             cachedSegmentStartX = new double[n];
+            cachedSegmentWidths = new double[n];
             return;
         }
 
@@ -404,19 +405,30 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
         // too-tall segmentHeight on a clamped parent does not overflow.
         double renderedHeight = Math.min(segHeight, contentHeight);
 
-        double totalGap = gap * Math.max(0, n - 1);
-        double segWidth = Math.max(0.0, (contentWidth - totalGap) / n);
+        // Segment edges sit on the pixel grid so square or slightly rounded ends render
+        // sharp: the gap snaps, the space left for the segments floors (so the last one
+        // ends inside the content edge), and each boundary rounds, so segment widths
+        // differ by at most one device pixel.
+        double snappedGap = snapSpaceX(gap);
+        double available = PixelGrid.floorX(control,
+                Math.max(0.0, contentWidth - snappedGap * Math.max(0, n - 1)));
         cachedContentX = contentX;
         cachedContentWidth = contentWidth;
-        cachedSegmentWidth = segWidth;
         if (cachedSegmentStartX.length != n) {
             cachedSegmentStartX = new double[n];
+        }
+        if (cachedSegmentWidths.length != n) {
+            cachedSegmentWidths = new double[n];
         }
 
         double y = contentY + (contentHeight - renderedHeight) * HALF;
         for (int i = 0; i < n; i++) {
-            double x = contentX + i * (segWidth + gap);
+            double start = snapPositionX(available * i / n);
+            double end = snapPositionX(available * (i + 1) / n);
+            double x = contentX + start + i * snappedGap;
+            double segWidth = end - start;
             cachedSegmentStartX[i] = x;
+            cachedSegmentWidths[i] = segWidth;
 
             trackRegions.get(i).resizeRelocate(x, y, segWidth, renderedHeight);
             fillRegions.get(i).resizeRelocate(x, y, segWidth, renderedHeight);
@@ -427,7 +439,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
             clip.setHeight(renderedHeight);
             // width is set by applyFills().
         }
-        // applyFills depends on cachedSegmentWidth, which we just refreshed —
+        // applyFills depends on cachedSegmentWidths, which we just refreshed —
         // push the current fill so a resize is immediately visible without
         // waiting for the next animation tick.
         applyFills();
@@ -441,7 +453,7 @@ public class RXSegmentedProgressBarSkin extends RXSkinBase<RXSegmentedProgressBa
         int n = RXMath.clamp(getSkinnable().getSegmentCount(),
                 RXSegmentedProgressBar.MIN_SEGMENT_COUNT, RXSegmentedProgressBar.MAX_SEGMENT_COUNT);
         double gap = RXMath.sanitizeNonNegative(getSkinnable().getSegmentGap());
-        return leftInset + n + gap * Math.max(0, n - 1) + rightInset;
+        return leftInset + n + snapSpaceX(gap) * Math.max(0, n - 1) + rightInset;
     }
 
     @Override
