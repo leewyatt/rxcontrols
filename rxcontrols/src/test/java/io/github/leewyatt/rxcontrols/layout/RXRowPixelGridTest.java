@@ -163,6 +163,31 @@ public class RXRowPixelGridTest {
     }
 
     /**
+     * Verifies an end-justified row on a grid width with fractional padding ends exactly
+     * on the floored content edge, where the subtracted insets leave rounding noise.
+     */
+    @Test
+    public void gridWidthWithFractionalPaddingEndsOnTheContentEdge() throws Exception {
+        runOnFx(() -> {
+            for (double scale : new double[] {1.25, 1.5, 1.75}) {
+                RXRow row = paddedRow(RXRow.Justify.END, PARTIAL);
+                row.setPadding(new Insets(0.0, 0.6, 0.0, 0.6));
+                stageFor(row).setRenderScaleX(scale);
+                for (int k = 375; k < 600; k++) {
+                    double width = k / scale;
+                    layout(row, width);
+                    double left = row.snappedLeftInset();
+                    double right = width - row.snappedRightInset();
+                    List<Region> columns = sortedColumns(row);
+                    Region last = columns.get(columns.size() - 1);
+                    assertEquals(left + Math.floor((right - left) * scale + 1.0e-9) / scale,
+                            last.getLayoutX() + last.getWidth(), EPSILON, "scale " + scale + ", width " + width);
+                }
+            }
+        });
+    }
+
+    /**
      * Verifies a column whose minimum width exceeds its slot keeps that minimum width.
      */
     @Test

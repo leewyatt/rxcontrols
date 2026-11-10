@@ -155,6 +155,34 @@ public class RXFlowPanePixelGridTest {
     }
 
     /**
+     * Verifies a right-aligned block on a grid width with fractional padding ends exactly
+     * on the floored inside edge, where the subtracted insets leave rounding noise.
+     */
+    @Test
+    public void gridWidthWithFractionalPaddingEndsOnTheInsideEdge() throws Exception {
+        runOnFx(() -> {
+            for (double scale : new double[] {1.25, 1.5, 1.75}) {
+                RXFlowPane pane = paddedPane(Orientation.HORIZONTAL, Pos.TOP_RIGHT);
+                pane.setPadding(new Insets(0.0, 0.6, 0.0, 0.6));
+                stageFor(pane).setRenderScaleX(scale);
+                for (int k = 375; k < 600; k++) {
+                    double width = k / scale;
+                    layout(pane, width, 400.0);
+                    double left = pane.snappedLeftInset();
+                    double right = width - pane.snappedRightInset();
+                    double last = -Double.MAX_VALUE;
+                    for (Node child : pane.getChildren()) {
+                        Region region = (Region) child;
+                        last = Math.max(last, region.getLayoutX() + region.getWidth());
+                    }
+                    assertEquals(left + Math.floor((right - left) * scale + 1.0e-9) / scale, last, EPSILON,
+                            "scale " + scale + ", width " + width);
+                }
+            }
+        });
+    }
+
+    /**
      * Verifies a pane that does not snap to pixels keeps the continuous geometry, ending
      * exactly at the inside edge.
      */

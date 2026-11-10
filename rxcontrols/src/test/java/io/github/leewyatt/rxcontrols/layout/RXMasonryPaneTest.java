@@ -1085,6 +1085,39 @@ public class RXMasonryPaneTest {
     }
 
     /**
+     * Verifies a right-aligned fixed block on a grid width with fractional padding ends
+     * exactly on the floored content edge, where the subtracted insets leave rounding noise.
+     */
+    @Test
+    public void gridWidthWithFractionalPaddingEndsOnTheContentEdge() throws Exception {
+        runOnFx(() -> {
+            for (double scale : new double[] {1.25, 1.5, 1.75}) {
+                Region[] cards = new Region[8];
+                for (int i = 0; i < cards.length; i++) {
+                    cards[i] = card(60.0, 30.0);
+                }
+                RXMasonryPane pane = paddedFilledPane(cards);
+                pane.setPadding(new Insets(0.0, 0.6, 0.0, 0.6));
+                pane.setFillWidth(false);
+                pane.setAlignment(Pos.TOP_RIGHT);
+                stageFor(pane).setRenderScaleX(scale);
+                for (int k = 375; k < 600; k++) {
+                    double width = k / scale;
+                    layout(pane, width, 600.0);
+                    double left = pane.snappedLeftInset();
+                    double right = width - pane.snappedRightInset();
+                    double last = -Double.MAX_VALUE;
+                    for (Region card : cards) {
+                        last = Math.max(last, card.getLayoutX() + card.getWidth());
+                    }
+                    assertClose(left + Math.floor((right - left) * scale + 1.0e-9) / scale, last,
+                            "scale " + scale + ", width " + width);
+                }
+            }
+        });
+    }
+
+    /**
      * Verifies a centred fixed block keeps its offset from the unfloored content width.
      */
     @Test

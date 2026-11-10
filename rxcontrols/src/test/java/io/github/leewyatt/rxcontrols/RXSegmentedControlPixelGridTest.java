@@ -110,6 +110,47 @@ public class RXSegmentedControlPixelGridTest {
     }
 
     /**
+     * Verifies content-width segments compressed between their minimum and preferred
+     * widths keep the snapped spacing, stay on the pixel grid and end inside the content.
+     */
+    @Test
+    public void compressedContentSegmentsKeepTheSnappedSpacing() throws Exception {
+        runOnFx(() -> {
+            for (double spacing : new double[] {2.5, 0.6, 3.0}) {
+                for (double scale : SCALES) {
+                    RXSegmentedControl<String> control = control(false, false, spacing);
+                    control.getItems().get(1).setText("A much longer item");
+                    Pane root = new Pane(control);
+                    stageFor(root).setRenderScaleX(scale);
+                    root.applyCss();
+                    double min = control.minWidth(-1.0);
+                    double pref = control.prefWidth(-1.0);
+                    double gap = Math.round(spacing * scale) / scale;
+                    for (double width = min; width <= pref; width += 0.25) {
+                        layout(root, control, width);
+                        String at = "spacing " + spacing + ", scale " + scale + ", width " + width;
+                        double hi = snapCeil(control.getWidth(), scale) - control.snappedRightInset();
+                        List<Region> segments = segments(control);
+                        for (int i = 0; i < segments.size(); i++) {
+                            Region segment = segments.get(i);
+                            assertOnGrid(segment.getLayoutX(), scale, at + ": x of segment " + i);
+                            assertOnGrid(segment.getLayoutX() + segment.getWidth(), scale, at + ": end of segment " + i);
+                            if (i > 0) {
+                                Region previous = segments.get(i - 1);
+                                assertEquals(gap, segment.getLayoutX() - (previous.getLayoutX() + previous.getWidth()),
+                                        EPSILON, at + ": gap before segment " + i);
+                            }
+                        }
+                        Region last = segments.get(segments.size() - 1);
+                        assertTrue(last.getLayoutX() + last.getWidth() <= hi + EPSILON,
+                                at + ": last segment ends past " + hi);
+                    }
+                }
+            }
+        });
+    }
+
+    /**
      * Verifies a width below the total gaps collapses the segments to zero width while the
      * gaps keep their snapped size.
      */
