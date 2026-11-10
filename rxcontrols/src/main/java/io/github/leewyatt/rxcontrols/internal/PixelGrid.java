@@ -19,12 +19,13 @@ public final class PixelGrid {
     }
 
     /**
-     * Floors a value to the grid of the given render scale.
+     * Floors a value to the grid of the given render scale. A value within 1e-9 device
+     * pixels below a grid line counts as on it and returns that line, so the result can
+     * exceed {@code value} by that much.
      *
      * @param value the value in layout coordinates
      * @param scale the render scale; zero, negative or non-finite disables snapping
-     * @return the largest grid value not above {@code value}, or {@code value} itself
-     *         when snapping is disabled
+     * @return the floored grid value, or {@code value} itself when snapping is disabled
      */
     public static double floor(double value, double scale) {
         if (!Double.isFinite(scale) || scale <= 0.0) {

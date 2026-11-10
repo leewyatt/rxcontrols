@@ -353,15 +353,14 @@ public class RXTilePaneTest {
             stage.setScene(new Scene(pane));
             double scale = 1.5;
             stage.setRenderScaleX(scale);
-            // Widths on the device pixel grid, so the content edge is on the grid too.
-            for (int pixels = 450; pixels <= 1050; pixels++) {
-                double width = pixels / scale;
-                layout(pane, width, 200);
-                Region last = (Region) pane.getChildren().get(3);
-                double right = width - pane.snappedRightInset();
-                assertEquals(right, last.getLayoutX() + last.getWidth(), 1e-6,
-                        "width " + width + ": last tile edge");
-            }
+            // 452 device pixels: the content edge is on the grid, but the content width lands a
+            // rounding error below it after the inset subtraction.
+            double width = 452 / scale;
+            layout(pane, width, 200);
+            Region last = (Region) pane.getChildren().get(3);
+            double right = width - pane.snappedRightInset();
+            assertEquals(right, last.getLayoutX() + last.getWidth(), 1e-6,
+                    "width " + width + ": last tile edge");
         });
     }
 

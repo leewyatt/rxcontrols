@@ -63,8 +63,8 @@ public final class MasonryColumns {
     private static final double MIN_COLUMN_STEP_RATIO = 0.1;
 
     /**
-     * Tolerance the JavaFX Region snapping helpers apply before flooring / ceiling,
-     * so a value that is on the grid up to rounding noise is not moved a whole pixel.
+     * Tolerance the JavaFX Region snapping helpers apply before ceiling, so a value
+     * that is on the grid up to rounding noise is not moved a whole pixel.
      */
     private static final double SNAP_EPSILON = 1e-14;
 

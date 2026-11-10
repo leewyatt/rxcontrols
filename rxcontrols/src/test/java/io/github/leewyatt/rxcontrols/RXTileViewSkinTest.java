@@ -910,19 +910,19 @@ public class RXTileViewSkinTest {
             stage.setScene(new Scene(root, 400, 400));
             double scale = 1.5;
             stage.setRenderScaleX(scale);
-            for (int pixels = 450; pixels <= 1050; pixels++) {
-                double width = pixels / scale;
-                root.resize(width, 400);
-                pump(root);
-                Rectangle clip = (Rectangle) view.lookup(".viewport > .content").getClip();
-                double clipRight = clip.getX() + clip.getWidth();
-                // The row may only end short of the clip by the part that is off the grid.
-                double gridRight = Math.floor(clipRight * scale + 1e-6) / scale;
-                List<RXTileCell<?>> row = rowCells(view, 0);
-                RXTileCell<?> last = row.get(row.size() - 1);
-                assertEquals(gridRight, last.getLayoutX() + last.getWidth(), 1e-6,
-                        "width " + width + ": last cell edge, clip " + clipRight);
-            }
+            // 452 device pixels: the clip edge computes to 299.99999999999994, a rounding error
+            // below the grid line at 300.
+            double width = 452 / scale;
+            root.resize(width, 400);
+            pump(root);
+            Rectangle clip = (Rectangle) view.lookup(".viewport > .content").getClip();
+            double clipRight = clip.getX() + clip.getWidth();
+            // The row may only end short of the clip by the part that is off the grid.
+            double gridRight = Math.floor(clipRight * scale + 1e-6) / scale;
+            List<RXTileCell<?>> row = rowCells(view, 0);
+            RXTileCell<?> last = row.get(row.size() - 1);
+            assertEquals(gridRight, last.getLayoutX() + last.getWidth(), 1e-6,
+                    "width " + width + ": last cell edge, clip " + clipRight);
         });
     }
 

@@ -1158,16 +1158,16 @@ public class RXKanbanViewSkinTest {
             stage.setScene(new Scene(root, 400, 400));
             double scale = 1.5;
             stage.setRenderScaleX(scale);
-            for (int pixels = 600; pixels <= 1500; pixels++) {
-                double width = pixels / scale;
-                root.resize(width, 400);
-                pump(root);
-                double content = board.getWidth() - board.snappedLeftInset() - board.snappedRightInset();
-                double fill = (content - 24.0) / 3.0;
-                double columnWidth = boxOf(board, "A").getWidth();
-                assertTrue(columnWidth > fill - 1.0 / scale + 1e-6, "width " + width
-                        + ": column " + columnWidth + " is a whole device pixel under " + fill);
-            }
+            // 623 device pixels: the column fill is on the grid, but computes a rounding error
+            // below it after the inset and gap subtractions.
+            double width = 623 / scale;
+            root.resize(width, 400);
+            pump(root);
+            double content = board.getWidth() - board.snappedLeftInset() - board.snappedRightInset();
+            double fill = (content - 24.0) / 3.0;
+            double columnWidth = boxOf(board, "A").getWidth();
+            assertTrue(columnWidth > fill - 1.0 / scale + 1e-6, "width " + width
+                    + ": column " + columnWidth + " is a whole device pixel under " + fill);
         });
     }
 

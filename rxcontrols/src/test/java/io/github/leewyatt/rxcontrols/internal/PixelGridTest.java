@@ -36,6 +36,13 @@ public class PixelGridTest {
         assertEquals(200.0, PixelGrid.floor(200.0 - 1.0e-12, 1.0), DELTA);
     }
 
+    /** Verifies a value within the tolerance below a grid line returns that line, above the input. */
+    @Test
+    public void valueJustBelowAGridLineSnapsUpToIt() {
+        assertEquals(1.0, PixelGrid.floor(1.0 - 5.0e-10, 1.0), 0.0);
+        assertEquals(0.0, PixelGrid.floor(1.0 - 2.0e-9, 1.0), 0.0);
+    }
+
     /** Verifies a region that does not snap to pixels keeps the value. */
     @Test
     public void regionWithoutPixelSnappingKeepsTheValue() {
