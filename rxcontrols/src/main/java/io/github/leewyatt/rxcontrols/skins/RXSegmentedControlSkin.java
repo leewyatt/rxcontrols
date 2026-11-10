@@ -13,11 +13,13 @@ import javafx.css.PseudoClass;
 import javafx.event.EventHandler;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
+import javafx.stage.Window;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -391,20 +393,18 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
 
     private void layoutCells(double x, double y, double w, double h) {
         int count = cells.size();
-        double spacing = Math.max(0.0, getSkinnable().getSegmentSpacing());
+        double spacing = effectiveSpacing();
         if (isEqualized()) {
-            // Equal segments filling the available width; the per-cell remainder
-            // is distributed by snapping cumulative edges so segments meet with
-            // no sub-pixel gap or overlap.
-            double available = Math.max(0.0, w - spacing * (count - 1));
-            double cursor = x;
-            double consumed = 0.0;
+            // Equal segments filling the available width. Each slot runs between rounded
+            // shares of the floored width, offset by the content start and its gaps, so
+            // segments differ by at most a device pixel, every gap keeps its snapped size
+            // and the last segment ends inside the content edge. Below the minimum width
+            // the slots shrink to zero and the gaps keep their size.
+            double available = snapFloorX(Math.max(0.0, w - spacing * (count - 1)));
             for (int i = 0; i < count; i++) {
-                double snappedEdge = snapSizeX(available * (i + 1) / count);
-                double cellWidth = snappedEdge - consumed;
-                cells.get(i).resizeRelocate(snapPositionX(cursor), y, cellWidth, h);
-                consumed = snappedEdge;
-                cursor += cellWidth + spacing;
+                double start = snapPositionX(available * i / count);
+                double end = snapPositionX(available * (i + 1) / count);
+                cells.get(i).resizeRelocate(x + i * spacing + start, y, end - start, h);
             }
         } else {
             // Content width: each segment takes its preferred width, but is
@@ -530,8 +530,30 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
             }
             cellTotal = sum;
         }
-        double spacing = Math.max(0.0, getSkinnable().getSegmentSpacing());
-        return cellTotal + spacing * (count - 1);
+        return cellTotal + effectiveSpacing() * (count - 1);
+    }
+
+    // Measure and layout share the spacing snapped to the pixel grid, so a strip sized to
+    // its own minimum or preferred width fits it exactly.
+    private double effectiveSpacing() {
+        return snapSpaceX(Math.max(0.0, getSkinnable().getSegmentSpacing()));
+    }
+
+    // Floors to the pixel grid of the control's window; a no-op when it does not snap
+    // to pixels.
+    private double snapFloorX(double value) {
+        RXSegmentedControl<T> control = getSkinnable();
+        if (!control.isSnapToPixel()) {
+            return value;
+        }
+        Scene scene = control.getScene();
+        Window window = scene == null ? null : scene.getWindow();
+        double scale = window == null ? 1.0 : window.getRenderScaleX();
+        if (!Double.isFinite(scale) || scale <= 0.0) {
+            scale = 1.0;
+        }
+        double scaled = value * scale;
+        return Math.floor(scaled + Math.ulp(scaled)) / scale;
     }
 
     // ==================== Dispose ====================
