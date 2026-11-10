@@ -906,7 +906,6 @@ public class RXRow extends Pane {
 
     private double computePreferredWidth(double height, boolean min,
                                          List<RXBreakpoint> breakpoints) {
-        Insets insets = getInsets();
         int columnsCount = columnsOrDefault();
         double gutterValue = gutterOrDefault();
         double contentWidth = 0.0;
@@ -922,7 +921,9 @@ public class RXRow extends Pane {
                 contentWidth = Math.max(contentWidth, childWidth * columnsCount / spec.span());
             }
         }
-        return insets.getLeft() + snapSizeX(contentWidth) + insets.getRight();
+        // Snapped insets match the layout's content width, so a row given exactly this
+        // width still fits every column.
+        return snappedLeftInset() + snapSizeX(contentWidth) + snappedRightInset();
     }
 
     private double computeChildMinWidth(Node child, double height, double gutterValue) {

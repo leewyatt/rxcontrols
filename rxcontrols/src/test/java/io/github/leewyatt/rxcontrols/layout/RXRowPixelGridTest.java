@@ -85,11 +85,65 @@ public class RXRowPixelGridTest {
             RXRow row = paddedRow(RXRow.Justify.END, PARTIAL);
             row.setSnapToPixel(false);
             stageFor(row).setRenderScaleX(1.5);
-            layout(row, 300.3);
-            List<Region> columns = sortedColumns(row);
-            Region last = columns.get(columns.size() - 1);
-            assertEquals(300.3 - 7.5, last.getLayoutX() + last.getWidth(), EPSILON, "trailing edge");
-            assertEquals(4.25 + (300.3 - 11.75) / 6.0, columns.get(0).getLayoutX(), EPSILON, "leading edge");
+            for (double width = 300.0; width < 310.0; width += 0.3) {
+                layout(row, width);
+                List<Region> columns = sortedColumns(row);
+                Region last = columns.get(columns.size() - 1);
+                assertEquals(width - 7.5, last.getLayoutX() + last.getWidth(), 1.0e-6, width + ": trailing edge");
+                assertEquals(4.25 + (width - 11.75) / 6.0, columns.get(0).getLayoutX(), 1.0e-6,
+                        width + ": leading edge");
+            }
+        });
+    }
+
+    /**
+     * Verifies a row laid out at its own minimum or preferred width fits every column
+     * without overlap, whatever the padding and render scale.
+     */
+    @Test
+    public void ownMinimumAndPreferredWidthsFitTheColumns() throws Exception {
+        runOnFx(() -> {
+            for (double padding : new double[] {4.5, 7.5, 10.0, 4.25}) {
+                RXRow row = new RXRow();
+                row.setPadding(new Insets(0.0, 7.5, 0.0, padding));
+                for (int i = 0; i < 3; i++) {
+                    RXCol col = new RXCol(fixedRegion(50.0, 50.0));
+                    col.setSpan(8);
+                    row.getChildren().add(col);
+                }
+                Stage stage = stageFor(row);
+                for (double scale : SCALES) {
+                    stage.setRenderScaleX(scale);
+                    for (double width : new double[] {row.minWidth(-1.0), row.prefWidth(-1.0)}) {
+                        layout(row, width);
+                        List<Region> columns = sortedColumns(row);
+                        String at = "padding " + padding + ", scale " + scale + ", width " + width;
+                        for (int i = 1; i < columns.size(); i++) {
+                            Region previous = columns.get(i - 1);
+                            assertTrue(columns.get(i).getLayoutX() >= previous.getLayoutX() + previous.getWidth() - EPSILON,
+                                    at + ": column " + i + " overlaps the one before");
+                        }
+                        Region last = columns.get(columns.size() - 1);
+                        assertTrue(last.getLayoutX() + last.getWidth() <= width - row.snappedRightInset() + EPSILON,
+                                at + ": last column ends past the content edge");
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a column whose minimum width exceeds its slot keeps that minimum width.
+     */
+    @Test
+    public void minimumWidthWiderThanTheSlotWins() throws Exception {
+        runOnFx(() -> {
+            RXCol narrow = new RXCol(fixedRegion(200.0, 200.0));
+            narrow.setSpan(1);
+            RXRow row = new RXRow(narrow);
+            stageFor(row).setRenderScaleX(1.25);
+            layout(row, 300.0);
+            assertEquals(narrow.minWidth(-1.0), narrow.getWidth(), EPSILON, "column width");
         });
     }
 
@@ -113,7 +167,9 @@ public class RXRowPixelGridTest {
                     layout(row, width);
                     double laidOut = child.getWidth();
                     assertFalse(child.askedWidths.isEmpty(), "the child height was measured");
-                    double asked = child.askedWidths.get(child.askedWidths.size() - 1);
+                    // The first request comes from the row's measure pass; later ones come
+                    // from layoutInArea at the final width.
+                    double asked = child.askedWidths.get(0);
                     assertTrue(Math.abs(asked - laidOut) < 1.0 / scale + EPSILON,
                             "scale " + scale + ", width " + width + ": asked " + asked
                                     + ", laid out " + laidOut);
@@ -160,6 +216,22 @@ public class RXRowPixelGridTest {
             assertTrue(Math.abs((first - left) - (right - last)) <= unit + EPSILON,
                     at + ": centred within a pixel");
         }
+        if (noOffsets && (justify == RXRow.Justify.SPACE_AROUND || justify == RXRow.Justify.SPACE_EVENLY)) {
+            // Spacing is shared out within the content width floored to the grid, and every
+            // edge is rounded on its own, so each spacing is within a pixel of its share.
+            double flooredRight = left + Math.floor((right - left) * scale + 1.0e-9) / scale;
+            double leading = first - left;
+            double trailing = flooredRight - last;
+            for (int i = 1; i < columns.size(); i++) {
+                Region previous = columns.get(i - 1);
+                double inner = columns.get(i).getLayoutX() - (previous.getLayoutX() + previous.getWidth());
+                double edge = justify == RXRow.Justify.SPACE_EVENLY ? inner : inner / 2.0;
+                assertTrue(Math.abs(leading - edge) <= unit + EPSILON,
+                        at + ": leading space " + leading + " against " + edge);
+                assertTrue(Math.abs(trailing - edge) <= unit + EPSILON,
+                        at + ": trailing space " + trailing + " against " + edge);
+            }
+        }
     }
 
     private static void assertOnGrid(double value, double scale, String message) {
@@ -182,6 +254,14 @@ public class RXRowPixelGridTest {
             row.getChildren().add(col);
         }
         return row;
+    }
+
+    private static Region fixedRegion(double minWidth, double prefWidth) {
+        Region region = new Region();
+        region.setMinWidth(minWidth);
+        region.setPrefWidth(prefWidth);
+        region.setPrefHeight(20.0);
+        return region;
     }
 
     private static List<Region> sortedColumns(RXRow row) {
