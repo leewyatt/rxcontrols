@@ -42,17 +42,9 @@ public final class SliderValueText {
         return format.format(value);
     }
 
-    /**
-     * Returns the fraction digits for the range and tick unit: enough to resolve a
-     * hundredth of the range, and enough to show a major tick unit smaller than the
-     * range exactly, at most four.
-     *
-     * @param min           the range minimum
-     * @param max           the range maximum
-     * @param majorTickUnit the spacing between major ticks
-     * @return the number of fraction digits, {@code 0} to {@code 4}
-     */
-    public static int fractionDigits(double min, double max, double majorTickUnit) {
+    // Enough digits to resolve a hundredth of the range, and to show a major tick
+    // unit smaller than the range exactly, at most four.
+    private static int fractionDigits(double min, double max, double majorTickUnit) {
         double span = max - min;
         if (!(span > 0.0) || !Double.isFinite(span)) {
             return 0;

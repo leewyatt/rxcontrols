@@ -32,16 +32,16 @@ public class SliderValueTextTest {
     /** Verifies a finer tick unit than the range resolution shows its own decimals, capped at four. */
     @Test
     public void fineTickUnitShowsItsDecimals() {
-        assertEquals(3, SliderValueText.fractionDigits(0.0, 10.0, 0.125));
-        assertEquals(1, SliderValueText.fractionDigits(0.0, 10.0, 1.0));
-        assertEquals(4, SliderValueText.fractionDigits(0.0, 10.0, 1.0 / 3.0));
+        assertEquals("0" + SEP + "125", SliderValueText.format(0.125, 0.0, 10.0, 0.125));
+        assertEquals("3" + SEP + "8", SliderValueText.format(3.75, 0.0, 10.0, 1.0));
+        assertEquals("0" + SEP + "3333", SliderValueText.format(1.0 / 3.0, 0.0, 10.0, 1.0 / 3.0));
     }
 
     /** Verifies an empty or invalid range falls back to whole numbers. */
     @Test
     public void degenerateRangeShowsWholeNumbers() {
-        assertEquals(0, SliderValueText.fractionDigits(5.0, 5.0, 1.0));
-        assertEquals(0, SliderValueText.fractionDigits(5.0, 1.0, 1.0));
-        assertEquals(0, SliderValueText.fractionDigits(0.0, Double.NaN, 1.0));
+        assertEquals("5", SliderValueText.format(5.37, 5.0, 5.0, 1.0));
+        assertEquals("5", SliderValueText.format(5.37, 5.0, 1.0, 1.0));
+        assertEquals("5", SliderValueText.format(5.37, 0.0, Double.NaN, 1.0));
     }
 }
