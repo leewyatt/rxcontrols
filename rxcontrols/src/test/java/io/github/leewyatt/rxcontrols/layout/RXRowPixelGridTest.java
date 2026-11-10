@@ -76,6 +76,28 @@ public class RXRowPixelGridTest {
     }
 
     /**
+     * Verifies a row sized to its preferred height keeps its snapped bottom padding.
+     */
+    @Test
+    public void preferredHeightKeepsTheSnappedBottomPadding() throws Exception {
+        runOnFx(() -> {
+            RXRow row = new RXRow();
+            // Half-pixel insets each snap up to a whole pixel at scale 1.
+            row.setPadding(new Insets(0.5, 0.0, 0.5, 0.0));
+            row.getChildren().add(new RXCol(fixedRegion(50.0, 50.0)));
+            stageFor(row);
+            double height = row.prefHeight(300.0);
+            row.resize(300.0, height);
+            row.layout();
+            Region column = sortedColumns(row).get(0);
+            assertTrue(column.getLayoutY() + column.getHeight() <= height - row.snappedBottomInset() + EPSILON,
+                    "column bottom " + (column.getLayoutY() + column.getHeight()) + " runs into the bottom padding of a "
+                            + height + " row");
+            assertEquals(height, row.minHeight(300.0), EPSILON, "minimum height follows the preferred height");
+        });
+    }
+
+    /**
      * Verifies a row that does not snap to pixels keeps the continuous geometry, ending
      * exactly at the content edge.
      */

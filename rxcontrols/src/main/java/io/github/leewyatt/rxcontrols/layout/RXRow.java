@@ -568,7 +568,8 @@ public class RXRow extends Pane {
     protected double computePrefHeight(double width) {
         double measuredWidth = normalizeMeasurementWidth(width);
         Measurement measurement = measure(measuredWidth, resolveBreakpoint(measuredWidth), false);
-        return getInsets().getTop() + snapSizeY(measurement.totalHeight()) + getInsets().getBottom();
+        return snapSpaceY(getInsets().getTop()) + snapSizeY(measurement.totalHeight())
+                + snapSpaceY(getInsets().getBottom());
     }
 
     @Override
