@@ -103,29 +103,40 @@ public class RXRowPixelGridTest {
     @Test
     public void ownMinimumAndPreferredWidthsFitTheColumns() throws Exception {
         runOnFx(() -> {
-            for (double padding : new double[] {4.5, 7.5, 10.0, 4.25}) {
-                RXRow row = new RXRow();
-                row.setPadding(new Insets(0.0, 7.5, 0.0, padding));
-                for (int i = 0; i < 3; i++) {
-                    RXCol col = new RXCol(fixedRegion(50.0, 50.0));
-                    col.setSpan(8);
-                    row.getChildren().add(col);
-                }
-                Stage stage = stageFor(row);
-                for (double scale : SCALES) {
-                    stage.setRenderScaleX(scale);
-                    for (double width : new double[] {row.minWidth(-1.0), row.prefWidth(-1.0)}) {
-                        layout(row, width);
-                        List<Region> columns = sortedColumns(row);
-                        String at = "padding " + padding + ", scale " + scale + ", width " + width;
-                        for (int i = 1; i < columns.size(); i++) {
-                            Region previous = columns.get(i - 1);
-                            assertTrue(columns.get(i).getLayoutX() >= previous.getLayoutX() + previous.getWidth() - EPSILON,
-                                    at + ": column " + i + " overlaps the one before");
+            for (int span : new int[] {8, 6}) {
+                for (double[] padding : new double[][] {{4.5, 7.5}, {4.5, 4.5}, {10.0, 10.0}, {4.25, 7.5}}) {
+                    for (double scale : SCALES) {
+                        // A fresh row per scale: a render scale change alone does not clear
+                        // the cached min and pref widths.
+                        RXRow row = new RXRow();
+                        row.setPadding(new Insets(0.0, padding[1], 0.0, padding[0]));
+                        for (int i = 0; i < 24 / span; i++) {
+                            RXCol col = new RXCol(fixedRegion(50.0, 50.0));
+                            col.setSpan(span);
+                            row.getChildren().add(col);
                         }
-                        Region last = columns.get(columns.size() - 1);
-                        assertTrue(last.getLayoutX() + last.getWidth() <= width - row.snappedRightInset() + EPSILON,
-                                at + ": last column ends past the content edge");
+                        stageFor(row).setRenderScaleX(scale);
+                        double min = row.minWidth(-1.0);
+                        double pref = row.prefWidth(-1.0);
+                        // Raw, and as a parent would snap it before resizing the row.
+                        for (double width : new double[] {min, pref, Math.ceil(min * scale - 1.0e-14) / scale}) {
+                            layout(row, width);
+                            List<Region> columns = sortedColumns(row);
+                            String at = "span " + span + ", padding " + padding[0] + "/" + padding[1] + ", scale " + scale + ", width " + width;
+                            for (int i = 0; i < columns.size(); i++) {
+                                Region column = columns.get(i);
+                                assertTrue(column.getWidth() >= column.minWidth(-1.0) - EPSILON,
+                                        at + ": column " + i + " is narrower than its minimum");
+                                if (i > 0) {
+                                    Region previous = columns.get(i - 1);
+                                    assertTrue(column.getLayoutX() >= previous.getLayoutX() + previous.getWidth() - EPSILON,
+                                            at + ": column " + i + " overlaps the one before");
+                                }
+                            }
+                            Region last = columns.get(columns.size() - 1);
+                            assertTrue(last.getLayoutX() + last.getWidth() <= width - row.snappedRightInset() + EPSILON,
+                                    at + ": last column ends past the content edge");
+                        }
                     }
                 }
             }
