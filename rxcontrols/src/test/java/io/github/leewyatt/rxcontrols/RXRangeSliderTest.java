@@ -228,8 +228,7 @@ public class RXRangeSliderTest {
 
     /**
      * Verifies the keyboard moves the active thumb (the last pressed), and that
-     * HOME / END act on that thumb rather than always the high thumb (the
-     * ControlsFX bug).
+     * HOME / END act on that thumb rather than always the high thumb.
      *
      * @throws Exception if the FX action fails
      */
@@ -317,8 +316,7 @@ public class RXRangeSliderTest {
     }
 
     /**
-     * Verifies a runtime tick-visibility toggle keeps both thumbs and the fill
-     * (the ControlsFX bug that dropped the high thumb / range bar).
+     * Verifies a runtime tick-visibility toggle keeps both thumbs and the fill.
      *
      * @throws Exception if the FX action fails
      */
@@ -622,9 +620,6 @@ public class RXRangeSliderTest {
         });
     }
 
-    // ==================== Helpers ====================
-
-    /** Returns the two value-indicator nodes ordered {@code [low, high]} by layout x. */
     /**
      * Verifies a decimal range shows decimals in the value bubble.
      *
@@ -645,7 +640,8 @@ public class RXRangeSliderTest {
     }
 
     /**
-     * Verifies a secondary-button press on the track leaves both values unchanged.
+     * Verifies secondary-button presses on the track, a thumb and the draggable band
+     * neither move the values nor start a drag.
      *
      * @throws Exception if the FX action fails
      */
@@ -660,6 +656,16 @@ public class RXRangeSliderTest {
                     2.0, 15.0, MouseButton.SECONDARY, false));
             assertEquals(lowBefore, slider.getLowValue(), EPSILON);
             assertEquals(highBefore, slider.getHighValue(), EPSILON);
+
+            Region lowThumb = thumbs(slider)[0];
+            lowThumb.fireEvent(mouseAt(lowThumb, MouseEvent.MOUSE_PRESSED, 2.0, 2.0, MouseButton.SECONDARY, false));
+            assertFalse(slider.isLowValueChanging());
+
+            Region fill = (Region) slider.lookup(".fill");
+            fill.fireEvent(mouseAt(fill, MouseEvent.MOUSE_PRESSED,
+                    fill.getWidth() / 2.0, fill.getHeight() / 2.0, MouseButton.SECONDARY, false));
+            assertFalse(slider.isLowValueChanging());
+            assertFalse(slider.isHighValueChanging());
         });
     }
 
@@ -677,6 +683,26 @@ public class RXRangeSliderTest {
             assertTrue(slider.isLowValueChanging());
             slider.setSkin(null);
             assertFalse(slider.isLowValueChanging());
+        });
+    }
+
+    /**
+     * Verifies removing the skin mid band drag ends both changing flags.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void removingTheSkinMidBandDragEndsBothFlags() throws Exception {
+        runOnFx(() -> {
+            RXRangeSlider slider = scened(200.0, 30.0);
+            Region fill = (Region) slider.lookup(".fill");
+            fill.fireEvent(mouseAt(fill, MouseEvent.MOUSE_PRESSED,
+                    fill.getWidth() / 2.0, fill.getHeight() / 2.0, MouseButton.PRIMARY, true));
+            assertTrue(slider.isLowValueChanging());
+            assertTrue(slider.isHighValueChanging());
+            slider.setSkin(null);
+            assertFalse(slider.isLowValueChanging());
+            assertFalse(slider.isHighValueChanging());
         });
     }
 
@@ -711,6 +737,9 @@ public class RXRangeSliderTest {
         });
     }
 
+    // ==================== Helpers ====================
+
+    /** Returns the two value-indicator nodes ordered {@code [low, high]} by layout x. */
     private static Region[] indicators(RXRangeSlider slider) {
         List<Region> list = slider.lookupAll(".value-indicator").stream()
                 .map(node -> (Region) node)

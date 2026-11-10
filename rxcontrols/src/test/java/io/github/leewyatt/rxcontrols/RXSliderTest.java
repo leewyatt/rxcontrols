@@ -425,7 +425,8 @@ public class RXSliderTest {
     }
 
     /**
-     * Verifies a secondary-button press on the track leaves the value unchanged.
+     * Verifies secondary-button presses on the track and the thumb neither move the
+     * value nor start a drag.
      *
      * @throws Exception if the FX action fails
      */
@@ -438,6 +439,10 @@ public class RXSliderTest {
             hitArea.fireEvent(mouseAt(hitArea, MouseEvent.MOUSE_PRESSED,
                     0.9 * hitArea.getLayoutBounds().getWidth(), 15.0, MouseButton.SECONDARY, false));
             assertEquals(50.0, slider.getValue(), EPSILON);
+
+            Region thumb = (Region) slider.lookup(".thumb");
+            thumb.fireEvent(mouseAt(thumb, MouseEvent.MOUSE_PRESSED, 2.0, 2.0, MouseButton.SECONDARY, false));
+            assertFalse(slider.isValueChanging());
         });
     }
 
@@ -535,9 +540,9 @@ public class RXSliderTest {
     }
 
     /**
-     * Verifies tick marks and labels toggle visibility (without losing the
-     * thumb across the runtime toggle — the ControlsFX bug) and the major-label
-     * count matches the major tick positions.
+     * Verifies tick marks and labels toggle visibility without losing the thumb
+     * across the runtime toggle, and the major-label count matches the major tick
+     * positions.
      *
      * @throws Exception if the FX action fails
      */
@@ -560,8 +565,7 @@ public class RXSliderTest {
             assertEquals(5, visibleCount(slider, ".tick-label"));
 
             // A runtime model change rebuilds the ticks via setAll; the original
-            // base node instances (thumb, halo, indicator) must survive — the
-            // ControlsFX bug dropped the high thumb / range bar here.
+            // base node instances (thumb, halo, indicator) must survive.
             slider.setMinorTickCount(1);
             assertEquals(9, visibleCount(slider, ".tick-mark"));
             assertSame(thumb, slider.lookup(".thumb"));

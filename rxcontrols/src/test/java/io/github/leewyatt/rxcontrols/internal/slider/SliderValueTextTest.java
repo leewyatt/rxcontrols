@@ -37,6 +37,29 @@ public class SliderValueTextTest {
         assertEquals("0" + SEP + "3333", SliderValueText.format(1.0 / 3.0, 0.0, 10.0, 1.0 / 3.0));
     }
 
+    /** Verifies a fractional range start shows the ticks that step from it. */
+    @Test
+    public void fractionalStartShowsItsTicks() {
+        assertEquals("0" + SEP + "5", SliderValueText.format(0.5, 0.5, 100.5, 25.0));
+        assertEquals("25" + SEP + "5", SliderValueText.format(25.5, 0.5, 100.5, 25.0));
+        assertEquals("-99" + SEP + "5", SliderValueText.format(-99.5, -99.5, 0.5, 25.0));
+    }
+
+    /** Verifies a large tick unit keeps its real fraction. */
+    @Test
+    public void largeTickUnitKeepsItsFraction() {
+        assertEquals("1000000000" + SEP + "5",
+                SliderValueText.format(1_000_000_000.5, 0.0, 2_000_000_000.0, 1_000_000_000.5));
+    }
+
+    /** Verifies a value that rounds to zero shows 0, not -0. */
+    @Test
+    public void valueRoundingToZeroShowsZero() {
+        assertEquals("0", SliderValueText.format(-0.001, -1.0, 1.0, 1.0));
+        assertEquals("-0" + SEP + "01", SliderValueText.format(-0.005, -1.0, 1.0, 1.0));
+        assertEquals("0", SliderValueText.format(-0.0, 0.0, 100.0, 25.0));
+    }
+
     /** Verifies an empty or invalid range falls back to whole numbers. */
     @Test
     public void degenerateRangeShowsWholeNumbers() {
