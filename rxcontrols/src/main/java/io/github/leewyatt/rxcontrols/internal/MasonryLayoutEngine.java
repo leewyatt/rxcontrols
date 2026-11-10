@@ -18,6 +18,11 @@ import java.util.Objects;
  * the next start outline, rather than re-folding every item from index zero. The
  * fixed-column overload is the all-zero-outline special case.</p>
  *
+ * <p>The {@link #place(double[], double, int[], BlockHeight)} overload asks each
+ * item's extent only after its columns are chosen, so a caller whose heights depend on
+ * the slot width can measure every item at the width it is laid out at. Both
+ * RXMasonryPane and the precise RXMasonryView path place through it.</p>
+ *
  * <p>The engine is pure arithmetic with no JavaFX dependency, so it can be unit
  * tested directly and shared by both the node-based pane and the virtualized
  * RXMasonryView.</p>

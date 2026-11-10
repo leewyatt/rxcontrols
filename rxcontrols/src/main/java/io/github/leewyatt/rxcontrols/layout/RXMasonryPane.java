@@ -665,9 +665,12 @@ public class RXMasonryPane extends Pane {
 
     /**
      * Whether columns stretch to fill the available width. When {@code true} (the
-     * default) the column width is {@code (contentWidth - gaps) / columns}; when
-     * {@code false} columns keep {@link #columnWidthProperty() columnWidth} and the
-     * content block is positioned by {@link #alignmentProperty() alignment}.
+     * default) the column width is {@code (contentWidth - gaps) / columns}, snapped down
+     * to the device pixel grid when {@link #snapToPixelProperty() snapToPixel} is set; the
+     * leftover of under one device pixel per column widens the gaps so the columns still
+     * meet both content edges. When {@code false} columns keep
+     * {@link #columnWidthProperty() columnWidth} and the content block is positioned by
+     * {@link #alignmentProperty() alignment}.
      *
      * @return the fill width property
      */

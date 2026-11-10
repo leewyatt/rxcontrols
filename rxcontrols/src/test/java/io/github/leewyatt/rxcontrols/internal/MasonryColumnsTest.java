@@ -235,6 +235,29 @@ public class MasonryColumnsTest {
     }
 
     @Test
+    public void filledSpanWidthsSurviveACeilingSnap() {
+        // layoutInArea ceils the area width; a span width carrying floating residue
+        // above its grid value would come out one device pixel wider. The 1.25x and
+        // 1.75x grids are left out: there the JavaFX ceiling also moves some exact
+        // grid values.
+        for (double scale : new double[] {1.0, 1.5, 2.0}) {
+            for (double width = 300.0; width <= 500.0; width += 1.0 / 12.0) {
+                Resolution r = MasonryColumns.resolve(width, width, 0, 60.0, 10.0, 0, true,
+                        RXBreakpointProfile.ANT_DESIGN, Map.of(), scale);
+                int n = r.columns();
+                for (int start = 0; start < n; start++) {
+                    for (int span = 1; start + span <= n; span++) {
+                        double spanWidth = r.spanWidth(0.0, start, span);
+                        double ceiled = Math.ceil(spanWidth * scale - 1.0e-14) / scale;
+                        assertEquals(spanWidth, ceiled, DELTA, "scale " + scale + " width " + width
+                                + ": span " + span + " from " + start);
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     public void unsnappedFillKeepsTheContinuousGeometry() {
         Resolution r = MasonryColumns.resolve(301.0, 301.0, 3, 60.0, 10.0, 0, true,
                 RXBreakpointProfile.ANT_DESIGN, Map.of(), 0.0);

@@ -991,15 +991,21 @@ public class RXMasonryPaneTest {
     @Test
     public void fixedColumnsKeepTheConfiguredGapAtAnyScale() throws Exception {
         runOnFx(() -> {
-            Region first = card(40.0, 30.0);
-            Region second = card(40.0, 30.0);
-            RXMasonryPane pane = pane(60.0, 10.0, 6.0, first, second);
-            pane.setFillWidth(false);
-            Stage stage = stageFor(pane);
-            stage.setRenderScaleX(1.5);
-            layout(pane, 301.0, 400.0);
-            assertBox(first, 0.0, 0.0, 40.0, 30.0, "first");
-            assertBox(second, 70.0, 0.0, 40.0, 30.0, "second");
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                Region first = card(40.0, 30.0);
+                Region second = card(40.0, 30.0);
+                RXMasonryPane pane = pane(60.0, 10.0, 6.0, first, second);
+                pane.setFillWidth(false);
+                Stage stage = stageFor(pane);
+                stage.setRenderScaleX(scale);
+                layout(pane, 301.0, 400.0);
+                double snappedGap = Math.round(10.0 * scale) / scale;
+                double secondX = Math.round((60.0 + snappedGap) * scale) / scale;
+                assertClose(0.0, first.getLayoutX(), "first x @ " + scale);
+                assertClose(40.0, first.getWidth(), "first width @ " + scale);
+                assertClose(secondX, second.getLayoutX(), "second x @ " + scale);
+                assertClose(40.0, second.getWidth(), "second width @ " + scale);
+            }
         });
     }
 
