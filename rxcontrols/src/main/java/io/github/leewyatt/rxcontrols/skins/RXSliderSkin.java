@@ -34,14 +34,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Default skin for {@link RXSlider}, rendering an inactive track, an active fill, a draggable thumb with Material feedback (an
- * unbounded {@link StateLayer} halo plus an optional bounded press ink), and an
- * in-skin value indicator bubble.
+ * Default skin for {@link RXSlider}, rendering an inactive track, an active fill, a
+ * draggable thumb with Material feedback (an unbounded {@link StateLayer} halo plus an
+ * optional bounded press ink), and an in-skin value indicator bubble.
  *
- * <p>{@code valueChanging} is set {@code true} only while the thumb is dragged
- * with the pointer and {@code false} on release (with a snap), matching
- * {@code SliderBehavior}; track clicks and the keyboard commit discretely and do
- * not flip it. The indicator visibility is driven independently of
+ * <p>{@code valueChanging} is set {@code true} only while the thumb is dragged with
+ * the pointer. A drag ends by snapping first and clearing the flag after, so the
+ * falling edge sees the final value; track clicks and the keyboard commit discretely
+ * and do not flip it. The indicator visibility is driven independently of
  * {@code valueChanging} (by interaction and focus), so the keyboard pops it too.</p>
  */
 public class RXSliderSkin extends RXSkinBase<RXSlider> {
@@ -170,15 +170,10 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
             updateHalo();
             if (control.isDisabled()) {
                 // A disabled node may never see the thumb release, so end any
-                // in-flight gesture: clear the ink and reset the drag /
-                // valueChanging state rather than strand an unreleased ripple or
-                // a stuck flag (matching the RippleDecoration facade lifecycle).
+                // in-flight gesture here rather than strand an unreleased ripple or
+                // a stuck flag.
                 inkBehavior.clear();
-                if (thumbDragging) {
-                    thumbDragging = false;
-                    dragStart = null;
-                    control.setValueChanging(false);
-                }
+                endThumbDrag();
             }
         });
         disposer.registerListener(control.stateOverlayEnabledProperty(), this::updateHalo);
@@ -267,13 +262,21 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
         if (!thumbDragging) {
             return;
         }
+        endThumbDrag();
+        event.consume();
+    }
+
+    // Ends a thumb drag: snaps to the nearest tick first (no snap during the drag),
+    // then clears valueChanging, so a commit on its falling edge reads the final value.
+    private void endThumbDrag() {
+        if (!thumbDragging) {
+            return;
+        }
         thumbDragging = false;
         dragStart = null;
         RXSlider control = getSkinnable();
-        control.setValueChanging(false);
-        // Snap to the nearest tick once the drag ends (RT-15207).
         control.adjustValue(control.getValue());
-        event.consume();
+        control.setValueChanging(false);
     }
 
     private void setValueFromPointer(MouseEvent event) {
@@ -636,12 +639,8 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
 
     @Override
     protected void disposeSkin() {
-        if (thumbDragging) {
-            // End the drag so valueChanging does not stay true without its release.
-            thumbDragging = false;
-            dragStart = null;
-            getSkinnable().setValueChanging(false);
-        }
+        // End a drag in flight so valueChanging does not stay true without its release.
+        endThumbDrag();
         indicatorAnimator.dispose();
         inkBehavior.clear();
         ink.clearClip();

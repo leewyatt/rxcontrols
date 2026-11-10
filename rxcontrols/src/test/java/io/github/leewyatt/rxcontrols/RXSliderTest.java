@@ -26,6 +26,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.text.DecimalFormatSymbols;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -421,6 +423,52 @@ public class RXSliderTest {
             slider.setMajorTickUnit(25.0);
             slider.setMax(100.0);
             assertEquals("0", label.getText());
+        });
+    }
+
+    /**
+     * Verifies the falling edge of {@code valueChanging} already sees the snapped
+     * value, on release and when the slider is disabled mid-drag, and the gesture
+     * changes nothing after it.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void dragCommitSeesTheSnappedValue() throws Exception {
+        runOnFx(() -> {
+            for (boolean disableMidDrag : new boolean[] {false, true}) {
+                RXSlider slider = scenedSlider(200.0, 30.0);
+                slider.setSnapToTicks(true);
+                slider.setMinorTickCount(0);
+                List<Double> committed = new ArrayList<>();
+                List<Double> afterCommit = new ArrayList<>();
+                slider.valueChangingProperty().addListener((obs, was, now) -> {
+                    if (!now) {
+                        committed.add(slider.getValue());
+                    }
+                });
+                slider.valueProperty().addListener((obs, oldValue, newValue) -> {
+                    if (!committed.isEmpty()) {
+                        afterCommit.add(newValue.doubleValue());
+                    }
+                });
+                Region thumb = (Region) slider.lookup(".thumb");
+                Region track = (Region) slider.lookup(".track");
+                double cx = thumb.getWidth() / 2.0;
+                double cy = thumb.getHeight() / 2.0;
+                thumb.fireEvent(mouseAt(thumb, MouseEvent.MOUSE_PRESSED, cx, cy, MouseButton.PRIMARY, true));
+                thumb.fireEvent(mouseAt(thumb, MouseEvent.MOUSE_DRAGGED,
+                        cx + 0.3 * track.getWidth(), cy, MouseButton.PRIMARY, true));
+                assertEquals(30.0, slider.getValue(), EPSILON);
+                if (disableMidDrag) {
+                    slider.setDisable(true);
+                } else {
+                    thumb.fireEvent(mouseAt(thumb, MouseEvent.MOUSE_RELEASED,
+                            cx + 0.3 * track.getWidth(), cy, MouseButton.PRIMARY, false));
+                }
+                assertEquals(List.of(25.0), committed, "disabled mid-drag: " + disableMidDrag);
+                assertEquals(List.of(), afterCommit, "disabled mid-drag: " + disableMidDrag);
+            }
         });
     }
 

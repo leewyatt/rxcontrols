@@ -28,11 +28,12 @@ import java.util.List;
  * Material thumb state-layer, an in-skin value indicator bubble, and a
  * self-rendered tick scale (no {@code NumberAxis}).
  *
- * <p>The control keeps the inherited interaction contract: {@code valueChanging}
- * is {@code true} only while the thumb is dragged with the pointer and
- * {@code false} on release (track clicks and the keyboard commit discretely and
- * do not flip it), so a consumer can mirror external state while not changing
- * and commit on the {@code true -> false} transition.</p>
+ * <p>{@code valueChanging} is {@code true} only while the thumb is dragged with
+ * the pointer. When a drag ends the value is snapped first and the flag cleared
+ * after, so its {@code true -> false} transition already sees the final value.
+ * Track clicks and the keyboard change the value without flipping it. To commit
+ * every user change once, commit on that falling edge and on value changes while
+ * the flag is {@code false}.</p>
  *
  * <p>The default style class is {@code rx-slider}; the inherited {@code slider}
  * class is intentionally dropped so the modena {@code .slider} visuals do not
