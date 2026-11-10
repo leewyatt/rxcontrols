@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.layout;
 import io.github.leewyatt.rxcontrols.internal.MasonryColumns;
 import io.github.leewyatt.rxcontrols.internal.MasonryColumns.Resolution;
 import io.github.leewyatt.rxcontrols.internal.MasonryLayoutEngine;
+import io.github.leewyatt.rxcontrols.internal.PixelGrid;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 
@@ -1394,7 +1395,7 @@ public class RXMasonryPane extends Pane {
         // place; the few sub-pixel leftovers of the floored width stay at the trailing edge.
         // A right-aligned block measures from the floored content edge: the width need not
         // sit on the pixel grid, and a rounded offset would push the last column past it.
-        double alignWidth = hpos == HPos.RIGHT ? snapFloorX(contentWidth) : contentWidth;
+        double alignWidth = hpos == HPos.RIGHT ? PixelGrid.floor(contentWidth, snapScaleX()) : contentWidth;
         double xOffset = fill ? 0.0 : computeXOffset(alignWidth, resolution.usedWidth(), hpos);
         double yOffset = computeYOffset(contentHeight, metrics.result().contentHeight(), vpos);
         boolean animate = isAnimated() && firstLayoutDone && getScene() != null
@@ -1523,13 +1524,6 @@ public class RXMasonryPane extends Pane {
         Window window = scene == null ? null : scene.getWindow();
         double scale = window == null ? 1.0 : window.getRenderScaleX();
         return Double.isFinite(scale) && scale > 0.0 ? scale : 1.0;
-    }
-
-    private double snapFloorX(double value) {
-        double scale = snapScaleX();
-        // The tolerance absorbs the rounding a few subtractions leave on a value that is
-        // on the grid, which can exceed one ulp and would otherwise drop a whole pixel.
-        return scale > 0.0 ? Math.floor(value * scale + 1.0e-9) / scale : value;
     }
 
     private int childColumnSpan(Node child) {

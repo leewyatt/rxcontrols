@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXRipplePane;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
+import io.github.leewyatt.rxcontrols.internal.PixelGrid;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -13,13 +14,11 @@ import javafx.css.PseudoClass;
 import javafx.event.EventHandler;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
-import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
-import javafx.stage.Window;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -400,7 +399,7 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
             // segments differ by at most a device pixel, every gap keeps its snapped size
             // and the last segment ends inside the content edge. Below the minimum width
             // the slots shrink to zero and the gaps keep their size.
-            double available = snapFloorX(Math.max(0.0, w - spacing * (count - 1)));
+            double available = PixelGrid.floorX(getSkinnable(), Math.max(0.0, w - spacing * (count - 1)));
             for (int i = 0; i < count; i++) {
                 double start = snapPositionX(available * i / count);
                 double end = snapPositionX(available * (i + 1) / count);
@@ -537,25 +536,6 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
     // its own minimum or preferred width fits it exactly.
     private double effectiveSpacing() {
         return snapSpaceX(Math.max(0.0, getSkinnable().getSegmentSpacing()));
-    }
-
-    // Floors to the pixel grid of the control's window; a no-op when it does not snap
-    // to pixels.
-    private double snapFloorX(double value) {
-        RXSegmentedControl<T> control = getSkinnable();
-        if (!control.isSnapToPixel()) {
-            return value;
-        }
-        Scene scene = control.getScene();
-        Window window = scene == null ? null : scene.getWindow();
-        double scale = window == null ? 1.0 : window.getRenderScaleX();
-        if (!Double.isFinite(scale) || scale <= 0.0) {
-            scale = 1.0;
-        }
-        double scaled = value * scale;
-        // The tolerance absorbs the rounding a few subtractions leave on a value that is
-        // on the grid, which can exceed one ulp and would otherwise drop a whole pixel.
-        return Math.floor(scaled + 1.0e-9) / scale;
     }
 
     // ==================== Dispose ====================

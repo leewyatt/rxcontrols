@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.layout;
 
+import io.github.leewyatt.rxcontrols.internal.PixelGrid;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 
@@ -22,9 +23,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
-import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
-import javafx.stage.Window;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -961,25 +960,7 @@ public class RXRow extends Pane {
     // floored to the pixel grid, so the last column ends inside the content edge even
     // when the row width is off the grid.
     private double contentWidth(double rowWidth) {
-        return Math.max(0.0, snapFloorX(rowWidth - snappedLeftInset() - snappedRightInset()));
-    }
-
-    // Floors to the pixel grid of the row's window; a no-op when the row does not snap
-    // to pixels.
-    private double snapFloorX(double value) {
-        if (!isSnapToPixel()) {
-            return value;
-        }
-        Scene scene = getScene();
-        Window window = scene == null ? null : scene.getWindow();
-        double scale = window == null ? 1.0 : window.getRenderScaleX();
-        if (!Double.isFinite(scale) || scale <= 0.0) {
-            scale = 1.0;
-        }
-        double scaled = value * scale;
-        // The tolerance absorbs the rounding a few subtractions leave on a value that is
-        // on the grid, which can exceed one ulp and would otherwise drop a whole pixel.
-        return Math.floor(scaled + 1.0e-9) / scale;
+        return Math.max(0.0, PixelGrid.floorX(this, rowWidth - snappedLeftInset() - snappedRightInset()));
     }
 
     private int columnsOrDefault() {
