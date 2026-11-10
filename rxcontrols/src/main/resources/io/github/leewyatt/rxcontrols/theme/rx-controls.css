@@ -693,18 +693,18 @@
 
 .rx-seek-bar > .track {
     -fx-background-color: -rx-track-fill;
-    -fx-background-radius: 3px;
+    -fx-background-radius: 999px;
     -fx-pref-height: 4px;
 }
 
 .rx-seek-bar > .secondary-bar {
     -fx-background-color: -rx-secondary-fill;
-    -fx-background-radius: 3px;
+    -fx-background-radius: 999px;
 }
 
 .rx-seek-bar > .bar {
     -fx-background-color: -rx-bar-fill;
-    -fx-background-radius: 3px;
+    -fx-background-radius: 999px;
 }
 
 .rx-seek-bar > .thumb {
