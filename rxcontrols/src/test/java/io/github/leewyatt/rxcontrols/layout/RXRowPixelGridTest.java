@@ -203,8 +203,8 @@ public class RXRowPixelGridTest {
     }
 
     /**
-     * Verifies a horizontally content-biased child is measured within a device pixel of
-     * the width it is laid out at, so its row height fits the laid-out content.
+     * Verifies a horizontally content-biased child is measured at exactly the width it is
+     * laid out at.
      */
     @Test
     public void contentBiasedChildIsMeasuredAtItsLaidOutWidth() throws Exception {
@@ -225,9 +225,48 @@ public class RXRowPixelGridTest {
                     // The first request comes from the row's measure pass; later ones come
                     // from layoutInArea at the final width.
                     double asked = child.askedWidths.get(0);
-                    assertTrue(Math.abs(asked - laidOut) < 1.0 / scale + EPSILON,
+                    assertEquals(laidOut, asked, EPSILON,
                             "scale " + scale + ", width " + width + ": asked " + asked
                                     + ", laid out " + laidOut);
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a row is tall enough for a wrapping child at the width the child is laid
+     * out at, for columns with and without a gutter, for every justify, at any scale.
+     */
+    @Test
+    public void wrappingChildGetsTheHeightOfItsLaidOutWidth() throws Exception {
+        runOnFx(() -> {
+            for (RXRow.Justify justify : RXRow.Justify.values()) {
+                for (int span = 1; span <= 5; span++) {
+                    WrappingRegion inColumn = new WrappingRegion();
+                    RXCol col = new RXCol(inColumn);
+                    col.setSpan(span);
+                    WrappingRegion bare = new WrappingRegion();
+                    RXRow row = new RXRow(col, bare);
+                    row.setGutter(10.0);
+                    row.setPadding(new Insets(3.0, 7.5, 3.0, 4.25));
+                    row.setJustify(justify);
+                    Stage stage = stageFor(row);
+                    for (double scale : SCALES) {
+                        stage.setRenderScaleX(scale);
+                        for (int base = 300; base < 320; base++) {
+                            for (double fraction : FRACTIONS) {
+                                double width = base + fraction;
+                                layout(row, width);
+                                String at = justify + ", span " + span + ", scale " + scale + ", width " + width;
+                                assertTallEnough(inColumn, at + ", in a column");
+                                assertTallEnough(bare, at + ", bare");
+                                double needed = row.snappedTopInset() + col.prefHeight(col.getWidth()) + row.getRowGap()
+                                        + bare.prefHeight(bare.getWidth()) + row.snappedBottomInset();
+                                assertTrue(row.prefHeight(width) >= needed - EPSILON,
+                                        at + ": row preferred height " + row.prefHeight(width) + " < " + needed);
+                            }
+                        }
+                    }
                 }
             }
         });
@@ -288,6 +327,12 @@ public class RXRowPixelGridTest {
                         at + ": trailing space " + trailing + " against " + edge);
             }
         }
+    }
+
+    private static void assertTallEnough(Region child, String at) {
+        double needed = child.prefHeight(child.getWidth());
+        assertTrue(child.getHeight() >= needed - EPSILON,
+                at + ": height " + child.getHeight() + " at width " + child.getWidth() + " needs " + needed);
     }
 
     private static void assertOnGrid(double value, double scale, String message) {
@@ -379,6 +424,28 @@ public class RXRowPixelGridTest {
         protected double computePrefHeight(double width) {
             askedWidths.add(width);
             return 20.0;
+        }
+    }
+
+    /**
+     * A horizontal content-bias region whose height steps up as it narrows, like wrapped
+     * text, with steps closer together than a device pixel.
+     */
+    private static final class WrappingRegion extends Region {
+
+        @Override
+        public Orientation getContentBias() {
+            return Orientation.HORIZONTAL;
+        }
+
+        @Override
+        protected double computePrefWidth(double height) {
+            return 40.0;
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            return 2.0 * Math.ceil(1000.0 / Math.max(1.0, width));
         }
     }
 }

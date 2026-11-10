@@ -580,20 +580,13 @@ public class RXRow extends Pane {
             breakpoint = resolveBreakpoint(rowWidth);
         }
         Measurement measurement = measure(rowWidth, breakpoint, true);
-        Insets insets = getInsets();
-        double contentX = snapPositionX(insets.getLeft());
-        double contentY = snapPositionY(insets.getTop());
-        double contentWidth = contentWidth(rowWidth);
-        double y = contentY;
+        double y = snapPositionY(getInsets().getTop());
         double gap = snapSpaceY(rowGapOrDefault());
         Align rowAlign = alignOrDefault();
-        Justify rowJustify = justifyOrDefault();
-        int columnsCount = columnsOrDefault();
 
         for (int lineIndex = 0; lineIndex < measurement.lines().size(); lineIndex++) {
             Line line = measurement.lines().get(lineIndex);
-            layoutLine(line, contentX, y, contentWidth, columnsCount,
-                    rowJustify, rowAlign);
+            layoutLine(line, y, rowAlign);
             y += line.height();
             if (lineIndex < measurement.lines().size() - 1) {
                 y += gap;
@@ -601,11 +594,7 @@ public class RXRow extends Pane {
         }
     }
 
-    private void layoutLine(Line line, double contentX, double y, double contentWidth,
-                            int columnsCount, Justify rowJustify,
-                            Align rowAlign) {
-        JustifyMetrics justifyMetrics = justifyMetrics(rowJustify,
-                Math.max(0.0, contentWidth - line.usedWidth()), line.items().size());
+    private void layoutLine(Line line, double y, Align rowAlign) {
         VPos vpos = switch (rowAlign) {
             case TOP, STRETCH -> VPos.TOP;
             case CENTER -> VPos.CENTER;
@@ -613,21 +602,11 @@ public class RXRow extends Pane {
         };
         boolean fillHeight = rowAlign == Align.STRETCH;
 
-        for (int i = 0; i < line.items().size(); i++) {
-            LineItem item = line.items().get(i);
+        for (LineItem item : line.items()) {
             Node child = item.child();
-            double itemOffset = justifyMetrics.edgeOffset() + i * justifyMetrics.itemGap();
-            double lineX = contentX + justifyMetrics.lineOffset() + itemOffset;
-            // Both edges come from the same column-boundary expression, so a column ends
-            // exactly where the next one starts instead of rounding a separate sum.
-            double x = snapPositionX(lineX + contentWidth * item.startColumn() / columnsCount);
-            double right = snapPositionX(lineX
-                    + contentWidth * (item.startColumn() + item.span()) / columnsCount);
-            double width = Math.max(0.0, right - x);
-
-            layoutInArea(child, x, y, width, line.height(), 0.0, null,
+            layoutInArea(child, item.x(), y, item.width(), line.height(), 0.0, null,
                     true, fillHeight, HPos.LEFT, vpos);
-            keepInsideSlot(child, width);
+            keepInsideSlot(child, item.width());
         }
     }
 
@@ -647,43 +626,37 @@ public class RXRow extends Pane {
         }
     }
 
+    // Lines are split by columns alone, then each line's slots are placed on the pixel
+    // grid before its height is measured, so a wrapping child is asked for its height at
+    // the exact width it is laid out at.
     private Measurement measure(double rowWidth, RXBreakpoint breakpoint,
                                 boolean applyHiddenState) {
         int columnsCount = columnsOrDefault();
         double contentWidth = contentWidth(rowWidth);
-        double gutterValue = gutterOrDefault();
         List<Line> lines = new ArrayList<>();
-        List<LineItem> items = new ArrayList<>();
+        List<LayoutCandidate> lineCandidates = new ArrayList<>();
+        List<Integer> startColumns = new ArrayList<>();
         int cursor = 0;
-        double lineHeight = 0.0;
-        int maxEndColumn = 0;
         List<LayoutCandidate> candidates =
                 collectLayoutCandidates(breakpoint, columnsCount, applyHiddenState);
 
         for (LayoutCandidate candidate : candidates) {
-            Node child = candidate.child();
             EffectiveSpec spec = candidate.spec();
             int required = spec.offset() + spec.span();
-            if (!items.isEmpty() && cursor + required > columnsCount) {
-                lines.add(createLine(items, lineHeight, maxEndColumn, contentWidth, columnsCount));
-                items = new ArrayList<>();
+            if (!lineCandidates.isEmpty() && cursor + required > columnsCount) {
+                lines.add(createLine(lineCandidates, startColumns, contentWidth, columnsCount));
+                lineCandidates = new ArrayList<>();
+                startColumns = new ArrayList<>();
                 cursor = 0;
-                lineHeight = 0.0;
-                maxEndColumn = 0;
             }
-
             int start = cursor + spec.offset();
-            int end = start + spec.span();
-            double outerWidth = contentWidth * spec.span() / columnsCount;
-            double childHeight = computeChildPrefHeight(child, outerWidth, gutterValue);
-            items.add(new LineItem(child, start, spec.span()));
-            cursor = end;
-            maxEndColumn = Math.max(maxEndColumn, end);
-            lineHeight = Math.max(lineHeight, childHeight);
+            lineCandidates.add(candidate);
+            startColumns.add(start);
+            cursor = start + spec.span();
         }
 
-        if (!items.isEmpty()) {
-            lines.add(createLine(items, lineHeight, maxEndColumn, contentWidth, columnsCount));
+        if (!lineCandidates.isEmpty()) {
+            lines.add(createLine(lineCandidates, startColumns, contentWidth, columnsCount));
         }
 
         return new Measurement(lines, snapSpaceY(rowGapOrDefault()));
@@ -806,10 +779,36 @@ public class RXRow extends Pane {
                 + "; layout still skips the column.");
     }
 
-    private Line createLine(List<LineItem> items, double lineHeight, int maxEndColumn,
+    private Line createLine(List<LayoutCandidate> lineCandidates, List<Integer> startColumns,
                             double contentWidth, int columnsCount) {
+        int maxEndColumn = 0;
+        for (int i = 0; i < lineCandidates.size(); i++) {
+            maxEndColumn = Math.max(maxEndColumn,
+                    startColumns.get(i) + lineCandidates.get(i).spec().span());
+        }
         double usedWidth = contentWidth * maxEndColumn / columnsCount;
-        return new Line(List.copyOf(items), snapSizeY(lineHeight), usedWidth);
+        JustifyMetrics justifyMetrics = justifyMetrics(justifyOrDefault(),
+                Math.max(0.0, contentWidth - usedWidth), lineCandidates.size());
+        double contentX = snapPositionX(getInsets().getLeft());
+        double gutterValue = gutterOrDefault();
+        List<LineItem> items = new ArrayList<>(lineCandidates.size());
+        double lineHeight = 0.0;
+        for (int i = 0; i < lineCandidates.size(); i++) {
+            LayoutCandidate candidate = lineCandidates.get(i);
+            int start = startColumns.get(i);
+            double itemOffset = justifyMetrics.edgeOffset() + i * justifyMetrics.itemGap();
+            double lineX = contentX + justifyMetrics.lineOffset() + itemOffset;
+            // Both edges come from the same column-boundary expression, so a column ends
+            // exactly where the next one starts instead of rounding a separate sum.
+            double x = snapPositionX(lineX + contentWidth * start / columnsCount);
+            double right = snapPositionX(lineX
+                    + contentWidth * (start + candidate.spec().span()) / columnsCount);
+            double width = Math.max(0.0, right - x);
+            items.add(new LineItem(candidate.child(), x, width));
+            lineHeight = Math.max(lineHeight,
+                    computeChildPrefHeight(candidate.child(), width, gutterValue));
+        }
+        return new Line(List.copyOf(items), snapSizeY(lineHeight));
     }
 
     private EffectiveSpec resolveSpec(Node child, RXBreakpoint breakpoint, int columnsCount) {
@@ -1176,10 +1175,10 @@ public class RXRow extends Pane {
     private record LayoutCandidate(Node child, EffectiveSpec spec, int index) {
     }
 
-    private record LineItem(Node child, int startColumn, int span) {
+    private record LineItem(Node child, double x, double width) {
     }
 
-    private record Line(List<LineItem> items, double height, double usedWidth) {
+    private record Line(List<LineItem> items, double height) {
     }
 
     private record Measurement(List<Line> lines, double rowGap) {

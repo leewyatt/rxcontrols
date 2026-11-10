@@ -514,7 +514,7 @@ public class RXCol extends StackPane {
         HPos alignHpos = align.getHpos();
         VPos alignVpos = align.getVpos();
         Insets insets = getInsets();
-        double halfGutter = snapSpaceX(resolveEffectiveGutter() / 2.0);
+        double halfGutter = halfGutterSpace(resolveEffectiveGutter());
         double left = insets.getLeft() + halfGutter;
         double right = insets.getRight() + halfGutter;
         double top = insets.getTop();
@@ -565,14 +565,14 @@ public class RXCol extends StackPane {
                     + childWidth + snapSpaceX(margin.getRight()));
         }
         return insets.getLeft() + snapSizeX(maxWidth)
-                + snapSpaceX(normalizeGutter(gutter)) + insets.getRight();
+                + gutterSpace(gutter) + insets.getRight();
     }
 
     double computeResponsiveMinHeight(double width, double gutter) {
         Insets insets = getInsets();
         double contentWidth = width == -1.0 ? -1.0
                 : Math.max(0.0, width - insets.getLeft() - insets.getRight()
-                                - snapSpaceX(normalizeGutter(gutter)));
+                                - gutterSpace(gutter));
         double maxHeight = 0.0;
         for (Node child : getManagedChildren()) {
             Insets margin = marginOrEmpty(child);
@@ -599,14 +599,14 @@ public class RXCol extends StackPane {
                     + childWidth + snapSpaceX(margin.getRight()));
         }
         return insets.getLeft() + snapSizeX(maxWidth)
-                + snapSpaceX(normalizeGutter(gutter)) + insets.getRight();
+                + gutterSpace(gutter) + insets.getRight();
     }
 
     double computeResponsivePrefHeight(double width, double gutter) {
         Insets insets = getInsets();
         double contentWidth = width == -1.0 ? -1.0
                 : Math.max(0.0, width - insets.getLeft() - insets.getRight()
-                                - snapSpaceX(normalizeGutter(gutter)));
+                                - gutterSpace(gutter));
         double maxHeight = 0.0;
         for (Node child : getManagedChildren()) {
             Insets margin = marginOrEmpty(child);
@@ -675,6 +675,16 @@ public class RXCol extends StackPane {
     private static Insets marginOrEmpty(Node child) {
         Insets margin = StackPane.getMargin(child);
         return margin == null ? Insets.EMPTY : margin;
+    }
+
+    // Each side of the column keeps half the gutter on the pixel grid; measuring with the
+    // same two halves keeps the measured content width equal to the laid-out one.
+    private double halfGutterSpace(double gutter) {
+        return snapSpaceX(normalizeGutter(gutter) / 2.0);
+    }
+
+    private double gutterSpace(double gutter) {
+        return 2.0 * halfGutterSpace(gutter);
     }
 
     private static double normalizeGutter(double value) {
