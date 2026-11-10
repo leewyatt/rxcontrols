@@ -104,8 +104,8 @@ public class RXRangeSlider extends Control {
         setMin(min);
         // Park the low value at the bottom so the requested high is applied
         // against [min, max] only, then set the real low against the real high.
-        // Setting low first (the inherited ControlsFX order) would clamp it to
-        // the default high (75) whenever the requested low exceeds it.
+        // Setting low first would clamp it to the default high (75) whenever the
+        // requested low exceeds it.
         setLowValue(getMin());
         setHighValue(highValue);
         setLowValue(lowValue);

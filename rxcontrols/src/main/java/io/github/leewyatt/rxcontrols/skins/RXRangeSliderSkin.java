@@ -14,6 +14,7 @@ import io.github.leewyatt.rxcontrols.internal.slider.SliderSnapper;
 import io.github.leewyatt.rxcontrols.internal.slider.SliderThumb;
 import io.github.leewyatt.rxcontrols.internal.slider.SliderTickLayout;
 import io.github.leewyatt.rxcontrols.internal.slider.SliderValueIndicator;
+import io.github.leewyatt.rxcontrols.internal.slider.SliderValueText;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.css.PseudoClass;
 import javafx.geometry.NodeOrientation;
@@ -24,6 +25,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -42,10 +44,9 @@ import java.util.List;
  * scale.
  *
  * <p>The two thumbs are real focus stops: Tab moves between them, and the arrow
- * keys / HOME / END move the focused thumb (fixing the ControlsFX bugs where
- * HOME/END always moved the high thumb, focus was faked, runtime tick toggles
- * dropped the high thumb / range bar, every key was consumed, and the skin was
- * never disposed). The {@code *Changing} flags flip only during a pointer drag.</p>
+ * keys / HOME / END move the focused thumb; keys the slider does not handle are
+ * left unconsumed. A runtime tick toggle keeps both thumbs and the range bar. The
+ * {@code *Changing} flags flip only during a pointer drag.</p>
  */
 public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
 
@@ -130,8 +131,10 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
 
         track.getStyleClass().add("track");
         fill.getStyleClass().add("fill");
+        // The hit area under the bars takes every press on the content area.
+        track.setMouseTransparent(true);
         // The fill is pickable only when the band is draggable; otherwise clicks
-        // on the filled region fall through to the track (nearest-thumb).
+        // on the filled region fall through to the hit area (nearest thumb).
         fill.setMouseTransparent(!control.isRangeDraggable());
 
         low.setFill(control.getRippleFill());
@@ -228,8 +231,6 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     private void registerPointerHandlers(RXRangeSlider control) {
         disposer.registerEventHandler(hitArea, MouseEvent.MOUSE_PRESSED, this::onTrackPressed);
         disposer.registerEventHandler(hitArea, MouseEvent.MOUSE_DRAGGED, this::onTrackDragged);
-        disposer.registerEventHandler(track, MouseEvent.MOUSE_PRESSED, this::onTrackPressed);
-        disposer.registerEventHandler(track, MouseEvent.MOUSE_DRAGGED, this::onTrackDragged);
 
         disposer.registerEventHandler(fill, MouseEvent.MOUSE_PRESSED, this::onBandPressed);
         disposer.registerEventHandler(fill, MouseEvent.MOUSE_DRAGGED, this::onBandDragged);
@@ -250,6 +251,9 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     // ==================== Pointer interaction ====================
 
     private void onThumbPressed(boolean isLow, MouseEvent event) {
+        if (event.getButton() != MouseButton.PRIMARY) {
+            return;
+        }
         RXRangeSlider control = getSkinnable();
         SliderThumb unit = isLow ? low : high;
         StackPane thumbNode = unit.getThumb();
@@ -297,6 +301,9 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     }
 
     private void onThumbReleased(boolean isLow, MouseEvent event) {
+        if (event.getButton() != MouseButton.PRIMARY) {
+            return;
+        }
         (isLow ? low : high).releaseInk();
         if (!dragging || draggingLow != isLow) {
             return;
@@ -315,7 +322,8 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     }
 
     private void onTrackPressed(MouseEvent event) {
-        if (low.getThumb().isPressed() || high.getThumb().isPressed()) {
+        if (event.getButton() != MouseButton.PRIMARY
+                || low.getThumb().isPressed() || high.getThumb().isPressed()) {
             return;
         }
         double value = valueFromPointer(event);
@@ -339,7 +347,8 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     }
 
     private void onTrackDragged(MouseEvent event) {
-        if (low.getThumb().isPressed() || high.getThumb().isPressed()) {
+        if (!event.isPrimaryButtonDown()
+                || low.getThumb().isPressed() || high.getThumb().isPressed()) {
             return;
         }
         double value = valueFromPointer(event);
@@ -394,7 +403,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
 
     private void onBandPressed(MouseEvent event) {
         RXRangeSlider control = getSkinnable();
-        if (!control.isRangeDraggable() || control.isDisabled()) {
+        if (event.getButton() != MouseButton.PRIMARY || !control.isRangeDraggable() || control.isDisabled()) {
             return;
         }
         bandDragging = true;
@@ -447,7 +456,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     }
 
     private void onBandReleased(MouseEvent event) {
-        if (!bandDragging) {
+        if (!bandDragging || event.getButton() != MouseButton.PRIMARY) {
             return;
         }
         RXRangeSlider control = getSkinnable();
@@ -585,8 +594,11 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     }
 
     private String formatValue(double value) {
-        StringConverter<Number> formatter = getSkinnable().getLabelFormatter();
-        return formatter != null ? formatter.toString(value) : Long.toString(Math.round(value));
+        RXRangeSlider control = getSkinnable();
+        StringConverter<Number> formatter = control.getLabelFormatter();
+        return formatter != null
+                ? formatter.toString(value)
+                : SliderValueText.format(value, control.getMin(), control.getMax(), control.getMajorTickUnit());
     }
 
     private RXSliderIndicatorPosition positionOrDefault() {
@@ -853,7 +865,8 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     }
 
     private double mainMin() {
-        return 2.0 * low.getThumb().prefWidth(-1) + low.getThumb().minWidth(-1);
+        // A track two thumb diameters long, plus half a thumb past each end.
+        return 3.0 * low.getThumb().prefWidth(-1);
     }
 
     private double crossThickness() {
@@ -873,6 +886,10 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
 
     @Override
     protected void disposeSkin() {
+        if (dragging || bandDragging) {
+            // End the drag so the *Changing flags do not stay true without a release.
+            cancelGestures();
+        }
         lowAnimator.dispose();
         highAnimator.dispose();
         low.dispose();

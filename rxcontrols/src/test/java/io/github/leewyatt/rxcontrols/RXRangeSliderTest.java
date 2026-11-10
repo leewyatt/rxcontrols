@@ -21,6 +21,7 @@ import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.text.DecimalFormatSymbols;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -211,13 +212,11 @@ public class RXRangeSliderTest {
             Region track = (Region) slider.lookup(".track");
             double mid = track.getHeight() / 2.0;
 
-            track.fireEvent(mouseAt(track, MouseEvent.MOUSE_PRESSED,
-                    0.1 * track.getWidth(), mid, MouseButton.PRIMARY, true));
+            pressTrack(track, 0.1 * track.getWidth(), mid);
             assertEquals(10.0, slider.getLowValue(), PIXEL_TOLERANCE);
             assertEquals(75.0, slider.getHighValue(), PIXEL_TOLERANCE);
 
-            track.fireEvent(mouseAt(track, MouseEvent.MOUSE_PRESSED,
-                    0.9 * track.getWidth(), mid, MouseButton.PRIMARY, true));
+            pressTrack(track, 0.9 * track.getWidth(), mid);
             assertEquals(90.0, slider.getHighValue(), PIXEL_TOLERANCE);
             assertEquals(10.0, slider.getLowValue(), PIXEL_TOLERANCE);
 
@@ -626,6 +625,92 @@ public class RXRangeSliderTest {
     // ==================== Helpers ====================
 
     /** Returns the two value-indicator nodes ordered {@code [low, high]} by layout x. */
+    /**
+     * Verifies a decimal range shows decimals in the value bubble.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void decimalRangeShowsFractionDigits() throws Exception {
+        runOnFx(() -> {
+            RXRangeSlider slider = scened(200.0, 30.0);
+            String sep = String.valueOf(DecimalFormatSymbols.getInstance().getDecimalSeparator());
+            slider.setMax(1.0);
+            slider.setLowValue(0.12);
+            slider.setHighValue(0.9);
+            slider.layout();
+            Label label = (Label) indicators(slider)[0].lookup(".label");
+            assertEquals("0" + sep + "12", label.getText());
+        });
+    }
+
+    /**
+     * Verifies a secondary-button press on the track leaves both values unchanged.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void secondaryPressLeavesTheValues() throws Exception {
+        runOnFx(() -> {
+            RXRangeSlider slider = scened(200.0, 30.0);
+            double lowBefore = slider.getLowValue();
+            double highBefore = slider.getHighValue();
+            Node hitArea = slider.getChildrenUnmodifiable().get(0);
+            hitArea.fireEvent(mouseAt(hitArea, MouseEvent.MOUSE_PRESSED,
+                    2.0, 15.0, MouseButton.SECONDARY, false));
+            assertEquals(lowBefore, slider.getLowValue(), EPSILON);
+            assertEquals(highBefore, slider.getHighValue(), EPSILON);
+        });
+    }
+
+    /**
+     * Verifies removing the skin mid-drag ends the changing flag.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void removingTheSkinMidDragEndsValueChanging() throws Exception {
+        runOnFx(() -> {
+            RXRangeSlider slider = scened(200.0, 30.0);
+            Region lowThumb = thumbs(slider)[0];
+            lowThumb.fireEvent(mouseAt(lowThumb, MouseEvent.MOUSE_PRESSED, 2.0, 2.0, MouseButton.PRIMARY, true));
+            assertTrue(slider.isLowValueChanging());
+            slider.setSkin(null);
+            assertFalse(slider.isLowValueChanging());
+        });
+    }
+
+    /**
+     * Verifies the minimum length leaves a track two thumbs long.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void minimumLengthLeavesATrackTwoThumbsLong() throws Exception {
+        runOnFx(() -> {
+            RXRangeSlider slider = scened(200.0, 30.0);
+            double thumb = thumbs(slider)[0].prefWidth(-1.0);
+            assertEquals(3.0 * thumb, slider.minWidth(-1.0), EPSILON);
+            layout(slider, slider.minWidth(-1.0), 30.0);
+            assertEquals(2.0 * thumb, ((Region) slider.lookup(".track")).getWidth(), EPSILON);
+        });
+    }
+
+    /**
+     * Verifies a disabled range slider fades.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void disabledRangeSliderFades() throws Exception {
+        runOnFx(() -> {
+            RXRangeSlider slider = scened(200.0, 30.0);
+            slider.setDisable(true);
+            slider.getParent().applyCss();
+            assertEquals(0.4, slider.getOpacity(), EPSILON);
+        });
+    }
+
     private static Region[] indicators(RXRangeSlider slider) {
         List<Region> list = slider.lookupAll(".value-indicator").stream()
                 .map(node -> (Region) node)
@@ -659,6 +744,18 @@ public class RXRangeSliderTest {
         thumb.fireEvent(mouseAt(thumb, MouseEvent.MOUSE_PRESSED, cx, cy, MouseButton.PRIMARY, true));
         thumb.fireEvent(mouseAt(thumb, MouseEvent.MOUSE_RELEASED, cx, cy, MouseButton.PRIMARY, false));
     }
+
+    /**
+     * Presses at a point on the track. The track is mouse-transparent, so the press
+     * lands on the hit area beneath it, as a real pointer press would.
+     */
+    private static void pressTrack(Region track, double x, double y) {
+        Node hitArea = track.getParent().getChildrenUnmodifiable().get(0);
+        Point2D local = hitArea.sceneToLocal(track.localToScene(x, y));
+        hitArea.fireEvent(mouseAt(hitArea, MouseEvent.MOUSE_PRESSED, local.getX(), local.getY(),
+                MouseButton.PRIMARY, true));
+    }
+
 
     private static MouseEvent mouseAt(Node target, EventType<MouseEvent> type,
                                       double localX, double localY, MouseButton button, boolean primaryDown) {

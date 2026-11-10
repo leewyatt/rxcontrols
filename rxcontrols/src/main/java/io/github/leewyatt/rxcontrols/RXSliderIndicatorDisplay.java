@@ -1,8 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 /**
- * Display policy for a slider's value indicator bubble, aligned with the three
- * states of the MUI {@code valueLabelDisplay} option.
+ * Display policy for a slider's value indicator bubble.
  */
 public enum RXSliderIndicatorDisplay {
 

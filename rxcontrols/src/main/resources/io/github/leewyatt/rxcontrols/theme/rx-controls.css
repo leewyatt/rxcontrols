@@ -753,14 +753,14 @@
 .rx-slider > .track,
 .rx-range-slider > .track {
     -fx-background-color: -rx-slider-track;
-    -fx-background-radius: 3px;
+    -fx-background-radius: 999px;
     -fx-pref-height: 4px;
 }
 
 .rx-slider > .fill,
 .rx-range-slider > .fill {
     -fx-background-color: -rx-slider-fill;
-    -fx-background-radius: 3px;
+    -fx-background-radius: 999px;
 }
 
 .rx-slider > .thumb,
@@ -787,6 +787,12 @@
 /* Unbounded thumb halo: a square pref the skin shapes round (the fill carries a
    50% corner radius) and centers on the thumb each layout. Tier opacities come
    from the global .state-overlay rule. */
+/* The Modena slider class is replaced, so its disabled fade is declared here. */
+.rx-slider:disabled,
+.rx-range-slider:disabled {
+    -fx-opacity: 0.4;
+}
+
 .rx-slider > .state-overlay,
 .rx-range-slider > .state-overlay {
     -fx-pref-width: 32px;

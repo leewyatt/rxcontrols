@@ -3,8 +3,8 @@ package io.github.leewyatt.rxcontrols.internal.slider;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 
 /**
- * Static geometry helpers shared by the slider skins: value-to-pixel mapping
- * and (added later) tick value sequences and snapping. Pure functions with no
+ * Static geometry helpers shared by the slider skins: value-to-pixel mapping,
+ * tick value sequences, range clamping and snapping. Pure functions with no
  * JavaFX dependency beyond {@link RXMath}.
  */
 public final class SliderGeometry {

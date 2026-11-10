@@ -13,6 +13,7 @@ import io.github.leewyatt.rxcontrols.internal.slider.SliderMetrics;
 import io.github.leewyatt.rxcontrols.internal.slider.SliderSnapper;
 import io.github.leewyatt.rxcontrols.internal.slider.SliderTickLayout;
 import io.github.leewyatt.rxcontrols.internal.slider.SliderValueIndicator;
+import io.github.leewyatt.rxcontrols.internal.slider.SliderValueText;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
@@ -23,6 +24,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -32,9 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Default skin for {@link RXSlider}. Generalizes the {@code RXSeekBar} skeleton
- * from {@code [0, 1]} to the slider's {@code [min, max]} model, rendering an
- * inactive track, an active fill, a draggable thumb with Material feedback (an
+ * Default skin for {@link RXSlider}, rendering an inactive track, an active fill, a draggable thumb with Material feedback (an
  * unbounded {@link StateLayer} halo plus an optional bounded press ink), and an
  * in-skin value indicator bubble.
  *
@@ -120,6 +120,8 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
         fill.getStyleClass().add("fill");
         thumb.getStyleClass().add("thumb");
         thumb.setAccessibleRole(AccessibleRole.THUMB);
+        // The hit area under the bars takes every press on the content area.
+        track.setMouseTransparent(true);
         fill.setMouseTransparent(true);
 
         // Unbounded thumb halo: a square overlay shaped round by setFill, painted
@@ -193,9 +195,6 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
         disposer.registerEventHandler(hitArea, MouseEvent.MOUSE_PRESSED, this::onTrackPressed);
         disposer.registerEventHandler(hitArea, MouseEvent.MOUSE_DRAGGED, this::onTrackDragged);
 
-        disposer.registerEventHandler(track, MouseEvent.MOUSE_PRESSED, this::onTrackPressed);
-        disposer.registerEventHandler(track, MouseEvent.MOUSE_DRAGGED, this::onTrackDragged);
-
         disposer.registerEventHandler(thumb, MouseEvent.MOUSE_PRESSED, this::onThumbPressed);
         disposer.registerEventHandler(thumb, MouseEvent.MOUSE_DRAGGED, this::onThumbDragged);
         disposer.registerEventHandler(thumb, MouseEvent.MOUSE_RELEASED, this::onThumbReleased);
@@ -208,7 +207,7 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
     // ==================== Pointer interaction ====================
 
     private void onTrackPressed(MouseEvent event) {
-        if (thumb.isPressed()) {
+        if (event.getButton() != MouseButton.PRIMARY || thumb.isPressed()) {
             return;
         }
         getSkinnable().requestFocus();
@@ -217,7 +216,7 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
     }
 
     private void onTrackDragged(MouseEvent event) {
-        if (thumb.isPressed()) {
+        if (!event.isPrimaryButtonDown() || thumb.isPressed()) {
             return;
         }
         setValueFromPointer(event);
@@ -225,6 +224,9 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
     }
 
     private void onThumbPressed(MouseEvent event) {
+        if (event.getButton() != MouseButton.PRIMARY) {
+            return;
+        }
         RXSlider control = getSkinnable();
         control.requestFocus();
         control.setValueChanging(true);
@@ -258,6 +260,9 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
     }
 
     private void onThumbReleased(MouseEvent event) {
+        if (event.getButton() != MouseButton.PRIMARY) {
+            return;
+        }
         inkBehavior.release();
         if (!thumbDragging) {
             return;
@@ -373,8 +378,11 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
     }
 
     private String formatValue(double value) {
-        StringConverter<Double> formatter = getSkinnable().getLabelFormatter();
-        return formatter != null ? formatter.toString(value) : Long.toString(Math.round(value));
+        RXSlider control = getSkinnable();
+        StringConverter<Double> formatter = control.getLabelFormatter();
+        return formatter != null
+                ? formatter.toString(value)
+                : SliderValueText.format(value, control.getMin(), control.getMax(), control.getMajorTickUnit());
     }
 
     private RXSliderIndicatorPosition positionOrDefault() {
@@ -486,6 +494,8 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
     // ==================== Ticks ====================
 
     private void onTickModelChanged() {
+        // The default text's precision follows the range and tick unit.
+        updateIndicatorText();
         rebuildTicks();
         getSkinnable().requestLayout();
     }
@@ -518,9 +528,8 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
             label.setMouseTransparent(true);
             tickLabels.add(label);
         }
-        // Rebuild the whole children list deterministically (never a bare clear:
-        // the base nodes — thumb, halo, indicator — are always re-added, fixing
-        // the ControlsFX runtime-toggle bug that dropped the thumb / range bar).
+        // Rebuild the whole children list (never a bare clear), so the base nodes —
+        // thumb, halo, indicator — survive a runtime tick toggle.
         getChildren().setAll(assembleChildren());
         updateTickVisibility();
     }
@@ -605,8 +614,8 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
     }
 
     private double mainMin() {
-        // The shortest usable track: at least two thumb diameters.
-        return 2.0 * thumb.prefWidth(-1) + thumb.minWidth(-1);
+        // A track two thumb diameters long, plus half a thumb past each end.
+        return 3.0 * thumb.prefWidth(-1);
     }
 
     private double crossThickness() {
@@ -627,6 +636,12 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
 
     @Override
     protected void disposeSkin() {
+        if (thumbDragging) {
+            // End the drag so valueChanging does not stay true without its release.
+            thumbDragging = false;
+            dragStart = null;
+            getSkinnable().setValueChanging(false);
+        }
         indicatorAnimator.dispose();
         inkBehavior.clear();
         ink.clearClip();
