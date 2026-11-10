@@ -30,6 +30,7 @@ import javafx.geometry.Side;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
@@ -43,6 +44,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.TextAlignment;
+import javafx.stage.Window;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -1223,11 +1225,15 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         int count = cells.size();
         double[] sizes = new double[count];
         if (getSkinnable().getVariant() == RXTabPane.Variant.FULL_WIDTH) {
+            // Each tab runs between rounded shares of the strip floored to the pixel grid
+            // of the strip axis (Y for vertical sides), so the last tab ends inside the
+            // strip. Rounding rather than ceiling keeps an edge that is already on the
+            // grid in place, which the JFX 17 ceiling does not always do.
+            double strip = vertical ? snapFloorY(available) : snapFloorX(available);
             double consumed = 0.0;
             for (int i = 0; i < count; i++) {
-                // Snap the cumulative edge on the strip axis: Y for vertical sides.
-                double raw = available * (i + 1) / count;
-                double edge = vertical ? snapSizeY(raw) : snapSizeX(raw);
+                double raw = strip * (i + 1) / count;
+                double edge = vertical ? snapPositionY(raw) : snapPositionX(raw);
                 sizes[i] = edge - consumed;
                 consumed = edge;
             }
@@ -1402,6 +1408,36 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
     }
 
     // ==================== Header area ====================
+
+    // Floors to the pixel grid of the control's window along X (or Y below); a no-op
+    // when the control does not snap to pixels. The tolerance absorbs the rounding a few
+    // subtractions leave on a value that is on the grid, which can exceed one ulp and
+    // would otherwise drop a whole pixel.
+    private double snapFloorX(double value) {
+        if (!getSkinnable().isSnapToPixel()) {
+            return value;
+        }
+        Window window = snappingWindow();
+        return snapFloor(value, window == null ? 1.0 : window.getRenderScaleX());
+    }
+
+    private double snapFloorY(double value) {
+        if (!getSkinnable().isSnapToPixel()) {
+            return value;
+        }
+        Window window = snappingWindow();
+        return snapFloor(value, window == null ? 1.0 : window.getRenderScaleY());
+    }
+
+    private Window snappingWindow() {
+        Scene scene = getSkinnable().getScene();
+        return scene == null ? null : scene.getWindow();
+    }
+
+    private static double snapFloor(double value, double scale) {
+        double safeScale = Double.isFinite(scale) && scale > 0.0 ? scale : 1.0;
+        return Math.floor(value * safeScale + 1.0e-9) / safeScale;
+    }
 
     private final class TabHeaderArea extends Region {
         void updateChildren(List<Node> nodes) {
