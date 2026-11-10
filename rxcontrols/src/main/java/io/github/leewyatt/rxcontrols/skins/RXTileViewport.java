@@ -8,13 +8,12 @@ import io.github.leewyatt.rxcontrols.RXTileSectionCell;
 import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.SmoothScrollMode;
+import io.github.leewyatt.rxcontrols.internal.PixelGrid;
 import javafx.animation.Interpolator;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
-import javafx.scene.Scene;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.util.Callback;
-import javafx.stage.Window;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -543,7 +542,7 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
         // Justify within the content width floored to the pixel grid: cell widths and
         // gaps are on the grid too, so every rounded cell x stays monotonic, keeps at
         // least hgap to its neighbour and leaves the last cell inside the clip.
-        double contentWidth = snapFloorX(availableWidth);
+        double contentWidth = PixelGrid.floorX(this, availableWidth);
         double hgap = snapSpaceX(RXTileViewSkin.gapOrZero(control.getHgap()));
         double cellHeight = snapSizeY(RXTileViewSkin.prefTileHeightOrDefault(control));
         int resolvedCols = Math.max(1, rowPlan == null ? 1 : rowPlan.columns());
@@ -585,7 +584,7 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
                 // the content by up to a pixel per column, and the viewport clip then
                 // cuts the last column. The few spare pixels go into the gaps, so the
                 // cells stay equal and the row still fills edge to edge.
-                cellWidth = snapFloorX(Math.max(0.0, ideal));
+                cellWidth = PixelGrid.floorX(this, Math.max(0.0, ideal));
                 double spare = Math.max(0.0, contentWidth - (cols * cellWidth + (cols - 1) * hgap));
                 effectiveGap = hgap + (cols > 1 ? spare / (cols - 1) : 0.0);
                 startX = 0.0;
@@ -613,22 +612,6 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
             }
         }
         return new CellGeometry(cellWidth, cellHeight, effectiveGap, startX);
-    }
-
-    // Floors to the pixel grid of the viewport's window (the snapSizeX counterpart
-    // that never rounds up); a no-op when the viewport does not snap to pixels.
-    private double snapFloorX(double value) {
-        if (!isSnapToPixel()) {
-            return value;
-        }
-        Scene scene = getScene();
-        Window window = scene == null ? null : scene.getWindow();
-        double scale = window == null ? 1.0 : window.getRenderScaleX();
-        if (!Double.isFinite(scale) || scale <= 0.0) {
-            scale = 1.0;
-        }
-        double scaled = value * scale;
-        return Math.floor(scaled + Math.ulp(scaled)) / scale;
     }
 
     private static double maxTileWidthOrUnbounded(RXTileView<?> control) {

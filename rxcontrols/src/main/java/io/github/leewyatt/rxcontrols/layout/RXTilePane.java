@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.layout;
 
 import io.github.leewyatt.rxcontrols.ItemsJustify;
+import io.github.leewyatt.rxcontrols.internal.PixelGrid;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Interpolator;
@@ -28,10 +29,8 @@ import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
-import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
-import javafx.stage.Window;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -1077,7 +1076,7 @@ public class RXTilePane extends Pane {
         // gaps are on the grid too, so every rounded tile x stays monotonic, keeps at
         // least hgap to its neighbour and leaves the last tile inside the content area.
         // A content width off the grid would let rounding push the last tile out.
-        double rowWidth = snapFloorX(contentWidth);
+        double rowWidth = PixelGrid.floorX(this, contentWidth);
         double preferredRowWidth = justifyColumns * nominalTileWidth + (justifyColumns - 1) * hgapValue;
         if (justifyColumns == 1 && preferredRowWidth > rowWidth) {
             tileWidth = Math.max(0.0, rowWidth);
@@ -1097,7 +1096,7 @@ public class RXTilePane extends Pane {
                 // area by up to a pixel per column, into the right padding and past the
                 // pane. The few spare pixels go into the gaps, so the tiles stay equal and
                 // the row still fills edge to edge.
-                tileWidth = snapFloorX(Math.max(0.0, ideal));
+                tileWidth = PixelGrid.floorX(this, Math.max(0.0, ideal));
                 double spare = Math.max(0.0,
                         rowWidth - (justifyColumns * tileWidth + (justifyColumns - 1) * hgapValue));
                 effectiveHgap = hgapValue + (justifyColumns > 1 ? spare / (justifyColumns - 1) : 0.0);
@@ -1386,22 +1385,6 @@ public class RXTilePane extends Pane {
     private static Insets marginOrEmpty(Node child) {
         Insets margin = getMargin(child);
         return margin == null ? Insets.EMPTY : margin;
-    }
-
-    // Floors to the pixel grid of the pane's window (the snapSizeX counterpart that
-    // never rounds up); a no-op when the pane does not snap to pixels.
-    private double snapFloorX(double value) {
-        if (!isSnapToPixel()) {
-            return value;
-        }
-        Scene scene = getScene();
-        Window window = scene == null ? null : scene.getWindow();
-        double scale = window == null ? 1.0 : window.getRenderScaleX();
-        if (!Double.isFinite(scale) || scale <= 0.0) {
-            scale = 1.0;
-        }
-        double scaled = value * scale;
-        return Math.floor(scaled + Math.ulp(scaled)) / scale;
     }
 
     private double maxTileWidthOrUnbounded() {

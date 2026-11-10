@@ -16,6 +16,7 @@ import javafx.event.EventType;
 import javafx.geometry.Bounds;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
+import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -34,6 +35,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
+import javafx.stage.Stage;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -1138,6 +1140,33 @@ public class RXKanbanViewSkinTest {
                 assertEquals(0.0, boxOf(board, "A").getLayoutX(), 1e-9, "first column x at width " + width);
                 assertTrue(edge >= contentWidth(board) - 1.0, "columns fill the board at width " + width
                         + ": " + edge + " < " + contentWidth(board));
+            }
+        });
+    }
+
+    @Test
+    public void stretchedColumnsLoseLessThanOneDevicePixel() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = threeColumnBoard();
+            board.setPrefColumnWidth(100.0);
+            board.setColumnSpacing(12.0);
+            board.setColumnsJustify(ItemsJustify.STRETCH);
+            board.setAnimated(false);
+            board.setPadding(new Insets(0.0, 0.6, 0.0, 0.6));
+            StackPane root = new StackPane(board);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root, 400, 400));
+            double scale = 1.5;
+            stage.setRenderScaleX(scale);
+            for (int pixels = 600; pixels <= 1500; pixels++) {
+                double width = pixels / scale;
+                root.resize(width, 400);
+                pump(root);
+                double content = board.getWidth() - board.snappedLeftInset() - board.snappedRightInset();
+                double fill = (content - 24.0) / 3.0;
+                double columnWidth = boxOf(board, "A").getWidth();
+                assertTrue(columnWidth > fill - 1.0 / scale + 1e-6, "width " + width
+                        + ": column " + columnWidth + " is a whole device pixel under " + fill);
             }
         });
     }

@@ -9,6 +9,7 @@ import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import io.github.leewyatt.rxcontrols.ScrollAxis;
 import io.github.leewyatt.rxcontrols.ScrollBoundaryPolicy;
 import io.github.leewyatt.rxcontrols.event.RXCardActionEvent;
+import io.github.leewyatt.rxcontrols.internal.PixelGrid;
 import io.github.leewyatt.rxcontrols.internal.smooth.RXSmoothScrollEngine;
 import io.github.leewyatt.rxcontrols.internal.smooth.RXSmoothScrollable;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
@@ -30,7 +31,6 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
-import javafx.stage.Window;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -233,23 +233,6 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
 
     private static double finitePositiveOrDefault(double value, double fallback) {
         return Double.isFinite(value) && value > 0.0 ? value : fallback;
-    }
-
-    // Floors to the pixel grid of the control's window (the snapSizeX counterpart that
-    // never rounds up); a no-op when the control does not snap to pixels.
-    private double snapFloorX(double value) {
-        RXKanbanView<?> control = getSkinnable();
-        if (!control.isSnapToPixel()) {
-            return value;
-        }
-        Scene scene = control.getScene();
-        Window window = scene == null ? null : scene.getWindow();
-        double scale = window == null ? 1.0 : window.getRenderScaleX();
-        if (!Double.isFinite(scale) || scale <= 0.0) {
-            scale = 1.0;
-        }
-        double scaled = value * scale;
-        return Math.floor(scaled + Math.ulp(scaled)) / scale;
     }
 
     // ==================== Columns wiring ====================
@@ -895,14 +878,14 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
             // A width that must fit the board floors to the pixel grid: ceiling it (snapSizeX)
             // overruns the board by up to a pixel per column, and the columns clip then cuts
             // the last column's trailing edge. Only an overflowing (scrolling) board ceils.
-            baseWidth = overflow ? snapSizeX(baseWidth) : snapFloorX(baseWidth);
+            baseWidth = overflow ? snapSizeX(baseWidth) : PixelGrid.floorX(getSkinnable(), baseWidth);
             // The slack comes from the actual per-column widths: a column mid hide / show
             // has a fractional weight and its width snaps on its own, so the continuous
             // baseWidth * sumWeight would miss the pixels that snapping drops.
             double usedWidth = 0.0;
             for (int i = 0; i < columnCount; i++) {
                 double weight = 1.0 - boxes.get(i).getHideProgress();
-                double width = overflow ? snapSizeX(baseWidth * weight) : snapFloorX(baseWidth * weight);
+                double width = overflow ? snapSizeX(baseWidth * weight) : PixelGrid.floorX(getSkinnable(), baseWidth * weight);
                 cachedColumnW[i] = width;
                 usedWidth += width;
             }

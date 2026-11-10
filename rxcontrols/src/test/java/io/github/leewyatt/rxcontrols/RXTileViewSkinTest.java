@@ -28,6 +28,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
+import javafx.stage.Stage;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -893,6 +894,35 @@ public class RXTileViewSkinTest {
 
             assertTrue(betweenEdge < aroundEdge && aroundEdge < evenlyEdge,
                     "the edge gap grows BETWEEN < AROUND < EVENLY");
+        });
+    }
+
+    @Test
+    public void stretchReachesTheClipEdgeWithFractionalPadding() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(4);
+            view.setPadding(new Insets(0.0, 0.6, 0.0, 0.6));
+            view.setPrefTileWidth(60);
+            view.setHgap(0);
+            view.setItemsJustify(ItemsJustify.STRETCH);
+            StackPane root = new StackPane(view);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root, 400, 400));
+            double scale = 1.5;
+            stage.setRenderScaleX(scale);
+            for (int pixels = 450; pixels <= 1050; pixels++) {
+                double width = pixels / scale;
+                root.resize(width, 400);
+                pump(root);
+                Rectangle clip = (Rectangle) view.lookup(".viewport > .content").getClip();
+                double clipRight = clip.getX() + clip.getWidth();
+                // The row may only end short of the clip by the part that is off the grid.
+                double gridRight = Math.floor(clipRight * scale + 1e-6) / scale;
+                List<RXTileCell<?>> row = rowCells(view, 0);
+                RXTileCell<?> last = row.get(row.size() - 1);
+                assertEquals(gridRight, last.getLayoutX() + last.getWidth(), 1e-6,
+                        "width " + width + ": last cell edge, clip " + clipRight);
+            }
         });
     }
 

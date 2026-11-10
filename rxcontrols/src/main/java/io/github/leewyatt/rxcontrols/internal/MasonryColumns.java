@@ -182,8 +182,8 @@ public final class MasonryColumns {
             // Floor the width and the track to the device grid (ceiling them would push
             // the last column past the layout width) and spread the spare pixels into
             // the gaps, so the equal columns still reach both edges.
-            double width = snapFloor(layoutWidth, scale);
-            trackWidth = Math.max(0.0, snapFloor((width - (columns - 1) * hgap) / columns, scale));
+            double width = PixelGrid.floor(layoutWidth, scale);
+            trackWidth = Math.max(0.0, PixelGrid.floor((width - (columns - 1) * hgap) / columns, scale));
             if (columns > 1) {
                 double spare = Math.max(0.0, width - (columns * trackWidth + (columns - 1) * hgap));
                 effectiveHgap = hgap + spare / (columns - 1);
@@ -198,10 +198,6 @@ public final class MasonryColumns {
     // Same arithmetic as the JavaFX Region snapping helpers; a scale of 0 disables it.
     private static double snapRound(double value, double scale) {
         return scale > 0.0 ? Math.round(value * scale) / scale : value;
-    }
-
-    private static double snapFloor(double value, double scale) {
-        return scale > 0.0 ? Math.floor(value * scale + SNAP_EPSILON) / scale : value;
     }
 
     private static double snapCeil(double value, double scale) {

@@ -15,6 +15,7 @@ import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.Region;
 import javafx.scene.shape.Rectangle;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -333,6 +334,35 @@ public class RXTilePaneTest {
                 }
             }
         }
+    }
+
+    @Test
+    public void stretchReachesTheContentEdgeWithFractionalPadding() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane();
+            pane.setPadding(new Insets(0.0, 0.6, 0.0, 0.6));
+            pane.setPrefTileWidth(60);
+            pane.setHgap(0);
+            pane.setItemsJustify(ItemsJustify.STRETCH);
+            for (int i = 0; i < 4; i++) {
+                Region tile = new Region();
+                tile.setPrefSize(60, 40);
+                pane.getChildren().add(tile);
+            }
+            Stage stage = new Stage();
+            stage.setScene(new Scene(pane));
+            double scale = 1.5;
+            stage.setRenderScaleX(scale);
+            // Widths on the device pixel grid, so the content edge is on the grid too.
+            for (int pixels = 450; pixels <= 1050; pixels++) {
+                double width = pixels / scale;
+                layout(pane, width, 200);
+                Region last = (Region) pane.getChildren().get(3);
+                double right = width - pane.snappedRightInset();
+                assertEquals(right, last.getLayoutX() + last.getWidth(), 1e-6,
+                        "width " + width + ": last tile edge");
+            }
+        });
     }
 
     @Test

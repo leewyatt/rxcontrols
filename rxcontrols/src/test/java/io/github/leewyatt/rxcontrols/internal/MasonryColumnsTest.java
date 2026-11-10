@@ -285,6 +285,20 @@ public class MasonryColumnsTest {
         }
     }
 
+    @Test
+    public void filledTracksLoseLessThanOneDevicePixel() {
+        double scale = 1.5;
+        for (int pixels = 300; pixels <= 1500; pixels++) {
+            // A pane width on the grid minus two padding insets snapped to 2/3.
+            double layoutWidth = pixels / scale - 2.0 * (1.0 / scale);
+            Resolution resolution = MasonryColumns.resolve(layoutWidth, layoutWidth, 3, 100.0, 12.0, 0,
+                    true, RXBreakpointProfile.ANT_DESIGN, Map.of(), scale);
+            double ideal = (layoutWidth - 24.0) / 3.0;
+            assertTrue(resolution.trackWidth() > ideal - 1.0 / scale + 1.0e-6, "layout width " + layoutWidth
+                    + ": track " + resolution.trackWidth() + " is a whole device pixel under " + ideal);
+        }
+    }
+
     private static void assertOnGrid(double value, double scale, String message) {
         double scaled = value * scale;
         assertEquals(Math.rint(scaled), scaled, 1.0e-6, message + " " + value + " is on the " + scale + "x grid");
