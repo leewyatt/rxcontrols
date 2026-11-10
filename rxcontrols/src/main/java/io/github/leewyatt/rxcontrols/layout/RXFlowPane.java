@@ -27,7 +27,9 @@ import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
+import javafx.stage.Window;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -1296,8 +1298,13 @@ public class RXFlowPane extends Pane {
         // The whole content block is aligned once on both axes (alignment), regardless of
         // orientation; only managed children take part.
         Pos align = alignmentOrDefault();
-        double blockX = snapPositionX(left + blockHOffset(insideWidth, blockWidth, align.getHpos()));
-        double blockY = snapPositionY(top + blockVOffset(insideHeight, blockHeight, align.getVpos()));
+        // A trailing block measures from the inside extent floored to the pixel grid: the
+        // extent need not sit on the grid, and a rounded offset would push the block past
+        // it. Other alignments keep the unfloored extent.
+        double alignWidth = align.getHpos() == HPos.RIGHT ? snapFloorX(insideWidth) : insideWidth;
+        double alignHeight = align.getVpos() == VPos.BOTTOM ? snapFloorY(insideHeight) : insideHeight;
+        double blockX = snapPositionX(left + blockHOffset(alignWidth, blockWidth, align.getHpos()));
+        double blockY = snapPositionY(top + blockVOffset(alignHeight, blockHeight, align.getVpos()));
 
         double hgap = snapSpaceX(hgapOrDefault());
         double vgap = snapSpaceY(vgapOrDefault());
@@ -1448,6 +1455,35 @@ public class RXFlowPane extends Pane {
             return 0.0;
         }
         return snapSpace(axis, axis == Axis.X ? margin.getRight() : margin.getBottom());
+    }
+
+    // Floors to the pixel grid of the pane's window along X (or Y below); a no-op when
+    // the pane does not snap to pixels.
+    private double snapFloorX(double value) {
+        if (!isSnapToPixel()) {
+            return value;
+        }
+        Window window = windowOrNull();
+        return snapFloor(value, window == null ? 1.0 : window.getRenderScaleX());
+    }
+
+    private double snapFloorY(double value) {
+        if (!isSnapToPixel()) {
+            return value;
+        }
+        Window window = windowOrNull();
+        return snapFloor(value, window == null ? 1.0 : window.getRenderScaleY());
+    }
+
+    private Window windowOrNull() {
+        Scene scene = getScene();
+        return scene == null ? null : scene.getWindow();
+    }
+
+    private static double snapFloor(double value, double scale) {
+        double safeScale = Double.isFinite(scale) && scale > 0.0 ? scale : 1.0;
+        double scaled = value * safeScale;
+        return Math.floor(scaled + Math.ulp(scaled)) / safeScale;
     }
 
     private static double blockHOffset(double area, double content, HPos hpos) {
