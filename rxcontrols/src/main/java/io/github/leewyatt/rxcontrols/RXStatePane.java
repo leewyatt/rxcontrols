@@ -57,6 +57,12 @@ import java.util.List;
  * while a skin is installed it keeps a rectangle clip sized to the pane (so the
  * overlay layers never paint outside the bounds) and resets the clip to
  * {@code null} on dispose. A clip set by the application is overwritten.</p>
+ *
+ * <p><b>CSS.</b> The root style class is {@code rx-state-pane}. The base view
+ * sits in {@code .base}, under the {@code .backdrop} scrim and the
+ * {@code .overlay} layer ({@code .loading-box}, whose label is
+ * {@code .loading-text}). The default empty and error placeholders show a
+ * {@code .empty-icon} or {@code .error-icon} region in their graphic slot.</p>
  */
 public class RXStatePane extends Control {
 
@@ -249,9 +255,9 @@ public class RXStatePane extends Control {
 
     /**
      * The base view shown in the {@link State#EMPTY} state. When {@code null}
-     * (the default), the skin shows a default {@link RXPlaceholder} with the
-     * {@link RXPlaceholder.Status#EMPTY EMPTY} preset and a "No data" title;
-     * the getter still returns {@code null}.
+     * (the default), the skin shows a default {@link RXPlaceholder} with an
+     * empty-state icon and a "No data" title; the getter still returns
+     * {@code null}.
      *
      * @return the empty content property
      */
@@ -283,9 +289,9 @@ public class RXStatePane extends Control {
 
     /**
      * The base view shown in the {@link State#ERROR} state. When {@code null}
-     * (the default), the skin shows a default {@link RXPlaceholder} with the
-     * {@link RXPlaceholder.Status#ERROR ERROR} preset and a "Something went
-     * wrong" title; the getter still returns {@code null}.
+     * (the default), the skin shows a default {@link RXPlaceholder} with an
+     * error icon and a "Something went wrong" title; the getter still returns
+     * {@code null}.
      *
      * @return the error content property
      */

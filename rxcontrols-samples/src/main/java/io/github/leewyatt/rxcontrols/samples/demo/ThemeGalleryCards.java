@@ -73,6 +73,7 @@ import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFlip;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
+import io.github.leewyatt.rxcontrols.samples.support.SampleIcons;
 import io.github.leewyatt.rxcontrols.spectrum.VisRadial;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -943,7 +944,8 @@ final class ThemeGalleryCards {
     }
 
     private static Node buildRXPlaceholder() {
-        RXPlaceholder placeholder = new RXPlaceholder(RXPlaceholder.Status.EMPTY, "No data");
+        RXPlaceholder placeholder = new RXPlaceholder("No data",
+                SampleIcons.icon(SampleIcons.INBOX, 48.0, "-rx-outline-variant"));
         placeholder.setDescription("Nothing to show yet.");
         placeholder.getActions().add(new Button("Reload"));
         placeholder.setPrefWidth(240.0);

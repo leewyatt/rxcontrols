@@ -107,13 +107,13 @@ public class RXStatePaneTest {
             assertEquals(1, baseLayer.getChildren().size());
             assertTrue(baseLayer.getChildren().get(0) instanceof RXPlaceholder);
             RXPlaceholder empty = (RXPlaceholder) baseLayer.getChildren().get(0);
-            assertEquals(RXPlaceholder.Status.EMPTY, empty.getStatus());
+            assertTrue(empty.getGraphic().getStyleClass().contains("empty-icon"));
             assertEquals("No data", empty.getTitle());
 
             pane.setState(State.ERROR);
             assertEquals(1, baseLayer.getChildren().size());
             RXPlaceholder error = (RXPlaceholder) baseLayer.getChildren().get(0);
-            assertEquals(RXPlaceholder.Status.ERROR, error.getStatus());
+            assertTrue(error.getGraphic().getStyleClass().contains("error-icon"));
             assertEquals("Something went wrong", error.getTitle());
 
             pane.setState(State.CONTENT);
@@ -250,8 +250,33 @@ public class RXStatePaneTest {
 
             Node placeholder = pane.lookup(".rx-placeholder");
             assertNotNull(placeholder, "preset EMPTY presented after attach");
-            assertEquals(RXPlaceholder.Status.EMPTY, ((RXPlaceholder) placeholder).getStatus());
+            assertEquals("No data", ((RXPlaceholder) placeholder).getTitle());
         });
+    }
+
+    /** Verifies the default placeholder icons take their shape, size and fill from the stylesheet. */
+    @Test
+    public void defaultIconsAreStyled() throws Exception {
+        runOnFx(() -> {
+            RXStatePane pane = new RXStatePane();
+            pane.setAnimated(false);
+            pane.setState(State.EMPTY);
+            attach(pane);
+            assertStyledIcon((Region) pane.lookup(".empty-icon"));
+
+            pane.setState(State.ERROR);
+            pane.applyCss();
+            assertStyledIcon((Region) pane.lookup(".error-icon"));
+        });
+    }
+
+    private static void assertStyledIcon(Region icon) {
+        assertNotNull(icon);
+        assertNotNull(icon.getShape(), "shape");
+        assertEquals(48.0, icon.prefWidth(-1), 1.0e-9);
+        assertEquals(48.0, icon.prefHeight(-1), 1.0e-9);
+        assertNotNull(icon.getBackground(), "fill");
+        assertFalse(icon.getBackground().getFills().isEmpty(), "fill");
     }
 
     // ==================== Static input reachability ====================

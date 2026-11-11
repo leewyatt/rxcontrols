@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.RXPlaceholder;
 import io.github.leewyatt.rxcontrols.RXStatePane;
 import io.github.leewyatt.rxcontrols.RXStatePane.State;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.samples.support.SampleIcons;
 
 import javafx.animation.Interpolator;
 import javafx.beans.binding.Bindings;
@@ -190,7 +191,8 @@ public class RXStatePaneShowcase extends RXShowcaseApplication {
     }
 
     private Node customPlaceholder() {
-        RXPlaceholder placeholder = new RXPlaceholder(RXPlaceholder.Status.FORBIDDEN, "No access");
+        RXPlaceholder placeholder = new RXPlaceholder("No access",
+                SampleIcons.icon(SampleIcons.LOCK, 48.0, "-rx-warning"));
         placeholder.setDescription("A user-supplied placeholder replacing the default empty view.");
         Button signIn = new Button("Sign in");
         signIn.setOnAction(e -> lastEvent.set("sign-in"));

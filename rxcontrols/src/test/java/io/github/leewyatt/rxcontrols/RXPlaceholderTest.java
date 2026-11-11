@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.RXPlaceholder.Status;
 
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
@@ -28,9 +27,9 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link RXPlaceholder} and its skin: defaults, status pseudo-classes,
- * slot collapse and {@code :filled} mirroring, the status-derived default icon
- * versus the graphic escape hatch, wrapped-description sizing, and disposal.
+ * Tests for {@link RXPlaceholder} and its skin: defaults, the convenience
+ * constructors, slot collapse and {@code :filled} mirroring including the graphic
+ * slot, wrapped-description sizing, and disposal.
  */
 public class RXPlaceholderTest {
 
@@ -60,7 +59,6 @@ public class RXPlaceholderTest {
     public void defaultsMatchTheContract() throws Exception {
         runOnFx(() -> {
             RXPlaceholder placeholder = new RXPlaceholder();
-            assertEquals(Status.NONE, placeholder.getStatus());
             assertNull(placeholder.getGraphic());
             assertNull(placeholder.getTitle());
             assertNull(placeholder.getDescription());
@@ -72,39 +70,16 @@ public class RXPlaceholderTest {
     }
 
     @Test
-    public void convenienceConstructorsSeedStatusAndTitle() throws Exception {
+    public void convenienceConstructorsSeedTitleAndGraphic() throws Exception {
         runOnFx(() -> {
-            RXPlaceholder placeholder = new RXPlaceholder(Status.ERROR, "Something went wrong");
-            assertEquals(Status.ERROR, placeholder.getStatus());
-            assertEquals("Something went wrong", placeholder.getTitle());
-        });
-    }
+            RXPlaceholder titled = new RXPlaceholder("No data");
+            assertEquals("No data", titled.getTitle());
+            assertNull(titled.getGraphic());
 
-    // ==================== Status pseudo-classes ====================
-
-    @Test
-    public void statusDrivesItsPseudoClass() throws Exception {
-        runOnFx(() -> {
-            RXPlaceholder placeholder = new RXPlaceholder();
-            placeholder.setStatus(Status.NOT_FOUND);
-            assertTrue(placeholder.getPseudoClassStates().contains(PseudoClass.getPseudoClass("not-found")));
-
-            placeholder.setStatus(Status.SERVER_ERROR);
-            assertTrue(placeholder.getPseudoClassStates().contains(PseudoClass.getPseudoClass("server-error")));
-            assertFalse(placeholder.getPseudoClassStates().contains(PseudoClass.getPseudoClass("not-found")));
-
-            // Lenient: null is stored (getter pass-through) and resolves to the
-            // default NONE, which activates no status pseudo-class.
-            placeholder.setStatus(null);
-            assertNull(placeholder.getStatus());
-            for (Status status : Status.values()) {
-                if (status == Status.NONE) {
-                    continue;
-                }
-                String name = status.name().toLowerCase().replace('_', '-');
-                assertFalse(placeholder.getPseudoClassStates().contains(PseudoClass.getPseudoClass(name)),
-                        "no status pseudo-class after null: " + name);
-            }
+            Rectangle icon = new Rectangle(10.0, 10.0);
+            RXPlaceholder withGraphic = new RXPlaceholder("Something went wrong", icon);
+            assertEquals("Something went wrong", withGraphic.getTitle());
+            assertSame(icon, withGraphic.getGraphic());
         });
     }
 
@@ -144,34 +119,26 @@ public class RXPlaceholderTest {
     }
 
     @Test
-    public void graphicSlotPrefersUserNodeOverStatusIcon() throws Exception {
+    public void graphicSlotShowsTheGraphicOrCollapses() throws Exception {
         runOnFx(() -> {
             RXPlaceholder placeholder = new RXPlaceholder();
             attach(placeholder);
             Pane graphicSlot = (Pane) slot(placeholder, ".graphic");
-
-            // NONE + null graphic: no icon, slot collapsed.
             assertTrue(graphicSlot.getChildren().isEmpty());
 
-            // A non-NONE status shows the default status icon.
-            placeholder.setStatus(Status.EMPTY);
-            assertEquals(1, graphicSlot.getChildren().size());
-            assertTrue(graphicSlot.getChildren().get(0).getStyleClass().contains("icon"));
-            assertTrue(graphicSlot.isVisible());
-
-            // The escape hatch replaces the icon; the getter stays pass-through.
             Rectangle custom = new Rectangle(10.0, 10.0);
             placeholder.setGraphic(custom);
             assertEquals(1, graphicSlot.getChildren().size());
             assertSame(custom, graphicSlot.getChildren().get(0));
+            assertTrue(graphicSlot.isVisible());
+            assertTrue(graphicSlot.isManaged());
+            assertTrue(graphicSlot.getPseudoClassStates().contains(FILLED));
 
-            // Clearing the slot brings the status icon back.
             placeholder.setGraphic(null);
-            assertTrue(graphicSlot.getChildren().get(0).getStyleClass().contains("icon"));
-
-            placeholder.setStatus(Status.NONE);
             assertTrue(graphicSlot.getChildren().isEmpty());
             assertFalse(graphicSlot.isVisible());
+            assertFalse(graphicSlot.isManaged());
+            assertFalse(graphicSlot.getPseudoClassStates().contains(FILLED));
         });
     }
 
@@ -180,7 +147,7 @@ public class RXPlaceholderTest {
     @Test
     public void wrappedDescriptionNeverTruncatesActions() throws Exception {
         runOnFx(() -> {
-            RXPlaceholder placeholder = new RXPlaceholder(Status.ERROR, "Something went wrong");
+            RXPlaceholder placeholder = new RXPlaceholder("Something went wrong", new Rectangle(48.0, 48.0));
             placeholder.setDescription("A fairly long description that has to wrap over several lines "
                     + "when the placeholder is laid out inside a narrow container so the footer "
                     + "actions must still stay below it.");
@@ -221,14 +188,14 @@ public class RXPlaceholderTest {
     @Test
     public void containersMeasureTheWrappedHeightThroughTheBias() throws Exception {
         runOnFx(() -> {
-            RXPlaceholder placeholder = new RXPlaceholder(Status.ERROR, "Something went wrong");
+            RXPlaceholder placeholder = new RXPlaceholder("Something went wrong", new Rectangle(48.0, 48.0));
             placeholder.setDescription("A fairly long description that has to wrap over several "
                     + "lines inside a narrow container so the container must ask for the "
                     + "height at the real wrap width.");
             placeholder.getActions().add(new Button("Retry"));
 
             // The container protocol only passes a width hint to
-            // HORIZONTAL-biased children; without the bias the icon and footer
+            // HORIZONTAL-biased children; without the bias the graphic and footer
             // would be crushed to the single-line-measured height.
             VBox root = new VBox(placeholder);
             new Scene(root);
@@ -239,7 +206,7 @@ public class RXPlaceholderTest {
             assertTrue(placeholder.getHeight() >= placeholder.prefHeight(240.0) - 1.0e-6,
                     "the container allocated the wrap-aware height");
             Node graphic = slot(placeholder, ".graphic");
-            assertTrue(graphic.getLayoutBounds().getHeight() > 0.0, "status icon not crushed");
+            assertTrue(graphic.getLayoutBounds().getHeight() > 0.0, "graphic not crushed");
         });
     }
 
@@ -248,7 +215,7 @@ public class RXPlaceholderTest {
     @Test
     public void disposeDetachesListeners() throws Exception {
         runOnFx(() -> {
-            RXPlaceholder placeholder = new RXPlaceholder(Status.EMPTY, "No data");
+            RXPlaceholder placeholder = new RXPlaceholder("No data");
             attach(placeholder);
             Pane actionsBox = (Pane) slot(placeholder, ".actions");
             Node title = slot(placeholder, ".title");

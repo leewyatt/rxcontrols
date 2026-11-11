@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXPlaceholder;
-import io.github.leewyatt.rxcontrols.RXPlaceholder.Status;
 
 import javafx.collections.ListChangeListener;
 import javafx.css.PseudoClass;
@@ -9,7 +8,6 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
@@ -33,7 +31,6 @@ public class RXPlaceholderSkin extends RXSkinBase<RXPlaceholder> {
 
     private final VBox contentBox = new VBox();
     private final StackPane graphicSlot = new StackPane();
-    private final Region statusIcon = new Region();
     private final Label titleLabel = new Label();
     private final TextFlow descriptionFlow = new TextFlow();
     private final Text descriptionText = new Text();
@@ -57,8 +54,6 @@ public class RXPlaceholderSkin extends RXSkinBase<RXPlaceholder> {
         // a wrapped description would overlap the slots below it.
 
         graphicSlot.getStyleClass().add("graphic");
-        statusIcon.getStyleClass().add("icon");
-        statusIcon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
         titleLabel.getStyleClass().add("title");
         // Slots stretch to the box width; center their content within.
@@ -76,7 +71,6 @@ public class RXPlaceholderSkin extends RXSkinBase<RXPlaceholder> {
         getChildren().setAll(contentBox);
 
         disposer.registerListener(control.graphicProperty(), this::updateGraphic);
-        disposer.registerListener(control.statusProperty(), this::updateGraphic);
         disposer.registerListener(control.titleProperty(), this::updateTitle);
         disposer.registerListener(control.descriptionProperty(), this::updateDescription);
         control.getActions().addListener(actionsListener);
@@ -91,19 +85,13 @@ public class RXPlaceholderSkin extends RXSkinBase<RXPlaceholder> {
     // ==================== Slots ====================
 
     private void updateGraphic() {
-        Node userGraphic = getSkinnable().getGraphic();
-        boolean filled;
-        if (userGraphic != null) {
-            graphicSlot.getChildren().setAll(userGraphic);
-            filled = true;
-        } else if (statusOrDefault() != Status.NONE) {
-            graphicSlot.getChildren().setAll(statusIcon);
-            filled = true;
+        Node graphic = getSkinnable().getGraphic();
+        if (graphic != null) {
+            graphicSlot.getChildren().setAll(graphic);
         } else {
             graphicSlot.getChildren().clear();
-            filled = false;
         }
-        applySlotState(graphicSlot, filled);
+        applySlotState(graphicSlot, graphic != null);
     }
 
     private void updateTitle() {
@@ -127,11 +115,6 @@ public class RXPlaceholderSkin extends RXSkinBase<RXPlaceholder> {
         slot.setVisible(filled);
         slot.setManaged(filled);
         slot.pseudoClassStateChanged(FILLED_PSEUDO_CLASS, filled);
-    }
-
-    private Status statusOrDefault() {
-        Status current = getSkinnable().getStatus();
-        return current == null ? RXPlaceholder.DEFAULT_STATUS : current;
     }
 
     // ==================== Sizing ====================

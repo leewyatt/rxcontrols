@@ -97,6 +97,7 @@ public class RXStatePaneSkin extends RXSkinBase<RXStatePane> {
     public RXStatePaneSkin(RXStatePane control) {
         super(control);
 
+        baseLayer.getStyleClass().add("base");
         backdrop.getStyleClass().add("backdrop");
         backdrop.setManaged(false);
 
@@ -227,19 +228,27 @@ public class RXStatePaneSkin extends RXSkinBase<RXStatePane> {
 
     private RXPlaceholder defaultEmptyPlaceholder() {
         if (defaultEmptyPlaceholder == null) {
-            defaultEmptyPlaceholder = new RXPlaceholder(RXPlaceholder.Status.EMPTY, "No data");
+            defaultEmptyPlaceholder = new RXPlaceholder("No data", defaultIcon("empty-icon"));
         }
         return defaultEmptyPlaceholder;
     }
 
     private RXPlaceholder defaultErrorPlaceholder() {
         if (defaultErrorPlaceholder == null) {
-            defaultErrorPlaceholder = new RXPlaceholder(RXPlaceholder.Status.ERROR, "Something went wrong");
+            defaultErrorPlaceholder = new RXPlaceholder("Something went wrong", defaultIcon("error-icon"));
             if (getSkinnable().getOnRetry() != null) {
                 defaultErrorPlaceholder.getActions().add(defaultRetryButton());
             }
         }
         return defaultErrorPlaceholder;
+    }
+
+    // Shape, color and size come from CSS under the pane's base layer.
+    private static Region defaultIcon(String styleClass) {
+        Region icon = new Region();
+        icon.getStyleClass().add(styleClass);
+        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return icon;
     }
 
     // ==================== Loading presentation (overlay axis) ====================
