@@ -121,6 +121,17 @@ public class RXBackdropTest {
         });
     }
 
+    /** Verifies the stylesheet keeps the code defaults: fade in 200 ms, fade out a faster 150 ms. */
+    @Test
+    public void stylesheetKeepsTheDefaultDurations() throws Exception {
+        runOnFx(() -> {
+            RXBackdrop backdrop = new RXBackdrop();
+            attach(backdrop);
+            assertEquals(Duration.millis(200.0), backdrop.getFadeInDuration());
+            assertEquals(Duration.millis(150.0), backdrop.getFadeOutDuration());
+        });
+    }
+
     @Test
     public void cssAppliesDurationsAndDefaultBackground() throws Exception {
         runOnFx(() -> {

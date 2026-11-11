@@ -2045,8 +2045,6 @@
 
 .rx-backdrop {
     -fx-background-color: #00000052;
-    -rx-fade-in-duration: 250ms;
-    -rx-fade-out-duration: 250ms;
 }
 
 /*******************************************************************************
