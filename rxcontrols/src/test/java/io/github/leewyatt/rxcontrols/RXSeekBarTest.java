@@ -367,6 +367,26 @@ public class RXSeekBarTest {
         });
     }
 
+    /** Verifies progress updates after the pointer leaves do not keep the bubble up. */
+    @Test
+    public void bubbleHidesWhileProgressKeepsChanging() throws Exception {
+        AtomicReference<RXSeekBar> ref = new AtomicReference<>();
+        runOnFx(() -> {
+            RXSeekBar bar = laidOut(new RXSeekBar(0.2), 1.0);
+            ref.set(bar);
+            bar.setIndicatorTextFactory(p -> "at " + p);
+            fire(hitArea(bar), MouseEvent.MOUSE_MOVED, 6.0 + 150.0, MouseButton.NONE);
+            assertTrue(bar.lookup(".value-indicator").isVisible());
+            fire(bar, MouseEvent.MOUSE_EXITED, 6.0 + 150.0, MouseButton.NONE);
+        });
+        // Playback ticks every 50 ms for longer than the hide grace and fade together.
+        for (int i = 0; i < 14; i++) {
+            runOnFx(() -> ref.get().setProgress(ref.get().getProgress() + 0.01));
+            Thread.sleep(50);
+        }
+        runOnFx(() -> assertFalse(ref.get().lookup(".value-indicator").isVisible()));
+    }
+
     /** A seek bar whose focus request takes effect in a headless scene. */
     private static final class FocusableSeekBar extends RXSeekBar {
 

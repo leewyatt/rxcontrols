@@ -147,7 +147,11 @@ public final class IndicatorAnimator {
             grace = new PauseTransition(GRACE);
             grace.setOnFinished(event -> play(false));
         }
-        grace.playFromStart();
+        // A pending hide keeps its deadline: value updates arriving after the interaction
+        // (a playing media position) must not postpone it.
+        if (grace.getStatus() != Animation.Status.RUNNING) {
+            grace.playFromStart();
+        }
     }
 
     private void cancelGrace() {

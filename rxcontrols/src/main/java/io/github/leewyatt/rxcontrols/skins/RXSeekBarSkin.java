@@ -143,6 +143,7 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
     private void registerIndicatorListeners(RXSeekBar control) {
         disposer.registerListener(control.progressProperty(), this::updateIndicator);
         disposer.registerListener(control.indicatorTextFactoryProperty(), () -> {
+            updateIndicatorText();
             updateIndicator();
             control.requestLayout();
         });
@@ -356,7 +357,10 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
             bubbleProgress = RXMath.clamp0To1(getSkinnable().getProgress());
             bubbleOnPointer = false;
         }
-        updateIndicatorText();
+        // A hidden bubble skips the formatter on every progress tick; it formats on show.
+        if (hovering || thumbShown || indicator.isVisible()) {
+            updateIndicatorText();
+        }
         indicatorAnimator.update(hovering || thumbShown);
     }
 
