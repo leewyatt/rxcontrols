@@ -765,6 +765,16 @@
     -fx-pref-height: 6px;
 }
 
+/* The fill takes the pointer only when the range is draggable. */
+.rx-range-slider > .fill {
+    -fx-cursor: open-hand;
+}
+
+.rx-range-slider:range-dragging,
+.rx-range-slider:range-dragging > .fill {
+    -fx-cursor: closed-hand;
+}
+
 .rx-slider > .thumb,
 .rx-range-slider > .thumb {
     -fx-background-color: -rx-slider-thumb;

@@ -10,6 +10,7 @@ import javafx.geometry.Orientation;
 import javafx.geometry.Point2D;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -448,8 +449,8 @@ public class RXRangeSliderTest {
 
     /**
      * Verifies dragging the active band moves both values together (flagging
-     * both {@code *Changing}), and that disabling {@code rangeDraggable} makes
-     * the fill mouse-transparent.
+     * both {@code *Changing}) under a grab cursor that closes while dragging, and
+     * that disabling {@code rangeDraggable} makes the fill mouse-transparent.
      *
      * @throws Exception if the FX action fails
      */
@@ -460,12 +461,17 @@ public class RXRangeSliderTest {
             Region track = (Region) slider.lookup(".track");
             Region fill = (Region) slider.lookup(".fill");
             assertFalse(fill.isMouseTransparent());
+            assertEquals(Cursor.OPEN_HAND, fill.getCursor());
 
             double fx = fill.getWidth() / 2.0;
             double fy = fill.getHeight() / 2.0;
             fill.fireEvent(mouseAt(fill, MouseEvent.MOUSE_PRESSED, fx, fy, MouseButton.PRIMARY, true));
             assertTrue(slider.isLowValueChanging());
             assertTrue(slider.isHighValueChanging());
+            assertTrue(isRangeDragging(slider));
+            slider.applyCss();
+            assertEquals(Cursor.CLOSED_HAND, slider.getCursor());
+            assertEquals(Cursor.CLOSED_HAND, fill.getCursor());
 
             // A drag of 0.2*trackLength moves both by exactly 20 only if the
             // delta is divided by the track length (not the wider control).
@@ -478,6 +484,9 @@ public class RXRangeSliderTest {
                     fx + 0.2 * track.getWidth(), fy, MouseButton.PRIMARY, false));
             assertFalse(slider.isLowValueChanging());
             assertFalse(slider.isHighValueChanging());
+            assertFalse(isRangeDragging(slider));
+            slider.applyCss();
+            assertEquals(Cursor.OPEN_HAND, fill.getCursor());
 
             slider.setRangeDraggable(false);
             assertTrue(fill.isMouseTransparent());
@@ -689,7 +698,8 @@ public class RXRangeSliderTest {
     }
 
     /**
-     * Verifies removing the skin mid band drag ends both changing flags.
+     * Verifies removing the skin mid band drag ends both changing flags and the
+     * {@code :range-dragging} state.
      *
      * @throws Exception if the FX action fails
      */
@@ -702,10 +712,16 @@ public class RXRangeSliderTest {
                     fill.getWidth() / 2.0, fill.getHeight() / 2.0, MouseButton.PRIMARY, true));
             assertTrue(slider.isLowValueChanging());
             assertTrue(slider.isHighValueChanging());
+            assertTrue(isRangeDragging(slider));
             slider.setSkin(null);
             assertFalse(slider.isLowValueChanging());
             assertFalse(slider.isHighValueChanging());
+            assertFalse(isRangeDragging(slider));
         });
+    }
+
+    private static boolean isRangeDragging(Node slider) {
+        return slider.getPseudoClassStates().contains(PseudoClass.getPseudoClass("range-dragging"));
     }
 
     /**

@@ -74,6 +74,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     private static final PseudoClass LOWER_PSEUDO = PseudoClass.getPseudoClass("lower");
     private static final PseudoClass UPPER_PSEUDO = PseudoClass.getPseudoClass("upper");
     private static final PseudoClass MERGED_PSEUDO = PseudoClass.getPseudoClass("merged");
+    private static final PseudoClass RANGE_DRAGGING_PSEUDO = PseudoClass.getPseudoClass("range-dragging");
 
     // ==================== Nodes ====================
 
@@ -602,6 +603,8 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         bandDragStart = fill.localToParent(event.getX(), event.getY());
         bandPreLow = control.getLowValue();
         bandPreHigh = control.getHighValue();
+        // On the control, so the drag cursor holds when the pointer runs off the fill.
+        control.pseudoClassStateChanged(RANGE_DRAGGING_PSEUDO, true);
         control.setLowValueChanging(true);
         control.setHighValueChanging(true);
         updateBothFeedback();
@@ -658,6 +661,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         bandDragging = false;
         bandDragStart = null;
         RXRangeSlider control = getSkinnable();
+        control.pseudoClassStateChanged(RANGE_DRAGGING_PSEUDO, false);
         control.adjustLowValue(control.getLowValue());
         control.adjustHighValue(control.getHighValue());
         control.adjustLowValue(control.getLowValue());
