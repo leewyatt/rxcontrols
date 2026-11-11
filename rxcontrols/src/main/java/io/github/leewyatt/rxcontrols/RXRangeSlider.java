@@ -406,7 +406,8 @@ public class RXRangeSlider extends Control {
      * Whether dragging the active band between the thumbs moves both values
      * together. Initial value is {@code true}. The default style shows a grab
      * cursor over the band, and the control carries the {@code :range-dragging}
-     * pseudo-class while the band is dragged.
+     * pseudo-class while the band is dragged. The band's own cursor takes
+     * precedence over a cursor set on the control; restyle {@code .fill} to change it.
      *
      * @return the range-draggable property
      */
