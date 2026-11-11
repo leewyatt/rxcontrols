@@ -3,7 +3,9 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.RXWaveProgressIndicator;
 import io.github.leewyatt.rxcontrols.samples.demo.RXWaveProgressIndicatorDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.samples.support.SampleColors;
 import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -12,7 +14,7 @@ import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
-import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import javafx.util.Duration;
 
 import java.util.List;
@@ -82,11 +84,6 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
     @Override
     protected double controlPaneWidth() {
         return 440.0;
-    }
-
-    @Override
-    protected String stylesheetPath() {
-        return getClass().getResource("rx-wave-progress-indicator-showcase.css").toExternalForm();
     }
 
     @Override
@@ -162,13 +159,34 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
         Label waveCycleValue = createValueLabel(waveCycleSlider, "%.0f ms");
 
         // ==================== Colours ====================
-        ColorPicker frontColor = new ColorPicker((Color) indicator.getFrontWaveFill());
-        frontColor.setMaxWidth(Double.MAX_VALUE);
-        indicator.frontWaveFillProperty().bind(frontColor.valueProperty());
+        CheckBox customColors = new CheckBox("Custom colors");
+        BooleanBinding usingThemeColors = customColors.selectedProperty().not();
 
-        ColorPicker backColor = new ColorPicker((Color) indicator.getBackWaveFill());
+        ColorPicker frontColor = new ColorPicker();
+        frontColor.setMaxWidth(Double.MAX_VALUE);
+        frontColor.disableProperty().bind(usingThemeColors);
+
+        ColorPicker backColor = new ColorPicker();
         backColor.setMaxWidth(Double.MAX_VALUE);
-        indicator.backWaveFillProperty().bind(backColor.valueProperty());
+        backColor.disableProperty().bind(usingThemeColors);
+
+        // Inline styles beat every stylesheet, and clearing them gives the colors
+        // back to the theme; a fill set or bound in code would keep its value.
+        Runnable applyColors = () -> indicator.setStyle(customColors.isSelected()
+                ? "-rx-front-wave-fill: " + SampleColors.toCss(frontColor.getValue())
+                + "; -rx-back-wave-fill: " + SampleColors.toCss(backColor.getValue()) + ";"
+                : "");
+        customColors.selectedProperty().addListener((obs, wasCustom, custom) -> {
+            if (custom) {
+                Paint front = indicator.getFrontWaveFill();
+                Paint back = indicator.getBackWaveFill();
+                SampleColors.seed(frontColor, front);
+                SampleColors.seed(backColor, back);
+            }
+            applyColors.run();
+        });
+        frontColor.valueProperty().addListener((obs, oldColor, color) -> applyColors.run());
+        backColor.valueProperty().addListener((obs, oldColor, color) -> applyColors.run());
 
         // ==================== Timing ====================
         // Both sliders reach 0 to demonstrate the "non-positive disables animation" semantic:
@@ -201,6 +219,7 @@ public class RXWaveProgressIndicatorShowcase extends RXShowcaseApplication {
                                 row("Cycle", waveCycleSlider, waveCycleValue))),
                 section("Colours",
                         createGrid(
+                                row(customColors),
                                 row("Front", frontColor),
                                 row("Back", backColor))),
                 section("Timing",
