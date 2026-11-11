@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXRipplePane;
 import io.github.leewyatt.rxcontrols.RXSlider;
+import io.github.leewyatt.rxcontrols.RXSliderIndicatorDisplay;
 import io.github.leewyatt.rxcontrols.RXSliderIndicatorPosition;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleBehavior;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
@@ -161,11 +162,11 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
         // never the far track.
         disposer.registerEventHandler(thumb, MouseEvent.MOUSE_ENTERED, event -> {
             pointerInThumb = true;
-            updateHalo();
+            updateFeedback();
         });
         disposer.registerEventHandler(thumb, MouseEvent.MOUSE_EXITED, event -> {
             pointerInThumb = false;
-            updateHalo();
+            updateFeedback();
         });
         disposer.registerListener(thumb.pressedProperty(), this::updateFeedback);
         disposer.registerEventFilter(control, KeyEvent.KEY_PRESSED, event -> setKeyboardFocus(true));
@@ -181,7 +182,7 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
         });
         disposer.registerListener(control.valueChangingProperty(), this::updateFeedback);
         disposer.registerListener(control.disabledProperty(), () -> {
-            updateHalo();
+            updateFeedback();
             if (control.isDisabled()) {
                 // A disabled node may never see the thumb release, so end any
                 // in-flight gesture here rather than strand an unreleased ripple or
@@ -404,7 +405,9 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
 
     private void updateIndicator() {
         RXSlider control = getSkinnable();
-        indicatorAnimator.update(control.isValueChanging() || thumb.isPressed() || focusVisible());
+        boolean hovered = control.getIndicatorDisplay() == RXSliderIndicatorDisplay.HOVER
+                && pointerInThumb && !control.isDisabled();
+        indicatorAnimator.update(control.isValueChanging() || thumb.isPressed() || focusVisible() || hovered);
     }
 
     private void updateIndicatorText() {

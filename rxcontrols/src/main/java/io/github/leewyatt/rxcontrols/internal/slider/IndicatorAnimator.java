@@ -18,7 +18,8 @@ import java.util.function.Supplier;
  * the single- and range-slider skins (one instance per indicator).
  *
  * <p>{@code NEVER} keeps it hidden, {@code ALWAYS} keeps it shown, and
- * {@code DRAGGING} shows it while interacting and hides it after a short grace
+ * {@code DRAGGING} and {@code HOVER} show it while interacting (the skin counts a
+ * hovered thumb as interacting under {@code HOVER}) and hide it after a short grace
  * interval so a fast drag does not flicker. A single rebuilt {@link Timeline}
  * (scale + opacity) runs the transition unless {@code animated} is off, in which
  * case the state is applied directly.</p>

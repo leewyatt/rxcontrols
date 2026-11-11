@@ -18,6 +18,12 @@ public enum RXSliderIndicatorDisplay {
     DRAGGING,
 
     /**
+     * Like {@link #DRAGGING}, and also shown while the pointer is over a thumb; it
+     * hides shortly after the pointer leaves.
+     */
+    HOVER,
+
+    /**
      * The indicator is always shown.
      */
     ALWAYS

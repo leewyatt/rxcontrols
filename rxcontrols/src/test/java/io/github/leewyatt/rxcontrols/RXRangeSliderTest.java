@@ -721,6 +721,37 @@ public class RXRangeSliderTest {
         });
     }
 
+    /** Verifies under HOVER each thumb shows its own bubble, and a merged bubble shows for either thumb. */
+    @Test
+    public void hoverShowsTheHoveredThumbsIndicator() throws Exception {
+        runOnFx(() -> {
+            RXRangeSlider slider = scened(200.0, 30.0);
+            slider.setAnimated(false);
+            slider.setIndicatorDisplay(RXSliderIndicatorDisplay.HOVER);
+            slider.setLowValue(10.0);
+            slider.setHighValue(90.0);
+            slider.layout();
+            Region[] bubbles = indicators(slider);
+            Region high = roleThumb(slider, false);
+            double cx = high.getWidth() / 2.0;
+            double cy = high.getHeight() / 2.0;
+
+            high.fireEvent(mouseAt(high, MouseEvent.MOUSE_ENTERED, cx, cy, MouseButton.NONE, false));
+            assertFalse(bubbles[0].isVisible());
+            assertTrue(bubbles[1].isVisible());
+
+            slider.setLowValue(88.0);
+            slider.layout();
+            Region merged = slider.lookupAll(".value-indicator").stream()
+                    .map(node -> (Region) node)
+                    .filter(Node::isVisible)
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(1L, slider.lookupAll(".value-indicator").stream().filter(Node::isVisible).count());
+            assertTrue(((Label) merged.lookup(".label")).getText().contains("–"));
+        });
+    }
+
     private static boolean isRangeDragging(Node slider) {
         return slider.getPseudoClassStates().contains(PseudoClass.getPseudoClass("range-dragging"));
     }

@@ -303,6 +303,31 @@ public class RXSliderTest {
         });
     }
 
+    /** Verifies a hovered thumb shows the bubble only under HOVER, and leaving it hides the bubble. */
+    @Test
+    public void hoverShowsTheIndicatorOnlyUnderHover() throws Exception {
+        AtomicReference<Region> indicatorRef = new AtomicReference<>();
+        runOnFx(() -> {
+            RXSlider slider = scenedSlider(200.0, 30.0);
+            slider.setAnimated(false);
+            Region indicator = (Region) slider.lookup(".value-indicator");
+            indicatorRef.set(indicator);
+            Region thumb = (Region) slider.lookup(".thumb");
+            double cx = thumb.getWidth() / 2.0;
+            double cy = thumb.getHeight() / 2.0;
+
+            thumb.fireEvent(mouseAt(thumb, MouseEvent.MOUSE_ENTERED, cx, cy, MouseButton.NONE, false));
+            assertFalse(indicator.isVisible());
+            slider.setIndicatorDisplay(RXSliderIndicatorDisplay.HOVER);
+            assertTrue(indicator.isVisible());
+            thumb.fireEvent(mouseAt(thumb, MouseEvent.MOUSE_EXITED, cx, cy, MouseButton.NONE, false));
+            assertTrue(indicator.isVisible());
+        });
+        // The hide waits out a short grace interval.
+        Thread.sleep(500);
+        runOnFx(() -> assertFalse(indicatorRef.get().isVisible()));
+    }
+
     /**
      * Verifies the thumb state-layer halo: hover lights it, exit clears it, a
      * drag drives the deeper dragged tier, disabling the state overlay gates it

@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXRangeSlider;
 import io.github.leewyatt.rxcontrols.RXRipplePane;
 import io.github.leewyatt.rxcontrols.RXSlider;
+import io.github.leewyatt.rxcontrols.RXSliderIndicatorDisplay;
 import io.github.leewyatt.rxcontrols.RXSliderIndicatorPosition;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
@@ -831,11 +832,17 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     }
 
     private boolean lowActive() {
-        return dragsRole(true) || focusVisible(low);
+        return dragsRole(true) || focusVisible(low) || hoverShows(pointerInLow);
     }
 
     private boolean highActive() {
-        return dragsRole(false) || focusVisible(high);
+        return dragsRole(false) || focusVisible(high) || hoverShows(pointerInHigh);
+    }
+
+    private boolean hoverShows(boolean pointerInThumb) {
+        RXRangeSlider control = getSkinnable();
+        return pointerInThumb && !control.isDisabled()
+                && control.getIndicatorDisplay() == RXSliderIndicatorDisplay.HOVER;
     }
 
     private void updateIndicatorTexts() {
