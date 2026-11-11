@@ -28,9 +28,14 @@ import java.util.function.Function;
  *
  * <p>Focus shows only once the keyboard is in use: the skin sets the
  * {@code :focus-shown} pseudo-class on the seek bar while it is focused and a key
- * has been pressed since the last mouse press, so a click alone shows no focus cue.
- * With an indicator text factory set, a preview bubble above the thumb shows while
- * the pointer seeks and while focus is shown.</p>
+ * has been pressed since the last mouse press, so a click alone shows no focus cue.</p>
+ *
+ * <p>While the pointer hovers the bar without pressing, a {@code hover-bar} layer
+ * between the buffered and the played layers runs from the start to the pointer.
+ * With an indicator text factory set, a preview bubble shows the position the
+ * pointer would seek to; while the pointer seeks or focus is shown, it shows the
+ * thumb's position instead. A key that moves the thumb hands the bubble back to it
+ * until the pointer moves again. Touch input never hovers.</p>
  */
 public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
 
@@ -46,6 +51,7 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
     private final Region hitArea = new Region();
     private final Region track = new Region();
     private final Region secondaryBar = new Region();
+    private final Region hoverBar = new Region();
     private final Region bar = new Region();
     private final StackPane thumb = new StackPane();
     private final SliderValueIndicator indicator = new SliderValueIndicator();
@@ -55,11 +61,17 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
     private Point2D dragStart;
     private double preDragProgress;
     private boolean pointerSeeking;
+    /** Hovered position in {@code [0, 1]}, or NaN when the pointer is not over the bar. */
+    private double hoverProgress = Double.NaN;
 
     // ==================== Indicator state ====================
 
     private final IndicatorAnimator indicatorAnimator;
     private boolean keyboardFocus;
+    /** The position the bubble shows: the thumb's, or the pointer's while it hovers. */
+    private double bubbleProgress;
+    /** Whether the bubble last showed the pointer; it keeps that spot while it fades out. */
+    private boolean bubbleOnPointer;
 
     // ==================== Constructor ====================
 
@@ -81,6 +93,8 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
         registerPointerHandlers();
         registerKeyboardHandler(control);
         registerIndicatorListeners(control);
+        registerHoverHandlers(control);
+        bubbleProgress = RXMath.clamp0To1(control.getProgress());
         updateIndicatorText();
         // Also clears a state a replaced seek bar skin left behind.
         updateFocusShown();
@@ -92,6 +106,8 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
 
         track.getStyleClass().add("track");
         secondaryBar.getStyleClass().add("secondary-bar");
+        hoverBar.getStyleClass().add("hover-bar");
+        hoverBar.setVisible(false);
         bar.getStyleClass().add("bar");
         thumb.getStyleClass().add("thumb");
         thumb.setAccessibleRole(AccessibleRole.THUMB);
@@ -99,9 +115,10 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
         // The hit area under the bars takes every press on the content area.
         track.setMouseTransparent(true);
         secondaryBar.setMouseTransparent(true);
+        hoverBar.setMouseTransparent(true);
         bar.setMouseTransparent(true);
 
-        getChildren().setAll(hitArea, track, secondaryBar, bar, thumb, indicator);
+        getChildren().setAll(hitArea, track, secondaryBar, hoverBar, bar, thumb, indicator);
     }
 
     private void registerListeners(RXSeekBar control) {
@@ -124,9 +141,8 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
     }
 
     private void registerIndicatorListeners(RXSeekBar control) {
-        disposer.registerListener(control.progressProperty(), this::updateIndicatorText);
+        disposer.registerListener(control.progressProperty(), this::updateIndicator);
         disposer.registerListener(control.indicatorTextFactoryProperty(), () -> {
-            updateIndicatorText();
             updateIndicator();
             control.requestLayout();
         });
@@ -141,6 +157,22 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
             }
             updateFocusFeedback();
         });
+    }
+
+    private void registerHoverHandlers(RXSeekBar control) {
+        disposer.registerEventFilter(control, MouseEvent.MOUSE_MOVED, this::hoverAt);
+        disposer.registerEventHandler(control, MouseEvent.MOUSE_ENTERED, this::hoverAt);
+        disposer.registerEventHandler(control, MouseEvent.MOUSE_EXITED, event -> clearHover());
+        // A release over the bar hovers there again; one outside it ends the hover. A
+        // touch never hovers: a lifted finger may never send an exit.
+        disposer.registerEventFilter(control, MouseEvent.MOUSE_RELEASED, event -> {
+            if (!event.isSynthesized() && control.getLayoutBounds().contains(event.getX(), event.getY())) {
+                setHoverX(event.getX());
+            } else {
+                clearHover();
+            }
+        });
+        disposer.registerListener(control.disabledProperty(), this::clearHover);
     }
 
     // ==================== Pointer interaction ====================
@@ -216,6 +248,43 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
         getSkinnable().setProgress(RXMath.clamp0To1((x - track.getLayoutX()) / trackLength));
     }
 
+    // ==================== Hover ====================
+
+    private void hoverAt(MouseEvent event) {
+        if (!event.isSynthesized()) {
+            setHoverX(event.getX());
+        }
+    }
+
+    private void setHoverX(double x) {
+        double trackLength = track.getWidth();
+        if (trackLength <= 0.0) {
+            return;
+        }
+        double value = RXMath.clamp0To1((x - track.getLayoutX()) / trackLength);
+        if (Double.compare(value, hoverProgress) != 0) {
+            hoverProgress = value;
+            onHoverChanged();
+        }
+    }
+
+    private void clearHover() {
+        if (!Double.isNaN(hoverProgress)) {
+            hoverProgress = Double.NaN;
+            onHoverChanged();
+        }
+    }
+
+    private void onHoverChanged() {
+        updateIndicator();
+        getSkinnable().requestLayout();
+    }
+
+    // A press takes over from the hover: the thumb runs under the pointer.
+    private boolean hovering() {
+        return !Double.isNaN(hoverProgress) && !pointerSeeking;
+    }
+
     // ==================== Discrete interaction ====================
 
     private void onKeyPressed(KeyEvent event) {
@@ -230,19 +299,22 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
         double step = control.getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT
                 ? -DEFAULT_KEYBOARD_STEP
                 : DEFAULT_KEYBOARD_STEP;
+        double target;
         if (code == KeyCode.LEFT || code == KeyCode.KP_LEFT) {
-            commitUserValue(current - step);
-            event.consume();
+            target = current - step;
         } else if (code == KeyCode.RIGHT || code == KeyCode.KP_RIGHT) {
-            commitUserValue(current + step);
-            event.consume();
+            target = current + step;
         } else if (code == KeyCode.HOME) {
-            commitUserValue(0.0);
-            event.consume();
+            target = 0.0;
         } else if (code == KeyCode.END) {
-            commitUserValue(1.0);
-            event.consume();
+            target = 1.0;
+        } else {
+            return;
         }
+        // The keyboard takes the bubble back to the thumb until the pointer moves again.
+        clearHover();
+        commitUserValue(target);
+        event.consume();
     }
 
     private void commitUserValue(double target) {
@@ -275,13 +347,23 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
     }
 
     private void updateIndicator() {
-        indicatorAnimator.update(pointerSeeking || focusShown());
+        boolean hovering = hovering();
+        boolean thumbShown = pointerSeeking || focusShown();
+        if (hovering) {
+            bubbleProgress = hoverProgress;
+            bubbleOnPointer = true;
+        } else if (thumbShown || !bubbleOnPointer) {
+            bubbleProgress = RXMath.clamp0To1(getSkinnable().getProgress());
+            bubbleOnPointer = false;
+        }
+        updateIndicatorText();
+        indicatorAnimator.update(hovering || thumbShown);
     }
 
     private void updateIndicatorText() {
         Function<Double, String> factory = getSkinnable().getIndicatorTextFactory();
         if (factory != null) {
-            indicator.setText(factory.apply(RXMath.clamp0To1(getSkinnable().getProgress())));
+            indicator.setText(factory.apply(bubbleProgress));
         }
     }
 
@@ -317,16 +399,21 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
         track.resizeRelocate(trackStart, trackTop, trackLength, trackH);
         secondaryBar.resizeRelocate(trackStart, trackTop, secondaryW, trackH);
         bar.resizeRelocate(trackStart, trackTop, progressW, trackH);
+        boolean hovering = hovering();
+        hoverBar.setVisible(hovering);
+        hoverBar.resizeRelocate(trackStart, trackTop, hovering ? snapSizeX(trackLength * hoverProgress) : 0.0, trackH);
 
         thumb.resize(thumbW, thumbH);
         thumb.relocate(snapPositionX(trackStart + progressW - thumbW * HALF), thumbTop);
-        indicator.layoutBeside(axis, trackStart + progressW - x, barCrossCenter, thumbH, true);
+        indicator.layoutBeside(axis, trackStart + snapSizeX(trackLength * bubbleProgress) - x, barCrossCenter,
+                thumbH, true);
     }
 
     private void resetLayout(double trackStart, double trackTop,
                              double thumbW, double thumbH, double thumbTop) {
         track.resizeRelocate(trackStart, trackTop, 0.0, 0.0);
         secondaryBar.resizeRelocate(trackStart, trackTop, 0.0, 0.0);
+        hoverBar.resizeRelocate(trackStart, trackTop, 0.0, 0.0);
         bar.resizeRelocate(trackStart, trackTop, 0.0, 0.0);
         thumb.resize(thumbW, thumbH);
         thumb.relocate(snapPositionX(trackStart - thumbW * HALF), thumbTop);

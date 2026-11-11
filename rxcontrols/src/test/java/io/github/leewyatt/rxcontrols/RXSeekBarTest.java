@@ -282,6 +282,91 @@ public class RXSeekBarTest {
         return bar.getPseudoClassStates().contains(PseudoClass.getPseudoClass("focus-shown"));
     }
 
+    /** Verifies the hover layer runs to the pointer, hides for a press, returns on release and leaves on exit. */
+    @Test
+    public void hoverLayerFollowsThePointer() throws Exception {
+        runOnFx(() -> {
+            RXSeekBar bar = laidOut(new RXSeekBar(0.2), 1.0);
+            Node hitArea = hitArea(bar);
+            Region hoverBar = (Region) bar.lookup(".hover-bar");
+            assertFalse(hoverBar.isVisible());
+
+            fire(hitArea, MouseEvent.MOUSE_MOVED, 6.0 + 150.0, MouseButton.NONE);
+            bar.layout();
+            assertTrue(hoverBar.isVisible());
+            assertEquals(150.0, hoverBar.getWidth(), EPSILON);
+
+            fire(hitArea, MouseEvent.MOUSE_PRESSED, 6.0 + 100.0, MouseButton.PRIMARY);
+            bar.layout();
+            assertFalse(hoverBar.isVisible());
+            fire(hitArea, MouseEvent.MOUSE_RELEASED, 6.0 + 100.0, MouseButton.PRIMARY);
+            bar.layout();
+            assertTrue(hoverBar.isVisible());
+            assertEquals(100.0, hoverBar.getWidth(), EPSILON);
+
+            fire(bar, MouseEvent.MOUSE_EXITED, 6.0 + 100.0, MouseButton.NONE);
+            bar.layout();
+            assertFalse(hoverBar.isVisible());
+        });
+    }
+
+    /** Verifies the bubble shows the hovered position at the pointer, and a key hands it back to the thumb. */
+    @Test
+    public void bubbleShowsTheHoveredPosition() throws Exception {
+        runOnFx(() -> {
+            FocusableSeekBar bar = new FocusableSeekBar();
+            bar.setProgress(0.2);
+            laidOut(bar, 1.0);
+            bar.requestFocus();
+            bar.setIndicatorTextFactory(p -> "at " + p);
+            Region indicator = (Region) bar.lookup(".value-indicator");
+            Region caret = (Region) indicator.lookup(".caret");
+
+            fire(hitArea(bar), MouseEvent.MOUSE_MOVED, 6.0 + 150.0, MouseButton.NONE);
+            bar.layout();
+            indicator.layout();
+            assertTrue(indicator.isVisible());
+            assertEquals("at 0.75", bubbleText(bar));
+            double caretX = indicator.getLayoutX() + caret.getLayoutX() + caret.getWidth() / 2.0;
+            assertEquals(6.0 + 150.0, caretX, 1.0);
+            assertEquals(0.2, bar.getProgress(), EPSILON);
+
+            Event.fireEvent(bar, key(KeyCode.RIGHT));
+            bar.layout();
+            assertEquals("at 0.25", bubbleText(bar));
+            assertFalse(bar.lookup(".hover-bar").isVisible());
+        });
+    }
+
+    /** Verifies touch input never leaves a hover behind, and a key that does not seek keeps the hover. */
+    @Test
+    public void touchNeverHoversAndOtherKeysKeepTheHover() throws Exception {
+        runOnFx(() -> {
+            FocusableSeekBar bar = new FocusableSeekBar();
+            laidOut(bar, 1.0);
+            bar.requestFocus();
+            Node hitArea = hitArea(bar);
+            Region hoverBar = (Region) bar.lookup(".hover-bar");
+
+            fire(hitArea, MouseEvent.MOUSE_MOVED, 6.0 + 50.0, MouseButton.NONE);
+            Event.fireEvent(bar, key(KeyCode.SHIFT));
+            bar.layout();
+            assertTrue(hoverBar.isVisible());
+
+            fire(hitArea, MouseEvent.MOUSE_PRESSED, 6.0 + 100.0, MouseButton.PRIMARY);
+            Point2D scene = hitArea.localToScene(6.0 + 100.0, hitArea.getLayoutBounds().getHeight() / 2.0);
+            Event.fireEvent(hitArea, new MouseEvent(MouseEvent.MOUSE_RELEASED, scene.getX(), scene.getY(),
+                    scene.getX(), scene.getY(), MouseButton.PRIMARY, 1,
+                    false, false, false, false,
+                    false, false, false,
+                    true, false, true,
+                    new PickResult(hitArea, scene.getX(), scene.getY())));
+            bar.layout();
+            assertFalse(bar.isSeeking());
+            assertFalse(hoverBar.isVisible());
+        });
+    }
+
     /** A seek bar whose focus request takes effect in a headless scene. */
     private static final class FocusableSeekBar extends RXSeekBar {
 

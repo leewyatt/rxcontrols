@@ -89,6 +89,7 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("segmented.indicator", "#0096c9ff");
         DEFAULT_MODENA.put("seek.track", "#e0e0e0ff");
         DEFAULT_MODENA.put("seek.secondary", "#00000040");
+        DEFAULT_MODENA.put("seek.hover", "#868686ff");
         DEFAULT_MODENA.put("seek.bar", "#0096c9ff");
         DEFAULT_MODENA.put("seek.thumb", "#0096c9ff");
         DEFAULT_MODENA.put("slider.track", "#e0e0e0ff");
@@ -139,6 +140,7 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("segmented.indicator", "#0969daff");
         PRIMER_LIGHT.put("seek.track", "#b5bbc3ff");
         PRIMER_LIGHT.put("seek.secondary", "#6e7781ff");
+        PRIMER_LIGHT.put("seek.hover", "#5e656eff");
         PRIMER_LIGHT.put("seek.bar", "#0969daff");
         PRIMER_LIGHT.put("seek.thumb", "#0969daff");
         PRIMER_LIGHT.put("slider.track", "#d0d7deff");
@@ -190,6 +192,7 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("segmented.indicator", "#1f6febff");
         PRIMER_DARK.put("seek.track", "#535961ff");
         PRIMER_DARK.put("seek.secondary", "#6e7681ff");
+        PRIMER_DARK.put("seek.hover", "#8d959fff");
         PRIMER_DARK.put("seek.bar", "#1f6febff");
         PRIMER_DARK.put("seek.thumb", "#1f6febff");
         PRIMER_DARK.put("slider.track", "#30363dff");

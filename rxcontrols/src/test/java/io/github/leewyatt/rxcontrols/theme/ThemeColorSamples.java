@@ -159,6 +159,7 @@ final class ThemeColorSamples {
 
         samples.put("seek.track", background(seekBar.lookup(".track")));
         samples.put("seek.secondary", background(seekBar.lookup(".secondary-bar")));
+        samples.put("seek.hover", background(seekBar.lookup(".hover-bar")));
         samples.put("seek.bar", background(seekBar.lookup(".bar")));
         samples.put("seek.thumb", background(seekBar.lookup(".thumb")));
         samples.put("slider.track", background(slider.lookup(".track")));

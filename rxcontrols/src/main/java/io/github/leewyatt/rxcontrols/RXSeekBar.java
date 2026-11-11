@@ -34,8 +34,10 @@ import java.util.function.Function;
  * state into it while {@link #isSeeking()} is {@code false}, and commit back to
  * the external source on the {@code seeking true -> false} transition.</p>
  *
- * <p>Setting an {@link #indicatorTextFactoryProperty() indicatorTextFactory} shows a
- * preview bubble above the thumb while the user seeks.</p>
+ * <p>While the pointer hovers the bar, a hover layer runs from the start to the
+ * pointer, between the buffered and the played layers. Setting an
+ * {@link #indicatorTextFactoryProperty() indicatorTextFactory} also shows a preview
+ * bubble: at the pointer while it hovers, at the thumb while the user seeks.</p>
  */
 public class RXSeekBar extends Control {
 
@@ -192,10 +194,11 @@ public class RXSeekBar extends Control {
             new SimpleObjectProperty<>(this, "indicatorTextFactory");
 
     /**
-     * Formats the preview bubble shown above the thumb, for example a seek time:
-     * {@code p -> format(p * duration)}. It receives the progress clamped to
-     * {@code [0, 1]}; a {@code null} result shows an empty bubble. The bubble shows
-     * while the pointer drags and while the keyboard is in use on the focused bar.
+     * Formats the preview bubble, for example a seek time:
+     * {@code p -> format(p * duration)}. It receives a position in {@code [0, 1]};
+     * a {@code null} result shows an empty bubble. The bubble shows the position the
+     * pointer would seek to while it hovers the bar, and the thumb's position while
+     * the pointer drags and while the keyboard is in use on the focused bar.
      * It is drawn outside the seek bar, so a clipping ancestor may cut it off. The
      * default {@code null} shows no bubble.
      *

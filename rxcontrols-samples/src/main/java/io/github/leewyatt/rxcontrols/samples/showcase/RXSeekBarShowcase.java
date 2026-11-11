@@ -27,8 +27,8 @@ import java.util.Locale;
  * Showcase application for {@link RXSeekBar}.
  *
  * <p>Exposes the normalized primary and secondary progress values, a time preview
- * bubble for a sample track length, and the looked-up colors used by the default
- * stylesheet. The colors follow the active
+ * bubble for a sample track length (shown at the pointer while hovering), and the
+ * looked-up colors used by the default stylesheet, including the hover layer. The colors follow the active
  * theme until "Custom colors" is checked. For a minimal example see
  * {@link RXSeekBarDemo}.</p>
  */
@@ -134,6 +134,7 @@ public class RXSeekBarShowcase extends RXShowcaseApplication {
         BooleanBinding usingThemeColors = customColors.selectedProperty().not();
         ColorPicker trackPicker = createColorPicker(usingThemeColors);
         ColorPicker secondaryPicker = createColorPicker(usingThemeColors);
+        ColorPicker hoverPicker = createColorPicker(usingThemeColors);
         ColorPicker barPicker = createColorPicker(usingThemeColors);
         ColorPicker thumbPicker = createColorPicker(usingThemeColors);
 
@@ -141,9 +142,11 @@ public class RXSeekBarShowcase extends RXShowcaseApplication {
         // to the theme.
         Runnable applyColors = () -> seekBar.setStyle(customColors.isSelected()
                 ? String.format(Locale.ROOT,
-                        "-rx-track-fill: %s; -rx-secondary-fill: %s; -rx-bar-fill: %s; -rx-thumb-fill: %s;",
+                        "-rx-track-fill: %s; -rx-secondary-fill: %s; -rx-hover-fill: %s; -rx-bar-fill: %s;"
+                                + " -rx-thumb-fill: %s;",
                         SampleColors.toCss(trackPicker.getValue()),
                         SampleColors.toCss(secondaryPicker.getValue()),
+                        SampleColors.toCss(hoverPicker.getValue()),
                         SampleColors.toCss(barPicker.getValue()),
                         SampleColors.toCss(thumbPicker.getValue()))
                 : "");
@@ -153,16 +156,18 @@ public class RXSeekBarShowcase extends RXShowcaseApplication {
                 // which resets the fills until CSS is applied again.
                 Paint track = fillOf(".track");
                 Paint secondary = fillOf(".secondary-bar");
+                Paint hover = fillOf(".hover-bar");
                 Paint bar = fillOf(".bar");
                 Paint thumb = fillOf(".thumb");
                 SampleColors.seed(trackPicker, track);
                 SampleColors.seed(secondaryPicker, secondary);
+                SampleColors.seed(hoverPicker, hover);
                 SampleColors.seed(barPicker, bar);
                 SampleColors.seed(thumbPicker, thumb);
             }
             applyColors.run();
         });
-        for (ColorPicker picker : List.of(trackPicker, secondaryPicker, barPicker, thumbPicker)) {
+        for (ColorPicker picker : List.of(trackPicker, secondaryPicker, hoverPicker, barPicker, thumbPicker)) {
             picker.valueProperty().addListener((obs, oldColor, color) -> applyColors.run());
         }
 
@@ -170,6 +175,7 @@ public class RXSeekBarShowcase extends RXShowcaseApplication {
                 row(customColors),
                 row("Track", trackPicker),
                 row("Secondary", secondaryPicker),
+                row("Hover", hoverPicker),
                 row("Bar", barPicker),
                 row("Thumb", thumbPicker));
     }

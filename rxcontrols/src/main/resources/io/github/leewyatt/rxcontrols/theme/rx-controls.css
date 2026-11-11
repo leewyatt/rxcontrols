@@ -682,6 +682,7 @@
 .rx-seek-bar {
     -rx-track-fill: ladder(-rx-surface, -rx-outline 45%, #e0e0e0 46%);
     -rx-secondary-fill: -rx-on-surface-disabled;
+    -rx-hover-fill: ladder(-rx-surface, derive(-rx-surface, 50%) 45%, derive(-rx-surface, -45%) 46%);
     -rx-bar-fill: -rx-primary;
     -rx-thumb-fill: -rx-primary;
 }
@@ -689,6 +690,7 @@
 .rx-theme-atlantafx .rx-seek-bar,
 .rx-theme-atlantafx.rx-seek-bar {
     -rx-track-fill: ladder(-color-bg-default, derive(-color-fg-subtle, -25%) 49%, derive(-color-fg-subtle, 65%) 50%);
+    -rx-hover-fill: ladder(-color-bg-default, derive(-color-fg-subtle, 30%) 49%, derive(-color-fg-subtle, -15%) 50%);
 }
 
 .rx-seek-bar > .track {
@@ -699,6 +701,11 @@
 
 .rx-seek-bar > .secondary-bar {
     -fx-background-color: -rx-secondary-fill;
+    -fx-background-radius: 999px;
+}
+
+.rx-seek-bar > .hover-bar {
+    -fx-background-color: -rx-hover-fill;
     -fx-background-radius: 999px;
 }
 
