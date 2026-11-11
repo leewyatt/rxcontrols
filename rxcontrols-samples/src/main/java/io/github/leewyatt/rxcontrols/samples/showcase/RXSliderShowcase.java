@@ -61,7 +61,6 @@ public class RXSliderShowcase extends RXShowcaseApplication {
     @Override
     protected Node createPreview() {
         slider = new RXSlider(0.0, 100.0, 60.0);
-        slider.setShowTickMarks(true);
         slider.setShowTickLabels(true);
         slider.setMajorTickUnit(25.0);
         slider.setMinorTickCount(4);
