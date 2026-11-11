@@ -1217,6 +1217,39 @@ public class RXRangeSliderTest {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Verifies each separate bubble's caret points at its own thumb and the merged
+     * bubble's caret points between the thumbs.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void caretsPointAtTheirThumbsOrBetweenWhenMerged() throws Exception {
+        runOnFx(() -> {
+            RXRangeSlider slider = scened(200.0, 30.0);
+            slider.setAnimated(false);
+            slider.setIndicatorDisplay(RXSliderIndicatorDisplay.ALWAYS);
+            slider.setLowValue(0.0);
+            slider.setHighValue(100.0);
+            slider.layout();
+            Region lowThumb = roleThumb(slider, true);
+            Region highThumb = roleThumb(slider, false);
+            Region[] bubbles = indicators(slider);
+            assertEquals(centerX(lowThumb), centerX(bubbles[0].lookup(".caret")), PIXEL_TOLERANCE);
+            assertEquals(centerX(highThumb), centerX(bubbles[1].lookup(".caret")), PIXEL_TOLERANCE);
+
+            slider.setHighValue(52.0);
+            slider.setLowValue(48.0);
+            slider.layout();
+            Node shared = indicators(slider)[0].lookup(".caret");
+            assertEquals((centerX(lowThumb) + centerX(highThumb)) / 2.0, centerX(shared), PIXEL_TOLERANCE);
+        });
+    }
+
+    private static double centerX(Node node) {
+        return node.localToScene(node.getBoundsInLocal()).getCenterX();
+    }
+
     // ==================== Helpers ====================
 
     /** Returns the thumb node that holds the low or the high value. */

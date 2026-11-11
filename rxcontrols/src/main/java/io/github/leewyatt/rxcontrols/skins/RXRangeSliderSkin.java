@@ -1029,16 +1029,17 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     private void positionIndicator(SliderAxis axis, SliderValueIndicator indicator, double centerM,
                                    double barCrossCenter, double thumbSize, boolean startSide) {
         boolean vertical = axis.isVertical();
-        indicator.setCaretVisible(!vertical);
-        if (!vertical) {
-            indicator.setCaretBelow(startSide);
-        }
         double bubbleW = snapSizeX(indicator.prefWidth(-1));
         double bubbleH = snapSizeY(indicator.prefHeight(-1));
         indicator.resize(bubbleW, bubbleH);
         double bubbleMain = vertical ? bubbleH : bubbleW;
         double bubbleCross = vertical ? bubbleW : bubbleH;
-        double mainLo = RXMath.clamp(centerM - bubbleMain * HALF, 0.0, Math.max(0.0, axis.mainLength() - bubbleMain));
+        // The bubble stays inside the slider, except near an end, where it overflows
+        // just enough for its caret, kept clear of the rounded corners, to reach the target.
+        double reach = indicator.caretReach(vertical, startSide);
+        double mainMin = Math.min(0.0, centerM - reach);
+        double mainMax = Math.max(axis.mainLength() - bubbleMain, centerM + reach - bubbleMain);
+        double mainLo = RXMath.clamp(centerM - bubbleMain * HALF, mainMin, Math.max(mainMin, mainMax));
         double thumbCrossLo = barCrossCenter - thumbSize * HALF;
         double thumbCrossHi = barCrossCenter + thumbSize * HALF;
         double crossLo = startSide
@@ -1047,6 +1048,10 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         indicator.relocate(
                 snapPositionX(axis.rectX(mainLo, mainLo + bubbleMain, crossLo, crossLo + bubbleCross)),
                 snapPositionY(axis.rectY(mainLo, mainLo + bubbleMain, crossLo, crossLo + bubbleCross)));
+        // Near the ends the bubble is held inside the slider; the caret still points at
+        // its thumb, or between the thumbs for the merged bubble.
+        indicator.pointCaretAt(axis.pointX(centerM, barCrossCenter), axis.pointY(centerM, barCrossCenter),
+                vertical, startSide);
     }
 
     private void setMerged(boolean value) {

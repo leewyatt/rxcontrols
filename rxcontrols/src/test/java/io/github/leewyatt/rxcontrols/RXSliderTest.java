@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.skins.RXSliderSkin;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.event.EventType;
+import javafx.geometry.Bounds;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
 import javafx.geometry.Point2D;
@@ -834,12 +835,15 @@ public class RXSliderTest {
             pressTrack(track, track.getWidth() / 2.0, 0.25 * track.getHeight());
             assertEquals(75.0, slider.getValue(), EPSILON);
 
-            // The bubble drops its caret and sits to one side (START -> left) of the thumb.
+            // The bubble sits to one side (START -> left) of the thumb, its caret on the
+            // right edge pointing at it.
             slider.layout();
             Region caret = (Region) slider.lookup(".caret");
-            assertFalse(caret.isVisible());
             Region indicator = (Region) slider.lookup(".value-indicator");
             assertTrue(indicator.getLayoutX() + indicator.getWidth() <= thumb.getLayoutX() + PIXEL_TOLERANCE);
+            assertTrue(caret.isVisible());
+            assertEquals(bodyBounds(indicator).getMaxX(), screenBounds(caret).getMinX(), PIXEL_TOLERANCE);
+            assertTrue(screenBounds(caret).getHeight() > screenBounds(caret).getWidth());
 
             // END puts it on the right; a right-to-left orientation mirrors both sides on screen.
             slider.setIndicatorPosition(RXSliderIndicatorPosition.END);
@@ -852,6 +856,63 @@ public class RXSliderTest {
             slider.layout();
             assertTrue(screenMinX(indicator) >= screenMaxX(thumb) - PIXEL_TOLERANCE);
         });
+    }
+
+    /**
+     * Verifies the caret sits on the body edge facing the track, with no gap, and
+     * points at the thumb center at both ends and in between, on both sides of a
+     * horizontal and a vertical slider; near an end the bubble overflows the slider
+     * just enough for that.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void caretPointsAtTheThumbNearTheEnds() throws Exception {
+        runOnFx(() -> {
+            for (Orientation orientation : Orientation.values()) {
+                boolean vertical = orientation == Orientation.VERTICAL;
+                RXSlider slider = vertical ? scenedSlider(30.0, 200.0) : scenedSlider(200.0, 30.0);
+                slider.setOrientation(orientation);
+                slider.setAnimated(false);
+                slider.setIndicatorDisplay(RXSliderIndicatorDisplay.ALWAYS);
+                if (vertical) {
+                    layout(slider, 30.0, 200.0);
+                }
+                Region indicator = (Region) slider.lookup(".value-indicator");
+                Region caret = (Region) slider.lookup(".caret");
+                Region thumb = (Region) slider.lookup(".thumb");
+                for (RXSliderIndicatorPosition position : RXSliderIndicatorPosition.values()) {
+                    slider.setIndicatorPosition(position);
+                    boolean start = position == RXSliderIndicatorPosition.START;
+                    for (double value : new double[] {0.0, 50.0, 100.0}) {
+                        slider.setValue(value);
+                        slider.layout();
+                        Bounds body = bodyBounds(indicator);
+                        Bounds tip = screenBounds(caret);
+                        Bounds knob = screenBounds(thumb);
+                        String where = orientation + " " + position + " at " + value;
+                        if (vertical) {
+                            assertEquals(start ? body.getMaxX() : body.getMinX(),
+                                    start ? tip.getMinX() : tip.getMaxX(), PIXEL_TOLERANCE, where);
+                            assertEquals(knob.getCenterY(), tip.getCenterY(), PIXEL_TOLERANCE, where);
+                        } else {
+                            assertEquals(start ? body.getMaxY() : body.getMinY(),
+                                    start ? tip.getMinY() : tip.getMaxY(), PIXEL_TOLERANCE, where);
+                            assertEquals(knob.getCenterX(), tip.getCenterX(), PIXEL_TOLERANCE, where);
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    private static Bounds screenBounds(Node node) {
+        return node.localToScene(node.getBoundsInLocal());
+    }
+
+    // The bubble body alone: its local bounds would include the caret.
+    private static Bounds bodyBounds(Node indicator) {
+        return indicator.localToScene(indicator.getLayoutBounds());
     }
 
     private static double screenMinX(Node node) {
