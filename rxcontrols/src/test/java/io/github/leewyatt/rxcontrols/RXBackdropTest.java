@@ -143,7 +143,7 @@ public class RXBackdropTest {
             assertEquals(Duration.millis(120.0), backdrop.getFadeOutDuration());
             assertNotNull(backdrop.getBackground());
             Color fill = (Color) backdrop.getBackground().getFills().get(0).getFill();
-            Color expectedFill = Color.web("#00000052");
+            Color expectedFill = Color.rgb(0, 0, 0, 0.32);
             assertEquals(expectedFill.getRed(), fill.getRed(), EPSILON);
             assertEquals(expectedFill.getGreen(), fill.getGreen(), EPSILON);
             assertEquals(expectedFill.getBlue(), fill.getBlue(), EPSILON);

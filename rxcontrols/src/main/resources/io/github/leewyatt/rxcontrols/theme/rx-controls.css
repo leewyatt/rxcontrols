@@ -68,6 +68,8 @@
     -rx-highlight: ladder(-fx-background, rgba(230, 162, 60, 0.4) 45%, #ffff00 46%);
     /* interaction state overlay (ripple / hover tint) */
     -rx-state-overlay-color: ladder(-fx-background, white 45%, black 46%);
+    /* modal scrim (backdrop, dialog, drawer, state pane): Material's black at 32% on any host */
+    -rx-scrim: rgba(0, 0, 0, 0.32);
     /* elevation (RXShadows): umbra color is the only themeable knob — JavaFX
        resolves only the COLOR of -fx-effect: dropshadow(...) through looked-up
        tokens, never radius / spread / offset, so each consumer writes those as
@@ -277,6 +279,8 @@
     -rx-highlight: -color-warning-muted;
     /* interaction state overlay (ripple / hover tint); flips with the theme */
     -rx-state-overlay-color: -color-fg-default;
+    /* modal scrim: AtlantaFX's own modal overlay, lightening a dark theme */
+    -rx-scrim: ladder(-color-bg-default, rgba(255, 255, 255, 0.2) 49%, rgba(0, 0, 0, 0.32) 50%);
     /* elevation: AtlantaFX's own shadow color on a light host. On a dark host
        -color-shadow-default is an opaque near-black, sized for AtlantaFX's small
        popup shadows; drawn at full strength under an offset elevation shadow it
@@ -2044,7 +2048,7 @@
  ******************************************************************************/
 
 .rx-backdrop {
-    -fx-background-color: #00000052;
+    -fx-background-color: -rx-scrim;
 }
 
 /*******************************************************************************
@@ -2054,7 +2058,7 @@
  ******************************************************************************/
 
 .rx-drawer-pane > .backdrop {
-    -fx-background-color: rgba(0, 0, 0, 0.32);
+    -fx-background-color: -rx-scrim;
 }
 
 /* A raised surface: on a light host the content surface (white on a gray Modena
@@ -2094,7 +2098,7 @@
  ******************************************************************************/
 
 .rx-dialog > .scrim {
-    -fx-background-color: rgba(0, 0, 0, 0.32);
+    -fx-background-color: -rx-scrim;
 }
 
 /* A raised surface, as for the drawer: the content surface on a light host, a step
@@ -3401,7 +3405,7 @@
  *                                                                             *
  ******************************************************************************/
 .rx-state-pane > .backdrop {
-    -fx-background-color: rgba(0, 0, 0, 0.32);
+    -fx-background-color: -rx-scrim;
 }
 
 .rx-state-pane > .overlay > .loading-box {

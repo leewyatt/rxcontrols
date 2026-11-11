@@ -87,6 +87,7 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("segmented.selected", "#ffffffff");
         DEFAULT_MODENA.put("segmented.unselected", "#000000a6");
         DEFAULT_MODENA.put("segmented.indicator", "#0096c9ff");
+        DEFAULT_MODENA.put("backdrop", "#00000052");
         DEFAULT_MODENA.put("seek.track", "#e0e0e0ff");
         DEFAULT_MODENA.put("seek.secondary", "#00000040");
         DEFAULT_MODENA.put("seek.hover", "#868686ff");
@@ -138,6 +139,7 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("segmented.selected", "#ffffffff");
         PRIMER_LIGHT.put("segmented.unselected", "#57606aff");
         PRIMER_LIGHT.put("segmented.indicator", "#0969daff");
+        PRIMER_LIGHT.put("backdrop", "#00000052");
         PRIMER_LIGHT.put("seek.track", "#b5bbc3ff");
         PRIMER_LIGHT.put("seek.secondary", "#6e7781ff");
         PRIMER_LIGHT.put("seek.hover", "#5e656eff");
@@ -190,6 +192,7 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("segmented.selected", "#ffffffff");
         PRIMER_DARK.put("segmented.unselected", "#8b949eff");
         PRIMER_DARK.put("segmented.indicator", "#1f6febff");
+        PRIMER_DARK.put("backdrop", "#ffffff33");
         PRIMER_DARK.put("seek.track", "#535961ff");
         PRIMER_DARK.put("seek.secondary", "#6e7681ff");
         PRIMER_DARK.put("seek.hover", "#8d959fff");
