@@ -21,6 +21,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 
+import java.util.Objects;
 import java.util.function.Function;
 
 /**
@@ -366,8 +367,14 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
 
     private void updateIndicatorText() {
         Function<Double, String> factory = getSkinnable().getIndicatorTextFactory();
-        if (factory != null) {
-            indicator.setText(factory.apply(bubbleProgress));
+        if (factory == null) {
+            return;
+        }
+        String text = factory.apply(bubbleProgress);
+        if (!Objects.equals(text, indicator.getText())) {
+            indicator.setText(text);
+            // The bubble is unmanaged, so only the bar's layout resizes it to the new text.
+            getSkinnable().requestLayout();
         }
     }
 

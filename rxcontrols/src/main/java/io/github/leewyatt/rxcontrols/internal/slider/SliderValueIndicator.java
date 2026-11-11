@@ -61,6 +61,15 @@ public final class SliderValueIndicator extends StackPane {
     }
 
     /**
+     * Returns the indicator text.
+     *
+     * @return the formatted value text
+     */
+    public String getText() {
+        return label.getText();
+    }
+
+    /**
      * Sizes the bubble to its preferred size and places it beside the thumb, then
      * points the caret at the target. Along the track the bubble is centered on the
      * target and kept inside the control, then moved only as far as its caret, kept

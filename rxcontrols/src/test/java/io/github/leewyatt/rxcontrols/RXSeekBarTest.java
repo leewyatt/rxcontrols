@@ -387,6 +387,27 @@ public class RXSeekBarTest {
         runOnFx(() -> assertFalse(ref.get().lookup(".value-indicator").isVisible()));
     }
 
+    /** Verifies a bubble shown after hidden progress updates is sized to its refreshed text. */
+    @Test
+    public void bubbleShownAfterHiddenUpdatesFitsItsText() throws Exception {
+        runOnFx(() -> {
+            FocusableSeekBar bar = new FocusableSeekBar();
+            bar.setProgress(0.2);
+            laidOut(bar, 1.0);
+            bar.setIndicatorTextFactory(p -> p < 0.5 ? "x" : "a much longer preview text");
+            bar.requestFocus();
+            Region indicator = (Region) bar.lookup(".value-indicator");
+
+            bar.setProgress(0.8);
+            bar.layout();
+            Event.fireEvent(bar, key(KeyCode.SHIFT));
+            assertTrue(indicator.isVisible());
+            bar.layout();
+            assertEquals("a much longer preview text", bubbleText(bar));
+            assertEquals(indicator.prefWidth(-1), indicator.getWidth(), 1.0);
+        });
+    }
+
     /** A seek bar whose focus request takes effect in a headless scene. */
     private static final class FocusableSeekBar extends RXSeekBar {
 
