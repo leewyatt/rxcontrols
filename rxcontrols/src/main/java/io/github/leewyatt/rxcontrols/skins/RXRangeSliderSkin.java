@@ -1004,7 +1004,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
 
     private void layoutIndicators(SliderAxis axis, double lowM, double highM,
                                   double barCrossCenter, double thumbSize) {
-        boolean negativeSide = positionOrDefault() != RXSliderIndicatorPosition.BELOW;
+        boolean startSide = positionOrDefault() != RXSliderIndicatorPosition.END;
         boolean vertical = axis.isVertical();
         RXRangeSlider control = getSkinnable();
         // Measure each bubble at its own value, then decide whether they overlap.
@@ -1019,19 +1019,19 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
             // between the thumbs; the high indicator is hidden by its animator.
             lowIndicator.setText(formatValue(control.getLowValue()) + EN_DASH
                     + formatValue(control.getHighValue()));
-            positionIndicator(axis, lowIndicator, (lowM + highM) * HALF, barCrossCenter, thumbSize, negativeSide);
+            positionIndicator(axis, lowIndicator, (lowM + highM) * HALF, barCrossCenter, thumbSize, startSide);
         } else {
-            positionIndicator(axis, lowIndicator, lowM, barCrossCenter, thumbSize, negativeSide);
-            positionIndicator(axis, highIndicator, highM, barCrossCenter, thumbSize, negativeSide);
+            positionIndicator(axis, lowIndicator, lowM, barCrossCenter, thumbSize, startSide);
+            positionIndicator(axis, highIndicator, highM, barCrossCenter, thumbSize, startSide);
         }
     }
 
     private void positionIndicator(SliderAxis axis, SliderValueIndicator indicator, double centerM,
-                                   double barCrossCenter, double thumbSize, boolean negativeSide) {
+                                   double barCrossCenter, double thumbSize, boolean startSide) {
         boolean vertical = axis.isVertical();
         indicator.setCaretVisible(!vertical);
         if (!vertical) {
-            indicator.setCaretBelow(negativeSide);
+            indicator.setCaretBelow(startSide);
         }
         double bubbleW = snapSizeX(indicator.prefWidth(-1));
         double bubbleH = snapSizeY(indicator.prefHeight(-1));
@@ -1041,7 +1041,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         double mainLo = RXMath.clamp(centerM - bubbleMain * HALF, 0.0, Math.max(0.0, axis.mainLength() - bubbleMain));
         double thumbCrossLo = barCrossCenter - thumbSize * HALF;
         double thumbCrossHi = barCrossCenter + thumbSize * HALF;
-        double crossLo = negativeSide
+        double crossLo = startSide
                 ? (thumbCrossLo - INDICATOR_GAP - bubbleCross)
                 : (thumbCrossHi + INDICATOR_GAP);
         indicator.relocate(

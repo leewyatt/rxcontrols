@@ -52,10 +52,11 @@ public class RXSlider extends Slider {
             RXSliderIndicatorDisplay.DRAGGING;
 
     /**
-     * Default value indicator position relative to the track.
+     * Default value indicator position: the start side across the track (above a
+     * horizontal track, left of a vertical one).
      */
     public static final RXSliderIndicatorPosition DEFAULT_INDICATOR_POSITION =
-            RXSliderIndicatorPosition.ABOVE;
+            RXSliderIndicatorPosition.START;
 
     /**
      * Default for whether interaction feedback and indicator transitions are
@@ -180,9 +181,11 @@ public class RXSlider extends Slider {
             };
 
     /**
-     * Side of the track on which the value indicator bubble is placed. Initial
-     * value is {@link #DEFAULT_INDICATOR_POSITION}; the skin reads {@code null}
-     * as the default.
+     * Side of the track, across it, on which the value indicator bubble is placed:
+     * {@code START} is above a horizontal track and left of a vertical one,
+     * {@code END} below and right (mirrored in a right-to-left orientation).
+     * Initial value is {@link #DEFAULT_INDICATOR_POSITION}; the skin reads
+     * {@code null} as the default.
      *
      * @return the indicator position property
      */

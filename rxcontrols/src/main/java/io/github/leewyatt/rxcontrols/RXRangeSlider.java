@@ -961,8 +961,11 @@ public class RXRangeSlider extends Control {
             };
 
     /**
-     * Side of the track for the value indicator. Initial value is
-     * {@link RXSlider#DEFAULT_INDICATOR_POSITION}.
+     * Side of the track, across it, for the value indicators: {@code START} is
+     * above a horizontal track and left of a vertical one, {@code END} below and
+     * right (mirrored in a right-to-left orientation). Initial value is
+     * {@link RXSlider#DEFAULT_INDICATOR_POSITION}; the skin reads {@code null} as
+     * the default.
      *
      * @return the indicator position property
      */

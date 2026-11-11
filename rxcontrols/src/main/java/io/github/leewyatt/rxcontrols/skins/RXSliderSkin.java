@@ -497,13 +497,13 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
     }
 
     private void layoutIndicator(SliderAxis axis, double thumbM, double barCrossCenter, double thumbSize) {
-        boolean negativeSide = positionOrDefault() != RXSliderIndicatorPosition.BELOW;
+        boolean startSide = positionOrDefault() != RXSliderIndicatorPosition.END;
         boolean vertical = axis.isVertical();
         // The horizontal bubble points at the thumb with its caret; the vertical
         // bubble sits beside the thumb without a caret.
         indicator.setCaretVisible(!vertical);
         if (!vertical) {
-            indicator.setCaretBelow(negativeSide);
+            indicator.setCaretBelow(startSide);
         }
         double bubbleW = snapSizeX(indicator.prefWidth(-1));
         double bubbleH = snapSizeY(indicator.prefHeight(-1));
@@ -513,7 +513,7 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
         double mainLo = RXMath.clamp(thumbM - bubbleMain * HALF, 0.0, Math.max(0.0, axis.mainLength() - bubbleMain));
         double thumbCrossLo = barCrossCenter - thumbSize * HALF;
         double thumbCrossHi = barCrossCenter + thumbSize * HALF;
-        double crossLo = negativeSide
+        double crossLo = startSide
                 ? (thumbCrossLo - INDICATOR_GAP - bubbleCross)
                 : (thumbCrossHi + INDICATOR_GAP);
         indicator.relocate(

@@ -85,7 +85,7 @@ public class RXSliderTest {
         assertFalse(slider.getStyleClass().contains("slider"));
 
         assertEquals(RXSliderIndicatorDisplay.DRAGGING, slider.getIndicatorDisplay());
-        assertEquals(RXSliderIndicatorPosition.ABOVE, slider.getIndicatorPosition());
+        assertEquals(RXSliderIndicatorPosition.START, slider.getIndicatorPosition());
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_ENABLED, slider.isRippleEnabled());
         assertEquals(RXRipplePane.DEFAULT_STATE_OVERLAY_ENABLED, slider.isStateOverlayEnabled());
         assertSame(RXRipplePane.DEFAULT_RIPPLE_FILL, slider.getRippleFill());
@@ -656,12 +656,12 @@ public class RXSliderTest {
             Region caret = (Region) indicator.lookup(".caret");
             Region thumb = (Region) slider.lookup(".thumb");
 
-            slider.setIndicatorPosition(RXSliderIndicatorPosition.ABOVE);
+            slider.setIndicatorPosition(RXSliderIndicatorPosition.START);
             slider.layout();
             assertTrue(indicator.getLayoutY() < thumb.getLayoutY());
             assertEquals(0.0, caret.getRotate(), EPSILON);
 
-            slider.setIndicatorPosition(RXSliderIndicatorPosition.BELOW);
+            slider.setIndicatorPosition(RXSliderIndicatorPosition.END);
             slider.layout();
             assertTrue(indicator.getLayoutY() > thumb.getLayoutY());
             assertEquals(180.0, caret.getRotate(), EPSILON);
@@ -792,7 +792,9 @@ public class RXSliderTest {
 
     /**
      * Verifies a vertical slider inverts the value axis (max at the top, min at
-     * the bottom) and that dragging the thumb down decreases the value.
+     * the bottom), that dragging the thumb down decreases the value, and that the
+     * indicator sits left for {@code START} and right for {@code END}, mirrored
+     * on screen in a right-to-left orientation.
      *
      * @throws Exception if the FX action fails
      */
@@ -832,13 +834,32 @@ public class RXSliderTest {
             pressTrack(track, track.getWidth() / 2.0, 0.25 * track.getHeight());
             assertEquals(75.0, slider.getValue(), EPSILON);
 
-            // The bubble drops its caret and sits to one side (ABOVE -> left) of the thumb.
+            // The bubble drops its caret and sits to one side (START -> left) of the thumb.
             slider.layout();
             Region caret = (Region) slider.lookup(".caret");
             assertFalse(caret.isVisible());
             Region indicator = (Region) slider.lookup(".value-indicator");
             assertTrue(indicator.getLayoutX() + indicator.getWidth() <= thumb.getLayoutX() + PIXEL_TOLERANCE);
+
+            // END puts it on the right; a right-to-left orientation mirrors both sides on screen.
+            slider.setIndicatorPosition(RXSliderIndicatorPosition.END);
+            slider.layout();
+            assertTrue(screenMinX(indicator) >= screenMaxX(thumb) - PIXEL_TOLERANCE);
+            slider.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
+            slider.layout();
+            assertTrue(screenMaxX(indicator) <= screenMinX(thumb) + PIXEL_TOLERANCE);
+            slider.setIndicatorPosition(RXSliderIndicatorPosition.START);
+            slider.layout();
+            assertTrue(screenMinX(indicator) >= screenMaxX(thumb) - PIXEL_TOLERANCE);
         });
+    }
+
+    private static double screenMinX(Node node) {
+        return node.localToScene(node.getBoundsInLocal()).getMinX();
+    }
+
+    private static double screenMaxX(Node node) {
+        return node.localToScene(node.getBoundsInLocal()).getMaxX();
     }
 
     /**
