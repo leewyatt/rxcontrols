@@ -62,6 +62,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     private static final double INDICATOR_GAP = SliderMetrics.INDICATOR_GAP;
     private static final double TICK_LABEL_GAP = SliderMetrics.TICK_LABEL_GAP;
     private static final double MERGE_GAP = 4.0;
+    private static final double GAP_TOLERANCE = 1e-9;
     private static final String EN_DASH = " – ";
 
     private static final PseudoClass LOWER_PSEUDO = PseudoClass.getPseudoClass("lower");
@@ -427,11 +428,12 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         writePair(lowRole ? value : otherToken, lowRole ? otherToken : value);
     }
 
-    // With a gap the thumbs never cross. When they are drawn over each other and the
-    // first move of the pressed thumb heads toward the other one, the press moves to
-    // the other thumb, which can travel that way; it continues from its own value.
+    // With a gap the thumbs never cross. When they are drawn over each other, already
+    // held at the gap, and the first move of the pressed thumb heads toward the other
+    // one, the press moves to the other thumb, which can travel that way; it continues
+    // from its own value. A thumb that still has room moves itself and stops at the gap.
     private void handOffIfBlocked(double delta) {
-        if (gap() <= 0.0 || !thumbsOverlap()) {
+        if (gap() <= 0.0 || !thumbsOverlap() || !heldAtGap()) {
             return;
         }
         boolean towardOther = activeThumbIsLow ? delta > 0.0 : delta < 0.0;
@@ -446,6 +448,12 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         moveInk(lowRole);
         setActiveRole(lowRole);
         updateBothFeedback();
+    }
+
+    private boolean heldAtGap() {
+        RXRangeSlider control = getSkinnable();
+        double room = control.getHighValue() - control.getLowValue() - gap();
+        return room <= (control.getMax() - control.getMin()) * GAP_TOLERANCE;
     }
 
     private boolean thumbsOverlap() {
@@ -629,7 +637,9 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         event.consume();
     }
 
-    // Ends a band drag: snaps both values first, then clears the flags.
+    // Ends a band drag: snaps both values first, then clears the flags. The low value
+    // snaps again once the high value has settled, since the gap may have held it back
+    // against the unsnapped high value. A snap that would break the gap is not taken.
     private void endBandDrag() {
         if (!bandDragging) {
             return;
@@ -639,6 +649,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         RXRangeSlider control = getSkinnable();
         control.adjustLowValue(control.getLowValue());
         control.adjustHighValue(control.getHighValue());
+        control.adjustLowValue(control.getLowValue());
         control.setLowValueChanging(false);
         control.setHighValueChanging(false);
         updateBothFeedback();
@@ -686,7 +697,9 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     }
 
     // A key commit: with no gap a value past the other one takes the other role and
-    // focus follows it; a value equal to the other keeps its role.
+    // focus follows it; a value equal to the other keeps its role. A crossing key
+    // changes both values, so both flags bracket the two writes and their falling edge
+    // sees only the final pair.
     private void commitKey(boolean isLow, double value) {
         RXRangeSlider control = getSkinnable();
         if (gap() > 0.0 || !(control.getMax() > control.getMin())) {
@@ -696,10 +709,16 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         double snapped = snap(value);
         double other = valueOf(!isLow);
         boolean lowRole = snapped < other || (snapped == other && isLow);
-        if (lowRole != isLow) {
-            setActiveRole(lowRole);
+        if (lowRole == isLow) {
+            writePair(lowRole ? snapped : other, lowRole ? other : snapped);
+            return;
         }
+        control.setLowValueChanging(true);
+        control.setHighValueChanging(true);
+        setActiveRole(lowRole);
         writePair(lowRole ? snapped : other, lowRole ? other : snapped);
+        control.setLowValueChanging(false);
+        control.setHighValueChanging(false);
     }
 
     private void adjustThumb(boolean isLow, double value) {

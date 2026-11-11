@@ -52,12 +52,15 @@ import java.util.List;
  * it instead.</p>
  *
  * <p>The {@code lowValueChanging} / {@code highValueChanging} flags are {@code true}
- * while their value takes part in a pointer drag: the dragged value's flag, plus
- * the other one once the drag crosses it, and both during a band drag. A drag ends
- * by snapping and writing the final values first and clearing the flags after.
- * Track clicks and the keyboard change the values without flipping them. To commit
- * every user change once, commit when neither flag is {@code true} any more and on
- * value changes while both are {@code false}.</p>
+ * while their value takes part in an ongoing change: the dragged value's flag, plus
+ * the other one once the other value joins the same drag (by crossing, or by taking
+ * over the press of overlapping thumbs held at the gap), and both during a band drag.
+ * A key press that crosses the other value raises both flags around its two writes.
+ * Every such change writes its final, snapped values before the flags fall. Other key
+ * presses and track presses change a single value without flipping a flag. A track
+ * press is committed immediately; if the press continues into a drag, the drag
+ * produces another commit when it ends. To commit, act when neither flag is
+ * {@code true} any more, and on value changes while both are {@code false}.</p>
  */
 public class RXRangeSlider extends Control {
 
@@ -295,7 +298,8 @@ public class RXRangeSlider extends Control {
             new SimpleBooleanProperty(this, "lowValueChanging", false);
 
     /**
-     * Whether the low value takes part in the current pointer drag. The skin
+     * Whether the low value takes part in an ongoing change (a drag, or a key
+     * press that crosses the other value). The skin
      * maintains it; external writes are advanced usage.
      *
      * @return the low-value-changing property
@@ -326,7 +330,8 @@ public class RXRangeSlider extends Control {
             new SimpleBooleanProperty(this, "highValueChanging", false);
 
     /**
-     * Whether the high value takes part in the current pointer drag. The skin
+     * Whether the high value takes part in an ongoing change (a drag, or a key
+     * press that crosses the other value). The skin
      * maintains it; external writes are advanced usage.
      *
      * @return the high-value-changing property

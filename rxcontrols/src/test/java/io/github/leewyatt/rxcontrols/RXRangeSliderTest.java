@@ -1055,6 +1055,120 @@ public class RXRangeSliderTest {
         });
     }
 
+    /**
+     * Verifies that with a gap, overlapping thumbs that still have room move the
+     * pressed thumb toward the other one and stop it at the gap, without a hand-off.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void overlapWithRoomMovesThePressedThumb() throws Exception {
+        runOnFx(() -> {
+            for (boolean pressLow : new boolean[] {true, false}) {
+                RXRangeSlider slider = scened(200.0, 30.0);
+                slider.setMinGap(1.0);
+                slider.setLowValue(49.0);
+                slider.setHighValue(54.0);
+                slider.layout();
+                Region track = (Region) slider.lookup(".track");
+                Region pressed = roleThumb(slider, pressLow);
+                pressRelease(pressed);
+                slider.layout();
+                assertSame(pressed, frontThumb(slider));
+                double cx = pressed.getWidth() / 2.0;
+                double cy = pressed.getHeight() / 2.0;
+                double toward = pressLow ? 1.0 : -1.0;
+                pressed.fireEvent(mouseAt(pressed, MouseEvent.MOUSE_PRESSED, cx, cy, MouseButton.PRIMARY, true));
+                pressed.fireEvent(mouseAt(pressed, MouseEvent.MOUSE_DRAGGED,
+                        cx + toward * 0.02 * track.getWidth(), cy, MouseButton.PRIMARY, true));
+                assertEquals(pressLow ? 51.0 : 49.0, slider.getLowValue(), PIXEL_TOLERANCE, "low pressed: " + pressLow);
+                assertEquals(pressLow ? 54.0 : 52.0, slider.getHighValue(), PIXEL_TOLERANCE, "low pressed: " + pressLow);
+                pressed.fireEvent(mouseAt(pressed, MouseEvent.MOUSE_DRAGGED,
+                        cx + toward * 0.2 * track.getWidth(), cy, MouseButton.PRIMARY, true));
+                assertEquals(pressLow ? 53.0 : 49.0, slider.getLowValue(), EPSILON, "low pressed: " + pressLow);
+                assertEquals(pressLow ? 54.0 : 50.0, slider.getHighValue(), EPSILON, "low pressed: " + pressLow);
+                assertEquals(pressLow, slider.isLowValueChanging());
+                assertEquals(!pressLow, slider.isHighValueChanging());
+                pressed.fireEvent(mouseAt(pressed, MouseEvent.MOUSE_RELEASED,
+                        cx + toward * 0.2 * track.getWidth(), cy, MouseButton.PRIMARY, false));
+            }
+        });
+    }
+
+    /**
+     * Verifies a band drag release with a gap snaps both values even when the gap held
+     * one back against the other's unsnapped value, in both directions, and keeps the
+     * gap when no snapped pair fits it.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void bandDragReleaseSnapsBothValuesWithinTheGap() throws Exception {
+        runOnFx(() -> {
+            // {start low, start high, drag in value units, committed pair}
+            Object[][] cases = {
+                {30.0, 50.0, -6.0, "25.0/50.0"},
+                {30.0, 60.0, 8.0, "50.0/75.0"},
+                {40.0, 60.0, 0.0, "40.0/60.0"},
+            };
+            for (Object[] c : cases) {
+                RXRangeSlider slider = scened(200.0, 30.0);
+                slider.setMinGap(20.0);
+                slider.setLowValue((Double) c[0]);
+                slider.setHighValue((Double) c[1]);
+                slider.setMinorTickCount(0);
+                slider.setSnapToTicks(true);
+                slider.layout();
+                List<String> committed = new ArrayList<>();
+                slider.lowValueChangingProperty().addListener((obs, was, now) -> {
+                    if (!now) {
+                        committed.add(slider.getLowValue() + "/" + slider.getHighValue());
+                    }
+                });
+                Region track = (Region) slider.lookup(".track");
+                Region fill = (Region) slider.lookup(".fill");
+                double fx = fill.getWidth() / 2.0;
+                double fy = fill.getHeight() / 2.0;
+                double dx = (Double) c[2] / 100.0 * track.getWidth();
+                fill.fireEvent(mouseAt(fill, MouseEvent.MOUSE_PRESSED, fx, fy, MouseButton.PRIMARY, true));
+                fill.fireEvent(mouseAt(fill, MouseEvent.MOUSE_DRAGGED, fx + dx, fy, MouseButton.PRIMARY, true));
+                fill.fireEvent(mouseAt(fill, MouseEvent.MOUSE_RELEASED, fx + dx, fy, MouseButton.PRIMARY, false));
+                assertEquals(List.of(c[3]), committed, c[0] + "/" + c[1] + " by " + c[2]);
+            }
+        });
+    }
+
+    /**
+     * Verifies a key press that crosses the other value commits once, with the final
+     * pair, under the documented commit rule.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void crossingKeyCommitsTheFinalPairOnce() throws Exception {
+        runOnFx(() -> {
+            RXRangeSlider slider = scened(200.0, 30.0);
+            slider.setLowValue(50.0);
+            slider.setHighValue(55.0);
+            pressRelease(roleThumb(slider, true));
+            List<String> commits = new ArrayList<>();
+            Runnable commitIfIdle = () -> {
+                if (!slider.isLowValueChanging() && !slider.isHighValueChanging()) {
+                    commits.add(slider.getLowValue() + "/" + slider.getHighValue());
+                }
+            };
+            slider.lowValueChangingProperty().addListener((obs, was, now) -> commitIfIdle.run());
+            slider.highValueChangingProperty().addListener((obs, was, now) -> commitIfIdle.run());
+            slider.lowValueProperty().addListener((obs, was, now) -> commitIfIdle.run());
+            slider.highValueProperty().addListener((obs, was, now) -> commitIfIdle.run());
+
+            slider.fireEvent(key(KeyCode.RIGHT));
+            assertEquals(List.of("55.0/60.0"), commits);
+            assertFalse(slider.isLowValueChanging());
+            assertFalse(slider.isHighValueChanging());
+        });
+    }
+
     // ==================== Helpers ====================
 
     /** Returns the thumb node that holds the low or the high value. */
