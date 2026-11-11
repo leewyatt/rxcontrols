@@ -739,9 +739,13 @@
     -rx-slider-tick: -rx-slider-fill;
     -rx-slider-tick-filled: -rx-on-primary;
     -rx-slider-tick-label: -rx-on-surface-secondary;
-    /* Inverse surface, like the snackbar: dark on a light host, light on a dark one. */
-    -rx-slider-indicator-bg: ladder(-rx-surface, #e0e0e0 45%, #424242 46%);
     -rx-ripple-fill: -rx-slider-thumb;
+}
+
+/* Inverse surface, like the snackbar: dark on a light host, light on a dark one. The
+   seek bar's preview bubble shares it. */
+.rx-slider, .rx-range-slider, .rx-seek-bar {
+    -rx-slider-indicator-bg: ladder(-rx-surface, #e0e0e0 45%, #424242 46%);
 }
 
 .rx-theme-atlantafx .rx-slider,
@@ -804,19 +808,22 @@
 }
 
 .rx-slider > .value-indicator,
-.rx-range-slider > .value-indicator {
+.rx-range-slider > .value-indicator,
+.rx-seek-bar > .value-indicator {
     -fx-background-color: -rx-slider-indicator-bg;
     -fx-background-radius: 6px;
     -fx-padding: 2 8 2 8;
 }
 
 .rx-slider > .value-indicator > .label,
-.rx-range-slider > .value-indicator > .label {
+.rx-range-slider > .value-indicator > .label,
+.rx-seek-bar > .value-indicator > .label {
     -fx-text-fill: ladder(-rx-slider-indicator-bg, white 45%, rgba(0, 0, 0, 0.87) 46%);
 }
 
 .rx-slider > .value-indicator > .caret,
-.rx-range-slider > .value-indicator > .caret {
+.rx-range-slider > .value-indicator > .caret,
+.rx-seek-bar > .value-indicator > .caret {
     -fx-background-color: -rx-slider-indicator-bg;
     -fx-shape: "M0 0 L8 0 L4 5 Z";
     -fx-pref-width: 8px;

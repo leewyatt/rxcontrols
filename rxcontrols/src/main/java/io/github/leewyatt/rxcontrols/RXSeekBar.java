@@ -6,12 +6,16 @@ import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.DoublePropertyBase;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
+
+import java.util.function.Function;
 
 /**
  * Normalized interactive seek bar with a primary progress layer, a secondary
@@ -29,6 +33,9 @@ import javafx.scene.control.Skin;
  * Do not bind this property in interactive scenarios. Instead, mirror external
  * state into it while {@link #isSeeking()} is {@code false}, and commit back to
  * the external source on the {@code seeking true -> false} transition.</p>
+ *
+ * <p>Setting an {@link #indicatorTextFactoryProperty() indicatorTextFactory} shows a
+ * preview bubble above the thumb while the user seeks.</p>
  */
 public class RXSeekBar extends Control {
 
@@ -177,5 +184,42 @@ public class RXSeekBar extends Control {
      */
     public final void setSeeking(boolean value) {
         seeking.set(value);
+    }
+
+    // ==================== Indicator Text Factory ====================
+
+    private final ObjectProperty<Function<Double, String>> indicatorTextFactory =
+            new SimpleObjectProperty<>(this, "indicatorTextFactory");
+
+    /**
+     * Formats the preview bubble shown above the thumb, for example a seek time:
+     * {@code p -> format(p * duration)}. It receives the progress clamped to
+     * {@code [0, 1]}; a {@code null} result shows an empty bubble. The bubble shows
+     * while the pointer drags and while the keyboard is in use on the focused bar.
+     * It is drawn outside the seek bar, so a clipping ancestor may cut it off. The
+     * default {@code null} shows no bubble.
+     *
+     * @return the indicator text factory property
+     */
+    public final ObjectProperty<Function<Double, String>> indicatorTextFactoryProperty() {
+        return indicatorTextFactory;
+    }
+
+    /**
+     * Returns the preview bubble text factory.
+     *
+     * @return the factory, or {@code null} when no bubble is shown
+     */
+    public final Function<Double, String> getIndicatorTextFactory() {
+        return indicatorTextFactory.get();
+    }
+
+    /**
+     * Sets the preview bubble text factory.
+     *
+     * @param value the factory, or {@code null} to show no bubble
+     */
+    public final void setIndicatorTextFactory(Function<Double, String> value) {
+        indicatorTextFactory.set(value);
     }
 }

@@ -9,6 +9,7 @@ import javafx.scene.AccessibleAction;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -28,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -179,7 +181,91 @@ public class RXSeekBarTest {
         });
     }
 
+    /** Verifies the bubble shows only with a factory, tracks the drag and hides when the factory goes. */
+    @Test
+    public void bubbleShowsWhileSeekingOnlyWithAFactory() throws Exception {
+        AtomicReference<RXSeekBar> ref = new AtomicReference<>();
+        runOnFx(() -> {
+            RXSeekBar bar = laidOut(new RXSeekBar(), 1.0);
+            ref.set(bar);
+            Node hitArea = hitArea(bar);
+            Node indicator = bar.lookup(".value-indicator");
+            fire(hitArea, MouseEvent.MOUSE_PRESSED, 6.0 + 50.0, MouseButton.PRIMARY);
+            assertFalse(indicator.isVisible());
+            fire(hitArea, MouseEvent.MOUSE_RELEASED, 6.0 + 50.0, MouseButton.PRIMARY);
+
+            bar.setIndicatorTextFactory(p -> "at " + p);
+            fire(hitArea, MouseEvent.MOUSE_PRESSED, 6.0 + 50.0, MouseButton.PRIMARY);
+            assertTrue(indicator.isVisible());
+            assertEquals("at 0.25", bubbleText(bar));
+            fire(hitArea, MouseEvent.MOUSE_DRAGGED, 6.0 + 150.0, MouseButton.PRIMARY);
+            assertEquals("at 0.75", bubbleText(bar));
+            bar.setIndicatorTextFactory(p -> null);
+            assertNull(bubbleText(bar));
+            bar.setIndicatorTextFactory(null);
+        });
+        // The hide fades out on the animation timer.
+        Thread.sleep(600);
+        runOnFx(() -> assertFalse(ref.get().lookup(".value-indicator").isVisible()));
+    }
+
+    /** Verifies the bubble sits above the thumb and its caret points at the thumb, even at the ends. */
+    @Test
+    public void caretPointsAtTheThumbNearTheEnds() throws Exception {
+        runOnFx(() -> {
+            RXSeekBar bar = laidOut(new RXSeekBar(), 1.0);
+            bar.setIndicatorTextFactory(p -> "00:00 / 03:45");
+            Region indicator = (Region) bar.lookup(".value-indicator");
+            Region caret = (Region) indicator.lookup(".caret");
+            Region thumb = (Region) bar.lookup(".thumb");
+            for (double progress : new double[] {0.0, 0.5, 1.0}) {
+                bar.setProgress(progress);
+                bar.layout();
+                indicator.layout();
+                // Layout positions only: the show transition scales the bubble.
+                double caretX = indicator.getLayoutX() + caret.getLayoutX() + caret.getWidth() / 2.0;
+                double thumbX = thumb.getLayoutX() + thumb.getWidth() / 2.0;
+                assertEquals(thumbX, caretX, 1.0, "progress " + progress);
+                assertTrue(indicator.getLayoutY() + indicator.getHeight() <= thumb.getLayoutY(),
+                        "above the thumb at progress " + progress);
+            }
+        });
+    }
+
+    /** Verifies the bubble shows for keyboard focus but not for focus alone. */
+    @Test
+    public void bubbleShowsForTheKeyboard() throws Exception {
+        runOnFx(() -> {
+            FocusableSeekBar bar = new FocusableSeekBar();
+            laidOut(bar, 1.0);
+            bar.setIndicatorTextFactory(p -> "at " + p);
+            Node indicator = bar.lookup(".value-indicator");
+            bar.requestFocus();
+            assertTrue(bar.isFocused());
+            assertFalse(indicator.isVisible());
+            Event.fireEvent(bar, key(KeyCode.RIGHT));
+            assertTrue(indicator.isVisible());
+            assertEquals("at 0.05", bubbleText(bar));
+        });
+    }
+
+    /** A seek bar whose focus request takes effect in a headless scene. */
+    private static final class FocusableSeekBar extends RXSeekBar {
+
+        @Override
+        public void requestFocus() {
+            super.requestFocus();
+            if (getScene() != null && getScene().getFocusOwner() == this) {
+                setFocused(true);
+            }
+        }
+    }
+
     // ==================== Helpers ====================
+
+    private static String bubbleText(RXSeekBar bar) {
+        return ((Label) bar.lookup(".value-indicator > .label")).getText();
+    }
 
     private static RXSeekBar laidOut(RXSeekBar bar, double scale) {
         Pane root = new Pane(bar);

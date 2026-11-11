@@ -1,6 +1,10 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXSeekBar;
+import io.github.leewyatt.rxcontrols.RXSliderIndicatorDisplay;
+import io.github.leewyatt.rxcontrols.internal.slider.IndicatorAnimator;
+import io.github.leewyatt.rxcontrols.internal.slider.SliderAxis;
+import io.github.leewyatt.rxcontrols.internal.slider.SliderValueIndicator;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
@@ -16,8 +20,14 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 
+import java.util.function.Function;
+
 /**
  * Default skin for {@link RXSeekBar}.
+ *
+ * <p>With an indicator text factory set, a preview bubble above the thumb shows
+ * while the pointer seeks and while the bar has keyboard focus that came from the
+ * keyboard (a key pressed since the last mouse press), not after a click.</p>
  */
 public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
 
@@ -34,12 +44,18 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
     private final Region secondaryBar = new Region();
     private final Region bar = new Region();
     private final StackPane thumb = new StackPane();
+    private final SliderValueIndicator indicator = new SliderValueIndicator();
 
     // ==================== Pointer state ====================
 
     private Point2D dragStart;
     private double preDragProgress;
     private boolean pointerSeeking;
+
+    // ==================== Indicator state ====================
+
+    private final IndicatorAnimator indicatorAnimator;
+    private boolean keyboardFocus;
 
     // ==================== Constructor ====================
 
@@ -50,10 +66,18 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
      */
     public RXSeekBarSkin(RXSeekBar control) {
         super(control);
+        // No factory means no bubble; animator transitions always run.
+        indicatorAnimator = new IndicatorAnimator(indicator,
+                () -> control.getIndicatorTextFactory() == null
+                        ? RXSliderIndicatorDisplay.NEVER
+                        : RXSliderIndicatorDisplay.DRAGGING,
+                () -> true);
         initializeNodes();
         registerListeners(control);
         registerPointerHandlers();
         registerKeyboardHandler(control);
+        registerIndicatorListeners(control);
+        updateIndicatorText();
     }
 
     private void initializeNodes() {
@@ -71,7 +95,7 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
         secondaryBar.setMouseTransparent(true);
         bar.setMouseTransparent(true);
 
-        getChildren().setAll(hitArea, track, secondaryBar, bar, thumb);
+        getChildren().setAll(hitArea, track, secondaryBar, bar, thumb, indicator);
     }
 
     private void registerListeners(RXSeekBar control) {
@@ -91,6 +115,26 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
 
     private void registerKeyboardHandler(RXSeekBar control) {
         disposer.registerEventHandler(control, KeyEvent.KEY_PRESSED, this::onKeyPressed);
+    }
+
+    private void registerIndicatorListeners(RXSeekBar control) {
+        disposer.registerListener(control.progressProperty(), this::updateIndicatorText);
+        disposer.registerListener(control.indicatorTextFactoryProperty(), () -> {
+            updateIndicatorText();
+            updateIndicator();
+            control.requestLayout();
+        });
+        disposer.registerEventFilter(control, KeyEvent.KEY_PRESSED, event -> setKeyboardFocus(true));
+        disposer.registerEventFilter(control, KeyEvent.KEY_RELEASED, event -> setKeyboardFocus(true));
+        disposer.registerEventFilter(control, MouseEvent.MOUSE_PRESSED, event -> setKeyboardFocus(false));
+        disposer.registerListener(control.focusedProperty(), () -> {
+            // A focus leaving the window keeps the owner, so its bubble returns with it.
+            if (!control.isFocused() && control.getScene() != null
+                    && control.getScene().getFocusOwner() != control) {
+                keyboardFocus = false;
+            }
+            updateIndicator();
+        });
     }
 
     // ==================== Pointer interaction ====================
@@ -140,6 +184,7 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
             pointerSeeking = false;
             dragStart = null;
             getSkinnable().setSeeking(false);
+            updateIndicator();
             event.consume();
         }
     }
@@ -149,6 +194,7 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
         control.requestFocus();
         pointerSeeking = true;
         control.setSeeking(true);
+        updateIndicator();
     }
 
     private void setProgressFromNode(Node source, MouseEvent event) {
@@ -200,6 +246,26 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
         control.setSeeking(false);
     }
 
+    // ==================== Indicator ====================
+
+    private void setKeyboardFocus(boolean value) {
+        if (keyboardFocus != value) {
+            keyboardFocus = value;
+            updateIndicator();
+        }
+    }
+
+    private void updateIndicator() {
+        indicatorAnimator.update(pointerSeeking || (keyboardFocus && getSkinnable().isFocused()));
+    }
+
+    private void updateIndicatorText() {
+        Function<Double, String> factory = getSkinnable().getIndicatorTextFactory();
+        if (factory != null) {
+            indicator.setText(factory.apply(RXMath.clamp0To1(getSkinnable().getProgress())));
+        }
+    }
+
     // ==================== Layout ====================
 
     @Override
@@ -216,8 +282,11 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
         double trackStart = snapPositionX(x + thumbW * HALF);
         double trackLength = snapSizeX(w - thumbW);
 
+        SliderAxis axis = new SliderAxis(false, x, y, Math.max(0.0, w), Math.max(0.0, h));
+        double barCrossCenter = centerY - y + barAreaH * HALF;
         if (w <= 0.0 || trackLength <= 0.0) {
             resetLayout(trackStart, trackTop, thumbW, thumbH, thumbTop);
+            indicator.layoutBeside(axis, trackStart - x, barCrossCenter, thumbH, true);
             return;
         }
 
@@ -232,6 +301,7 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
 
         thumb.resize(thumbW, thumbH);
         thumb.relocate(snapPositionX(trackStart + progressW - thumbW * HALF), thumbTop);
+        indicator.layoutBeside(axis, trackStart + progressW - x, barCrossCenter, thumbH, true);
     }
 
     private void resetLayout(double trackStart, double trackTop,
@@ -292,6 +362,7 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
 
     @Override
     protected void disposeSkin() {
+        indicatorAnimator.dispose();
         if (pointerSeeking) {
             pointerSeeking = false;
             dragStart = null;

@@ -26,12 +26,16 @@ import java.util.Locale;
 /**
  * Showcase application for {@link RXSeekBar}.
  *
- * <p>Exposes the normalized primary and secondary progress values and the
- * looked-up colors used by the default stylesheet. The colors follow the active
+ * <p>Exposes the normalized primary and secondary progress values, a time preview
+ * bubble for a sample track length, and the looked-up colors used by the default
+ * stylesheet. The colors follow the active
  * theme until "Custom colors" is checked. For a minimal example see
  * {@link RXSeekBarDemo}.</p>
  */
 public class RXSeekBarShowcase extends RXShowcaseApplication {
+
+    /** Sample track length for the time preview: 3:45. */
+    private static final int SAMPLE_SECONDS = 225;
 
     private RXSeekBar seekBar;
     private Slider progressSlider;
@@ -114,9 +118,15 @@ public class RXSeekBarShowcase extends RXShowcaseApplication {
         seekBar.secondaryProgressProperty().bind(secondarySlider.valueProperty());
         Label secondaryValue = createValueLabel(secondarySlider, "%.2f");
 
+        CheckBox timePreview = new CheckBox("Time preview (3:45 track)");
+        timePreview.selectedProperty().addListener((obs, was, show) ->
+                seekBar.setIndicatorTextFactory(show ? RXSeekBarShowcase::formatTime : null));
+        timePreview.setSelected(true);
+
         return createGrid(
                 row("Progress", progressSlider, progressValue),
-                row("Secondary", secondarySlider, secondaryValue));
+                row("Secondary", secondarySlider, secondaryValue),
+                row(timePreview));
     }
 
     private Node buildColorGrid() {
@@ -162,6 +172,11 @@ public class RXSeekBarShowcase extends RXShowcaseApplication {
                 row("Secondary", secondaryPicker),
                 row("Bar", barPicker),
                 row("Thumb", thumbPicker));
+    }
+
+    private static String formatTime(double progress) {
+        int seconds = (int) Math.round(progress * SAMPLE_SECONDS);
+        return String.format(Locale.ROOT, "%d:%02d", seconds / 60, seconds % 60);
     }
 
     private ColorPicker createColorPicker(BooleanBinding disabled) {
