@@ -174,8 +174,14 @@
     <tr><td>-rx-highlight</td><td>Paint</td><td>ladder(#ffff00 | rgba(230, 162, 60, 0.4))</td><td>Keyword highlight background</td></tr>
     <tr><td>-rx-state-overlay-color</td><td>Paint</td><td>ladder(black | white)</td><td>Ripple / hover-overlay tint</td></tr>
     <tr><td>-rx-elevation-umbra-color</td><td>Paint</td><td>rgba(0, 0, 0, 0.2)</td><td>Shadow color (any background)</td></tr>
+    <tr><td>-rx-scrim</td><td>Paint</td><td>rgba(0, 0, 0, 0.32)</td><td>Modal scrim of RXBackdrop and of the RXDialog, RXDrawerPane and RXStatePane overlays (black on any host). Under the AtlantaFX bridge: white at 20% on a dark theme, black at 32% on a light one</td></tr>
     </tbody>
 </table>
+<p>Each scrim is an <code>RXBackdrop</code> that reads <code>-rx-scrim</code> itself, so set it on the
+   backdrop rather than on the control around it: <code>.rx-backdrop { -rx-scrim: ...; }</code> for every
+   scrim, or <code>.rx-dialog &gt; .scrim</code>, <code>.rx-drawer-pane &gt; .backdrop</code> or
+   <code>.rx-state-pane &gt; .backdrop</code> for one control. A value set on the dialog, drawer pane or
+   state pane itself does not reach its scrim.</p>
 <p>A few per-control colors that are literals on a light surface (seek bar and slider tracks, the
    wave indicator disc, the segmented control labels, the cascader prompt and separators) switch to
    the matching role token on a dark one in the same way. The snackbar is an inverse surface: a dark

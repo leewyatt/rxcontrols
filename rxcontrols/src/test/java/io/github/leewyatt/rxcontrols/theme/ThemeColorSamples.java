@@ -2,6 +2,9 @@ package io.github.leewyatt.rxcontrols.theme;
 
 import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXBackdrop;
+import io.github.leewyatt.rxcontrols.RXStatePane;
+import io.github.leewyatt.rxcontrols.RXDrawerPane;
+import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
@@ -83,6 +86,9 @@ final class ThemeColorSamples {
 
         RXSeekBar seekBar = new RXSeekBar();
         RXBackdrop backdrop = new RXBackdrop();
+        RXDialog<Object> dialog = new RXDialog<>();
+        RXDrawerPane drawerPane = new RXDrawerPane();
+        RXStatePane statePane = new RXStatePane();
         RXSlider slider = new RXSlider();
         RXRangeSlider rangeSlider = new RXRangeSlider();
         slider.setShowTickLabels(true);
@@ -123,7 +129,7 @@ final class ThemeColorSamples {
         RXListView<String> listView = new RXListView<>();
         RXMasonryView<String> masonryView = new RXMasonryView<>();
 
-        VBox root = new VBox(cascader, cascaderView, segmented, seekBar, backdrop, slider, rangeSlider, wave, circular, completedCircular,
+        VBox root = new VBox(cascader, cascaderView, segmented, seekBar, backdrop, dialog, drawerPane, statePane, slider, rangeSlider, wave, circular, completedCircular,
                 avatar, plainHost, severityHost, progressBar, completedProgressBar, steps, navigator, digit,
                 fillButton, sidebar, plainTimeline, primaryTimeline, hollowTimeline, tileView, listView, masonryView);
         Scene scene = new Scene(root, 800, 1600);
@@ -160,6 +166,9 @@ final class ThemeColorSamples {
         samples.put("segmented.indicator", background(segmented.lookup(".indicator")));
 
         samples.put("backdrop", background(backdrop));
+        samples.put("dialog.scrim", background(dialog.lookup(".scrim")));
+        samples.put("drawer.scrim", background(drawerPane.lookup(".backdrop")));
+        samples.put("state-pane.scrim", background(statePane.lookup(".backdrop")));
         samples.put("seek.track", background(seekBar.lookup(".track")));
         samples.put("seek.secondary", background(seekBar.lookup(".secondary-bar")));
         samples.put("seek.hover", background(seekBar.lookup(".hover-bar")));

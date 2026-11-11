@@ -2064,7 +2064,8 @@
 /* A raised surface: on a light host the content surface (white on a gray Modena
    window), on a dark one a step lighter than the window so the drawer reads as a
    layer above the content. A hairline on the edge that faces the content keeps
-   that edge visible where the shadow is not (dark hosts, a pushing drawer); it is
+   that edge visible where the shadow may not show (a black scrim on a dark host, a
+   pushing drawer with no scrim); it is
    a background layer rather than a border, because border widths count toward the
    insets and would make the drawer thicker than its content. */
 .rx-drawer-pane > .drawer-wrapper {
@@ -2103,8 +2104,9 @@
 
 /* A raised surface, as for the drawer: the content surface on a light host, a step
    lighter than the window on a dark one. On a dark host a 1px outline edge (the
-   lower background layer, so the card keeps its size) separates the card from the
-   near-black scrim, where no shadow shows. The shadow is translucent black rather
+   lower background layer, so the card keeps its size) keeps the card's outline clear
+   on any scrim, including a black one where the shadow does not show. The shadow is
+   translucent black rather
    than the elevation token: a theme's opaque light-gray shadow is lighter than the
    scrim around the card and reads as a glow. */
 .rx-dialog > .dialog-card {
