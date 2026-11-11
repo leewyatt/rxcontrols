@@ -137,7 +137,7 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("segmented.selected", "#ffffffff");
         PRIMER_LIGHT.put("segmented.unselected", "#57606aff");
         PRIMER_LIGHT.put("segmented.indicator", "#0969daff");
-        PRIMER_LIGHT.put("seek.track", "#d0d7deff");
+        PRIMER_LIGHT.put("seek.track", "#b5bbc3ff");
         PRIMER_LIGHT.put("seek.secondary", "#6e7781ff");
         PRIMER_LIGHT.put("seek.bar", "#0969daff");
         PRIMER_LIGHT.put("seek.thumb", "#0969daff");
@@ -188,7 +188,7 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("segmented.selected", "#ffffffff");
         PRIMER_DARK.put("segmented.unselected", "#8b949eff");
         PRIMER_DARK.put("segmented.indicator", "#1f6febff");
-        PRIMER_DARK.put("seek.track", "#30363dff");
+        PRIMER_DARK.put("seek.track", "#535961ff");
         PRIMER_DARK.put("seek.secondary", "#6e7681ff");
         PRIMER_DARK.put("seek.bar", "#1f6febff");
         PRIMER_DARK.put("seek.thumb", "#1f6febff");

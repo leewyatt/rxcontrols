@@ -688,7 +688,7 @@
 
 .rx-theme-atlantafx .rx-seek-bar,
 .rx-theme-atlantafx.rx-seek-bar {
-    -rx-track-fill: -rx-outline;
+    -rx-track-fill: ladder(-color-bg-default, derive(-color-fg-subtle, -25%) 49%, derive(-color-fg-subtle, 65%) 50%);
 }
 
 .rx-seek-bar > .track {
