@@ -183,6 +183,10 @@ final class ThemeColorSamples {
         samples.put("slider.tick-label", text(slider.lookup(".tick-label")));
         samples.put("range-slider.tick-label", text(rangeSlider.lookup(".tick-label")));
         samples.put("wave.container", background(wave.lookup(".wave-container")));
+        samples.put("wave.front", hex(((Shape) wave.lookup(".front-wave")).getFill()));
+        samples.put("wave.ring", hollowBorder(wave.lookup(".wave-container")));
+        samples.put("wave.label", text(wave.lookup(".progress-label")));
+        samples.put("wave.label-below", text(wave.lookup(".progress-label.below-water")));
         samples.put("circular.track", hex(circular.getTrackStroke()));
         samples.put("circular.progress", hex(circular.getProgressStroke()));
         samples.put("circular.completed", hex(completedCircular.getProgressStroke()));

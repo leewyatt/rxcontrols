@@ -105,6 +105,10 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("slider.tick-label", "#333333ff");
         DEFAULT_MODENA.put("range-slider.tick-label", "#333333ff");
         DEFAULT_MODENA.put("wave.container", "#e8f4ffff");
+        DEFAULT_MODENA.put("wave.front", "#0096c9ff");
+        DEFAULT_MODENA.put("wave.ring", "#0096c9ff");
+        DEFAULT_MODENA.put("wave.label", "#0096c9ff");
+        DEFAULT_MODENA.put("wave.label-below", "#ffffffff");
         DEFAULT_MODENA.put("circular.track", "#81cee7ff");
         DEFAULT_MODENA.put("circular.progress", "#0096c9ff");
         DEFAULT_MODENA.put("circular.completed", "#67c23aff");
@@ -160,6 +164,10 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("slider.tick-label", "#57606aff");
         PRIMER_LIGHT.put("range-slider.tick-label", "#57606aff");
         PRIMER_LIGHT.put("wave.container", "#f6f8faff");
+        PRIMER_LIGHT.put("wave.front", "#0969daff");
+        PRIMER_LIGHT.put("wave.ring", "#0969daff");
+        PRIMER_LIGHT.put("wave.label", "#0969daff");
+        PRIMER_LIGHT.put("wave.label-below", "#ffffffff");
         PRIMER_LIGHT.put("circular.track", "#54aeff66");
         PRIMER_LIGHT.put("circular.progress", "#0969daff");
         PRIMER_LIGHT.put("circular.completed", "#2da44eff");
@@ -216,6 +224,10 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("slider.tick-label", "#8b949eff");
         PRIMER_DARK.put("range-slider.tick-label", "#8b949eff");
         PRIMER_DARK.put("wave.container", "#161b22ff");
+        PRIMER_DARK.put("wave.front", "#1f6febff");
+        PRIMER_DARK.put("wave.ring", "#1f6febff");
+        PRIMER_DARK.put("wave.label", "#1f6febff");
+        PRIMER_DARK.put("wave.label-below", "#ffffffff");
         PRIMER_DARK.put("circular.track", "#388bfd66");
         PRIMER_DARK.put("circular.progress", "#1f6febff");
         PRIMER_DARK.put("circular.completed", "#238636ff");

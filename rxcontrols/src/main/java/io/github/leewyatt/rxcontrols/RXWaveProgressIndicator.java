@@ -402,9 +402,11 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
     };
 
     /**
-     * Paint used to fill the front wave. Initial value is
-     * {@link #DEFAULT_FRONT_WAVE_FILL}; setting {@code null} renders no fill
-     * (transparent), per the JavaFX {@code Shape.setFill} convention.
+     * Paint used to fill the front wave. The library stylesheet sets it to the
+     * theme primary color ({@code -rx-primary}); without that stylesheet, its
+     * initial value is opaque blue ({@code #1E90FF}). Setting {@code null}
+     * renders no fill (transparent), per the JavaFX {@code Shape.setFill}
+     * convention.
      *
      * @return the front-wave-fill property
      */

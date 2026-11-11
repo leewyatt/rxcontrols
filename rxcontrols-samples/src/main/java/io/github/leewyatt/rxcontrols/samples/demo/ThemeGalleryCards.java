@@ -1160,8 +1160,6 @@ final class ThemeGalleryCards {
         RXWaveProgressIndicator indicator = new RXWaveProgressIndicator(0.65);
         indicator.setPrefSize(150.0, 150.0);
         indicator.setMaxSize(150.0, 150.0);
-        indicator.setFrontWaveFill(Color.web("#1E90FF"));
-        indicator.setBackWaveFill(Color.web("#1E90FF", 0.4));
         indicator.setWaveAmplitude(7.0);
         return indicator;
     }

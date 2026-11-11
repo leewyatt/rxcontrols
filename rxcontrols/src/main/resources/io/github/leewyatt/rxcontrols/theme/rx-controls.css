@@ -1747,12 +1747,16 @@
  * RXWaveProgressIndicator                                                     *
  *                                                                             *
  ******************************************************************************/
+.rx-wave-progress-indicator {
+    -rx-front-wave-fill: -rx-primary;
+}
+
 .rx-wave-progress-indicator > .wave-container {
     -fx-padding: 8px;
     -fx-background-color: ladder(-rx-surface, -rx-surface-variant 45%, #e8f4ff 46%);
     -fx-background-radius: 50%;
     -fx-background-insets: 8px;
-    -fx-border-color: #1e90ff;
+    -fx-border-color: -rx-primary;
     -fx-border-width: 4px;
     -fx-border-radius: 50%;
 }
@@ -1770,11 +1774,11 @@
     -fx-font-weight: bold;
     -fx-content-display: top;
     -fx-font-size: 1.5em;
-    -fx-text-fill: #1e90ff;
+    -fx-text-fill: -rx-primary;
 }
 
 .rx-wave-progress-indicator > .wave-container .progress-label.below-water {
-    -fx-text-fill: white;
+    -fx-text-fill: -rx-on-primary;
 }
 
 /*******************************************************************************
