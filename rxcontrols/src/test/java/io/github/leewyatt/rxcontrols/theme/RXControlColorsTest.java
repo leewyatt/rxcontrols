@@ -114,6 +114,8 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("circular.completed", "#67c23aff");
         DEFAULT_MODENA.put("avatar.icon-disc", "#bdbdbdff");
         DEFAULT_MODENA.put("avatar.icon", "#ffffffff");
+        DEFAULT_MODENA.put("avatar.text-disc", "#bdbdbdff");
+        DEFAULT_MODENA.put("avatar.text", "#000000ff");
         DEFAULT_MODENA.put("snackbar.bar", "#323232ff");
         DEFAULT_MODENA.put("snackbar.message", "#ffffffde");
         DEFAULT_MODENA.put("snackbar.action", "#83d0e7ff");
@@ -173,6 +175,8 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("circular.completed", "#2da44eff");
         PRIMER_LIGHT.put("avatar.icon-disc", "#6e7781ff");
         PRIMER_LIGHT.put("avatar.icon", "#ffffffff");
+        PRIMER_LIGHT.put("avatar.text-disc", "#6e7781ff");
+        PRIMER_LIGHT.put("avatar.text", "#ffffffff");
         PRIMER_LIGHT.put("snackbar.bar", "#323232ff");
         PRIMER_LIGHT.put("snackbar.message", "#ffffffde");
         PRIMER_LIGHT.put("snackbar.action", "#85b8eeff");
@@ -233,6 +237,8 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("circular.completed", "#238636ff");
         PRIMER_DARK.put("avatar.icon-disc", "#6e7681ff");
         PRIMER_DARK.put("avatar.icon", "#ffffffff");
+        PRIMER_DARK.put("avatar.text-disc", "#6e7681ff");
+        PRIMER_DARK.put("avatar.text", "#ffffffff");
         // The snackbar is an inverse surface, so it turns light on a dark AtlantaFX theme.
         PRIMER_DARK.put("snackbar.bar", "#e0e0e0ff");
         PRIMER_DARK.put("snackbar.message", "#000000de");
@@ -913,6 +919,35 @@ public class RXControlColorsTest {
                 new CupertinoLight(), new CupertinoDark(), new Dracula())) {
             assertAvatarDiscDiffers(theme.getName(), theme.getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install);
         }
+    }
+
+    /**
+     * The text avatar shares the placeholder disc, and its initials keep normal-text
+     * contrast (4.5:1) on it, on default Modena, a dark application palette and every
+     * AtlantaFX theme.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void textAvatarIsLegibleOnEveryHost() throws Exception {
+        assertTextAvatarLegible("default Modena", Application.STYLESHEET_MODENA, scene -> { });
+        assertTextAvatarLegible("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette);
+        for (Theme theme : List.of(new PrimerLight(), new PrimerDark(), new NordLight(), new NordDark(),
+                new CupertinoLight(), new CupertinoDark(), new Dracula())) {
+            assertTextAvatarLegible(theme.getName(), theme.getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install);
+        }
+    }
+
+    private static void assertTextAvatarLegible(String host, String userAgentStylesheet, Consumer<Scene> themer)
+            throws Exception {
+        Map<String, String> samples = sampleUnder(userAgentStylesheet, themer);
+        String disc = samples.get("avatar.text-disc");
+        assertEquals(samples.get("avatar.icon-disc"), disc, "text avatar disc under " + host);
+        double discLuminance = relativeLuminance(Color.web(disc));
+        double textLuminance = relativeLuminance(Color.web(samples.get("avatar.text")));
+        double contrast = (Math.max(discLuminance, textLuminance) + 0.05)
+                / (Math.min(discLuminance, textLuminance) + 0.05);
+        assertTrue(contrast >= 4.5, "text avatar contrast " + contrast + " under " + host);
     }
 
     private static void assertAvatarDiscDiffers(String host, String userAgentStylesheet, Consumer<Scene> themer)

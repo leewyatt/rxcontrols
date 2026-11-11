@@ -530,12 +530,19 @@
  * RXAvatar                                                                    *
  *                                                                             *
  ******************************************************************************/
-.rx-avatar > .image-wrapper {
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.8), 8, 0, 0, 0);
+.rx-avatar {
+    -rx-avatar-fill: ladder(-rx-surface, #757575 45%, #bdbdbd 46%);
+}
+
+/* Under the AtlantaFX bridge the disc takes the theme's neutral emphasis, tuned per
+   theme for a fill: a surface color would vanish on any panel painted with it. */
+.rx-theme-atlantafx .rx-avatar,
+.rx-theme-atlantafx.rx-avatar {
+    -rx-avatar-fill: -color-neutral-emphasis;
 }
 
 .rx-avatar > .default-icon-wrapper {
-    -fx-background-color: ladder(-rx-surface, #757575 45%, #bdbdbd 46%);
+    -fx-background-color: -rx-avatar-fill;
 }
 
 .rx-avatar > .default-icon-wrapper > .default-icon {
@@ -545,28 +552,21 @@
     -fx-pref-height: 24px;
 }
 
-/* Under the AtlantaFX bridge the disc takes the theme's neutral emphasis pair, tuned
-   per theme for a fill and its foreground: a surface color would vanish on any panel
-   painted with it. Kept in this user-agent stylesheet so application stylesheets
-   still override it. */
-.rx-theme-atlantafx .rx-avatar > .default-icon-wrapper,
-.rx-theme-atlantafx.rx-avatar > .default-icon-wrapper {
-    -fx-background-color: -color-neutral-emphasis;
-}
-
 .rx-theme-atlantafx .rx-avatar > .default-icon-wrapper > .default-icon,
 .rx-theme-atlantafx.rx-avatar > .default-icon-wrapper > .default-icon {
     -fx-background-color: -color-fg-emphasis;
 }
 
 .rx-avatar > .text-wrapper {
-    -fx-background-color: #5c6bc0;
+    -fx-background-color: -rx-avatar-fill;
     -fx-alignment: center;
 }
 
+/* Black or white, whichever reads better on the disc: the 47% / 48% step sits where
+   ladder brightness gives both about the same contrast. */
 .rx-avatar > .text-wrapper > .label {
     -fx-font-weight: bold;
-    -fx-text-fill: white;
+    -fx-text-fill: ladder(-rx-avatar-fill, white 47%, black 48%);
 }
 
 /*******************************************************************************

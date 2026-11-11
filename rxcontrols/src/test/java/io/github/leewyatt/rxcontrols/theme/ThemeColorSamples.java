@@ -97,6 +97,8 @@ final class ThemeColorSamples {
         RXCircularProgressIndicator circular = new RXCircularProgressIndicator();
         RXCircularProgressIndicator completedCircular = new RXCircularProgressIndicator(1.0);
         RXAvatar avatar = new RXAvatar();
+        RXAvatar textAvatar = new RXAvatar();
+        textAvatar.setText("LW");
 
         RXSnackbarHost plainHost = new RXSnackbarHost();
         RXSnackbarHost severityHost = new RXSnackbarHost();
@@ -130,7 +132,7 @@ final class ThemeColorSamples {
         RXMasonryView<String> masonryView = new RXMasonryView<>();
 
         VBox root = new VBox(cascader, cascaderView, segmented, seekBar, backdrop, dialog, drawerPane, statePane, slider, rangeSlider, wave, circular, completedCircular,
-                avatar, plainHost, severityHost, progressBar, completedProgressBar, steps, navigator, digit,
+                avatar, textAvatar, plainHost, severityHost, progressBar, completedProgressBar, steps, navigator, digit,
                 fillButton, sidebar, plainTimeline, primaryTimeline, hollowTimeline, tileView, listView, masonryView);
         Scene scene = new Scene(root, 800, 1600);
         themer.accept(scene);
@@ -192,6 +194,8 @@ final class ThemeColorSamples {
         samples.put("circular.completed", hex(completedCircular.getProgressStroke()));
         samples.put("avatar.icon-disc", background(avatar.lookup(".default-icon-wrapper")));
         samples.put("avatar.icon", background(avatar.lookup(".default-icon-wrapper > .default-icon")));
+        samples.put("avatar.text-disc", background(textAvatar.lookup(".text-wrapper")));
+        samples.put("avatar.text", text(textAvatar.lookup(".text-wrapper > .label")));
 
         samples.put("snackbar.bar", background(plainHost.lookup(".snackbar")));
         samples.put("snackbar.message", text(plainHost.lookup(".snackbar > .message")));

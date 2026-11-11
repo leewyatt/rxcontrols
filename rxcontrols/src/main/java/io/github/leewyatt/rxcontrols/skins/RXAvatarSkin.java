@@ -24,7 +24,7 @@ import javafx.scene.shape.Rectangle;
  */
 public class RXAvatarSkin extends RXSkinBase<RXAvatar> {
 
-    private static final double DEFAULT_PREF_SIZE = 100;
+    private static final double DEFAULT_PREF_SIZE = 40;
 
     private final ImageView imageView;
     private final Group imageWrapper;

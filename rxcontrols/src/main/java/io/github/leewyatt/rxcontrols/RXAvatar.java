@@ -73,6 +73,9 @@ import java.util.List;
  * When the image is unavailable, the text (typically user initials) is
  * shown; when neither is set, a generic person icon is displayed.</p>
  *
+ * <p>The preferred size is 40 &times; 40; the avatar stays at its preferred size
+ * unless its min / max sizes are changed.</p>
+ *
  * <pre>{@code
  * // Circular avatar with image
  * RXAvatar avatar = new RXAvatar(image);
