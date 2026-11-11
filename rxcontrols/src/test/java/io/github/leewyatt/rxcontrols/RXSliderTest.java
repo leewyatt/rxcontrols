@@ -428,15 +428,15 @@ public class RXSliderTest {
 
     /**
      * Verifies the falling edge of {@code valueChanging} already sees the snapped
-     * value, on release and when the slider is disabled mid-drag, and the gesture
-     * changes nothing after it.
+     * value, on release, when the slider is disabled mid-drag and when the skin is
+     * removed mid-drag, and the gesture changes nothing after it.
      *
      * @throws Exception if the FX action fails
      */
     @Test
     public void dragCommitSeesTheSnappedValue() throws Exception {
         runOnFx(() -> {
-            for (boolean disableMidDrag : new boolean[] {false, true}) {
+            for (String ending : new String[] {"release", "disable", "remove skin"}) {
                 RXSlider slider = scenedSlider(200.0, 30.0);
                 slider.setSnapToTicks(true);
                 slider.setMinorTickCount(0);
@@ -460,14 +460,16 @@ public class RXSliderTest {
                 thumb.fireEvent(mouseAt(thumb, MouseEvent.MOUSE_DRAGGED,
                         cx + 0.3 * track.getWidth(), cy, MouseButton.PRIMARY, true));
                 assertEquals(30.0, slider.getValue(), EPSILON);
-                if (disableMidDrag) {
+                if (ending.equals("disable")) {
                     slider.setDisable(true);
+                } else if (ending.equals("remove skin")) {
+                    slider.setSkin(null);
                 } else {
                     thumb.fireEvent(mouseAt(thumb, MouseEvent.MOUSE_RELEASED,
                             cx + 0.3 * track.getWidth(), cy, MouseButton.PRIMARY, false));
                 }
-                assertEquals(List.of(25.0), committed, "disabled mid-drag: " + disableMidDrag);
-                assertEquals(List.of(), afterCommit, "disabled mid-drag: " + disableMidDrag);
+                assertEquals(List.of(25.0), committed, ending);
+                assertEquals(List.of(), afterCommit, ending);
             }
         });
     }
