@@ -192,7 +192,6 @@ public class RXAvatarShowcase extends RXShowcaseApplication {
         RXAvatar textAvatar = createSmallAvatar(null, "LW");
         textAvatar.getStyleClass().add("text-state-avatar");
         RXAvatar iconAvatar = createSmallAvatar(null, "");
-        iconAvatar.getStyleClass().add("icon-state-avatar");
 
         HBox strip = new HBox(16.0,
                 previewItem("Image", imageAvatar),
