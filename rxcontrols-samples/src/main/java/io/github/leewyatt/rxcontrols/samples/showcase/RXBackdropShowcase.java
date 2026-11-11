@@ -12,6 +12,7 @@ import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -32,12 +33,14 @@ import java.util.Locale;
  *
  * <p>Exercises the standalone overlay layer, command-driven animation, writable
  * {@code showing} state, CSS duration properties, interpolators, and author
- * styling of the dim fill.</p>
+ * styling of the dim fill. The preview follows the active theme; the fill shows the
+ * stylesheet default until "Custom fill" is checked.</p>
  */
 public class RXBackdropShowcase extends RXShowcaseApplication {
 
     private RXBackdrop backdrop;
     private Region dialogCard;
+    private CheckBox customFill;
     private ColorPicker colorPicker;
     private Slider alphaSlider;
 
@@ -79,7 +82,6 @@ public class RXBackdropShowcase extends RXShowcaseApplication {
     @Override
     protected Node createPreview() {
         backdrop = new RXBackdrop();
-        backdrop.getStyleClass().add("showcase-backdrop");
 
         dialogCard = createDialogCard();
         dialogCard.visibleProperty().bind(backdrop.showingProperty());
@@ -90,7 +92,6 @@ public class RXBackdropShowcase extends RXShowcaseApplication {
         StackPane.setMargin(dialogCard, new Insets(20.0));
 
         backdrop.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> backdrop.hide());
-        applyBackdropPaint(Color.web("#0f172a"), 0.46);
         return preview;
     }
 
@@ -161,14 +162,22 @@ public class RXBackdropShowcase extends RXShowcaseApplication {
     }
 
     private Node buildFillGrid() {
-        colorPicker = new ColorPicker(Color.web("#0f172a"));
+        // Seeded with the stylesheet default (black at 32%); an inline style beats every
+        // stylesheet, and clearing it gives the fill back to the stylesheet.
+        customFill = new CheckBox("Custom fill");
+        colorPicker = new ColorPicker(Color.BLACK);
         colorPicker.setMaxWidth(Double.MAX_VALUE);
+        colorPicker.disableProperty().bind(customFill.selectedProperty().not());
         colorPicker.setOnAction(event -> updateBackdropPaint());
 
-        alphaSlider = createSlider(0.0, 0.75, 0.46);
+        alphaSlider = createSlider(0.0, 0.75, 0.32);
+        alphaSlider.disableProperty().bind(customFill.selectedProperty().not());
         alphaSlider.valueProperty().addListener((obs, old, value) -> updateBackdropPaint());
 
+        customFill.selectedProperty().addListener((obs, old, value) -> updateBackdropPaint());
+
         return createGrid(
+                row(customFill),
                 row("Color", colorPicker),
                 row("Alpha", alphaSlider, createValueLabel(alphaSlider, "%.2f")));
     }
@@ -198,11 +207,9 @@ public class RXBackdropShowcase extends RXShowcaseApplication {
         subtitle.setMaxWidth(360.0);
 
         Button show = new Button("show() animated");
-        show.getStyleClass().add("preview-primary-button");
         show.setOnAction(event -> backdrop.show());
 
         Button showSnap = new Button("show(false) instant");
-        showSnap.getStyleClass().add("preview-secondary-button");
         showSnap.setOnAction(event -> backdrop.show(false));
 
         HBox actions = new HBox(10.0, show, showSnap);
@@ -221,7 +228,6 @@ public class RXBackdropShowcase extends RXShowcaseApplication {
         copy.setWrapText(true);
 
         Button close = new Button("Close");
-        close.getStyleClass().add("dialog-close");
         close.setOnAction(event -> backdrop.hide());
         RXBox.setAlignment(close, Pos.CENTER_RIGHT);
 
@@ -241,7 +247,11 @@ public class RXBackdropShowcase extends RXShowcaseApplication {
     }
 
     private void updateBackdropPaint() {
-        applyBackdropPaint(colorPicker.getValue(), alphaSlider.getValue());
+        if (customFill.isSelected()) {
+            applyBackdropPaint(colorPicker.getValue(), alphaSlider.getValue());
+        } else {
+            backdrop.setStyle("");
+        }
     }
 
     private void applyBackdropPaint(Color color, double alpha) {
