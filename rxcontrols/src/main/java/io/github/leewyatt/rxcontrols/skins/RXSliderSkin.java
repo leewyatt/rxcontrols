@@ -42,7 +42,12 @@ import java.util.List;
  * the pointer. A drag ends by snapping first and clearing the flag after, so the
  * falling edge sees the final value; track clicks and the keyboard commit discretely
  * and do not flip it. The indicator visibility is driven independently of
- * {@code valueChanging} (by interaction and focus), so the keyboard pops it too.</p>
+ * {@code valueChanging} (by interaction and keyboard focus), so the keyboard pops it
+ * too.</p>
+ *
+ * <p>Focus shows (the focus halo and the indicator) only once the keyboard is in use:
+ * after a key reaches the focused slider, until a pointer press or the focus leaving
+ * the slider. A pointer click therefore leaves no lingering focus cue.</p>
  */
 public class RXSliderSkin extends RXSkinBase<RXSlider> {
 
@@ -86,6 +91,7 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
     private double preDragValue;
     private boolean thumbDragging;
     private boolean pointerInThumb;
+    private boolean keyboardFocus;
 
     // ==================== Constructor ====================
 
@@ -164,7 +170,17 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
             updateHalo();
         });
         disposer.registerListener(thumb.pressedProperty(), this::updateFeedback);
-        disposer.registerListener(control.focusedProperty(), this::updateFeedback);
+        disposer.registerEventFilter(control, KeyEvent.KEY_PRESSED, event -> setKeyboardFocus(true));
+        disposer.registerEventFilter(control, KeyEvent.KEY_RELEASED, event -> setKeyboardFocus(true));
+        disposer.registerEventFilter(control, MouseEvent.MOUSE_PRESSED, event -> setKeyboardFocus(false));
+        disposer.registerListener(control.focusedProperty(), () -> {
+            // A focus leaving the window keeps the owner, so its cue returns with it.
+            if (!control.isFocused() && control.getScene() != null
+                    && control.getScene().getFocusOwner() != control) {
+                keyboardFocus = false;
+            }
+            updateFeedback();
+        });
         disposer.registerListener(control.valueChangingProperty(), this::updateFeedback);
         disposer.registerListener(control.disabledProperty(), () -> {
             updateHalo();
@@ -356,7 +372,13 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
     private void onValueChanged() {
         updateIndicatorText();
         updateIndicator();
+        updateFilledTicks();
         getSkinnable().requestLayout();
+    }
+
+    private void updateFilledTicks() {
+        RXSlider control = getSkinnable();
+        SliderTickLayout.markFilled(tickMarks, tickMarkValues, control.getMin(), control.getValue());
     }
 
     private void updateFeedback() {
@@ -364,16 +386,27 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
         updateIndicator();
     }
 
+    private void setKeyboardFocus(boolean value) {
+        if (keyboardFocus != value) {
+            keyboardFocus = value;
+            updateFeedback();
+        }
+    }
+
+    private boolean focusVisible() {
+        return keyboardFocus && getSkinnable().isFocused();
+    }
+
     private void updateHalo() {
         RXSlider control = getSkinnable();
         boolean enabled = control.isStateOverlayEnabled() && !control.isDisabled();
-        halo.setState(enabled && pointerInThumb, enabled && control.isFocused(),
+        halo.setState(enabled && pointerInThumb, enabled && focusVisible(),
                 enabled && thumb.isPressed(), enabled && control.isValueChanging());
     }
 
     private void updateIndicator() {
         RXSlider control = getSkinnable();
-        indicatorAnimator.update(control.isValueChanging() || thumb.isPressed() || control.isFocused());
+        indicatorAnimator.update(control.isValueChanging() || thumb.isPressed() || focusVisible());
     }
 
     private void updateIndicatorText() {
@@ -399,6 +432,7 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
     protected void layoutChildren(double x, double y, double w, double h) {
         double thumbSize = snapSizeX(thumb.prefWidth(-1));
         double thickness = snapSizeY(track.prefHeight(-1));
+        double fillThickness = fillThickness(thickness);
         hitArea.resizeRelocate(x, y, Math.max(0.0, w), Math.max(0.0, h));
 
         boolean vertical = vertical();
@@ -424,7 +458,8 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
         double trackCHi = barCrossCenter + thickness * HALF;
 
         place(axis, track, trackMLo, trackMLo + trackLengthM, trackCLo, trackCHi);
-        place(axis, fill, trackMLo, thumbM, trackCLo, trackCHi);
+        place(axis, fill, trackMLo, thumbM,
+                barCrossCenter - fillThickness * HALF, barCrossCenter + fillThickness * HALF);
         place(axis, thumb, thumbM - thumbSize * HALF, thumbM + thumbSize * HALF,
                 barCrossCenter - thumbSize * HALF, barCrossCenter + thumbSize * HALF);
 
@@ -440,6 +475,12 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
                 snapPositionY(axis.rectY(mLo, mHi, cLo, cHi)),
                 snapSizeX(axis.rectW(mHi - mLo, cHi - cLo)),
                 snapSizeY(axis.rectH(mHi - mLo, cHi - cLo)));
+    }
+
+    // The fill may be thicker than the track; with no size of its own it matches it.
+    private double fillThickness(double trackThickness) {
+        double own = snapSizeY(fill.prefHeight(-1));
+        return own > 0.0 ? own : trackThickness;
     }
 
     private void layoutHalo(double centerX, double centerY) {
@@ -535,6 +576,7 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
         // thumb, halo, indicator — survive a runtime tick toggle.
         getChildren().setAll(assembleChildren());
         updateTickVisibility();
+        updateFilledTicks();
     }
 
     private void updateTickVisibility() {
@@ -624,7 +666,8 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
     private double crossThickness() {
         // The cross-axis thickness: the thumb / halo bar plus the tick-label band.
         // The transient indicator is excluded — it may overflow.
-        double bar = Math.max(Math.max(track.prefHeight(-1), thumb.prefHeight(-1)), halo.prefHeight(-1));
+        double bar = Math.max(Math.max(Math.max(track.prefHeight(-1), fill.prefHeight(-1)),
+                thumb.prefHeight(-1)), halo.prefHeight(-1));
         return bar + labelBandExtent();
     }
 

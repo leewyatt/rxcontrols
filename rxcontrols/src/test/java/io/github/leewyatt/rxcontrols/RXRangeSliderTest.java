@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
 import io.github.leewyatt.rxcontrols.skins.RXRangeSliderSkin;
 import javafx.application.Platform;
+import javafx.css.PseudoClass;
 import javafx.event.EventType;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
@@ -969,8 +970,8 @@ public class RXRangeSliderTest {
     }
 
     /**
-     * Verifies the last used thumb and its halo stack above the other pair, and the
-     * value bubbles above every thumb.
+     * Verifies both halos lie below both thumbs, the last used thumb and its halo stack
+     * above the other ones, and the value bubbles above every thumb.
      *
      * @throws Exception if the FX action fails
      */
@@ -984,9 +985,9 @@ public class RXRangeSliderTest {
                 Region other = used == lowThumb ? highThumb : lowThumb;
                 pressRelease(used);
                 slider.layout();
-                assertTrue(used.getViewOrder() < haloOf(slider, used).getViewOrder());
-                assertTrue(haloOf(slider, used).getViewOrder() < other.getViewOrder());
-                assertTrue(other.getViewOrder() < haloOf(slider, other).getViewOrder());
+                assertTrue(used.getViewOrder() < other.getViewOrder());
+                assertTrue(other.getViewOrder() < haloOf(slider, used).getViewOrder());
+                assertTrue(haloOf(slider, used).getViewOrder() < haloOf(slider, other).getViewOrder());
                 for (Node bubble : slider.lookupAll(".value-indicator")) {
                     assertTrue(bubble.getViewOrder() < used.getViewOrder());
                 }
@@ -1167,6 +1168,37 @@ public class RXRangeSliderTest {
             assertFalse(slider.isLowValueChanging());
             assertFalse(slider.isHighValueChanging());
         });
+    }
+
+    /**
+     * Verifies the tick marks between the two values carry {@code :filled} and follow
+     * the values.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void ticksBetweenTheValuesAreFilled() throws Exception {
+        runOnFx(() -> {
+            RXRangeSlider slider = scened(200.0, 30.0);
+            slider.setMajorTickUnit(25.0);
+            slider.setMinorTickCount(0);
+            slider.setShowTickMarks(true);
+            slider.setLowValue(25.0);
+            slider.setHighValue(60.0);
+            slider.layout();
+            assertEquals(List.of(false, true, true, false, false), filledTicks(slider));
+
+            slider.setHighValue(100.0);
+            slider.setLowValue(50.0);
+            assertEquals(List.of(false, false, true, true, true), filledTicks(slider));
+        });
+    }
+
+    private static List<Boolean> filledTicks(Node slider) {
+        return slider.lookupAll(".tick-mark").stream()
+                .sorted(Comparator.comparingDouble(Node::getLayoutX))
+                .map(mark -> mark.getPseudoClassStates().contains(PseudoClass.getPseudoClass("filled")))
+                .collect(Collectors.toList());
     }
 
     // ==================== Helpers ====================

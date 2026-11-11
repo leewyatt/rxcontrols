@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal.slider;
 
+import javafx.css.PseudoClass;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Region;
 
@@ -14,6 +15,7 @@ import java.util.List;
 public final class SliderTickLayout {
 
     private static final double HALF = 0.5;
+    private static final PseudoClass FILLED_PSEUDO = PseudoClass.getPseudoClass("filled");
 
     private SliderTickLayout() {
     }
@@ -39,6 +41,22 @@ public final class SliderTickLayout {
             maxCross = Math.max(maxCross, vertical ? label.prefWidth(-1) : label.prefHeight(-1));
         }
         return gap + maxCross;
+    }
+
+    /**
+     * Marks the tick marks whose value lies within {@code [from, to]}, the span the
+     * fill covers, with the {@code :filled} pseudo-class.
+     *
+     * @param marks      the mark nodes
+     * @param markValues the mark values
+     * @param from       the fill's start value
+     * @param to         the fill's end value
+     */
+    public static void markFilled(List<Region> marks, double[] markValues, double from, double to) {
+        for (int i = 0; i < marks.size(); i++) {
+            double value = markValues[i];
+            marks.get(i).pseudoClassStateChanged(FILLED_PSEUDO, value >= from && value <= to);
+        }
     }
 
     /**

@@ -22,6 +22,7 @@ import javafx.geometry.Orientation;
 import javafx.geometry.Point2D;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -48,6 +49,10 @@ import java.util.List;
  * left unconsumed. A runtime tick toggle keeps both thumbs and the range bar. The
  * {@code *Changing} flags flip during a pointer drag and around a key press that
  * crosses the other value.</p>
+ *
+ * <p>Focus shows (the focused thumb's halo and indicator) only once the keyboard is
+ * in use: after a key reaches a focused thumb, until a pointer press or the focus
+ * leaving both thumbs. A pointer click therefore leaves no lingering focus cue.</p>
  *
  * <p>With no gap a drag or key may carry a value past the other one; the values
  * stay sorted and the thumb that now holds the dragged value takes focus, the
@@ -104,6 +109,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     private double otherToken;
     private boolean pointerInLow;
     private boolean pointerInHigh;
+    private boolean keyboardFocus;
     // The role of the active thumb: the one being dragged, else the last used.
     private boolean activeThumbIsLow = true;
 
@@ -206,15 +212,18 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
                 activeThumbIsLow = true;
                 applyLayering();
             }
-            updateLowFeedback();
+            onThumbFocusChanged();
         });
         disposer.registerListener(high.getThumb().focusedProperty(), () -> {
             if (high.getThumb().isFocused() && activeThumbIsLow) {
                 activeThumbIsLow = false;
                 applyLayering();
             }
-            updateHighFeedback();
+            onThumbFocusChanged();
         });
+        disposer.registerEventFilter(control, KeyEvent.KEY_PRESSED, event -> setKeyboardFocus(true));
+        disposer.registerEventFilter(control, KeyEvent.KEY_RELEASED, event -> setKeyboardFocus(true));
+        disposer.registerEventFilter(control, MouseEvent.MOUSE_PRESSED, event -> setKeyboardFocus(false));
         disposer.registerListener(control.lowValueChangingProperty(), this::updateLowFeedback);
         disposer.registerListener(control.highValueChangingProperty(), this::updateHighFeedback);
         disposer.registerListener(control.stateOverlayEnabledProperty(), this::updateBothFeedback);
@@ -549,14 +558,15 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         }
     }
 
-    // The active pair stacks above the other pair, each thumb above its own halo, and
-    // the value bubbles above every thumb; ticks and bars keep the default order 0.
+    // Both halos lie below both thumbs, so a halo never covers the other thumb; the
+    // active thumb and halo stack above the other ones, and the value bubbles above
+    // every thumb. Ticks and bars keep the default order 0.
     private void applyLayering() {
         SliderThumb top = activeThumbIsLow ? low : high;
         SliderThumb bottom = activeThumbIsLow ? high : low;
         bottom.getHalo().setViewOrder(-1.0);
-        bottom.getThumb().setViewOrder(-2.0);
-        top.getHalo().setViewOrder(-3.0);
+        top.getHalo().setViewOrder(-2.0);
+        bottom.getThumb().setViewOrder(-3.0);
         top.getThumb().setViewOrder(-4.0);
         lowIndicator.setViewOrder(-5.0);
         highIndicator.setViewOrder(-5.0);
@@ -745,7 +755,13 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         updateIndicatorTexts();
         updateLowFeedback();
         updateHighFeedback();
+        updateFilledTicks();
         getSkinnable().requestLayout();
+    }
+
+    private void updateFilledTicks() {
+        RXRangeSlider control = getSkinnable();
+        SliderTickLayout.markFilled(tickMarks, tickMarkValues, control.getLowValue(), control.getHighValue());
     }
 
     private void updateBothFeedback() {
@@ -753,11 +769,32 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         updateHighFeedback();
     }
 
+    // Focus passing between the thumbs (Tab, a crossing) keeps the keyboard mode; a
+    // focus leaving the window keeps the owner, so its cue returns with it.
+    private void onThumbFocusChanged() {
+        Scene scene = getSkinnable().getScene();
+        Node owner = scene == null ? null : scene.getFocusOwner();
+        if (owner != low.getThumb() && owner != high.getThumb()) {
+            keyboardFocus = false;
+        }
+        updateBothFeedback();
+    }
+
+    private void setKeyboardFocus(boolean value) {
+        if (keyboardFocus != value) {
+            keyboardFocus = value;
+            updateBothFeedback();
+        }
+    }
+
+    private boolean focusVisible(SliderThumb unit) {
+        return keyboardFocus && unit.getThumb().isFocused();
+    }
+
     private void updateLowFeedback() {
         RXRangeSlider control = getSkinnable();
         boolean enabled = control.isStateOverlayEnabled() && !control.isDisabled();
-        StackPane thumbNode = low.getThumb();
-        low.setState(enabled && pointerInLow, enabled && thumbNode.isFocused(),
+        low.setState(enabled && pointerInLow, enabled && focusVisible(low),
                 enabled && thumbGesture && activeThumbIsLow, enabled && dragsRole(true));
         updateIndicatorVisibility();
     }
@@ -765,8 +802,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     private void updateHighFeedback() {
         RXRangeSlider control = getSkinnable();
         boolean enabled = control.isStateOverlayEnabled() && !control.isDisabled();
-        StackPane thumbNode = high.getThumb();
-        high.setState(enabled && pointerInHigh, enabled && thumbNode.isFocused(),
+        high.setState(enabled && pointerInHigh, enabled && focusVisible(high),
                 enabled && thumbGesture && !activeThumbIsLow, enabled && dragsRole(false));
         updateIndicatorVisibility();
     }
@@ -792,11 +828,11 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     }
 
     private boolean lowActive() {
-        return dragsRole(true) || low.getThumb().isFocused();
+        return dragsRole(true) || focusVisible(low);
     }
 
     private boolean highActive() {
-        return dragsRole(false) || high.getThumb().isFocused();
+        return dragsRole(false) || focusVisible(high);
     }
 
     private void updateIndicatorTexts() {
@@ -854,6 +890,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         }
         getChildren().setAll(assembleChildren());
         updateTickVisibility();
+        updateFilledTicks();
     }
 
     private void updateTickVisibility() {
@@ -890,6 +927,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     protected void layoutChildren(double x, double y, double w, double h) {
         double thumbSize = snapSizeX(low.getThumb().prefWidth(-1));
         double thickness = snapSizeY(track.prefHeight(-1));
+        double fillThickness = fillThickness(thickness);
         hitArea.resizeRelocate(x, y, Math.max(0.0, w), Math.max(0.0, h));
 
         boolean vertical = vertical();
@@ -915,7 +953,8 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         double trackCHi = barCrossCenter + thickness * HALF;
 
         place(axis, track, trackMLo, trackMLo + trackLengthM, trackCLo, trackCHi);
-        place(axis, fill, lowM, Math.max(lowM, highM), trackCLo, trackCHi);
+        place(axis, fill, lowM, Math.max(lowM, highM),
+                barCrossCenter - fillThickness * HALF, barCrossCenter + fillThickness * HALF);
         placeThumb(axis, low.getThumb(), lowM, barCrossCenter, thumbSize);
         placeThumb(axis, high.getThumb(), highM, barCrossCenter, thumbSize);
 
@@ -923,6 +962,12 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         layoutThumbFeedback(axis, high, highM, barCrossCenter, thumbSize);
         layoutIndicators(axis, lowM, highM, barCrossCenter, thumbSize);
         layoutTicks(axis, trackMLo, trackLengthM, barCrossCenter, crossBar);
+    }
+
+    // The fill may be thicker than the track; with no size of its own it matches it.
+    private double fillThickness(double trackThickness) {
+        double own = snapSizeY(fill.prefHeight(-1));
+        return own > 0.0 ? own : trackThickness;
     }
 
     private void place(SliderAxis axis, Region node, double mLo, double mHi, double cLo, double cHi) {
@@ -1081,8 +1126,8 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
     }
 
     private double crossThickness() {
-        double bar = Math.max(Math.max(track.prefHeight(-1), low.getThumb().prefHeight(-1)),
-                low.getHalo().prefHeight(-1));
+        double bar = Math.max(Math.max(Math.max(track.prefHeight(-1), fill.prefHeight(-1)),
+                low.getThumb().prefHeight(-1)), low.getHalo().prefHeight(-1));
         return bar + labelBandExtent();
     }
 

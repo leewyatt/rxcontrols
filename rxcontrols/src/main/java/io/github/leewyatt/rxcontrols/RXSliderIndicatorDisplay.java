@@ -11,9 +11,9 @@ public enum RXSliderIndicatorDisplay {
     NEVER,
 
     /**
-     * The indicator is shown while the value is being changed by dragging, the
-     * keyboard, or while the slider is focused, and hides shortly after the
-     * interaction ends. This is the default ("labeled on select" in Material).
+     * The indicator is shown while the value is being changed by dragging, and
+     * while the slider holds focus reached or used with the keyboard; it hides
+     * shortly after the interaction ends. This is the default ("labeled on select" in Material).
      */
     DRAGGING,
 

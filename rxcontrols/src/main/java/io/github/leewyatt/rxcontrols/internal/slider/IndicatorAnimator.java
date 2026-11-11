@@ -63,7 +63,7 @@ public final class IndicatorAnimator {
      * interaction state.
      *
      * @param interacting whether the user is actively changing the value or the
-     *                    slider is focused
+     *                    slider shows keyboard focus
      */
     public void update(boolean interacting) {
         update(interacting, false);
@@ -75,7 +75,7 @@ public final class IndicatorAnimator {
      * indicator suppress the redundant second bubble even under {@code ALWAYS}.
      *
      * @param interacting whether the user is actively changing the value or the
-     *                    slider is focused
+     *                    slider shows keyboard focus
      * @param suppressed  whether to force the indicator hidden
      */
     public void update(boolean interacting, boolean suppressed) {

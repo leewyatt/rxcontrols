@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
 import io.github.leewyatt.rxcontrols.internal.slider.SliderGeometry;
 import io.github.leewyatt.rxcontrols.skins.RXSliderSkin;
 import javafx.application.Platform;
+import javafx.css.PseudoClass;
 import javafx.event.EventType;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -472,6 +474,102 @@ public class RXSliderTest {
                 assertEquals(List.of(), afterCommit, ending);
             }
         });
+    }
+
+    /**
+     * Verifies focus shows its halo and indicator only once a key reaches the focused
+     * slider, not on focus alone or after a pointer click; a pointer press hides them
+     * again, and a slider that loses focus starts over without them.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void focusCueShowsOnlyForTheKeyboard() throws Exception {
+        runOnFx(() -> {
+            FocusableSlider slider = new FocusableSlider();
+            slider.setSkin(new RXSliderSkin(slider));
+            Region other = new Region();
+            other.setFocusTraversable(true);
+            StackPane root = new StackPane(other, slider);
+            new Scene(root, 300.0, 130.0);
+            root.applyCss();
+            layout(slider, 200.0, 30.0);
+            slider.setAnimated(false);
+            StateLayer halo = (StateLayer) slider.lookup(".state-overlay");
+            Region indicator = (Region) slider.lookup(".value-indicator");
+            Region thumb = (Region) slider.lookup(".thumb");
+            double cx = thumb.getWidth() / 2.0;
+            double cy = thumb.getHeight() / 2.0;
+
+            slider.requestFocus();
+            assertTrue(slider.isFocused());
+            assertEquals(0.0, halo.getTargetOpacity(), EPSILON);
+            assertFalse(indicator.isVisible());
+
+            slider.fireEvent(key(KeyCode.RIGHT));
+            assertTrue(halo.getTargetOpacity() > 0.0);
+            assertTrue(indicator.isVisible());
+
+            // The indicator hides after a short grace once the press ends; the halo drops at once.
+            thumb.fireEvent(mouseAt(thumb, MouseEvent.MOUSE_PRESSED, cx, cy, MouseButton.PRIMARY, true));
+            thumb.fireEvent(mouseAt(thumb, MouseEvent.MOUSE_RELEASED, cx, cy, MouseButton.PRIMARY, false));
+            assertTrue(slider.isFocused());
+            assertEquals(0.0, halo.getTargetOpacity(), EPSILON);
+
+            slider.fireEvent(key(KeyCode.RIGHT));
+            assertTrue(halo.getTargetOpacity() > 0.0);
+            other.requestFocus();
+            assertFalse(slider.isFocused());
+            slider.requestFocus();
+            assertEquals(0.0, halo.getTargetOpacity(), EPSILON);
+        });
+    }
+
+    // An unshown scene never sets isFocused(); Node.setFocused is protected, so a
+    // test-side subclass makes requestFocus behave as in a focused window.
+    private static final class FocusableSlider extends RXSlider {
+
+        @Override
+        public void requestFocus() {
+            super.requestFocus();
+            if (getScene() != null && getScene().getFocusOwner() == this) {
+                setFocused(true);
+            }
+        }
+    }
+
+    /**
+     * Verifies the fill is drawn thicker than the track and centered on it, and the
+     * tick marks the fill covers carry {@code :filled}.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void fillIsThickerAndMarksTheTicksItCovers() throws Exception {
+        runOnFx(() -> {
+            RXSlider slider = scenedSlider(200.0, 30.0);
+            slider.setMajorTickUnit(25.0);
+            slider.setMinorTickCount(0);
+            slider.setShowTickMarks(true);
+            slider.setValue(50.0);
+            slider.layout();
+            Region track = (Region) slider.lookup(".track");
+            Region fill = (Region) slider.lookup(".fill");
+            assertTrue(fill.getHeight() > track.getHeight());
+            assertEquals(track.getLayoutY() + track.getHeight() / 2.0,
+                    fill.getLayoutY() + fill.getHeight() / 2.0, PIXEL_TOLERANCE);
+            assertEquals(List.of(true, true, true, false, false), filledTicks(slider));
+
+            slider.setValue(80.0);
+            assertEquals(List.of(true, true, true, true, false), filledTicks(slider));
+        });
+    }
+
+    private static List<Boolean> filledTicks(Node slider) {
+        return slider.lookupAll(".tick-mark").stream()
+                .sorted(Comparator.comparingDouble(Node::getLayoutX))
+                .map(mark -> mark.getPseudoClassStates().contains(PseudoClass.getPseudoClass("filled")))
+                .collect(Collectors.toList());
     }
 
     /**

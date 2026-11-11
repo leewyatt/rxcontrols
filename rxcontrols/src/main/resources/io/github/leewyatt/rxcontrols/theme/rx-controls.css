@@ -736,7 +736,8 @@
     -rx-slider-track: ladder(-rx-surface, -rx-outline 45%, #e0e0e0 46%);
     -rx-slider-fill: -rx-primary;
     -rx-slider-thumb: -rx-primary;
-    -rx-slider-tick: derive(-rx-slider-track, -20%);
+    -rx-slider-tick: -rx-slider-fill;
+    -rx-slider-tick-filled: -rx-on-primary;
     -rx-slider-tick-label: -rx-on-surface-secondary;
     /* Inverse surface, like the snackbar: dark on a light host, light on a dark one. */
     -rx-slider-indicator-bg: ladder(-rx-surface, #e0e0e0 45%, #424242 46%);
@@ -761,6 +762,7 @@
 .rx-range-slider > .fill {
     -fx-background-color: -rx-slider-fill;
     -fx-background-radius: 999px;
+    -fx-pref-height: 6px;
 }
 
 .rx-slider > .thumb,
@@ -777,26 +779,18 @@
     -fx-scale-y: 1.18;
 }
 
-/* Focus ring: the single slider focuses the control, the range slider focuses
-   each thumb individually. */
-.rx-slider:focused > .thumb,
-.rx-range-slider > .thumb:focused {
-    -fx-effect: dropshadow(three-pass-box, derive(-rx-slider-thumb, -20%), 7, 0.5, 0, 0);
-}
-
-/* Unbounded thumb halo: a square pref the skin shapes round (the fill carries a
-   50% corner radius) and centers on the thumb each layout. Tier opacities come
-   from the global .state-overlay rule. */
 /* The Modena slider class is replaced, so its disabled fade is declared here. */
 .rx-slider:disabled,
 .rx-range-slider:disabled {
     -fx-opacity: 0.4;
 }
 
+/* Unbounded thumb halo, also the focus cue: a square pref the skin shapes round and
+   centers on the thumb. Tier opacities come from the global .state-overlay rule. */
 .rx-slider > .state-overlay,
 .rx-range-slider > .state-overlay {
-    -fx-pref-width: 32px;
-    -fx-pref-height: 32px;
+    -fx-pref-width: 28px;
+    -fx-pref-height: 28px;
 }
 
 .rx-slider > .value-indicator,
@@ -823,8 +817,14 @@
 .rx-range-slider > .tick-mark {
     -fx-background-color: -rx-slider-tick;
     -fx-background-radius: 50%;
+    -fx-opacity: 0.6;
     -fx-pref-width: 2px;
     -fx-pref-height: 2px;
+}
+
+.rx-slider > .tick-mark:filled,
+.rx-range-slider > .tick-mark:filled {
+    -fx-background-color: -rx-slider-tick-filled;
 }
 
 .rx-slider > .tick-label,
@@ -839,8 +839,8 @@
     -rx-ripple-radius: 14px;
 }
 
-/* Size variants (style classes, AtlantaFX-style): scale the thumb, track, halo,
-   and press ink. The skin reads the pref sizes, so no Java change is needed. */
+/* Size variants (style classes, AtlantaFX-style): scale the thumb, track, fill,
+   halo, and press ink. The skin reads the pref sizes, so no Java change is needed. */
 .rx-slider.small > .thumb,
 .rx-range-slider.small > .thumb {
     -fx-pref-width: 10px;
@@ -852,10 +852,15 @@
     -fx-pref-height: 3px;
 }
 
+.rx-slider.small > .fill,
+.rx-range-slider.small > .fill {
+    -fx-pref-height: 4px;
+}
+
 .rx-slider.small > .state-overlay,
 .rx-range-slider.small > .state-overlay {
-    -fx-pref-width: 24px;
-    -fx-pref-height: 24px;
+    -fx-pref-width: 20px;
+    -fx-pref-height: 20px;
 }
 
 .rx-slider.small .ripple-layer,
@@ -874,10 +879,15 @@
     -fx-pref-height: 6px;
 }
 
+.rx-slider.large > .fill,
+.rx-range-slider.large > .fill {
+    -fx-pref-height: 8px;
+}
+
 .rx-slider.large > .state-overlay,
 .rx-range-slider.large > .state-overlay {
-    -fx-pref-width: 40px;
-    -fx-pref-height: 40px;
+    -fx-pref-width: 36px;
+    -fx-pref-height: 36px;
 }
 
 .rx-slider.large .ripple-layer,
