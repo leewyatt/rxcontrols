@@ -65,7 +65,6 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
 
     private static final double DEFAULT_PREF_WIDTH = SliderMetrics.DEFAULT_PREF_LENGTH;
     private static final double HALF = 0.5;
-    private static final double INDICATOR_GAP = SliderMetrics.INDICATOR_GAP;
     private static final double TICK_LABEL_GAP = SliderMetrics.TICK_LABEL_GAP;
     private static final double MERGE_GAP = 4.0;
     private static final double GAP_TOLERANCE = 1e-9;
@@ -1016,44 +1015,17 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         setMerged(overlap);
         if (overlap) {
             // The low indicator becomes the shared "low – high" bubble, centered
-            // between the thumbs; the high indicator is hidden by its animator.
+            // between the thumbs (its caret points there); the high indicator is hidden
+            // by its animator.
             lowIndicator.setText(formatValue(control.getLowValue()) + EN_DASH
                     + formatValue(control.getHighValue()));
-            positionIndicator(axis, lowIndicator, (lowM + highM) * HALF, barCrossCenter, thumbSize, startSide);
+            lowIndicator.layoutBeside(axis, (lowM + highM) * HALF, barCrossCenter, thumbSize, startSide);
         } else {
-            positionIndicator(axis, lowIndicator, lowM, barCrossCenter, thumbSize, startSide);
-            positionIndicator(axis, highIndicator, highM, barCrossCenter, thumbSize, startSide);
+            lowIndicator.layoutBeside(axis, lowM, barCrossCenter, thumbSize, startSide);
+            highIndicator.layoutBeside(axis, highM, barCrossCenter, thumbSize, startSide);
         }
     }
 
-    private void positionIndicator(SliderAxis axis, SliderValueIndicator indicator, double centerM,
-                                   double barCrossCenter, double thumbSize, boolean startSide) {
-        boolean vertical = axis.isVertical();
-        double bubbleW = snapSizeX(indicator.prefWidth(-1));
-        double bubbleH = snapSizeY(indicator.prefHeight(-1));
-        indicator.resize(bubbleW, bubbleH);
-        double bubbleMain = vertical ? bubbleH : bubbleW;
-        double bubbleCross = vertical ? bubbleW : bubbleH;
-        // Centered on the target and kept inside the slider, then moved only as far as
-        // its caret, kept clear of the rounded corners, needs to reach the target; near
-        // an end that lets the bubble overflow the slider a little.
-        double inside = RXMath.clamp(centerM - bubbleMain * HALF, 0.0, Math.max(0.0, axis.mainLength() - bubbleMain));
-        double reachLo = centerM + indicator.caretReach(vertical, startSide, false) - bubbleMain;
-        double reachHi = centerM - indicator.caretReach(vertical, startSide, true);
-        double mainLo = reachLo <= reachHi ? RXMath.clamp(inside, reachLo, reachHi) : inside;
-        double thumbCrossLo = barCrossCenter - thumbSize * HALF;
-        double thumbCrossHi = barCrossCenter + thumbSize * HALF;
-        double crossLo = startSide
-                ? (thumbCrossLo - INDICATOR_GAP - bubbleCross)
-                : (thumbCrossHi + INDICATOR_GAP);
-        indicator.relocate(
-                snapPositionX(axis.rectX(mainLo, mainLo + bubbleMain, crossLo, crossLo + bubbleCross)),
-                snapPositionY(axis.rectY(mainLo, mainLo + bubbleMain, crossLo, crossLo + bubbleCross)));
-        // The caret points at its thumb, or between the thumbs for the merged bubble,
-        // wherever the bubble ended up along the track.
-        indicator.pointCaretAt(axis.pointX(centerM, barCrossCenter), axis.pointY(centerM, barCrossCenter),
-                vertical, startSide);
-    }
 
     private void setMerged(boolean value) {
         if (merged != value) {

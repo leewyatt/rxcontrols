@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal.slider;
 
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.geometry.Insets;
 import javafx.geometry.Side;
 import javafx.scene.control.Label;
@@ -16,9 +17,9 @@ import javafx.scene.layout.StackPane;
  * thumb. The caret is an unmanaged child positioned just outside the body edge
  * that faces the thumb, so it never enlarges the body and is free to overflow.
  *
- * <p>The node is unmanaged and mouse-transparent; the slider skin sizes and
- * places it each layout pass, points its caret, and drives its show / hide
- * transition. It never installs a clip, so it may overflow the slider bounds.</p>
+ * <p>The node is unmanaged and mouse-transparent; the skin calls
+ * {@link #layoutBeside} each layout pass and drives its show / hide transition.
+ * It never installs a clip, so it may overflow the control bounds.</p>
  *
  * <p>The body is the first background fill, assumed to fill the node: the caret
  * meets the node edge and keeps clear of that fill's corner radii.</p>
@@ -60,19 +61,44 @@ public final class SliderValueIndicator extends StackPane {
     }
 
     /**
-     * Points the caret at a target, given in the parent's coordinates. Call it once
-     * the bubble has its final size and position. The caret sits on the body edge
-     * that faces the track: the bottom or top edge of a horizontal slider's bubble,
-     * the right or left edge of a vertical one's. Along that edge it lines up with
-     * the target, kept clear of the rounded corners.
+     * Sizes the bubble to its preferred size and places it beside the thumb, then
+     * points the caret at the target. Along the track the bubble is centered on the
+     * target and kept inside the control, then moved only as far as its caret, kept
+     * clear of the rounded corners, needs to reach the target; near an end that lets
+     * the bubble overflow the control a little. Across the track it sits a fixed gap
+     * past the thumb, on the given side.
      *
-     * @param targetX   the target x in the parent
-     * @param targetY   the target y in the parent
-     * @param vertical  whether the slider is vertical
-     * @param startSide whether the bubble is on the start side across the track
-     *                  (above a horizontal track, left of a vertical one)
+     * @param axis           the control's value axis
+     * @param targetM        the target along the value axis
+     * @param barCrossCenter the track center across the value axis
+     * @param thumbSize      the thumb extent across the value axis
+     * @param startSide      whether the bubble is on the start side across the track
+     *                       (above a horizontal track, left of a vertical one)
      */
-    public void pointCaretAt(double targetX, double targetY, boolean vertical, boolean startSide) {
+    public void layoutBeside(SliderAxis axis, double targetM, double barCrossCenter, double thumbSize,
+                             boolean startSide) {
+        boolean vertical = axis.isVertical();
+        double bubbleW = snapSizeX(prefWidth(-1));
+        double bubbleH = snapSizeY(prefHeight(-1));
+        resize(bubbleW, bubbleH);
+        double bubbleMain = vertical ? bubbleH : bubbleW;
+        double bubbleCross = vertical ? bubbleW : bubbleH;
+        double inside = RXMath.clamp(targetM - bubbleMain * HALF, 0.0, Math.max(0.0, axis.mainLength() - bubbleMain));
+        double reachLo = targetM + caretReach(vertical, startSide, false) - bubbleMain;
+        double reachHi = targetM - caretReach(vertical, startSide, true);
+        double mainLo = reachLo <= reachHi ? RXMath.clamp(inside, reachLo, reachHi) : inside;
+        double crossLo = startSide
+                ? (barCrossCenter - thumbSize * HALF - SliderMetrics.INDICATOR_GAP - bubbleCross)
+                : (barCrossCenter + thumbSize * HALF + SliderMetrics.INDICATOR_GAP);
+        relocate(snapPositionX(axis.rectX(mainLo, mainLo + bubbleMain, crossLo, crossLo + bubbleCross)),
+                snapPositionY(axis.rectY(mainLo, mainLo + bubbleMain, crossLo, crossLo + bubbleCross)));
+        pointCaretAt(axis.pointX(targetM, barCrossCenter), axis.pointY(targetM, barCrossCenter), vertical, startSide);
+    }
+
+    // Points the caret at a target in the parent's coordinates, once the bubble has its
+    // final size and position. The caret sits on the body edge that faces the track and
+    // lines up with the target along it, kept clear of the rounded corners.
+    private void pointCaretAt(double targetX, double targetY, boolean vertical, boolean startSide) {
         Side side = caretSideFor(vertical, startSide);
         double anchor = vertical ? targetY - getLayoutY() : targetX - getLayoutX();
         if (side != caretSide || Double.compare(anchor, caretAnchor) != 0) {
@@ -82,19 +108,10 @@ public final class SliderValueIndicator extends StackPane {
         }
     }
 
-    /**
-     * Returns how close to one end of its edge the caret center can sit, clear of the
-     * rounded corner there, for the bubble's current size. To let the caret reach a
-     * target, a skin keeps at least this much of the bubble between the target and
-     * that end.
-     *
-     * @param vertical  whether the slider is vertical
-     * @param startSide whether the bubble is on the start side across the track
-     * @param towardMin whether the end is the one toward the slider minimum (left of
-     *                  a horizontal slider, bottom of a vertical one)
-     * @return the caret's closest center distance to that end of its edge
-     */
-    public double caretReach(boolean vertical, boolean startSide, boolean towardMin) {
+    // How close to one end of its edge the caret center can sit, clear of the rounded
+    // corner there; the end toward the minimum is the left of a horizontal bubble and
+    // the bottom of a vertical one.
+    private double caretReach(boolean vertical, boolean startSide, boolean towardMin) {
         Side side = caretSideFor(vertical, startSide);
         // Edges run left to right and top to bottom; a vertical minimum is at the bottom.
         boolean atEdgeStart = towardMin != vertical;

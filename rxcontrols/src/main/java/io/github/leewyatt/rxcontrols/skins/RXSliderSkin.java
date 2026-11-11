@@ -14,7 +14,6 @@ import io.github.leewyatt.rxcontrols.internal.slider.SliderSnapper;
 import io.github.leewyatt.rxcontrols.internal.slider.SliderTickLayout;
 import io.github.leewyatt.rxcontrols.internal.slider.SliderValueIndicator;
 import io.github.leewyatt.rxcontrols.internal.slider.SliderValueText;
-import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
 import javafx.geometry.Point2D;
@@ -55,7 +54,6 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
 
     private static final double DEFAULT_PREF_WIDTH = SliderMetrics.DEFAULT_PREF_LENGTH;
     private static final double HALF = 0.5;
-    private static final double INDICATOR_GAP = SliderMetrics.INDICATOR_GAP;
     private static final double TICK_LABEL_GAP = SliderMetrics.TICK_LABEL_GAP;
 
     // ==================== Nodes ====================
@@ -497,31 +495,8 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
     }
 
     private void layoutIndicator(SliderAxis axis, double thumbM, double barCrossCenter, double thumbSize) {
-        boolean startSide = positionOrDefault() != RXSliderIndicatorPosition.END;
-        boolean vertical = axis.isVertical();
-        double bubbleW = snapSizeX(indicator.prefWidth(-1));
-        double bubbleH = snapSizeY(indicator.prefHeight(-1));
-        indicator.resize(bubbleW, bubbleH);
-        double bubbleMain = vertical ? bubbleH : bubbleW;
-        double bubbleCross = vertical ? bubbleW : bubbleH;
-        // Centered on the target and kept inside the slider, then moved only as far as
-        // its caret, kept clear of the rounded corners, needs to reach the target; near
-        // an end that lets the bubble overflow the slider a little.
-        double inside = RXMath.clamp(thumbM - bubbleMain * HALF, 0.0, Math.max(0.0, axis.mainLength() - bubbleMain));
-        double reachLo = thumbM + indicator.caretReach(vertical, startSide, false) - bubbleMain;
-        double reachHi = thumbM - indicator.caretReach(vertical, startSide, true);
-        double mainLo = reachLo <= reachHi ? RXMath.clamp(inside, reachLo, reachHi) : inside;
-        double thumbCrossLo = barCrossCenter - thumbSize * HALF;
-        double thumbCrossHi = barCrossCenter + thumbSize * HALF;
-        double crossLo = startSide
-                ? (thumbCrossLo - INDICATOR_GAP - bubbleCross)
-                : (thumbCrossHi + INDICATOR_GAP);
-        indicator.relocate(
-                snapPositionX(axis.rectX(mainLo, mainLo + bubbleMain, crossLo, crossLo + bubbleCross)),
-                snapPositionY(axis.rectY(mainLo, mainLo + bubbleMain, crossLo, crossLo + bubbleCross)));
-        // The caret points at the thumb, wherever the bubble ended up along the track.
-        indicator.pointCaretAt(axis.pointX(thumbM, barCrossCenter), axis.pointY(thumbM, barCrossCenter),
-                vertical, startSide);
+        indicator.layoutBeside(axis, thumbM, barCrossCenter, thumbSize,
+                positionOrDefault() != RXSliderIndicatorPosition.END);
     }
 
     private void resetLayout(SliderAxis axis, double thumbSize, double barCrossCenter) {
