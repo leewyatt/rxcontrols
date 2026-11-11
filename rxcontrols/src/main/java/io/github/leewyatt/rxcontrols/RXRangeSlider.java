@@ -56,11 +56,12 @@ import java.util.List;
  * the other one once the other value joins the same drag (by crossing, or by taking
  * over the press of overlapping thumbs held at the gap), and both during a band drag.
  * A key press that crosses the other value raises both flags around its two writes.
- * Every such change writes its final, snapped values before the flags fall. Other key
- * presses and track presses change a single value without flipping a flag. A track
- * press is committed immediately; if the press continues into a drag, the drag
- * produces another commit when it ends. To commit, act when neither flag is
- * {@code true} any more, and on value changes while both are {@code false}.</p>
+ * Every such change writes its final values, snapped where the gap allows, before
+ * the flags fall. Other key presses and track presses change a single value without
+ * flipping a flag. A track press is committed immediately; if the press continues
+ * into a drag, the drag produces another commit when it ends. To commit, act when
+ * neither flag is {@code true} any more, and on value changes while both are
+ * {@code false}.</p>
  */
 public class RXRangeSlider extends Control {
 

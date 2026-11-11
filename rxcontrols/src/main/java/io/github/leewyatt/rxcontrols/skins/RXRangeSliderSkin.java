@@ -46,7 +46,8 @@ import java.util.List;
  * <p>The two thumbs are real focus stops: Tab moves between them, and the arrow
  * keys / HOME / END move the focused thumb; keys the slider does not handle are
  * left unconsumed. A runtime tick toggle keeps both thumbs and the range bar. The
- * {@code *Changing} flags flip only during a pointer drag.</p>
+ * {@code *Changing} flags flip during a pointer drag and around a key press that
+ * crosses the other value.</p>
  *
  * <p>With no gap a drag or key may carry a value past the other one; the values
  * stay sorted and the thumb that now holds the dragged value takes focus, the
