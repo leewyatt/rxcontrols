@@ -187,10 +187,9 @@
    the matching role token on a dark one in the same way. The snackbar is an inverse surface: a dark
    bar on a light host and a light bar on a dark one; the severity bars (info / success / warning /
    error) keep their tinted background and white text on both. The avatar placeholder is a filled
-   disc rather than a surface, so it never takes a surface color: a mid gray with a white icon
-   (#bdbdbd on a light host, #757575 on a dark one), and AtlantaFX's
-   <code>-color-neutral-emphasis</code> / <code>-color-fg-emphasis</code> pair under the bridge. A text
-   avatar uses the same disc, with black or white initials, whichever reads better on it.</p>
+   disc rather than a surface, so it never takes a surface color: a mid gray (#757575) on any
+   Modena host, and AtlantaFX's <code>-color-neutral-emphasis</code> under the bridge. A text avatar
+   uses the same disc, and the icon and the initials on it are white.</p>
 
 <h3 id="modenaPalettes">Following a Modena palette</h3>
 <p>An application that recolors Modena — for example its own dark palette — gets RxControls in the
@@ -420,7 +419,8 @@ RXAtlantaFXThemeBridge.uninstall(scene);</code></pre>
 </table>
 <p>The arcs are diameters, as in <code>Rectangle</code>: the default 10 rounds each corner with a 5px
    radius. The disc behind the initials and the default icon is the looked-up color
-   <code>-rx-avatar-fill</code>; set it on <code>.rx-avatar</code> to recolor both. The avatar casts a
+   <code>-rx-avatar-fill</code>, and the initials and icon take <code>-rx-avatar-on-fill</code>; set
+   them on <code>.rx-avatar</code> to recolor both states. The avatar casts a
    light shadow (<code>-fx-effect</code> on <code>.rx-avatar</code>, colored by
    <code>-rx-elevation-umbra-color</code>), and the <code>.ring</code> outline (<code>-fx-stroke</code>)
    keeps the edge visible where the shadow cannot show, such as on a near-black page. The avatar's

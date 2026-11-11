@@ -112,10 +112,10 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("circular.track", "#81cee7ff");
         DEFAULT_MODENA.put("circular.progress", "#0096c9ff");
         DEFAULT_MODENA.put("circular.completed", "#67c23aff");
-        DEFAULT_MODENA.put("avatar.icon-disc", "#bdbdbdff");
+        DEFAULT_MODENA.put("avatar.icon-disc", "#757575ff");
         DEFAULT_MODENA.put("avatar.icon", "#ffffffff");
-        DEFAULT_MODENA.put("avatar.text-disc", "#bdbdbdff");
-        DEFAULT_MODENA.put("avatar.text", "#000000ff");
+        DEFAULT_MODENA.put("avatar.text-disc", "#757575ff");
+        DEFAULT_MODENA.put("avatar.text", "#ffffffff");
         DEFAULT_MODENA.put("avatar.ring", "#0000001a");
         DEFAULT_MODENA.put("snackbar.bar", "#323232ff");
         DEFAULT_MODENA.put("snackbar.message", "#ffffffde");
@@ -925,32 +925,34 @@ public class RXControlColorsTest {
     }
 
     /**
-     * The text avatar shares the placeholder disc, and its initials keep normal-text
-     * contrast (4.5:1) on it, on default Modena, a dark application palette and every
-     * AtlantaFX theme.
+     * The text avatar shares the placeholder disc, and its initials and the icon are
+     * white, on default Modena, a dark application palette and every AtlantaFX theme;
+     * under Modena the disc keeps normal-text contrast (4.5:1) for them.
      *
      * @throws Exception if the FX action fails
      */
     @Test
-    public void textAvatarIsLegibleOnEveryHost() throws Exception {
-        assertTextAvatarLegible("default Modena", Application.STYLESHEET_MODENA, scene -> { });
-        assertTextAvatarLegible("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette);
+    public void avatarInitialsAndIconAreWhiteOnEveryHost() throws Exception {
+        assertAvatarWhite("default Modena", Application.STYLESHEET_MODENA, scene -> { }, true);
+        assertAvatarWhite("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette, true);
         for (Theme theme : List.of(new PrimerLight(), new PrimerDark(), new NordLight(), new NordDark(),
                 new CupertinoLight(), new CupertinoDark(), new Dracula())) {
-            assertTextAvatarLegible(theme.getName(), theme.getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install);
+            assertAvatarWhite(theme.getName(), theme.getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install, false);
         }
     }
 
-    private static void assertTextAvatarLegible(String host, String userAgentStylesheet, Consumer<Scene> themer)
-            throws Exception {
+    private static void assertAvatarWhite(String host, String userAgentStylesheet, Consumer<Scene> themer,
+                                          boolean checkContrast) throws Exception {
         Map<String, String> samples = sampleUnder(userAgentStylesheet, themer);
         String disc = samples.get("avatar.text-disc");
         assertEquals(samples.get("avatar.icon-disc"), disc, "text avatar disc under " + host);
-        double discLuminance = relativeLuminance(Color.web(disc));
-        double textLuminance = relativeLuminance(Color.web(samples.get("avatar.text")));
-        double contrast = (Math.max(discLuminance, textLuminance) + 0.05)
-                / (Math.min(discLuminance, textLuminance) + 0.05);
-        assertTrue(contrast >= 4.5, "text avatar contrast " + contrast + " under " + host);
+        assertEquals("#ffffffff", samples.get("avatar.text"), "white initials under " + host);
+        assertEquals("#ffffffff", samples.get("avatar.icon"), "white icon under " + host);
+        if (checkContrast) {
+            double discLuminance = relativeLuminance(Color.web(disc));
+            double contrast = 1.05 / (discLuminance + 0.05);
+            assertTrue(contrast >= 4.5, "white initials contrast " + contrast + " under " + host);
+        }
     }
 
     private static void assertAvatarDiscDiffers(String host, String userAgentStylesheet, Consumer<Scene> themer)

@@ -533,12 +533,16 @@
 /* The shadow sits on the control, which has no background of its own, so it
    follows the clipped image, text or icon disc alike. */
 .rx-avatar {
-    -rx-avatar-fill: ladder(-rx-surface, #757575 45%, #bdbdbd 46%);
+    /* A mid gray dark enough for white initials (4.6:1) on any host. */
+    -rx-avatar-fill: #757575;
+    -rx-avatar-on-fill: white;
     -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 8, 0.0, 0, 2);
 }
 
 /* Under the AtlantaFX bridge the disc takes the theme's neutral emphasis, tuned per
-   theme for a fill: a surface color would vanish on any panel painted with it. */
+   theme for a fill: a surface color would vanish on any panel painted with it. The
+   initials and the icon stay white; on the lighter discs of Cupertino Dark and
+   Dracula that is 3.3:1 and 4.0:1. */
 .rx-theme-atlantafx .rx-avatar,
 .rx-theme-atlantafx.rx-avatar {
     -rx-avatar-fill: -color-neutral-emphasis;
@@ -549,15 +553,10 @@
 }
 
 .rx-avatar > .default-icon-wrapper > .default-icon {
-    -fx-background-color: white;
+    -fx-background-color: -rx-avatar-on-fill;
     -fx-shape: 'M12,12c2.21,0,4-1.79,4-4s-1.79-4-4-4-4,1.79-4,4,1.79,4,4,4zm0,2c-2.67,0-8,1.34-8,4v2h16v-2c0-2.66-5.33-4-8-4z';
     -fx-pref-width: 24px;
     -fx-pref-height: 24px;
-}
-
-.rx-theme-atlantafx .rx-avatar > .default-icon-wrapper > .default-icon,
-.rx-theme-atlantafx.rx-avatar > .default-icon-wrapper > .default-icon {
-    -fx-background-color: -color-fg-emphasis;
 }
 
 .rx-avatar > .text-wrapper {
@@ -573,11 +572,9 @@
     -fx-stroke-width: 1;
 }
 
-/* Black or white, whichever reads better on the disc: the 47% / 48% step sits where
-   ladder brightness gives both about the same contrast. */
 .rx-avatar > .text-wrapper > .label {
     -fx-font-weight: bold;
-    -fx-text-fill: ladder(-rx-avatar-fill, white 47%, black 48%);
+    -fx-text-fill: -rx-avatar-on-fill;
 }
 
 /*******************************************************************************
