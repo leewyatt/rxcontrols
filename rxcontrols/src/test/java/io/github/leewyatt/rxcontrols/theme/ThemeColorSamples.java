@@ -196,6 +196,7 @@ final class ThemeColorSamples {
         samples.put("avatar.icon", background(avatar.lookup(".default-icon-wrapper > .default-icon")));
         samples.put("avatar.text-disc", background(textAvatar.lookup(".text-wrapper")));
         samples.put("avatar.text", text(textAvatar.lookup(".text-wrapper > .label")));
+        samples.put("avatar.ring", hex(((Shape) avatar.lookup(".ring")).getStroke()));
 
         samples.put("snackbar.bar", background(plainHost.lookup(".snackbar")));
         samples.put("snackbar.message", text(plainHost.lookup(".snackbar > .message")));

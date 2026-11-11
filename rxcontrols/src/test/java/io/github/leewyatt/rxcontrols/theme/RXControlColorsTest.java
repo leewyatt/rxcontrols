@@ -116,6 +116,7 @@ public class RXControlColorsTest {
         DEFAULT_MODENA.put("avatar.icon", "#ffffffff");
         DEFAULT_MODENA.put("avatar.text-disc", "#bdbdbdff");
         DEFAULT_MODENA.put("avatar.text", "#000000ff");
+        DEFAULT_MODENA.put("avatar.ring", "#0000001a");
         DEFAULT_MODENA.put("snackbar.bar", "#323232ff");
         DEFAULT_MODENA.put("snackbar.message", "#ffffffde");
         DEFAULT_MODENA.put("snackbar.action", "#83d0e7ff");
@@ -177,6 +178,7 @@ public class RXControlColorsTest {
         PRIMER_LIGHT.put("avatar.icon", "#ffffffff");
         PRIMER_LIGHT.put("avatar.text-disc", "#6e7781ff");
         PRIMER_LIGHT.put("avatar.text", "#ffffffff");
+        PRIMER_LIGHT.put("avatar.ring", "#0000001a");
         PRIMER_LIGHT.put("snackbar.bar", "#323232ff");
         PRIMER_LIGHT.put("snackbar.message", "#ffffffde");
         PRIMER_LIGHT.put("snackbar.action", "#85b8eeff");
@@ -239,6 +241,7 @@ public class RXControlColorsTest {
         PRIMER_DARK.put("avatar.icon", "#ffffffff");
         PRIMER_DARK.put("avatar.text-disc", "#6e7681ff");
         PRIMER_DARK.put("avatar.text", "#ffffffff");
+        PRIMER_DARK.put("avatar.ring", "#ffffff26");
         // The snackbar is an inverse surface, so it turns light on a dark AtlantaFX theme.
         PRIMER_DARK.put("snackbar.bar", "#e0e0e0ff");
         PRIMER_DARK.put("snackbar.message", "#000000de");

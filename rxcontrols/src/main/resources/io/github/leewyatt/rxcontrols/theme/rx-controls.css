@@ -79,7 +79,7 @@
          level 3: 12 / 0.0 / 8
        The RXDialog card does not use it: it sits on a scrim, where an opaque
        light-gray theme shadow reads as a glow. Pre-existing structural
-       shadows (drawer / avatar / segmented) are not yet retrofitted onto
+       shadows (drawer / segmented) are not yet retrofitted onto
        the token — that is a separate visual pass. */
     -rx-elevation-umbra-color: rgba(0, 0, 0, 0.2);
 }
@@ -530,8 +530,11 @@
  * RXAvatar                                                                    *
  *                                                                             *
  ******************************************************************************/
+/* The shadow sits on the control, which has no background of its own, so it
+   follows the clipped image, text or icon disc alike. */
 .rx-avatar {
     -rx-avatar-fill: ladder(-rx-surface, #757575 45%, #bdbdbd 46%);
+    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 8, 0.0, 0, 2);
 }
 
 /* Under the AtlantaFX bridge the disc takes the theme's neutral emphasis, tuned per
@@ -560,6 +563,14 @@
 .rx-avatar > .text-wrapper {
     -fx-background-color: -rx-avatar-fill;
     -fx-alignment: center;
+}
+
+/* A faint edge over every state, lighter than a dark host and darker than a light
+   one, where a shadow cannot show (a near-black page) or an image fades into the
+   page. */
+.rx-avatar > .ring {
+    -fx-stroke: ladder(-rx-surface, rgba(255, 255, 255, 0.15) 45%, rgba(0, 0, 0, 0.1) 46%);
+    -fx-stroke-width: 1;
 }
 
 /* Black or white, whichever reads better on the disc: the 47% / 48% step sits where

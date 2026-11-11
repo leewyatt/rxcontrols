@@ -36,8 +36,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests {@link RXAvatar}: defaults, the image &gt; text &gt; icon priority and its
- * pseudo-classes, the shape and arc clip including the null fallback, CSS metadata,
- * square centred layout, clip hand-over across state changes, and disposal.
+ * pseudo-classes, the shape and arc clip including the null fallback, the outline
+ * ring, CSS metadata, square centred layout, clip hand-over across state changes,
+ * and disposal.
  */
 public class RXAvatarTest {
 
@@ -135,6 +136,30 @@ public class RXAvatarTest {
             source.set(null);
             avatar.layout();
             assertTrue(icon.getClip() instanceof Circle);
+        });
+    }
+
+    /** Verifies the ring sits on top, covers the centred square, and follows the shape and arcs. */
+    @Test
+    public void ringOutlinesTheClipShape() throws Exception {
+        runOnFx(() -> {
+            RXAvatar avatar = laidOut(new RXAvatar(), 120.0, 80.0);
+            Rectangle ring = (Rectangle) avatar.lookup(".ring");
+            List<Node> children = avatar.getChildrenUnmodifiable();
+            assertSame(ring, children.get(children.size() - 1));
+            assertTrue(ring.isMouseTransparent());
+            assertNull(ring.getFill());
+            assertEquals(20.0, ring.getX(), EPSILON);
+            assertEquals(0.0, ring.getY(), EPSILON);
+            assertEquals(80.0, ring.getWidth(), EPSILON);
+            assertEquals(80.0, ring.getArcWidth(), EPSILON);
+
+            avatar.setShapeType(ShapeType.SQUARE);
+            avatar.setArcWidth(16.0);
+            avatar.setArcHeight(12.0);
+            avatar.layout();
+            assertEquals(16.0, ring.getArcWidth(), EPSILON);
+            assertEquals(12.0, ring.getArcHeight(), EPSILON);
         });
     }
 

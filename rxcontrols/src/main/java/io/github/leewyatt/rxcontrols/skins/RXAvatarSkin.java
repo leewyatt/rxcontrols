@@ -14,6 +14,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.StrokeType;
 
 /**
  * Default skin for {@link RXAvatar}.
@@ -21,6 +22,10 @@ import javafx.scene.shape.Rectangle;
  * <p>The visible rendering area is always {@code min(width, height)} square,
  * centered within the control bounds. This ensures the avatar remains
  * square/circular regardless of the control's aspect ratio.</p>
+ *
+ * <p>A {@code ring} outline is drawn over every state, matching the clip shape, so
+ * the edge stays visible where an image or disc meets a background of the same
+ * tone.</p>
  */
 public class RXAvatarSkin extends RXSkinBase<RXAvatar> {
 
@@ -32,6 +37,7 @@ public class RXAvatarSkin extends RXSkinBase<RXAvatar> {
     private final Label textLabel;
     private final StackPane defaultIconWrapper;
     private final Region defaultIcon;
+    private final Rectangle ring;
 
     // Only one node is visible at a time, so a single pair of clip shapes suffices.
     private final Rectangle clipRect;
@@ -71,7 +77,17 @@ public class RXAvatarSkin extends RXSkinBase<RXAvatar> {
         defaultIconWrapper = new StackPane(defaultIcon);
         defaultIconWrapper.getStyleClass().add("default-icon-wrapper");
 
-        getChildren().addAll(defaultIconWrapper, textWrapper, imageWrapper);
+        // A circle is a rectangle whose corner arcs span its side; one node fits both
+        // shapes. No fill, and the stroke drawn inside, so it never covers the content
+        // or grows the avatar; the stroke color and width come from CSS.
+        ring = new Rectangle();
+        ring.getStyleClass().add("ring");
+        ring.setFill(null);
+        ring.setStrokeType(StrokeType.INSIDE);
+        ring.setManaged(false);
+        ring.setMouseTransparent(true);
+
+        getChildren().addAll(defaultIconWrapper, textWrapper, imageWrapper, ring);
 
         disposer.registerListener(control.imageProperty(), this::onImageChanged);
         disposer.registerListener(control.displayStateProperty(), this::onDisplayStateChanged);
@@ -139,6 +155,13 @@ public class RXAvatarSkin extends RXSkinBase<RXAvatar> {
         ShapeType type = shapeTypeOrDefault();
         double arcW = RXMath.sanitizeNonNegative(getSkinnable().getArcWidth());
         double arcH = RXMath.sanitizeNonNegative(getSkinnable().getArcHeight());
+
+        ring.setX(cx);
+        ring.setY(cy);
+        ring.setWidth(size);
+        ring.setHeight(size);
+        ring.setArcWidth(type == ShapeType.CIRCLE ? size : arcW);
+        ring.setArcHeight(type == ShapeType.CIRCLE ? size : arcH);
 
         if (imageWrapper.isVisible()) {
             layoutImage(cx, cy, size);

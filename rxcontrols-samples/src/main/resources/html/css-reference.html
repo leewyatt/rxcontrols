@@ -366,7 +366,8 @@ RXAtlantaFXThemeBridge.uninstall(scene);</code></pre>
 .text-wrapper — StackPane<br/>
 &emsp;&emsp;.label — Label<br/>
 .default-icon-wrapper — StackPane<br/>
-&emsp;&emsp;.default-icon — Region<br/><br/>
+&emsp;&emsp;.default-icon — Region<br/>
+.ring — Rectangle (a 1px outline over every state, matching the clip shape)<br/><br/>
 <p>Pseudo-classes</p>
 <table>
     <thead>
@@ -419,7 +420,10 @@ RXAtlantaFXThemeBridge.uninstall(scene);</code></pre>
 </table>
 <p>The arcs are diameters, as in <code>Rectangle</code>: the default 10 rounds each corner with a 5px
    radius. The disc behind the initials and the default icon is the looked-up color
-   <code>-rx-avatar-fill</code>; set it on <code>.rx-avatar</code> to recolor both. The avatar's
+   <code>-rx-avatar-fill</code>; set it on <code>.rx-avatar</code> to recolor both. The avatar casts a
+   light shadow (<code>-fx-effect</code> on <code>.rx-avatar</code>, colored by
+   <code>-rx-elevation-umbra-color</code>), and the <code>.ring</code> outline (<code>-fx-stroke</code>)
+   keeps the edge visible where the shadow cannot show, such as on a near-black page. The avatar's
    preferred size is 40 &times; 40.</p>
 
 <h3 id="rxCarousel">RXCarousel</h3>
