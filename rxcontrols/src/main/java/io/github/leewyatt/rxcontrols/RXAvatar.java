@@ -44,6 +44,7 @@ import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.EnumConverter;
 import javafx.css.converter.SizeConverter;
+import javafx.scene.AccessibleRole;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 import javafx.scene.image.Image;
@@ -83,12 +84,25 @@ import java.util.List;
  * avatar.setShapeType(ShapeType.SQUARE);
  * avatar.setArcWidth(20);
  * avatar.setArcHeight(20);
+ *
+ * // What a screen reader announces
+ * avatar.setAccessibleText("Lee Wyatt");
  * }</pre>
+ *
+ * <p>The avatar reports the {@link AccessibleRole#IMAGE_VIEW} role. Describe the
+ * person with {@link #setAccessibleText(String)}; the avatar never derives that
+ * description from its {@link #textProperty() text}, which is usually just
+ * initials.</p>
  */
 public class RXAvatar extends Control {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-avatar";
     private static final double DEFAULT_ARC = 10;
+
+    /**
+     * Default shape type, also the {@code null} fallback.
+     */
+    public static final ShapeType DEFAULT_SHAPE_TYPE = ShapeType.CIRCLE;
 
     // ==================== Pseudo-classes ====================
 
@@ -119,20 +133,21 @@ public class RXAvatar extends Control {
      */
     public RXAvatar() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
+        setAccessibleRole(AccessibleRole.IMAGE_VIEW);
         setFocusTraversable(false);
         // The skin keeps computed min/max stable for opt-out callers; by default
         // the avatar is a fixed-size visual unit whose bounds track effective pref.
         setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        imageProperty().addListener(obs -> onImageChanged());
-        textProperty().addListener(obs -> updateDisplayState());
         updateDisplayState();
     }
 
     /**
-     * Creates a new avatar with the given image URL.
+     * Creates a new avatar with the given image URL, loaded in the background.
      *
      * @param imageUrl the image URL
+     * @throws NullPointerException     if {@code imageUrl} is null
+     * @throws IllegalArgumentException if {@code imageUrl} is invalid or unsupported
      */
     public RXAvatar(String imageUrl) {
         this(new Image(imageUrl, true));
@@ -153,6 +168,9 @@ public class RXAvatar extends Control {
         return new RXAvatarSkin(this);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getUserAgentStylesheet() {
         return RXResources.USER_AGENT_STYLESHEET;
@@ -223,8 +241,12 @@ public class RXAvatar extends Control {
 
     // ==================== Image ====================
 
-    private final ObjectProperty<Image> image =
-            new SimpleObjectProperty<>(this, "image");
+    private final ObjectProperty<Image> image = new SimpleObjectProperty<>(this, "image") {
+        @Override
+        protected void invalidated() {
+            onImageChanged();
+        }
+    };
 
     /**
      * The image to display in the avatar.
@@ -255,8 +277,12 @@ public class RXAvatar extends Control {
 
     // ==================== Text ====================
 
-    private final StringProperty text =
-            new SimpleStringProperty(this, "text");
+    private final StringProperty text = new SimpleStringProperty(this, "text") {
+        @Override
+        protected void invalidated() {
+            updateDisplayState();
+        }
+    };
 
     /**
      * The text to display when the image is unavailable (typically user
@@ -289,8 +315,8 @@ public class RXAvatar extends Control {
 
     // ==================== Shape Type ====================
 
-    private final StyleableObjectProperty<ShapeType> shapeType =
-            new StyleableObjectProperty<>(ShapeType.CIRCLE) {
+    private final ObjectProperty<ShapeType> shapeType =
+            new StyleableObjectProperty<>(DEFAULT_SHAPE_TYPE) {
                 @Override
                 public CssMetaData<? extends Styleable, ShapeType> getCssMetaData() {
                     return StyleableProperties.SHAPE_TYPE;
@@ -308,27 +334,28 @@ public class RXAvatar extends Control {
             };
 
     /**
-     * The shape used to clip the avatar image.
+     * The shape used to clip the avatar. Initial value is {@link #DEFAULT_SHAPE_TYPE};
+     * a {@code null} value is not rejected and draws that default.
      *
      * @return the shape type property
      */
-    public final StyleableObjectProperty<ShapeType> shapeTypeProperty() {
+    public final ObjectProperty<ShapeType> shapeTypeProperty() {
         return shapeType;
     }
 
     /**
-     * Returns the shape type used to clip the avatar image.
+     * Returns the shape type used to clip the avatar.
      *
-     * @return the shape type
+     * @return the shape type, possibly {@code null}
      */
     public final ShapeType getShapeType() {
         return shapeType.get();
     }
 
     /**
-     * Sets the shape type used to clip the avatar image.
+     * Sets the shape type used to clip the avatar.
      *
-     * @param type the shape type
+     * @param type the shape type, or {@code null} for the default
      */
     public final void setShapeType(ShapeType type) {
         shapeType.set(type);
@@ -336,7 +363,7 @@ public class RXAvatar extends Control {
 
     // ==================== Arc Width ====================
 
-    private final StyleableDoubleProperty arcWidth =
+    private final DoubleProperty arcWidth =
             new StyleableDoubleProperty(DEFAULT_ARC) {
                 @Override
                 public CssMetaData<? extends Styleable, Number> getCssMetaData() {
@@ -355,8 +382,10 @@ public class RXAvatar extends Control {
             };
 
     /**
-     * The horizontal arc radius for rounded corners when shape type is
-     * {@link ShapeType#SQUARE}. Ignored for other shape types.
+     * The horizontal diameter of the corner arcs when the shape type is
+     * {@link ShapeType#SQUARE}, as in {@code Rectangle.arcWidth}. Initial value is
+     * {@code 10}, a 5px corner radius. Corners are rounded only while both arc
+     * diameters are positive; ignored for other shape types.
      *
      * @return the arc width property
      */
@@ -365,7 +394,7 @@ public class RXAvatar extends Control {
     }
 
     /**
-     * Returns the horizontal arc radius for rounded corners.
+     * Returns the horizontal diameter of the corner arcs.
      *
      * @return the arc width
      */
@@ -374,7 +403,7 @@ public class RXAvatar extends Control {
     }
 
     /**
-     * Sets the horizontal arc radius for rounded corners.
+     * Sets the horizontal diameter of the corner arcs.
      *
      * @param value the arc width
      */
@@ -384,7 +413,7 @@ public class RXAvatar extends Control {
 
     // ==================== Arc Height ====================
 
-    private final StyleableDoubleProperty arcHeight =
+    private final DoubleProperty arcHeight =
             new StyleableDoubleProperty(DEFAULT_ARC) {
                 @Override
                 public CssMetaData<? extends Styleable, Number> getCssMetaData() {
@@ -403,8 +432,10 @@ public class RXAvatar extends Control {
             };
 
     /**
-     * The vertical arc radius for rounded corners when shape type is
-     * {@link ShapeType#SQUARE}. Ignored for other shape types.
+     * The vertical diameter of the corner arcs when the shape type is
+     * {@link ShapeType#SQUARE}, as in {@code Rectangle.arcHeight}. Initial value is
+     * {@code 10}, a 5px corner radius. Corners are rounded only while both arc
+     * diameters are positive; ignored for other shape types.
      *
      * @return the arc height property
      */
@@ -413,7 +444,7 @@ public class RXAvatar extends Control {
     }
 
     /**
-     * Returns the vertical arc radius for rounded corners.
+     * Returns the vertical diameter of the corner arcs.
      *
      * @return the arc height
      */
@@ -422,7 +453,7 @@ public class RXAvatar extends Control {
     }
 
     /**
-     * Sets the vertical arc radius for rounded corners.
+     * Sets the vertical diameter of the corner arcs.
      *
      * @param value the arc height
      */
@@ -436,15 +467,16 @@ public class RXAvatar extends Control {
 
         private static final CssMetaData<RXAvatar, ShapeType> SHAPE_TYPE =
                 new CssMetaData<>("-rx-shape-type",
-                        new EnumConverter<>(ShapeType.class), ShapeType.CIRCLE) {
+                        new EnumConverter<>(ShapeType.class), DEFAULT_SHAPE_TYPE) {
                     @Override
                     public boolean isSettable(RXAvatar control) {
                         return !control.shapeType.isBound();
                     }
 
                     @Override
+                    @SuppressWarnings("unchecked")
                     public StyleableProperty<ShapeType> getStyleableProperty(RXAvatar control) {
-                        return control.shapeTypeProperty();
+                        return (StyleableProperty<ShapeType>) control.shapeTypeProperty();
                     }
                 };
 
@@ -457,8 +489,9 @@ public class RXAvatar extends Control {
                     }
 
                     @Override
+                    @SuppressWarnings("unchecked")
                     public StyleableProperty<Number> getStyleableProperty(RXAvatar control) {
-                        return control.arcWidth;
+                        return (StyleableProperty<Number>) control.arcWidthProperty();
                     }
                 };
 
@@ -471,8 +504,9 @@ public class RXAvatar extends Control {
                     }
 
                     @Override
+                    @SuppressWarnings("unchecked")
                     public StyleableProperty<Number> getStyleableProperty(RXAvatar control) {
-                        return control.arcHeight;
+                        return (StyleableProperty<Number>) control.arcHeightProperty();
                     }
                 };
 

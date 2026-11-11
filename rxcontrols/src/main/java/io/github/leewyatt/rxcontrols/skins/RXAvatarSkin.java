@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXAvatar.DisplayState;
 import io.github.leewyatt.rxcontrols.RXAvatar.ShapeType;
+import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Group;
 import javafx.scene.Node;
@@ -131,12 +132,13 @@ public class RXAvatarSkin extends RXSkinBase<RXAvatar> {
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
         double size = Math.min(w, h);
-        double cx = x + (w - size) / 2;
-        double cy = y + (h - size) / 2;
+        // Snapped like layoutInArea: crisp edges, at most a device pixel off center.
+        double cx = snapPositionX(x + (w - size) / 2);
+        double cy = snapPositionY(y + (h - size) / 2);
 
-        ShapeType type = getSkinnable().getShapeType();
-        double arcW = getSkinnable().getArcWidth();
-        double arcH = getSkinnable().getArcHeight();
+        ShapeType type = shapeTypeOrDefault();
+        double arcW = RXMath.sanitizeNonNegative(getSkinnable().getArcWidth());
+        double arcH = RXMath.sanitizeNonNegative(getSkinnable().getArcHeight());
 
         if (imageWrapper.isVisible()) {
             layoutImage(cx, cy, size);
@@ -148,6 +150,11 @@ public class RXAvatarSkin extends RXSkinBase<RXAvatar> {
             defaultIconWrapper.resizeRelocate(cx, cy, size, size);
             applyClip(defaultIconWrapper, size, type, arcW, arcH);
         }
+    }
+
+    private ShapeType shapeTypeOrDefault() {
+        ShapeType type = getSkinnable().getShapeType();
+        return type == null ? RXAvatar.DEFAULT_SHAPE_TYPE : type;
     }
 
     private void applyClip(Node node, double size, ShapeType type,
