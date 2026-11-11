@@ -719,7 +719,9 @@
     -fx-scale-y: 1.18;
 }
 
-.rx-seek-bar:focused > .thumb {
+/* :focus-shown is set by the skin: focus, unless it came from a pointer press and no
+   key has been pressed since. */
+.rx-seek-bar:focus-shown > .thumb {
     -fx-effect: dropshadow(three-pass-box, derive(-rx-thumb-fill, -20%), 7, 0.5, 0, 0);
 }
 

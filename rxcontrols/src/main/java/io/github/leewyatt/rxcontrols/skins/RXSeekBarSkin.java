@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.internal.slider.IndicatorAnimator;
 import io.github.leewyatt.rxcontrols.internal.slider.SliderAxis;
 import io.github.leewyatt.rxcontrols.internal.slider.SliderValueIndicator;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
+import javafx.css.PseudoClass;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
 import javafx.geometry.Point2D;
@@ -25,9 +26,11 @@ import java.util.function.Function;
 /**
  * Default skin for {@link RXSeekBar}.
  *
- * <p>With an indicator text factory set, a preview bubble above the thumb shows
- * while the pointer seeks and while the bar has keyboard focus that came from the
- * keyboard (a key pressed since the last mouse press), not after a click.</p>
+ * <p>Focus shows only once the keyboard is in use: the skin sets the
+ * {@code :focus-shown} pseudo-class on the seek bar while it is focused and a key
+ * has been pressed since the last mouse press, so a click alone shows no focus cue.
+ * With an indicator text factory set, a preview bubble above the thumb shows while
+ * the pointer seeks and while focus is shown.</p>
  */
 public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
 
@@ -36,6 +39,7 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
     private static final double DEFAULT_PREF_WIDTH = 160.0;
     private static final double DEFAULT_KEYBOARD_STEP = 0.05;
     private static final double HALF = 0.5;
+    private static final PseudoClass FOCUS_SHOWN = PseudoClass.getPseudoClass("focus-shown");
 
     // ==================== Nodes ====================
 
@@ -78,6 +82,8 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
         registerKeyboardHandler(control);
         registerIndicatorListeners(control);
         updateIndicatorText();
+        // Also clears a state a replaced seek bar skin left behind.
+        updateFocusShown();
     }
 
     private void initializeNodes() {
@@ -133,7 +139,7 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
                     && control.getScene().getFocusOwner() != control) {
                 keyboardFocus = false;
             }
-            updateIndicator();
+            updateFocusFeedback();
         });
     }
 
@@ -246,17 +252,30 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
         control.setSeeking(false);
     }
 
-    // ==================== Indicator ====================
+    // ==================== Focus cue and indicator ====================
 
     private void setKeyboardFocus(boolean value) {
         if (keyboardFocus != value) {
             keyboardFocus = value;
-            updateIndicator();
+            updateFocusFeedback();
         }
     }
 
+    private boolean focusShown() {
+        return keyboardFocus && getSkinnable().isFocused();
+    }
+
+    private void updateFocusFeedback() {
+        updateFocusShown();
+        updateIndicator();
+    }
+
+    private void updateFocusShown() {
+        getSkinnable().pseudoClassStateChanged(FOCUS_SHOWN, focusShown());
+    }
+
     private void updateIndicator() {
-        indicatorAnimator.update(pointerSeeking || (keyboardFocus && getSkinnable().isFocused()));
+        indicatorAnimator.update(pointerSeeking || focusShown());
     }
 
     private void updateIndicatorText() {
@@ -363,6 +382,12 @@ public class RXSeekBarSkin extends RXSkinBase<RXSeekBar> {
     @Override
     protected void disposeSkin() {
         indicatorAnimator.dispose();
+        // A replacing seek bar skin is built, and sets the state, before this one is
+        // disposed; clear it only for any other successor.
+        RXSeekBar control = getSkinnable();
+        if (control.getSkin() == this || !(control.getSkin() instanceof RXSeekBarSkin)) {
+            control.pseudoClassStateChanged(FOCUS_SHOWN, false);
+        }
         if (pointerSeeking) {
             pointerSeeking = false;
             dragStart = null;

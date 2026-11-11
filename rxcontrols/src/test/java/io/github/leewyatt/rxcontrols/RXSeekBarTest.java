@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import javafx.application.Platform;
+import javafx.css.PseudoClass;
 import javafx.event.Event;
 import javafx.event.EventType;
 import javafx.geometry.NodeOrientation;
@@ -29,6 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -247,6 +249,37 @@ public class RXSeekBarTest {
             assertTrue(indicator.isVisible());
             assertEquals("at 0.05", bubbleText(bar));
         });
+    }
+
+    /** Verifies a click shows no focus shadow, a key shows it, and removing the skin clears the state. */
+    @Test
+    public void focusCueShowsOnlyForTheKeyboard() throws Exception {
+        runOnFx(() -> {
+            FocusableSeekBar bar = new FocusableSeekBar();
+            laidOut(bar, 1.0);
+            Node hitArea = hitArea(bar);
+            fire(hitArea, MouseEvent.MOUSE_PRESSED, 6.0 + 50.0, MouseButton.PRIMARY);
+            fire(hitArea, MouseEvent.MOUSE_RELEASED, 6.0 + 50.0, MouseButton.PRIMARY);
+            Node thumb = bar.lookup(".thumb");
+            assertTrue(bar.isFocused());
+            assertFalse(focusShown(bar));
+            bar.applyCss();
+            assertNull(thumb.getEffect());
+            Event.fireEvent(bar, key(KeyCode.RIGHT));
+            assertTrue(focusShown(bar));
+            bar.applyCss();
+            assertNotNull(thumb.getEffect());
+            fire(hitArea, MouseEvent.MOUSE_PRESSED, 6.0 + 50.0, MouseButton.PRIMARY);
+            assertFalse(focusShown(bar));
+            fire(hitArea, MouseEvent.MOUSE_RELEASED, 6.0 + 50.0, MouseButton.PRIMARY);
+            Event.fireEvent(bar, key(KeyCode.RIGHT));
+            bar.setSkin(null);
+            assertFalse(focusShown(bar));
+        });
+    }
+
+    private static boolean focusShown(RXSeekBar bar) {
+        return bar.getPseudoClassStates().contains(PseudoClass.getPseudoClass("focus-shown"));
     }
 
     /** A seek bar whose focus request takes effect in a headless scene. */
