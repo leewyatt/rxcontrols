@@ -1,8 +1,10 @@
 package io.github.leewyatt.rxcontrols.internal.slider;
 
+import javafx.geometry.Insets;
 import javafx.geometry.Side;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -17,6 +19,9 @@ import javafx.scene.layout.StackPane;
  * <p>The node is unmanaged and mouse-transparent; the slider skin sizes and
  * places it each layout pass, points its caret, and drives its show / hide
  * transition. It never installs a clip, so it may overflow the slider bounds.</p>
+ *
+ * <p>The body is the first background fill, assumed to fill the node: the caret
+ * meets the node edge and keeps clear of that fill's corner radii.</p>
  */
 public final class SliderValueIndicator extends StackPane {
 
@@ -78,19 +83,23 @@ public final class SliderValueIndicator extends StackPane {
     }
 
     /**
-     * Returns how close to either end of its edge the caret center can sit, clear of
-     * the rounded corners, for the bubble's current size. A skin that keeps the bubble
-     * inside the slider lets it overflow by up to this much, less the distance from
-     * the slider's end to the target, so the caret still reaches the target.
+     * Returns how close to one end of its edge the caret center can sit, clear of the
+     * rounded corner there, for the bubble's current size. To let the caret reach a
+     * target, a skin keeps at least this much of the bubble between the target and
+     * that end.
      *
      * @param vertical  whether the slider is vertical
      * @param startSide whether the bubble is on the start side across the track
-     * @return the caret's closest center distance to an end of its edge
+     * @param towardMin whether the end is the one toward the slider minimum (left of
+     *                  a horizontal slider, bottom of a vertical one)
+     * @return the caret's closest center distance to that end of its edge
      */
-    public double caretReach(boolean vertical, boolean startSide) {
+    public double caretReach(boolean vertical, boolean startSide, boolean towardMin) {
         Side side = caretSideFor(vertical, startSide);
-        double halfCaret = snapSizeX(caret.prefWidth(-1)) * HALF;
-        return Math.max(cornerInset(side, true), cornerInset(side, false)) + halfCaret;
+        // Edges run left to right and top to bottom; a vertical minimum is at the bottom.
+        boolean atEdgeStart = towardMin != vertical;
+        double[] radii = edgeRadii(side);
+        return (atEdgeStart ? radii[0] : radii[1]) + snapSizeX(caret.prefWidth(-1)) * HALF;
     }
 
     private static Side caretSideFor(boolean vertical, boolean startSide) {
@@ -143,50 +152,59 @@ public final class SliderValueIndicator extends StackPane {
         if (Double.isNaN(caretAnchor)) {
             return center;
         }
-        double lo = cornerInset(caretSide, true) + caretWidth * HALF;
-        double hi = edgeLength - cornerInset(caretSide, false) - caretWidth * HALF;
+        double[] radii = edgeRadii(caretSide);
+        double lo = radii[0] + caretWidth * HALF;
+        double hi = edgeLength - radii[1] - caretWidth * HALF;
         if (lo > hi) {
             return center;
         }
         return Math.max(lo, Math.min(hi, caretAnchor));
     }
 
-    // The corner radius along an edge at its start (left / top) or its other end.
-    private double cornerInset(Side side, boolean atStart) {
+    // The body's corner radii along an edge, at its start (left / top) and its other
+    // end, resolved and scaled down the way a Region draws its background: percentages
+    // against the inset box, then one shared scale if two radii overrun a side.
+    private double[] edgeRadii(Side side) {
         Background background = getBackground();
         if (background == null || background.getFills().isEmpty()) {
-            return 0.0;
+            return new double[] {0.0, 0.0};
         }
-        CornerRadii radii = background.getFills().get(0).getRadii();
-        double w = getWidth();
-        double h = getHeight();
-        double radius;
+        BackgroundFill fill = background.getFills().get(0);
+        CornerRadii r = fill.getRadii();
+        Insets insets = fill.getInsets();
+        double w = getWidth() - insets.getLeft() - insets.getRight();
+        double h = getHeight() - insets.getTop() - insets.getBottom();
+        if (w <= 0.0 || h <= 0.0) {
+            return new double[] {0.0, 0.0};
+        }
+        double tlh = resolve(r.getTopLeftHorizontalRadius(), r.isTopLeftHorizontalRadiusAsPercentage(), w);
+        double tlv = resolve(r.getTopLeftVerticalRadius(), r.isTopLeftVerticalRadiusAsPercentage(), h);
+        double trh = resolve(r.getTopRightHorizontalRadius(), r.isTopRightHorizontalRadiusAsPercentage(), w);
+        double trv = resolve(r.getTopRightVerticalRadius(), r.isTopRightVerticalRadiusAsPercentage(), h);
+        double brh = resolve(r.getBottomRightHorizontalRadius(), r.isBottomRightHorizontalRadiusAsPercentage(), w);
+        double brv = resolve(r.getBottomRightVerticalRadius(), r.isBottomRightVerticalRadiusAsPercentage(), h);
+        double blh = resolve(r.getBottomLeftHorizontalRadius(), r.isBottomLeftHorizontalRadiusAsPercentage(), w);
+        double blv = resolve(r.getBottomLeftVerticalRadius(), r.isBottomLeftVerticalRadiusAsPercentage(), h);
+        double scale = Math.min(1.0, Math.min(Math.min(fit(w, tlh + trh), fit(w, blh + brh)),
+                Math.min(fit(h, tlv + blv), fit(h, trv + brv))));
         switch (side) {
             case TOP:
-                radius = atStart
-                        ? resolve(radii.getTopLeftHorizontalRadius(), radii.isTopLeftHorizontalRadiusAsPercentage(), w)
-                        : resolve(radii.getTopRightHorizontalRadius(), radii.isTopRightHorizontalRadiusAsPercentage(), w);
-                return Math.min(radius, w * HALF);
+                return new double[] {tlh * scale, trh * scale};
             case BOTTOM:
-                radius = atStart
-                        ? resolve(radii.getBottomLeftHorizontalRadius(), radii.isBottomLeftHorizontalRadiusAsPercentage(), w)
-                        : resolve(radii.getBottomRightHorizontalRadius(), radii.isBottomRightHorizontalRadiusAsPercentage(), w);
-                return Math.min(radius, w * HALF);
+                return new double[] {blh * scale, brh * scale};
             case LEFT:
-                radius = atStart
-                        ? resolve(radii.getTopLeftVerticalRadius(), radii.isTopLeftVerticalRadiusAsPercentage(), h)
-                        : resolve(radii.getBottomLeftVerticalRadius(), radii.isBottomLeftVerticalRadiusAsPercentage(), h);
-                return Math.min(radius, h * HALF);
+                return new double[] {tlv * scale, blv * scale};
             default:
-                radius = atStart
-                        ? resolve(radii.getTopRightVerticalRadius(), radii.isTopRightVerticalRadiusAsPercentage(), h)
-                        : resolve(radii.getBottomRightVerticalRadius(), radii.isBottomRightVerticalRadiusAsPercentage(), h);
-                return Math.min(radius, h * HALF);
+                return new double[] {trv * scale, brv * scale};
         }
     }
 
     private static double resolve(double radius, boolean percentage, double size) {
         return percentage ? radius * size : radius;
+    }
+
+    private static double fit(double length, double radiusSum) {
+        return radiusSum > length ? length / radiusSum : 1.0;
     }
 
     private static double rotationFor(Side side) {

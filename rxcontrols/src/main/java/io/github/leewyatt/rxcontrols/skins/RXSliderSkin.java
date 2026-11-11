@@ -504,12 +504,13 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
         indicator.resize(bubbleW, bubbleH);
         double bubbleMain = vertical ? bubbleH : bubbleW;
         double bubbleCross = vertical ? bubbleW : bubbleH;
-        // The bubble stays inside the slider, except near an end, where it overflows
-        // just enough for its caret, kept clear of the rounded corners, to reach the target.
-        double reach = indicator.caretReach(vertical, startSide);
-        double mainMin = Math.min(0.0, thumbM - reach);
-        double mainMax = Math.max(axis.mainLength() - bubbleMain, thumbM + reach - bubbleMain);
-        double mainLo = RXMath.clamp(thumbM - bubbleMain * HALF, mainMin, Math.max(mainMin, mainMax));
+        // Centered on the target and kept inside the slider, then moved only as far as
+        // its caret, kept clear of the rounded corners, needs to reach the target; near
+        // an end that lets the bubble overflow the slider a little.
+        double inside = RXMath.clamp(thumbM - bubbleMain * HALF, 0.0, Math.max(0.0, axis.mainLength() - bubbleMain));
+        double reachLo = thumbM + indicator.caretReach(vertical, startSide, false) - bubbleMain;
+        double reachHi = thumbM - indicator.caretReach(vertical, startSide, true);
+        double mainLo = reachLo <= reachHi ? RXMath.clamp(inside, reachLo, reachHi) : inside;
         double thumbCrossLo = barCrossCenter - thumbSize * HALF;
         double thumbCrossHi = barCrossCenter + thumbSize * HALF;
         double crossLo = startSide
@@ -518,7 +519,7 @@ public class RXSliderSkin extends RXSkinBase<RXSlider> {
         indicator.relocate(
                 snapPositionX(axis.rectX(mainLo, mainLo + bubbleMain, crossLo, crossLo + bubbleCross)),
                 snapPositionY(axis.rectY(mainLo, mainLo + bubbleMain, crossLo, crossLo + bubbleCross)));
-        // Near the ends the bubble is held inside the slider; the caret still points at the thumb.
+        // The caret points at the thumb, wherever the bubble ended up along the track.
         indicator.pointCaretAt(axis.pointX(thumbM, barCrossCenter), axis.pointY(thumbM, barCrossCenter),
                 vertical, startSide);
     }

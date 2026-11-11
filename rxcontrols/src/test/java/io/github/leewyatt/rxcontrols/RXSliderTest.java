@@ -906,6 +906,59 @@ public class RXSliderTest {
         });
     }
 
+    /**
+     * Verifies the caret keeps clear of uneven corner radii the way the background
+     * draws them (a corner may exceed half the edge when the other one is small), and
+     * the bubble overflows each end only as far as that end's corner needs.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void caretKeepsClearOfUnevenCorners() throws Exception {
+        runOnFx(() -> {
+            RXSlider slider = scenedSlider(200.0, 30.0);
+            slider.setAnimated(false);
+            slider.setIndicatorDisplay(RXSliderIndicatorDisplay.ALWAYS);
+            slider.setLabelFormatter(new StringConverter<>() {
+                @Override
+                public String toString(Double value) {
+                    return "value " + value.intValue();
+                }
+
+                @Override
+                public Double fromString(String text) {
+                    return 0.0;
+                }
+            });
+            Region indicator = (Region) slider.lookup(".value-indicator");
+            // Top-left, top-right, bottom-right, bottom-left: the caret's bottom edge has
+            // a 70% corner on the left and a 10% one on the right.
+            indicator.setStyle("-fx-background-radius: 0 0 10% 70%;");
+            Region caret = (Region) slider.lookup(".caret");
+            Region thumb = (Region) slider.lookup(".thumb");
+            Bounds control = slider.localToScene(slider.getLayoutBounds());
+
+            slider.setValue(0.0);
+            slider.applyCss();
+            slider.layout();
+            Bounds body = bodyBounds(indicator);
+            Bounds tip = screenBounds(caret);
+            assertEquals(screenBounds(thumb).getCenterX(), tip.getCenterX(), PIXEL_TOLERANCE);
+            assertTrue(tip.getMinX() >= body.getMinX() + 0.7 * body.getWidth() - PIXEL_TOLERANCE);
+
+            slider.setValue(100.0);
+            slider.layout();
+            body = bodyBounds(indicator);
+            tip = screenBounds(caret);
+            assertEquals(screenBounds(thumb).getCenterX(), tip.getCenterX(), PIXEL_TOLERANCE);
+            assertTrue(body.getMaxX() - tip.getMaxX() >= 0.1 * body.getWidth() - PIXEL_TOLERANCE);
+            // The small right corner needs only a few pixels past the end, not the left one's reach.
+            double thumbToEnd = control.getMaxX() - screenBounds(thumb).getCenterX();
+            double rightReach = 0.1 * body.getWidth() + tip.getWidth() / 2.0;
+            assertEquals(control.getMaxX() + rightReach - thumbToEnd, body.getMaxX(), PIXEL_TOLERANCE);
+        });
+    }
+
     private static Bounds screenBounds(Node node) {
         return node.localToScene(node.getBoundsInLocal());
     }

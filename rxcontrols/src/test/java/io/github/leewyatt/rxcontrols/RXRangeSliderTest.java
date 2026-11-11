@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.skins.RXRangeSliderSkin;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.event.EventType;
+import javafx.geometry.Bounds;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
 import javafx.geometry.Point2D;
@@ -1243,6 +1244,50 @@ public class RXRangeSliderTest {
             slider.layout();
             Node shared = indicators(slider)[0].lookup(".caret");
             assertEquals((centerX(lowThumb) + centerX(highThumb)) / 2.0, centerX(shared), PIXEL_TOLERANCE);
+        });
+    }
+
+    /**
+     * Verifies on a vertical range slider, on both sides and mirrored in a
+     * right-to-left orientation, each caret sits on the bubble edge facing the track
+     * and lines up with its thumb at both ends.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void verticalCaretsFaceTheTrackAndPointAtTheirThumbs() throws Exception {
+        runOnFx(() -> {
+            for (NodeOrientation orientation : new NodeOrientation[] {
+                    NodeOrientation.LEFT_TO_RIGHT, NodeOrientation.RIGHT_TO_LEFT}) {
+                for (RXSliderIndicatorPosition position : RXSliderIndicatorPosition.values()) {
+                    RXRangeSlider slider = scened(30.0, 200.0);
+                    slider.setOrientation(Orientation.VERTICAL);
+                    slider.setNodeOrientation(orientation);
+                    slider.setAnimated(false);
+                    slider.setIndicatorDisplay(RXSliderIndicatorDisplay.ALWAYS);
+                    slider.setIndicatorPosition(position);
+                    slider.setLowValue(0.0);
+                    slider.setHighValue(100.0);
+                    layout(slider, 30.0, 200.0);
+                    // START is left of the track, END right; a right-to-left orientation mirrors them.
+                    boolean bubbleOnLeft = (position == RXSliderIndicatorPosition.START)
+                            == (orientation == NodeOrientation.LEFT_TO_RIGHT);
+                    String where = orientation + " " + position;
+                    for (Node bubble : slider.lookupAll(".value-indicator")) {
+                        Bounds body = bubble.localToScene(bubble.getLayoutBounds());
+                        Node caret = bubble.lookup(".caret");
+                        Bounds tip = caret.localToScene(caret.getBoundsInLocal());
+                        assertEquals(bubbleOnLeft ? body.getMaxX() : body.getMinX(),
+                                bubbleOnLeft ? tip.getMinX() : tip.getMaxX(), PIXEL_TOLERANCE, where);
+                        double nearest = Double.MAX_VALUE;
+                        for (Node thumb : slider.lookupAll(".thumb")) {
+                            Bounds knob = thumb.localToScene(thumb.getBoundsInLocal());
+                            nearest = Math.min(nearest, Math.abs(knob.getCenterY() - tip.getCenterY()));
+                        }
+                        assertEquals(0.0, nearest, PIXEL_TOLERANCE, where);
+                    }
+                }
+            }
         });
     }
 

@@ -1034,12 +1034,13 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         indicator.resize(bubbleW, bubbleH);
         double bubbleMain = vertical ? bubbleH : bubbleW;
         double bubbleCross = vertical ? bubbleW : bubbleH;
-        // The bubble stays inside the slider, except near an end, where it overflows
-        // just enough for its caret, kept clear of the rounded corners, to reach the target.
-        double reach = indicator.caretReach(vertical, startSide);
-        double mainMin = Math.min(0.0, centerM - reach);
-        double mainMax = Math.max(axis.mainLength() - bubbleMain, centerM + reach - bubbleMain);
-        double mainLo = RXMath.clamp(centerM - bubbleMain * HALF, mainMin, Math.max(mainMin, mainMax));
+        // Centered on the target and kept inside the slider, then moved only as far as
+        // its caret, kept clear of the rounded corners, needs to reach the target; near
+        // an end that lets the bubble overflow the slider a little.
+        double inside = RXMath.clamp(centerM - bubbleMain * HALF, 0.0, Math.max(0.0, axis.mainLength() - bubbleMain));
+        double reachLo = centerM + indicator.caretReach(vertical, startSide, false) - bubbleMain;
+        double reachHi = centerM - indicator.caretReach(vertical, startSide, true);
+        double mainLo = reachLo <= reachHi ? RXMath.clamp(inside, reachLo, reachHi) : inside;
         double thumbCrossLo = barCrossCenter - thumbSize * HALF;
         double thumbCrossHi = barCrossCenter + thumbSize * HALF;
         double crossLo = startSide
@@ -1048,8 +1049,8 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         indicator.relocate(
                 snapPositionX(axis.rectX(mainLo, mainLo + bubbleMain, crossLo, crossLo + bubbleCross)),
                 snapPositionY(axis.rectY(mainLo, mainLo + bubbleMain, crossLo, crossLo + bubbleCross)));
-        // Near the ends the bubble is held inside the slider; the caret still points at
-        // its thumb, or between the thumbs for the merged bubble.
+        // The caret points at its thumb, or between the thumbs for the merged bubble,
+        // wherever the bubble ended up along the track.
         indicator.pointCaretAt(axis.pointX(centerM, barCrossCenter), axis.pointY(centerM, barCrossCenter),
                 vertical, startSide);
     }
