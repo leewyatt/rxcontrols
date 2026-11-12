@@ -169,7 +169,10 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
         factories.put("text field", () -> RXCopyButton.textContent(sourceField.getText()));
         factories.put("text + HTML", () -> {
             ClipboardContent content = RXCopyButton.textContent(sourceField.getText());
-            content.putHtml("<b>" + escapeHtml(sourceField.getText()) + "</b>");
+            // An empty field stays "nothing to copy" instead of an empty <b></b>.
+            if (!content.isEmpty()) {
+                content.putHtml("<b>" + escapeHtml(sourceField.getText()) + "</b>");
+            }
             return content;
         });
         factories.put("image (button snapshot)", () -> {
