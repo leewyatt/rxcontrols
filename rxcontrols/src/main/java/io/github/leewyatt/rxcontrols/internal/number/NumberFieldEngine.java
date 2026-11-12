@@ -201,22 +201,24 @@ public final class NumberFieldEngine<T> {
     /**
      * Entry point for the host min/max properties' {@code invalidated()}: the
      * port of Slider's {@code adjustValues} — re-clamp an unbound value into the
-     * new range; a bound value is only re-rendered.
+     * new range. Only a value that actually moved is re-rendered: re-rendering
+     * cancels the edit in progress, so a value still in range (or a bound value,
+     * which is never clamped) keeps whatever the user is typing.
      */
     public void boundsChanged() {
         if (value.isBound()) {
-            refreshText();
             return;
         }
         T current = value.get();
         T clamped = clamp.apply(current);
-        if (!Objects.equals(current, clamped)) {
-            updatingValue = true;
-            try {
-                value.set(clamped);
-            } finally {
-                updatingValue = false;
-            }
+        if (Objects.equals(current, clamped)) {
+            return;
+        }
+        updatingValue = true;
+        try {
+            value.set(clamped);
+        } finally {
+            updatingValue = false;
         }
         refreshText();
     }

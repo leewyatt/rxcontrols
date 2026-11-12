@@ -112,6 +112,49 @@ public class RXIntegerFieldTest {
         assertEquals("77", r[3], "text follows the committed value");
     }
 
+    /** A bound change that leaves the value in range keeps an uncommitted edit. */
+    @Test
+    public void inRangeBoundChangeKeepsAnUncommittedEdit() {
+        Object[] r = onFx(() -> {
+            RXIntegerField f = new RXIntegerField(5);
+            f.positionCaret(1);
+            f.replaceText(1, 1, "7");
+            f.setMax(1000);
+            f.setMin(-1000);
+            return new Object[]{f.getText(), f.getCaretPosition(), f.getValue()};
+        });
+        assertEquals("57", r[0], "the typed text survives");
+        assertEquals(2, r[1], "the caret stays where the user left it");
+        assertEquals(5, r[2], "nothing was committed");
+    }
+
+    /** A bound change that clamps the value re-renders the text to the clamped value. */
+    @Test
+    public void clampingBoundChangeReRendersTheText() {
+        Object[] r = onFx(() -> {
+            RXIntegerField f = new RXIntegerField(50);
+            f.setMax(10);
+            return new Object[]{f.getValue(), f.getText()};
+        });
+        assertEquals(10, r[0]);
+        assertEquals("10", r[1]);
+    }
+
+    /** A bound value is never clamped, so a bound change leaves an uncommitted edit alone. */
+    @Test
+    public void boundChangeOnABoundValueKeepsAnUncommittedEdit() {
+        Object[] r = onFx(() -> {
+            RXIntegerField f = new RXIntegerField();
+            f.valueProperty().bind(new SimpleObjectProperty<>(5));
+            f.positionCaret(1);
+            f.replaceText(1, 1, "7");
+            f.setMax(1000);
+            return new Object[]{f.getText(), f.getValue()};
+        });
+        assertEquals("57", r[0], "the typed text survives");
+        assertEquals(5, r[1]);
+    }
+
     /** An empty field (null value) is never clamped into a value by a bound change. */
     @Test
     public void emptyValueIsNotClampedByBounds() {
