@@ -131,7 +131,8 @@
     <li><b>Global color tokens</b> (table below) — looked-up colors with role names
         (<code>-rx-primary</code>, <code>-rx-on-surface</code>, …). Defined on the control root,
         referenced from any descendant rule. Each one is an independent override point: overriding
-        one role changes only that role.</li>
+        one role changes only that role. Override them on the controls, not on <code>.root</code>
+        (see <a href="#overridingTokens">Overriding a color token</a>).</li>
     <li><b>Component styleable properties</b> — part names (<code>-rx-fill</code>,
         <code>-rx-line-color</code>, <code>-rx-dot-fill</code>, <code>-rx-ripple-fill</code>, …),
         documented per control. Their defaults reference a role token; they remain the
@@ -190,6 +191,40 @@
    disc rather than a surface, so it never takes a surface color: a mid gray (#757575) on any
    Modena host, and AtlantaFX's <code>-color-neutral-emphasis</code> under the bridge. A text avatar
    uses the same disc, and the icon and the initials on it are white.</p>
+
+<h3 id="overridingTokens">Overriding a color token</h3>
+<p>The tokens are defined on each control root, and a looked-up color is resolved on the node
+   itself before its ancestors. The control's own default is therefore always found first, so a
+   token set on <code>.root</code> or on a container has no effect:</p>
+<pre><code>.root { -rx-primary: #3f51b5; }      /* no effect */
+.my-panel { -rx-primary: #3f51b5; }  /* no effect */</code></pre>
+<p>Use a selector that matches the controls themselves. A rule in an application stylesheet
+   overrides the user-agent defaults whatever its specificity:</p>
+<pre><code>/* every RxControls control in the scene */
+* { -rx-primary: #3f51b5; }
+
+/* only the controls inside one container */
+.my-panel * { -rx-primary: #3f51b5; }
+
+/* one kind of control */
+.rx-fill-button { -rx-primary: #3f51b5; }</code></pre>
+<ul>
+    <li><b>Derived roles.</b> On the default palette <code>-rx-primary-hover</code>,
+        <code>-rx-primary-active</code> and <code>-rx-primary-bg</code> are derived from
+        <code>-rx-primary</code> and follow it. Under the <a href="#atlantafxBridge">AtlantaFX bridge</a>
+        they come from AtlantaFX's accent tokens instead, so set them as well, or recolor the theme's
+        <code>-color-accent-*</code> tokens.</li>
+    <li><b>Narrower rules still win.</b> With <code>* { ... }</code> in place, a more specific rule
+        such as <code>.my-panel * { ... }</code> or <code>.rx-fill-button { -rx-fill: ...; }</code>
+        recolors one area or one control.</li>
+    <li><b>Inline styles.</b> A token set with <code>setStyle</code> on a container does not reach the
+        controls inside it, for the same reason as <code>.root</code>. Set it on the control itself.</li>
+    <li><b>Popups.</b> A popup copies its owner scene's stylesheets when it shows, so a rule in a scene
+        stylesheet reaches popups too.</li>
+    <li><b>Standard controls too.</b> To recolor RxControls and the standard controls together, change
+        the Modena palette instead (see <a href="#modenaPalettes">Following a Modena palette</a>):
+        <code>-rx-primary</code> defaults to <code>-fx-accent</code>.</li>
+</ul>
 
 <h3 id="modenaPalettes">Following a Modena palette</h3>
 <p>An application that recolors Modena — for example its own dark palette — gets RxControls in the
