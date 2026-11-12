@@ -24,6 +24,8 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -868,6 +870,47 @@ public class RXMaterialTextFieldTest {
     }
 
     @Test
+    public void cssResizedDecorationsRelayoutTheField() {
+        runOnFx(() -> {
+            StatefulField field = new StatefulField();
+            field.setLabelText("Name");
+            field.setHelperText("Helper");
+            StackPane root = new StackPane(field);
+            Scene scene = new Scene(root, 300, 200);
+            scene.getStylesheets().add("data:text/css;base64," + Base64.getEncoder().encodeToString((
+                    ".rx-material-text-field:thick > .activation-line { -fx-pref-height: 5px; }"
+                            + ".rx-material-text-field:thick > .supporting { -fx-font-size: 24px; }")
+                    .getBytes(StandardCharsets.UTF_8)));
+            root.applyCss();
+            root.layout();
+            Region line = (Region) field.lookup(".activation-line");
+            Node supporting = field.lookup(".supporting");
+            double supportingHeight = supporting.getLayoutBounds().getHeight();
+
+            // Only CSS changes: nothing else asks the field for a new layout.
+            field.setState(THICK, true);
+            root.applyCss();
+            root.layout();
+            assertEquals(5.0, line.getHeight(), 0.01, "the thicker activation line is laid out");
+            assertTrue(supporting.getLayoutBounds().getHeight() > supportingHeight,
+                    "the larger supporting text gets a taller band");
+        });
+    }
+
+    @Test
+    public void clearButtonAbsentWhileTheTextIsBound() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            field.setLabelText("Name");
+            inScene(field);
+            field.textProperty().bind(new SimpleStringProperty("abc"));
+            assertNull(clearButton(field), "clear() cannot change bound text, so no clear button is offered");
+            assertFalse(field.getPseudoClassStates().contains(PseudoClass.getPseudoClass("has-trailing")),
+                    "the empty trailing slot is released");
+        });
+    }
+
+    @Test
     public void clearButtonAbsentWhenNotEditableOrShowClearButtonFalse() {
         runOnFx(() -> {
             RXMaterialTextField field = new RXMaterialTextField("abc");
@@ -1134,6 +1177,15 @@ public class RXMaterialTextFieldTest {
             }
         }
         return false;
+    }
+
+    private static final PseudoClass THICK = PseudoClass.getPseudoClass("thick");
+
+    /** A field whose test-only pseudo-class drives a scene stylesheet rule. */
+    private static final class StatefulField extends RXMaterialTextField {
+        void setState(PseudoClass state, boolean on) {
+            pseudoClassStateChanged(state, on);
+        }
     }
 
     private static StackPane clearButton(RXMaterialTextField field) {

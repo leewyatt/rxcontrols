@@ -304,6 +304,13 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         // Timelines are rebuilt over the skin's lifetime; stop the live one at
         // dispose by reading the field, not a captured reference.
         disposer.registerDisposeTask(this::stopFloatTimeline);
+        // The replacement skin is built before this one is disposed, so :floated is
+        // cleared only when the replacement does not set it.
+        disposer.registerDisposeTask(() -> {
+            if (!(getSkinnable().getSkin() instanceof RXMaterialFieldBaseSkin)) {
+                getSkinnable().pseudoClassStateChanged(FLOATED, false);
+            }
+        });
         disposer.registerDisposeTask(this::stopAccentTimeline);
         disposer.registerDisposeTask(clearFade::stop);
         // Decoration nodes are added to the control's (shared) children, and
@@ -406,7 +413,13 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
 
     private void onTextChanged() {
         retargetFloat();
-        updateClearVisual();
+        if (isClearActive() != clearButton.isManaged()) {
+            // Binding the text switched the clear button on or off; the trailing
+            // slot and :has-trailing follow the managed state, so rebuild it.
+            updateTrailing();
+        } else {
+            updateClearVisual();
+        }
     }
 
     // ==================== Trailing / clear affordance ====================
@@ -512,7 +525,11 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     }
 
     private boolean isClearActive() {
-        return getSkinnable().isEditable() && showClearButtonEnabled();
+        // clear() cannot change bound text. Binding usually changes the text, which
+        // re-runs this check; a bind or unbind that keeps the text shows on the next
+        // text change.
+        TextField control = getSkinnable();
+        return control.isEditable() && !control.textProperty().isBound() && showClearButtonEnabled();
     }
 
     private boolean showClearButtonEnabled() {

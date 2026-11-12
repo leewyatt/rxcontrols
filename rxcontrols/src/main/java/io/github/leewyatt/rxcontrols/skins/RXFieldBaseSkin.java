@@ -128,6 +128,15 @@ public class RXFieldBaseSkin extends TextFieldSkin {
             leadingWrapper = releaseWrapper(leadingWrapper);
             trailingWrapper = releaseWrapper(trailingWrapper);
         });
+        // The replacement skin is built before this one is disposed, so the slot
+        // pseudo-classes are cleared only when the replacement does not set them.
+        disposer.registerDisposeTask(() -> {
+            if (!(control.getSkin() instanceof RXFieldBaseSkin)) {
+                control.pseudoClassStateChanged(HAS_LEADING, false);
+                control.pseudoClassStateChanged(HAS_TRAILING, false);
+                control.pseudoClassStateChanged(HAS_NO_SLOTS, false);
+            }
+        });
 
         updateChildren();
     }

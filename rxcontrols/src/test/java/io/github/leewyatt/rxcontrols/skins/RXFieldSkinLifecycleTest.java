@@ -2,15 +2,18 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXDecimalField;
 import io.github.leewyatt.rxcontrols.RXMaterialPasswordField;
+import io.github.leewyatt.rxcontrols.RXMaterialTextField;
 import io.github.leewyatt.rxcontrols.RXPasswordField;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.css.PseudoClass;
 import javafx.event.Event;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.SkinBase;
+import javafx.scene.control.skin.TextFieldSkin;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
@@ -40,6 +43,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * and the password skin tears down its extra resources cleanly.
  */
 public class RXFieldSkinLifecycleTest {
+
+    private static final PseudoClass HAS_LEADING = PseudoClass.getPseudoClass("has-leading");
+    private static final PseudoClass FLOATED = PseudoClass.getPseudoClass("floated");
 
     /**
      * Starts the JavaFX toolkit before constructing skins.
@@ -127,6 +133,39 @@ public class RXFieldSkinLifecycleTest {
                     .count();
             assertEquals(1, wrappersAfterSetLeft,
                     "old-skin listeners must stay dead after dispose");
+        });
+    }
+
+    @Test
+    public void swappingToAPlainSkinClearsTheSkinPseudoClasses() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField("abc");
+            field.setLeading(new Label("L"));
+            field.setSkin(new RXMaterialTextFieldSkin(field));
+            assertTrue(field.getPseudoClassStates().contains(HAS_LEADING), "precondition");
+            assertTrue(field.getPseudoClassStates().contains(FLOATED), "precondition");
+
+            field.setSkin(new TextFieldSkin(field));
+            assertFalse(field.getPseudoClassStates().contains(HAS_LEADING),
+                    "a plain skin must not inherit :has-leading");
+            assertFalse(field.getPseudoClassStates().contains(FLOATED),
+                    "a plain skin must not inherit :floated");
+        });
+    }
+
+    @Test
+    public void swappingToAnotherFieldSkinKeepsItsPseudoClasses() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField("abc");
+            field.setLeading(new Label("L"));
+            field.setSkin(new RXMaterialTextFieldSkin(field));
+
+            // The replacement is built before the old skin is disposed.
+            field.setSkin(new RXMaterialTextFieldSkin(field) { });
+            assertTrue(field.getPseudoClassStates().contains(HAS_LEADING),
+                    "the old skin's dispose must not clear the replacement's :has-leading");
+            assertTrue(field.getPseudoClassStates().contains(FLOATED),
+                    "the old skin's dispose must not clear the replacement's :floated");
         });
     }
 
