@@ -44,6 +44,7 @@ import javafx.util.Duration;
 import javafx.util.StringConverter;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.function.BiPredicate;
 
@@ -114,7 +115,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
     private final FilteredList<T> filtered = new FilteredList<>(backing);
 
     private ObservableList<T> observedItems;
-    private final ListChangeListener<T> itemsContentListener = change -> syncBacking();
+    private final ListChangeListener<T> itemsContentListener = this::applyItemsChange;
     private final WeakListChangeListener<T> weakItemsContentListener =
             new WeakListChangeListener<>(itemsContentListener);
 
@@ -128,6 +129,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
             new WeakListChangeListener<>(filteredListener);
 
     private boolean suppressReopen;
+    private boolean popupWasShowing;
 
     // ==================== Construction ====================
 
@@ -151,6 +153,9 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         popupSupport = new RXPopupSupport(popupBody);
         popupSupport.setPopupStyleClass("rx-selection-box-popup");
         popupSupport.setOffset(0.0, POPUP_VERTICAL_GAP);
+        // The popup's own Escape auto-hide leaves the key event unconsumed, so it would go
+        // on to fire a dialog's cancel button; the control closes and consumes it instead.
+        popupSupport.setHideOnEscape(false);
         popupSupport.setOnHidden(this::onPopupHidden);
 
         getChildren().setAll(display);
@@ -233,7 +238,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         disposer.registerListener(control.searchableProperty(), this::onSearchableChanged);
         disposer.registerListener(control.readOnlyProperty(), this::onReadOnlyChanged);
         disposer.registerListener(control.promptTextProperty(), this::updateDisplay);
-        disposer.registerListener(control.converterProperty(), this::updateDisplay);
+        disposer.registerListener(control.converterProperty(), this::onConverterChanged);
         disposer.registerListener(control.selectedItemsConverterProperty(), this::updateDisplay);
         disposer.registerListener(control.graphicProperty(), this::updateGraphic);
         disposer.registerListener(control.popupHeaderProperty(), this::updateHeader);
@@ -242,6 +247,10 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         disposer.registerListener(control.showClearButtonProperty(), this::updateActions);
         disposer.registerListener(control.showSelectAllButtonProperty(), this::updateActions);
         disposer.registerListener(control.disabledProperty(), this::onDisabledChanged);
+        disposer.registerListener(control.sectionKeyFactoryProperty(), this::updatePopupHeight);
+        disposer.registerListener(popupList.showSectionHeadersProperty(), this::updatePopupHeight);
+        disposer.registerListener(popupList.sectionHeaderHeightProperty(), this::updatePopupHeight);
+        disposer.registerListener(popupList.sectionSpacingProperty(), this::updatePopupHeight);
 
         filtered.addListener(weakFilteredListener);
 
@@ -309,6 +318,31 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         updatePopupHeight();
     }
 
+    /**
+     * Mirrors one items change into {@code backing} range by range, so the filtered view
+     * and the popup list see only what changed instead of a whole-list replacement.
+     */
+    private void applyItemsChange(ListChangeListener.Change<? extends T> change) {
+        while (change.next()) {
+            int from = change.getFrom();
+            int to = change.getTo();
+            if (change.wasPermutated() || change.wasUpdated()) {
+                // Updated items are re-set so the filter re-tests them.
+                for (int i = from; i < to; i++) {
+                    backing.set(i, change.getList().get(i));
+                }
+            } else {
+                if (change.wasRemoved()) {
+                    backing.remove(from, from + change.getRemovedSize());
+                }
+                if (change.wasAdded()) {
+                    backing.addAll(from, change.getAddedSubList());
+                }
+            }
+        }
+        updatePopupHeight();
+    }
+
     // ==================== Selection model attach ====================
 
     private void rebindModel() {
@@ -340,6 +374,12 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         updatePseudoClasses();
         updateActions();
         updateDisplay();
+    }
+
+    private void onConverterChanged() {
+        updateDisplay();
+        // The default filter matches the converter's text, so the visible rows change too.
+        updateFilter();
     }
 
     private void onSearchChanged() {
@@ -474,8 +514,8 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
             if (predicate != null) {
                 filtered.setPredicate(item -> predicate.test(item, query));
             } else {
-                String needle = query.trim().toLowerCase();
-                filtered.setPredicate(item -> textOf(item).toLowerCase().contains(needle));
+                String needle = query.trim().toLowerCase(Locale.ROOT);
+                filtered.setPredicate(item -> textOf(item).toLowerCase(Locale.ROOT).contains(needle));
             }
         }
         resetCursorAfterFilter();
@@ -553,13 +593,16 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
             boolean popupHadFocus = searchField.isFocused();
             stopEntrance();
             popupSupport.hide();
-            if (control.isClearSearchOnHide()) {
+            // Only a real open -> closed transition clears the query; the initial sync at
+            // skin installation must keep a search text the application set beforehand.
+            if (popupWasShowing && control.isClearSearchOnHide()) {
                 control.setSearchText("");
             }
             if (popupHadFocus) {
                 control.requestFocus();
             }
         }
+        popupWasShowing = showing;
         updatePseudoClasses();
     }
 

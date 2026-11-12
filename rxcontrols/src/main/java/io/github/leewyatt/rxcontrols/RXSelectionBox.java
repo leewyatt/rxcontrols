@@ -302,7 +302,8 @@ public class RXSelectionBox<T> extends Control {
 
     /**
      * Converts an item to its display text in the popup list and single-selection
-     * summary. When {@code null}, {@code item.toString()} is used.
+     * summary. When {@code null}, {@code item.toString()} is used. Only
+     * {@code toString} is used; {@code fromString} is never called.
      *
      * @return the converter property
      */
@@ -337,7 +338,8 @@ public class RXSelectionBox<T> extends Control {
      * Converts the list of selected items to the multiple-selection summary text.
      * When {@code null}, the summary is {@code "N selected"}. Only consulted in
      * {@link SelectionMode#MULTIPLE} with more than one item selected; the empty
-     * and single cases are handled by the control.
+     * and single cases are handled by the control. Only {@code toString} is used;
+     * {@code fromString} is never called.
      *
      * @return the selected-items converter property
      */

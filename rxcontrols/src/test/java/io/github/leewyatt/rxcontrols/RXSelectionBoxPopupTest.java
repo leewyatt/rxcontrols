@@ -2,6 +2,8 @@ package io.github.leewyatt.rxcontrols;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -18,14 +20,18 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import javafx.util.StringConverter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -122,6 +128,29 @@ public class RXSelectionBoxPopupTest {
             assertTrue(box.isShowing());
             fireKey(box, KeyCode.ESCAPE);
             assertFalse(box.isShowing(), "Escape closes the popup");
+        });
+    }
+
+    @Test
+    public void escapeInANonSearchablePopupDoesNotReachTheCancelButton() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("a", "b");
+            box.setSearchable(false);
+            AtomicBoolean cancelled = new AtomicBoolean();
+            Button cancel = new Button("Cancel");
+            cancel.setCancelButton(true);
+            cancel.setOnAction(event -> cancelled.set(true));
+            ((StackPane) box.getParent()).getChildren().add(cancel);
+            // The button registers its Escape accelerator when its skin is created.
+            cancel.applyCss();
+            assertTrue(box.getScene().getAccelerators().size() > 0, "precondition: Escape accelerator registered");
+            box.requestFocus();
+            box.show();
+
+            fireKey(box, KeyCode.ESCAPE);
+
+            assertFalse(box.isShowing(), "Escape closes the popup");
+            assertFalse(cancelled.get(), "the Escape that closed the popup must not also cancel the dialog");
         });
     }
 
@@ -335,6 +364,113 @@ public class RXSelectionBoxPopupTest {
             assertEquals("a", box.getSearchText());
             box.hide();
             assertEquals("", box.getSearchText(), "clearSearchOnHide wipes the query");
+        });
+    }
+
+    @Test
+    public void itemEditsKeepThePopupListInSync() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("d", "b", "a");
+            box.show();
+            RXListView<?> list = popupList();
+            assertNotNull(list);
+            ObservableList<String> items = box.getItems();
+
+            items.add("c");
+            items.remove("b");
+            items.set(0, "e");
+            FXCollections.sort(items);
+            assertEquals(List.of("a", "c", "e"), List.copyOf(list.getItems()));
+
+            items.addAll(1, List.of("x", "y"));
+            items.remove(0, 2);
+            assertEquals(List.copyOf(items), List.copyOf(list.getItems()));
+
+            items.setAll("z");
+            assertEquals(List.of("z"), List.copyOf(list.getItems()));
+        });
+    }
+
+    @Test
+    public void addingOneItemReachesThePopupListAsOneAddition() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("a", "b", "c");
+            box.show();
+            RXListView<?> list = popupList();
+            assertNotNull(list);
+            List<String> changes = new ArrayList<>();
+            list.getItems().addListener((ListChangeListener<Object>) change -> {
+                while (change.next()) {
+                    changes.add("removed=" + change.getRemovedSize() + " added=" + change.getAddedSize());
+                }
+            });
+
+            box.getItems().add("d");
+
+            assertEquals(List.of("removed=0 added=1"), changes,
+                    "a single add must not be mirrored as a whole-list replacement");
+        });
+    }
+
+    @Test
+    public void changingTheConverterRefiltersTheList() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("apple", "banana");
+            box.show();
+            box.setSearchText("fruit-b");
+            RXListView<?> list = popupList();
+            assertNotNull(list);
+            assertEquals(0, list.getItems().size(), "precondition: nothing matches the raw text");
+
+            box.setConverter(new StringConverter<>() {
+                @Override
+                public String toString(String item) {
+                    return item == null ? "" : "fruit-" + item;
+                }
+
+                @Override
+                public String fromString(String text) {
+                    return text;
+                }
+            });
+
+            assertEquals(List.of("banana"), List.copyOf(list.getItems()),
+                    "the default filter matches the text the converter produces");
+        });
+    }
+
+    @Test
+    public void defaultFilterIgnoresTheDefaultLocale() throws InterruptedException {
+        Locale original = Locale.getDefault();
+        Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+        try {
+            runOnFx(() -> {
+                RXSelectionBox<String> box = newShownBox("ITEM", "OTHER");
+                box.show();
+                box.setSearchText("item");
+                RXListView<?> list = popupList();
+                assertNotNull(list);
+                assertEquals(List.of("ITEM"), List.copyOf(list.getItems()),
+                        "case folding must not depend on the default locale (Turkish dotless i)");
+            });
+        } finally {
+            Locale.setDefault(original);
+        }
+    }
+
+    @Test
+    public void settingASectionKeyFactoryResizesTheOpenPopup() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("a1", "a2", "b1");
+            box.show();
+            RXListView<?> list = popupList();
+            assertNotNull(list);
+            double before = list.getPrefHeight();
+
+            box.setSectionKeyFactory(item -> item.substring(0, 1));
+
+            assertTrue(list.getPrefHeight() > before,
+                    "section headers add height, so the open popup must grow to fit them");
         });
     }
 

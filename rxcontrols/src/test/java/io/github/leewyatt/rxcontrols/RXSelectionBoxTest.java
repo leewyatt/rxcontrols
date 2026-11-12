@@ -354,6 +354,17 @@ public class RXSelectionBoxTest {
         });
     }
 
+    @Test
+    public void presetSearchTextSurvivesSkinInstallation() throws Exception {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = new RXSelectionBox<>(FXCollections.observableArrayList("ab", "cd"));
+            box.setSearchText("ab");
+            attach(box);
+            assertEquals("ab", box.getSearchText(),
+                    "installing the skin is not a popup close and must not clear the query");
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static RXSelectionBox<String> attach(RXSelectionBox<String> box) {
