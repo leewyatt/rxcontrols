@@ -28,7 +28,8 @@ import javafx.util.Duration;
 /**
  * Skin for {@link RXCopyButton}: a ripple layer below two faces. The normal
  * face shows a copy indicator next to the button's own text and graphic; the
- * feedback face shows a check indicator next to the copied text. The button
+ * feedback face shows a check indicator next to the copied text and graphic.
+ * The button
  * is sized to the larger of the two faces, so swapping faces never changes
  * its size.
  *
@@ -109,12 +110,13 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
         Label normal = normalFace.caption;
         disposer.registerBinding(normal.textProperty(), button.textProperty());
         disposer.registerBinding(normal.graphicProperty(), button.graphicProperty());
-        disposer.registerBinding(normal.graphicTextGapProperty(), button.graphicTextGapProperty());
         bindAppearance(normal, button);
 
-        // The feedback face never carries the user graphic: a node cannot be
+        // The feedback face has its own graphic: the button graphic cannot be
         // parented by both faces.
-        bindAppearance(copiedFace.caption, button);
+        Label copied = copiedFace.caption;
+        disposer.registerBinding(copied.graphicProperty(), button.copiedGraphicProperty());
+        bindAppearance(copied, button);
         disposer.registerListener(button.textProperty(), this::updateCopiedCaption);
         disposer.registerListener(button.copiedTextProperty(), this::updateCopiedCaption);
         updateCopiedCaption();
@@ -131,6 +133,7 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
         disposer.registerBinding(caption.textFillProperty(), button.textFillProperty());
         disposer.registerBinding(caption.ellipsisStringProperty(), button.ellipsisStringProperty());
         disposer.registerBinding(caption.contentDisplayProperty(), button.contentDisplayProperty());
+        disposer.registerBinding(caption.graphicTextGapProperty(), button.graphicTextGapProperty());
         disposer.registerBinding(caption.alignmentProperty(), button.alignmentProperty());
         disposer.registerBinding(caption.textAlignmentProperty(), button.textAlignmentProperty());
         disposer.registerBinding(caption.textOverrunProperty(), button.textOverrunProperty());

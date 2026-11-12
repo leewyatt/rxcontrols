@@ -65,8 +65,9 @@ import java.util.function.Supplier;
  * vetoes the copy. An {@code ActionEvent} fired at the button by application
  * code copies as well.</p>
  *
- * <p>Each face shows an indicator shape (copy, check) next to its text. A
- * graphic set on the button appears on the normal face only. To hide the
+ * <p>Each face shows an indicator shape (copy, check) next to its text. The
+ * button's graphic appears on the normal face only; the feedback face shows
+ * the {@link #copiedGraphicProperty() copiedGraphic}. To hide the
  * indicators, give them a zero preferred size from an author stylesheet;
  * hiding by visibility or opacity keeps their space. Set {@code copiedText}
  * when the indicators are hidden, otherwise the color is the only feedback.</p>
@@ -259,6 +260,40 @@ public class RXCopyButton extends RXButton {
      */
     public final void setCopiedText(String value) {
         copiedText.set(value);
+    }
+
+    // ==================== Copied Graphic ====================
+
+    private final ObjectProperty<Node> copiedGraphic = new SimpleObjectProperty<>(this, "copiedGraphic");
+
+    /**
+     * Graphic of the feedback face, placed like the button graphic. The
+     * default {@code null} shows none: the button graphic is not reused,
+     * because a node cannot be shown on both faces. Must be a different node
+     * than the button graphic.
+     *
+     * @return the copied graphic property
+     */
+    public final ObjectProperty<Node> copiedGraphicProperty() {
+        return copiedGraphic;
+    }
+
+    /**
+     * Returns the graphic of the feedback face.
+     *
+     * @return the copied graphic, or {@code null}
+     */
+    public final Node getCopiedGraphic() {
+        return copiedGraphic.get();
+    }
+
+    /**
+     * Sets the graphic of the feedback face.
+     *
+     * @param value the copied graphic, or {@code null} for none
+     */
+    public final void setCopiedGraphic(Node value) {
+        copiedGraphic.set(value);
     }
 
     // ==================== Feedback Duration ====================

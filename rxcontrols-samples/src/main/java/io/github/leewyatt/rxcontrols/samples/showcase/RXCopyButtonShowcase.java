@@ -28,7 +28,7 @@ import java.util.function.Supplier;
  * <p>Exercises the content factory (nothing to copy, plain text, text plus
  * HTML, an image), the feedback duration including zero and indefinite,
  * {@code resetFeedback()}, the copied text, the icon-only / icon-and-text /
- * text-only forms, a user graphic, alignment in a stretched button, the
+ * text-only forms, a graphic on either face, alignment in a stretched button, the
  * disabled state and right-to-left orientation. The text area takes a paste
  * to verify what reached the clipboard.</p>
  */
@@ -188,12 +188,16 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
             }
         });
 
-        Region star = new Region();
-        star.getStyleClass().add("star-icon");
-        star.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        // Each face needs its own node: one node cannot be shown on both.
+        Region star = createStar();
         CheckBox graphicBox = new CheckBox();
         graphicBox.selectedProperty().addListener((obs, oldV, newV) ->
                 button.setGraphic(newV ? star : null));
+
+        Region copiedStar = createStar();
+        CheckBox copiedGraphicBox = new CheckBox();
+        copiedGraphicBox.selectedProperty().addListener((obs, oldV, newV) ->
+                button.setCopiedGraphic(newV ? copiedStar : null));
 
         ComboBox<Pos> alignmentBox = new ComboBox<>();
         alignmentBox.getItems().setAll(Pos.CENTER_LEFT, Pos.CENTER, Pos.CENTER_RIGHT);
@@ -218,10 +222,18 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
                 row("Text", textField),
                 row("Hide indicators", hideIndicatorBox),
                 row("User graphic", graphicBox),
+                row("Copied graphic", copiedGraphicBox),
                 row("Alignment", alignmentBox),
                 row("Stretch to 260 px", stretchBox),
                 row("Disabled", disableBox),
                 row("Right to left", rtlBox));
+    }
+
+    private static Region createStar() {
+        Region star = new Region();
+        star.getStyleClass().add("star-icon");
+        star.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return star;
     }
 
     /**

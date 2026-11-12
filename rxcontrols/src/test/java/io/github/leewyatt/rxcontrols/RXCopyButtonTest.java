@@ -93,6 +93,7 @@ public class RXCopyButtonTest {
         assertTrue(button.getStyleClass().contains("rx-button"));
         assertNull(button.getContentFactory());
         assertNull(button.getCopiedText());
+        assertNull(button.getCopiedGraphic());
         assertEquals(Duration.millis(2000.0), RXCopyButton.DEFAULT_FEEDBACK_DURATION);
         assertEquals(RXCopyButton.DEFAULT_FEEDBACK_DURATION, button.getFeedbackDuration());
         assertFalse(button.isMnemonicParsing());
@@ -235,6 +236,12 @@ public class RXCopyButtonTest {
         assertFalse(copied.isMnemonicParsing());
         assertSame(graphic, normal.getGraphic());
         assertNull(copied.getGraphic());
+        Label copiedGraphic = new Label("c");
+        button.setCopiedGraphic(copiedGraphic);
+        assertSame(copiedGraphic, copied.getGraphic());
+        assertSame(graphic, normal.getGraphic());
+        button.setGraphicTextGap(9.0);
+        assertEquals(9.0, copied.getGraphicTextGap());
 
         button.setCopiedText("Copied");
         assertEquals("Copied", copied.getText());
