@@ -191,6 +191,8 @@ public class RXDualPaneSkin extends RXSkinBase<RXDualPane> {
         if (control != null) {
             control.setTransitioning(false);
         }
-        getChildren().clear();
+        // A replacement skin is constructed before this one is disposed and has
+        // already added its nodes: remove only our own.
+        getChildren().remove(pages.getContentPane());
     }
 }

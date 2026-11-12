@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.lrc.LrcDocument;
 import io.github.leewyatt.rxcontrols.lrc.LrcParser;
+import io.github.leewyatt.rxcontrols.skins.RXLrcLineViewSkin;
 import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -14,7 +15,9 @@ import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.control.SkinBase;
 import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -458,6 +461,27 @@ public class LrcLineViewTest {
         assertTrue(recording.disposeCalls >= 1);
         assertEquals(Animation.Status.STOPPED, recording.lastAnimation.getStatus());
 
+        view.getSkin().dispose();
+    }
+
+    @Test
+    public void replacementSkinKeepsItsNodesAndOnlyItsOwnClassKeepsThePlaceholder() {
+        RXLrcLineView view = createLaidOutView(null, Duration.ZERO);
+        Node placeholder = view.getPlaceholder();
+
+        // A skin of the installed class is ignored by setSkin, hence the subclass.
+        view.setSkin(new RXLrcLineViewSkin(view) {
+        });
+        assertEquals(2, view.getChildrenUnmodifiable().size());
+        assertTrue(view.getChildrenUnmodifiable().contains(placeholder));
+
+        Rectangle marker = new Rectangle(4.0, 4.0);
+        view.setSkin(new SkinBase<>(view) {
+            {
+                getChildren().add(marker);
+            }
+        });
+        assertEquals(List.of(marker), view.getChildrenUnmodifiable());
         view.getSkin().dispose();
     }
 

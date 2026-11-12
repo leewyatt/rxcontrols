@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
+import io.github.leewyatt.rxcontrols.skins.RXTransitionPaneSkin;
 import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -331,6 +332,18 @@ public class RXTransitionPaneTest {
         assertFalse(pane.isTransitioning());
         pane.setContent(new Label("C"));
         assertEquals(1, recording.contexts.size());
+    }
+
+    @Test
+    public void replacementSkinKeepsItsNodes() {
+        RXTransitionPane pane = laidOutPaneShowing(new Label("A"));
+
+        // A skin of the installed class is ignored by setSkin, hence the subclass.
+        pane.setSkin(new RXTransitionPaneSkin(pane) {
+        });
+
+        assertEquals(1, pane.getChildrenUnmodifiable().size());
+        pane.getSkin().dispose();
     }
 
     // ==================== Helpers ====================

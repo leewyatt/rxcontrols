@@ -178,6 +178,8 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
         if (control != null) {
             control.setTransitioning(false);
         }
-        getChildren().clear();
+        // A replacement skin is constructed before this one is disposed and has
+        // already added its nodes: remove only our own.
+        getChildren().remove(pages.getContentPane());
     }
 }

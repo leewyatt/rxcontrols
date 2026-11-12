@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
+import io.github.leewyatt.rxcontrols.skins.RXDualPaneSkin;
 import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -539,6 +540,18 @@ public class RXDualPaneTest {
         assertInstanceOf(Label.class, pane.getSecondContent());
         assertEquals("First face", ((Label) pane.getFirstContent()).getText());
         assertEquals("Second face", ((Label) pane.getSecondContent()).getText());
+    }
+
+    @Test
+    public void replacementSkinKeepsItsNodes() {
+        RXDualPane pane = laidOutPane(new Label("First"), new Label("Second"));
+
+        // A skin of the installed class is ignored by setSkin, hence the subclass.
+        pane.setSkin(new RXDualPaneSkin(pane) {
+        });
+
+        assertEquals(1, pane.getChildrenUnmodifiable().size());
+        pane.getSkin().dispose();
     }
 
     // ==================== Helpers ====================

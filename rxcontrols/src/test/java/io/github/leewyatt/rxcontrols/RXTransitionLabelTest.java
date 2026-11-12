@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
+import io.github.leewyatt.rxcontrols.skins.RXTransitionLabelSkin;
 import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -303,6 +304,18 @@ public class RXTransitionLabelTest {
         assertFalse(label.isTransitioning());
         label.setText("C");
         assertEquals(1, recording.contexts.size());
+    }
+
+    @Test
+    public void replacementSkinKeepsItsNodes() {
+        RXTransitionLabel label = laidOutLabelShowing("Hello");
+
+        // A skin of the installed class is ignored by setSkin, hence the subclass.
+        label.setSkin(new RXTransitionLabelSkin(label) {
+        });
+
+        assertEquals(1, label.getChildrenUnmodifiable().size());
+        label.getSkin().dispose();
     }
 
     // ==================== Helpers ====================

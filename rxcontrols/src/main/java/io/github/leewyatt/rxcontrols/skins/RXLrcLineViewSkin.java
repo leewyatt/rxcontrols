@@ -11,6 +11,7 @@ import javafx.geometry.HPos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.control.Skin;
 import javafx.util.Duration;
 
 /**
@@ -275,6 +276,18 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
     protected void disposeSkin() {
         RXLrcLineView control = getSkinnable();
         pages.dispose(control == null ? null : control.getAnimation());
-        getChildren().clear();
+        // A replacement skin is constructed before this one is disposed and has
+        // already added its nodes: remove only our own. The placeholder is the
+        // control's node, shared by both skins: a replacement of this class
+        // found it in place and did not add it again, so it stays for that one.
+        getChildren().remove(pages.getContentPane());
+        if (control != null) {
+            Node placeholder = control.getPlaceholder();
+            Skin<?> replacement = control.getSkin();
+            boolean keptByReplacement = replacement != this && replacement instanceof RXLrcLineViewSkin;
+            if (placeholder != null && !keptByReplacement) {
+                getChildren().remove(placeholder);
+            }
+        }
     }
 }
