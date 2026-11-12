@@ -574,11 +574,15 @@ public class RXListViewSkinTest {
             RXListCell<?> cell = cellByIndex(view, view.getFocusedIndex());
             assertTrue(cell.getPseudoClassStates().stream()
                     .anyMatch(pc -> pc.getPseudoClassName().equals("focused")), "precondition: the cursor cell");
-            assertNull(cell.getBorder(), "no focus ring while the list itself is not focused");
+            // Like a Modena ListView, the ring is a faint inner border painted as the middle
+            // of three background layers.
+            assertEquals(1, cell.getBackground().getFills().size(),
+                    "no focus ring while the list itself is not focused");
 
             view.showFocus(true);
             pump(root);
-            assertNotNull(cell.getBorder(), "the focus ring shows once the list holds keyboard focus");
+            assertEquals(3, cell.getBackground().getFills().size(),
+                    "the focus ring shows once the list holds keyboard focus");
         });
     }
 

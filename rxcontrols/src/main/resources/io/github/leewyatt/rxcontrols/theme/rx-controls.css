@@ -308,6 +308,15 @@
     -fx-focus-color: -color-accent-emphasis;
     -fx-faint-focus-color: -color-accent-muted;
     -fx-selection-bar: -color-accent-emphasis;
+    -fx-background: -color-bg-default;
+    /* AtlantaFX's own selected-cell gray: base-1 on a light theme, base-6 on a dark one,
+       and base-7 where base-6 is itself light (Nord Dark's own choice, where base-6 leaves
+       the default text below normal-text contrast). Dracula's accent tint cannot be told
+       apart here, so it gets the dark gray. */
+    -fx-selection-bar-non-focused: ladder(-color-bg-default,
+        ladder(-color-base-6, -color-base-6 49%, -color-base-7 50%) 49%, -color-base-1 50%);
+    -fx-cell-focus-inner-border: -color-border-default;
+    -fx-text-background-color: -color-fg-default;
 }
 
 
@@ -1736,6 +1745,19 @@
 /* Options shown but not selectable (e.g. a chip input's already-chosen items when
    duplicates are off): greyed and inert. The cell is Node-disabled, so :hover never
    applies and the keyboard/mouse skip it. */
+/* The popup list never takes focus, so its keyboard cursor keeps the solid selection
+   of a ComboBox popup instead of the unfocused gray. */
+.rx-suggestion-popup .rx-list-view .rx-list-cell:selected {
+    -fx-background: -fx-selection-bar;
+}
+
+.rx-theme-atlantafx .rx-suggestion-popup .rx-list-view .rx-list-cell:selected {
+    /* AtlantaFX's ComboBox popup gray: base-2 on a light theme, base-6 on a dark one, and
+       base-7 where base-6 is itself light (Nord Dark), as for the list selection. */
+    -fx-background: ladder(-rx-surface,
+        ladder(-color-base-6, -color-base-6 49%, -color-base-7 50%) 49%, -color-base-2 50%);
+}
+
 .rx-suggestion-popup .rx-list-view .rx-list-cell:disabled {
     -fx-opacity: 0.38;
 }
@@ -2851,6 +2873,13 @@
     -fx-background-radius: 2, 0, 0;
 }
 
+/* AtlantaFX's own data views keep their plain frame when focused. */
+.rx-theme-atlantafx .rx-tile-view:focused {
+    -fx-background-color: -fx-box-border, -rx-surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 0;
+}
+
 .rx-tile-view > .viewport {
     -fx-background-color: -rx-surface;
 }
@@ -2906,12 +2935,18 @@
    background cannot override a border — while default cells still get the solid
    background. */
 .rx-tile-cell:selected {
-    -fx-background-color: -fx-selection-bar;
-    /* reads on Modena's mid-bright selection bar on light and dark hosts alike */
+    -fx-background-color: -fx-selection-bar-non-focused;
+    /* reads on Modena's selection bars, focused or not, on light and dark hosts alike */
     -fx-text-fill: black;
-    -fx-border-color: -fx-selection-bar;
+    -fx-border-color: -fx-selection-bar-non-focused;
     -fx-border-width: 2;
     -fx-border-insets: 1;
+}
+
+/* Like a Modena ListView: the accent selection only while the view holds focus. */
+.rx-tile-view:focused > .viewport > .content > .rx-tile-cell:selected {
+    -fx-background-color: -fx-selection-bar;
+    -fx-border-color: -fx-selection-bar;
 }
 
 /* Selected + focused: keep both rings (selection outer, focus inner) so the
@@ -2923,11 +2958,24 @@
 }
 
 /* Under the AtlantaFX bridge a selected cell takes AtlantaFX's own selected-cell
-   look, a subtle accent tint with the default text: no single text color reads on
-   a solid accent across every AtlantaFX theme. */
-.rx-theme-atlantafx .rx-tile-cell:selected {
-    -fx-background-color: -rx-primary-bg;
+   gray with the default text, focused or not, and no focus ring, like its ListView.
+   The accent ring stays: tiles usually paint their own background, which would hide
+   a fill-only selection. */
+.rx-theme-atlantafx .rx-tile-cell:selected,
+.rx-theme-atlantafx .rx-tile-view:focused > .viewport > .content > .rx-tile-cell:selected {
+    -fx-background-color: -fx-selection-bar-non-focused;
     -fx-text-fill: -rx-on-surface;
+    -fx-border-color: -fx-selection-bar;
+}
+
+.rx-theme-atlantafx .rx-tile-view:focused > .viewport > .content > .rx-tile-cell:focused {
+    -fx-border-color: transparent;
+}
+
+.rx-theme-atlantafx .rx-tile-view:focused > .viewport > .content > .rx-tile-cell:selected:focused {
+    -fx-border-color: -fx-selection-bar;
+    -fx-border-width: 2;
+    -fx-border-insets: 1;
 }
 
 /*******************************************************************************
@@ -2945,6 +2993,13 @@
     -fx-background-color: -fx-faint-focus-color, -fx-focus-color, -rx-surface;
     -fx-background-insets: -1.4, -0.3, 1;
     -fx-background-radius: 2, 0, 0;
+}
+
+/* AtlantaFX's own ListView keeps its plain frame when focused. */
+.rx-theme-atlantafx .rx-list-view:focused {
+    -fx-background-color: -fx-box-border, -rx-surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 0;
 }
 
 .rx-list-view > .viewport {
@@ -2980,13 +3035,39 @@
 }
 
 .rx-list-cell:selected {
-    -fx-background-color: -rx-selection;
+    -fx-background: -fx-selection-bar-non-focused;
+    -fx-background-color: -fx-background;
+    -fx-text-fill: -fx-text-background-color;
+}
+
+/* Like a Modena ListView: the accent selection and the faint focus inner border only
+   while the list itself holds keyboard focus. */
+.rx-list-view:focused > .viewport > .content > .rx-list-cell:selected {
+    -fx-background: -fx-selection-bar;
 }
 
 .rx-list-view:focused > .viewport > .content > .rx-list-cell:focused {
-    -fx-border-color: -rx-focus;
-    -fx-border-width: 1;
-    -fx-border-insets: 0;
+    -fx-background-color: -rx-surface, -fx-cell-focus-inner-border, -rx-surface;
+    -fx-background-insets: 0, 1, 2;
+}
+
+.rx-list-view:focused > .viewport > .content > .rx-list-cell:selected:focused {
+    -fx-background-color: -fx-background, -fx-cell-focus-inner-border, -fx-background;
+}
+
+/* AtlantaFX's own ListView keeps its selected-cell gray when focused and draws no
+   focus ring. */
+.rx-theme-atlantafx .rx-list-view:focused > .viewport > .content > .rx-list-cell:selected {
+    -fx-background: -fx-selection-bar-non-focused;
+}
+
+.rx-theme-atlantafx .rx-list-view:focused > .viewport > .content > .rx-list-cell:focused {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+}
+
+.rx-theme-atlantafx .rx-list-view:focused > .viewport > .content > .rx-list-cell:selected:focused {
+    -fx-background-color: -fx-background;
 }
 
 /* Leading selection slot (a skin child, left of the Labeled content area). The slot
@@ -3019,6 +3100,15 @@
 
 .rx-list-cell:selected > .selection-slot > .checkmark {
     visibility: visible;
+}
+
+/* On the solid accent bar the accent tick would vanish; it takes the row's text color. */
+.rx-list-view:focused > .viewport > .content > .rx-list-cell:selected > .selection-slot > .checkmark {
+    -fx-background-color: -fx-text-background-color;
+}
+
+.rx-theme-atlantafx .rx-list-view:focused > .viewport > .content > .rx-list-cell:selected > .selection-slot > .checkmark {
+    -fx-background-color: -rx-primary;
 }
 
 .rx-list-section-header {
@@ -3194,6 +3284,13 @@
     -fx-background-radius: 2, 0, 0;
 }
 
+/* AtlantaFX's own data views keep their plain frame when focused. */
+.rx-theme-atlantafx .rx-masonry-view:focused {
+    -fx-background-color: -fx-box-border, -rx-surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 0;
+}
+
 .rx-masonry-view > .viewport {
     -fx-background-color: -rx-surface;
 }
@@ -3236,12 +3333,18 @@
    background cannot override a border — while default cells still get the solid
    background. */
 .rx-masonry-cell:selected {
-    -fx-background-color: -fx-selection-bar;
-    /* reads on Modena's mid-bright selection bar on light and dark hosts alike */
+    -fx-background-color: -fx-selection-bar-non-focused;
+    /* reads on Modena's selection bars, focused or not, on light and dark hosts alike */
     -fx-text-fill: black;
-    -fx-border-color: -fx-selection-bar;
+    -fx-border-color: -fx-selection-bar-non-focused;
     -fx-border-width: 2;
     -fx-border-insets: 1;
+}
+
+/* Like a Modena ListView: the accent selection only while the view holds focus. */
+.rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:selected {
+    -fx-background-color: -fx-selection-bar;
+    -fx-border-color: -fx-selection-bar;
 }
 
 /* Selected + focused: keep both rings (selection outer, focus inner) so the
@@ -3253,11 +3356,24 @@
 }
 
 /* Under the AtlantaFX bridge a selected cell takes AtlantaFX's own selected-cell
-   look, a subtle accent tint with the default text: no single text color reads on
-   a solid accent across every AtlantaFX theme. */
-.rx-theme-atlantafx .rx-masonry-cell:selected {
-    -fx-background-color: -rx-primary-bg;
+   gray with the default text, focused or not, and no focus ring, like its ListView.
+   The accent ring stays: masonry cells usually paint their own background, which
+   would hide a fill-only selection. */
+.rx-theme-atlantafx .rx-masonry-cell:selected,
+.rx-theme-atlantafx .rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:selected {
+    -fx-background-color: -fx-selection-bar-non-focused;
     -fx-text-fill: -rx-on-surface;
+    -fx-border-color: -fx-selection-bar;
+}
+
+.rx-theme-atlantafx .rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:focused {
+    -fx-border-color: transparent;
+}
+
+.rx-theme-atlantafx .rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:selected:focused {
+    -fx-border-color: -fx-selection-bar;
+    -fx-border-width: 2;
+    -fx-border-insets: 1;
 }
 
 /*******************************************************************************
@@ -3686,6 +3802,7 @@
 
 .rx-selection-box-popup .rx-list-cell:selected {
     -fx-background-color: -rx-primary-bg;
+    -fx-text-fill: -rx-on-surface;
 }
 
 .rx-selection-box-popup .rx-list-cell .select-box {

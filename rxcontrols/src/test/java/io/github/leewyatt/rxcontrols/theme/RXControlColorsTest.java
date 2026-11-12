@@ -17,6 +17,7 @@ import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
 import io.github.leewyatt.rxcontrols.RXKanbanColumn;
 import io.github.leewyatt.rxcontrols.RXKanbanView;
+import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
 import io.github.leewyatt.rxcontrols.RXRangeSlider;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
@@ -30,6 +31,7 @@ import io.github.leewyatt.rxcontrols.RXWaveProgressIndicator;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
 import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
 import javafx.geometry.Side;
@@ -62,6 +64,7 @@ import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -875,11 +878,47 @@ public class RXControlColorsTest {
         return contrastRatio(text, tint);
     }
 
+    // ==================== List cells ====================
+
+    /**
+     * A selected list row stays distinguishable from the list surface under every
+     * AtlantaFX theme.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void listSelectionIsVisibleOnEveryAtlantaFxTheme() throws Exception {
+        for (Theme theme : List.of(new PrimerLight(), new PrimerDark(), new NordLight(), new NordDark(),
+                new CupertinoLight(), new CupertinoDark(), new Dracula())) {
+            Map<String, String> sample = new LinkedHashMap<>();
+            runOnFx(() -> {
+                Application.setUserAgentStylesheet(theme.getUserAgentStylesheet());
+                RXListView<String> list = new RXListView<>(FXCollections.observableArrayList("a", "b"));
+                StackPane root = new StackPane(list);
+                RXAtlantaFXThemeBridge.install(new Scene(root, 300, 200));
+                list.getSelectionModel().select(0);
+                root.applyCss();
+                root.layout();
+                Region viewport = (Region) list.lookup(".viewport");
+                sample.put("surface", ThemeColorSamples.hex(viewport.getBackground().getFills().get(0).getFill()));
+                for (Node node : list.lookupAll(".rx-list-cell")) {
+                    if (node.getPseudoClassStates().contains(PseudoClass.getPseudoClass("selected"))) {
+                        Region cell = (Region) node;
+                        sample.put("selected", ThemeColorSamples.hex(cell.getBackground().getFills().get(0).getFill()));
+                    }
+                }
+            });
+            assertNotNull(sample.get("selected"), "selected row rendered under " + theme.getName());
+            assertNotEquals(sample.get("surface"), sample.get("selected"),
+                    "selected row differs from the list surface under " + theme.getName());
+        }
+    }
+
     // ==================== Tile / masonry cells ====================
 
     /**
-     * Under default Modena a selected tile or masonry cell keeps its selection-bar
-     * background with black text, and an unselected cell keeps black text.
+     * Under default Modena a selected tile or masonry cell in an unfocused view takes
+     * the unfocused selection bar with black text, and an unselected cell keeps black text.
      *
      * @throws Exception if the FX action fails
      */
@@ -887,8 +926,8 @@ public class RXControlColorsTest {
     public void defaultModenaKeepsTheCellColors() throws Exception {
         List<String> samples = cellSamples(Application.STYLESHEET_MODENA, scene -> { });
         assertEquals(List.of(
-                "RXTileView unselected text #000000ff", "RXTileView selected #0096c9ff text #000000ff",
-                "RXMasonryView unselected text #000000ff", "RXMasonryView selected #0096c9ff text #000000ff"),
+                "RXTileView unselected text #000000ff", "RXTileView selected #d3d3d3ff text #000000ff",
+                "RXMasonryView unselected text #000000ff", "RXMasonryView selected #d3d3d3ff text #000000ff"),
                 samples);
     }
 
