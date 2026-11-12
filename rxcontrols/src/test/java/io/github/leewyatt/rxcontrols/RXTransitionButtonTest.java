@@ -25,6 +25,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Paint;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -66,6 +68,8 @@ public class RXTransitionButtonTest {
         if (!latch.await(5, TimeUnit.SECONDS)) {
             throw new AssertionError("JavaFX toolkit did not start");
         }
+        // Hiding the last test stage must not shut the toolkit down.
+        Platform.setImplicitExit(false);
     }
 
     // ==================== Control API ====================
@@ -468,42 +472,46 @@ public class RXTransitionButtonTest {
         }
     }
 
+    // The default-button accelerator only fires for a button in a showing
+    // window, so the two accelerator tests below need a real stage.
     @Test
-    public void enterOnFocusedButtonExcludesDefaultButton() {
-        RXTransitionButton focused = new RXTransitionButton("Focused");
-        RXTransitionButton defaultButton = new RXTransitionButton("Default");
-        defaultButton.setDefaultButton(true);
-        StackPane root = new StackPane();
-        root.getChildren().addAll(focused, defaultButton);
-        new Scene(root, 200.0, 100.0);
-        root.applyCss();
-        root.layout();
+    public void enterOnFocusedButtonExcludesDefaultButton() throws InterruptedException {
+        runOnFx(() -> {
+            RXTransitionButton focused = new RXTransitionButton("Focused");
+            RXTransitionButton defaultButton = new RXTransitionButton("Default");
+            defaultButton.setDefaultButton(true);
+            StackPane root = new StackPane();
+            root.getChildren().addAll(focused, defaultButton);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root, 200.0, 100.0));
+            stage.show();
 
-        AtomicInteger focusedFired = new AtomicInteger();
-        AtomicInteger defaultFired = new AtomicInteger();
-        focused.setOnAction(event -> focusedFired.incrementAndGet());
-        defaultButton.setOnAction(event -> defaultFired.incrementAndGet());
+            AtomicInteger focusedFired = new AtomicInteger();
+            AtomicInteger defaultFired = new AtomicInteger();
+            focused.setOnAction(event -> focusedFired.incrementAndGet());
+            defaultButton.setOnAction(event -> defaultFired.incrementAndGet());
 
-        try {
-            Event.fireEvent(focused, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.ENTER));
-            Event.fireEvent(focused, keyEvent(KeyEvent.KEY_RELEASED, KeyCode.ENTER));
+            try {
+                Event.fireEvent(focused, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.ENTER));
+                Event.fireEvent(focused, keyEvent(KeyEvent.KEY_RELEASED, KeyCode.ENTER));
 
-            if (MAC) {
-                // ENTER is not an activation key on Mac: the event bubbles to
-                // the scene accelerators and fires the default button (twice,
-                // once per key event phase is prevented by the accelerator
-                // matching KEY_PRESSED only).
-                assertEquals(0, focusedFired.get());
-                assertEquals(1, defaultFired.get());
-            } else {
-                // The focused button consumes ENTER, so only it fires.
-                assertEquals(1, focusedFired.get());
-                assertEquals(0, defaultFired.get());
+                if (MAC) {
+                    // ENTER is not an activation key on Mac: the event bubbles to
+                    // the scene accelerators and fires the default button once
+                    // (accelerators match KEY_PRESSED only).
+                    assertEquals(0, focusedFired.get());
+                    assertEquals(1, defaultFired.get());
+                } else {
+                    // The focused button consumes ENTER, so only it fires.
+                    assertEquals(1, focusedFired.get());
+                    assertEquals(0, defaultFired.get());
+                }
+            } finally {
+                focused.getSkin().dispose();
+                defaultButton.getSkin().dispose();
+                stage.hide();
             }
-        } finally {
-            focused.getSkin().dispose();
-            defaultButton.getSkin().dispose();
-        }
+        });
     }
 
     @Test
@@ -531,24 +539,30 @@ public class RXTransitionButtonTest {
     }
 
     @Test
-    public void defaultAcceleratorSkipsButtonInsideHiddenAncestor() {
-        RXTransitionButton button = laidOutButton("Front", null);
-        AtomicInteger fired = new AtomicInteger();
-        button.setOnAction(event -> fired.incrementAndGet());
-        button.setDefaultButton(true);
-        Scene scene = button.getScene();
+    public void defaultAcceleratorSkipsButtonInsideHiddenAncestor() throws InterruptedException {
+        runOnFx(() -> {
+            RXTransitionButton button = new RXTransitionButton("Front");
+            AtomicInteger fired = new AtomicInteger();
+            button.setOnAction(event -> fired.incrementAndGet());
+            button.setDefaultButton(true);
+            Scene scene = new Scene(new StackPane(button), 200.0, 100.0);
+            Stage stage = new Stage();
+            stage.setScene(scene);
+            stage.show();
 
-        try {
-            scene.getRoot().setVisible(false);
-            scene.getAccelerators().get(new KeyCodeCombination(KeyCode.ENTER)).run();
-            assertEquals(0, fired.get());
+            try {
+                scene.getRoot().setVisible(false);
+                scene.getAccelerators().get(new KeyCodeCombination(KeyCode.ENTER)).run();
+                assertEquals(0, fired.get());
 
-            scene.getRoot().setVisible(true);
-            scene.getAccelerators().get(new KeyCodeCombination(KeyCode.ENTER)).run();
-            assertEquals(1, fired.get());
-        } finally {
-            button.getSkin().dispose();
-        }
+                scene.getRoot().setVisible(true);
+                scene.getAccelerators().get(new KeyCodeCombination(KeyCode.ENTER)).run();
+                assertEquals(1, fired.get());
+            } finally {
+                button.getSkin().dispose();
+                stage.hide();
+            }
+        });
     }
 
     @Test
@@ -648,6 +662,26 @@ public class RXTransitionButtonTest {
             }
         }
         return null;
+    }
+
+    private static void runOnFx(Runnable body) throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        Platform.runLater(() -> {
+            try {
+                body.run();
+            } catch (Throwable t) {
+                failure.set(t);
+            } finally {
+                latch.countDown();
+            }
+        });
+        if (!latch.await(10, TimeUnit.SECONDS)) {
+            throw new AssertionError("FX thread did not run the test body");
+        }
+        if (failure.get() != null) {
+            throw new AssertionError(failure.get());
+        }
     }
 
     private static MouseEvent mouseEvent(javafx.event.EventType<MouseEvent> type) {

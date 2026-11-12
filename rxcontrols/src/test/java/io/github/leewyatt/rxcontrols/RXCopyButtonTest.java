@@ -38,6 +38,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -89,6 +90,8 @@ public class RXCopyButtonTest {
         if (!latch.await(5, TimeUnit.SECONDS)) {
             throw new AssertionError("JavaFX toolkit did not start");
         }
+        // Hiding the last test stage must not shut the toolkit down.
+        Platform.setImplicitExit(false);
     }
 
     // ==================== Control API ====================
@@ -711,34 +714,44 @@ public class RXCopyButtonTest {
         button.getSkin().dispose();
     }
 
+    // The accelerators only fire for a button in a showing window, so this
+    // test needs a real stage.
     @Test
-    public void defaultAndCancelAcceleratorsFollowTheCurrentScene() {
-        RXCopyButton button = laidOut(new RXCopyButton("Copy"));
-        AtomicInteger calls = countingFactory(button);
-        Scene first = button.getScene();
+    public void defaultAndCancelAcceleratorsFollowTheCurrentScene() throws InterruptedException {
+        onFx(() -> {
+            RXCopyButton button = new RXCopyButton("Copy");
+            AtomicInteger calls = countingFactory(button);
+            Scene first = new Scene(new StackPane(button), 200.0, 100.0);
+            Stage stage = new Stage();
+            stage.setScene(first);
+            stage.show();
+            try {
+                button.setDefaultButton(true);
+                button.setCancelButton(true);
+                first.getAccelerators().get(ENTER).run();
+                first.getAccelerators().get(ESCAPE).run();
+                assertEquals(2, calls.get());
 
-        button.setDefaultButton(true);
-        button.setCancelButton(true);
-        first.getAccelerators().get(ENTER).run();
-        first.getAccelerators().get(ESCAPE).run();
-        assertEquals(2, calls.get());
+                button.setCancelButton(false);
+                assertFalse(first.getAccelerators().containsKey(ESCAPE));
 
-        button.setCancelButton(false);
-        assertFalse(first.getAccelerators().containsKey(ESCAPE));
+                // Hidden through an ancestor: still in the scene, but not activated.
+                first.getRoot().setVisible(false);
+                first.getAccelerators().get(ENTER).run();
+                assertEquals(2, calls.get());
+                first.getRoot().setVisible(true);
 
-        // Hidden through an ancestor: still in the scene, but not activated.
-        first.getRoot().setVisible(false);
-        first.getAccelerators().get(ENTER).run();
-        assertEquals(2, calls.get());
-        first.getRoot().setVisible(true);
+                ((StackPane) first.getRoot()).getChildren().clear();
+                Scene second = new Scene(new StackPane(button), 200.0, 100.0);
+                assertFalse(first.getAccelerators().containsKey(ENTER));
+                assertTrue(second.getAccelerators().containsKey(ENTER));
 
-        ((StackPane) first.getRoot()).getChildren().clear();
-        Scene second = new Scene(new StackPane(button), 200.0, 100.0);
-        assertFalse(first.getAccelerators().containsKey(ENTER));
-        assertTrue(second.getAccelerators().containsKey(ENTER));
-
-        button.getSkin().dispose();
-        assertFalse(second.getAccelerators().containsKey(ENTER));
+                button.getSkin().dispose();
+                assertFalse(second.getAccelerators().containsKey(ENTER));
+            } finally {
+                stage.hide();
+            }
+        });
     }
 
     // ==================== Dispose ====================

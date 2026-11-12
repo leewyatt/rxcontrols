@@ -12,6 +12,7 @@ import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
 import io.github.leewyatt.rxcontrols.internal.transition.TransitionPages;
 import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
+import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -452,21 +453,11 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
 
     private void fireFromAccelerator() {
         RXTransitionButton button = getSkinnable();
-        if (button != null && button.getScene() != null
-                && isTreeVisible(button) && !button.isDisabled()) {
+        // A button inside a hidden ancestor (an unselected tab, a collapsed
+        // pane) is still in the scene but must not answer ENTER or ESCAPE.
+        if (button != null && RXTreeShowingProperty.isTreeShowing(button) && !button.isDisabled()) {
             button.fire();
         }
-    }
-
-    // A button inside a hidden ancestor (an unselected tab, a collapsed pane)
-    // is still in the scene but must not answer ENTER or ESCAPE.
-    private static boolean isTreeVisible(Node node) {
-        for (Node current = node; current != null; current = current.getParent()) {
-            if (!current.isVisible()) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private void setAccelerator(Scene scene, KeyCombination combo, Runnable runnable, boolean set) {
