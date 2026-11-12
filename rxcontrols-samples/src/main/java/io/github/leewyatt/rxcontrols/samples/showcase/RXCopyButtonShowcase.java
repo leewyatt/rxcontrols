@@ -1,8 +1,15 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXCopyButton;
+import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
+import io.github.leewyatt.rxcontrols.animation.page.AnimFlip;
+import io.github.leewyatt.rxcontrols.animation.page.AnimGaussianBlur;
+import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
+import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
+import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.geometry.NodeOrientation;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -27,7 +34,7 @@ import java.util.function.Supplier;
  *
  * <p>Exercises the content factory (nothing to copy, plain text, text plus
  * HTML, an image), the feedback duration including zero and indefinite,
- * {@code resetFeedback()}, the copied text, the icon-only / icon-and-text /
+ * {@code resetFeedback()}, the swap animation, the copied text, the icon-only / icon-and-text /
  * text-only forms, a graphic on either face, alignment in a stretched button, the
  * disabled state and right-to-left orientation. The text area takes a paste
  * to verify what reached the clipboard.</p>
@@ -163,6 +170,25 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
             }
         });
 
+        Map<String, PageAnimation> animations = new LinkedHashMap<>();
+        animations.put("null (direct cut)", null);
+        animations.put("AnimFade", new AnimFade());
+        animations.put("AnimSlide (vertical)", new AnimSlide(Orientation.VERTICAL));
+        animations.put("AnimZoom", new AnimZoom());
+        animations.put("AnimGaussianBlur", new AnimGaussianBlur());
+        animations.put("AnimFlip (vertical)", new AnimFlip(Orientation.VERTICAL));
+        ComboBox<String> animationBox = new ComboBox<>();
+        animationBox.getItems().setAll(animations.keySet());
+        animationBox.setValue("null (direct cut)");
+        animationBox.setMaxWidth(Double.MAX_VALUE);
+        animationBox.valueProperty().addListener((obs, oldV, newV) ->
+                button.setAnimation(animations.get(newV)));
+
+        Slider animationSlider = createSlider(0.0, 800.0,
+                RXCopyButton.DEFAULT_ANIMATION_DURATION.toMillis());
+        animationSlider.valueProperty().addListener((obs, oldV, newV) ->
+                button.setAnimationDuration(Duration.millis(newV.doubleValue())));
+
         Button resetButton = new Button("resetFeedback()");
         resetButton.setMaxWidth(Double.MAX_VALUE);
         resetButton.setOnAction(event -> button.resetFeedback());
@@ -171,6 +197,8 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
                 row("Duration", durationSlider, createValueLabel(durationSlider, "%.0f ms")),
                 row("Indefinite", indefiniteBox),
                 row("Copied text", copiedTextBox),
+                row("Animation", animationBox),
+                row("Swap duration", animationSlider, createValueLabel(animationSlider, "%.0f ms")),
                 row("Reset", resetButton));
     }
 

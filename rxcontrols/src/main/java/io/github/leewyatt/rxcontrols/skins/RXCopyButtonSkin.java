@@ -1,9 +1,12 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXCopyButton;
+import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
+import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.internal.FeedbackSignals;
 import io.github.leewyatt.rxcontrols.internal.ripple.ArmedRippleTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
+import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
 import io.github.leewyatt.rxcontrols.internal.transition.TransitionPages;
 import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
@@ -35,7 +38,8 @@ import javafx.util.Duration;
  *
  * <p>The skin owns the feedback state: it swaps to the feedback face and sets
  * the {@code copied} pseudo-class on the button after a successful copy, and
- * a single timer swaps back.</p>
+ * a single timer swaps back. Swaps play the button's animation when one is
+ * set and cut directly otherwise.</p>
  *
  * <p>This skin does not extend {@code ButtonSkin} (the faces own the text and
  * graphic nodes), so the standard button behavior is wired here through the
@@ -93,8 +97,11 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
         // Registered first, so it runs last: by then the result listener and
         // the timer are gone and nothing can swap the face again.
         disposer.registerDisposeTask(() -> {
-            showFace(false);
-            pages.dispose(null);
+            // A direct cut: disposing must not start a transition.
+            pages.interrupt();
+            pages.directCutTo(pages.getPageA());
+            button.pseudoClassStateChanged(COPIED, false);
+            pages.dispose(button.getAnimation());
             // Only this skin's nodes: a replacement skin may already have
             // added its own children to the control.
             getChildren().removeAll(ripple.getLayer(), pages.getContentPane());
@@ -312,8 +319,19 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
         if (pages.getCurrentPage() == target) {
             return;
         }
-        pages.directCutTo(target);
         RXCopyButton button = getSkinnable();
+        // Latest wins: a running swap jumps to its end before the next one.
+        pages.interrupt();
+        PageAnimation animation = button.getAnimation();
+        TransitionDirection direction =
+                copied ? TransitionDirection.FORWARD : TransitionDirection.BACKWARD;
+        Duration duration = animationDurationOrDefault();
+        pages.clearEffectsIfChanged(animation, direction, duration);
+        if (PageTransitionEngine.canAnimate(animation, true, 2, duration, false)) {
+            pages.transitionTo(target, animation, direction, duration, null, null, null);
+        } else {
+            pages.directCutTo(target);
+        }
         button.pseudoClassStateChanged(COPIED, copied);
         button.notifyAccessibleAttributeChanged(AccessibleAttribute.TEXT);
     }
@@ -322,6 +340,17 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
         Duration duration = getSkinnable().getFeedbackDuration();
         if (duration == null || duration.isUnknown() || duration.lessThan(Duration.ZERO)) {
             return RXCopyButton.DEFAULT_FEEDBACK_DURATION;
+        }
+        return duration;
+    }
+
+    // Only Duration.ZERO turns the animation off (it fails the engine gate and
+    // falls back to a direct cut); unusable values still animate.
+    private Duration animationDurationOrDefault() {
+        Duration duration = getSkinnable().getAnimationDuration();
+        if (duration == null || duration.isUnknown() || duration.isIndefinite()
+                || duration.lessThan(Duration.ZERO)) {
+            return RXCopyButton.DEFAULT_ANIMATION_DURATION;
         }
         return duration;
     }

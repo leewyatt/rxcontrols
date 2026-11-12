@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.internal.FeedbackSignals;
 import io.github.leewyatt.rxcontrols.skins.RXCopyButtonSkin;
 import javafx.beans.NamedArg;
@@ -84,6 +85,11 @@ import java.util.function.Supplier;
  * {@code textFill}: a button with a custom text or background color should
  * set the {@code -fx-background-color} of both indicators as well.</p>
  *
+ * <p>The faces swap with a direct cut by default. Set an
+ * {@link #animationProperty() animation} to play a {@link PageAnimation}
+ * instead: forward to the feedback face and backward on the way back, for
+ * the {@link #animationDurationProperty() animationDuration}.</p>
+ *
  * <p>Mnemonics are not supported: {@code mnemonicParsing} starts
  * {@code false} and has no effect. An icon-only button should set
  * {@code accessibleText} (for example "Copy API key"). The button never puts
@@ -99,6 +105,12 @@ public class RXCopyButton extends RXButton {
      * value used in place of a {@code null}, negative or unknown one.
      */
     public static final Duration DEFAULT_FEEDBACK_DURATION = Duration.millis(2000.0);
+
+    /**
+     * Default {@link #animationDurationProperty() animationDuration}, and the
+     * value used in place of a {@code null}, negative or otherwise unusable one.
+     */
+    public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
 
     // Registered first in the constructor, so the copy runs before handlers
     // added later and before onAction. The target is deliberately not checked:
@@ -350,6 +362,93 @@ public class RXCopyButton extends RXButton {
         feedbackDuration.set(value);
     }
 
+    // ==================== Animation ====================
+
+    private final ObjectProperty<PageAnimation> animation =
+            new SimpleObjectProperty<>(this, "animation");
+
+    /**
+     * The animation played when the faces swap. The default {@code null}
+     * swaps with a direct cut, and so do multi-page display animations and
+     * animations requiring more than two pages. A swap requested while one is
+     * playing jumps the running one to its end first.
+     *
+     * @return the animation property
+     */
+    public final ObjectProperty<PageAnimation> animationProperty() {
+        return animation;
+    }
+
+    /**
+     * Returns the animation played when the faces swap.
+     *
+     * @return the animation, or {@code null} for a direct cut
+     */
+    public final PageAnimation getAnimation() {
+        return animation.get();
+    }
+
+    /**
+     * Sets the animation played when the faces swap.
+     *
+     * @param value the animation, or {@code null} for a direct cut
+     */
+    public final void setAnimation(PageAnimation value) {
+        animation.set(value);
+    }
+
+    // ==================== Animation Duration ====================
+
+    private final ObjectProperty<Duration> animationDuration =
+            new StyleableObjectProperty<>(DEFAULT_ANIMATION_DURATION) {
+                @Override
+                public CssMetaData<? extends Styleable, Duration> getCssMetaData() {
+                    return StyleableProperties.ANIMATION_DURATION;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXCopyButton.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "animationDuration";
+                }
+            };
+
+    /**
+     * Duration of one face swap when an {@link #animationProperty() animation}
+     * is set. {@code Duration.ZERO} swaps with a direct cut; {@code null},
+     * negative and otherwise unusable values fall back to
+     * {@link #DEFAULT_ANIMATION_DURATION}. The swap runs inside the
+     * {@link #feedbackDurationProperty() feedbackDuration}, not in addition
+     * to it. From CSS: {@code -rx-animation-duration}.
+     *
+     * @return the animation duration property
+     */
+    public final ObjectProperty<Duration> animationDurationProperty() {
+        return animationDuration;
+    }
+
+    /**
+     * Returns the duration of one face swap.
+     *
+     * @return the animation duration, or {@code null}
+     */
+    public final Duration getAnimationDuration() {
+        return animationDuration.get();
+    }
+
+    /**
+     * Sets the duration of one face swap.
+     *
+     * @param value the animation duration
+     */
+    public final void setAnimationDuration(Duration value) {
+        animationDuration.set(value);
+    }
+
     // ==================== CSS Metadata ====================
 
     private static class StyleableProperties {
@@ -369,12 +468,28 @@ public class RXCopyButton extends RXButton {
                     }
                 };
 
+        private static final CssMetaData<RXCopyButton, Duration> ANIMATION_DURATION =
+                new CssMetaData<>("-rx-animation-duration",
+                        DurationConverter.getInstance(), DEFAULT_ANIMATION_DURATION) {
+                    @Override
+                    public boolean isSettable(RXCopyButton button) {
+                        return !button.animationDuration.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Duration> getStyleableProperty(RXCopyButton button) {
+                        return (StyleableProperty<Duration>) button.animationDurationProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(RXButton.getClassCssMetaData());
             styleables.add(FEEDBACK_DURATION);
+            styleables.add(ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

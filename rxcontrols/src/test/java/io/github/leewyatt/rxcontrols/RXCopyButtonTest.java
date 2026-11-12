@@ -1,8 +1,14 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
+import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
+import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
+import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.internal.FeedbackSignals;
 import io.github.leewyatt.rxcontrols.skins.RXCopyButtonSkin;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
+import javafx.animation.Animation;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.MapChangeListener;
@@ -94,6 +100,9 @@ public class RXCopyButtonTest {
         assertNull(button.getContentFactory());
         assertNull(button.getCopiedText());
         assertNull(button.getCopiedGraphic());
+        assertNull(button.getAnimation());
+        assertEquals(Duration.millis(200.0), RXCopyButton.DEFAULT_ANIMATION_DURATION);
+        assertEquals(RXCopyButton.DEFAULT_ANIMATION_DURATION, button.getAnimationDuration());
         assertEquals(Duration.millis(2000.0), RXCopyButton.DEFAULT_FEEDBACK_DURATION);
         assertEquals(RXCopyButton.DEFAULT_FEEDBACK_DURATION, button.getFeedbackDuration());
         assertFalse(button.isMnemonicParsing());
@@ -101,6 +110,8 @@ public class RXCopyButtonTest {
 
         List<CssMetaData<? extends Styleable, ?>> metaData = button.getCssMetaData();
         assertTrue(metaData.containsAll(RXButton.getClassCssMetaData()));
+        assertTrue(metaData.stream()
+                .anyMatch(item -> "-rx-animation-duration".equals(item.getProperty())));
         CssMetaData<RXCopyButton, Duration> duration = feedbackDurationMetaData(button);
         assertTrue(duration.isSettable(button));
 
@@ -524,6 +535,82 @@ public class RXCopyButtonTest {
         }
     }
 
+    // ==================== Animation ====================
+
+    @Test
+    public void animationPlaysForwardThenBackwardAndLatestWins() {
+        RXCopyButton button = laidOut(new RXCopyButton("Copy"));
+        button.setFeedbackDuration(Duration.INDEFINITE);
+        RecordingAnimation recording = new RecordingAnimation();
+        button.setAnimation(recording);
+
+        post(button, Boolean.TRUE);
+        assertEquals(1, recording.contexts.size());
+        assertEquals(TransitionDirection.FORWARD, recording.contexts.get(0).getDirection());
+        assertTrue(button.getPseudoClassStates().contains(COPIED));
+
+        // Still running: the reset jumps it to its end before playing back.
+        post(button, Boolean.FALSE);
+        assertEquals(1, recording.jumpToEndCalls);
+        assertEquals(2, recording.contexts.size());
+        assertEquals(TransitionDirection.BACKWARD, recording.contexts.get(1).getDirection());
+        assertFalse(button.getPseudoClassStates().contains(COPIED));
+        button.getSkin().dispose();
+    }
+
+    @Test
+    public void finishedSwapLeavesOnlyTheFeedbackFaceShowing() throws InterruptedException {
+        AtomicReference<RXCopyButton> ref = new AtomicReference<>();
+        onFx(() -> {
+            RXCopyButton button = laidOut(new RXCopyButton("Copy"));
+            button.setFeedbackDuration(Duration.INDEFINITE);
+            button.setAnimation(new AnimFade());
+            button.setAnimationDuration(Duration.millis(60.0));
+            ref.set(button);
+            post(button, Boolean.TRUE);
+        });
+        Thread.sleep(400L);
+        onFx(() -> {
+            assertCopied(ref.get(), true);
+            assertEquals(1.0, face(ref.get(), ".copied-face").getParent().getOpacity(), 1.0e-6);
+            ref.get().getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void zeroAnimationDurationCutsAndInvalidOneFallsBack() {
+        RXCopyButton button = laidOut(new RXCopyButton("Copy"));
+        button.setFeedbackDuration(Duration.INDEFINITE);
+        RecordingAnimation recording = new RecordingAnimation();
+        button.setAnimation(recording);
+
+        button.setAnimationDuration(Duration.ZERO);
+        post(button, Boolean.TRUE);
+        assertEquals(0, recording.contexts.size());
+        assertCopied(button, true);
+
+        button.setAnimationDuration(null);
+        post(button, Boolean.FALSE);
+        assertEquals(1, recording.contexts.size());
+        assertEquals(RXCopyButton.DEFAULT_ANIMATION_DURATION, recording.contexts.get(0).getDuration());
+        button.getSkin().dispose();
+    }
+
+    @Test
+    public void disposeDuringSwapEndsOnNormalFaceWithoutNewTransition() {
+        RXCopyButton button = laidOut(new RXCopyButton("Copy"));
+        button.setFeedbackDuration(Duration.INDEFINITE);
+        RecordingAnimation recording = new RecordingAnimation();
+        button.setAnimation(recording);
+        post(button, Boolean.TRUE);
+
+        button.getSkin().dispose();
+
+        assertEquals(1, recording.contexts.size());
+        assertEquals(1, recording.disposeCalls);
+        assertFalse(button.getPseudoClassStates().contains(COPIED));
+    }
+
     // ==================== Button Behavior ====================
 
     @Test
@@ -747,5 +834,59 @@ public class RXCopyButtonTest {
 
     private static KeyEvent keyEvent(EventType<KeyEvent> type, KeyCode code) {
         return new KeyEvent(type, "", "", code, false, false, false, false);
+    }
+
+    // ==================== Recording animation ====================
+
+    // Never finishes on its own: a swap only ends through jumpToEnd or dispose.
+    private static class RecordingAnimation implements PageAnimation {
+
+        final List<TransitionContext> contexts = new ArrayList<>();
+        int jumpToEndCalls;
+        int disposeCalls;
+
+        private Animation running;
+        private Runnable finishAction;
+
+        @Override
+        public Animation getAnimation(TransitionContext context) {
+            contexts.add(context);
+            Node outgoing = context.getCurrentPage();
+            Node incoming = context.getNextPage();
+            incoming.setVisible(true);
+            finishAction = () -> {
+                outgoing.setVisible(false);
+                incoming.setVisible(true);
+            };
+            running = new PauseTransition(Duration.seconds(30.0));
+            return running;
+        }
+
+        @Override
+        public void jumpToEnd() {
+            jumpToEndCalls++;
+            stop();
+            if (finishAction != null) {
+                finishAction.run();
+                finishAction = null;
+            }
+        }
+
+        @Override
+        public void clearEffects(TransitionContext context) {
+        }
+
+        @Override
+        public void dispose() {
+            disposeCalls++;
+            stop();
+        }
+
+        private void stop() {
+            if (running != null) {
+                running.stop();
+                running = null;
+            }
+        }
     }
 }
