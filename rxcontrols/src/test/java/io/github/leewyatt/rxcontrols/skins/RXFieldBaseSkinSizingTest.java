@@ -1,11 +1,16 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.RXMaterialTextField;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.text.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +26,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * keep the min &lt;= pref invariant (TextFieldSkin maps min height to the
  * padding-inclusive pref via virtual dispatch — the skin must not re-add the
  * padding on top), and the reported baseline must shift with the tpTop editor
- * offset exactly like {@code getIndex} does.
+ * offset exactly like {@code getIndex} does, and keep sitting on the text when a
+ * taller slot stretches the editor band.
  */
 public class RXFieldBaseSkinSizingTest {
 
@@ -72,7 +78,49 @@ public class RXFieldBaseSkinSizingTest {
         });
     }
 
-    private static RXTextField inScene(RXTextField field) {
+    @Test
+    public void baselineFollowsTheTextWhenATallerSlotStretchesTheField() {
+        runOnFx(() -> {
+            for (Pos alignment : new Pos[]{Pos.TOP_LEFT, Pos.CENTER_LEFT, Pos.BOTTOM_LEFT}) {
+                RXTextField field = new RXTextField("text");
+                field.setAlignment(alignment);
+                field.setLeading(slot(40.0));
+                inScene(field);
+                assertEquals(textBaseline(field), field.getBaselineOffset(), 0.5,
+                        "reported baseline sits on the text under " + alignment);
+            }
+        });
+    }
+
+    @Test
+    public void materialBaselineFollowsTheTextWhenATallerSlotStretchesTheField() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            field.setText("text");
+            field.setLabelText("Label");
+            field.setLeading(slot(40.0));
+            inScene(field);
+            assertEquals(textBaseline(field), field.getBaselineOffset(), 0.5,
+                    "reported baseline sits on the text below the label band");
+        });
+    }
+
+    private static Region slot(double size) {
+        Region slot = new Region();
+        slot.setPrefSize(size, size);
+        return slot;
+    }
+
+    /** The editor text's baseline in the field's coordinates (Text draws from its baseline). */
+    private static double textBaseline(TextField field) {
+        Text text = (Text) field.lookupAll(".text").stream()
+                .filter(n -> n instanceof Text t && t.layoutXProperty().isBound())
+                .findFirst()
+                .orElseThrow();
+        return field.sceneToLocal(text.localToScene(0, text.getY())).getY();
+    }
+
+    private static <F extends TextField> F inScene(F field) {
         StackPane root = new StackPane(field);
         new Scene(root, 300, 200);
         root.applyCss();

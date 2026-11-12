@@ -815,6 +815,9 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     @Override
     public double computeBaselineOffset(double topInset, double rightInset,
                                         double bottomInset, double leftInset) {
-        return super.computeBaselineOffset(topInset, rightInset, bottomInset, leftInset) + labelBand();
+        final double labelBand = labelBand();
+        final double editorHeight = baselineContentHeight(topInset, bottomInset)
+                - labelBand - lineBand() - supportingBand();
+        return topInset + labelBand + editorBaseline(Math.max(0.0, editorHeight));
     }
 }

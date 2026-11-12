@@ -297,10 +297,58 @@ public class RXFieldBaseSkin extends TextFieldSkin {
     /** {@inheritDoc} */
     @Override
     public double computeBaselineOffset(double topInset, double rightInset, double bottomInset, double leftInset) {
-        // layoutChildren shifts the inner editor down by tpTop; the reported
-        // baseline must shift with it (getIndex applies the same correction).
-        return super.computeBaselineOffset(topInset, rightInset, bottomInset, leftInset)
-                + snapSizeY(getEffectiveTextPadding().getTop());
+        return topInset + editorBaseline(baselineContentHeight(topInset, bottomInset));
+    }
+
+    /**
+     * Content height (the control height minus the vertical insets) the baseline is
+     * measured against: the laid-out height, or the preferred height before the
+     * first layout.
+     *
+     * @param topInset    the top inset
+     * @param bottomInset the bottom inset
+     * @return the content height
+     */
+    protected final double baselineContentHeight(double topInset, double bottomInset) {
+        double height = getSkinnable().getHeight();
+        if (!(height > 0.0)) {
+            height = getSkinnable().prefHeight(-1);
+        }
+        return Math.max(0.0, height - topInset - bottomInset);
+    }
+
+    /**
+     * Baseline of the editor text, measured from the top of an editor band of the
+     * given height. The text is placed the way TextFieldSkin places it: shifted down
+     * by the top text padding, then aligned by the field's vertical alignment in the
+     * band left after the text padding. TextFieldSkin's own baseline assumes that
+     * band is exactly as tall as the text, which stops holding once a taller slot
+     * stretches the field.
+     *
+     * @param editorHeight height of the band the editor is laid out in
+     * @return the text baseline offset within that band
+     */
+    protected final double editorBaseline(double editorHeight) {
+        final Insets tp = getEffectiveTextPadding();
+        final double tpTop = snapSizeY(tp.getTop());
+        final double tpBottom = snapSizeY(tp.getBottom());
+        final double groupHeight = Math.max(0.0, editorHeight - tpTop - tpBottom);
+        final double ascent = super.computeBaselineOffset(0.0, 0.0, 0.0, 0.0);
+        final double descent = super.computePrefHeight(-1, 0.0, 0.0, 0.0, 0.0) - ascent;
+        final double textY;
+        switch (getSkinnable().getAlignment().getVpos()) {
+            case TOP:
+                textY = ascent;
+                break;
+            case CENTER:
+                textY = (ascent + groupHeight - descent) / 2.0;
+                break;
+            case BOTTOM:
+            default:
+                textY = groupHeight - descent;
+                break;
+        }
+        return tpTop + textY;
     }
 
     @Override
