@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
-import io.github.leewyatt.rxcontrols.RXClipPathImageView;
+import io.github.leewyatt.rxcontrols.RXImageView;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
 import io.github.leewyatt.rxcontrols.layout.RXCol;
@@ -159,7 +159,9 @@ public class RXRowShowcase extends RXShowcaseApplication {
         return List.of(
                 section("Profile", buildProfileGrid()),
                 section("Row", buildRowGrid()),
-                section("Columns", buildColumnGrid()));
+                section("Base span card", buildBaseSpanControls()),
+                section("Image card", buildImageControls()),
+                section("Shape card", buildShapeControls()));
     }
 
     // ==================== Sections ====================
@@ -253,18 +255,56 @@ public class RXRowShowcase extends RXShowcaseApplication {
                 row("Align", alignBox));
     }
 
-    private Node buildColumnGrid() {
+    private Node buildBaseSpanControls() {
         baseSpanSlider = createSlider(0.0, row.getColumns(), baseCol.getSpan());
         configureIntegerSlider(baseSpanSlider);
         baseSpanSlider.valueProperty().addListener((obs, oldV, newV) ->
                 baseCol.setSpan(newV.intValue()));
         Label baseSpanValue = createValueLabel(baseSpanSlider, "%.0f");
 
+        Label hint = createHint("");
+        hint.textProperty().bind(Bindings.createStringBinding(
+                () -> "Each card in the preview is one RXCol. Sets how many of the row's "
+                        + row.getColumns() + " grid columns the \"Base span\" card occupies. "
+                        + "That card has no breakpoint specs, so "
+                        + "the value applies at every width; 0 hides the card and frees its "
+                        + "slot. A card that no longer fits on the current line wraps to the next.",
+                row.columnsProperty()));
+
+        return new VBox(10.0,
+                createGrid(row("Span", baseSpanSlider, baseSpanValue)),
+                hint);
+    }
+
+    private Node buildImageControls() {
+        hideImageLgBox = new CheckBox("Hide image at lg and wider");
+        hideImageLgBox.selectedProperty().addListener((obs, oldV, selected) ->
+                updateImageLgSpec());
+
+        Label hint = createHint("");
+        hint.textProperty().bind(Bindings.createStringBinding(
+                () -> "lg is " + breakpointRangeText(RXBreakpoint.LG) + " for this profile. "
+                        + "Checked, the Image card's lg spec sets hidden, and wider "
+                        + "breakpoints inherit it: the card is removed from the layout and the "
+                        + "following cards move up into its slot. Narrower widths still show it.",
+                row.breakpointProfileProperty()));
+
+        return new VBox(10.0, createGrid(row(hideImageLgBox)), hint);
+    }
+
+    private Node buildShapeControls() {
         Slider shapeOrderSlider = createSlider(-2.0, 2.0, shapeCol.getOrder());
         configureIntegerSlider(shapeOrderSlider);
-        shapeOrderSlider.valueProperty().addListener((obs, oldV, newV) ->
-                shapeCol.setOrder(newV.intValue()));
+        shapeOrderSlider.valueProperty().addListener((obs, oldV, newV) -> {
+            shapeCol.setOrder(newV.intValue());
+            updateShapeLgSpec();
+        });
         Label shapeOrderValue = createValueLabel(shapeOrderSlider, "%.0f");
+
+        Label orderHint = createHint("Each card shows its effective order; lower values "
+                + "lay out first and the other cards stay at 0. This slider sets the Shape "
+                + "card's base order, which applies at every width unless the md values "
+                + "below override it.");
 
         mdOffsetSlider = createSlider(0.0, mdOffsetMax(), 0.0);
         configureIntegerSlider(mdOffsetSlider);
@@ -276,16 +316,26 @@ public class RXRowShowcase extends RXShowcaseApplication {
         mdOrderSlider.valueProperty().addListener((obs, oldV, newV) -> updateShapeMdSpec());
         Label mdOrderValue = createValueLabel(mdOrderSlider, "%.0f");
 
-        hideImageLgBox = new CheckBox("Hide image at lg and wider");
-        hideImageLgBox.selectedProperty().addListener((obs, oldV, selected) ->
-                updateImageLgSpec());
+        Node mdGrid = createGrid(
+                row("md offset", mdOffsetSlider, mdOffsetValue),
+                row("md order", mdOrderSlider, mdOrderValue));
+        mdGrid.visibleProperty().bind(Bindings.createBooleanBinding(
+                () -> row.getActiveBreakpoint() == RXBreakpoint.MD,
+                row.activeBreakpointProperty()));
+        mdGrid.managedProperty().bind(mdGrid.visibleProperty());
 
-        return createGrid(
-                row("Base span", baseSpanSlider, baseSpanValue),
-                row("Shape order", shapeOrderSlider, shapeOrderValue),
-                row("MD offset", mdOffsetSlider, mdOffsetValue),
-                row("MD order", mdOrderSlider, mdOrderValue),
-                row(hideImageLgBox));
+        Label mdHint = createHint("");
+        mdHint.textProperty().bind(Bindings.createStringBinding(
+                () -> "md is " + breakpointRangeText(RXBreakpoint.MD) + " for this profile. The md controls appear "
+                        + "only in that range and override Shape's offset and order there; "
+                        + "md order 0 keeps the base order.",
+                row.breakpointProfileProperty()));
+
+        return new VBox(10.0,
+                createGrid(row("Base order", shapeOrderSlider, shapeOrderValue)),
+                orderHint,
+                mdGrid,
+                mdHint);
     }
 
     // ==================== Preview helpers ====================
@@ -346,9 +396,9 @@ public class RXRowShowcase extends RXShowcaseApplication {
 
     private Node createImageView() {
         Image image = new Image(getClass().getResource("/scenery/2.png").toExternalForm(), true);
-        RXClipPathImageView imageView = new RXClipPathImageView(image);
+        RXImageView imageView = new RXImageView(image);
         imageView.setPrefSize(200.0, 110.0);
-        imageView.setClipSvg(RXClipPathImageView.SHAPE_ROUNDED_RECT);
+        imageView.setImageRadius(8.0);
         return imageView;
     }
 
@@ -357,6 +407,14 @@ public class RXRowShowcase extends RXShowcaseApplication {
         region.getStyleClass().add("bar-region");
         region.setPrefSize(200.0, 96.0);
         return region;
+    }
+
+    private Label createHint(String text) {
+        Label hint = new Label(text);
+        hint.getStyleClass().add("hint");
+        hint.setWrapText(true);
+        hint.setMinHeight(Region.USE_PREF_SIZE);
+        return hint;
     }
 
     private Node createShape() {
@@ -391,8 +449,8 @@ public class RXRowShowcase extends RXShowcaseApplication {
 
         shapeCol.setXs(RXColSpec.of(full));
         shapeCol.setSm(RXColSpec.of(half, 0));
-        shapeCol.setLg(RXColSpec.of(quarter, 0));
         updateShapeMdSpec();
+        updateShapeLgSpec();
 
         if (resetBaseSpan) {
             baseCol.setSpan(quarter);
@@ -418,11 +476,43 @@ public class RXRowShowcase extends RXShowcaseApplication {
         int third = Math.max(1, row.getColumns() / 3);
         int offset = mdOffsetSlider == null ? 0 : (int) Math.round(mdOffsetSlider.getValue());
         int order = mdOrderSlider == null ? 0 : (int) Math.round(mdOrderSlider.getValue());
-        shapeCol.setMd(RXColSpec.builder()
+        RXColSpec.Builder md = RXColSpec.builder()
                 .span(third)
-                .offset(offset)
-                .order(order)
+                .offset(offset);
+        // An unset md order inherits the base order; writing 0 would pin it and mask the base slider.
+        if (order != 0) {
+            md.order(order);
+        }
+        shapeCol.setMd(md.build());
+    }
+
+    private void updateShapeLgSpec() {
+        if (shapeCol == null) {
+            return;
+        }
+        // lg restates the base offset and order so the md overrides stay inside the md range
+        // instead of cascading to every wider breakpoint.
+        int quarter = Math.max(1, row.getColumns() / 4);
+        shapeCol.setLg(RXColSpec.builder()
+                .span(quarter)
+                .offset(0)
+                .order(shapeCol.getOrder())
                 .build());
+    }
+
+    private String breakpointRangeText(RXBreakpoint breakpoint) {
+        RXBreakpointProfile profile = row.getBreakpointProfile();
+        List<RXBreakpoint> breakpoints = profile.getBreakpoints();
+        int index = breakpoints.indexOf(breakpoint);
+        if (index < 0) {
+            return "not defined";
+        }
+        long min = Math.round(profile.minWidthOf(breakpoint));
+        if (index == breakpoints.size() - 1) {
+            return min + " px and wider";
+        }
+        long nextMin = Math.round(profile.minWidthOf(breakpoints.get(index + 1)));
+        return min + "–" + (nextMin - 1) + " px";
     }
 
     private int resolveEffectiveOrder(RXCol col) {

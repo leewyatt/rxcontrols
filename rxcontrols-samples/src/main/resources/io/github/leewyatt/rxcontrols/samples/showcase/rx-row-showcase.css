@@ -18,9 +18,12 @@
 .row-scroll {
     -fx-background-color: transparent;
     -fx-background: transparent;
+    /* Not -fx-text-box-border: Modena derives it from -fx-background, which is transparent here. */
+    -fx-border-color: derive(-fx-control-inner-background, -10%);
+}
+
+.rx-theme-atlantafx .row-scroll {
     -fx-border-color: -fx-text-box-border;
-    -fx-border-radius: 8px;
-    -fx-background-radius: 8px;
 }
 
 .row-scroll > .viewport {
@@ -29,7 +32,6 @@
 
 .row-frame {
     -fx-background-color: -fx-background;
-    -fx-background-radius: 8px;
 }
 
 .showcase-row:xs {
@@ -91,4 +93,9 @@
 
 .status-button {
     -fx-min-width: 120px;
+}
+
+.hint {
+    -fx-text-fill: derive(-fx-text-base-color, 45%);
+    -fx-font-size: 11px;
 }
