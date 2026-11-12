@@ -1,10 +1,18 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXCopyButton;
+import io.github.leewyatt.rxcontrols.animation.page.AnimBlinds;
+import io.github.leewyatt.rxcontrols.animation.page.AnimDissolve;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFlip;
 import io.github.leewyatt.rxcontrols.animation.page.AnimGaussianBlur;
+import io.github.leewyatt.rxcontrols.animation.page.AnimGlitch;
+import io.github.leewyatt.rxcontrols.animation.page.AnimNewspaper;
+import io.github.leewyatt.rxcontrols.animation.page.AnimShatter;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
+import io.github.leewyatt.rxcontrols.animation.page.AnimSlideIn;
+import io.github.leewyatt.rxcontrols.animation.page.AnimSqueeze;
+import io.github.leewyatt.rxcontrols.animation.page.AnimWhipPan;
 import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
@@ -106,12 +114,54 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
     @Override
     protected List<Section> createSections() {
         return List.of(
+                section("Swap animation", buildAnimationGrid()),
                 section("Content", buildContentGrid()),
                 section("Feedback", buildFeedbackGrid()),
                 section("Button", buildButtonGrid()));
     }
 
     // ==================== Sections ====================
+
+    private Node buildAnimationGrid() {
+        Map<String, Supplier<PageAnimation>> presets = animationPresets();
+        ComboBox<String> animationBox = new ComboBox<>();
+        animationBox.getItems().setAll(presets.keySet());
+        animationBox.setMaxWidth(Double.MAX_VALUE);
+        animationBox.valueProperty().addListener((obs, oldV, newV) ->
+                button.setAnimation(presets.get(newV).get()));
+        // The control default is a direct cut; the showcase starts on a visible one.
+        animationBox.setValue("Slide (vertical)");
+
+        Slider durationSlider = createSlider(0.0, 800.0,
+                RXCopyButton.DEFAULT_ANIMATION_DURATION.toMillis());
+        durationSlider.valueProperty().addListener((obs, oldV, newV) ->
+                button.setAnimationDuration(Duration.millis(newV.doubleValue())));
+
+        return createGrid(
+                row("Animation", animationBox),
+                row("Duration", durationSlider, createValueLabel(durationSlider, "%.0f ms")));
+    }
+
+    private static Map<String, Supplier<PageAnimation>> animationPresets() {
+        Map<String, Supplier<PageAnimation>> presets = new LinkedHashMap<>();
+        presets.put("None (direct cut)", () -> null);
+        presets.put("Fade", AnimFade::new);
+        presets.put("Slide (vertical)", () -> new AnimSlide(Orientation.VERTICAL));
+        presets.put("Slide", AnimSlide::new);
+        presets.put("Slide In", AnimSlideIn::new);
+        presets.put("Zoom", AnimZoom::new);
+        presets.put("Squeeze", AnimSqueeze::new);
+        presets.put("Gaussian Blur", AnimGaussianBlur::new);
+        presets.put("Dissolve", AnimDissolve::new);
+        presets.put("Flip", AnimFlip::new);
+        presets.put("Flip (vertical)", () -> new AnimFlip(Orientation.VERTICAL));
+        presets.put("Blinds", AnimBlinds::new);
+        presets.put("Whip Pan", AnimWhipPan::new);
+        presets.put("Glitch", AnimGlitch::new);
+        presets.put("Shatter", AnimShatter::new);
+        presets.put("Newspaper", AnimNewspaper::new);
+        return presets;
+    }
 
     private Node buildContentGrid() {
         Map<String, Supplier<ClipboardContent>> factories = new LinkedHashMap<>();
@@ -170,25 +220,6 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
             }
         });
 
-        Map<String, PageAnimation> animations = new LinkedHashMap<>();
-        animations.put("null (direct cut)", null);
-        animations.put("AnimFade", new AnimFade());
-        animations.put("AnimSlide (vertical)", new AnimSlide(Orientation.VERTICAL));
-        animations.put("AnimZoom", new AnimZoom());
-        animations.put("AnimGaussianBlur", new AnimGaussianBlur());
-        animations.put("AnimFlip (vertical)", new AnimFlip(Orientation.VERTICAL));
-        ComboBox<String> animationBox = new ComboBox<>();
-        animationBox.getItems().setAll(animations.keySet());
-        animationBox.setValue("null (direct cut)");
-        animationBox.setMaxWidth(Double.MAX_VALUE);
-        animationBox.valueProperty().addListener((obs, oldV, newV) ->
-                button.setAnimation(animations.get(newV)));
-
-        Slider animationSlider = createSlider(0.0, 800.0,
-                RXCopyButton.DEFAULT_ANIMATION_DURATION.toMillis());
-        animationSlider.valueProperty().addListener((obs, oldV, newV) ->
-                button.setAnimationDuration(Duration.millis(newV.doubleValue())));
-
         Button resetButton = new Button("resetFeedback()");
         resetButton.setMaxWidth(Double.MAX_VALUE);
         resetButton.setOnAction(event -> button.resetFeedback());
@@ -197,8 +228,6 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
                 row("Duration", durationSlider, createValueLabel(durationSlider, "%.0f ms")),
                 row("Indefinite", indefiniteBox),
                 row("Copied text", copiedTextBox),
-                row("Animation", animationBox),
-                row("Swap duration", animationSlider, createValueLabel(animationSlider, "%.0f ms")),
                 row("Reset", resetButton));
     }
 
