@@ -132,8 +132,8 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
         for (Region fill : fillRegions) {
             fill.setClip(null);
         }
-        // Only our own segments: on dispose, a replacement skin is constructed
-        // before this one and has already added its nodes.
+        // Only our own segments: by the time this skin is disposed, a
+        // replacement skin has already been constructed and added its nodes.
         getChildren().removeAll(trackRegions);
         getChildren().removeAll(fillRegions);
         trackRegions.clear();
