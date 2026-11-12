@@ -13,6 +13,7 @@ import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.animation.PauseTransition;
 import javafx.css.PseudoClass;
 import javafx.geometry.HPos;
+import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
@@ -518,6 +519,9 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
             indicator.getStyleClass().add("indicator");
             indicator.setMaxSize(USE_PREF_SIZE, USE_PREF_SIZE);
             indicator.setMouseTransparent(true);
+            // Neither shape has a direction: in a right-to-left button the
+            // indicator moves to the other side but is not drawn mirrored.
+            indicator.setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT);
 
             caption.setMnemonicParsing(false);
             // setAll drops the built-in .label class. The caption's text fill
