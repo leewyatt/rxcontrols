@@ -76,8 +76,10 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
     private static final double DEFAULT_PREF_WIDTH = 150.0;
     private static final double POPUP_CELL_SIZE = 34.0;
     private static final double POPUP_VERTICAL_GAP = 4.0;
-    private static final Duration ENTRANCE_DURATION = Duration.millis(180);
-    private static final double ENTRANCE_START_SCALE_Y = 0.92;
+    private static final Duration ENTRANCE_DURATION = Duration.millis(100);
+    private static final double ENTRANCE_START_SCALE_Y = 0.96;
+    // Starting half visible keeps the list readable from its first frame.
+    private static final double ENTRANCE_START_OPACITY = 0.5;
 
     private static final PseudoClass EMPTY = PseudoClass.getPseudoClass("empty");
     private static final PseudoClass SHOWING = PseudoClass.getPseudoClass("showing");
@@ -635,10 +637,10 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
             return;
         }
         entranceScale.setY(ENTRANCE_START_SCALE_Y);
-        popupBody.setOpacity(0.0);
+        popupBody.setOpacity(ENTRANCE_START_OPACITY);
         entrance = new Timeline(
                 new KeyFrame(Duration.ZERO,
-                        new KeyValue(popupBody.opacityProperty(), 0.0),
+                        new KeyValue(popupBody.opacityProperty(), ENTRANCE_START_OPACITY),
                         new KeyValue(entranceScale.yProperty(), ENTRANCE_START_SCALE_Y)),
                 new KeyFrame(ENTRANCE_DURATION,
                         new KeyValue(popupBody.opacityProperty(), 1.0, Interpolator.EASE_OUT),

@@ -55,7 +55,9 @@ public class RXPopupMenu {
     // Small gap between the anchor and the menu surface (Material dropdown).
     private static final double MENU_GAP = 4.0;
     // The surface grows from this scale to 1.0 on open (Material 2 menu surface).
-    private static final double ENTRANCE_START_SCALE = 0.8;
+    private static final double ENTRANCE_START_SCALE = 0.95;
+    // Starting half visible keeps the menu readable from its first frame.
+    private static final double ENTRANCE_START_OPACITY = 0.5;
 
     /**
      * Why an {@link RXPopupMenu} closed. All values are produced:
@@ -492,7 +494,7 @@ public class RXPopupMenu {
         // full size until then can paint one un-animated frame.
         entranceScale.setX(ENTRANCE_START_SCALE);
         entranceScale.setY(ENTRANCE_START_SCALE);
-        popupSurface.setOpacity(0.0);
+        popupSurface.setOpacity(ENTRANCE_START_OPACITY);
         Interpolator interpolator = menuList.getAnimationInterpolator();
         if (interpolator == null) {
             interpolator = Interpolator.EASE_OUT;
@@ -501,7 +503,7 @@ public class RXPopupMenu {
                 new KeyFrame(Duration.ZERO,
                         new KeyValue(entranceScale.xProperty(), ENTRANCE_START_SCALE, interpolator),
                         new KeyValue(entranceScale.yProperty(), ENTRANCE_START_SCALE, interpolator),
-                        new KeyValue(popupSurface.opacityProperty(), 0.0, interpolator)),
+                        new KeyValue(popupSurface.opacityProperty(), ENTRANCE_START_OPACITY, interpolator)),
                 new KeyFrame(duration,
                         new KeyValue(entranceScale.xProperty(), 1.0, interpolator),
                         new KeyValue(entranceScale.yProperty(), 1.0, interpolator),

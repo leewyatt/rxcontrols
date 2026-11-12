@@ -578,6 +578,7 @@ public class RXPopupMenuTest {
         runOnFx(() -> {
             Region anchor = shownAnchor();
             RXPopupMenu menu = new RXPopupMenu();
+            menu.getMenuList().setAnimated(true);
             menu.getItems().add(RXMenuItem.of("A"));
             menu.show(anchor);
 
@@ -597,6 +598,7 @@ public class RXPopupMenuTest {
         runOnFx(() -> {
             Region anchor = shownAnchor();
             RXPopupMenu menu = new RXPopupMenu();
+            menu.getMenuList().setAnimated(true);
             menu.getItems().add(RXMenuItem.of("Rename"));
             menu.show(anchor, RXPlacement.BOTTOM_END);
             Scale scale = (Scale) entranceSurface(menu).getTransforms().get(0);
@@ -614,6 +616,7 @@ public class RXPopupMenuTest {
         runOnFx(() -> {
             Region anchor = shownAnchor();
             RXPopupMenu menu = new RXPopupMenu();
+            menu.getMenuList().setAnimated(true);
             menu.getItems().add(RXMenuItem.of("Rename"));
             menu.show(anchor, RXPlacement.BOTTOM_START);
             Scale scale = (Scale) entranceSurface(menu).getTransforms().get(0);
@@ -630,6 +633,7 @@ public class RXPopupMenuTest {
         runOnFx(() -> {
             Region anchor = shownAnchor();
             RXPopupMenu menu = new RXPopupMenu();
+            menu.getMenuList().setAnimated(true);
             menu.getMenuList().setAnimationInterpolator(null);
             menu.getItems().add(RXMenuItem.of("A"));
             try {

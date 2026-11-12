@@ -70,6 +70,7 @@ public class RXSelectionBoxTest {
         assertTrue(box.isSearchable());
         assertTrue(box.isAutoHideOnSelection());
         assertTrue(box.isClearSearchOnHide());
+        assertFalse(box.isAnimationEnabled());
         assertFalse(box.isReadOnly());
         assertEquals(8, box.getMaxVisibleRows());
         assertNotNull(box.getSelectionModel());

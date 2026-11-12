@@ -63,7 +63,7 @@ import java.util.function.Supplier;
 public class RXMenuList extends Control {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-menu-list";
-    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(120.0);
+    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(100.0);
     private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_OUT;
     private static final PseudoClass DENSE_PSEUDO_CLASS = PseudoClass.getPseudoClass("dense");
 
@@ -549,12 +549,13 @@ public class RXMenuList extends Control {
 
     // ==================== Animated ====================
 
-    private final BooleanProperty animated = new SimpleBooleanProperty(this, "animated", true);
+    private final BooleanProperty animated = new SimpleBooleanProperty(this, "animated", false);
 
     /**
      * Master switch for the entrance animation played when this list is shown in a
-     * popup menu. Defaults to {@code true}. Has no effect on an inline list (which
-     * is never "shown"). Not styleable.
+     * popup menu. Defaults to {@code false}, so the menu appears at once like a
+     * native menu. Has no effect on an inline list (which is never "shown").
+     * Not styleable.
      *
      * @return the animated property
      */
@@ -602,7 +603,7 @@ public class RXMenuList extends Control {
 
     /**
      * Duration of the entrance animation played when the list is shown in a popup
-     * menu (V1 animates the entrance only). Initial value {@code 120ms}. A
+     * menu (V1 animates the entrance only). Initial value {@code 100ms}. A
      * {@code null}, non-positive, unknown or indefinite value is accepted and
      * disables animation, exactly like {@code animated=false}.
      *

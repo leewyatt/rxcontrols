@@ -663,11 +663,12 @@ public class RXSelectionBox<T> extends Control {
 
     // ==================== Animation Enabled ====================
 
-    private final BooleanProperty animationEnabled = new SimpleBooleanProperty(this, "animationEnabled", true);
+    private final BooleanProperty animationEnabled = new SimpleBooleanProperty(this, "animationEnabled", false);
 
     /**
      * Whether the popup plays a short scale-and-fade entrance animation when
-     * shown.
+     * shown. Defaults to {@code false}, so the popup appears at once like a
+     * native combo box.
      *
      * @return the animation-enabled property
      */

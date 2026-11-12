@@ -86,8 +86,8 @@ public class RXMenuListTest {
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_OPACITY, list.getRippleOpacity(), 0.0);
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_ENABLED, list.isRippleEnabled());
         assertEquals(RXRipplePane.DEFAULT_STATE_OVERLAY_ENABLED, list.isStateOverlayEnabled());
-        assertTrue(list.isAnimated());
-        assertEquals(Duration.millis(120), list.getAnimationDuration());
+        assertFalse(list.isAnimated());
+        assertEquals(Duration.millis(100), list.getAnimationDuration());
         assertSame(Interpolator.EASE_OUT, list.getAnimationInterpolator());
     }
 
@@ -114,7 +114,7 @@ public class RXMenuListTest {
         list.setRippleOpacity(0.5);
         list.setRippleEnabled(false);
         list.setStateOverlayEnabled(false);
-        list.setAnimated(false);
+        list.setAnimated(true);
         list.setAnimationDuration(Duration.millis(50));
         list.setAnimationInterpolator(Interpolator.LINEAR);
 
@@ -124,7 +124,7 @@ public class RXMenuListTest {
         assertEquals(0.5, list.getRippleOpacity(), 0.0);
         assertFalse(list.isRippleEnabled());
         assertFalse(list.isStateOverlayEnabled());
-        assertFalse(list.isAnimated());
+        assertTrue(list.isAnimated());
         assertEquals(Duration.millis(50), list.getAnimationDuration());
         assertSame(Interpolator.LINEAR, list.getAnimationInterpolator());
     }
