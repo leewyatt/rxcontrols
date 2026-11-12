@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.internal.FeedbackSignals;
+import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.skins.RXCopyButtonSkin;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.animation.Animation;
@@ -29,6 +30,7 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -363,6 +365,9 @@ public class RXCopyButtonTest {
         button.setCopiedText("Copied");
         assertEquals("Copied", button.queryAccessibleAttribute(AccessibleAttribute.TEXT));
 
+        button.setCopiedText("");
+        assertEquals("Copy", button.queryAccessibleAttribute(AccessibleAttribute.TEXT));
+
         button.setAccessibleText("Copy API key");
         assertEquals("Copy API key", button.queryAccessibleAttribute(AccessibleAttribute.TEXT));
         button.getSkin().dispose();
@@ -638,6 +643,33 @@ public class RXCopyButtonTest {
     }
 
     @Test
+    public void throwingFactoryDoesNotLeaveTheButtonArmed() {
+        RXCopyButton button = laidOut(new RXCopyButton("Copy"));
+        button.setContentFactory(() -> {
+            throw new IllegalStateException("boom");
+        });
+
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+        assertThrows(IllegalStateException.class, () ->
+                Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY)));
+
+        assertFalse(button.isArmed());
+        button.getSkin().dispose();
+    }
+
+    @Test
+    public void playRippleStartsARipple() {
+        RXCopyButton button = laidOut(new RXCopyButton("Copy"));
+        RippleLayer layer = assertInstanceOf(RippleLayer.class, button.getChildrenUnmodifiable().get(0));
+        int before = layer.getChildrenUnmodifiable().size();
+
+        button.playRipple();
+
+        assertTrue(layer.getChildrenUnmodifiable().size() > before);
+        button.getSkin().dispose();
+    }
+
+    @Test
     public void activationKeysFireAndOtherKeysStayUnconsumed() {
         RXCopyButton button = laidOut(new RXCopyButton("Copy"));
         AtomicInteger calls = countingFactory(button);
@@ -664,6 +696,18 @@ public class RXCopyButtonTest {
 
         Event.fireEvent(button, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.RIGHT));
         assertEquals(1, arrowAccelerator.get());
+
+        // A modified activation key neither arms nor is consumed.
+        int before = calls.get();
+        scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.SPACE, KeyCombination.CONTROL_DOWN),
+                spaceAccelerator::incrementAndGet);
+        KeyEvent controlSpace = new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.SPACE,
+                false, true, false, false);
+        Event.fireEvent(button, controlSpace);
+        assertFalse(button.isArmed());
+        assertEquals(1, spaceAccelerator.get());
+        assertEquals(before, calls.get());
         button.getSkin().dispose();
     }
 
@@ -681,6 +725,12 @@ public class RXCopyButtonTest {
 
         button.setCancelButton(false);
         assertFalse(first.getAccelerators().containsKey(ESCAPE));
+
+        // Hidden through an ancestor: still in the scene, but not activated.
+        first.getRoot().setVisible(false);
+        first.getAccelerators().get(ENTER).run();
+        assertEquals(2, calls.get());
+        first.getRoot().setVisible(true);
 
         ((StackPane) first.getRoot()).getChildren().clear();
         Scene second = new Scene(new StackPane(button), 200.0, 100.0);

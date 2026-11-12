@@ -14,11 +14,11 @@ import javafx.animation.PauseTransition;
 import javafx.css.PseudoClass;
 import javafx.geometry.HPos;
 import javafx.geometry.NodeOrientation;
-import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.AccessibleAttribute;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
@@ -154,6 +154,7 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
     private void wireBehavior(RXCopyButton button) {
         // Shared ripple pointer tracking (records the press location for the next arm).
         rippleTrigger.installPointerTracking(disposer);
+        rippleTrigger.installPlayRipple(disposer);
         disposer.registerListener(button.armedProperty(), rippleTrigger::handleArmedChanged);
         disposer.registerEventHandler(button, MouseEvent.MOUSE_PRESSED, this::mousePressed);
         disposer.registerEventHandler(button, MouseEvent.MOUSE_RELEASED, this::mouseReleased);
@@ -380,7 +381,12 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
             if (accessibleText != null && !accessibleText.isEmpty()) {
                 return accessibleText;
             }
-            return pages.getCurrentPage() == pages.getPageB() ? copiedTextOrText() : button.getText();
+            // An empty copied text is a visual choice (indicator-only
+            // feedback); the button still needs a name.
+            String copiedText = copiedTextOrText();
+            boolean copied = pages.getCurrentPage() == pages.getPageB()
+                    && copiedText != null && !copiedText.isEmpty();
+            return copied ? copiedText : button.getText();
         }
         return super.queryAccessibleAttribute(attribute, parameters);
     }
@@ -407,8 +413,13 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
     private void mouseReleased(MouseEvent event) {
         RXCopyButton button = getSkinnable();
         if (!keyDown && button.isArmed()) {
-            button.fire();
-            button.disarm();
+            // A throwing content factory propagates out of fire(); the button
+            // must not stay armed behind it.
+            try {
+                button.fire();
+            } finally {
+                button.disarm();
+            }
         }
         event.consume();
     }
@@ -430,7 +441,9 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
     }
 
     private void keyPressed(KeyEvent event) {
-        if (!isActivationKey(event)) {
+        // A modified press (e.g. Ctrl+ENTER) is not an activation: it stays
+        // unconsumed for application shortcuts.
+        if (!isActivationKey(event) || hasModifier(event)) {
             return;
         }
         RXCopyButton button = getSkinnable();
@@ -463,12 +476,27 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
                 || (event.getCode() == KeyCode.ENTER && !MAC);
     }
 
+    private static boolean hasModifier(KeyEvent event) {
+        return event.isShiftDown() || event.isControlDown() || event.isAltDown() || event.isMetaDown();
+    }
+
     private void fireFromAccelerator() {
         RXCopyButton button = getSkinnable();
         if (button != null && button.getScene() != null
-                && button.isVisible() && !button.isDisabled()) {
+                && isTreeVisible(button) && !button.isDisabled()) {
             button.fire();
         }
+    }
+
+    // A button inside a hidden ancestor (an unselected tab, a collapsed pane)
+    // is still in the scene but must not answer ENTER or ESCAPE.
+    private static boolean isTreeVisible(Node node) {
+        for (Node current = node; current != null; current = current.getParent()) {
+            if (!current.isVisible()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void setAccelerator(Scene scene, KeyCombination combo, Runnable runnable, boolean set) {
@@ -520,9 +548,6 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
             indicator.getStyleClass().add("indicator");
             indicator.setMaxSize(USE_PREF_SIZE, USE_PREF_SIZE);
             indicator.setMouseTransparent(true);
-            // Neither shape has a direction: in a right-to-left button the
-            // indicator moves to the other side but is not drawn mirrored.
-            indicator.setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT);
             // Neither shape has a direction: in a right-to-left button the
             // indicator moves to the other side but is not drawn mirrored.
             indicator.setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT);
