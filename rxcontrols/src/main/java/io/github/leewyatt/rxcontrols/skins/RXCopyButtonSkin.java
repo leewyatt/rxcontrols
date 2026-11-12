@@ -130,6 +130,11 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
         disposer.registerListener(button.copiedTextProperty(), this::updateCopiedCaption);
         updateCopiedCaption();
 
+        // labelPadding pads the whole indicator-and-caption block, as it pads
+        // the text and graphic of a standard button.
+        disposer.registerBinding(normalFace.paddingProperty(), button.labelPaddingProperty());
+        disposer.registerBinding(copiedFace.paddingProperty(), button.labelPaddingProperty());
+
         // The gap between indicator and caption is laid out by the faces.
         disposer.registerListener(button.graphicTextGapProperty(), () -> {
             normalFace.requestLayout();

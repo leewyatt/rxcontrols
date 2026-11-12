@@ -19,6 +19,7 @@ import javafx.css.Styleable;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventType;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.AccessibleAction;
 import javafx.scene.AccessibleAttribute;
@@ -304,6 +305,24 @@ public class RXCopyButtonTest {
         button.setCopiedText(null);
         assertEquals(14.0, normalFace.prefWidth(-1), 1.0e-6);
         assertEquals(14.0, copiedFace.prefWidth(-1), 1.0e-6);
+        button.getSkin().dispose();
+    }
+
+    @Test
+    public void labelPaddingPadsBothFaces() {
+        RXCopyButton button = laidOut(new RXCopyButton("Copy"));
+        button.setCopiedText("Copied");
+        double width = button.prefWidth(-1);
+        double height = button.prefHeight(-1);
+
+        // labelPadding has no public setter: it is styled from CSS only.
+        button.setStyle("-fx-label-padding: 3 4 5 6;");
+        button.applyCss();
+
+        assertEquals(width + 10.0, button.prefWidth(-1), 1.0e-6);
+        assertEquals(height + 8.0, button.prefHeight(-1), 1.0e-6);
+        assertEquals(new Insets(3.0, 4.0, 5.0, 6.0), face(button, ".copy-face").getPadding());
+        assertEquals(new Insets(3.0, 4.0, 5.0, 6.0), face(button, ".copied-face").getPadding());
         button.getSkin().dispose();
     }
 
