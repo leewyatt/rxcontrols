@@ -19,6 +19,7 @@ import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.AccessibleAttribute;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
@@ -34,9 +35,8 @@ import javafx.util.Duration;
  * Skin for {@link RXCopyButton}: a ripple layer below two faces. The normal
  * face shows a copy indicator next to the button's own text and graphic; the
  * feedback face shows a check indicator next to the copied text and graphic.
- * The button
- * is sized to the larger of the two faces, so swapping faces never changes
- * its size.
+ * The button is sized to the larger of the two faces, so swapping faces never
+ * changes its size.
  *
  * <p>The skin owns the feedback state: it swaps to the feedback face and sets
  * the {@code copied} pseudo-class on the button after a successful copy, and
@@ -391,7 +391,17 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
             String copiedText = copiedTextOrText();
             boolean copied = pages.getCurrentPage() == pages.getPageB()
                     && copiedText != null && !copiedText.isEmpty();
-            return copied ? copiedText : button.getText();
+            if (copied) {
+                return copiedText;
+            }
+            String text = button.getText();
+            if (text != null && !text.isEmpty()) {
+                return text;
+            }
+            // Like a standard button, an icon-only button falls back to the
+            // accessible text of its graphic.
+            Node graphic = button.getGraphic();
+            return graphic == null ? text : graphic.queryAccessibleAttribute(AccessibleAttribute.TEXT);
         }
         return super.queryAccessibleAttribute(attribute, parameters);
     }

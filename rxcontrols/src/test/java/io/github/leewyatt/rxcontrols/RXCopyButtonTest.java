@@ -395,6 +395,16 @@ public class RXCopyButtonTest {
         button.getSkin().dispose();
     }
 
+    @Test
+    public void iconOnlyNameFallsBackToGraphicAccessibleText() {
+        Region icon = new Region();
+        icon.setAccessibleText("Copy link");
+        RXCopyButton button = laidOut(new RXCopyButton(null, icon));
+
+        assertEquals("Copy link", button.queryAccessibleAttribute(AccessibleAttribute.TEXT));
+        button.getSkin().dispose();
+    }
+
     // ==================== Feedback ====================
 
     @Test
@@ -719,6 +729,12 @@ public class RXCopyButtonTest {
         Event.fireEvent(button, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.RIGHT));
         assertEquals(1, arrowAccelerator.get());
 
+        AtomicInteger tabAccelerator = new AtomicInteger();
+        scene.getAccelerators().put(new KeyCodeCombination(KeyCode.TAB),
+                tabAccelerator::incrementAndGet);
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.TAB));
+        assertEquals(1, tabAccelerator.get());
+
         // A modified activation key neither arms nor is consumed.
         int before = calls.get();
         scene.getAccelerators().put(
@@ -731,6 +747,36 @@ public class RXCopyButtonTest {
         assertEquals(1, spaceAccelerator.get());
         assertEquals(before, calls.get());
         button.getSkin().dispose();
+    }
+
+    @Test
+    public void focusLossWhileKeyDownDisarmsWithoutFiring() {
+        FocusableCopyButton button = new FocusableCopyButton();
+        laidOut(button);
+        AtomicInteger calls = countingFactory(button);
+        button.focus(true);
+
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.SPACE));
+        assertTrue(button.isArmed());
+        button.focus(false);
+        assertFalse(button.isArmed());
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_RELEASED, KeyCode.SPACE));
+
+        assertEquals(0, calls.get());
+        button.getSkin().dispose();
+    }
+
+    // Without a focused window Node.focused never turns true, so the test
+    // drives it through the protected setter.
+    private static final class FocusableCopyButton extends RXCopyButton {
+
+        FocusableCopyButton() {
+            super("Copy");
+        }
+
+        void focus(boolean value) {
+            setFocused(value);
+        }
     }
 
     // The accelerators only fire for a button in a showing window, so this
