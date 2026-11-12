@@ -3553,21 +3553,27 @@
     -fx-alignment: center-left;
     -fx-background-color: -rx-outline, -fx-control-inner-background;
     -fx-background-insets: 0, 1;
-    -fx-background-radius: 6, 5;
+    -fx-background-radius: 3, 2;
     -fx-padding: 0.5em 0.5em 0.5em 0.833em; /* 6 6 6 10 */
     -fx-spacing: 0.5em; /* 6 */
     -fx-cursor: hand;
 }
 
-.rx-selection-box:hover > .display {
-    -fx-background-color: -rx-on-surface-secondary, -fx-control-inner-background;
-}
-
 .rx-selection-box:focused > .display,
 .rx-selection-box:showing > .display {
-    -fx-background-color: -rx-primary, -fx-control-inner-background;
-    -fx-background-insets: 0, 2;
-    -fx-background-radius: 6, 4;
+    -fx-background-color: -fx-focus-color,
+    -fx-control-inner-background,
+    -fx-faint-focus-color,
+    -fx-control-inner-background;
+    -fx-background-insets: -0.2, 1, -1.4, 3;
+    -fx-background-radius: 3, 2, 4, 0;
+}
+
+.rx-theme-atlantafx .rx-selection-box:focused > .display,
+.rx-theme-atlantafx .rx-selection-box:showing > .display {
+    -fx-background-color: -fx-focus-color, -fx-control-inner-background;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
 }
 
 .rx-selection-box:readonly > .display {
@@ -3602,10 +3608,10 @@
 
 .rx-selection-box-popup .popup-content {
     -fx-background-color: -fx-control-inner-background;
-    -fx-background-radius: 4;
+    -fx-background-radius: 3;
     -fx-border-color: derive(-fx-text-box-border, -18%);
     -fx-border-width: 1px;
-    -fx-border-radius: 4;
+    -fx-border-radius: 3;
     -fx-padding: 1px;
     -fx-spacing: 0;
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 12, 0.0, 0, 6);
@@ -3615,15 +3621,17 @@
     -rx-text-padding: 0 0 0 0.75em;
     -fx-background-color: transparent;
     -fx-background-insets: 0;
-    -fx-background-radius: 3 3 0 0;
-    -fx-border-color: transparent transparent derive(-fx-text-box-border, -8%) transparent;
+    -fx-background-radius: 2 2 0 0;
+    -fx-border-color: transparent transparent
+    ladder(-fx-control-inner-background,
+    derive(-fx-control-inner-background, 25%) 45%,
+    derive(-fx-control-inner-background, -16%) 46%) transparent;
     -fx-border-width: 0 0 1px 0;
     -fx-padding: 0.416667em 0.666667em; /* 5 8 */
 }
 
 .rx-selection-box-popup .search-field:focused {
     -fx-background-color: transparent;
-    -fx-border-color: transparent transparent -rx-primary transparent;
 }
 
 .rx-selection-box-popup .search-field .leading-wrapper {
@@ -3640,7 +3648,7 @@
 .rx-selection-box-popup .rx-list-view,
 .rx-selection-box-popup .rx-list-view > .viewport {
     -fx-background-color: -fx-control-inner-background;
-    -fx-background-radius: 0 0 3 3;
+    -fx-background-radius: 0 0 2 2;
 }
 
 .rx-selection-box-popup .rx-list-view {
