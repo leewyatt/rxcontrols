@@ -285,6 +285,17 @@ public class RXCopyButtonTest {
     }
 
     @Test
+    public void themeSizesBothIndicators() {
+        RXCopyButton button = laidOut(new RXCopyButton("Copy"));
+
+        assertTrue(indicator(button, ".copy-face").prefWidth(-1) > 0.0);
+        assertTrue(indicator(button, ".copy-face").prefHeight(-1) > 0.0);
+        assertTrue(indicator(button, ".copied-face").prefWidth(-1) > 0.0);
+        assertTrue(indicator(button, ".copied-face").prefHeight(-1) > 0.0);
+        button.getSkin().dispose();
+    }
+
+    @Test
     public void wrappedCaptionGrowsTallerInNarrowerWidth() {
         RXCopyButton button = laidOut(new RXCopyButton("A caption long enough to wrap onto several lines"));
         setIndicatorSize(button, 14.0);

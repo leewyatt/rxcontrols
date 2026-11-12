@@ -342,6 +342,60 @@
 
 /*******************************************************************************
  *                                                                             *
+ * RXCopyButton                                                                *
+ *                                                                             *
+ ******************************************************************************/
+.rx-copy-button .copy-face > .indicator,
+.rx-copy-button .copied-face > .indicator {
+    -fx-pref-width: 14px;
+    -fx-pref-height: 14px;
+}
+
+.rx-copy-button .copy-face > .indicator {
+    -fx-background-color: -fx-text-base-color;
+    -fx-shape: "M4 4 H14 V14 H4 Z M5.5 5.5 V12.5 H12.5 V5.5 Z M0 0 H10 V2.5 H8.5 V1.5 H1.5 V8.5 H2.5 V10 H0 Z";
+}
+
+/* Both indicators keep one box so the caption does not shift on the swap; the
+   insets fit the 13.5 x 10 check into it undistorted. */
+.rx-copy-button .copied-face > .indicator {
+    -fx-background-color: -rx-success;
+    -fx-background-insets: 2px 0.25px 2px 0.25px;
+    -fx-shape: "M0 5 L1.5 3.5 L5 7 L12 0 L13.5 1.5 L5 10 Z";
+}
+
+/* AtlantaFX swaps the button text color per state, and a .success button is
+   filled with the success color itself, so there the check follows the text. */
+.rx-theme-atlantafx .rx-copy-button .copy-face > .indicator,
+.rx-theme-atlantafx.rx-copy-button .copy-face > .indicator,
+.rx-theme-atlantafx .rx-copy-button.success .copied-face > .indicator,
+.rx-theme-atlantafx.rx-copy-button.success .copied-face > .indicator {
+    -fx-background-color: -color-button-fg;
+}
+
+.rx-theme-atlantafx .rx-copy-button:hover .copy-face > .indicator,
+.rx-theme-atlantafx.rx-copy-button:hover .copy-face > .indicator,
+.rx-theme-atlantafx .rx-copy-button.success:hover .copied-face > .indicator,
+.rx-theme-atlantafx.rx-copy-button.success:hover .copied-face > .indicator {
+    -fx-background-color: -color-button-fg-hover;
+}
+
+.rx-theme-atlantafx .rx-copy-button:focused .copy-face > .indicator,
+.rx-theme-atlantafx.rx-copy-button:focused .copy-face > .indicator,
+.rx-theme-atlantafx .rx-copy-button.success:focused .copied-face > .indicator,
+.rx-theme-atlantafx.rx-copy-button.success:focused .copied-face > .indicator {
+    -fx-background-color: -color-button-fg-focused;
+}
+
+.rx-theme-atlantafx .rx-copy-button:armed .copy-face > .indicator,
+.rx-theme-atlantafx.rx-copy-button:armed .copy-face > .indicator,
+.rx-theme-atlantafx .rx-copy-button.success:armed .copied-face > .indicator,
+.rx-theme-atlantafx.rx-copy-button.success:armed .copied-face > .indicator {
+    -fx-background-color: -color-button-fg-pressed;
+}
+
+/*******************************************************************************
+ *                                                                             *
  * RXFillButton                                                                *
  *                                                                             *
  ******************************************************************************/
