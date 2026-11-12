@@ -1,0 +1,26 @@
+.live-preview {
+    -fx-padding: 28px;
+}
+
+/* Text-only form: a zero preferred size removes the indicators and their gap. */
+.no-indicator .copy-face > .indicator,
+.no-indicator .copied-face > .indicator {
+    -fx-pref-width: 0;
+    -fx-pref-height: 0;
+}
+
+.star-icon {
+    -fx-background-color: -fx-text-base-color;
+    -fx-shape: "M8 0 L10.4 5.2 L16 6 L12 10 L13 16 L8 13.2 L3 16 L4 10 L0 6 L5.6 5.2 Z";
+    -fx-pref-width: 14px;
+    -fx-pref-height: 14px;
+}
+
+.fired-label {
+    -fx-opacity: 0.75;
+}
+
+.hint-label {
+    -fx-opacity: 0.55;
+    -fx-font-size: 11px;
+}
