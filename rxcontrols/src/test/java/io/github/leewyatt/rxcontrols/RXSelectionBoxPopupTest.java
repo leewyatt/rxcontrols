@@ -368,6 +368,71 @@ public class RXSelectionBoxPopupTest {
     }
 
     @Test
+    public void f4TogglesThePopup() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("a", "b");
+            box.setSearchable(false);
+            fireKey(box, KeyCode.F4);
+            assertTrue(box.isShowing(), "F4 opens the popup");
+            fireKey(box, KeyCode.F4);
+            assertFalse(box.isShowing(), "F4 closes an open popup");
+        });
+    }
+
+    @Test
+    public void filterFactoryReceivesTheTrimmedQuery() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("apple", "banana", "cherry");
+            List<String> queries = new ArrayList<>();
+            box.setFilterFactory(query -> {
+                queries.add(query);
+                return item -> item.startsWith(query);
+            });
+            box.show();
+            box.setSearchText("  b ");
+            RXListView<?> list = popupList();
+            assertNotNull(list);
+            assertEquals(List.of("banana"), List.copyOf(list.getItems()));
+            assertEquals("b", queries.get(queries.size() - 1));
+        });
+    }
+
+    @Test
+    public void filterFactoryReturningNullFallsBackToTheDefaultMatch() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("apple", "banana");
+            box.setFilterFactory(query -> null);
+            box.show();
+            box.setSearchText("NAN");
+            RXListView<?> list = popupList();
+            assertNotNull(list);
+            assertEquals(List.of("banana"), List.copyOf(list.getItems()));
+        });
+    }
+
+    @Test
+    public void selectAllAddsOnlyTheRowsTheSearchShows() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("apple", "apricot", "banana", "cherry");
+            box.setSelectionMode(SelectionMode.MULTIPLE);
+            box.setShowSelectAllButton(true);
+            box.getSelectionModel().select(3);
+            box.show();
+            box.setSearchText("ap");
+
+            PopupControl popup = findPopup();
+            assertNotNull(popup);
+            popup.getScene().getRoot().applyCss();
+            Button selectAll = (Button) popup.getScene().getRoot().lookup(".select-all-button");
+            assertNotNull(selectAll);
+            selectAll.fire();
+
+            assertEquals(List.of(0, 1, 3), box.getSelectionModel().getSelectedIndices().stream().sorted().toList(),
+                    "the visible matches are added and the earlier pick is kept; hidden banana is not picked");
+        });
+    }
+
+    @Test
     public void itemEditsKeepThePopupListInSync() throws InterruptedException {
         runOnFx(() -> {
             RXSelectionBox<String> box = newShownBox("d", "b", "a");

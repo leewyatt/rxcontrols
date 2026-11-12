@@ -25,6 +25,8 @@ import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.PaintConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.scene.Node;
+import javafx.scene.AccessibleAction;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
 import javafx.scene.control.Control;
 import javafx.scene.control.MultipleSelectionModel;
@@ -37,7 +39,8 @@ import javafx.util.StringConverter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.BiPredicate;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * A single- or multiple-selection, searchable, virtualized drop-down selector.
@@ -460,38 +463,39 @@ public class RXSelectionBox<T> extends Control {
         searchPromptText.set(value);
     }
 
-    // ==================== Filter Predicate ====================
+    // ==================== Filter Factory ====================
 
-    private final ObjectProperty<BiPredicate<T, String>> filterPredicate =
-            new SimpleObjectProperty<>(this, "filterPredicate");
+    private final ObjectProperty<Function<String, Predicate<T>>> filterFactory =
+            new SimpleObjectProperty<>(this, "filterFactory");
 
     /**
-     * The predicate deciding whether an item matches the current search query
-     * ({@code (item, query)}). When {@code null}, an item matches when its
-     * display text contains the trimmed, case-insensitive query.
+     * Maps the search query to a predicate selecting the matching items. The query
+     * is trimmed and never blank; a blank query shows every item without consulting
+     * the factory. When {@code null} (or when it returns {@code null}), an item
+     * matches when its display text contains the query, ignoring case.
      *
-     * @return the filter predicate property
+     * @return the filter-factory property
      */
-    public final ObjectProperty<BiPredicate<T, String>> filterPredicateProperty() {
-        return filterPredicate;
+    public final ObjectProperty<Function<String, Predicate<T>>> filterFactoryProperty() {
+        return filterFactory;
     }
 
     /**
-     * Returns the filter predicate.
+     * Returns the filter factory.
      *
-     * @return the filter predicate, or {@code null}
+     * @return the filter factory, or {@code null}
      */
-    public final BiPredicate<T, String> getFilterPredicate() {
-        return filterPredicate.get();
+    public final Function<String, Predicate<T>> getFilterFactory() {
+        return filterFactory.get();
     }
 
     /**
-     * Sets the filter predicate.
+     * Sets the filter factory.
      *
-     * @param value the filter predicate, or {@code null}
+     * @param value the filter factory, or {@code null} for the default
      */
-    public final void setFilterPredicate(BiPredicate<T, String> value) {
-        filterPredicate.set(value);
+    public final void setFilterFactory(Function<String, Predicate<T>> value) {
+        filterFactory.set(value);
     }
 
     // ==================== Clear Search On Hide ====================
@@ -790,7 +794,8 @@ public class RXSelectionBox<T> extends Control {
     private final BooleanProperty showClearButton = new SimpleBooleanProperty(this, "showClearButton", false);
 
     /**
-     * Whether a Clear button is shown in the popup footer.
+     * Whether a Clear button is shown in the popup footer. The button clears the
+     * whole selection, including items an active search hides.
      *
      * @return the show-clear-button property
      */
@@ -822,7 +827,8 @@ public class RXSelectionBox<T> extends Control {
 
     /**
      * Whether a Select All button is shown in the popup footer. Only effective in
-     * {@link SelectionMode#MULTIPLE}.
+     * {@link SelectionMode#MULTIPLE}. The button adds the items the popup currently
+     * shows to the selection: all items, or only the matches of an active search.
      *
      * @return the show-select-all-button property
      */
@@ -912,7 +918,12 @@ public class RXSelectionBox<T> extends Control {
 
     // ==================== Showing (read-only) ====================
 
-    private final ReadOnlyBooleanWrapper showing = new ReadOnlyBooleanWrapper(this, "showing", false);
+    private final ReadOnlyBooleanWrapper showing = new ReadOnlyBooleanWrapper(this, "showing", false) {
+        @Override
+        protected void invalidated() {
+            notifyAccessibleAttributeChanged(AccessibleAttribute.EXPANDED);
+        }
+    };
 
     /**
      * Whether the popup is currently showing. The single source of truth for the
@@ -952,6 +963,27 @@ public class RXSelectionBox<T> extends Control {
      */
     public final void hide() {
         showing.set(false);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Object queryAccessibleAttribute(AccessibleAttribute attribute, Object... parameters) {
+        if (attribute == AccessibleAttribute.EXPANDED) {
+            return isShowing();
+        }
+        return super.queryAccessibleAttribute(attribute, parameters);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void executeAccessibleAction(AccessibleAction action, Object... parameters) {
+        if (action == AccessibleAction.EXPAND) {
+            show();
+        } else if (action == AccessibleAction.COLLAPSE) {
+            hide();
+        } else {
+            super.executeAccessibleAction(action, parameters);
+        }
     }
 
     /**

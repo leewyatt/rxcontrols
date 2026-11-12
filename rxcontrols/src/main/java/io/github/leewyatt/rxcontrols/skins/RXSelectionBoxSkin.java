@@ -46,7 +46,8 @@ import javafx.util.StringConverter;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.function.BiPredicate;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Default skin for {@link RXSelectionBox}.
@@ -234,7 +235,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         disposer.registerListener(control.selectionModelProperty(), this::rebindModel);
         disposer.registerListener(control.selectionModeProperty(), this::onModeChanged);
         disposer.registerListener(control.searchTextProperty(), this::onSearchChanged);
-        disposer.registerListener(control.filterPredicateProperty(), this::updateFilter);
+        disposer.registerListener(control.filterFactoryProperty(), this::updateFilter);
         disposer.registerListener(control.searchableProperty(), this::onSearchableChanged);
         disposer.registerListener(control.readOnlyProperty(), this::onReadOnlyChanged);
         disposer.registerListener(control.promptTextProperty(), this::updateDisplay);
@@ -269,7 +270,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         disposer.registerBinding(selectAllButton.textProperty(), control.selectAllButtonTextProperty());
 
         clearButton.setOnAction(event -> control.clearSelection());
-        selectAllButton.setOnAction(event -> control.selectAll());
+        selectAllButton.setOnAction(event -> selectVisibleItems());
 
         disposer.registerEventHandler(display, MouseEvent.MOUSE_CLICKED, this::onDisplayClicked);
         disposer.registerEventHandler(display, MouseEvent.MOUSE_PRESSED, this::onDisplayPressed);
@@ -466,6 +467,23 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         setVisibleManaged(actionsBox, showClear || showSelectAll);
     }
 
+    /**
+     * Adds the rows the popup currently shows to the selection: every item, or only
+     * the matches of an active search, so hidden items are never picked unseen.
+     */
+    private void selectVisibleItems() {
+        MultipleSelectionModel<T> model = getSkinnable().getSelectionModel();
+        int count = filtered.size();
+        if (model == null || model.getSelectionMode() != SelectionMode.MULTIPLE || count == 0) {
+            return;
+        }
+        int[] rest = new int[count - 1];
+        for (int i = 1; i < count; i++) {
+            rest[i - 1] = filtered.getSourceIndex(i);
+        }
+        model.selectIndices(filtered.getSourceIndex(0), rest);
+    }
+
     private static void setVisibleManaged(Node node, boolean value) {
         node.setVisible(value);
         node.setManaged(value);
@@ -510,13 +528,14 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         if (query == null || query.isBlank()) {
             filtered.setPredicate(null);
         } else {
-            BiPredicate<T, String> predicate = control.getFilterPredicate();
-            if (predicate != null) {
-                filtered.setPredicate(item -> predicate.test(item, query));
-            } else {
-                String needle = query.trim().toLowerCase(Locale.ROOT);
-                filtered.setPredicate(item -> textOf(item).toLowerCase(Locale.ROOT).contains(needle));
+            String trimmed = query.trim();
+            Function<String, Predicate<T>> factory = control.getFilterFactory();
+            Predicate<T> predicate = factory == null ? null : factory.apply(trimmed);
+            if (predicate == null) {
+                String needle = trimmed.toLowerCase(Locale.ROOT);
+                predicate = item -> textOf(item).toLowerCase(Locale.ROOT).contains(needle);
             }
+            filtered.setPredicate(predicate);
         }
         resetCursorAfterFilter();
         updatePopupHeight();
@@ -749,9 +768,9 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         }
         KeyCode code = event.getCode();
         if (!control.isShowing()) {
-            // Down / Up open the popup (ComboBox convention). Enter and other keys
+            // Down / Up / F4 open the popup (ComboBox convention). Enter and other keys
             // are left to bubble so an enclosing form's default button still sees them.
-            if (code == KeyCode.DOWN || code == KeyCode.UP) {
+            if (code == KeyCode.DOWN || code == KeyCode.UP || code == KeyCode.F4) {
                 control.show();
                 pressRippleCentered();
                 event.consume();
@@ -770,6 +789,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
     private boolean handleNavigationKey(KeyCode code) {
         switch (code) {
             case ESCAPE:
+            case F4:
                 getSkinnable().hide();
                 return true;
             case UP:

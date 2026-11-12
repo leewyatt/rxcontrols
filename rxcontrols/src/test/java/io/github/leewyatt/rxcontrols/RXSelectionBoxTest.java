@@ -6,6 +6,8 @@ import javafx.collections.FXCollections;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.css.Styleable;
+import javafx.scene.AccessibleAction;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
@@ -363,6 +365,19 @@ public class RXSelectionBoxTest {
             assertEquals("ab", box.getSearchText(),
                     "installing the skin is not a popup close and must not clear the query");
         });
+    }
+
+    @Test
+    public void accessibleExpandedStateFollowsShowing() {
+        RXSelectionBox<String> box = new RXSelectionBox<>(FXCollections.observableArrayList("a"));
+        assertEquals(false, box.queryAccessibleAttribute(AccessibleAttribute.EXPANDED));
+
+        box.executeAccessibleAction(AccessibleAction.EXPAND);
+        assertTrue(box.isShowing());
+        assertEquals(true, box.queryAccessibleAttribute(AccessibleAttribute.EXPANDED));
+
+        box.executeAccessibleAction(AccessibleAction.COLLAPSE);
+        assertFalse(box.isShowing());
     }
 
     // ==================== Helpers ====================
