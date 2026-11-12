@@ -46,8 +46,20 @@ import java.util.List;
  * Adds a runtime {@link #revealPasswordProperty() revealPassword} toggle (driving
  * {@code :revealed}) and a built-in reveal (eye) button; revealing only shows the
  * plain text for visual confirmation — {@code cut()} / {@code copy()} stay
- * disabled. As in the text-field sibling, the {@code :floated} pseudo-class is
- * active while the label sits in its floated (top) position.
+ * disabled.
+ * <p>
+ * The floating label text comes from {@link #labelTextProperty()}, falling back
+ * to the inherited {@code promptText} when {@code labelText} is blank (a blank
+ * {@code promptText} is likewise ignored — the field then renders without a
+ * floating label). The native prompt node is suppressed (via
+ * {@code -fx-prompt-text-fill: transparent}) so it does not compete with the
+ * floating label. The {@code :floated} pseudo-class is active while the label
+ * sits in its floated (top) position.
+ * <p>
+ * Validation is display-only: set {@link #invalidProperty() invalid} (driving
+ * the {@code :invalid} pseudo-class) and optionally {@link #errorTextProperty()
+ * errorText} from your own validation logic. The control bundles no validator
+ * framework.
  */
 public class RXMaterialPasswordField extends PasswordField {
 
@@ -414,8 +426,8 @@ public class RXMaterialPasswordField extends PasswordField {
                     this, "labelGap", DEFAULT_LABEL_GAP);
 
     /**
-     * Vertical gap between the floated label and the editor text (M2 / MUI use
-     * about 4dp). Negative values are clamped to 0 by the skin; non-finite
+     * Vertical gap between the floated label and the editor text (Material 2
+     * uses about 4dp). Negative values are clamped to 0 by the skin; non-finite
      * values fall back to the default.
      *
      * @return the label-gap property

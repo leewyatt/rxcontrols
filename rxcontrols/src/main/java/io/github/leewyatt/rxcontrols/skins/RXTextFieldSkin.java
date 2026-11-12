@@ -9,6 +9,11 @@ import io.github.leewyatt.rxcontrols.RXTextField;
  */
 public class RXTextFieldSkin extends RXFieldBaseSkin {
 
+    /**
+     * Creates the skin for the given control.
+     *
+     * @param control the text field being skinned
+     */
     public RXTextFieldSkin(RXTextField control) {
         super(control, control.leadingProperty(), control.trailingProperty(), control.textPaddingProperty());
     }

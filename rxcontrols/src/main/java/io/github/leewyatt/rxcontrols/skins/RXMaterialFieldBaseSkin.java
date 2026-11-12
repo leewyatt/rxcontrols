@@ -276,8 +276,8 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         getChildren().addAll(activationLine, accentLine, labelNode, supporting);
 
         // Map normalized progress onto the decoration transforms. Registered on
-        // the shared disposer for a single cleanup channel, matching the
-        // RXCircularProgressIndicatorSkin reference baseline.
+        // the shared disposer so every listener is removed at the single cleanup
+        // point.
         disposer.registerListener(floatProgress, this::applyFloatVisual);
         disposer.registerListener(accentProgress, this::applyAccentVisual);
 

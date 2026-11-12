@@ -1543,7 +1543,6 @@
     -fx-text-fill: -rx-danger;
 }
 
-/* built-in clear / reveal buttons: nested under the base .trailing-wrapper (descendant selector) */
 .rx-material-text-field .trailing-wrapper .clear-button,
 .rx-material-password-field .trailing-wrapper .clear-button,
 .rx-material-password-field .trailing-wrapper .reveal-button {

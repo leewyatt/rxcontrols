@@ -66,13 +66,6 @@ import javafx.scene.text.HitInfo;
  * Horizontal values are the exact gap between a present wrapper and the text;
  * vertical values stack on top of the control's own vertical padding and feed
  * into the pref/min height computation.
- * <p>
- * <b>Provenance:</b> this skin builds on the leading/trailing-node pattern from
- * ControlsFX's {@code CustomTextFieldSkin} — see the BSD-3-Clause notice in the
- * file header. Beyond that pattern it adds the effective leading / trailing /
- * text-padding model, the laid-out-width hit-test correction in
- * {@code getIndex}, the wrapper relayout bridge, and the listener / dispose
- * handling.
  */
 public class RXFieldBaseSkin extends TextFieldSkin {
 
@@ -105,6 +98,15 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         }
     };
 
+    /**
+     * Creates the skin.
+     *
+     * @param control              the text field being skinned
+     * @param effectiveLeading     the node to show in the leading slot, or {@code null}
+     * @param effectiveTrailing    the node to show in the trailing slot, or {@code null}
+     * @param effectiveTextPadding the padding between the slots and the editor text;
+     *                             {@code null} means {@link Insets#EMPTY}
+     */
     public RXFieldBaseSkin(TextField control,
                            ObservableValue<Node> effectiveLeading,
                            ObservableValue<Node> effectiveTrailing,
@@ -298,6 +300,7 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         return resolveTrailingAdjust(rightInset, trailingWidth);
     }
 
+    /** {@inheritDoc} */
     @Override
     public HitInfo getIndex(double x, double y) {
         // Use the last-laid-out wrapper width rather than prefWidth: a CSS
@@ -416,6 +419,7 @@ public class RXFieldBaseSkin extends TextFieldSkin {
 
     // ==================== Lifecycle ====================
 
+    /** {@inheritDoc} */
     @Override
     public void dispose() {
         // Runs all registered cleanup (this skin's and any subclass's) in LIFO

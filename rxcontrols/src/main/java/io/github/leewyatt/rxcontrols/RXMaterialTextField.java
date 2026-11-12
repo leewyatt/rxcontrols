@@ -412,8 +412,8 @@ public class RXMaterialTextField extends TextField {
                     this, "labelGap", DEFAULT_LABEL_GAP);
 
     /**
-     * Vertical gap between the floated label and the editor text (M2 / MUI use
-     * about 4dp). Negative values are clamped to 0 by the skin; non-finite
+     * Vertical gap between the floated label and the editor text (Material 2
+     * uses about 4dp). Negative values are clamped to 0 by the skin; non-finite
      * values fall back to the default.
      *
      * @return the label-gap property
