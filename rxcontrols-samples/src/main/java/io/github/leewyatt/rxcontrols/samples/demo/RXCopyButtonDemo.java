@@ -23,6 +23,7 @@ public class RXCopyButtonDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        // 1: Copy text
         // Icon-only: the factory reads the field at the moment of the click.
         TextField keyField = new TextField("rx-controls-demo-1234567890");
         keyField.setEditable(false);
@@ -33,6 +34,7 @@ public class RXCopyButtonDemo extends Application {
         HBox keyRow = new HBox(8.0, new Label("API key"), keyField, copyKey);
         keyRow.setAlignment(Pos.CENTER_LEFT);
 
+        // 2: Copy image
         // Any clipboard format works: here an image, pasted as a picture.
         Image image = new Image(RXCopyButtonDemo.class.getResource("/scenery/1.png").toExternalForm());
         ImageView imageView = new ImageView(image);
