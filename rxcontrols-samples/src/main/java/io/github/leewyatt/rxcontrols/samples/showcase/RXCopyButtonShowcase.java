@@ -168,7 +168,7 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
         factories.put("text field", () -> RXCopyButton.textContent(sourceField.getText()));
         factories.put("text + HTML", () -> {
             ClipboardContent content = RXCopyButton.textContent(sourceField.getText());
-            content.putHtml("<b>" + sourceField.getText() + "</b>");
+            content.putHtml("<b>" + escapeHtml(sourceField.getText()) + "</b>");
             return content;
         });
         factories.put("image (button snapshot)", () -> {
@@ -284,6 +284,10 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
                 row("Stretch to 260 px", stretchBox),
                 row("Disabled", disableBox),
                 row("Right to left", rtlBox));
+    }
+
+    private static String escapeHtml(String text) {
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
     private static Region createStar() {
