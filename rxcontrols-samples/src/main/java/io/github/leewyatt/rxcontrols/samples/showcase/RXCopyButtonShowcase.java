@@ -25,10 +25,15 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -40,23 +45,39 @@ import java.util.function.Supplier;
 /**
  * Showcase application for {@link RXCopyButton}.
  *
- * <p>Exercises the content factory (nothing to copy, plain text, text plus
- * HTML, an image), the feedback duration including zero and indefinite,
- * {@code resetFeedback()}, the swap animation, the copied text, the
- * icon-only / icon-and-text / text-only forms, a graphic on either face,
- * alignment in a stretched button, the disabled state and right-to-left
- * orientation. The text area takes a paste to verify what reached the
- * clipboard.</p>
+ * <p>The preview shows what the selected content source copies (plain text
+ * from a text field, text plus HTML, an image, or nothing to copy) and, after
+ * every activation, what the system clipboard holds in each format. The
+ * control pane covers the feedback duration including zero and indefinite,
+ * {@code resetFeedback()}, the copied text and graphic, the swap animation,
+ * the icon-only / icon-and-text / text-only forms, the button graphic,
+ * alignment, the disabled state and right-to-left orientation.</p>
  */
 public class RXCopyButtonShowcase extends RXShowcaseApplication {
 
-    private static final String COPIED_TEXT_NULL = "null (reuse text)";
-    private static final String COPIED_TEXT_EMPTY = "\"\" (no text)";
+    private static final String RICH_PLAIN_TEXT = "RXControls: JavaFX controls";
+    private static final String RICH_HTML = "<b>RXControls</b>: <i>JavaFX</i> controls";
+    private static final String NONE = "—";
+    private static final int PREVIEW_LENGTH = 160;
+    private static final double CARD_WIDTH = 340.0;
 
     private RXCopyButton button;
-    private TextField sourceField;
-    private Label firedLabel;
+    private final StackPane sourceCard = new StackPane();
+    private final TextField sourceField = new TextField("Text read at the moment of the click");
+    private final Label firedLabel = new Label("onAction fired 0x");
     private int firedCount;
+
+    private final Label clipboardText = new Label(NONE);
+    private final Label clipboardHtml = new Label(NONE);
+    private final Label clipboardImageInfo = new Label(NONE);
+    private final ImageView clipboardImage = new ImageView();
+
+    /**
+     * One entry of the content source picker: what the factory copies and the
+     * preview card that shows it.
+     */
+    private record Source(Supplier<ClipboardContent> factory, Node card) {
+    }
 
     // ==================== Showcase wiring ====================
 
@@ -84,29 +105,25 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
     protected Node createPreview() {
         button = new RXCopyButton("Copy");
         button.setCopiedText("Copied");
+        // onAction runs after the copy, so the clipboard already holds the result.
         button.setOnAction(event -> {
             firedCount++;
-            firedLabel.setText("action fired " + firedCount + "x");
+            firedLabel.setText("onAction fired " + firedCount + "x");
+            readClipboard();
         });
 
-        sourceField = new TextField("Text read at the moment of the click");
-        sourceField.setMaxWidth(320.0);
         // Changing the data makes a showing "Copied" stale.
         sourceField.textProperty().addListener(observable -> button.resetFeedback());
-        button.setContentFactory(() -> RXCopyButton.textContent(sourceField.getText()));
+        sourceField.setPromptText("empty = nothing to copy");
+        firedLabel.getStyleClass().add("muted-label");
 
-        firedLabel = new Label("action fired 0x");
-        firedLabel.getStyleClass().add("fired-label");
-
-        TextArea pasteArea = new TextArea();
-        pasteArea.setPromptText("Paste here to check the clipboard");
-        pasteArea.setPrefRowCount(3);
-        pasteArea.setMaxWidth(320.0);
+        sourceCard.getStyleClass().add("preview-card");
+        sourceCard.setMaxWidth(CARD_WIDTH);
 
         Label hint = new Label("Clicking again while the feedback shows copies again and restarts it.");
         hint.getStyleClass().add("hint-label");
 
-        VBox preview = new VBox(16.0, sourceField, button, firedLabel, pasteArea, hint);
+        VBox preview = new VBox(16.0, sourceCard, button, firedLabel, buildClipboardCard(), hint);
         preview.getStyleClass().add("live-preview");
         preview.setAlignment(Pos.CENTER);
         return preview;
@@ -115,13 +132,216 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
     @Override
     protected List<Section> createSections() {
         return List.of(
-                section("Swap animation", buildAnimationGrid()),
                 section("Content", buildContentGrid()),
                 section("Feedback", buildFeedbackGrid()),
+                section("Swap animation", buildAnimationGrid()),
                 section("Button", buildButtonGrid()));
     }
 
+    // ==================== Preview cards ====================
+
+    private Map<String, Source> createSources() {
+        Map<String, Source> sources = new LinkedHashMap<>();
+        sources.put("Plain text", new Source(
+                () -> RXCopyButton.textContent(sourceField.getText()),
+                card("Copies the text of this field as plain text", sourceField)));
+        sources.put("Text + HTML", new Source(
+                () -> {
+                    ClipboardContent content = RXCopyButton.textContent(RICH_PLAIN_TEXT);
+                    content.putHtml(RICH_HTML);
+                    return content;
+                },
+                buildRichCard()));
+
+        Image image = new Image(getClass().getResource("/scenery/1.png").toExternalForm());
+        ImageView imageView = new ImageView(image);
+        imageView.setFitWidth(300.0);
+        imageView.setPreserveRatio(true);
+        imageView.setSmooth(true);
+        sources.put("Image", new Source(
+                () -> {
+                    ClipboardContent content = new ClipboardContent();
+                    content.putImage(image);
+                    return content;
+                },
+                card("Copies this image (" + (int) image.getWidth() + " × "
+                        + (int) image.getHeight() + ")", imageView)));
+
+        sources.put("Empty text", new Source(
+                () -> RXCopyButton.textContent(""),
+                nothingCard("textContent(\"\") returns empty content.")));
+        sources.put("Factory returns null", new Source(
+                () -> null,
+                nothingCard("The factory returns null.")));
+        sources.put("No factory", new Source(
+                null,
+                nothingCard("No factory is set (the default).")));
+        return sources;
+    }
+
+    private Node buildRichCard() {
+        Label bold = new Label("RXControls");
+        bold.getStyleClass().add("bold-text");
+        Label italic = new Label("JavaFX");
+        italic.getStyleClass().add("italic-text");
+        HBox rendered = new HBox(bold, new Label(": "), italic, new Label(" controls"));
+
+        GridPane formats = formatGrid();
+        formats.addRow(0, mutedLabel("Rich editors"), rendered);
+        formats.addRow(1, mutedLabel("Plain editors"), new Label(RICH_PLAIN_TEXT));
+        formats.addRow(2, mutedLabel("HTML source"), monoLabel(RICH_HTML));
+        return card("Copies one item in two formats", formats);
+    }
+
+    private Node buildClipboardCard() {
+        clipboardImage.setFitWidth(120.0);
+        clipboardImage.setPreserveRatio(true);
+        clipboardHtml.getStyleClass().add("mono-label");
+        clipboardHtml.setWrapText(true);
+        clipboardText.setWrapText(true);
+
+        GridPane formats = formatGrid();
+        formats.addRow(0, mutedLabel("Text"), clipboardText);
+        formats.addRow(1, mutedLabel("HTML"), clipboardHtml);
+        formats.addRow(2, mutedLabel("Image"), new VBox(4.0, clipboardImageInfo, clipboardImage));
+
+        Button readButton = new Button("Read");
+        readButton.setOnAction(event -> readClipboard());
+        HBox header = new HBox(10.0, cardTitle("System clipboard now"), readButton);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        VBox card = new VBox(10.0, header, formats);
+        card.getStyleClass().add("preview-card");
+        card.setMaxWidth(CARD_WIDTH);
+        return card;
+    }
+
+    // Read on demand only, never at startup: the showcase does not display
+    // whatever the user copied before opening it.
+    private void readClipboard() {
+        Clipboard clipboard = Clipboard.getSystemClipboard();
+        clipboardText.setText(clipboard.hasString() ? shorten(clipboard.getString()) : NONE);
+        clipboardHtml.setText(clipboard.hasHtml() ? shorten(clipboard.getHtml()) : NONE);
+        Image image = clipboard.hasImage() ? clipboard.getImage() : null;
+        clipboardImage.setImage(image);
+        clipboardImageInfo.setText(image == null
+                ? NONE
+                : (int) image.getWidth() + " × " + (int) image.getHeight());
+    }
+
+    private static String shorten(String text) {
+        return text.length() <= PREVIEW_LENGTH ? text : text.substring(0, PREVIEW_LENGTH) + "…";
+    }
+
+    private Node nothingCard(String reason) {
+        Label explanation = new Label(reason + " Nothing is copied: the clipboard keeps its"
+                + " previous content, a showing feedback is cleared, and onAction still runs.");
+        explanation.setWrapText(true);
+        return card("Nothing to copy", explanation);
+    }
+
+    private static Node card(String title, Node body) {
+        VBox card = new VBox(10.0, cardTitle(title), body);
+        card.setFillWidth(true);
+        return card;
+    }
+
+    private static Label cardTitle(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("card-title");
+        return label;
+    }
+
+    private static Label mutedLabel(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("muted-label");
+        label.setMinWidth(Region.USE_PREF_SIZE);
+        return label;
+    }
+
+    private static Label monoLabel(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("mono-label");
+        label.setWrapText(true);
+        return label;
+    }
+
+    // The format tables of both cards line up the same way.
+    private static GridPane formatGrid() {
+        GridPane grid = new GridPane();
+        grid.setHgap(10.0);
+        grid.setVgap(6.0);
+        return grid;
+    }
+
     // ==================== Sections ====================
+
+    private Node buildContentGrid() {
+        Map<String, Source> sources = createSources();
+        ComboBox<String> sourceBox = new ComboBox<>();
+        sourceBox.getItems().setAll(sources.keySet());
+        sourceBox.setMaxWidth(Double.MAX_VALUE);
+        sourceBox.valueProperty().addListener((obs, oldV, newV) -> {
+            Source source = sources.get(newV);
+            button.setContentFactory(source.factory());
+            sourceCard.getChildren().setAll(source.card());
+            // The feedback belongs to the previous source.
+            button.resetFeedback();
+        });
+        sourceBox.setValue("Plain text");
+
+        Button fireButton = new Button("fire()");
+        fireButton.setMaxWidth(Double.MAX_VALUE);
+        fireButton.setOnAction(event -> button.fire());
+
+        return createGrid(
+                row("Source", sourceBox),
+                row("Program", fireButton));
+    }
+
+    private Node buildFeedbackGrid() {
+        Slider durationSlider = createSlider(0.0, 5000.0,
+                RXCopyButton.DEFAULT_FEEDBACK_DURATION.toMillis());
+        Label durationValue = createValueLabel(durationSlider, "%.0f ms");
+        CheckBox indefiniteBox = new CheckBox();
+        durationSlider.disableProperty().bind(indefiniteBox.selectedProperty());
+        durationValue.disableProperty().bind(indefiniteBox.selectedProperty());
+        Runnable applyDuration = () -> button.setFeedbackDuration(indefiniteBox.isSelected()
+                ? Duration.INDEFINITE
+                : Duration.millis(durationSlider.getValue()));
+        durationSlider.valueProperty().addListener((obs, oldV, newV) -> applyDuration.run());
+        indefiniteBox.selectedProperty().addListener((obs, oldV, newV) -> applyDuration.run());
+
+        // An empty field is a valid copied text (check mark only); the check
+        // box selects null, which reuses the button text.
+        TextField copiedTextField = new TextField(button.getCopiedText());
+        copiedTextField.setPromptText("empty = check mark only");
+        CheckBox reuseTextBox = new CheckBox();
+        copiedTextField.disableProperty().bind(reuseTextBox.selectedProperty());
+        Runnable applyCopiedText = () -> button.setCopiedText(reuseTextBox.isSelected()
+                ? null
+                : copiedTextField.getText());
+        copiedTextField.textProperty().addListener((obs, oldV, newV) -> applyCopiedText.run());
+        reuseTextBox.selectedProperty().addListener((obs, oldV, newV) -> applyCopiedText.run());
+
+        // Each face needs its own node: one node cannot be shown on both.
+        Region copiedStar = createStar();
+        CheckBox copiedGraphicBox = new CheckBox();
+        copiedGraphicBox.selectedProperty().addListener((obs, oldV, newV) ->
+                button.setCopiedGraphic(newV ? copiedStar : null));
+
+        Button resetButton = new Button("resetFeedback()");
+        resetButton.setMaxWidth(Double.MAX_VALUE);
+        resetButton.setOnAction(event -> button.resetFeedback());
+
+        return createGrid(
+                row("Duration", durationSlider, durationValue),
+                row("Indefinite", indefiniteBox),
+                row("Copied text", copiedTextField),
+                row("Reuse text", reuseTextBox),
+                row("Copied graphic", copiedGraphicBox),
+                row("Reset", resetButton));
+    }
 
     private Node buildAnimationGrid() {
         Map<String, Supplier<PageAnimation>> presets = animationPresets();
@@ -164,77 +384,6 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
         return presets;
     }
 
-    private Node buildContentGrid() {
-        Map<String, Supplier<ClipboardContent>> factories = new LinkedHashMap<>();
-        factories.put("text field", () -> RXCopyButton.textContent(sourceField.getText()));
-        factories.put("text + HTML", () -> {
-            ClipboardContent content = RXCopyButton.textContent(sourceField.getText());
-            // An empty field stays "nothing to copy" instead of an empty <b></b>.
-            if (!content.isEmpty()) {
-                content.putHtml("<b>" + escapeHtml(sourceField.getText()) + "</b>");
-            }
-            return content;
-        });
-        factories.put("image (button snapshot)", () -> {
-            ClipboardContent content = new ClipboardContent();
-            content.putImage(button.snapshot(null, null));
-            return content;
-        });
-        factories.put("textContent(\"\")", () -> RXCopyButton.textContent(""));
-        factories.put("factory returns null", () -> null);
-        factories.put("null factory", null);
-
-        ComboBox<String> sourceBox = new ComboBox<>();
-        sourceBox.getItems().setAll(factories.keySet());
-        sourceBox.setValue("text field");
-        sourceBox.setMaxWidth(Double.MAX_VALUE);
-        sourceBox.valueProperty().addListener((obs, oldV, newV) ->
-                button.setContentFactory(factories.get(newV)));
-
-        Button fireButton = new Button("fire()");
-        fireButton.setMaxWidth(Double.MAX_VALUE);
-        fireButton.setOnAction(event -> button.fire());
-
-        return createGrid(
-                row("Source", sourceBox),
-                row("Program", fireButton));
-    }
-
-    private Node buildFeedbackGrid() {
-        Slider durationSlider = createSlider(0.0, 5000.0,
-                RXCopyButton.DEFAULT_FEEDBACK_DURATION.toMillis());
-        CheckBox indefiniteBox = new CheckBox();
-        Runnable applyDuration = () -> button.setFeedbackDuration(indefiniteBox.isSelected()
-                ? Duration.INDEFINITE
-                : Duration.millis(durationSlider.getValue()));
-        durationSlider.valueProperty().addListener((obs, oldV, newV) -> applyDuration.run());
-        indefiniteBox.selectedProperty().addListener((obs, oldV, newV) -> applyDuration.run());
-
-        ComboBox<String> copiedTextBox = new ComboBox<>();
-        copiedTextBox.getItems().setAll("Copied", "Copied to clipboard", COPIED_TEXT_NULL, COPIED_TEXT_EMPTY);
-        copiedTextBox.setValue("Copied");
-        copiedTextBox.setMaxWidth(Double.MAX_VALUE);
-        copiedTextBox.valueProperty().addListener((obs, oldV, newV) -> {
-            if (COPIED_TEXT_NULL.equals(newV)) {
-                button.setCopiedText(null);
-            } else if (COPIED_TEXT_EMPTY.equals(newV)) {
-                button.setCopiedText("");
-            } else {
-                button.setCopiedText(newV);
-            }
-        });
-
-        Button resetButton = new Button("resetFeedback()");
-        resetButton.setMaxWidth(Double.MAX_VALUE);
-        resetButton.setOnAction(event -> button.resetFeedback());
-
-        return createGrid(
-                row("Duration", durationSlider, createValueLabel(durationSlider, "%.0f ms")),
-                row("Indefinite", indefiniteBox),
-                row("Copied text", copiedTextBox),
-                row("Reset", resetButton));
-    }
-
     private Node buildButtonGrid() {
         TextField textField = new TextField(button.getText());
         textField.setPromptText("empty = icon only");
@@ -249,26 +398,18 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
             }
         });
 
-        // Each face needs its own node: one node cannot be shown on both.
         Region star = createStar();
         CheckBox graphicBox = new CheckBox();
         graphicBox.selectedProperty().addListener((obs, oldV, newV) ->
                 button.setGraphic(newV ? star : null));
 
-        Region copiedStar = createStar();
-        CheckBox copiedGraphicBox = new CheckBox();
-        copiedGraphicBox.selectedProperty().addListener((obs, oldV, newV) ->
-                button.setCopiedGraphic(newV ? copiedStar : null));
-
+        // The button is as wide as its wider face, so the narrower face shows
+        // the alignment (e.g. "Copy" against "Copied to clipboard").
         ComboBox<Pos> alignmentBox = new ComboBox<>();
         alignmentBox.getItems().setAll(Pos.CENTER_LEFT, Pos.CENTER, Pos.CENTER_RIGHT);
         alignmentBox.setValue(Pos.CENTER);
         alignmentBox.setMaxWidth(Double.MAX_VALUE);
         button.alignmentProperty().bind(alignmentBox.valueProperty());
-
-        CheckBox stretchBox = new CheckBox();
-        stretchBox.selectedProperty().addListener((obs, oldV, newV) ->
-                button.setPrefWidth(newV ? 260.0 : Region.USE_COMPUTED_SIZE));
 
         CheckBox disableBox = new CheckBox();
         button.disableProperty().bind(disableBox.selectedProperty());
@@ -282,16 +423,10 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
         return createGrid(
                 row("Text", textField),
                 row("Hide indicators", hideIndicatorBox),
-                row("User graphic", graphicBox),
-                row("Copied graphic", copiedGraphicBox),
+                row("Graphic", graphicBox),
                 row("Alignment", alignmentBox),
-                row("Stretch to 260 px", stretchBox),
                 row("Disabled", disableBox),
                 row("Right to left", rtlBox));
-    }
-
-    private static String escapeHtml(String text) {
-        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
     private static Region createStar() {
