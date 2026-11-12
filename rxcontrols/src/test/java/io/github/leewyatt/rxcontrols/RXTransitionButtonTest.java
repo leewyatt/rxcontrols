@@ -18,6 +18,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -502,6 +503,67 @@ public class RXTransitionButtonTest {
         } finally {
             focused.getSkin().dispose();
             defaultButton.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void modifiedActivationKeyIsLeftToSceneAccelerators() {
+        RXTransitionButton button = laidOutButton("Front", null);
+        AtomicInteger fired = new AtomicInteger();
+        AtomicInteger acceleratorRuns = new AtomicInteger();
+        button.setOnAction(event -> fired.incrementAndGet());
+        button.getScene().getAccelerators().put(
+                new KeyCodeCombination(KeyCode.SPACE, KeyCombination.CONTROL_DOWN),
+                acceleratorRuns::incrementAndGet);
+
+        try {
+            Event.fireEvent(button, new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.SPACE,
+                    false, true, false, false));
+            assertFalse(button.isArmed());
+            Event.fireEvent(button, new KeyEvent(KeyEvent.KEY_RELEASED, "", "", KeyCode.SPACE,
+                    false, true, false, false));
+
+            assertEquals(0, fired.get());
+            assertEquals(1, acceleratorRuns.get());
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void defaultAcceleratorSkipsButtonInsideHiddenAncestor() {
+        RXTransitionButton button = laidOutButton("Front", null);
+        AtomicInteger fired = new AtomicInteger();
+        button.setOnAction(event -> fired.incrementAndGet());
+        button.setDefaultButton(true);
+        Scene scene = button.getScene();
+
+        try {
+            scene.getRoot().setVisible(false);
+            scene.getAccelerators().get(new KeyCodeCombination(KeyCode.ENTER)).run();
+            assertEquals(0, fired.get());
+
+            scene.getRoot().setVisible(true);
+            scene.getAccelerators().get(new KeyCodeCombination(KeyCode.ENTER)).run();
+            assertEquals(1, fired.get());
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void playRippleStartsARipple() {
+        RXTransitionButton button = laidOutButton("Front", null);
+
+        try {
+            RippleLayer layer = (RippleLayer) button.getChildrenUnmodifiable().get(0);
+            int before = layer.getChildrenUnmodifiable().size();
+
+            button.playRipple();
+
+            assertTrue(layer.getChildrenUnmodifiable().size() > before);
+        } finally {
+            button.getSkin().dispose();
         }
     }
 

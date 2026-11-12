@@ -136,6 +136,7 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
     private void wireBehavior(RXTransitionButton button) {
         // Shared ripple pointer tracking (records the press location for the next arm).
         rippleTrigger.installPointerTracking(disposer);
+        rippleTrigger.installPlayRipple(disposer);
         disposer.registerEventHandler(button, MouseEvent.MOUSE_PRESSED, this::mousePressed);
         disposer.registerEventHandler(button, MouseEvent.MOUSE_RELEASED, this::mouseReleased);
         disposer.registerEventHandler(button, MouseEvent.MOUSE_ENTERED, this::mouseEntered);
@@ -410,7 +411,9 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
     }
 
     private void keyPressed(KeyEvent event) {
-        if (!isActivationKey(event)) {
+        // A modified press (e.g. Ctrl+ENTER) is not an activation: it stays
+        // unconsumed for application shortcuts.
+        if (!isActivationKey(event) || hasModifier(event)) {
             return;
         }
         RXTransitionButton button = getSkinnable();
@@ -443,12 +446,27 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
                 || (event.getCode() == KeyCode.ENTER && !MAC);
     }
 
+    private static boolean hasModifier(KeyEvent event) {
+        return event.isShiftDown() || event.isControlDown() || event.isAltDown() || event.isMetaDown();
+    }
+
     private void fireFromAccelerator() {
         RXTransitionButton button = getSkinnable();
         if (button != null && button.getScene() != null
-                && button.isVisible() && !button.isDisabled()) {
+                && isTreeVisible(button) && !button.isDisabled()) {
             button.fire();
         }
+    }
+
+    // A button inside a hidden ancestor (an unselected tab, a collapsed pane)
+    // is still in the scene but must not answer ENTER or ESCAPE.
+    private static boolean isTreeVisible(Node node) {
+        for (Node current = node; current != null; current = current.getParent()) {
+            if (!current.isVisible()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void setAccelerator(Scene scene, KeyCombination combo, Runnable runnable, boolean set) {
