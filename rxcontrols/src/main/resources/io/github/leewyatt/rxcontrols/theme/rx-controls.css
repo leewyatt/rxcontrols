@@ -1632,6 +1632,15 @@
     -fx-background-radius: 3, 2, 4, 0;
 }
 
+.rx-theme-atlantafx .rx-cascader:focused > .display,
+.rx-theme-atlantafx.rx-cascader:focused > .display,
+.rx-theme-atlantafx .rx-cascader:showing > .display,
+.rx-theme-atlantafx.rx-cascader:showing > .display {
+    -fx-background-color: -fx-focus-color, -fx-control-inner-background;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
+}
+
 .rx-cascader > .display > .label {
     -fx-text-fill: -fx-text-inner-color;
     -fx-text-overrun: ellipsis;
@@ -1685,17 +1694,28 @@
     -fx-border-width: 1px;
 }
 
-/* Inline keyboard-focus signal; the popup never focuses the view (the field
-   shows :focused / :showing on its own display instead). */
+/* Inline keyboard-focus signal. */
 .rx-cascader-view:focused {
     -fx-border-color: -fx-focus-color;
 }
 
 /* Descendant (not child) selector: RXPopupSupport wraps the content in an
    internal sizing shell between the popup bridge and the view; neither carries
-   RX style classes, so the shadow hangs on the view itself. */
-.rx-cascader-popup .rx-cascader-view {
+   RX style classes, so the shadow hangs on the view itself. Inside the popup the
+   view does hold the popup scene's focus, but the field already shows it, so the
+   popup keeps a plain frame like a ComboBox popup. */
+.rx-cascader-popup .rx-cascader-view,
+.rx-cascader-popup .rx-cascader-view:focused {
+    -fx-background-radius: 3;
+    -fx-border-color: -fx-box-border;
+    -fx-border-radius: 3;
     -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 8);
+}
+
+/* The columns would paint square corners over the rounded frame; the view's own
+   background already fills them. */
+.rx-cascader-popup .rx-cascader-view > .columns > .column {
+    -fx-background-color: transparent;
 }
 
 /*******************************************************************************

@@ -16,6 +16,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Paint;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -31,6 +32,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -570,6 +572,27 @@ public class RXCascaderViewSkinTest {
                     "the root column scrolls so the active branch becomes visible");
             assertTrue(rendersItem(leafColumn, berlin),
                     "the leaf column scrolls so the selected leaf becomes visible");
+        });
+    }
+
+    @Test
+    public void focusRingIsInlineOnlyAndNeverFramesThePopup() throws InterruptedException {
+        runOnFx(() -> {
+            FocusableView inline = new FocusableView();
+            FocusableView inPopup = new FocusableView();
+            StackPane popupShell = new StackPane(inPopup);
+            popupShell.getStyleClass().add("rx-cascader-popup");
+            Scene scene = new Scene(new StackPane(inline, popupShell), 400, 300);
+            inline.showFocus();
+            inPopup.showFocus();
+            relayout(scene);
+
+            Paint inlineRing = inline.getBorder().getStrokes().get(0).getTopStroke();
+            Paint popupFrame = inPopup.getBorder().getStrokes().get(0).getTopStroke();
+            assertNotEquals(popupFrame, inlineRing,
+                    "the popup view holds the popup scene's focus, but the field already shows it");
+            assertEquals(3.0, inPopup.getBorder().getStrokes().get(0).getRadii().getTopLeftHorizontalRadius(), 0.0,
+                    "the popup frame shares the field's 3px radius");
         });
     }
 
@@ -1467,6 +1490,13 @@ public class RXCascaderViewSkinTest {
         }
         if (t != null) {
             throw new AssertionError("FX task failed", t);
+        }
+    }
+
+    /** A view that can show the focused state without a focused window. */
+    private static final class FocusableView extends RXCascaderView<String> {
+        void showFocus() {
+            pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), true);
         }
     }
 }
