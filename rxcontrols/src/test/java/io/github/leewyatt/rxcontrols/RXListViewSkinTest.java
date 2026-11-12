@@ -4,6 +4,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.css.PseudoClass;
 import javafx.geometry.Orientation;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
@@ -559,6 +560,25 @@ public class RXListViewSkinTest {
             key(view, KeyCode.DOWN, false, false);
             assertEquals(2, view.getSelectionModel().getSelectedIndex(),
                     "DOWN continues from the retained item's position, not from the top");
+        });
+    }
+
+    @Test
+    public void focusRingOnlyShowsWhileTheListIsFocused() throws Exception {
+        onFx(() -> {
+            FocusableList view = new FocusableList(FXCollections.observableArrayList("a", "b", "c"));
+            StackPane root = host(view, 300, 400);
+            pump(root);
+            key(view, KeyCode.DOWN, false, false);
+            pump(root);
+            RXListCell<?> cell = cellByIndex(view, view.getFocusedIndex());
+            assertTrue(cell.getPseudoClassStates().stream()
+                    .anyMatch(pc -> pc.getPseudoClassName().equals("focused")), "precondition: the cursor cell");
+            assertNull(cell.getBorder(), "no focus ring while the list itself is not focused");
+
+            view.showFocus(true);
+            pump(root);
+            assertNotNull(cell.getBorder(), "the focus ring shows once the list holds keyboard focus");
         });
     }
 
@@ -1763,5 +1783,16 @@ public class RXListViewSkinTest {
     @FunctionalInterface
     private interface FxAction {
         void run() throws Exception;
+    }
+
+    /** A list that can show the focused state without a focused window. */
+    private static final class FocusableList extends RXListView<String> {
+        FocusableList(ObservableList<String> items) {
+            super(items);
+        }
+
+        void showFocus(boolean focused) {
+            pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), focused);
+        }
     }
 }

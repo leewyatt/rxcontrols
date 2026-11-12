@@ -638,7 +638,7 @@ public class RXControlColorsTest {
             Application.setUserAgentStylesheet(userAgentStylesheet);
             RXKanbanColumn<String> column = new RXKanbanColumn<>("TODO");
             column.getCards().add("card");
-            RXKanbanView<String> board = new RXKanbanView<>();
+            FocusableBoard board = new FocusableBoard();
             board.getColumns().add(column);
             StackPane root = new StackPane(board);
             themer.accept(new Scene(root, 400, 300));
@@ -664,6 +664,8 @@ public class RXControlColorsTest {
             cell.pseudoClassStateChanged(PseudoClass.getPseudoClass("selected"), true);
             root.applyCss();
             actual.put("selectedFill", ThemeColorSamples.hex(cell.getBackground().getFills().get(0).getFill()));
+            // The card ring only shows while the board itself holds keyboard focus.
+            board.showFocus();
             cell.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), true);
             root.applyCss();
             sampleLayers("selectedFocused", cell, actual);
@@ -1227,6 +1229,13 @@ public class RXControlColorsTest {
     }
 
     // ==================== Helpers ====================
+
+    /** A board that can show the focused state without a focused window. */
+    private static final class FocusableBoard extends RXKanbanView<String> {
+        void showFocus() {
+            pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), true);
+        }
+    }
 
     private static void darkPalette(Scene scene) {
         scene.getStylesheets().add(PALETTES);

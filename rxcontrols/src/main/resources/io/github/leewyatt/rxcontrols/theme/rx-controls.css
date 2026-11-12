@@ -2875,7 +2875,7 @@
     -fx-text-fill: ladder(-rx-surface, -rx-on-surface 45%, black 46%);
 }
 
-.rx-tile-cell:focused {
+.rx-tile-view:focused > .viewport > .content > .rx-tile-cell:focused {
     -fx-border-color: -fx-focus-color;
     -fx-border-width: 2;
     -fx-border-insets: 1;
@@ -2896,7 +2896,7 @@
 
 /* Selected + focused: keep both rings (selection outer, focus inner) so the
    keyboard cursor is not lost on a selected tile. */
-.rx-tile-cell:selected:focused {
+.rx-tile-view:focused > .viewport > .content > .rx-tile-cell:selected:focused {
     -fx-border-color: -fx-selection-bar, -fx-focus-color;
     -fx-border-width: 2, 1;
     -fx-border-insets: 0, 2;
@@ -2963,7 +2963,7 @@
     -fx-background-color: -rx-selection;
 }
 
-.rx-list-cell:focused {
+.rx-list-view:focused > .viewport > .content > .rx-list-cell:focused {
     -fx-border-color: -rx-focus;
     -fx-border-width: 1;
     -fx-border-insets: 0;
@@ -3205,7 +3205,7 @@
     -fx-text-fill: ladder(-rx-surface, -rx-on-surface 45%, black 46%);
 }
 
-.rx-masonry-cell:focused {
+.rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:focused {
     -fx-border-color: -fx-focus-color;
     -fx-border-width: 2;
     -fx-border-insets: 1;
@@ -3226,7 +3226,7 @@
 
 /* Selected + focused: keep both rings (selection outer, focus inner) so the
    keyboard cursor is not lost on a selected cell. */
-.rx-masonry-cell:selected:focused {
+.rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:selected:focused {
     -fx-border-color: -fx-selection-bar, -fx-focus-color;
     -fx-border-width: 2, 1;
     -fx-border-insets: 0, 2;
@@ -3333,7 +3333,7 @@
     -fx-background-color: -rx-primary-bg;
 }
 
-.rx-kanban-card-cell:focused {
+.rx-kanban-view:focused .rx-kanban-card-cell:focused {
     -fx-border-color: -rx-focus;
     -fx-background-color: -rx-focus,
         ladder(-rx-surface, derive(-rx-surface-variant, 8%) 45%, -fx-control-inner-background 46%);
@@ -3341,7 +3341,7 @@
     -fx-background-radius: 6, 4;
 }
 
-.rx-kanban-card-cell:selected:focused {
+.rx-kanban-view:focused .rx-kanban-card-cell:selected:focused {
     -fx-background-color: -rx-focus, -rx-primary-bg;
 }
 
