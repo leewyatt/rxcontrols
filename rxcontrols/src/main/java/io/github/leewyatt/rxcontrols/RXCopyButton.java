@@ -30,13 +30,15 @@ import java.util.function.Supplier;
  * Button that copies content to the system clipboard when activated and then
  * shows a short "copied" feedback face.
  *
- * <p>Every {@code ActionEvent} reaching the button is one activation: the
- * button calls the {@link #contentFactoryProperty() contentFactory}, writes
- * the result to the system clipboard and, once the write succeeded, swaps to
- * the feedback face (a check mark, plus {@link #copiedTextProperty()
- * copiedText} when set) and carries the {@code copied} pseudo-class for the
- * {@link #feedbackDurationProperty() feedbackDuration}. Activating again
- * while the feedback shows copies again and restarts the feedback.</p>
+ * <p>Every {@code ActionEvent} reaching an enabled button is one activation:
+ * the button calls the {@link #contentFactoryProperty() contentFactory},
+ * writes the result to the system clipboard and, once the write succeeded,
+ * swaps to the feedback face (a check mark next to the
+ * {@link #copiedTextProperty() copiedText}, or next to the button text while
+ * {@code copiedText} is {@code null}) and carries the {@code copied}
+ * pseudo-class for the {@link #feedbackDurationProperty() feedbackDuration}.
+ * Activating again while the feedback shows copies again and restarts the
+ * feedback.</p>
  *
  * <pre>{@code
  * RXCopyButton copy = new RXCopyButton("Copy");
@@ -64,14 +66,16 @@ import java.util.function.Supplier;
  * handlers added later and before {@code onAction}, so {@code onAction} must
  * not copy again. An event filter that consumes the {@code ActionEvent}
  * vetoes the copy. An {@code ActionEvent} fired at the button by application
- * code copies as well.</p>
+ * code copies as well, unless the button is disabled: then {@code onAction}
+ * still runs, but nothing is copied and the feedback is left as it is.</p>
  *
  * <p>Each face shows an indicator shape (copy, check) next to its text. The
  * button's graphic appears on the normal face only; the feedback face shows
  * the {@link #copiedGraphicProperty() copiedGraphic}. To hide the
  * indicators, give them a zero preferred size from an author stylesheet;
  * hiding by visibility or opacity keeps their space. Set {@code copiedText}
- * when the indicators are hidden, otherwise the color is the only feedback.</p>
+ * when the indicators are hidden: otherwise nothing visible changes, unless
+ * an author stylesheet styles the {@code copied} pseudo-class.</p>
  *
  * <pre>{@code
  * .rx-copy-button .copy-face > .indicator,
@@ -199,9 +203,11 @@ public class RXCopyButton extends RXButton {
     }
 
     /**
-     * Returns to the normal face at once and stops the feedback timer. Does
-     * not touch the clipboard, fire an {@code ActionEvent} or call the
-     * content factory; works on a disabled button too.
+     * Ends the feedback: stops the feedback timer, clears the {@code copied}
+     * pseudo-class and swaps back to the normal face, playing the
+     * {@link #animationProperty() animation} when one is set. Does not touch
+     * the clipboard, fire an {@code ActionEvent} or call the content factory;
+     * works on a disabled button too.
      */
     public final void resetFeedback() {
         getProperties().put(FeedbackSignals.COPY_RESULT, Boolean.FALSE);
@@ -421,9 +427,10 @@ public class RXCopyButton extends RXButton {
      * Duration of one face swap when an {@link #animationProperty() animation}
      * is set. {@code Duration.ZERO} swaps with a direct cut; {@code null},
      * negative and otherwise unusable values fall back to
-     * {@link #DEFAULT_ANIMATION_DURATION}. The swap runs inside the
-     * {@link #feedbackDurationProperty() feedbackDuration}, not in addition
-     * to it. From CSS: {@code -rx-animation-duration}.
+     * {@link #DEFAULT_ANIMATION_DURATION}. The swap to the feedback face
+     * counts toward the {@link #feedbackDurationProperty() feedbackDuration};
+     * the swap back starts when it ends. From CSS:
+     * {@code -rx-animation-duration}.
      *
      * @return the animation duration property
      */

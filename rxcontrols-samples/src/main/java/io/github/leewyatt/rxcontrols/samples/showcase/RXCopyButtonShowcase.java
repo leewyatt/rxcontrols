@@ -42,10 +42,11 @@ import java.util.function.Supplier;
  *
  * <p>Exercises the content factory (nothing to copy, plain text, text plus
  * HTML, an image), the feedback duration including zero and indefinite,
- * {@code resetFeedback()}, the swap animation, the copied text, the icon-only / icon-and-text /
- * text-only forms, a graphic on either face, alignment in a stretched button, the
- * disabled state and right-to-left orientation. The text area takes a paste
- * to verify what reached the clipboard.</p>
+ * {@code resetFeedback()}, the swap animation, the copied text, the
+ * icon-only / icon-and-text / text-only forms, a graphic on either face,
+ * alignment in a stretched button, the disabled state and right-to-left
+ * orientation. The text area takes a paste to verify what reached the
+ * clipboard.</p>
  */
 public class RXCopyButtonShowcase extends RXShowcaseApplication {
 
