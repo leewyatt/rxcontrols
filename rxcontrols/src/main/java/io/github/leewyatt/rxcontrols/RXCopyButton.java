@@ -67,10 +67,21 @@ import java.util.function.Supplier;
  *
  * <p>Each face shows an indicator shape (copy, check) next to its text. A
  * graphic set on the button appears on the normal face only. To hide the
- * indicators, give them a zero preferred size from an author stylesheet
- * ({@code .rx-copy-button .indicator { -fx-pref-width: 0; -fx-pref-height: 0; }});
+ * indicators, give them a zero preferred size from an author stylesheet;
  * hiding by visibility or opacity keeps their space. Set {@code copiedText}
  * when the indicators are hidden, otherwise the color is the only feedback.</p>
+ *
+ * <pre>{@code
+ * .rx-copy-button .copy-face > .indicator,
+ * .rx-copy-button .copied-face > .indicator {
+ *     -fx-pref-width: 0;
+ *     -fx-pref-height: 0;
+ * }
+ * }</pre>
+ *
+ * <p>The indicators are colored from the stylesheet and do not follow
+ * {@code textFill}: a button with a custom text or background color should
+ * set the {@code -fx-background-color} of both indicators as well.</p>
  *
  * <p>Mnemonics are not supported: {@code mnemonicParsing} starts
  * {@code false} and has no effect. An icon-only button should set

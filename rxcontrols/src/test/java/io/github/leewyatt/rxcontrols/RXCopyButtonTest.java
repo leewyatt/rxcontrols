@@ -285,6 +285,18 @@ public class RXCopyButtonTest {
     }
 
     @Test
+    public void wrappedCaptionGrowsTallerInNarrowerWidth() {
+        RXCopyButton button = laidOut(new RXCopyButton("A caption long enough to wrap onto several lines"));
+        setIndicatorSize(button, 14.0);
+        button.setWrapText(true);
+        Region face = face(button, ".copy-face");
+
+        assertTrue(face.prefHeight(80.0) > face.prefHeight(-1));
+        assertTrue(button.prefHeight(100.0) > button.prefHeight(-1));
+        button.getSkin().dispose();
+    }
+
+    @Test
     public void indicatorAndCaptionAlignAsOneBlock() {
         RXCopyButton button = laidOut(new RXCopyButton("Copy"));
         button.setGraphicTextGap(6.0);
@@ -354,16 +366,16 @@ public class RXCopyButtonTest {
         AtomicReference<RXCopyButton> ref = new AtomicReference<>();
         onFx(() -> {
             RXCopyButton button = laidOut(new RXCopyButton("Copy"));
-            button.setFeedbackDuration(Duration.millis(600.0));
+            button.setFeedbackDuration(Duration.millis(1000.0));
             ref.set(button);
             post(button, Boolean.TRUE);
         });
-        Thread.sleep(400L);
-        onFx(() -> post(ref.get(), Boolean.TRUE));
-        Thread.sleep(400L);
-        // 800 ms in: the first timer alone would have expired at 600 ms.
-        onFx(() -> assertCopied(ref.get(), true));
         Thread.sleep(600L);
+        onFx(() -> post(ref.get(), Boolean.TRUE));
+        Thread.sleep(700L);
+        // 1300 ms in: the first timer alone would have expired at 1000 ms.
+        onFx(() -> assertCopied(ref.get(), true));
+        Thread.sleep(800L);
         onFx(() -> {
             assertCopied(ref.get(), false);
             ref.get().getSkin().dispose();
@@ -487,6 +499,9 @@ public class RXCopyButtonTest {
             button.fire();
 
             assertCopied(button, false);
+            // The installed skin still tracks results after the re-entry.
+            post(button, Boolean.TRUE);
+            assertCopied(button, true);
             button.getSkin().dispose();
         }
     }
