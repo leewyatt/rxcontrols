@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
+import io.github.leewyatt.rxcontrols.skins.RXTransitionButtonSkin;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
@@ -563,6 +564,21 @@ public class RXTransitionButtonTest {
                 stage.hide();
             }
         });
+    }
+
+    @Test
+    public void replacementSkinKeepsItsNodes() {
+        RXTransitionButton button = laidOutButton("Front", null);
+
+        // A skin of the installed class is ignored by setSkin, hence the subclass.
+        button.setSkin(new RXTransitionButtonSkin(button) {
+        });
+
+        try {
+            assertEquals(2, button.getChildrenUnmodifiable().size());
+        } finally {
+            button.getSkin().dispose();
+        }
     }
 
     @Test

@@ -487,6 +487,8 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         }
         ripple.dispose();
         pages.dispose(button == null ? null : button.getAnimation());
-        getChildren().clear();
+        // A replacement skin is constructed before this one is disposed and has
+        // already added its nodes: remove only our own.
+        getChildren().removeAll(ripple.getLayer(), pages.getContentPane());
     }
 }
