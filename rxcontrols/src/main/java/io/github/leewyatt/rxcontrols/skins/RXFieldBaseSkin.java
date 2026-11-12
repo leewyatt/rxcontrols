@@ -234,7 +234,7 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         final double innerWidth = Math.max(0.0, w - leadingAdjust - trailingAdjust);
         final double innerHeight = Math.max(0.0, h - tpTop - tpBottom);
 
-        super.layoutChildren(x + leadingAdjust, y + tpTop, innerWidth, innerHeight);
+        layoutEditor(() -> super.layoutChildren(x + leadingAdjust, y + tpTop, innerWidth, innerHeight));
 
         // Wrappers sit flush against the control's outer bounds and span the
         // full control height — independent of -fx-padding and -rx-text-padding.
@@ -244,6 +244,17 @@ public class RXFieldBaseSkin extends TextFieldSkin {
         if (trailingWrapper != null) {
             trailingWrapper.resizeRelocate(x + w + rightInset - trailingWidth, y - topInset, trailingWidth, fullH);
         }
+    }
+
+    /**
+     * Runs the {@code TextFieldSkin} layout of the editor area. Subclasses that swap
+     * the displayed text outside TextFieldSkin's knowledge (password reveal) wrap the
+     * call to fix up its text placement; the default simply runs it.
+     *
+     * @param editorLayout the call into {@code TextFieldSkin.layoutChildren}
+     */
+    protected void layoutEditor(Runnable editorLayout) {
+        editorLayout.run();
     }
 
     /**

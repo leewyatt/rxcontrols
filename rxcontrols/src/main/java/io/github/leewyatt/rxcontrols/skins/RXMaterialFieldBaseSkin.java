@@ -299,6 +299,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         disposer.registerListener(showClearButton, this::updateTrailing);
         disposer.registerListener(control.editableProperty(), this::updateTrailing);
         disposer.registerEventHandler(clearButton, MouseEvent.MOUSE_CLICKED, this::onClearClicked);
+        shieldFromEditorMouse(clearButton);
 
         // Timelines are rebuilt over the skin's lifetime; stop the live one at
         // dispose by reading the field, not a captured reference.
@@ -482,6 +483,27 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         clearFade.setFromValue(clearButton.getOpacity());
         clearFade.setToValue(target);
         clearFade.playFromStart();
+    }
+
+    /**
+     * Keeps presses and drags on a built-in trailing button away from the editor's
+     * own mouse handling, which would move the caret, drop the selection, or start
+     * a drag selection. A press on a field that does not own focus yet still
+     * reaches the editor, so the field gains focus exactly as a click inside it
+     * does.
+     *
+     * @param button the built-in button
+     */
+    protected final void shieldFromEditorMouse(Node button) {
+        disposer.registerEventHandler(button, MouseEvent.MOUSE_PRESSED, this::onButtonPressed);
+        disposer.registerEventHandler(button, MouseEvent.MOUSE_DRAGGED, MouseEvent::consume);
+    }
+
+    private void onButtonPressed(MouseEvent event) {
+        Scene scene = getSkinnable().getScene();
+        if (scene != null && scene.getFocusOwner() == getSkinnable()) {
+            event.consume();
+        }
     }
 
     private void onClearClicked(MouseEvent event) {

@@ -2,6 +2,12 @@ package io.github.leewyatt.rxcontrols;
 
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
+import javafx.scene.Node;
+import javafx.scene.Scene;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Headless tests for {@link RXPasswordField}'s construction contract (a null
  * initial text yields {@code getText() == null}, matching
  * {@code TextField(String)}) and the {@code :revealed} pseudo-class driven by
- * {@code revealPassword}.
+ * {@code revealPassword}, and that revealing a long password keeps its end in view.
  */
 public class RXPasswordFieldTest {
 
@@ -47,6 +53,29 @@ public class RXPasswordFieldTest {
     }
 
     @Test
+    public void revealingALongPasswordKeepsItsEndInView() {
+        runOnFx(() -> {
+            RXPasswordField field = new RXPasswordField("averyveryverylongpassword123");
+            field.setMaxWidth(120);
+            StackPane root = new StackPane(field);
+            new Scene(root, 320, 160);
+            root.applyCss();
+            root.layout();
+            field.end();
+            field.setRevealPassword(true);
+            root.applyCss();
+            root.layout();
+
+            Text text = editorText(field);
+            double clipWidth = ((Rectangle) text.getParent().getClip()).getWidth();
+            double textEnd = text.getLayoutX() + text.getLayoutBounds().getWidth();
+            assertTrue(textEnd > clipWidth - 4,
+                    "the revealed text must end at the right edge next to the caret, not scroll out (end at "
+                            + textEnd + " of " + clipWidth + ")");
+        });
+    }
+
+    @Test
     public void revealedPseudoClassFollowsRevealPassword() {
         runOnFx(() -> {
             RXPasswordField field = new RXPasswordField();
@@ -56,6 +85,16 @@ public class RXPasswordFieldTest {
             field.setRevealPassword(false);
             assertFalse(field.getPseudoClassStates().contains(REVEALED));
         });
+    }
+
+    private static Text editorText(RXPasswordField field) {
+        for (Node node : field.lookupAll(".text")) {
+            if (node instanceof Text text && text.layoutXProperty().isBound()
+                    && text.getParent() instanceof Pane pane && pane.getClip() instanceof Rectangle) {
+                return text;
+            }
+        }
+        throw new AssertionError("editor text node not found");
     }
 
     private static void runOnFx(Runnable body) {

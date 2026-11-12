@@ -302,7 +302,47 @@ public class RXMaterialPasswordFieldTest {
         });
     }
 
+    @Test
+    public void revealingALongPasswordKeepsItsEndInView() {
+        runOnFx(() -> {
+            RXMaterialPasswordField field = new RXMaterialPasswordField("averyveryverylongpassword123");
+            field.setMaxWidth(120);
+            inScene(field);
+            field.end();
+            field.setRevealPassword(true);
+            field.getParent().applyCss();
+            field.getParent().layout();
+
+            Text text = (Text) editorTextNode(field);
+            double clipWidth = ((Rectangle) text.getParent().getClip()).getWidth();
+            double textEnd = text.getLayoutX() + text.getLayoutBounds().getWidth();
+            assertTrue(textEnd > clipWidth - 4,
+                    "the revealed text must end at the right edge next to the caret, not scroll out (end at "
+                            + textEnd + " of " + clipWidth + ")");
+        });
+    }
+
+    @Test
+    public void pressingTheRevealButtonOfAFocusedFieldLeavesTheCaretAndSelectionAlone() {
+        runOnFx(() -> {
+            RXMaterialPasswordField field = new RXMaterialPasswordField("secret");
+            inScene(field);
+            field.requestFocus();
+            assertSame(field, field.getScene().getFocusOwner(), "precondition: the field owns focus");
+            field.selectRange(1, 3);
+            revealButton(field).fireEvent(press());
+            assertEquals(1, field.getAnchor(), "anchor unchanged");
+            assertEquals(3, field.getCaretPosition(), "caret unchanged");
+        });
+    }
+
     // ==================== Helpers ====================
+
+    private static MouseEvent press() {
+        return new MouseEvent(MouseEvent.MOUSE_PRESSED, 0, 0, 0, 0,
+                MouseButton.PRIMARY, 1, false, false, false, false,
+                true, false, false, false, false, true, null);
+    }
 
     private static MouseEvent click() {
         return new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0,

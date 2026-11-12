@@ -33,6 +33,15 @@ public class RXPasswordFieldSkin extends RXFieldBaseSkin {
     }
 
     @Override
+    protected void layoutEditor(Runnable editorLayout) {
+        if (maskSupport == null) {
+            editorLayout.run();
+            return;
+        }
+        maskSupport.layoutEditor(editorLayout);
+    }
+
+    @Override
     protected String maskText(String txt) {
         // Use the argument supplied by JavaFX's text binding; reading
         // control.getText() here can observe a stale value during recompute.

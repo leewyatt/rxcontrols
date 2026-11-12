@@ -65,6 +65,7 @@ public class RXMaterialPasswordFieldSkin extends RXMaterialFieldBaseSkin {
         maskSupport.install();
 
         disposer.registerEventHandler(revealButton, MouseEvent.MOUSE_CLICKED, this::onRevealClicked);
+        shieldFromEditorMouse(revealButton);
         disposer.registerListener(control.showRevealButtonProperty(), this::refreshTrailing);
         disposer.registerDisposeTask(maskSupport::dispose);
 
@@ -83,6 +84,15 @@ public class RXMaterialPasswordFieldSkin extends RXMaterialFieldBaseSkin {
             return List.of();
         }
         return List.of(revealButton);
+    }
+
+    @Override
+    protected void layoutEditor(Runnable editorLayout) {
+        if (maskSupport == null) {
+            editorLayout.run();
+            return;
+        }
+        maskSupport.layoutEditor(editorLayout);
     }
 
     @Override

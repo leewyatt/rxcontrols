@@ -55,7 +55,7 @@ public final class PasswordMaskSupport {
     private final TextInputControl control;
     private final MaskFunction maskFunction;
     private final Observable[] dependencies;
-    private final InvalidationListener ineffectiveToggleListener;
+    private final InvalidationListener dependencyListener;
 
     private boolean installed;
     private boolean failed;
@@ -63,6 +63,7 @@ public final class PasswordMaskSupport {
     private Text boundTextNode;
     private ChangeListener<Skin<?>> pendingSkinListener;
     private Runnable onDegraded;
+    private boolean scrollRewindPending;
 
     /**
      * Creates the helper.
@@ -79,9 +80,9 @@ public final class PasswordMaskSupport {
         this.control = Objects.requireNonNull(control, "control");
         this.maskFunction = Objects.requireNonNull(maskFunction, "maskFunction");
         this.dependencies = dependencies.clone();
-        this.ineffectiveToggleListener = this::logIneffectiveToggle;
+        this.dependencyListener = this::onDependencyInvalidated;
         for (Observable dependency : this.dependencies) {
-            dependency.addListener(ineffectiveToggleListener);
+            dependency.addListener(dependencyListener);
         }
     }
 
@@ -144,11 +145,44 @@ public final class PasswordMaskSupport {
     }
 
     /**
+     * Runs the skin's {@code TextFieldSkin} layout, first rewinding its horizontal
+     * scroll when a reveal or echo-character change swapped the displayed text
+     * since the last layout.
+     * <p>
+     * TextFieldSkin keeps its scroll offset private and only rewinds it while the
+     * text fits; otherwise it scrolls just far enough to show the caret. Revealing
+     * a long password narrows the text (echo characters are wider than most
+     * letters) while the offset stays where the wider mask had it, so the caret
+     * ends up pinned to the left edge with the text scrolled out of view. Laying
+     * out once with an empty text node lets TextFieldSkin rewind the offset; the
+     * second layout with the real text then scrolls the caret into view as for a
+     * fresh layout. Both passes run in the same layout, so the empty state is never
+     * rendered.
+     *
+     * @param editorLayout the skin's call into {@code TextFieldSkin.layoutChildren}
+     */
+    public void layoutEditor(Runnable editorLayout) {
+        if (!scrollRewindPending || !installed || boundTextNode == null) {
+            editorLayout.run();
+            return;
+        }
+        scrollRewindPending = false;
+        boundTextNode.textProperty().unbind();
+        boundTextNode.setText("");
+        try {
+            editorLayout.run();
+        } finally {
+            boundTextNode.textProperty().bind(displayBinding);
+        }
+        editorLayout.run();
+    }
+
+    /**
      * Removes listeners and disposes the binding. Register on the skin's disposer.
      */
     public void dispose() {
         for (Observable dependency : dependencies) {
-            dependency.removeListener(ineffectiveToggleListener);
+            dependency.removeListener(dependencyListener);
         }
         if (pendingSkinListener != null) {
             control.skinProperty().removeListener(pendingSkinListener);
@@ -245,10 +279,19 @@ public final class PasswordMaskSupport {
         return maskFunction.mask(text == null ? "" : text);
     }
 
-    private void logIneffectiveToggle(Observable source) {
-        if (installed || !failed) {
+    private void onDependencyInvalidated(Observable source) {
+        if (installed) {
+            // The displayed text was swapped; rewind the scroll on the next layout.
+            scrollRewindPending = true;
+            control.requestLayout();
             return;
         }
+        if (failed) {
+            logIneffectiveToggle(source);
+        }
+    }
+
+    private void logIneffectiveToggle(Observable source) {
         LOGGER.log(Level.WARNING,
                 "Password display cannot refresh because its dynamic text binding"
                         + " could not be installed."
