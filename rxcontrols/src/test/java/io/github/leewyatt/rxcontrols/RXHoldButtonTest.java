@@ -20,6 +20,7 @@ import javafx.event.EventHandler;
 import javafx.event.EventType;
 import javafx.geometry.Bounds;
 import javafx.geometry.NodeOrientation;
+import javafx.geometry.Pos;
 import javafx.scene.AccessibleAction;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
@@ -1349,6 +1350,15 @@ public class RXHoldButtonTest {
             ltr.getSkin().dispose();
             rtl.getSkin().dispose();
         });
+    }
+
+    // ==================== Theme ====================
+
+    @Test
+    public void theThemeCentersTheContent() {
+        RXHoldButton button = laidOut(new RXHoldButton("Hold"));
+        assertEquals(Pos.CENTER, button.getAlignment());
+        button.getSkin().dispose();
     }
 
     // ==================== Helpers ====================

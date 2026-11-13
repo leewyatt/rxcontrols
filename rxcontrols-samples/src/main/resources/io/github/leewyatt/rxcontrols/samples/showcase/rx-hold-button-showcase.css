@@ -50,13 +50,13 @@
     -fx-background-color: rgba(128, 128, 128, 0.08);
 }
 
-/* Drawn as borders, so the body stays transparent; the outer ring's inner
-   edge stays outside the 1px border, so the insets do not change. */
+/* The border thickens by 0.5px outward: its inner edge stays put, so the
+   content and the progress fill do not move. */
 .rx-hold-button.outlined:focused {
-    -fx-border-color: -rx-focus, -rx-fill;
-    -fx-border-insets: -3, 0;
-    -fx-border-width: 1.5, 1;
-    -fx-border-radius: 7px, 4px;
+    -fx-border-color: -rx-focus;
+    -fx-border-width: 1.5px;
+    -fx-border-insets: -0.5px;
+    -fx-border-radius: 4.5px;
 }
 
 .rx-hold-button.outlined > .fill-layer > .fill-region {

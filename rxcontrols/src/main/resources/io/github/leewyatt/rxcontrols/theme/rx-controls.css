@@ -18,7 +18,7 @@
 .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-content-pane, .rx-copy-button, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
-.rx-decimal-field, .rx-double-field, .rx-fab, .rx-highlight-text-view,
+.rx-decimal-field, .rx-double-field, .rx-fab, .rx-highlight-text-view, .rx-hold-button,
 .rx-image-pane, .rx-image-view, .rx-integer-field,
 .rx-line-button, .rx-line-label, .rx-long-field, .rx-lrc-line-view, .rx-lrc-view,
 .rx-masonry-pane, .rx-masonry-view,
@@ -145,6 +145,8 @@
 .rx-theme-atlantafx.rx-fab,
 .rx-theme-atlantafx .rx-highlight-text-view,
 .rx-theme-atlantafx.rx-highlight-text-view,
+.rx-theme-atlantafx .rx-hold-button,
+.rx-theme-atlantafx.rx-hold-button,
 .rx-theme-atlantafx .rx-image-pane,
 .rx-theme-atlantafx.rx-image-pane,
 .rx-theme-atlantafx .rx-image-view,
@@ -477,6 +479,59 @@
 
 .rx-fill-label:filling {
     -fx-text-fill: -rx-on-primary;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXHoldButton                                                                *
+ *                                                                             *
+ ******************************************************************************/
+
+/* The progress fill clip mirrors every background fill with a non-negative
+   inset, so every state keeps its outermost fill at inset 0 with a 4px
+   radius. */
+.rx-hold-button {
+    -rx-fill: -rx-primary;
+    -fx-background-color: -rx-fill;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4px;
+    -fx-padding: 0.5em 1.2em;
+    -fx-text-fill: -rx-on-primary;
+    -fx-alignment: center;
+}
+
+.rx-hold-button:hover {
+    -fx-background-color: derive(-rx-fill, 8%);
+}
+
+.rx-hold-button:focused {
+    -fx-background-color: -fx-faint-focus-color, -rx-focus, -rx-fill;
+    -fx-background-insets: -1.4, 0, 1px;
+    -fx-background-radius: 5.4px, 4px, 3px;
+}
+
+.rx-hold-button:focused:hover {
+    -fx-background-color: -fx-faint-focus-color, -rx-focus, derive(-rx-fill, 8%);
+}
+
+/* AtlantaFX's own accent button focus: the body darkens inside a 1px edge of
+   its normal color, with no glow. */
+.rx-theme-atlantafx .rx-hold-button:focused,
+.rx-theme-atlantafx.rx-hold-button:focused,
+.rx-theme-atlantafx .rx-hold-button:focused:hover,
+.rx-theme-atlantafx.rx-hold-button:focused:hover {
+    -fx-background-color: -rx-fill, derive(-rx-fill, -12%);
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 4px, 3px;
+}
+
+.rx-hold-button:disabled {
+    -fx-opacity: 0.4;
+}
+
+/* Darker than AtlantaFX's darkened focused body, which the progress shows over. */
+.rx-hold-button > .fill-layer > .fill-region {
+    -fx-background-color: derive(-rx-fill, -35%);
 }
 
 /*******************************************************************************
