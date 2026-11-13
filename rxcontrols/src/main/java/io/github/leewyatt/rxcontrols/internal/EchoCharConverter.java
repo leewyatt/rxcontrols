@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.internal;
 import io.github.leewyatt.rxcontrols.RXPasswordField;
 import javafx.css.ParsedValue;
 import javafx.css.StyleConverter;
+import javafx.css.converter.StringConverter;
 import javafx.scene.text.Font;
 
 /**
@@ -59,7 +60,13 @@ public final class EchoCharConverter extends StyleConverter<String, Character> {
         if (!(raw instanceof String s) || s.isEmpty()) {
             return fallback;
         }
-        return s.charAt(0);
+        // The parser keeps unicode escapes in a string literal raw; decode them with
+        // the standard string converter, as every string-valued property does.
+        String decoded = StringConverter.getInstance().convert(new ParsedValue<String, String>(s, null) { }, font);
+        if (decoded == null || decoded.isEmpty()) {
+            return fallback;
+        }
+        return decoded.charAt(0);
     }
 
     @Override

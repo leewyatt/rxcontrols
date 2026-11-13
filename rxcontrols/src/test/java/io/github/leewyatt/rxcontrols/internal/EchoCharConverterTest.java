@@ -43,6 +43,11 @@ public class EchoCharConverterTest {
     }
 
     @Test
+    public void unicodeEscapesAreDecodedBeforeTheFirstCharacterIsTaken() {
+        assertEquals('\u2022', EchoCharConverter.withFallback('*').convert(parsed("\\u2022"), null));
+    }
+
+    @Test
     public void emptyOrNonStringValuesFallBack() {
         assertEquals('●', EchoCharConverter.withFallback('●').convert(parsed(""), null));
         assertEquals('●', EchoCharConverter.withFallback('●')

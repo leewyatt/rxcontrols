@@ -15,6 +15,8 @@ import javafx.scene.text.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -101,6 +103,20 @@ public class RXPasswordFieldTest {
             double caretX = ((MoveTo) text.getCaretShape()[0]).getX();
             assertEquals(text.getLayoutBounds().getWidth(), caretX, 0.5,
                     "the caret must stay drawn after the last character");
+        });
+    }
+
+    @Test
+    public void stylesheetEchoCharWithAUnicodeEscapeIsDecoded() {
+        runOnFx(() -> {
+            RXPasswordField field = new RXPasswordField("abc");
+            StackPane root = new StackPane(field);
+            Scene scene = new Scene(root);
+            String css = ".rx-password-field { -rx-echo-char: \"\\u2022\"; }";
+            scene.getStylesheets().add("data:text/css;base64,"
+                    + Base64.getEncoder().encodeToString(css.getBytes(StandardCharsets.UTF_8)));
+            root.applyCss();
+            assertEquals(Character.valueOf('\u2022'), field.getEchoChar());
         });
     }
 
