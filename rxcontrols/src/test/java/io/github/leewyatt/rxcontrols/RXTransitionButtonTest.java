@@ -524,6 +524,8 @@ public class RXTransitionButtonTest {
         button.getScene().getAccelerators().put(
                 new KeyCodeCombination(KeyCode.SPACE, KeyCombination.CONTROL_DOWN),
                 acceleratorRuns::incrementAndGet);
+        AtomicInteger releasesBubbled = new AtomicInteger();
+        button.getParent().addEventHandler(KeyEvent.KEY_RELEASED, event -> releasesBubbled.incrementAndGet());
 
         try {
             Event.fireEvent(button, new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.SPACE,
@@ -534,6 +536,14 @@ public class RXTransitionButtonTest {
 
             assertEquals(0, fired.get());
             assertEquals(1, acceleratorRuns.get());
+            assertEquals(1, releasesBubbled.get(), "the modified release stays unconsumed");
+
+            // A plain press followed by a modified release still activates.
+            Event.fireEvent(button, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.SPACE));
+            Event.fireEvent(button, new KeyEvent(KeyEvent.KEY_RELEASED, "", "", KeyCode.SPACE,
+                    false, true, false, false));
+            assertEquals(1, fired.get());
+            assertEquals(1, releasesBubbled.get(), "the release that ends the press is consumed");
         } finally {
             button.getSkin().dispose();
         }
