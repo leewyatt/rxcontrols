@@ -209,9 +209,10 @@ public class RXHoldButton extends ButtonBase {
     /**
      * Ends the completed feedback: stops its timer, clears the
      * {@code completed} pseudo-class and goes back to the idle face, playing
-     * the {@link #animationProperty() animation} when one is set, so a new
-     * hold can start. Does not fire an {@code ActionEvent} and does not affect
-     * a hold in progress; works on a disabled button too.
+     * the {@link #animationProperty() animation} when one is set. A new hold
+     * can start once the mouse button or key that completed the hold is
+     * released. Does not fire an {@code ActionEvent} and does not affect a
+     * hold in progress; works on a disabled button too.
      */
     public final void resetFeedback() {
         getProperties().put(FeedbackSignals.HOLD_RESET, Boolean.TRUE);

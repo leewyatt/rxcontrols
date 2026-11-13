@@ -744,8 +744,14 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
         }
         if (owner == event.getCode()) {
             release();
+            event.consume();
+            return;
         }
-        event.consume();
+        // Mirrors keyPressed: a modified release (e.g. Ctrl+SPACE) stays
+        // unconsumed, so a shortcut sees both halves of its key stroke.
+        if (!hasModifier(event)) {
+            event.consume();
+        }
     }
 
     // SPACE always activates; ENTER activates on non-Mac platforms only,

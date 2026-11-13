@@ -487,6 +487,23 @@ public class RXHoldButtonTest {
     }
 
     @Test
+    public void aModifiedReleaseStaysUnconsumedUnlessItEndsTheHold() throws InterruptedException {
+        onFx(() -> {
+            RXHoldButton button = holdButton();
+
+            assertFalse(key(button, new KeyEvent(KeyEvent.KEY_RELEASED, "", "", KeyCode.SPACE,
+                    false, true, false, false)), "a modified release stays unconsumed");
+
+            key(button, KeyEvent.KEY_PRESSED, KeyCode.SPACE);
+            assertHolding(button, true);
+            assertTrue(key(button, new KeyEvent(KeyEvent.KEY_RELEASED, "", "", KeyCode.SPACE,
+                    false, true, false, false)), "the owner's release is consumed");
+            assertHolding(button, false);
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
     public void mouseAndKeyboardHoldsDoNotInterfere() throws InterruptedException {
         AtomicReference<RXHoldButton> ref = new AtomicReference<>();
         AtomicInteger fired = new AtomicInteger();
