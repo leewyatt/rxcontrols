@@ -104,7 +104,6 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
     @Override
     protected Node createPreview() {
         button = new RXCopyButton("Copy");
-        button.setCopiedText("Copied");
         // onAction runs after the copy, so the clipboard already holds the result.
         button.setOnAction(event -> {
             firedCount++;
@@ -312,17 +311,16 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
         durationSlider.valueProperty().addListener((obs, oldV, newV) -> applyDuration.run());
         indefiniteBox.selectedProperty().addListener((obs, oldV, newV) -> applyDuration.run());
 
-        // An empty field is a valid copied text (check mark only); the check
-        // box selects null, which reuses the button text.
+        // Null and an empty field both show the check mark only.
         TextField copiedTextField = new TextField(button.getCopiedText());
         copiedTextField.setPromptText("empty = check mark only");
-        CheckBox reuseTextBox = new CheckBox();
-        copiedTextField.disableProperty().bind(reuseTextBox.selectedProperty());
-        Runnable applyCopiedText = () -> button.setCopiedText(reuseTextBox.isSelected()
+        CheckBox nullTextBox = new CheckBox();
+        copiedTextField.disableProperty().bind(nullTextBox.selectedProperty());
+        Runnable applyCopiedText = () -> button.setCopiedText(nullTextBox.isSelected()
                 ? null
                 : copiedTextField.getText());
         copiedTextField.textProperty().addListener((obs, oldV, newV) -> applyCopiedText.run());
-        reuseTextBox.selectedProperty().addListener((obs, oldV, newV) -> applyCopiedText.run());
+        nullTextBox.selectedProperty().addListener((obs, oldV, newV) -> applyCopiedText.run());
 
         // Each face needs its own node: one node cannot be shown on both.
         Region copiedStar = createStar();
@@ -338,7 +336,7 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
                 row("Duration", durationSlider, durationValue),
                 row("Indefinite", indefiniteBox),
                 row("Copied text", copiedTextField),
-                row("Reuse text", reuseTextBox),
+                row("Null text", nullTextBox),
                 row("Copied graphic", copiedGraphicBox),
                 row("Reset", resetButton));
     }
@@ -386,7 +384,7 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
 
     private Node buildButtonGrid() {
         TextField textField = new TextField(button.getText());
-        textField.setPromptText("empty = icon only");
+        textField.setPromptText("empty = icon only (Null text keeps it narrow)");
         button.textProperty().bind(textField.textProperty());
 
         CheckBox hideIndicatorBox = new CheckBox();

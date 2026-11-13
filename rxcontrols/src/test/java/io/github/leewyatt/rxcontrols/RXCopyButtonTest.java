@@ -104,7 +104,8 @@ public class RXCopyButtonTest {
         assertTrue(button.getStyleClass().contains("rx-copy-button"));
         assertTrue(button.getStyleClass().contains("rx-button"));
         assertNull(button.getContentFactory());
-        assertNull(button.getCopiedText());
+        assertEquals("Copied", RXCopyButton.DEFAULT_COPIED_TEXT);
+        assertEquals(RXCopyButton.DEFAULT_COPIED_TEXT, button.getCopiedText());
         assertNull(button.getCopiedGraphic());
         assertNull(button.getAnimation());
         assertEquals(Duration.millis(200.0), RXCopyButton.DEFAULT_ANIMATION_DURATION);
@@ -248,7 +249,7 @@ public class RXCopyButtonTest {
         assertFalse(normal.getStyleClass().contains("label"));
         assertFalse(copied.getStyleClass().contains("label"));
         assertEquals("Copy _link", normal.getText());
-        assertEquals("Copy _link", copied.getText());
+        assertEquals(RXCopyButton.DEFAULT_COPIED_TEXT, copied.getText());
         assertFalse(normal.isMnemonicParsing());
         assertFalse(copied.isMnemonicParsing());
         assertSame(graphic, normal.getGraphic());
@@ -260,13 +261,14 @@ public class RXCopyButtonTest {
         button.setGraphicTextGap(9.0);
         assertEquals(9.0, copied.getGraphicTextGap());
 
-        button.setCopiedText("Copied");
-        assertEquals("Copied", copied.getText());
+        button.setCopiedText("Done");
+        assertEquals("Done", copied.getText());
         button.setCopiedText("");
         assertEquals("", copied.getText());
+        // Nothing is borrowed from the button text.
         button.setCopiedText(null);
         button.setText("Dup");
-        assertEquals("Dup", copied.getText());
+        assertNull(copied.getText());
 
         Font font = Font.font(20.0);
         button.setFont(font);
@@ -305,6 +307,19 @@ public class RXCopyButtonTest {
         button.setCopiedText(null);
         assertEquals(14.0, normalFace.prefWidth(-1), 1.0e-6);
         assertEquals(14.0, copiedFace.prefWidth(-1), 1.0e-6);
+        button.getSkin().dispose();
+    }
+
+    @Test
+    public void iconOnlyButtonNeedsANullCopiedTextToKeepItsWidth() {
+        RXCopyButton button = laidOut(new RXCopyButton(null));
+        double insets = button.snappedLeftInset() + button.snappedRightInset();
+        Region normalFace = face(button, ".copy-face");
+
+        assertTrue(button.prefWidth(-1) > insets + normalFace.prefWidth(-1),
+                "the default copied text widens the button");
+        button.setCopiedText(null);
+        assertEquals(insets + normalFace.prefWidth(-1), button.prefWidth(-1), 1.0e-6);
         button.getSkin().dispose();
     }
 
@@ -383,6 +398,8 @@ public class RXCopyButtonTest {
 
         assertEquals("Copy", button.queryAccessibleAttribute(AccessibleAttribute.TEXT));
         post(button, Boolean.TRUE);
+        assertEquals("Copied", button.queryAccessibleAttribute(AccessibleAttribute.TEXT));
+        button.setCopiedText(null);
         assertEquals("Copy", button.queryAccessibleAttribute(AccessibleAttribute.TEXT));
         button.setCopiedText("Copied");
         assertEquals("Copied", button.queryAccessibleAttribute(AccessibleAttribute.TEXT));

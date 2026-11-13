@@ -34,15 +34,14 @@ import java.util.function.Supplier;
  * the button calls the {@link #contentFactoryProperty() contentFactory},
  * writes the result to the system clipboard and, once the write succeeded,
  * swaps to the feedback face (a check mark next to the
- * {@link #copiedTextProperty() copiedText}, or next to the button text while
- * {@code copiedText} is {@code null}) and carries the {@code copied}
+ * {@link #copiedTextProperty() copiedText}) and carries the {@code copied}
  * pseudo-class for the {@link #feedbackDurationProperty() feedbackDuration}.
  * Activating again while the feedback shows copies again and restarts the
  * feedback.</p>
  *
  * <pre>{@code
  * RXCopyButton copy = new RXCopyButton("Copy");
- * copy.setCopiedText("Copied");
+ * copy.setCopiedText("Copied to clipboard");
  * copy.setContentFactory(() -> RXCopyButton.textContent(field.getText()));
  *
  * // Several formats in one copy
@@ -73,9 +72,14 @@ import java.util.function.Supplier;
  * button's graphic appears on the normal face only; the feedback face shows
  * the {@link #copiedGraphicProperty() copiedGraphic}. To hide the
  * indicators, give them a zero preferred size from an author stylesheet;
- * hiding by visibility or opacity keeps their space. Set {@code copiedText}
- * when the indicators are hidden: otherwise nothing visible changes, unless
- * an author stylesheet styles the {@code copied} pseudo-class.</p>
+ * hiding by visibility or opacity keeps their space. With the indicators
+ * hidden, keep a {@code copiedText}: otherwise nothing visible marks the
+ * feedback, unless an author stylesheet styles the {@code copied}
+ * pseudo-class.</p>
+ *
+ * <p>The button is sized to the wider face, so the default
+ * {@code copiedText} counts toward its width. An icon-only button should set
+ * {@code copiedText} to {@code null}.</p>
  *
  * <pre>{@code
  * .rx-copy-button .copy-face > .indicator,
@@ -115,6 +119,11 @@ public class RXCopyButton extends RXButton {
      * value used in place of a {@code null}, negative or otherwise unusable one.
      */
     public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
+
+    /**
+     * Default {@link #copiedTextProperty() copiedText}.
+     */
+    public static final String DEFAULT_COPIED_TEXT = "Copied";
 
     // Registered first in the constructor, so the copy runs before handlers
     // added later and before onAction. The target is deliberately not checked:
@@ -250,11 +259,15 @@ public class RXCopyButton extends RXButton {
 
     // ==================== Copied Text ====================
 
-    private final StringProperty copiedText = new SimpleStringProperty(this, "copiedText");
+    private final StringProperty copiedText =
+            new SimpleStringProperty(this, "copiedText", DEFAULT_COPIED_TEXT);
 
     /**
-     * Text of the feedback face. The default {@code null} reuses the button
-     * text, so only the indicator changes; an empty string shows no text.
+     * Text of the feedback face. Defaults to {@link #DEFAULT_COPIED_TEXT};
+     * {@code null} or an empty string shows no text; nothing is borrowed from
+     * the button text. To keep the button text, set the same text or bind it
+     * with {@code copiedTextProperty().bind(textProperty())}. The default is
+     * English and not localized; set it for other locales.
      *
      * @return the copied text property
      */
@@ -265,7 +278,7 @@ public class RXCopyButton extends RXButton {
     /**
      * Returns the text of the feedback face.
      *
-     * @return the copied text, or {@code null} when the button text is reused
+     * @return the copied text, or {@code null}
      */
     public final String getCopiedText() {
         return copiedText.get();
@@ -274,7 +287,7 @@ public class RXCopyButton extends RXButton {
     /**
      * Sets the text of the feedback face.
      *
-     * @param value the copied text, or {@code null} to reuse the button text
+     * @param value the copied text, or {@code null} for none
      */
     public final void setCopiedText(String value) {
         copiedText.set(value);

@@ -124,11 +124,9 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
         // The feedback face has its own graphic: the button graphic cannot be
         // parented by both faces.
         Label copied = copiedFace.caption;
+        disposer.registerBinding(copied.textProperty(), button.copiedTextProperty());
         disposer.registerBinding(copied.graphicProperty(), button.copiedGraphicProperty());
         bindAppearance(copied, button);
-        disposer.registerListener(button.textProperty(), this::updateCopiedCaption);
-        disposer.registerListener(button.copiedTextProperty(), this::updateCopiedCaption);
-        updateCopiedCaption();
 
         // labelPadding pads the whole indicator-and-caption block, as it pads
         // the text and graphic of a standard button.
@@ -363,16 +361,6 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
         return duration;
     }
 
-    private void updateCopiedCaption() {
-        copiedFace.caption.setText(copiedTextOrText());
-    }
-
-    private String copiedTextOrText() {
-        RXCopyButton button = getSkinnable();
-        String copiedText = button.getCopiedText();
-        return copiedText == null ? button.getText() : copiedText;
-    }
-
     // ==================== Accessibility ====================
 
     /**
@@ -386,9 +374,9 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
             if (accessibleText != null && !accessibleText.isEmpty()) {
                 return accessibleText;
             }
-            // An empty copied text is a visual choice (indicator-only
+            // A null or empty copied text is a visual choice (indicator-only
             // feedback); the button still needs a name.
-            String copiedText = copiedTextOrText();
+            String copiedText = button.getCopiedText();
             boolean copied = pages.getCurrentPage() == pages.getPageB()
                     && copiedText != null && !copiedText.isEmpty();
             if (copied) {

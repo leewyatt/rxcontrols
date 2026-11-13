@@ -29,6 +29,9 @@ public class RXCopyButtonDemo extends Application {
         keyField.setEditable(false);
         HBox.setHgrow(keyField, Priority.ALWAYS);
         RXCopyButton copyKey = new RXCopyButton();
+        // No feedback text: the check mark alone confirms, and the button
+        // keeps its icon size.
+        copyKey.setCopiedText(null);
         // copyKey.setAccessibleText("Copy API key");
         copyKey.setContentFactory(() -> RXCopyButton.textContent(keyField.getText()));
         HBox keyRow = new HBox(8.0, new Label("API key"), keyField, copyKey);
@@ -41,7 +44,6 @@ public class RXCopyButtonDemo extends Application {
         imageView.setFitWidth(400.0);
         imageView.setPreserveRatio(true);
         RXCopyButton copyImage = new RXCopyButton("Copy image");
-        copyImage.setCopiedText("Copied");
         copyImage.setContentFactory(() -> {
             ClipboardContent content = new ClipboardContent();
             content.putImage(image);
