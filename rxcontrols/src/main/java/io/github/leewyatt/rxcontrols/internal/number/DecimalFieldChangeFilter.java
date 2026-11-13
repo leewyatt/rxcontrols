@@ -48,8 +48,26 @@ public final class DecimalFieldChangeFilter implements UnaryOperator<TextFormatt
         char decSep = syms.getDecimalSeparator();
         char minusSign = syms.getMinusSign();
 
-        String body = stripAffix(text, df.getPositivePrefix(), df.getPositiveSuffix(),
-                df.getNegativePrefix(), df.getNegativeSuffix());
+        String body = text;
+        // A stripped negative affix already carries the sign, so the body may not
+        // add another one ("--5", "-$-5").
+        boolean signInAffix = false;
+        String posPrefix = df.getPositivePrefix();
+        String negPrefix = df.getNegativePrefix();
+        if (!posPrefix.isEmpty() && body.startsWith(posPrefix)) {
+            body = body.substring(posPrefix.length());
+        } else if (!negPrefix.isEmpty() && body.startsWith(negPrefix)) {
+            body = body.substring(negPrefix.length());
+            signInAffix = true;
+        }
+        String posSuffix = df.getPositiveSuffix();
+        String negSuffix = df.getNegativeSuffix();
+        if (!posSuffix.isEmpty() && body.endsWith(posSuffix)) {
+            body = body.substring(0, body.length() - posSuffix.length());
+        } else if (!negSuffix.isEmpty() && body.endsWith(negSuffix)) {
+            body = body.substring(0, body.length() - negSuffix.length());
+            signInAffix = true;
+        }
         if (body.isEmpty()) {
             return true;
         }
@@ -58,7 +76,7 @@ public final class DecimalFieldChangeFilter implements UnaryOperator<TextFormatt
         for (int i = 0; i < body.length(); i++) {
             char c = body.charAt(i);
             if (c == '+' || c == '-' || c == minusSign) {
-                if (i != 0) {
+                if (i != 0 || signInAffix) {
                     return false;
                 }
                 continue;
@@ -79,23 +97,6 @@ public final class DecimalFieldChangeFilter implements UnaryOperator<TextFormatt
             return false;
         }
         return true;
-    }
-
-    private static String stripAffix(String text,
-                                     String posPrefix, String posSuffix,
-                                     String negPrefix, String negSuffix) {
-        String body = text;
-        if (!posPrefix.isEmpty() && body.startsWith(posPrefix)) {
-            body = body.substring(posPrefix.length());
-        } else if (!negPrefix.isEmpty() && body.startsWith(negPrefix)) {
-            body = body.substring(negPrefix.length());
-        }
-        if (!posSuffix.isEmpty() && body.endsWith(posSuffix)) {
-            body = body.substring(0, body.length() - posSuffix.length());
-        } else if (!negSuffix.isEmpty() && body.endsWith(negSuffix)) {
-            body = body.substring(0, body.length() - negSuffix.length());
-        }
-        return body;
     }
 
     private static boolean baseAcceptable(String text) {

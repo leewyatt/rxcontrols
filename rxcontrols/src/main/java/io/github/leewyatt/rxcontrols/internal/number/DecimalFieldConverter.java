@@ -92,7 +92,7 @@ public final class DecimalFieldConverter extends StringConverter<BigDecimal> {
 
         boolean negative = false;
         String body = raw;
-        // Mirror the edit filter's stripAffix order — positive affix first — so a
+        // Mirror the edit filter's affix order — positive affix first — so a
         // format whose positive and negative affix coincide (percent's "%", suffix
         // currencies) does not misread an explicit "+" as a negative suffix.
         // Each strip records its sign evidence (+1 positive, -1 negative, 0 none
@@ -128,6 +128,12 @@ public final class DecimalFieldConverter extends StringConverter<BigDecimal> {
         char minusSign = symbols.getMinusSign();
         if (!body.isEmpty()) {
             char first = body.charAt(0);
+            boolean bodySign = first == '-' || first == minusSign || first == '+';
+            // A stripped negative affix already carries the sign: a second one
+            // ("--5", "-$-5") is malformed, never a lenient double negative.
+            if (bodySign && (prefixSign < 0 || suffixSign < 0)) {
+                throw new NumberFormatException("Duplicate sign: " + raw);
+            }
             if (first == '-' || first == minusSign) {
                 negative = true;
                 body = body.substring(1);

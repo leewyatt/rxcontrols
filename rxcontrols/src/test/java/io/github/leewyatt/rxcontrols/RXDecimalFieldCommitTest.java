@@ -195,4 +195,17 @@ public class RXDecimalFieldCommitTest {
         assertEquals("1234.5", r[2], "null format falls back to plain rendering");
         assertBig("1234.5", (BigDecimal) r[3], "format switches never mutate the value");
     }
+
+    @Test
+    public void aSignAfterTheNegativePrefixIsRejectedWhileTyping() {
+        String text = onFx(() -> {
+            RXDecimalField f = new RXDecimalField();
+            f.setNumberFormat(NumberFormat.getNumberInstance(Locale.US));
+            for (char c : "--5".toCharArray()) {
+                f.replaceSelection(String.valueOf(c));
+            }
+            return f.getText();
+        });
+        assertEquals("-5", text, "the second minus is rejected");
+    }
 }

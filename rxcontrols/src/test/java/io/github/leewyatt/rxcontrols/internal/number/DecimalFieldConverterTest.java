@@ -57,6 +57,17 @@ public class DecimalFieldConverterTest {
     }
 
     @Test
+    public void aSignAfterANegativeAffixIsRejected() {
+        DecimalFieldConverter number = converterFor(NumberFormat.getNumberInstance(Locale.US));
+        assertThrows(NumberFormatException.class, () -> number.fromString("--5"));
+
+        DecimalFieldConverter currency = converterFor(NumberFormat.getCurrencyInstance(Locale.US));
+        assertThrows(NumberFormatException.class, () -> currency.fromString("-$-5"));
+        assertThrows(NumberFormatException.class, () -> currency.fromString("-$+5"));
+        assertValue("-5", currency.fromString("$-5"));
+    }
+
+    @Test
     public void currencyAcceptsBareBody() {
         DecimalFieldConverter conv = converterFor(NumberFormat.getCurrencyInstance(Locale.US));
 
