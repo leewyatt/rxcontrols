@@ -1,0 +1,81 @@
+.live-preview {
+    -fx-padding: 28px;
+}
+
+.state-label {
+    -fx-font-weight: bold;
+}
+
+.muted-label {
+    -fx-opacity: 0.75;
+}
+
+.hint-label {
+    -fx-opacity: 0.55;
+    -fx-font-size: 11px;
+}
+
+.showcase-icon {
+    -fx-pref-width: 14px;
+    -fx-pref-height: 14px;
+    -fx-background-color: -rx-on-primary;
+}
+
+.trash-icon {
+    -fx-shape: "M5 0 H11 V2 H16 V4 H0 V2 H5 Z M1 5 H15 L14 16 H2 Z";
+}
+
+.hourglass-icon {
+    -fx-shape: "M1 0 H15 V2 L9 8 L15 14 V16 H1 V14 L7 8 L1 2 Z";
+}
+
+.check-icon {
+    -fx-shape: "M0 8 L2 6 L6 10 L14 2 L16 4 L6 14 Z";
+}
+
+/* Look A, for comparison with the theme's solid look. Insets and radius
+   restated: the theme's focused ring layers would otherwise move this
+   single fill, and with it the progress clip. */
+.rx-hold-button.outlined {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4px;
+    -fx-border-color: -rx-fill;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-text-fill: -rx-fill;
+}
+
+.rx-hold-button.outlined:hover {
+    -fx-background-color: rgba(128, 128, 128, 0.08);
+}
+
+/* Drawn as borders, so the body stays transparent; the outer ring's inner
+   edge stays outside the 1px border, so the insets do not change. */
+.rx-hold-button.outlined:focused {
+    -fx-border-color: -rx-focus, -rx-fill;
+    -fx-border-insets: -3, 0;
+    -fx-border-width: 1.5, 1;
+    -fx-border-radius: 7px, 4px;
+}
+
+.rx-hold-button.outlined > .fill-layer > .fill-region {
+    -fx-background-color: -rx-fill;
+    -fx-opacity: 0.25;
+}
+
+.rx-hold-button.outlined:completed > .fill-layer > .fill-region {
+    -fx-opacity: 1;
+}
+
+.rx-hold-button.outlined:completed {
+    -fx-text-fill: -rx-on-primary;
+}
+
+.rx-hold-button.outlined .showcase-icon {
+    -fx-background-color: -rx-fill;
+}
+
+.rx-hold-button.outlined:completed .showcase-icon {
+    -fx-background-color: -rx-on-primary;
+}
