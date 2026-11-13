@@ -5,6 +5,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
@@ -228,5 +230,22 @@ public class RXDecimalFieldCommitTest {
         assertBig("3000", (BigDecimal) r[1], "the format parses the commit");
         assertBig("3000", (BigDecimal) r[2], "text the format cannot fully parse rolls back");
         assertEquals("3K", r[3]);
+    }
+
+    @Test
+    public void aNegativeSuffixThatEndsWithThePositiveSuffixStaysEditable() {
+        Object[] r = onFx(() -> {
+            RXDecimalField f = new RXDecimalField(new BigDecimal("-5"));
+            f.setNumberFormat(new DecimalFormat("#,##0x;#,##0-x", DecimalFormatSymbols.getInstance(Locale.US)));
+            String shown = f.getText();
+            f.positionCaret(1);
+            f.replaceSelection("0");
+            String edited = f.getText();
+            f.commitValue();
+            return new Object[]{shown, edited, f.getValue()};
+        });
+        assertEquals("5-x", r[0]);
+        assertEquals("50-x", r[1], "an edit keeping the negative suffix is accepted");
+        assertBig("-50", (BigDecimal) r[2], "the edit commits");
     }
 }

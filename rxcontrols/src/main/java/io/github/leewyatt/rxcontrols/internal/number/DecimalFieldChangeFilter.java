@@ -54,11 +54,16 @@ public final class DecimalFieldChangeFilter implements UnaryOperator<TextFormatt
 
         String body = text;
         // A stripped negative affix already carries the sign, so the body may not
-        // add another one ("--5", "-$-5").
+        // add another one ("--5", "-$-5"). The longer affix is tried first, so a
+        // negative affix that contains the positive one ("x" / "-x") is not cut
+        // short; equal-length affixes keep the positive-first order.
         boolean signInAffix = false;
         String posPrefix = df.getPositivePrefix();
         String negPrefix = df.getNegativePrefix();
-        if (!posPrefix.isEmpty() && body.startsWith(posPrefix)) {
+        if (negPrefix.length() > posPrefix.length() && body.startsWith(negPrefix)) {
+            body = body.substring(negPrefix.length());
+            signInAffix = true;
+        } else if (!posPrefix.isEmpty() && body.startsWith(posPrefix)) {
             body = body.substring(posPrefix.length());
         } else if (!negPrefix.isEmpty() && body.startsWith(negPrefix)) {
             body = body.substring(negPrefix.length());
@@ -66,7 +71,10 @@ public final class DecimalFieldChangeFilter implements UnaryOperator<TextFormatt
         }
         String posSuffix = df.getPositiveSuffix();
         String negSuffix = df.getNegativeSuffix();
-        if (!posSuffix.isEmpty() && body.endsWith(posSuffix)) {
+        if (negSuffix.length() > posSuffix.length() && body.endsWith(negSuffix)) {
+            body = body.substring(0, body.length() - negSuffix.length());
+            signInAffix = true;
+        } else if (!posSuffix.isEmpty() && body.endsWith(posSuffix)) {
             body = body.substring(0, body.length() - posSuffix.length());
         } else if (!negSuffix.isEmpty() && body.endsWith(negSuffix)) {
             body = body.substring(0, body.length() - negSuffix.length());

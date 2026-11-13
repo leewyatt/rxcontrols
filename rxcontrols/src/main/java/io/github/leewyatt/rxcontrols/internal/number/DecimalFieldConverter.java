@@ -92,15 +92,20 @@ public final class DecimalFieldConverter extends StringConverter<BigDecimal> {
 
         boolean negative = false;
         String body = raw;
-        // Mirror the edit filter's affix order — positive affix first — so a
-        // format whose positive and negative affix coincide (percent's "%", suffix
+        // Mirror the edit filter's affix order: a longer negative affix first (so
+        // "-x" is not cut to "x"), otherwise the positive affix first, so a format
+        // whose positive and negative affix coincide (percent's "%", suffix
         // currencies) does not misread an explicit "+" as a negative suffix.
         // Each strip records its sign evidence (+1 positive, -1 negative, 0 none
         // or ambiguous): a stripped affix is sign-ambiguous when the format's
         // positive and negative affix on that side are the same literal.
         int prefixSign = 0;
         int suffixSign = 0;
-        if (!posPrefix.isEmpty() && body.startsWith(posPrefix)) {
+        if (negPrefix.length() > posPrefix.length() && body.startsWith(negPrefix)) {
+            body = body.substring(negPrefix.length());
+            negative = true;
+            prefixSign = -1;
+        } else if (!posPrefix.isEmpty() && body.startsWith(posPrefix)) {
             body = body.substring(posPrefix.length());
             prefixSign = posPrefix.equals(negPrefix) ? 0 : 1;
         } else if (!negPrefix.isEmpty() && body.startsWith(negPrefix)) {
@@ -108,7 +113,11 @@ public final class DecimalFieldConverter extends StringConverter<BigDecimal> {
             negative = true;
             prefixSign = -1;
         }
-        if (!posSuffix.isEmpty() && body.endsWith(posSuffix)) {
+        if (negSuffix.length() > posSuffix.length() && body.endsWith(negSuffix)) {
+            body = body.substring(0, body.length() - negSuffix.length());
+            negative = true;
+            suffixSign = -1;
+        } else if (!posSuffix.isEmpty() && body.endsWith(posSuffix)) {
             body = body.substring(0, body.length() - posSuffix.length());
             suffixSign = posSuffix.equals(negSuffix) ? 0 : 1;
         } else if (!negSuffix.isEmpty() && body.endsWith(negSuffix)) {
