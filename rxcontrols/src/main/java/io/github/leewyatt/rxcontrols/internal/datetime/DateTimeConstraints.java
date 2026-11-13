@@ -85,8 +85,27 @@ public final class DateTimeConstraints {
      * @return the time constraints of that day
      */
     public TimeConstraints timesOn(LocalDate date) {
+        return timesOn(date, null, null);
+    }
+
+    /**
+     * Returns the time rules for a given day, further limited by extra time bounds (used
+     * to keep a range's end time from preceding its start time on the same day).
+     *
+     * @param date     the day, or {@code null} for a day without bound-specific limits
+     * @param extraMin an additional earliest time, or {@code null}
+     * @param extraMax an additional latest time, or {@code null}
+     * @return the time constraints of that day
+     */
+    public TimeConstraints timesOn(LocalDate date, LocalTime extraMin, LocalTime extraMax) {
         LocalTime from = min != null && min.toLocalDate().equals(date) ? min.toLocalTime() : null;
         LocalTime to = max != null && max.toLocalDate().equals(date) ? max.toLocalTime() : null;
+        if (extraMin != null && (from == null || extraMin.isAfter(from))) {
+            from = extraMin;
+        }
+        if (extraMax != null && (to == null || extraMax.isBefore(to))) {
+            to = extraMax;
+        }
         return new TimeConstraints(from, to, timeFilter, hourStep, minuteStep, secondStep, showSeconds);
     }
 

@@ -17,7 +17,7 @@
 .rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-bar-spinner, .rx-box, .rx-button,
 .rx-calendar-view, .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-content-pane, .rx-copy-button, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
-.rx-date-picker, .rx-date-range-picker, .rx-date-range-view, .rx-date-time-picker, .rx-date-time-view, .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
+.rx-date-picker, .rx-date-range-picker, .rx-date-range-view, .rx-date-time-picker, .rx-date-time-range-picker, .rx-date-time-range-view, .rx-date-time-view, .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
 .rx-decimal-field, .rx-double-field, .rx-fab, .rx-highlight-text-view, .rx-hold-button,
 .rx-image-pane, .rx-image-view, .rx-integer-field,
 .rx-line-button, .rx-line-label, .rx-long-field, .rx-lrc-line-view, .rx-lrc-view,
@@ -139,6 +139,10 @@
 .rx-theme-atlantafx.rx-date-range-view,
 .rx-theme-atlantafx .rx-date-time-picker,
 .rx-theme-atlantafx.rx-date-time-picker,
+.rx-theme-atlantafx .rx-date-time-range-picker,
+.rx-theme-atlantafx.rx-date-time-range-picker,
+.rx-theme-atlantafx .rx-date-time-range-view,
+.rx-theme-atlantafx.rx-date-time-range-view,
 .rx-theme-atlantafx .rx-date-time-view,
 .rx-theme-atlantafx.rx-date-time-view,
 .rx-theme-atlantafx .rx-dual-pane,
@@ -3876,6 +3880,7 @@
 .rx-calendar-view,
 .rx-date-range-view,
 .rx-date-time-view,
+.rx-date-time-range-view,
 .rx-month-view,
 .rx-quarter-view,
 .rx-year-view {
@@ -3888,6 +3893,7 @@
 .rx-calendar-view:focused,
 .rx-date-range-view:focused,
 .rx-date-time-view:focused,
+.rx-date-time-range-view:focused,
 .rx-month-view:focused,
 .rx-quarter-view:focused,
 .rx-year-view:focused {
@@ -4177,6 +4183,8 @@
 .rx-picker-popup .container > .rx-date-range-view:focused,
 .rx-picker-popup .container > .rx-date-time-view,
 .rx-picker-popup .container > .rx-date-time-view:focused,
+.rx-picker-popup .container > .rx-date-time-range-view,
+.rx-picker-popup .container > .rx-date-time-range-view:focused,
 .rx-picker-popup .container > .rx-month-view,
 .rx-picker-popup .container > .rx-month-view:focused,
 .rx-picker-popup .container > .rx-quarter-view,
@@ -4292,11 +4300,13 @@
     -fx-border-width: 1.5;
 }
 
-.rx-date-time-view > .content {
+.rx-date-time-view > .content,
+.rx-date-time-range-view > .content {
     -fx-spacing: 0.666667em;
 }
 
-.rx-date-time-view > .content > .time-pane {
+.rx-date-time-view > .content > .time-pane,
+.rx-date-time-range-view > .content > .time-pane {
     -fx-padding: 0 0 0 0.666667em;
     -fx-border-color: transparent transparent transparent -rx-outline-variant;
 }
@@ -4308,4 +4318,24 @@
     -fx-padding: 0 0 0.25em 0;
     -fx-font-weight: bold;
     -fx-text-fill: -rx-on-surface;
+}
+
+.rx-date-time-range-view > .content > .time-pane > .tabs {
+    -fx-min-height: 2.25em;
+    -fx-padding: 0 0 0.25em 0;
+}
+
+.rx-date-time-range-view > .content > .time-pane > .tabs > .label {
+    -fx-alignment: center;
+    -fx-padding: 0.25em 0.333333em;
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-border-color: transparent transparent -rx-outline-variant transparent;
+    -fx-cursor: hand;
+}
+
+.rx-date-time-range-view > .content > .time-pane > .tabs > .label:selected {
+    -fx-text-fill: -rx-primary;
+    -fx-font-weight: bold;
+    -fx-border-color: transparent transparent -rx-primary transparent;
+    -fx-border-width: 0 0 2 0;
 }
