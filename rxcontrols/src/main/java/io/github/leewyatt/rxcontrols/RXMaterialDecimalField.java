@@ -30,7 +30,10 @@ import java.util.function.UnaryOperator;
  * {@code "75%"} and parses {@code "75"} back to {@code 0.75}). A display
  * format lossier than the stored value (e.g. a 2-fraction currency format
  * showing {@code 1.234} as {@code "$1.23"}) never corrupts the value on a
- * no-edit commit.
+ * no-edit commit. A {@link java.text.DecimalFormat} also filters keystrokes by
+ * its notation; any other format (e.g. a compact format showing {@code "2K"})
+ * accepts every edit and checks it on commit, where text the format cannot
+ * fully parse rolls back to the last value.
  * <p>
  * {@link #minProperty() min} / {@link #maxProperty() max} are inclusive,
  * default {@code null} (unbounded), and behave like {@link Slider}: setting

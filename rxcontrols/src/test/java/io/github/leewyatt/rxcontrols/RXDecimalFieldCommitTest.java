@@ -208,4 +208,25 @@ public class RXDecimalFieldCommitTest {
         });
         assertEquals("-5", text, "the second minus is rejected");
     }
+
+    @Test
+    public void aNonDecimalFormatStaysEditableAndCommitsStrictly() {
+        Object[] r = onFx(() -> {
+            RXDecimalField f = new RXDecimalField(new BigDecimal("1500"));
+            f.setNumberFormat(NumberFormat.getCompactNumberInstance(Locale.US, NumberFormat.Style.SHORT));
+            f.selectAll();
+            f.replaceSelection("3K");
+            String edited = f.getText();
+            f.commitValue();
+            BigDecimal committed = f.getValue();
+            f.selectAll();
+            f.replaceSelection("3Kx");
+            f.commitValue();
+            return new Object[]{edited, committed, f.getValue(), f.getText()};
+        });
+        assertEquals("3K", r[0], "the edit is accepted");
+        assertBig("3000", (BigDecimal) r[1], "the format parses the commit");
+        assertBig("3000", (BigDecimal) r[2], "text the format cannot fully parse rolls back");
+        assertEquals("3K", r[3]);
+    }
 }

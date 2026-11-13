@@ -9,10 +9,11 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 /**
- * Edit filter for decimal fields. With a {@code null} (or non-decimal)
- * {@link NumberFormat} it validates plain decimal text; a {@link DecimalFormat}
- * makes the filter format-aware (optional affix, localized separators and
- * minus sign).
+ * Edit filter for decimal fields. With a {@code null} {@link NumberFormat} it
+ * validates plain decimal text; a {@link DecimalFormat} makes the filter
+ * format-aware (optional affix, localized separators and minus sign). Any other
+ * format accepts every edit, since its notation is not known here; the commit
+ * then parses the text with that format and rolls back what it cannot parse.
  */
 public final class DecimalFieldChangeFilter implements UnaryOperator<TextFormatter.Change> {
 
@@ -39,8 +40,11 @@ public final class DecimalFieldChangeFilter implements UnaryOperator<TextFormatt
 
     private boolean isAcceptable(String text) {
         NumberFormat nf = numberFormat.get();
-        if (!(nf instanceof DecimalFormat df)) {
+        if (nf == null) {
             return baseAcceptable(text);
+        }
+        if (!(nf instanceof DecimalFormat df)) {
+            return true;
         }
 
         DecimalFormatSymbols syms = df.getDecimalFormatSymbols();
