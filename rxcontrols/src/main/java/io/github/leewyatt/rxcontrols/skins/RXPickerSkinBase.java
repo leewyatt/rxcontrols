@@ -435,6 +435,10 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
     // ==================== Keyboard ====================
 
     private void handleEditorKey(KeyEvent event) {
+        // Every filter on a node runs even after an earlier one consumed the event.
+        if (event.isConsumed()) {
+            return;
+        }
         C control = getSkinnable();
         KeyCode code = event.getCode();
         boolean plain = !event.isShiftDown() && !event.isControlDown() && !event.isAltDown() && !event.isMetaDown();
@@ -596,7 +600,11 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
 
     private void onFocusLeft() {
         C control = getSkinnable();
-        if (anyUserEdited() && !commitTypedText()) {
+        Scene scene = control.getScene();
+        // Window deactivation (switching applications) keeps a field as the scene's
+        // focus owner: close the popup but leave typed text alone for the user's return.
+        boolean windowDeactivated = scene != null && editors.contains(scene.getFocusOwner());
+        if (!windowDeactivated && anyUserEdited() && !commitTypedText()) {
             revertFields();
         }
         control.hide();

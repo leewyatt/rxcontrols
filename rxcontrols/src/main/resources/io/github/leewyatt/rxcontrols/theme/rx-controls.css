@@ -17,7 +17,7 @@
 .rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-bar-spinner, .rx-box, .rx-button,
 .rx-calendar-view, .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-content-pane, .rx-copy-button, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
-.rx-date-picker, .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
+.rx-date-picker, .rx-date-range-picker, .rx-date-range-view, .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
 .rx-decimal-field, .rx-double-field, .rx-fab, .rx-highlight-text-view, .rx-hold-button,
 .rx-image-pane, .rx-image-view, .rx-integer-field,
 .rx-line-button, .rx-line-label, .rx-long-field, .rx-lrc-line-view, .rx-lrc-view,
@@ -133,6 +133,10 @@
 .rx-theme-atlantafx.rx-drawer-pane,
 .rx-theme-atlantafx .rx-date-picker,
 .rx-theme-atlantafx.rx-date-picker,
+.rx-theme-atlantafx .rx-date-range-picker,
+.rx-theme-atlantafx.rx-date-range-picker,
+.rx-theme-atlantafx .rx-date-range-view,
+.rx-theme-atlantafx.rx-date-range-view,
 .rx-theme-atlantafx .rx-dual-pane,
 .rx-theme-atlantafx.rx-dual-pane,
 .rx-theme-atlantafx .rx-fill-button,
@@ -3853,14 +3857,16 @@
  * Calendar panel (RXCalendarView and the other date / period views)           *
  *                                                                             *
  ******************************************************************************/
-.rx-calendar-view {
+.rx-calendar-view,
+.rx-date-range-view {
     -fx-background-color: -fx-box-border, -fx-control-inner-background;
     -fx-background-insets: 0, 1;
     -fx-background-radius: 3, 2;
     -fx-padding: 0.5em 0.666667em 0.666667em 0.666667em;
 }
 
-.rx-calendar-view:focused {
+.rx-calendar-view:focused,
+.rx-date-range-view:focused {
     -fx-background-color: -fx-focus-color, -fx-control-inner-background;
 }
 
@@ -4091,6 +4097,14 @@
     -fx-opacity: 1;
 }
 
+/* Range pickers underline the field being edited. */
+.rx-picker:focused > .text-field:active,
+.rx-picker:showing > .text-field:active {
+    -fx-border-color: transparent transparent -rx-primary transparent;
+    -fx-border-width: 0 0 2 0;
+    -fx-border-insets: 0 0 1 0.583em;
+}
+
 .rx-picker > .separator {
     -fx-background-color: derive(-fx-text-base-color, 45%);
     -fx-pref-width: 1.166667em;
@@ -4134,7 +4148,9 @@
 .rx-picker-popup .container > .rx-calendar-view,
 .rx-picker-popup .container > .rx-calendar-view:focused,
 .rx-picker-popup .container > .rx-time-view,
-.rx-picker-popup .container > .rx-time-view:focused {
+.rx-picker-popup .container > .rx-time-view:focused,
+.rx-picker-popup .container > .rx-date-range-view,
+.rx-picker-popup .container > .rx-date-range-view:focused {
     -fx-background-color: transparent;
 }
 

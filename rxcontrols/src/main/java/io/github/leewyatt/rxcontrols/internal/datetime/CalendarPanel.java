@@ -1110,6 +1110,11 @@ public final class CalendarPanel extends HBox {
                         continue;
                     }
                     int state = stateProvider.stateOf(date);
+                    if (adjacent && pageCount > 1) {
+                        // A neighbor page shows this day in full; repeating the range here
+                        // would draw it twice.
+                        state &= ~(SELECTED | RANGE_START | RANGE_END | IN_RANGE | PREVIEW);
+                    }
                     boolean cursorMatch = cursorVisible && date.equals(cursor) && !adjacent;
                     applyCellState(cell, date, state, adjacent, date.equals(today), cursorMatch);
                     cell.setText(Integer.toString(date.getDayOfMonth()));
