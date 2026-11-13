@@ -40,8 +40,8 @@ import java.util.function.Supplier;
  * pane covers the hold duration, the text and graphic of each of the three
  * faces, the feedback duration (indefinite, finite,
  * zero) with {@code resetFeedback()}, the swap animation, the fill animation,
- * a solid and an outlined look, a stretched width, the disabled state,
- * right-to-left orientation and the untimed {@code fire()}.</p>
+ * a solid and an outlined look, a stretched width, the disabled state and
+ * right-to-left orientation.</p>
  */
 public class RXHoldButtonShowcase extends RXShowcaseApplication {
 
@@ -159,13 +159,8 @@ public class RXHoldButtonShowcase extends RXShowcaseApplication {
         durationSlider.valueProperty().addListener((obs, oldV, newV) ->
                 button.setHoldDuration(Duration.millis(Math.round(newV.doubleValue()))));
 
-        Button fireButton = new Button("fire()");
-        fireButton.setMaxWidth(Double.MAX_VALUE);
-        fireButton.setOnAction(event -> button.fire());
-
         return createGrid(
-                row("Duration", durationSlider, createValueLabel(durationSlider, "%.0f ms")),
-                row("Untimed", fireButton));
+                row("Duration", durationSlider, createValueLabel(durationSlider, "%.0f ms")));
     }
 
     private Node buildFacesGrid() {
