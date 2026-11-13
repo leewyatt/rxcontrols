@@ -64,10 +64,11 @@ public class RXAutoCompleteField extends RXTextField {
     // ==================== Constructors ====================
 
     /**
-     * Creates an empty autocomplete field.
+     * Creates an empty autocomplete field; the initial text is {@code ""},
+     * matching {@code TextField()}.
      */
     public RXAutoCompleteField() {
-        this(null);
+        this("");
     }
 
     /**

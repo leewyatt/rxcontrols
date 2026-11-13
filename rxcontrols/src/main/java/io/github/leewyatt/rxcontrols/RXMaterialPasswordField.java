@@ -94,11 +94,11 @@ public class RXMaterialPasswordField extends PasswordField {
     // ==================== Constructors ====================
 
     /**
-     * Creates an empty field; the initial text is {@code null}, matching
-     * {@code TextField(String)}.
+     * Creates an empty field; the initial text is {@code ""}, matching
+     * {@code TextField()}.
      */
     public RXMaterialPasswordField() {
-        this(null);
+        this("");
     }
 
     /**

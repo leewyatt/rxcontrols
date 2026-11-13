@@ -72,8 +72,7 @@ public class RXMaterialPasswordFieldTest {
     public void defaultsAndPlumbing() {
         runOnFx(() -> {
             RXMaterialPasswordField field = new RXMaterialPasswordField();
-            assertNull(field.getText(),
-                    "no-arg construction yields null text, matching TextField(String) semantics");
+            assertEquals("", field.getText(), "matches new PasswordField()");
             assertEquals("x", new RXMaterialPasswordField("x").getText());
             // shared Material defaults — must stay in parity with RXMaterialTextField
             assertTrue(field.isFloatingLabel());

@@ -61,11 +61,11 @@ public class RXPasswordField extends PasswordField {
     public static final char DEFAULT_ECHO_CHAR = '●';
 
     /**
-     * Creates an empty field; the initial text is {@code null}, matching
-     * {@code TextField(String)}.
+     * Creates an empty field; the initial text is {@code ""}, matching
+     * {@code TextField()}.
      */
     public RXPasswordField() {
-        this(null);
+        this("");
     }
 
     /**

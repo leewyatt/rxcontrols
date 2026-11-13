@@ -42,6 +42,16 @@ public class RXTextFieldTest {
     }
 
     @Test
+    public void constructionTextMatchesTextField() {
+        runOnFx(() -> {
+            assertEquals("", new RXTextField().getText(), "matches new TextField()");
+            assertEquals("", new RXMaterialTextField().getText(), "matches new TextField()");
+            assertEquals("", new RXAutoCompleteField().getText(), "matches new TextField()");
+            assertNull(new RXTextField(null).getText(), "matches new TextField(null)");
+        });
+    }
+
+    @Test
     public void settingANodeOnOneSideClearsItFromTheOtherSide() {
         runOnFx(() -> {
             RXTextField field = new RXTextField();

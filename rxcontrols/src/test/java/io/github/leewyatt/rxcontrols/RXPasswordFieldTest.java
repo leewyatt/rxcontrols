@@ -52,8 +52,9 @@ public class RXPasswordFieldTest {
     @Test
     public void constructionTextMatchesTextFieldSemantics() {
         runOnFx(() -> {
-            assertNull(new RXPasswordField().getText(),
-                    "no-arg construction yields null text, matching TextField(String) semantics");
+            assertEquals("", new RXPasswordField().getText(), "matches new PasswordField()");
+            assertEquals("", new RXMaterialPasswordField().getText(), "matches new PasswordField()");
+            assertNull(new RXPasswordField(null).getText(), "matches new TextField(null)");
             assertEquals("x", new RXPasswordField("x").getText());
         });
     }

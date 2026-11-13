@@ -82,11 +82,11 @@ public class RXMaterialTextField extends TextField {
     // ==================== Constructors ====================
 
     /**
-     * Creates an empty field; the initial text is {@code null}, matching
-     * {@code TextField(String)}.
+     * Creates an empty field; the initial text is {@code ""}, matching
+     * {@code TextField()}.
      */
     public RXMaterialTextField() {
-        this(null);
+        this("");
     }
 
     /**

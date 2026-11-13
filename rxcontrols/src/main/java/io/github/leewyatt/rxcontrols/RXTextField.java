@@ -98,11 +98,11 @@ public class RXTextField extends TextField {
     private static final String DEFAULT_STYLE_CLASS = "rx-text-field";
 
     /**
-     * Creates an empty field; the initial text is {@code null}, matching
-     * {@code TextField(String)}.
+     * Creates an empty field; the initial text is {@code ""}, matching
+     * {@code TextField()}.
      */
     public RXTextField() {
-        this(null);
+        this("");
     }
 
     /**
