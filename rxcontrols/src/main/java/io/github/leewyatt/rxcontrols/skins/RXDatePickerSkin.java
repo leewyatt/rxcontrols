@@ -43,6 +43,7 @@ public class RXDatePickerSkin extends RXPickerSkinBase<LocalDate, RXDatePicker> 
         disposer.registerBinding(calendar.showAdjacentDaysProperty(), control.showAdjacentDaysProperty());
 
         todayButton = footerButton("today-button", control.todayTextProperty(), this::commitToday);
+        todayButton.getStyleClass().add("link-button");
         install(List.of(editor), calendar, todayButton);
 
         disposer.registerListener(control.converterProperty(), this::onFormatChanged);
