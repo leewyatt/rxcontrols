@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.internal.datetime.TemporalKeyTarget;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
 import javafx.beans.value.ObservableValue;
 import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
@@ -70,6 +71,9 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
 
     // ==================== State ====================
 
+    private final InvalidationListener focusOwnerListener = observable -> onFocusOwnerChanged();
+    private Scene observedScene;
+    private boolean focusInside;
     private boolean writingText;
     private boolean invalidText;
     private boolean suppressReopen;
@@ -165,6 +169,14 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
             }
         });
         disposer.registerListener(control.focusedProperty(), this::redirectFocus);
+        disposer.registerListener(control.sceneProperty(), this::observeScene);
+        disposer.registerDisposeTask(() -> {
+            if (observedScene != null) {
+                observedScene.focusOwnerProperty().removeListener(focusOwnerListener);
+                observedScene = null;
+            }
+        });
+        observeScene();
         disposer.registerDisposeTask(() -> control.getProperties().put(FOCUSED_KEY, false));
         disposer.registerListener(control.hoverProperty(), this::updateSuffix);
         disposer.registerListener(control.clearableProperty(), this::updateSuffix);
@@ -586,28 +598,49 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
 
     // ==================== Focus ====================
 
+    /** Mirrors the fields' visual focus (window focus included) onto the picker. */
     private void updateFocus() {
-        C control = getSkinnable();
         boolean any = false;
         for (TextField editor : editors) {
             any |= editor.isFocused();
         }
-        control.getProperties().put(FOCUSED_KEY, any);
-        if (!any) {
+        getSkinnable().getProperties().put(FOCUSED_KEY, any);
+    }
+
+    private void observeScene() {
+        Scene scene = getSkinnable().getScene();
+        if (scene == observedScene) {
+            return;
+        }
+        if (observedScene != null) {
+            observedScene.focusOwnerProperty().removeListener(focusOwnerListener);
+        }
+        observedScene = scene;
+        if (scene != null) {
+            scene.focusOwnerProperty().addListener(focusOwnerListener);
+        }
+        onFocusOwnerChanged();
+    }
+
+    /**
+     * Commit-or-revert follows the scene's focus owner rather than node focus, so moving
+     * between the picker's own fields is not a leave, and window deactivation (switching
+     * applications) neither commits nor reverts typed text.
+     */
+    private void onFocusOwnerChanged() {
+        boolean inside = observedScene != null && editors.contains(observedScene.getFocusOwner());
+        boolean left = focusInside && !inside;
+        focusInside = inside;
+        if (left) {
             onFocusLeft();
         }
     }
 
     private void onFocusLeft() {
-        C control = getSkinnable();
-        Scene scene = control.getScene();
-        // Window deactivation (switching applications) keeps a field as the scene's
-        // focus owner: close the popup but leave typed text alone for the user's return.
-        boolean windowDeactivated = scene != null && editors.contains(scene.getFocusOwner());
-        if (!windowDeactivated && anyUserEdited() && !commitTypedText()) {
+        if (anyUserEdited() && !commitTypedText()) {
             revertFields();
         }
-        control.hide();
+        getSkinnable().hide();
     }
 
     private void redirectFocus() {

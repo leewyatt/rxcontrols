@@ -166,7 +166,8 @@ public class RXDateRangePickerPopupTest {
             start.setText("12/5/2026");
             end.requestFocus();
             assertEquals("12/5/2026", start.getText());
-            assertTrue(picker.isFocused());
+            assertNull(picker.getValue());
+            assertFalse(hasPseudoClass(picker, "invalid"));
         });
     }
 

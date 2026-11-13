@@ -10,6 +10,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.stage.Stage;
 import javafx.stage.Window;
 
 import java.time.LocalDate;
@@ -64,6 +65,17 @@ final class PickerTestSupport {
         if (t != null) {
             throw new AssertionError("FX task failed", t);
         }
+    }
+
+    /**
+     * Brings the stage to the front and reports whether the OS granted it focus.
+     * Node focus (and so focus-leave behavior) only exists in a focused window;
+     * parallel test JVMs can keep it from being granted.
+     */
+    static boolean focusWindow(Stage stage) {
+        stage.toFront();
+        stage.requestFocus();
+        return stage.isFocused();
     }
 
     static PopupControl findPopup() {

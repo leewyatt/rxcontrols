@@ -22,6 +22,7 @@ import static io.github.leewyatt.rxcontrols.PickerTestSupport.click;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.dayCell;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.editor;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.findPopup;
+import static io.github.leewyatt.rxcontrols.PickerTestSupport.focusWindow;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.hasPseudoClass;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.hideAllPopups;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.press;
@@ -33,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Popup behavior of {@link RXDatePicker} in a shown window: picking, draft discard,
@@ -169,6 +171,7 @@ public class RXDatePickerPopupTest {
     public void focusIsMirroredAndPopupStaysUnfocused() throws InterruptedException {
         runOnFx(() -> {
             RXDatePicker picker = newShownPicker();
+            assumeTrue(focusWindow(stage), "window focus not granted");
             picker.requestFocus();
             assertTrue(editor(picker, 0).isFocused() || stage.getScene().getFocusOwner() == editor(picker, 0));
             assertTrue(picker.isFocused());
