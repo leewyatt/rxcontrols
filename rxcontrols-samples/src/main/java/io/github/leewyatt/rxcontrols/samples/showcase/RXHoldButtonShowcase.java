@@ -182,25 +182,32 @@ public class RXHoldButtonShowcase extends RXShowcaseApplication {
                 row("Text", nullableText(textField, button::setText)),
                 row("Holding text", nullableText(holdingField, button::setHoldingText)),
                 row("Completed text", nullableText(completedField, button::setCompletedText)),
-                row("Graphic", toggle(selected -> button.setGraphic(selected ? idleIcon : null))),
+                row("Graphic", toggle(true, selected -> button.setGraphic(selected ? idleIcon : null))),
                 row("Holding graphic",
-                        toggle(selected -> button.setHoldingGraphic(selected ? holdingIcon : null))),
+                        toggle(true, selected -> button.setHoldingGraphic(selected ? holdingIcon : null))),
                 row("Completed graphic",
-                        toggle(selected -> button.setCompletedGraphic(selected ? completedIcon : null))));
+                        toggle(true, selected -> button.setCompletedGraphic(selected ? completedIcon : null))));
     }
 
     private Node buildFeedbackGrid() {
         Slider durationSlider = createSlider(0.0, 5000.0, 2000.0);
         Label durationValue = createValueLabel(durationSlider, "%.0f ms");
         CheckBox indefiniteBox = new CheckBox();
-        indefiniteBox.setSelected(true);
         durationSlider.disableProperty().bind(indefiniteBox.selectedProperty());
         durationValue.disableProperty().bind(indefiniteBox.selectedProperty());
         Runnable applyDuration = () -> button.setFeedbackDuration(indefiniteBox.isSelected()
                 ? Duration.INDEFINITE
                 : Duration.millis(Math.round(durationSlider.getValue())));
         durationSlider.valueProperty().addListener((obs, oldV, newV) -> applyDuration.run());
-        indefiniteBox.selectedProperty().addListener((obs, oldV, newV) -> applyDuration.run());
+        // Leaving indefinite also ends a completed face still waiting for its
+        // reset, so the button is usable again without a press.
+        indefiniteBox.selectedProperty().addListener((obs, oldV, newV) -> {
+            applyDuration.run();
+            if (!newV) {
+                button.resetFeedback();
+            }
+        });
+        applyDuration.run();
 
         Button resetButton = new Button("resetFeedback()");
         resetButton.setMaxWidth(Double.MAX_VALUE);
@@ -316,9 +323,10 @@ public class RXHoldButtonShowcase extends RXShowcaseApplication {
         return box;
     }
 
-    private static CheckBox toggle(Consumer<Boolean> action) {
+    private static CheckBox toggle(boolean selected, Consumer<Boolean> action) {
         CheckBox box = new CheckBox();
         box.selectedProperty().addListener((obs, oldV, newV) -> action.accept(newV));
+        box.setSelected(selected);
         return box;
     }
 

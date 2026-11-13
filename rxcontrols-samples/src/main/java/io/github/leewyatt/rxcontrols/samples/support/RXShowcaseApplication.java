@@ -14,6 +14,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -242,9 +243,9 @@ public abstract class RXShowcaseApplication extends Application {
         grid.setHgap(8.0);
         grid.setVgap(10.0);
 
+        // A floor, not a fixed width: a longer label widens its grid's column.
         ColumnConstraints labelCol = new ColumnConstraints();
         labelCol.setMinWidth(LABEL_COL_WIDTH);
-        labelCol.setPrefWidth(LABEL_COL_WIDTH);
         ColumnConstraints controlCol = new ColumnConstraints();
         controlCol.setHgrow(Priority.ALWAYS);
         controlCol.setFillWidth(true);
@@ -308,6 +309,7 @@ public abstract class RXShowcaseApplication extends Application {
     protected Label createFieldLabel(String text) {
         Label label = new Label(text);
         label.getStyleClass().add("field-label");
+        label.setMinWidth(Region.USE_PREF_SIZE);
         return label;
     }
 
