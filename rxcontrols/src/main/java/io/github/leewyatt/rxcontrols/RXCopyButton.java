@@ -120,11 +120,6 @@ public class RXCopyButton extends RXButton {
      */
     public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
 
-    /**
-     * Default {@link #copiedTextProperty() copiedText}.
-     */
-    public static final String DEFAULT_COPIED_TEXT = "Copied";
-
     // Registered first in the constructor, so the copy runs before handlers
     // added later and before onAction. The target is deliberately not checked:
     // every ActionEvent that reaches onAction copies.
@@ -260,10 +255,10 @@ public class RXCopyButton extends RXButton {
     // ==================== Copied Text ====================
 
     private final StringProperty copiedText =
-            new SimpleStringProperty(this, "copiedText", DEFAULT_COPIED_TEXT);
+            new SimpleStringProperty(this, "copiedText", "Copied");
 
     /**
-     * Text of the feedback face. Defaults to {@link #DEFAULT_COPIED_TEXT};
+     * Text of the feedback face. Defaults to {@code "Copied"};
      * {@code null} or an empty string shows no text; nothing is borrowed from
      * the button text. To keep the button text, set the same text or bind it
      * with {@code copiedTextProperty().bind(textProperty())}. The default is

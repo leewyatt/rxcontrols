@@ -32,7 +32,7 @@ public class RXCopyButtonDemo extends Application {
         // No feedback text: the check mark alone confirms, and the button
         // keeps its icon size.
         copyKey.setCopiedText(null);
-        // copyKey.setAccessibleText("Copy API key");
+        copyKey.setAccessibleText("Copy API key");
         copyKey.setContentFactory(() -> RXCopyButton.textContent(keyField.getText()));
         HBox keyRow = new HBox(8.0, new Label("API key"), keyField, copyKey);
         keyRow.setAlignment(Pos.CENTER_LEFT);

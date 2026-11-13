@@ -123,16 +123,6 @@ public class RXHoldButton extends ButtonBase {
     public static final Duration DEFAULT_HOLD_DURATION = Duration.millis(1500.0);
 
     /**
-     * Default {@link #holdingTextProperty() holdingText}.
-     */
-    public static final String DEFAULT_HOLDING_TEXT = "Keep holding…";
-
-    /**
-     * Default {@link #completedTextProperty() completedText}.
-     */
-    public static final String DEFAULT_COMPLETED_TEXT = "Done";
-
-    /**
      * Default {@link #feedbackDurationProperty() feedbackDuration}, and the
      * value used in place of a {@code null}, negative or unknown one.
      */
@@ -153,10 +143,10 @@ public class RXHoldButton extends ButtonBase {
     // ==================== Constructors ====================
 
     /**
-     * Creates a hold button with an empty text caption.
+     * Creates a hold button with the text caption {@code "Hold to confirm"}.
      */
     public RXHoldButton() {
-        initialize();
+        this("Hold to confirm");
     }
 
     /**
@@ -266,10 +256,10 @@ public class RXHoldButton extends ButtonBase {
     // ==================== Holding Text ====================
 
     private final StringProperty holdingText =
-            new SimpleStringProperty(this, "holdingText", DEFAULT_HOLDING_TEXT);
+            new SimpleStringProperty(this, "holdingText", "Keep holding…");
 
     /**
-     * Text of the holding face. Defaults to {@link #DEFAULT_HOLDING_TEXT};
+     * Text of the holding face. Defaults to {@code "Keep holding…"};
      * {@code null} or an empty string shows no text while holding.
      *
      * @return the holding text property
@@ -333,10 +323,10 @@ public class RXHoldButton extends ButtonBase {
     // ==================== Completed Text ====================
 
     private final StringProperty completedText =
-            new SimpleStringProperty(this, "completedText", DEFAULT_COMPLETED_TEXT);
+            new SimpleStringProperty(this, "completedText", "Done");
 
     /**
-     * Text of the completed face. Defaults to {@link #DEFAULT_COMPLETED_TEXT};
+     * Text of the completed face. Defaults to {@code "Done"};
      * {@code null} or an empty string shows no text on the completed face.
      *
      * @return the completed text property

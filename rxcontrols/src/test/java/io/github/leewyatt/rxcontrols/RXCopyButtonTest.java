@@ -104,8 +104,7 @@ public class RXCopyButtonTest {
         assertTrue(button.getStyleClass().contains("rx-copy-button"));
         assertTrue(button.getStyleClass().contains("rx-button"));
         assertNull(button.getContentFactory());
-        assertEquals("Copied", RXCopyButton.DEFAULT_COPIED_TEXT);
-        assertEquals(RXCopyButton.DEFAULT_COPIED_TEXT, button.getCopiedText());
+        assertEquals("Copied", button.getCopiedText());
         assertNull(button.getCopiedGraphic());
         assertNull(button.getAnimation());
         assertEquals(Duration.millis(200.0), RXCopyButton.DEFAULT_ANIMATION_DURATION);
@@ -249,7 +248,7 @@ public class RXCopyButtonTest {
         assertFalse(normal.getStyleClass().contains("label"));
         assertFalse(copied.getStyleClass().contains("label"));
         assertEquals("Copy _link", normal.getText());
-        assertEquals(RXCopyButton.DEFAULT_COPIED_TEXT, copied.getText());
+        assertEquals("Copied", copied.getText());
         assertFalse(normal.isMnemonicParsing());
         assertFalse(copied.isMnemonicParsing());
         assertSame(graphic, normal.getGraphic());

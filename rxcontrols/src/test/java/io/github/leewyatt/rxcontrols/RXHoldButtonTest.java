@@ -117,6 +117,15 @@ public class RXHoldButtonTest {
     }
 
     @Test
+    public void onlyTheNoArgConstructorSuppliesAText() {
+        RXHoldButton plain = new RXHoldButton();
+
+        assertEquals("Hold to confirm", plain.getText());
+        assertEquals(List.of("rx-hold-button"), plain.getStyleClass());
+        assertNull(new RXHoldButton(null).getText());
+    }
+
+    @Test
     public void cssMetadataCoversStyleablePropertiesOnly() {
         RXHoldButton button = new RXHoldButton();
         List<CssMetaData<? extends Styleable, ?>> metaData = button.getCssMetaData();
