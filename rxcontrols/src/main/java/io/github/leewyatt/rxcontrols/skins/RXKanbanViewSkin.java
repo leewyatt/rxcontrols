@@ -969,7 +969,9 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         if (needHbar) {
             adjustingHbar = true;
             hbar.setMax(cachedMaxBoardScrollX);
-            hbar.setVisibleAmount(contentWidth);
+            // The visible share of the board scaled to the scroll range, as the
+            // thumb spans visibleAmount / (max - min) of the track.
+            hbar.setVisibleAmount(cachedMaxBoardScrollX * contentWidth / (contentWidth + cachedMaxBoardScrollX));
             hbar.setUnitIncrement(pref + baseGap);
             hbar.setBlockIncrement(contentWidth);
             if (Math.abs(hbar.getValue() - boardScrollX) > SCROLL_BAR_SYNC_EPSILON) {

@@ -275,6 +275,28 @@ public class RXKanbanViewSkinTest {
     }
 
     @Test
+    public void horizontalThumbShowsTheVisibleShareOfTheBoard() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 1, "B", 1, "C", 1, "D", 1);
+            board.setPrefColumnWidth(160);
+            board.setColumnSpacing(16);
+            pump(host(board, 640, 400));
+            ScrollBar bar = null;
+            for (Node node : board.lookupAll(".scroll-bar")) {
+                if (node instanceof ScrollBar candidate && candidate.getOrientation() == Orientation.HORIZONTAL) {
+                    bar = candidate;
+                }
+            }
+            assertNotNull(bar);
+            double visible = ((Rectangle) boxOf(board, "A").getParent().getClip()).getWidth();
+            assertTrue(bar.getMax() > 0.0 && bar.getMax() < visible,
+                    "less than a board width overflows (precondition)");
+            assertEquals(visible / (visible + bar.getMax()), bar.getVisibleAmount() / bar.getMax(), 1e-9,
+                    "the thumb spans the visible share of the board");
+        });
+    }
+
+    @Test
     public void narrowBoardHasNoHorizontalScrollBar() throws Exception {
         onFx(() -> {
             RXKanbanView<String> board = board("A", 1, "B", 1);

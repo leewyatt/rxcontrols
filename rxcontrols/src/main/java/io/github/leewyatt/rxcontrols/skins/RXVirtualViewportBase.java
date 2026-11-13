@@ -505,7 +505,11 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
         if (needBar) {
             adjustingScrollBar = true;
             vbar.setMax(maxScroll);
-            vbar.setVisibleAmount(h);
+            // The thumb spans visibleAmount / (max - min) of the track, so the
+            // amount is the visible share of the whole content scaled to the
+            // scroll range; the raw viewport height would fill the track whenever
+            // less than a viewport overflows, leaving no room to drag the thumb.
+            vbar.setVisibleAmount(maxScroll * h / (h + maxScroll));
             vbar.setUnitIncrement(unitScrollIncrement());
             vbar.setBlockIncrement(h);
             if (Math.abs(vbar.getValue() - scrollY) > SCROLL_BAR_SYNC_EPSILON) {

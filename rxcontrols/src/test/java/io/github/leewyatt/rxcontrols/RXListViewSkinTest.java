@@ -12,6 +12,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.ScrollBar;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -75,6 +76,28 @@ public class RXListViewSkinTest {
             assertTrue(view.getPseudoClassStates().stream()
                     .anyMatch(pc -> pc.getPseudoClassName().equals("empty")));
             assertTrue(placeholder.isVisible(), "placeholder shows when empty");
+        });
+    }
+
+    @Test
+    public void verticalThumbShowsTheVisibleShareOfTheContent() throws Exception {
+        onFx(() -> {
+            RXListView<String> view = items(15);
+            view.setFixedCellSize(20);
+            pump(host(view, 300, 200));
+            ScrollBar bar = null;
+            for (Node node : view.lookupAll(".scroll-bar")) {
+                if (node instanceof ScrollBar candidate && candidate.getOrientation() == Orientation.VERTICAL) {
+                    bar = candidate;
+                }
+            }
+            assertNotNull(bar);
+            double content = 15 * 20.0;
+            double visible = content - bar.getMax();
+            assertTrue(bar.getMax() > 0.0 && bar.getMax() < visible,
+                    "less than a viewport overflows (precondition)");
+            assertEquals(visible / content, bar.getVisibleAmount() / bar.getMax(), 1e-9,
+                    "the thumb spans the visible share of the content");
         });
     }
 
