@@ -14,6 +14,12 @@ public final class FeedbackSignals {
      */
     public static final String COPY_RESULT = "rx-copy-result";
 
+    /**
+     * Request from a hold button to end its completed feedback: always
+     * {@code Boolean.TRUE}.
+     */
+    public static final String HOLD_RESET = "rx-hold-reset";
+
     private FeedbackSignals() {
     }
 }
