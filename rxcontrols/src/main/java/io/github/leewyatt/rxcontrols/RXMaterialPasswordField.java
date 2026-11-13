@@ -710,7 +710,8 @@ public class RXMaterialPasswordField extends PasswordField {
     /**
      * Inner padding of the text editor region. Same semantics as
      * {@link RXTextField#textPaddingProperty()}; {@code null} is treated as
-     * {@link Insets#EMPTY} by the skin.
+     * {@link Insets#EMPTY} by the skin, and a negative or non-finite side as
+     * {@code 0}.
      * <p>
      * The bottom inset doubles as the gap between the editor text and the
      * activation line (the user-agent stylesheet defaults it to 0.25em);

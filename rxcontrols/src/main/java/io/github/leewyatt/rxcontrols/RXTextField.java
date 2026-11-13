@@ -220,7 +220,8 @@ public class RXTextField extends TextField {
      * <p>
      * May be set to {@code null}. The raw property and getter then return
      * {@code null}, while the skin treats it as {@link Insets#EMPTY} for
-     * layout.
+     * layout. Likewise, the skin lays out a negative or non-finite side as
+     * {@code 0}; the property keeps the value as set.
      *
      * @return the text padding property
      * @defaultValue {@link Insets#EMPTY}
