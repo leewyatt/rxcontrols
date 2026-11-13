@@ -2,11 +2,16 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
 import io.github.leewyatt.rxcontrols.internal.FeedbackSignals;
+import io.github.leewyatt.rxcontrols.skins.RXHoldButtonSkin;
+import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
+import javafx.css.PseudoClass;
 import javafx.css.Styleable;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.event.EventType;
 import javafx.scene.AccessibleAction;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
@@ -14,32 +19,50 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
+import javafx.scene.control.Skin;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests the RXHoldButton control contract, the three-caption skin structure
- * and its sizing.
+ * and its sizing, and the press-and-hold state machine. Hold tests use a short
+ * hold duration and wait off the FX thread, so the timelines can run.
  */
 public class RXHoldButtonTest {
 
     private static final String LONG_TEXT = "A considerably longer caption";
+    private static final boolean MAC = RXOS.isMacOS();
+    private static final PseudoClass HOLDING = PseudoClass.getPseudoClass("holding");
+    private static final PseudoClass COMPLETED = PseudoClass.getPseudoClass("completed");
+    private static final Duration SHORT_HOLD = Duration.millis(80.0);
+    // Comfortably past SHORT_HOLD, well short of the 1500 ms default.
+    private static final long PAST_HOLD_MS = 400L;
 
     /**
      * Starts the JavaFX toolkit before loading Control subclasses.
@@ -249,6 +272,572 @@ public class RXHoldButtonTest {
         withDefaults.getSkin().dispose();
     }
 
+    // ==================== Mouse Hold ====================
+
+    @Test
+    public void holdingToTheThresholdFiresOnce() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        onFx(() -> {
+            RXHoldButton button = holdButton();
+            button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            ref.set(button);
+            double prefWidth = button.prefWidth(-1);
+            double prefHeight = button.prefHeight(-1);
+
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+
+            assertHolding(button, true);
+            assertTrue(button.isArmed());
+            assertEquals(prefWidth, button.prefWidth(-1), 0.01);
+            assertEquals(prefHeight, button.prefHeight(-1), 0.01);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            assertEquals(1, fired.get());
+            assertHolding(button, false);
+            assertFalse(button.isArmed());
+            assertTrue(button.getPseudoClassStates().contains(COMPLETED));
+
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+            assertEquals(1, fired.get());
+            assertFalse(button.getPseudoClassStates().contains(COMPLETED));
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void releasingEarlyCancelsWithoutFiring() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        onFx(() -> {
+            RXHoldButton button = holdButton();
+            button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            ref.set(button);
+            double prefWidth = button.prefWidth(-1);
+            double prefHeight = button.prefHeight(-1);
+
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+
+            assertHolding(button, false);
+            assertFalse(button.isArmed());
+            assertEquals(prefWidth, button.prefWidth(-1), 0.01);
+            assertEquals(prefHeight, button.prefHeight(-1), 0.01);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            assertEquals(0, fired.get());
+            ref.get().getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void onlyAPlainPrimaryPressStartsAndOnlyItsReleaseEnds() throws InterruptedException {
+        onFx(() -> {
+            RXHoldButton button = holdButton();
+
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.SECONDARY);
+            assertHolding(button, false);
+            button.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, 0.0, 0.0, 0.0, 0.0,
+                    MouseButton.PRIMARY, 1, true, false, false, false,
+                    true, false, false, false, false, false, null));
+            assertHolding(button, false);
+
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.SECONDARY);
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.SECONDARY);
+            assertHolding(button, true);
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void movingOutCancelsAndMovingBackDoesNotResume() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        onFx(() -> {
+            RXHoldButton button = holdButton();
+            button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            ref.set(button);
+
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            mouse(button, MouseEvent.MOUSE_EXITED, MouseButton.NONE);
+            assertHolding(button, false);
+            mouse(button, MouseEvent.MOUSE_ENTERED, MouseButton.NONE);
+            assertHolding(button, false);
+            // The primary button is still down: SPACE does not start a hold.
+            key(button, KeyEvent.KEY_PRESSED, KeyCode.SPACE);
+            assertHolding(button, false);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+            assertEquals(0, fired.get());
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            assertHolding(button, true);
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void aCompletedHoldSurvivesDraggingOutAndBack() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        onFx(() -> {
+            RXHoldButton button = holdButton();
+            button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            ref.set(button);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            mouse(button, MouseEvent.MOUSE_EXITED, MouseButton.NONE);
+            mouse(button, MouseEvent.MOUSE_ENTERED, MouseButton.NONE);
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+            assertEquals(1, fired.get());
+            button.getSkin().dispose();
+        });
+    }
+
+    // ==================== Keyboard Hold ====================
+
+    @Test
+    public void spaceHoldFiresOnceAndIgnoresAutoRepeat() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        onFx(() -> {
+            RXHoldButton button = holdButton();
+            button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            ref.set(button);
+
+            assertTrue(key(button, KeyEvent.KEY_PRESSED, KeyCode.SPACE));
+            assertHolding(button, true);
+            // Auto-repeat mid-hold is swallowed and changes nothing.
+            assertTrue(key(button, KeyEvent.KEY_PRESSED, KeyCode.SPACE));
+            assertHolding(button, true);
+            assertTrue(button.isArmed());
+            // A release of another activation key is not the owner's.
+            key(button, KeyEvent.KEY_RELEASED, KeyCode.ENTER);
+            assertHolding(button, true);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            assertEquals(1, fired.get());
+            // Auto-repeat after completion starts nothing.
+            key(button, KeyEvent.KEY_PRESSED, KeyCode.SPACE);
+            assertHolding(button, false);
+            key(button, KeyEvent.KEY_RELEASED, KeyCode.SPACE);
+            assertEquals(1, fired.get());
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void earlyKeyUpCancelsAndEnterFollowsThePlatform() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        onFx(() -> {
+            RXHoldButton button = holdButton();
+            button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            ref.set(button);
+
+            key(button, KeyEvent.KEY_PRESSED, KeyCode.SPACE);
+            key(button, KeyEvent.KEY_RELEASED, KeyCode.SPACE);
+            assertHolding(button, false);
+
+            assertEquals(!MAC, key(button, KeyEvent.KEY_PRESSED, KeyCode.ENTER));
+            assertHolding(button, !MAC);
+            key(button, KeyEvent.KEY_RELEASED, KeyCode.ENTER);
+
+            assertFalse(key(button, new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.SPACE,
+                    false, true, false, false)), "a modified press stays unconsumed");
+            assertHolding(button, false);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            assertEquals(0, fired.get());
+            ref.get().getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void mouseAndKeyboardHoldsDoNotInterfere() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        onFx(() -> {
+            RXHoldButton button = holdButton();
+            button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            ref.set(button);
+
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            key(button, KeyEvent.KEY_PRESSED, KeyCode.SPACE);
+            key(button, KeyEvent.KEY_RELEASED, KeyCode.SPACE);
+            assertHolding(button, true);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            assertEquals(1, fired.get());
+            ref.get().getSkin().dispose();
+        });
+    }
+
+    // ==================== Accessibility ====================
+
+    @Test
+    public void theHoldingFaceNamesTheButtonWhileHeld() throws InterruptedException {
+        onFx(() -> {
+            RXHoldButton button = holdButton();
+
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            assertEquals("Keep holding\u2026", button.queryAccessibleAttribute(AccessibleAttribute.TEXT));
+            button.setHoldingText(null);
+            assertEquals("Hold", button.queryAccessibleAttribute(AccessibleAttribute.TEXT));
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+            assertEquals("Hold", button.queryAccessibleAttribute(AccessibleAttribute.TEXT));
+            button.getSkin().dispose();
+        });
+    }
+
+    // ==================== Untimed Activation ====================
+
+    @Test
+    public void fireDuringAHoldFiresOnceAndCancelsTheHold() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        onFx(() -> {
+            RXHoldButton button = holdButton();
+            button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            ref.set(button);
+
+            key(button, KeyEvent.KEY_PRESSED, KeyCode.SPACE);
+            button.fire();
+            assertEquals(1, fired.get());
+            assertHolding(button, false);
+            // The owner key is still down: its auto-repeat does not restart.
+            key(button, KeyEvent.KEY_PRESSED, KeyCode.SPACE);
+            assertHolding(button, false);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            assertEquals(1, fired.get());
+            ref.get().getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void aConsumedActionEventFromTheGraphicLeavesTheHoldRunning() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        onFx(() -> {
+            Region graphic = sizedRegion(16.0);
+            graphic.addEventHandler(ActionEvent.ACTION, ActionEvent::consume);
+            RXHoldButton button = holdButton();
+            button.setGraphic(graphic);
+            button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            ref.set(button);
+
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            graphic.fireEvent(new ActionEvent());
+            assertEquals(0, fired.get());
+            assertHolding(button, true);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            assertEquals(1, fired.get());
+            ref.get().getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void anActionEventBubblingFromTheGraphicCancelsTheHold() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        AtomicBoolean armedInOnAction = new AtomicBoolean(true);
+        onFx(() -> {
+            Region graphic = sizedRegion(16.0);
+            RXHoldButton button = holdButton();
+            button.setGraphic(graphic);
+            button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            button.setOnAction(event -> armedInOnAction.set(button.isArmed()));
+            ref.set(button);
+
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            graphic.fireEvent(new ActionEvent());
+            assertEquals(1, fired.get());
+            assertFalse(armedInOnAction.get());
+            assertHolding(button, false);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            assertEquals(1, fired.get());
+            ref.get().getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void anOutsideDisarmCancelsAndAnOutsideArmStartsNothing() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        onFx(() -> {
+            RXHoldButton button = holdButton();
+            button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            ref.set(button);
+
+            button.arm();
+            assertHolding(button, false);
+            button.disarm();
+
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            button.disarm();
+            assertHolding(button, false);
+            // Still down: a new press of the owner cannot arrive, and SPACE
+            // does not start a second hold.
+            key(button, KeyEvent.KEY_PRESSED, KeyCode.SPACE);
+            assertHolding(button, false);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            assertEquals(0, fired.get());
+            ref.get().getSkin().dispose();
+        });
+    }
+
+    // ==================== Structural Interruptions ====================
+
+    @Test
+    public void disablingRemovingOrDisposingCancelsWithoutFiring() throws InterruptedException {
+        AtomicInteger fired = new AtomicInteger();
+        AtomicReference<List<RXHoldButton>> ref = new AtomicReference<>();
+        onFx(() -> {
+            RXHoldButton disabled = holdButton();
+            RXHoldButton removed = holdButton();
+            RXHoldButton disposed = holdButton();
+            for (RXHoldButton button : List.of(disabled, removed, disposed)) {
+                button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+                key(button, KeyEvent.KEY_PRESSED, KeyCode.SPACE);
+            }
+            disabled.setDisable(true);
+            ((StackPane) removed.getParent()).getChildren().clear();
+            disposed.getSkin().dispose();
+            for (RXHoldButton button : List.of(disabled, removed)) {
+                assertHolding(button, false);
+            }
+            for (RXHoldButton button : List.of(disabled, removed, disposed)) {
+                assertFalse(button.getPseudoClassStates().contains(HOLDING));
+                assertFalse(button.isArmed());
+            }
+            ref.set(List.of(disabled, removed));
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            assertEquals(0, fired.get());
+            RXHoldButton disabled = ref.get().get(0);
+            disabled.setDisable(false);
+            // Structural: the key's release is not awaited.
+            key(disabled, KeyEvent.KEY_PRESSED, KeyCode.SPACE);
+            assertHolding(disabled, true);
+            for (RXHoldButton button : ref.get()) {
+                button.getSkin().dispose();
+            }
+        });
+    }
+
+    @Test
+    public void hidingAnAncestorCancelsAHold() throws InterruptedException {
+        AtomicReference<Stage> stageRef = new AtomicReference<>();
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        onFx(() -> {
+            RXHoldButton button = new RXHoldButton("Hold");
+            button.setHoldDuration(SHORT_HOLD);
+            button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            StackPane holder = new StackPane(button);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(holder, 300.0, 200.0));
+            stage.show();
+            stageRef.set(stage);
+            ref.set(button);
+
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            assertHolding(button, true);
+            holder.setVisible(false);
+            assertHolding(button, false);
+            assertFalse(button.isArmed());
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            assertEquals(0, fired.get());
+            ref.get().getSkin().dispose();
+            stageRef.get().hide();
+        });
+    }
+
+    @Test
+    public void losingFocusCancelsAKeyHoldButNotAMouseHold() throws InterruptedException {
+        onFx(() -> {
+            FocusableHoldButton button = new FocusableHoldButton();
+            button.setHoldDuration(SHORT_HOLD);
+            laidOut(button);
+
+            button.focus(true);
+            key(button, KeyEvent.KEY_PRESSED, KeyCode.SPACE);
+            assertHolding(button, true);
+            button.focus(false);
+            assertHolding(button, false);
+            // Structural: the lost key's release is not awaited.
+            button.focus(true);
+            key(button, KeyEvent.KEY_PRESSED, KeyCode.SPACE);
+            assertHolding(button, true);
+            key(button, KeyEvent.KEY_RELEASED, KeyCode.SPACE);
+
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            button.focus(false);
+            assertHolding(button, true);
+            button.getSkin().dispose();
+        });
+    }
+
+    // Without a focused window Node.focused never turns true, so the test
+    // drives it through the protected setter.
+    private static final class FocusableHoldButton extends RXHoldButton {
+
+        FocusableHoldButton() {
+            super("Hold");
+        }
+
+        void focus(boolean value) {
+            setFocused(value);
+        }
+    }
+
+    // ==================== Re-entrancy ====================
+
+    @Test
+    public void onActionMayDisableRemoveOrReskinTheButton() throws InterruptedException {
+        AtomicReference<List<RXHoldButton>> ref = new AtomicReference<>();
+        AtomicReference<Skin<?>> originalSkin = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        AtomicInteger actions = new AtomicInteger();
+        // Timeline handlers report exceptions to the uncaught handler instead
+        // of throwing, so the test records them there.
+        List<Throwable> uncaught = new ArrayList<>();
+        AtomicReference<Thread.UncaughtExceptionHandler> previous = new AtomicReference<>();
+        onFx(() -> {
+            previous.set(Thread.currentThread().getUncaughtExceptionHandler());
+            Thread.currentThread().setUncaughtExceptionHandler((thread, error) -> uncaught.add(error));
+        });
+        try {
+            runReentrantHolds(ref, originalSkin, fired, actions, uncaught);
+        } finally {
+            onFx(() -> Thread.currentThread().setUncaughtExceptionHandler(previous.get()));
+        }
+    }
+
+    private static void runReentrantHolds(AtomicReference<List<RXHoldButton>> ref,
+                                          AtomicReference<Skin<?>> originalSkin,
+                                          AtomicInteger fired, AtomicInteger actions,
+                                          List<Throwable> uncaught) throws InterruptedException {
+        onFx(() -> {
+            RXHoldButton disabling = holdButton();
+            disabling.setOnAction(event -> disabling.setDisable(true));
+            RXHoldButton removing = holdButton();
+            removing.setOnAction(event -> ((StackPane) removing.getParent()).getChildren().clear());
+            RXHoldButton reskinning = holdButton();
+            // JavaFX 17 ignores setSkin for a skin of the installed skin's
+            // class, so the replacement is an anonymous subclass.
+            reskinning.setOnAction(event -> reskinning.setSkin(new RXHoldButtonSkin(reskinning) {
+            }));
+            originalSkin.set(reskinning.getSkin());
+            // The completion disarms before it fires: a listener disabling the
+            // button there cancels the action.
+            RXHoldButton vetoing = holdButton();
+            vetoing.armedProperty().addListener((observable, was, armed) -> {
+                if (!armed) {
+                    vetoing.setDisable(true);
+                }
+            });
+            vetoing.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            List<RXHoldButton> buttons = List.of(disabling, removing, reskinning, vetoing);
+            for (RXHoldButton button : buttons) {
+                button.addEventHandler(ActionEvent.ACTION, event -> actions.incrementAndGet());
+                mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            }
+            ref.set(buttons);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            assertEquals(List.of(), uncaught);
+            assertEquals(0, fired.get());
+            assertEquals(3, actions.get());
+            List<RXHoldButton> buttons = ref.get();
+            assertTrue(buttons.get(0).isDisabled());
+            assertNull(buttons.get(1).getParent());
+            assertNotSame(originalSkin.get(), buttons.get(2).getSkin());
+            for (RXHoldButton button : buttons) {
+                mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+                button.setDisable(false);
+                // Back to idle with no stale owner: a new press holds again.
+                mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+                assertTrue(button.getPseudoClassStates().contains(HOLDING));
+                button.getSkin().dispose();
+            }
+        });
+    }
+
+    // ==================== Hold Duration ====================
+
+    @Test
+    public void unusableHoldDurationsFallBackToTheDefault() throws InterruptedException {
+        AtomicReference<List<RXHoldButton>> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        onFx(() -> {
+            List<Duration> unusable = Arrays.asList(null, Duration.ZERO, Duration.millis(-5.0),
+                    Duration.UNKNOWN, Duration.INDEFINITE);
+            List<RXHoldButton> buttons = new ArrayList<>();
+            for (Duration duration : unusable) {
+                RXHoldButton button = holdButton();
+                button.setHoldDuration(duration);
+                button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+                mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+                buttons.add(button);
+            }
+            ref.set(buttons);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            assertEquals(0, fired.get(), "the default hold is far longer than the wait");
+            for (RXHoldButton button : ref.get()) {
+                assertHolding(button, true);
+                button.getSkin().dispose();
+            }
+        });
+    }
+
+    @Test
+    public void durationChangesAndResetsDuringAHoldDoNotAffectIt() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        onFx(() -> {
+            RXHoldButton button = holdButton();
+            button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            ref.set(button);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            button.setHoldDuration(Duration.seconds(30.0));
+            button.resetFeedback();
+            assertHolding(button, true);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            assertEquals(1, fired.get());
+            ref.get().getSkin().dispose();
+        });
+    }
+
     // ==================== Helpers ====================
 
     private enum Face {
@@ -309,6 +898,71 @@ public class RXHoldButtonTest {
                 break;
         }
         return button;
+    }
+
+    private static RXHoldButton holdButton() {
+        RXHoldButton button = new RXHoldButton("Hold");
+        button.setHoldDuration(SHORT_HOLD);
+        // Leaves the completed feedback as the owner is released.
+        button.setFeedbackDuration(Duration.ZERO);
+        return laidOut(button);
+    }
+
+    private static void assertHolding(RXHoldButton button, boolean holding) {
+        assertEquals(holding, button.getPseudoClassStates().contains(HOLDING));
+        assertEquals(holding, caption(button, ".holding-caption").isVisible());
+        assertEquals(!holding, caption(button, ".caption").isVisible());
+    }
+
+    private static MouseEvent mouse(RXHoldButton button, EventType<MouseEvent> type, MouseButton which) {
+        boolean pressed = type == MouseEvent.MOUSE_PRESSED;
+        MouseEvent event = new MouseEvent(type, 0.0, 0.0, 0.0, 0.0, which, 1,
+                false, false, false, false,
+                pressed && which == MouseButton.PRIMARY, false,
+                pressed && which == MouseButton.SECONDARY,
+                false, false, false, null);
+        button.fireEvent(event);
+        return event;
+    }
+
+    // Returns whether the button consumed the event: a consumed event never
+    // bubbles up to the parent.
+    private static boolean key(RXHoldButton button, EventType<KeyEvent> type, KeyCode code) {
+        return key(button, new KeyEvent(type, "", "", code, false, false, false, false));
+    }
+
+    private static boolean key(RXHoldButton button, KeyEvent event) {
+        AtomicBoolean bubbled = new AtomicBoolean();
+        Node parent = button.getParent();
+        EventHandler<KeyEvent> probe = seen -> bubbled.set(true);
+        if (parent != null) {
+            parent.addEventHandler(event.getEventType(), probe);
+        }
+        button.fireEvent(event);
+        if (parent != null) {
+            parent.removeEventHandler(event.getEventType(), probe);
+        }
+        return !bubbled.get();
+    }
+
+    private static void onFx(Runnable body) throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        Platform.runLater(() -> {
+            try {
+                body.run();
+            } catch (Throwable t) {
+                failure.set(t);
+            } finally {
+                latch.countDown();
+            }
+        });
+        if (!latch.await(10, TimeUnit.SECONDS)) {
+            throw new AssertionError("FX thread did not run the test body");
+        }
+        if (failure.get() != null) {
+            throw new AssertionError(failure.get());
+        }
     }
 
     private static Region sizedRegion(double width) {

@@ -3,13 +3,30 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXHoldButton;
 import io.github.leewyatt.rxcontrols.internal.FeedbackSignals;
 import io.github.leewyatt.rxcontrols.internal.transition.TransitionPages;
+import io.github.leewyatt.rxcontrols.utils.RXMouse;
+import io.github.leewyatt.rxcontrols.utils.RXOS;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
+import javafx.beans.InvalidationListener;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.css.PseudoClass;
+import javafx.event.ActionEvent;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.stage.Window;
+import javafx.util.Duration;
 
 /**
  * Skin for {@link RXHoldButton}: a progress fill layer below three captions,
@@ -17,11 +34,34 @@ import javafx.scene.layout.StackPane;
  * by visibility; the completed caption sits on the second page. All three
  * stay in the scene, so the button is sized to the largest face and swapping
  * faces never changes its size.
+ *
+ * <p>This skin does not extend {@code ButtonSkin}: the standard button
+ * behavior fires on release, while a hold button fires when the hold
+ * completes. Input is handled here through the public
+ * {@code arm()}/{@code disarm()}/{@code fire()} API. A hold has one owner,
+ * the primary mouse button or the activation key that started it, and only
+ * the owner's release ends it.</p>
  */
 public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
 
     private static final PseudoClass HOLDING = PseudoClass.getPseudoClass("holding");
     private static final PseudoClass COMPLETED = PseudoClass.getPseudoClass("completed");
+    private static final boolean MAC = RXOS.isMacOS();
+
+    // Long enough to read as "cancelled", short enough not to hold up the
+    // next press.
+    private static final Duration CANCEL_REWIND_DURATION = Duration.millis(180.0);
+
+    private enum State {
+        IDLE,
+        HOLDING,
+        // The hold was cancelled while its owner is still down; nothing
+        // restarts until the owner is released.
+        CANCELLED_AWAIT_RELEASE,
+        // The hold fired while its owner is still down; the release is
+        // swallowed.
+        COMPLETED_AWAIT_RELEASE
+    }
 
     // ==================== Nodes ====================
 
@@ -31,6 +71,28 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
     private final Label idleCaption = new Label();
     private final Label holdingCaption = new Label();
     private final Label completedCaption = new Label();
+
+    // ==================== Hold state ====================
+
+    private State state = State.IDLE;
+    // MouseButton.PRIMARY or the KeyCode that started the hold.
+    private Object owner;
+    // What the fill shows. The hold completes when its timeline finishes, not
+    // when this value reaches 1, so the cancel rewind never completes a hold.
+    private final DoubleProperty displayProgress = new SimpleDoubleProperty(this, "displayProgress");
+    private Timeline holdTimeline;
+    private Timeline rewindTimeline;
+
+    // ==================== Window focus ====================
+
+    private Scene hookedScene;
+    private Window hookedWindow;
+    private final InvalidationListener windowListener = observable -> hookWindow();
+    private final InvalidationListener windowFocusListener = observable -> {
+        if (hookedWindow != null && !hookedWindow.isFocused()) {
+            resetToIdle();
+        }
+    };
 
     // ==================== Constructors ====================
 
@@ -76,6 +138,8 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
 
         bindCaptions(button);
         wireFeedback(button);
+        wireBehavior(button);
+        wireInterruptions(button);
     }
 
     private static void initCaption(Label caption, String styleClass) {
@@ -123,6 +187,92 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
         // A reset posted before this skin existed is stale.
         button.getProperties().remove(FeedbackSignals.HOLD_RESET);
         disposer.registerListener(button.getProperties(), this::consumeResetSignal);
+    }
+
+    private void wireBehavior(RXHoldButton button) {
+        disposer.registerEventHandler(button, MouseEvent.MOUSE_PRESSED, this::mousePressed);
+        disposer.registerEventHandler(button, MouseEvent.MOUSE_RELEASED, this::mouseReleased);
+        disposer.registerEventHandler(button, MouseEvent.MOUSE_EXITED, this::mouseExited);
+        disposer.registerEventHandler(button, KeyEvent.KEY_PRESSED, this::keyPressed);
+        disposer.registerEventHandler(button, KeyEvent.KEY_RELEASED, this::keyReleased);
+        // Any ActionEvent that reaches the button during a hold is an untimed
+        // activation: it fires on its own, so the hold must not fire again.
+        // Not consumed, so onAction still runs.
+        disposer.registerEventHandler(button, ActionEvent.ACTION, event -> cancelToAwaitRelease());
+        // Someone else disarmed the button mid-hold.
+        disposer.registerListener(button.armedProperty(), () -> {
+            if (!button.isArmed()) {
+                cancelToAwaitRelease();
+            }
+        });
+    }
+
+    // ==================== Interruptions ====================
+
+    private void wireInterruptions(RXHoldButton button) {
+        disposer.registerListener(button.focusedProperty(), () -> {
+            // A key that lost focus never sees its release.
+            if (!button.isFocused() && owner instanceof KeyCode) {
+                resetToIdle();
+            }
+        });
+        disposer.registerListener(button.disabledProperty(), () -> {
+            if (button.isDisabled()) {
+                resetToIdle();
+            }
+        });
+        disposer.registerListener(button.sceneProperty(), () -> {
+            hookScene();
+            if (button.getScene() == null) {
+                resetToIdle();
+            }
+        });
+        // A change listener, not an invalidation listener: the property is
+        // lazy and only notifies once read, which adding a change listener does.
+        disposer.registerListener(controlTreeShowingProperty(), (observable, was, showing) -> {
+            if (!showing) {
+                resetToIdle();
+            }
+        });
+        hookScene();
+        disposer.registerDisposeTask(this::unhookScene);
+    }
+
+    // The window can change under the same scene, and the scene under the
+    // same button, so the focus listener follows both.
+    private void hookScene() {
+        Scene scene = getSkinnable() == null ? null : getSkinnable().getScene();
+        if (scene != hookedScene) {
+            if (hookedScene != null) {
+                hookedScene.windowProperty().removeListener(windowListener);
+            }
+            hookedScene = scene;
+            if (scene != null) {
+                scene.windowProperty().addListener(windowListener);
+            }
+        }
+        hookWindow();
+    }
+
+    private void hookWindow() {
+        Window window = hookedScene == null ? null : hookedScene.getWindow();
+        if (window != hookedWindow) {
+            if (hookedWindow != null) {
+                hookedWindow.focusedProperty().removeListener(windowFocusListener);
+            }
+            hookedWindow = window;
+            if (window != null) {
+                window.focusedProperty().addListener(windowFocusListener);
+            }
+        }
+    }
+
+    private void unhookScene() {
+        if (hookedScene != null) {
+            hookedScene.windowProperty().removeListener(windowListener);
+            hookedScene = null;
+        }
+        hookWindow();
     }
 
     // ==================== Layout ====================
@@ -223,10 +373,228 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
         getSkinnable().notifyAccessibleAttributeChanged(AccessibleAttribute.TEXT);
     }
 
+    // ==================== Hold ====================
+
+    private void startHold(Object newOwner) {
+        RXHoldButton button = getSkinnable();
+        // A swap back from the completed face may still be playing: end it,
+        // so the press shows the holding face at once.
+        pages.interrupt();
+        stopRewind();
+        state = State.HOLDING;
+        owner = newOwner;
+        displayProgress.set(0.0);
+        button.pseudoClassStateChanged(HOLDING, true);
+        showHoldingCaption(true);
+        button.arm();
+        // arm() notifies listeners, which may already have ended the hold.
+        if (state != State.HOLDING) {
+            return;
+        }
+        // Snapshot: a duration change during the hold applies to the next one.
+        Timeline timeline = new Timeline(new KeyFrame(holdDurationOrDefault(),
+                new KeyValue(displayProgress, 1.0, Interpolator.LINEAR)));
+        // A listener may have ended this hold and started another inside
+        // arm(); only the live hold's timeline may complete.
+        timeline.setOnFinished(event -> {
+            if (timeline == holdTimeline) {
+                complete();
+            }
+        });
+        stopHoldTimeline();
+        holdTimeline = timeline;
+        timeline.play();
+    }
+
+    // The only path to the hold's ActionEvent. The state is written before
+    // disarm() and fire() call out to application code, and nothing is
+    // written after fire(), so a listener that disables, removes or reskins
+    // the button cannot fire it twice or leave it half-reset.
+    private void complete() {
+        if (state != State.HOLDING) {
+            return;
+        }
+        RXHoldButton button = getSkinnable();
+        holdTimeline = null;
+        state = State.COMPLETED_AWAIT_RELEASE;
+        button.pseudoClassStateChanged(HOLDING, false);
+        displayProgress.set(1.0);
+        enterFeedback();
+        button.disarm();
+        if (state == State.COMPLETED_AWAIT_RELEASE) {
+            button.fire();
+        }
+    }
+
+    // Pointer out, untimed activation or an outside disarm: the owner is
+    // still down, so nothing restarts until it is released.
+    private void cancelToAwaitRelease() {
+        if (state == State.HOLDING) {
+            endHold(State.CANCELLED_AWAIT_RELEASE, true);
+        }
+    }
+
+    // A structural interruption: the owner's release may never arrive, so
+    // every state goes straight back to idle, without the cancel rewind.
+    private void resetToIdle() {
+        toIdle(false);
+    }
+
+    private void release() {
+        toIdle(true);
+    }
+
+    private void toIdle(boolean rewind) {
+        switch (state) {
+            case HOLDING:
+                endHold(State.IDLE, rewind);
+                break;
+            case COMPLETED_AWAIT_RELEASE:
+                state = State.IDLE;
+                owner = null;
+                leaveFeedback();
+                break;
+            case CANCELLED_AWAIT_RELEASE:
+                state = State.IDLE;
+                owner = null;
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void endHold(State next, boolean rewind) {
+        RXHoldButton button = getSkinnable();
+        state = next;
+        if (next == State.IDLE) {
+            owner = null;
+        }
+        stopHoldTimeline();
+        button.pseudoClassStateChanged(HOLDING, false);
+        showHoldingCaption(false);
+        if (rewind) {
+            rewind();
+        } else {
+            stopRewind();
+            displayProgress.set(0.0);
+        }
+        button.disarm();
+    }
+
+    private void rewind() {
+        stopRewind();
+        if (displayProgress.get() <= 0.0) {
+            return;
+        }
+        rewindTimeline = new Timeline(new KeyFrame(CANCEL_REWIND_DURATION,
+                new KeyValue(displayProgress, 0.0, Interpolator.LINEAR)));
+        rewindTimeline.play();
+    }
+
+    private void stopHoldTimeline() {
+        if (holdTimeline != null) {
+            holdTimeline.stop();
+            holdTimeline = null;
+        }
+    }
+
+    private void stopRewind() {
+        if (rewindTimeline != null) {
+            rewindTimeline.stop();
+            rewindTimeline = null;
+        }
+    }
+
+    private Duration holdDurationOrDefault() {
+        Duration duration = getSkinnable().getHoldDuration();
+        if (duration == null || duration.isUnknown() || duration.isIndefinite()
+                || duration.lessThanOrEqualTo(Duration.ZERO)) {
+            return RXHoldButton.DEFAULT_HOLD_DURATION;
+        }
+        return duration;
+    }
+
     // ==================== Feedback ====================
+
+    private void enterFeedback() {
+        showHoldingCaption(false);
+        getSkinnable().pseudoClassStateChanged(COMPLETED, true);
+    }
+
+    private void leaveFeedback() {
+        getSkinnable().pseudoClassStateChanged(COMPLETED, false);
+        displayProgress.set(0.0);
+    }
 
     private void consumeResetSignal() {
         getSkinnable().getProperties().remove(FeedbackSignals.HOLD_RESET);
+    }
+
+    // ==================== Input ====================
+
+    // Handlers consume what they handle, matching the standard button
+    // behavior; other keys stay unconsumed for focus traversal and
+    // application shortcuts.
+
+    private void mousePressed(MouseEvent event) {
+        RXHoldButton button = getSkinnable();
+        if (button.isFocusTraversable()) {
+            button.requestFocus();
+        }
+        if (state == State.IDLE && !button.isDisabled() && RXMouse.isPlainPrimaryPress(event)) {
+            startHold(MouseButton.PRIMARY);
+        }
+        event.consume();
+    }
+
+    private void mouseReleased(MouseEvent event) {
+        if (event.getButton() == MouseButton.PRIMARY && owner == MouseButton.PRIMARY) {
+            release();
+        }
+        event.consume();
+    }
+
+    private void mouseExited(MouseEvent event) {
+        // Moving back in does not resume: the hold restarts from a new press.
+        if (owner == MouseButton.PRIMARY) {
+            cancelToAwaitRelease();
+        }
+        event.consume();
+    }
+
+    private void keyPressed(KeyEvent event) {
+        // A modified press (e.g. Ctrl+SPACE) is not an activation: it stays
+        // unconsumed for application shortcuts.
+        if (!isActivationKey(event) || hasModifier(event)) {
+            return;
+        }
+        if (state == State.IDLE && !getSkinnable().isDisabled()) {
+            startHold(event.getCode());
+        }
+        // Auto-repeat and presses during a hold or an await state are
+        // swallowed.
+        event.consume();
+    }
+
+    private void keyReleased(KeyEvent event) {
+        if (!isActivationKey(event)) {
+            return;
+        }
+        if (owner == event.getCode()) {
+            release();
+        }
+        event.consume();
+    }
+
+    // SPACE always activates; ENTER activates on non-Mac platforms only,
+    // matching the standard ButtonBehavior platform split.
+    private static boolean isActivationKey(KeyEvent event) {
+        return event.getCode() == KeyCode.SPACE
+                || (event.getCode() == KeyCode.ENTER && !MAC);
+    }
+
+    private static boolean hasModifier(KeyEvent event) {
+        return event.isShiftDown() || event.isControlDown() || event.isAltDown() || event.isMetaDown();
     }
 
     // ==================== Accessibility ====================
@@ -265,5 +633,18 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
             return completedCaption;
         }
         return holdingCaption.isVisible() ? holdingCaption : idleCaption;
+    }
+
+    // ==================== Dispose ====================
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void disposeSkin() {
+        // Before the listeners are gone: the reset disarms the button.
+        resetToIdle();
+        stopHoldTimeline();
+        stopRewind();
     }
 }
