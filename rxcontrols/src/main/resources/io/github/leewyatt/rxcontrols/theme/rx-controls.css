@@ -15,7 +15,7 @@
  *                                                                             *
  ******************************************************************************/
 .rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-bar-spinner, .rx-box, .rx-button,
-.rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
+.rx-calendar-view, .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-content-pane, .rx-copy-button, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
 .rx-decimal-field, .rx-double-field, .rx-fab, .rx-highlight-text-view, .rx-hold-button,
@@ -95,6 +95,8 @@
 .rx-theme-atlantafx.rx-box,
 .rx-theme-atlantafx .rx-button,
 .rx-theme-atlantafx.rx-button,
+.rx-theme-atlantafx .rx-calendar-view,
+.rx-theme-atlantafx.rx-calendar-view,
 .rx-theme-atlantafx .rx-carousel,
 .rx-theme-atlantafx.rx-carousel,
 .rx-theme-atlantafx .rx-cascader,
@@ -3838,4 +3840,193 @@
     -fx-alignment: center-right;
     -fx-spacing: 0.5em; /* 6 */
     -fx-padding: 0.25em 0 0 0;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Calendar panel (RXCalendarView and the other date / period views)           *
+ *                                                                             *
+ ******************************************************************************/
+.rx-calendar-view {
+    -fx-background-color: -fx-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
+    -fx-padding: 0.5em 0.666667em 0.666667em 0.666667em;
+}
+
+.rx-calendar-view:focused {
+    -fx-background-color: -fx-focus-color, -fx-control-inner-background;
+}
+
+.calendar-panel {
+    -fx-spacing: 1.333333em;
+}
+
+.calendar-panel > .page {
+    -fx-spacing: 0.333333em;
+}
+
+.calendar-panel > .page > .header {
+    -fx-alignment: center;
+    -fx-padding: 0 0 0.25em 0;
+}
+
+.calendar-panel > .page > .header > .nav-button {
+    -fx-alignment: center;
+    -fx-padding: 0.333333em 0.416667em;
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+}
+
+.calendar-panel > .page > .header > .nav-button > .arrow {
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-pref-width: 0.416667em;
+    -fx-pref-height: 0.666667em;
+}
+
+.calendar-panel > .page > .header > .nav-button:hover > .arrow {
+    -fx-background-color: -rx-on-surface;
+}
+
+.calendar-panel > .page > .header > .nav-button:disabled {
+    -fx-opacity: 0.38;
+}
+
+.calendar-panel > .page > .header > .prev-button > .arrow {
+    -fx-shape: "M6,0 L7.4,1.4 L2.8,6 L7.4,10.6 L6,12 L0,6 Z";
+}
+
+.calendar-panel > .page > .header > .next-button > .arrow {
+    -fx-shape: "M1.4,0 L7.4,6 L1.4,12 L0,10.6 L4.6,6 L0,1.4 Z";
+}
+
+.calendar-panel > .page > .header > .super-prev-button > .arrow {
+    -fx-pref-width: 0.75em;
+    -fx-shape: "M6,0 L7.4,1.4 L2.8,6 L7.4,10.6 L6,12 L0,6 Z M12,0 L13.4,1.4 L8.8,6 L13.4,10.6 L12,12 L6,6 Z";
+}
+
+.calendar-panel > .page > .header > .super-next-button > .arrow {
+    -fx-pref-width: 0.75em;
+    -fx-shape: "M1.4,0 L7.4,6 L1.4,12 L0,10.6 L4.6,6 L0,1.4 Z M7.4,0 L13.4,6 L7.4,12 L6,10.6 L10.6,6 L6,1.4 Z";
+}
+
+.calendar-panel > .page > .header > .title {
+    -fx-alignment: center;
+    -fx-spacing: 0.333333em;
+}
+
+.calendar-panel > .page > .header > .title > .label {
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface;
+    -fx-padding: 0.083333em 0.25em;
+    -fx-cursor: hand;
+}
+
+.calendar-panel > .page > .header > .title > .label:hover {
+    -fx-text-fill: -rx-primary;
+}
+
+/* The century title of the decade grid is the top level and is not clickable. */
+.calendar-panel > .page > .header > .title > .label:disabled {
+    -fx-opacity: 1;
+    -fx-cursor: default;
+}
+
+.calendar-panel .day-name,
+.calendar-panel .week-number {
+    -fx-alignment: center;
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.calendar-panel .week-number {
+    -fx-font-size: 0.916667em;
+}
+
+.calendar-panel .date-cell {
+    -fx-alignment: center;
+    -fx-padding: 0;
+    -fx-text-fill: -rx-on-surface;
+    -fx-background-color: transparent;
+    -fx-background-insets: 0.166667em;
+    -fx-background-radius: 3;
+    -fx-border-insets: 0.166667em;
+    -fx-border-radius: 3;
+    -fx-cursor: hand;
+}
+
+.calendar-panel .day-cell,
+.calendar-panel .day-name,
+.calendar-panel .week-number {
+    -fx-pref-width: 2.5em;
+    -fx-pref-height: 2.166667em;
+}
+
+/* Period cells fill the same area as the 7 x 7 day grid, so drilling up never
+   resizes the panel (and with it a hosting popup window). */
+.calendar-panel .month-cell,
+.calendar-panel .year-cell,
+.calendar-panel .decade-cell {
+    -fx-pref-width: 5.833333em;
+    -fx-pref-height: 3.791667em;
+    -fx-background-insets: 0.916667em 0.5em;
+    -fx-border-insets: 0.916667em 0.5em;
+}
+
+.calendar-panel .quarter-cell {
+    -fx-pref-width: 4.375em;
+    -fx-pref-height: 3.791667em;
+    -fx-background-insets: 0.916667em 0.333333em;
+    -fx-border-insets: 0.916667em 0.333333em;
+}
+
+.calendar-panel .date-cell:hover {
+    -fx-background-color: -rx-surface-variant;
+}
+
+.calendar-panel .date-cell:adjacent {
+    -fx-text-fill: -rx-on-surface-disabled;
+}
+
+.calendar-panel .date-cell:today {
+    -fx-border-color: -rx-primary;
+}
+
+.calendar-panel .date-cell:in-range {
+    -fx-background-color: -rx-primary-bg;
+    -fx-background-radius: 0;
+    -fx-background-insets: 0.166667em 0;
+}
+
+.calendar-panel .date-cell:in-range:preview {
+    -fx-background-color: transparent;
+    -fx-border-color: -rx-primary transparent;
+    -fx-border-style: segments(0.25em, 0.25em);
+    -fx-border-insets: 0.166667em 0;
+    -fx-border-radius: 0;
+}
+
+.calendar-panel .date-cell:selected,
+.calendar-panel .date-cell:range-start,
+.calendar-panel .date-cell:range-end {
+    -fx-background-color: -rx-primary;
+    -fx-background-insets: 0.166667em;
+    -fx-background-radius: 3;
+    -fx-text-fill: -rx-on-primary;
+}
+
+.calendar-panel .date-cell:selected:hover,
+.calendar-panel .date-cell:range-start:hover,
+.calendar-panel .date-cell:range-end:hover {
+    -fx-background-color: -rx-primary-hover;
+}
+
+.calendar-panel .date-cell:disabled {
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-cursor: default;
+}
+
+/* Keyboard cursor, after the today ring so it wins when both apply. */
+.calendar-panel .date-cell:focused {
+    -fx-border-color: -rx-focus;
+    -fx-border-width: 1.5;
 }
