@@ -330,6 +330,12 @@ public class RXDecimalFieldShowcase extends RXShowcaseApplication {
             NumberFormat create() {
                 return new DecimalFormat("#,####.##");
             }
+        },
+        COMPACT("Compact (not a DecimalFormat)") {
+            @Override
+            NumberFormat create() {
+                return NumberFormat.getCompactNumberInstance(Locale.US, NumberFormat.Style.SHORT);
+            }
         };
 
         private final String label;
