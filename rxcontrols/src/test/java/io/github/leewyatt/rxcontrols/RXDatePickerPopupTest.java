@@ -34,7 +34,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Popup behavior of {@link RXDatePicker} in a shown window: picking, draft discard,
@@ -171,11 +170,14 @@ public class RXDatePickerPopupTest {
     public void focusIsMirroredAndPopupStaysUnfocused() throws InterruptedException {
         runOnFx(() -> {
             RXDatePicker picker = newShownPicker();
-            assumeTrue(focusWindow(stage), "window focus not granted");
+            focusWindow(stage);
             picker.requestFocus();
-            assertTrue(editor(picker, 0).isFocused() || stage.getScene().getFocusOwner() == editor(picker, 0));
-            assertTrue(picker.isFocused());
-            assertTrue(hasPseudoClass(picker, "focused"));
+            assertEquals(editor(picker, 0), stage.getScene().getFocusOwner());
+            // Node focus needs OS window focus, which parallel test JVMs can take away.
+            if (stage.isFocused() && editor(picker, 0).isFocused()) {
+                assertTrue(picker.isFocused());
+                assertTrue(hasPseudoClass(picker, "focused"));
+            }
             pressMouse(editor(picker, 0));
             assertTrue(picker.isShowing());
             PopupControl popup = findPopup();
