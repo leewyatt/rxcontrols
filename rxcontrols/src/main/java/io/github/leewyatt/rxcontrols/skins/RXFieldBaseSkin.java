@@ -40,16 +40,18 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.text.HitInfo;
 
 /**
- * Skin extension point — shared base for skins that need to render user-supplied
- * leading and trailing nodes inside a {@link TextField}. The base skin reads the
- * "effective" leading/trailing node and "effective" text padding from the three
- * {@link ObservableValue}s passed by the subclass, so subclasses can layer
- * defaults on top of the user's selection without writing back to the
+ * A {@link TextField} skin that renders a leading and a trailing node beside the
+ * editor text. It can be installed directly on any {@code TextField}, or
+ * subclassed. The skin reads the leading node, the trailing node and the text
+ * padding from the three {@link ObservableValue}s it is given, so a subclass can
+ * layer defaults on top of the user's selection without writing back to the
  * control's own properties.
- * <p>
- * The class is concrete so it can be used directly for ad-hoc validation
- * during development; production code should prefer subclassing or using
- * one of the rxcontrols {@code RX*FieldSkin} classes.
+ * <pre>{@code
+ * ObjectProperty<Node> leading = new SimpleObjectProperty<>(searchIcon);
+ * ObjectProperty<Node> trailing = new SimpleObjectProperty<>();
+ * ObjectProperty<Insets> padding = new SimpleObjectProperty<>(new Insets(0, 6, 0, 6));
+ * textField.setSkin(new RXFieldBaseSkin(textField, leading, trailing, padding));
+ * }</pre>
  * <p>
  * Contract for the supplied observables: {@code effectiveLeading} and
  * {@code effectiveTrailing} should not resolve to the same {@link Node} instance
