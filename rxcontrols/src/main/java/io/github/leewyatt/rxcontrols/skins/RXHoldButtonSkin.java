@@ -1,8 +1,10 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXHoldButton;
+import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
+import io.github.leewyatt.rxcontrols.internal.BoundedClipSupport;
 import io.github.leewyatt.rxcontrols.internal.FeedbackSignals;
 import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
 import io.github.leewyatt.rxcontrols.internal.transition.TransitionPages;
@@ -18,6 +20,7 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
+import javafx.geometry.Insets;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -76,10 +79,16 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
 
     private final Pane fillLayer = new Pane();
     private final Region fillRegion = new Region();
+    private final BoundedClipSupport boundedClip = new BoundedClipSupport(fillLayer);
     private final TransitionPages pages = new TransitionPages("page", true);
     private final Label idleCaption = new Label();
     private final Label holdingCaption = new Label();
     private final Label completedCaption = new Label();
+
+    // ==================== Fill state ====================
+
+    private FillAnimation appliedFillAnimation;
+    private Node fillClip;
 
     // ==================== Hold state ====================
 
@@ -147,12 +156,17 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
             button.pseudoClassStateChanged(HOLDING, false);
             button.pseudoClassStateChanged(COMPLETED, false);
             pages.dispose(button.getAnimation());
+            boundedClip.clearClip();
+            fillRegion.setClip(null);
+            fillClip = null;
+            appliedFillAnimation = null;
             // Only this skin's nodes: a replacement skin may already have
             // added its own children to the control.
             getChildren().removeAll(fillLayer, pages.getContentPane());
         });
 
         bindCaptions(button);
+        wireFill(button);
         wireFeedback(button);
         wireBehavior(button);
         wireInterruptions(button);
@@ -197,6 +211,12 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
         // labelPadding pads the caption, as it pads the text and graphic of a
         // standard button.
         disposer.registerBinding(caption.paddingProperty(), button.labelPaddingProperty());
+    }
+
+    private void wireFill(RXHoldButton button) {
+        // Progress only reshapes the clip: no layout pass per frame.
+        disposer.registerListener(displayProgress, this::updateFillGeometry);
+        disposer.registerListener(button.fillAnimationProperty(), this::updateFillGeometry);
     }
 
     private void wireFeedback(RXHoldButton button) {
@@ -300,7 +320,17 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
         RXHoldButton button = getSkinnable();
-        fillLayer.resizeRelocate(0.0, 0.0, button.getWidth(), button.getHeight());
+        double width = button.getWidth();
+        double height = button.getHeight();
+        // The layer covers the button, clipped to its painted shape; the fill
+        // itself stays inside the border.
+        fillLayer.resizeRelocate(0.0, 0.0, width, height);
+        boundedClip.updateClipFor(button, width, height, null, null);
+        Insets insets = BoundedClipSupport.borderInsetsOf(button);
+        fillRegion.resizeRelocate(insets.getLeft(), insets.getTop(),
+                Math.max(0.0, width - insets.getLeft() - insets.getRight()),
+                Math.max(0.0, height - insets.getTop() - insets.getBottom()));
+        updateFillGeometry();
         pages.layout(x, y, w, h);
     }
 
@@ -380,6 +410,36 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
         return min
                 ? Math.max(pageA.minHeight(width), pageB.minHeight(width))
                 : Math.max(pageA.prefHeight(width), pageB.prefHeight(width));
+    }
+
+    // ==================== Fill ====================
+
+    private void updateFillGeometry() {
+        double areaW = fillRegion.getWidth();
+        double areaH = fillRegion.getHeight();
+        if (areaW <= 0.0 || areaH <= 0.0 || !Double.isFinite(areaW) || !Double.isFinite(areaH)) {
+            appliedFillAnimation = null;
+            fillClip = null;
+            fillRegion.setClip(null);
+            fillLayer.setVisible(false);
+            return;
+        }
+        FillAnimation animation = fillAnimationOrDefault();
+        if (animation != appliedFillAnimation || fillClip == null) {
+            appliedFillAnimation = animation;
+            fillClip = animation.createClip();
+            fillRegion.setClip(fillClip);
+        }
+        double progress = displayProgress.get();
+        // Hidden at rest: a zero-progress clip should paint nothing, but
+        // sub-pixel rasterization can leak a hairline of the fill.
+        fillLayer.setVisible(progress > 0.0);
+        animation.update(fillClip, progress, areaW, areaH);
+    }
+
+    private FillAnimation fillAnimationOrDefault() {
+        FillAnimation animation = getSkinnable().getFillAnimation();
+        return animation == null ? RXHoldButton.DEFAULT_FILL_ANIMATION : animation;
     }
 
     // ==================== Faces ====================

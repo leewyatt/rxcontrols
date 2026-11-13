@@ -18,6 +18,8 @@ import javafx.css.Styleable;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
+import javafx.geometry.Bounds;
+import javafx.geometry.NodeOrientation;
 import javafx.scene.AccessibleAction;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
@@ -32,6 +34,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -58,9 +61,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests the RXHoldButton control contract, the three-caption skin structure
- * and its sizing, the press-and-hold state machine, and the completed
- * feedback with its lock and reset. Hold tests use a short hold duration and
- * wait off the FX thread, so the timelines can run.
+ * and its sizing, the press-and-hold state machine, the completed feedback
+ * with its lock and reset, and the progress fill. Hold tests use a short
+ * hold duration and wait off the FX thread, so the timelines can run.
  */
 public class RXHoldButtonTest {
 
@@ -1217,6 +1220,143 @@ public class RXHoldButtonTest {
         button.getSkin().dispose();
     }
 
+    // ==================== Progress Fill ====================
+
+    @Test
+    public void theFillSweepsWithTheHoldAndStaysFullOnCompletion() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicReference<Double> prefWidth = new AtomicReference<>();
+        onFx(() -> {
+            RXHoldButton button = feedbackButton(Duration.INDEFINITE);
+            button.setHoldDuration(Duration.millis(600.0));
+            ref.set(button);
+            assertFalse(fillLayer(button).isVisible(), "hidden at rest");
+            prefWidth.set(button.prefWidth(-1));
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(150L);
+        // The press swapped captions; settle that layout, so what follows
+        // shows whether the fill itself asks for one.
+        onFx(() -> ref.get().getParent().layout());
+        Thread.sleep(150L);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            assertTrue(fillLayer(button).isVisible());
+            assertFalse(button.isNeedsLayout(), "progress reshapes the clip without a layout pass");
+            assertEquals(prefWidth.get(), button.prefWidth(-1), 0.01, "the fill never sizes the button");
+            double clipWidth = fillClip(button).getWidth();
+            double areaWidth = fillRegion(button).getWidth();
+            assertTrue(clipWidth > 0.0 && clipWidth < areaWidth,
+                    "mid-hold the fill is partial, was " + clipWidth + " of " + areaWidth);
+        });
+        Thread.sleep(700L);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            assertEquals(fillRegion(button).getWidth(), fillClip(button).getWidth(), 0.01);
+            assertEquals(prefWidth.get(), button.prefWidth(-1), 0.01);
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+            assertTrue(fillLayer(button).isVisible(), "the completed face keeps the fill");
+            button.resetFeedback();
+            assertFalse(fillLayer(button).isVisible());
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void aCancelledHoldRewindsTheFill() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        onFx(() -> {
+            RXHoldButton button = holdButton();
+            button.setHoldDuration(Duration.millis(600.0));
+            ref.set(button);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(300L);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+            assertTrue(fillLayer(button).isVisible(), "the fill rewinds rather than vanishing");
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            assertFalse(fillLayer(button).isVisible());
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(300L);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            assertTrue(fillLayer(button).isVisible());
+            // A structural interruption clears the fill at once, no rewind.
+            button.setDisable(true);
+            assertFalse(fillLayer(button).isVisible());
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void changingTheFillAnimationRebuildsTheClip() {
+        RXHoldButton button = laidOut(new RXHoldButton("Hold"));
+        Region region = fillRegion(button);
+        Node defaultClip = region.getClip();
+        assertInstanceOf(Rectangle.class, defaultClip);
+
+        button.setFillAnimation(FillAnimation.CIRCLE);
+        Node circleClip = fillRegion(button).getClip();
+        assertNotSame(defaultClip, circleClip);
+
+        button.setFillAnimation(null);
+        assertNotSame(circleClip, fillRegion(button).getClip());
+        // Left to right, not another rectangle preset: at rest it sits on
+        // the left edge (right to left would sit on the right one).
+        assertEquals(0.0, fillClip(button).getX(), 0.01);
+        Region layer = fillLayer(button);
+        button.getSkin().dispose();
+        assertNull(region.getClip());
+        assertNull(layer.getClip());
+    }
+
+    @Test
+    public void fillAnimationIsStyleableByKeyword() {
+        RXHoldButton button = laidOut(new RXHoldButton("Hold"));
+        button.setStyle("-rx-fill-animation: right-to-left;");
+        button.getParent().applyCss();
+        assertSame(FillAnimation.RIGHT_TO_LEFT, button.getFillAnimation());
+        button.getSkin().dispose();
+    }
+
+    @Test
+    public void theFillMirrorsInRightToLeft() throws InterruptedException {
+        AtomicReference<List<RXHoldButton>> ref = new AtomicReference<>();
+        onFx(() -> {
+            RXHoldButton ltr = feedbackButton(Duration.INDEFINITE);
+            RXHoldButton rtl = feedbackButton(Duration.INDEFINITE);
+            rtl.getParent().setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
+            rtl.getParent().layout();
+            for (RXHoldButton button : List.of(ltr, rtl)) {
+                button.setHoldDuration(Duration.millis(600.0));
+                mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            }
+            ref.set(List.of(ltr, rtl));
+        });
+        Thread.sleep(300L);
+        onFx(() -> {
+            RXHoldButton ltr = ref.get().get(0);
+            RXHoldButton rtl = ref.get().get(1);
+            // A clip is not in the scene graph: its geometry is in the
+            // clipped node's local coordinates.
+            Bounds ltrFill = fillRegion(ltr).localToScene(fillClip(ltr).getBoundsInLocal());
+            Bounds ltrArea = fillRegion(ltr).localToScene(fillRegion(ltr).getLayoutBounds());
+            assertEquals(ltrArea.getMinX(), ltrFill.getMinX(), 0.5, "left to right starts on the left");
+            Bounds rtlFill = fillRegion(rtl).localToScene(fillClip(rtl).getBoundsInLocal());
+            Bounds rtlArea = fillRegion(rtl).localToScene(fillRegion(rtl).getLayoutBounds());
+            assertEquals(rtlArea.getMaxX(), rtlFill.getMaxX(), 0.5, "right to left starts on the right");
+            assertTrue(rtlFill.getWidth() < rtlArea.getWidth());
+            ltr.getSkin().dispose();
+            rtl.getSkin().dispose();
+        });
+    }
+
     // ==================== Helpers ====================
 
     private enum Face {
@@ -1277,6 +1417,18 @@ public class RXHoldButtonTest {
                 break;
         }
         return button;
+    }
+
+    private static Region fillLayer(RXHoldButton button) {
+        return assertInstanceOf(Region.class, button.lookup(".fill-layer"));
+    }
+
+    private static Region fillRegion(RXHoldButton button) {
+        return assertInstanceOf(Region.class, button.lookup(".fill-region"));
+    }
+
+    private static Rectangle fillClip(RXHoldButton button) {
+        return assertInstanceOf(Rectangle.class, fillRegion(button).getClip());
     }
 
     private static RXHoldButton feedbackButton(Duration feedback) {
