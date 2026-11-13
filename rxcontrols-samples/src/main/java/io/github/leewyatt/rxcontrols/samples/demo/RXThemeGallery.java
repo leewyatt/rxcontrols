@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
+import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.layout.RXMasonryPane;
 import io.github.leewyatt.rxcontrols.samples.demo.ThemeGalleryCards.NamedControl;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
@@ -9,10 +10,10 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -70,10 +71,11 @@ public class RXThemeGallery extends Application {
         title.getStyleClass().add("gallery-title");
         countLabel.getStyleClass().add("gallery-count");
 
-        TextField filter = new TextField();
+        RXTextField filter = new RXTextField();
         filter.setPromptText("Filter by name");
         filter.setPrefColumnCount(16);
         filter.textProperty().addListener((obs, oldV, newV) -> applyFilter(newV));
+        filter.setTrailing(clearButton(filter));
         applyFilter("");
 
         List<ThemeChoice> choices = ShowcaseThemes.all();
@@ -88,6 +90,23 @@ public class RXThemeGallery extends Application {
         toolbar.getStyleClass().add("gallery-toolbar");
         toolbar.setAlignment(Pos.CENTER_LEFT);
         return toolbar;
+    }
+
+    // Shown only while there is text to clear; it stays laid out, so the
+    // field's text area does not shift as it appears.
+    private static Button clearButton(RXTextField field) {
+        Region glyph = new Region();
+        glyph.getStyleClass().addAll("glyph", "clear-glyph");
+        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        glyph.setMouseTransparent(true);
+
+        Button clear = new Button();
+        clear.getStyleClass().add("slot-button");
+        clear.setGraphic(glyph);
+        clear.setFocusTraversable(false);
+        clear.visibleProperty().bind(field.textProperty().isNotEmpty());
+        clear.setOnAction(event -> field.clear());
+        return clear;
     }
 
     private void applyFilter(String text) {
