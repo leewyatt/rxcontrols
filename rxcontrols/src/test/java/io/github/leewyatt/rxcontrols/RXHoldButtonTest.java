@@ -1,9 +1,15 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
+import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
+import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
+import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
+import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.internal.FeedbackSignals;
 import io.github.leewyatt.rxcontrols.skins.RXHoldButtonSkin;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
+import javafx.animation.Animation;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
@@ -47,12 +53,14 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests the RXHoldButton control contract, the three-caption skin structure
- * and its sizing, and the press-and-hold state machine. Hold tests use a short
- * hold duration and wait off the FX thread, so the timelines can run.
+ * and its sizing, the press-and-hold state machine, and the completed
+ * feedback with its lock and reset. Hold tests use a short hold duration and
+ * wait off the FX thread, so the timelines can run.
  */
 public class RXHoldButtonTest {
 
@@ -838,6 +846,377 @@ public class RXHoldButtonTest {
         });
     }
 
+    // ==================== Completed Feedback ====================
+
+    @Test
+    public void theDefaultFeedbackStaysAndLocksUntilReset() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        onFx(() -> {
+            RXHoldButton button = feedbackButton(RXHoldButton.DEFAULT_FEEDBACK_DURATION);
+            button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            ref.set(button);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+            assertCompletedFace(button, true);
+            assertEquals("Done", button.queryAccessibleAttribute(AccessibleAttribute.TEXT));
+
+            // Locked: neither a press nor its release does anything.
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            assertFalse(button.isArmed());
+            assertFalse(button.getPseudoClassStates().contains(HOLDING));
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+            assertCompletedFace(button, true);
+            assertEquals(1, fired.get());
+
+            button.resetFeedback();
+            assertCompletedFace(button, false);
+            assertHolding(button, false);
+            assertEquals(1, fired.get(), "a reset fires nothing");
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            assertHolding(button, true);
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void anEmptyCompletedFaceStillNamesTheButton() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        onFx(() -> {
+            RXHoldButton button = feedbackButton(Duration.INDEFINITE);
+            button.setCompletedText(null);
+            ref.set(button);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            assertCompletedFace(button, true);
+            Label completed = caption(button, ".completed-caption");
+            assertNull(completed.getText());
+            assertNull(completed.getGraphic());
+            assertEquals("Hold", button.queryAccessibleAttribute(AccessibleAttribute.TEXT));
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void aFiniteFeedbackEndsOnItsOwn() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicReference<Double> prefWidth = new AtomicReference<>();
+        onFx(() -> {
+            RXHoldButton button = feedbackButton(Duration.millis(600.0));
+            button.setAnimation(new AnimFade());
+            button.setAnimationDuration(Duration.millis(60.0));
+            ref.set(button);
+            prefWidth.set(button.prefWidth(-1));
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            assertEquals(prefWidth.get(), button.prefWidth(-1), 0.01);
+        });
+        Thread.sleep(350L);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+            assertCompletedFace(button, true);
+            assertEquals(prefWidth.get(), button.prefWidth(-1), 0.01);
+        });
+        Thread.sleep(900L);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            assertCompletedFace(button, false);
+            assertHolding(button, false);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            assertHolding(button, true);
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void theFeedbackTimerDoesNotWaitForTheSwap() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        RecordingAnimation recording = new RecordingAnimation();
+        onFx(() -> {
+            // The swap never finishes on its own: only a timer counting from
+            // the threshold can end the feedback.
+            RXHoldButton button = feedbackButton(Duration.millis(150.0));
+            button.setAnimation(recording);
+            ref.set(button);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(700L);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            assertFalse(button.getPseudoClassStates().contains(COMPLETED));
+            assertEquals(1, recording.jumpToEndCalls);
+            assertEquals(2, recording.contexts.size());
+            assertEquals(TransitionDirection.BACKWARD, recording.contexts.get(1).getDirection());
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void disposingDuringTheFeedbackLeavesNothingBehind() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        onFx(() -> {
+            RXHoldButton button = feedbackButton(Duration.millis(300.0));
+            ref.set(button);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(PAST_HOLD_MS / 2);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            assertTrue(button.getPseudoClassStates().contains(COMPLETED));
+            button.getSkin().dispose();
+            assertFalse(button.getPseudoClassStates().contains(COMPLETED));
+            assertTrue(button.getChildrenUnmodifiable().isEmpty());
+        });
+    }
+
+    @Test
+    public void aVetoedCompletionShowsNoCompletedFace() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        RecordingAnimation recording = new RecordingAnimation();
+        onFx(() -> {
+            RXHoldButton button = feedbackButton(Duration.INDEFINITE);
+            button.setAnimation(recording);
+            button.armedProperty().addListener((observable, was, armed) -> {
+                if (!armed) {
+                    button.setDisable(true);
+                }
+            });
+            button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            ref.set(button);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            assertEquals(0, fired.get());
+            assertCompletedFace(button, false);
+            assertEquals(1, recording.contexts.size(), "cut back, with no swap back to play");
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void aFeedbackEndingBeforeTheReleaseStillWaitsForIt() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        onFx(() -> {
+            RXHoldButton button = feedbackButton(Duration.millis(100.0));
+            ref.set(button);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            assertCompletedFace(button, false);
+            // The owner is still down: another input cannot start a hold.
+            key(button, KeyEvent.KEY_PRESSED, KeyCode.SPACE);
+            assertHolding(button, false);
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            assertHolding(button, true);
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void aZeroFeedbackShowsNoCompletedFace() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        onFx(() -> {
+            RXHoldButton button = feedbackButton(Duration.ZERO);
+            ref.set(button);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            assertTrue(button.getPseudoClassStates().contains(COMPLETED));
+            assertFalse(caption(button, ".completed-caption").getParent().isVisible());
+            assertTrue(caption(button, ".caption").isVisible());
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+            assertFalse(button.getPseudoClassStates().contains(COMPLETED));
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            assertHolding(button, true);
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void theCompletedSwapStartsFromTheHoldingFaceAndReturnsToTheIdleFace()
+            throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        RecordingAnimation recording = new RecordingAnimation();
+        onFx(() -> {
+            RXHoldButton button = feedbackButton(Duration.INDEFINITE);
+            button.setAnimation(recording);
+            ref.set(button);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            assertEquals(1, recording.contexts.size());
+            Node outgoing = recording.contexts.get(0).getCurrentPage();
+            assertSame(caption(button, ".holding-caption").getParent(), outgoing);
+            assertTrue(recording.holdingShownOnStart.get(0), "the outgoing page shows the holding face");
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+
+            // A reset mid-swap ends it, then swaps back to the idle face.
+            button.resetFeedback();
+            assertFalse(button.getPseudoClassStates().contains(COMPLETED));
+            assertTrue(caption(button, ".caption").isVisible());
+            assertEquals(1, recording.jumpToEndCalls);
+            assertEquals(2, recording.contexts.size());
+            assertSame(outgoing, recording.contexts.get(1).getNextPage());
+            assertFalse(recording.holdingShownOnStart.get(1), "the incoming page shows the idle face");
+
+            // A press while the swap back plays ends it at once.
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            assertEquals(2, recording.jumpToEndCalls);
+            assertHolding(button, true);
+            assertTrue(caption(button, ".holding-caption").getParent().isVisible());
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void aZeroAnimationDurationCutsDirectly() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        RecordingAnimation recording = new RecordingAnimation();
+        onFx(() -> {
+            RXHoldButton button = feedbackButton(Duration.INDEFINITE);
+            button.setAnimation(recording);
+            button.setAnimationDuration(Duration.ZERO);
+            ref.set(button);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            assertCompletedFace(button, true);
+            button.resetFeedback();
+            assertCompletedFace(button, false);
+            assertTrue(recording.contexts.isEmpty());
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void aKeyHeldAcrossTheUnlockDoesNotStartAHold() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        onFx(() -> {
+            RXHoldButton button = feedbackButton(Duration.INDEFINITE);
+            button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            ref.set(button);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+
+            assertTrue(key(button, KeyEvent.KEY_PRESSED, KeyCode.SPACE), "a locked press is consumed");
+            assertFalse(button.isArmed());
+            button.resetFeedback();
+            key(button, KeyEvent.KEY_PRESSED, KeyCode.SPACE);
+            assertHolding(button, false);
+            key(button, KeyEvent.KEY_RELEASED, KeyCode.SPACE);
+            assertEquals(1, fired.get());
+            key(button, KeyEvent.KEY_PRESSED, KeyCode.SPACE);
+            assertHolding(button, true);
+            key(button, KeyEvent.KEY_RELEASED, KeyCode.SPACE);
+            assertEquals(1, fired.get());
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void aLockedPressReleasedAfterTheResetFiresNothing() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        AtomicInteger fired = new AtomicInteger();
+        onFx(() -> {
+            RXHoldButton button = feedbackButton(Duration.INDEFINITE);
+            button.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
+            ref.set(button);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            button.resetFeedback();
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+            assertEquals(1, fired.get(), "the locked press is swallowed");
+
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            assertHolding(button, true);
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            assertEquals(1, fired.get(), "released before the threshold");
+            // Complete again, then fire while the feedback locks the button.
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+            assertEquals(2, fired.get());
+            button.fire();
+            assertEquals(3, fired.get());
+            assertCompletedFace(button, true);
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void disablingAfterCompletionKeepsTheCompletedFace() throws InterruptedException {
+        AtomicReference<RXHoldButton> ref = new AtomicReference<>();
+        onFx(() -> {
+            RXHoldButton button = feedbackButton(Duration.INDEFINITE);
+            button.setOnAction(event -> button.setDisable(true));
+            ref.set(button);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+        });
+        Thread.sleep(PAST_HOLD_MS);
+        onFx(() -> {
+            RXHoldButton button = ref.get();
+            assertTrue(button.isDisabled());
+            assertCompletedFace(button, true);
+            // A reset works on a disabled button too.
+            button.resetFeedback();
+            assertCompletedFace(button, false);
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void feedbackDurationIsStyleable() {
+        RXHoldButton button = laidOut(new RXHoldButton("Hold"));
+
+        button.setStyle("-rx-feedback-duration: 2s;");
+        button.getParent().applyCss();
+        assertEquals(Duration.seconds(2.0), button.getFeedbackDuration());
+        // A value set from code first: a failed parse would leave it in
+        // place, instead of falling back to the INDEFINITE default.
+        button.setStyle(null);
+        button.setFeedbackDuration(Duration.ZERO);
+        button.setStyle("-rx-feedback-duration: indefinite;");
+        button.getParent().applyCss();
+        assertEquals(Duration.INDEFINITE, button.getFeedbackDuration());
+        button.getSkin().dispose();
+    }
+
     // ==================== Helpers ====================
 
     private enum Face {
@@ -898,6 +1277,19 @@ public class RXHoldButtonTest {
                 break;
         }
         return button;
+    }
+
+    private static RXHoldButton feedbackButton(Duration feedback) {
+        RXHoldButton button = new RXHoldButton("Hold");
+        button.setHoldDuration(SHORT_HOLD);
+        button.setFeedbackDuration(feedback);
+        return laidOut(button);
+    }
+
+    private static void assertCompletedFace(RXHoldButton button, boolean completed) {
+        assertEquals(completed, button.getPseudoClassStates().contains(COMPLETED));
+        assertEquals(completed, caption(button, ".completed-caption").getParent().isVisible());
+        assertEquals(!completed, caption(button, ".caption").getParent().isVisible());
     }
 
     private static RXHoldButton holdButton() {
@@ -1005,5 +1397,63 @@ public class RXHoldButtonTest {
             }
         }
         throw new AssertionError(property + " is not styleable");
+    }
+
+    // ==================== Recording animation ====================
+
+    // Never finishes on its own: a swap only ends through jumpToEnd or dispose.
+    // Records, as each swap starts, whether the holding caption shows.
+    private static class RecordingAnimation implements PageAnimation {
+
+        final List<TransitionContext> contexts = new ArrayList<>();
+        final List<Boolean> holdingShownOnStart = new ArrayList<>();
+        int jumpToEndCalls;
+
+        private Animation running;
+        private Runnable finishAction;
+
+        @Override
+        public Animation getAnimation(TransitionContext context) {
+            contexts.add(context);
+            StackPane firstPage = context.getCurrentPage().lookup(".holding-caption") != null
+                    ? (StackPane) context.getCurrentPage()
+                    : (StackPane) context.getNextPage();
+            holdingShownOnStart.add(firstPage.lookup(".holding-caption").isVisible());
+            Node outgoing = context.getCurrentPage();
+            Node incoming = context.getNextPage();
+            incoming.setVisible(true);
+            finishAction = () -> {
+                outgoing.setVisible(false);
+                incoming.setVisible(true);
+            };
+            running = new PauseTransition(Duration.seconds(30.0));
+            return running;
+        }
+
+        @Override
+        public void jumpToEnd() {
+            jumpToEndCalls++;
+            stop();
+            if (finishAction != null) {
+                finishAction.run();
+                finishAction = null;
+            }
+        }
+
+        @Override
+        public void clearEffects(TransitionContext context) {
+        }
+
+        @Override
+        public void dispose() {
+            stop();
+        }
+
+        private void stop() {
+            if (running != null) {
+                running.stop();
+                running = null;
+            }
+        }
     }
 }

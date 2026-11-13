@@ -1,13 +1,17 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXHoldButton;
+import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
+import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.internal.FeedbackSignals;
+import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
 import io.github.leewyatt.rxcontrols.internal.transition.TransitionPages;
 import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
+import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.DoubleProperty;
@@ -41,6 +45,11 @@ import javafx.util.Duration;
  * {@code arm()}/{@code disarm()}/{@code fire()} API. A hold has one owner,
  * the primary mouse button or the activation key that started it, and only
  * the owner's release ends it.</p>
+ *
+ * <p>The skin owns the completed feedback: it sets the {@code completed}
+ * pseudo-class, swaps to the completed face unless the feedback duration is
+ * zero, and a single timer swaps back. While the feedback lasts, a press
+ * starts no hold.</p>
  */
 public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
 
@@ -82,6 +91,13 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
     private final DoubleProperty displayProgress = new SimpleDoubleProperty(this, "displayProgress");
     private Timeline holdTimeline;
     private Timeline rewindTimeline;
+
+    // ==================== Feedback state ====================
+
+    // True from a completed hold until the feedback ends; presses are locked
+    // out meanwhile.
+    private boolean inFeedback;
+    private final PauseTransition feedbackTimer = new PauseTransition();
 
     // ==================== Window focus ====================
 
@@ -184,6 +200,7 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
     }
 
     private void wireFeedback(RXHoldButton button) {
+        feedbackTimer.setOnFinished(event -> leaveFeedback(true));
         // A reset posted before this skin existed is stale.
         button.getProperties().remove(FeedbackSignals.HOLD_RESET);
         disposer.registerListener(button.getProperties(), this::consumeResetSignal);
@@ -375,6 +392,17 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
 
     // ==================== Hold ====================
 
+    private void press(Object newOwner) {
+        if (inFeedback) {
+            // Locked: the press is owned, so its release is swallowed, but
+            // nothing arms and the completed face stays.
+            state = State.CANCELLED_AWAIT_RELEASE;
+            owner = newOwner;
+        } else {
+            startHold(newOwner);
+        }
+    }
+
     private void startHold(Object newOwner) {
         RXHoldButton button = getSkinnable();
         // A swap back from the completed face may still be playing: end it,
@@ -423,6 +451,10 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
         button.disarm();
         if (state == State.COMPLETED_AWAIT_RELEASE) {
             button.fire();
+        } else {
+            // A disarm listener vetoed the action: no completed face may
+            // claim it happened, not even while a swap back plays.
+            leaveFeedback(false);
         }
     }
 
@@ -452,7 +484,11 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
             case COMPLETED_AWAIT_RELEASE:
                 state = State.IDLE;
                 owner = null;
-                leaveFeedback();
+                // A zero duration shows no completed face: the feedback lasts
+                // only while the owner is down. Otherwise it runs its course.
+                if (pages.getCurrentPage() == pages.getPageA()) {
+                    leaveFeedback(true);
+                }
                 break;
             case CANCELLED_AWAIT_RELEASE:
                 state = State.IDLE;
@@ -516,18 +552,86 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
 
     // ==================== Feedback ====================
 
+    // The holding caption stays on the first page: with an animation, that
+    // page is the outgoing one, and reverting it to the idle caption first
+    // would flash the idle face between the holding and completed faces.
     private void enterFeedback() {
-        showHoldingCaption(false);
+        inFeedback = true;
         getSkinnable().pseudoClassStateChanged(COMPLETED, true);
+        Duration duration = feedbackDurationOrDefault();
+        if (duration.lessThanOrEqualTo(Duration.ZERO)) {
+            showHoldingCaption(false);
+            return;
+        }
+        showFace(true, true);
+        if (!duration.isIndefinite()) {
+            feedbackTimer.setDuration(duration);
+            feedbackTimer.playFromStart();
+        }
     }
 
-    private void leaveFeedback() {
+    // The one way out of the feedback, whatever ends it: the timer, a reset,
+    // or the owner's release after a zero-duration feedback.
+    private void leaveFeedback(boolean animate) {
+        if (!inFeedback) {
+            return;
+        }
+        inFeedback = false;
+        feedbackTimer.stop();
+        // Latest wins: a swap to the completed face still playing ends first,
+        // then the hidden first page is reverted before it comes back.
+        pages.interrupt();
+        showHoldingCaption(false);
+        showFace(false, animate);
         getSkinnable().pseudoClassStateChanged(COMPLETED, false);
         displayProgress.set(0.0);
     }
 
     private void consumeResetSignal() {
-        getSkinnable().getProperties().remove(FeedbackSignals.HOLD_RESET);
+        // Null for unrelated keys and for the notification of this removal.
+        Object request = getSkinnable().getProperties().remove(FeedbackSignals.HOLD_RESET);
+        if (request != null) {
+            leaveFeedback(true);
+        }
+    }
+
+    private void showFace(boolean completed, boolean animate) {
+        StackPane target = completed ? pages.getPageB() : pages.getPageA();
+        if (pages.getCurrentPage() == target) {
+            return;
+        }
+        RXHoldButton button = getSkinnable();
+        pages.interrupt();
+        PageAnimation animation = button.getAnimation();
+        TransitionDirection direction =
+                completed ? TransitionDirection.FORWARD : TransitionDirection.BACKWARD;
+        Duration duration = animationDurationOrDefault();
+        pages.clearEffectsIfChanged(animation, direction, duration);
+        if (animate && PageTransitionEngine.canAnimate(animation, true, 2, duration, false)) {
+            pages.transitionTo(target, animation, direction, duration, null, null, null);
+        } else {
+            pages.directCutTo(target);
+        }
+        button.notifyAccessibleAttributeChanged(AccessibleAttribute.TEXT);
+    }
+
+    private Duration feedbackDurationOrDefault() {
+        Duration duration = getSkinnable().getFeedbackDuration();
+        if (duration == null || duration.isUnknown() || duration.lessThan(Duration.ZERO)) {
+            return RXHoldButton.DEFAULT_FEEDBACK_DURATION;
+        }
+        return duration;
+    }
+
+    // Only Duration.ZERO turns the animation off (it fails the engine gate and
+    // falls back to a direct cut); unusable values still animate.
+    private Duration animationDurationOrDefault() {
+        Duration duration = getSkinnable().getAnimationDuration();
+        if (duration == null || duration.isUnknown() || duration.isIndefinite()
+                || duration.lessThan(Duration.ZERO)) {
+            return RXHoldButton.DEFAULT_ANIMATION_DURATION;
+        }
+        return duration;
     }
 
     // ==================== Input ====================
@@ -542,7 +646,7 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
             button.requestFocus();
         }
         if (state == State.IDLE && !button.isDisabled() && RXMouse.isPlainPrimaryPress(event)) {
-            startHold(MouseButton.PRIMARY);
+            press(MouseButton.PRIMARY);
         }
         event.consume();
     }
@@ -569,7 +673,7 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
             return;
         }
         if (state == State.IDLE && !getSkinnable().isDisabled()) {
-            startHold(event.getCode());
+            press(event.getCode());
         }
         // Auto-repeat and presses during a hold or an await state are
         // swallowed.
@@ -646,5 +750,10 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
         resetToIdle();
         stopHoldTimeline();
         stopRewind();
+        // The completed face itself is cut back by the last dispose task,
+        // without an animation.
+        inFeedback = false;
+        feedbackTimer.stop();
+        displayProgress.set(0.0);
     }
 }
