@@ -21,17 +21,17 @@
 .rx-decimal-field, .rx-double-field, .rx-fab, .rx-highlight-text-view, .rx-hold-button,
 .rx-image-pane, .rx-image-view, .rx-integer-field,
 .rx-line-button, .rx-line-label, .rx-long-field, .rx-lrc-line-view, .rx-lrc-view,
-.rx-masonry-pane, .rx-masonry-view,
+.rx-masonry-pane, .rx-masonry-view, .rx-month-picker, .rx-month-view,
 .rx-material-decimal-field, .rx-material-double-field, .rx-material-integer-field,
 .rx-material-long-field, .rx-material-text-field, .rx-material-password-field,
-.rx-password-field, .rx-placeholder, .rx-radio-button, .rx-radio-toggle-button,
+.rx-password-field, .rx-placeholder, .rx-quarter-picker, .rx-quarter-view, .rx-radio-button, .rx-radio-toggle-button,
 .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-selection-box, .rx-sidebar, .rx-snackbar-host, .rx-speed-dial,
 .rx-slider, .rx-range-slider,
 .rx-skeleton, .rx-skeleton-pane, .rx-state-pane, .rx-switch-button, .rx-text-field, .rx-text-view,
 .rx-kanban-view, .rx-list-view, .rx-menu-button, .rx-menu-list,
 .rx-tab-pane, .rx-tile-pane, .rx-tile-view, .rx-time-picker, .rx-time-view, .rx-timeline-view, .rx-toggle-button, .rx-transition-button,
-.rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator {
+.rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator, .rx-year-picker, .rx-year-view {
     /* brand / primary: the Modena accent, so RX controls follow an application that
        recolors -fx-accent. White text on it is 3.38:1, below WCAG AA; override
        -rx-primary with a darker color where AA text contrast is required. */
@@ -175,6 +175,10 @@
 .rx-theme-atlantafx.rx-masonry-pane,
 .rx-theme-atlantafx .rx-masonry-view,
 .rx-theme-atlantafx.rx-masonry-view,
+.rx-theme-atlantafx .rx-month-picker,
+.rx-theme-atlantafx.rx-month-picker,
+.rx-theme-atlantafx .rx-month-view,
+.rx-theme-atlantafx.rx-month-view,
 .rx-theme-atlantafx .rx-material-decimal-field,
 .rx-theme-atlantafx.rx-material-decimal-field,
 .rx-theme-atlantafx .rx-material-double-field,
@@ -191,6 +195,10 @@
 .rx-theme-atlantafx.rx-password-field,
 .rx-theme-atlantafx .rx-placeholder,
 .rx-theme-atlantafx.rx-placeholder,
+.rx-theme-atlantafx .rx-quarter-picker,
+.rx-theme-atlantafx.rx-quarter-picker,
+.rx-theme-atlantafx .rx-quarter-view,
+.rx-theme-atlantafx.rx-quarter-view,
 .rx-theme-atlantafx .rx-radio-button,
 .rx-theme-atlantafx.rx-radio-button,
 .rx-theme-atlantafx .rx-radio-toggle-button,
@@ -260,7 +268,11 @@
 .rx-theme-atlantafx .rx-transition-pane,
 .rx-theme-atlantafx.rx-transition-pane,
 .rx-theme-atlantafx .rx-wave-progress-indicator,
-.rx-theme-atlantafx.rx-wave-progress-indicator {
+.rx-theme-atlantafx.rx-wave-progress-indicator,
+.rx-theme-atlantafx .rx-year-picker,
+.rx-theme-atlantafx.rx-year-picker,
+.rx-theme-atlantafx .rx-year-view,
+.rx-theme-atlantafx.rx-year-view {
     /* brand / primary */
     -rx-primary: -color-accent-emphasis;
     -rx-primary-hover: derive(-color-accent-emphasis, 8%);
@@ -3858,7 +3870,10 @@
  *                                                                             *
  ******************************************************************************/
 .rx-calendar-view,
-.rx-date-range-view {
+.rx-date-range-view,
+.rx-month-view,
+.rx-quarter-view,
+.rx-year-view {
     -fx-background-color: -fx-box-border, -fx-control-inner-background;
     -fx-background-insets: 0, 1;
     -fx-background-radius: 3, 2;
@@ -3866,7 +3881,10 @@
 }
 
 .rx-calendar-view:focused,
-.rx-date-range-view:focused {
+.rx-date-range-view:focused,
+.rx-month-view:focused,
+.rx-quarter-view:focused,
+.rx-year-view:focused {
     -fx-background-color: -fx-focus-color, -fx-control-inner-background;
 }
 
@@ -4150,7 +4168,13 @@
 .rx-picker-popup .container > .rx-time-view,
 .rx-picker-popup .container > .rx-time-view:focused,
 .rx-picker-popup .container > .rx-date-range-view,
-.rx-picker-popup .container > .rx-date-range-view:focused {
+.rx-picker-popup .container > .rx-date-range-view:focused,
+.rx-picker-popup .container > .rx-month-view,
+.rx-picker-popup .container > .rx-month-view:focused,
+.rx-picker-popup .container > .rx-quarter-view,
+.rx-picker-popup .container > .rx-quarter-view:focused,
+.rx-picker-popup .container > .rx-year-view,
+.rx-picker-popup .container > .rx-year-view:focused {
     -fx-background-color: transparent;
 }
 

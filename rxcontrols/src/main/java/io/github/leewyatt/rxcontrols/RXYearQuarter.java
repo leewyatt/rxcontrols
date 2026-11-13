@@ -24,7 +24,7 @@ public record RXYearQuarter(int year, int quarter) implements Comparable<RXYearQ
 
     private static final int MONTHS_PER_QUARTER = 3;
     private static final int QUARTERS_PER_YEAR = 4;
-    private static final Pattern TEXT_PATTERN = Pattern.compile("([+-]?\\d{1,9})-Q([1-4])");
+    private static final Pattern TEXT_PATTERN = Pattern.compile("([+-]?\\d{1,9})-[Qq]([1-4])");
 
     /**
      * Creates a year-quarter, validating its fields.
@@ -78,7 +78,8 @@ public record RXYearQuarter(int year, int quarter) implements Comparable<RXYearQ
     }
 
     /**
-     * Parses text in the {@link #toString()} form, such as {@code 2026-Q3}.
+     * Parses text in the {@link #toString()} form, such as {@code 2026-Q3}; the
+     * {@code Q} may also be lower case.
      *
      * @param text the text to parse
      * @return the parsed year-quarter
