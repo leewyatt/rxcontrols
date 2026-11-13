@@ -7,6 +7,7 @@ import javafx.beans.binding.StringBinding;
 import javafx.beans.value.ChangeListener;
 import javafx.scene.control.Skin;
 import javafx.scene.control.TextInputControl;
+import javafx.scene.control.skin.TextInputControlSkin;
 import javafx.scene.layout.Pane;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
@@ -63,7 +64,7 @@ public final class PasswordMaskSupport {
     private Text boundTextNode;
     private ChangeListener<Skin<?>> pendingSkinListener;
     private Runnable onDegraded;
-    private boolean scrollRewindPending;
+    private boolean displaySwapPending;
 
     /**
      * Creates the helper.
@@ -145,14 +146,21 @@ public final class PasswordMaskSupport {
     }
 
     /**
-     * Runs the skin's {@code TextFieldSkin} layout, first rewinding its horizontal
-     * scroll when a reveal or echo-character change swapped the displayed text
-     * since the last layout.
+     * Runs the skin's {@code TextFieldSkin} layout, first resyncing its caret and
+     * horizontal scroll when a reveal or echo-character change swapped the
+     * displayed text since the last layout.
      * <p>
-     * TextFieldSkin keeps its scroll offset private and only rewinds it while the
-     * text fits; otherwise it scrolls just far enough to show the caret. Revealing
-     * a long password narrows the text (echo characters are wider than most
-     * letters) while the offset stays where the wider mask had it, so the caret
+     * Changing a {@link Text} node's text resets its caret bias to leading, while
+     * the skin's forward bias stays as it was. A caret clicked at the end (trailing
+     * edge of the last character) is then drawn before that character, and clicking
+     * the end again does not fix it because the caret position does not change.
+     * Setting the forward bias back to leading, as TextFieldSkin does on every caret
+     * move, realigns the drawn caret.
+     * <p>
+     * TextFieldSkin also keeps its scroll offset private and only rewinds it while
+     * the text fits; otherwise it scrolls just far enough to show the caret.
+     * Revealing a long password narrows the text (echo characters are wider than
+     * most letters) while the offset stays where the wider mask had it, so the caret
      * ends up pinned to the left edge with the text scrolled out of view. Laying
      * out once with an empty text node lets TextFieldSkin rewind the offset; the
      * second layout with the real text then scrolls the caret into view as for a
@@ -162,17 +170,20 @@ public final class PasswordMaskSupport {
      * @param editorLayout the skin's call into {@code TextFieldSkin.layoutChildren}
      */
     public void layoutEditor(Runnable editorLayout) {
-        if (!scrollRewindPending || !installed || boundTextNode == null) {
+        if (!displaySwapPending || !installed || boundTextNode == null) {
             editorLayout.run();
             return;
         }
-        scrollRewindPending = false;
+        displaySwapPending = false;
         boundTextNode.textProperty().unbind();
         boundTextNode.setText("");
         try {
             editorLayout.run();
         } finally {
             boundTextNode.textProperty().bind(displayBinding);
+        }
+        if (control.getSkin() instanceof TextInputControlSkin<?> skin) {
+            skin.setForwardBias(true);
         }
         editorLayout.run();
     }
@@ -281,8 +292,8 @@ public final class PasswordMaskSupport {
 
     private void onDependencyInvalidated(Observable source) {
         if (installed) {
-            // The displayed text was swapped; rewind the scroll on the next layout.
-            scrollRewindPending = true;
+            // The displayed text was swapped; resync the editor on the next layout.
+            displaySwapPending = true;
             control.requestLayout();
             return;
         }

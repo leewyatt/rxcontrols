@@ -2,10 +2,14 @@ package io.github.leewyatt.rxcontrols;
 
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
+import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import org.junit.jupiter.api.BeforeAll;
@@ -72,6 +76,31 @@ public class RXPasswordFieldTest {
             assertTrue(textEnd > clipWidth - 4,
                     "the revealed text must end at the right edge next to the caret, not scroll out (end at "
                             + textEnd + " of " + clipWidth + ")");
+        });
+    }
+
+    @Test
+    public void revealingKeepsACaretClickedAtTheEndDrawnAtTheEnd() {
+        runOnFx(() -> {
+            RXPasswordField field = new RXPasswordField("secret");
+            StackPane root = new StackPane(field);
+            new Scene(root, 320, 160);
+            root.applyCss();
+            root.layout();
+            Text text = editorText(field);
+            Point2D blank = field.localToScene(field.getWidth() / 2, field.getHeight() / 2);
+            field.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, blank.getX(), blank.getY(), 0, 0,
+                    MouseButton.PRIMARY, 1, false, false, false, false,
+                    true, false, false, false, false, true, null));
+            assertEquals(6, field.getCaretPosition(), "precondition: the click put the caret at the end");
+
+            field.setRevealPassword(true);
+            root.applyCss();
+            root.layout();
+
+            double caretX = ((MoveTo) text.getCaretShape()[0]).getX();
+            assertEquals(text.getLayoutBounds().getWidth(), caretX, 0.5,
+                    "the caret must stay drawn after the last character");
         });
     }
 

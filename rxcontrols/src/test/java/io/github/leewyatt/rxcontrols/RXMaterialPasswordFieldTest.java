@@ -5,6 +5,7 @@ import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.scene.AccessibleAttribute;
 import javafx.geometry.Insets;
+import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -13,6 +14,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
@@ -323,6 +325,25 @@ public class RXMaterialPasswordFieldTest {
     }
 
     @Test
+    public void revealingKeepsACaretClickedAtTheEndDrawnAtTheEnd() {
+        runOnFx(() -> {
+            RXMaterialPasswordField field = new RXMaterialPasswordField("secret");
+            inScene(field);
+            Text text = (Text) editorTextNode(field);
+            Point2D blank = field.localToScene(field.getWidth() / 2, field.getHeight() / 2);
+            field.fireEvent(pressAt(blank));
+            assertEquals(6, field.getCaretPosition(), "precondition: the click put the caret at the end");
+
+            field.setRevealPassword(true);
+            field.getParent().applyCss();
+            field.getParent().layout();
+
+            assertEquals(text.getLayoutBounds().getWidth(), caretX(text), 0.5,
+                    "the caret must stay drawn after the last character");
+        });
+    }
+
+    @Test
     public void pressingTheRevealButtonOfAFocusedFieldLeavesTheCaretAndSelectionAlone() {
         runOnFx(() -> {
             RXMaterialPasswordField field = new RXMaterialPasswordField("secret");
@@ -342,6 +363,16 @@ public class RXMaterialPasswordFieldTest {
         return new MouseEvent(MouseEvent.MOUSE_PRESSED, 0, 0, 0, 0,
                 MouseButton.PRIMARY, 1, false, false, false, false,
                 true, false, false, false, false, true, null);
+    }
+
+    private static MouseEvent pressAt(Point2D scenePoint) {
+        return new MouseEvent(MouseEvent.MOUSE_PRESSED, scenePoint.getX(), scenePoint.getY(), 0, 0,
+                MouseButton.PRIMARY, 1, false, false, false, false,
+                true, false, false, false, false, true, null);
+    }
+
+    private static double caretX(Text text) {
+        return ((MoveTo) text.getCaretShape()[0]).getX();
     }
 
     private static MouseEvent click() {
