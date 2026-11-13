@@ -71,6 +71,13 @@
     -fx-padding: 13px 14px 14px 14px;
 }
 
+/* An AtlantaFX button drops its border when pressed and fills with
+   -color-bg-subtle, so the cards take the default background to keep a
+   pressed button visible. */
+.root.rx-theme-atlantafx .control-pane .section {
+    -fx-background-color: -color-bg-default;
+}
+
 .control-pane .section-label {
     -fx-font-size: 11px;
     -fx-font-weight: bold;
