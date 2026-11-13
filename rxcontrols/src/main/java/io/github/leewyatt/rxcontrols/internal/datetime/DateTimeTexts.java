@@ -318,15 +318,34 @@ public final class DateTimeTexts {
             INVALID
         }
 
-        static <T> ParseResult<T> empty() {
+        /**
+         * Returns the empty outcome.
+         *
+         * @param <T> the value type
+         * @return the outcome for blank text
+         */
+        public static <T> ParseResult<T> empty() {
             return new ParseResult<>(Status.EMPTY, null);
         }
 
-        static <T> ParseResult<T> invalid() {
+        /**
+         * Returns the invalid outcome.
+         *
+         * @param <T> the value type
+         * @return the outcome for text that does not parse
+         */
+        public static <T> ParseResult<T> invalid() {
             return new ParseResult<>(Status.INVALID, null);
         }
 
-        static <T> ParseResult<T> valid(T value) {
+        /**
+         * Returns a valid outcome.
+         *
+         * @param value the parsed value
+         * @param <T>   the value type
+         * @return the outcome carrying {@code value}
+         */
+        public static <T> ParseResult<T> valid(T value) {
             return new ParseResult<>(Status.VALID, value);
         }
     }

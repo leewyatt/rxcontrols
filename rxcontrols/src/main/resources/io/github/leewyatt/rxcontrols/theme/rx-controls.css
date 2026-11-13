@@ -17,7 +17,7 @@
 .rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-bar-spinner, .rx-box, .rx-button,
 .rx-calendar-view, .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-content-pane, .rx-copy-button, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
-.rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
+.rx-date-picker, .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
 .rx-decimal-field, .rx-double-field, .rx-fab, .rx-highlight-text-view, .rx-hold-button,
 .rx-image-pane, .rx-image-view, .rx-integer-field,
 .rx-line-button, .rx-line-label, .rx-long-field, .rx-lrc-line-view, .rx-lrc-view,
@@ -131,6 +131,8 @@
 .rx-theme-atlantafx.rx-dot-pulse,
 .rx-theme-atlantafx .rx-drawer-pane,
 .rx-theme-atlantafx.rx-drawer-pane,
+.rx-theme-atlantafx .rx-date-picker,
+.rx-theme-atlantafx.rx-date-picker,
 .rx-theme-atlantafx .rx-dual-pane,
 .rx-theme-atlantafx.rx-dual-pane,
 .rx-theme-atlantafx .rx-fill-button,
@@ -4029,4 +4031,139 @@
 .calendar-panel .date-cell:focused {
     -fx-border-color: -rx-focus;
     -fx-border-width: 1.5;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Date / time pickers (RXDatePicker and siblings)                             *
+ *                                                                             *
+ ******************************************************************************/
+.rx-picker {
+    -fx-background-color: linear-gradient(to bottom, derive(-fx-text-box-border, -10%), -fx-text-box-border),
+    linear-gradient(from 0px 0px to 0px 5px, derive(-fx-control-inner-background, -9%), -fx-control-inner-background);
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
+}
+
+.rx-picker:focused,
+.rx-picker:showing {
+    -fx-background-color: -fx-focus-color,
+    -fx-control-inner-background,
+    -fx-faint-focus-color,
+    linear-gradient(from 0px 0px to 0px 5px, derive(-fx-control-inner-background, -9%), -fx-control-inner-background);
+    -fx-background-insets: -0.2, 1, -1.4, 3;
+    -fx-background-radius: 3, 2, 4, 0;
+}
+
+.rx-theme-atlantafx .rx-picker:focused,
+.rx-theme-atlantafx.rx-picker:focused,
+.rx-theme-atlantafx .rx-picker:showing,
+.rx-theme-atlantafx.rx-picker:showing {
+    -fx-background-color: -fx-focus-color, -fx-control-inner-background;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
+}
+
+.rx-picker:invalid {
+    -fx-background-color: -rx-danger, -fx-control-inner-background;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
+}
+
+.rx-picker:disabled {
+    -fx-opacity: 0.4;
+}
+
+/* The fields sit on the picker's own surface; the picker draws the frame. */
+.rx-picker > .text-field,
+.rx-picker > .text-field:focused {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0.333333em 0 0.333333em 0.583em;
+    -fx-text-fill: -fx-text-inner-color;
+}
+
+.rx-picker > .text-field:disabled {
+    -fx-opacity: 1;
+}
+
+.rx-picker > .separator {
+    -fx-background-color: derive(-fx-text-base-color, 45%);
+    -fx-pref-width: 1.166667em;
+    -fx-pref-height: 0.666667em;
+    -fx-shape: "M0,4.25 H10.5 V2 L14,5 L10.5,8 V5.75 H0 Z";
+}
+
+.rx-picker > .suffix {
+    -fx-padding: 0 0.583em 0 0.416667em;
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+}
+
+.rx-picker > .suffix > .icon {
+    -fx-background-color: derive(-fx-text-base-color, 45%);
+    -fx-pref-width: 1em;
+    -fx-pref-height: 1em;
+    -fx-shape: "M1,3 H15 V6.5 H1 Z M1,6.5 H2.5 V16 H1 Z M13.5,6.5 H15 V16 H13.5 Z M2.5,14.5 H13.5 V16 H2.5 Z M4,0.5 H6 V4 H4 Z M10,0.5 H12 V4 H10 Z M4.5,8.5 H7.5 V11.5 H4.5 Z";
+}
+
+.rx-picker > .suffix > .clear-button > .graphic {
+    -fx-background-color: derive(-fx-text-base-color, 45%);
+    -fx-pref-width: 0.666667em;
+    -fx-pref-height: 0.666667em;
+    -fx-shape: "M2,0 L5,3 L8,0 L10,2 L7,5 L10,8 L8,10 L5,7 L2,10 L0,8 L3,5 L0,2 Z";
+}
+
+.rx-picker > .suffix:hover > .clear-button > .graphic {
+    -fx-background-color: derive(-fx-text-base-color, 20%);
+}
+
+.rx-picker-popup .container {
+    -fx-background-color: -fx-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
+    -fx-padding: 1;
+    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 8);
+}
+
+/* The popup container draws the frame; the hosted view keeps only its padding. */
+.rx-picker-popup .container > .rx-calendar-view,
+.rx-picker-popup .container > .rx-calendar-view:focused {
+    -fx-background-color: transparent;
+}
+
+.rx-picker-popup .container > .footer {
+    -fx-alignment: center;
+    -fx-spacing: 0.5em;
+    -fx-padding: 0.333333em 0.666667em;
+    -fx-border-color: -rx-outline-variant transparent transparent transparent;
+}
+
+.rx-picker-popup .container > .footer > .today-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0.25em 0.5em;
+    -fx-text-fill: -rx-primary;
+    -fx-cursor: hand;
+}
+
+.rx-picker-popup .container > .footer > .today-button:hover {
+    -fx-underline: true;
+}
+
+.rx-picker-popup .container > .footer > .ok-button {
+    -fx-background-color: -rx-primary;
+    -fx-background-insets: 0;
+    -fx-background-radius: 3;
+    -fx-padding: 0.25em 0.833333em;
+    -fx-text-fill: -rx-on-primary;
+    -fx-cursor: hand;
+}
+
+.rx-picker-popup .container > .footer > .ok-button:hover {
+    -fx-background-color: -rx-primary-hover;
+}
+
+.rx-picker-popup .container > .footer > .button:disabled {
+    -fx-opacity: 0.4;
 }
