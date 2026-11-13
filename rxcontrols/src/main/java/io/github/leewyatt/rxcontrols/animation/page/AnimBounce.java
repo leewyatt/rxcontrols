@@ -16,8 +16,7 @@ import javafx.util.Duration;
 /**
  * Bounce slide transition. Pages slide in and out just like
  * {@link AnimSlide}, but the motion curve overshoots the target
- * position and springs back, giving a lively elastic feel — common
- * in iOS animations and motion design.
+ * position and springs back, giving a lively elastic feel.
  *
  * <p>The {@link #setBounceStrength(double) bounceStrength} parameter
  * controls how far the pages overshoot:</p>

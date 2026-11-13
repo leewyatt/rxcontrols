@@ -31,7 +31,7 @@ import java.util.List;
  *
  * <p>Despite the {@code Col} name, this is a grid <em>cell</em> laid out
  * horizontally within its {@code RXRow}, following the web {@code Row}/{@code Col}
- * convention (Element UI, Bootstrap, Ant Design). It is not a vertical stacking
+ * grid convention. It is not a vertical stacking
  * box; for that, use {@link RXBox} in vertical orientation. As a
  * {@link StackPane} it lays its own children on top of each other and occupies a
  * {@link #spanProperty() span} of the row's columns.</p>

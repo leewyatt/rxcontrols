@@ -213,7 +213,7 @@ public class RXSkeleton extends Control {
     // Named "variant" rather than "shape" because Region already defines a
     // final shapeProperty() (the -fx-shape SVG path used to clip a region
     // into an arbitrary outline). The "variant" name aligns with Material UI
-    // / Ant Design conventions for the same concept.
+    // conventions for the same concept.
 
     private final ObjectProperty<Variant> variant = new StyleableObjectProperty<>(DEFAULT_VARIANT) {
         @Override

@@ -43,9 +43,8 @@ import java.util.logging.Logger;
  * {@link RXBreakpointProfile#BOOTSTRAP}) that automatically wraps its child
  * {@link RXCol} instances onto multiple visual rows whenever their
  * combined spans exceed {@link #columnsProperty() columns}. The {@code Row}
- * naming follows the web convention shared by Element UI, Element Plus,
- * Bootstrap, Ant Design and similar frameworks, where a single {@code <el-row>}
- * / {@code <div class="row">} can wrap into many visual rows. Add columns
+ * naming follows the web grid convention, where a single row element can wrap
+ * into many visual rows. Add columns
  * directly to {@link #getChildren()}; there is no separate "add a new row" step.</p>
  *
  * <p>Children are expected to be {@link RXCol} wrappers. Plain

@@ -65,7 +65,7 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
 
     private static final double GEOMETRY_EPSILON = 0.5;
 
-    /** Symmetric ease-in-out matching Ant Design's {@code motionEaseInOut}. */
+    /** Symmetric ease-in-out for the selection slide. */
     private static final Interpolator SLIDE_EASING = Interpolator.SPLINE(0.645, 0.045, 0.355, 1.0);
 
     // ==================== Nodes ====================
@@ -211,7 +211,7 @@ public class RXSegmentedControlSkin<T> extends RXSkinBase<RXSegmentedControl<T>>
                 return;
         }
         if (target >= 0 && target != current) {
-            // Selection follows focus (radio-group / iOS model).
+            // Selection follows focus, as in a radio group.
             getSkinnable().selectIndex(target);
         }
         event.consume();

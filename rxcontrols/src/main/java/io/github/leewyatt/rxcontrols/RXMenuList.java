@@ -256,7 +256,7 @@ public class RXMenuList extends Control {
     /**
      * Whether disabled items participate in roving keyboard navigation
      * (focusable but not activatable), versus being skipped. Defaults to
-     * {@code false} (skip), matching Material / MUI / the repository's
+     * {@code false} (skip), matching Material and
      * {@code RXListView}. Set {@code true} for the WAI-ARIA APG behavior where a
      * disabled item can be focused but not activated — a deliberate departure
      * from the Material default.

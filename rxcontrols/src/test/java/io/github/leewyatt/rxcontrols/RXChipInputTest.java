@@ -146,7 +146,7 @@ public class RXChipInputTest {
 
     /**
      * Verifies removing one of two equal chips removes the exact node clicked, not
-     * the first {@code equals} match — the headline JFoenix duplicate-desync fix.
+     * the first {@code equals} match, so chips and the value list stay in sync.
      *
      * @throws Exception if the FX-thread assertion fails
      */

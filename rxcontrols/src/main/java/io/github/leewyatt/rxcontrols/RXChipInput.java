@@ -319,7 +319,7 @@ public class RXChipInput<T> extends Control {
      * (non-disabled) row as soon as it opens or refilters, so pressing {@code Enter}
      * commits that suggestion instead of the raw typed text. Default {@code false}:
      * {@code Enter} commits the typed text unless a row was highlighted with the arrow
-     * keys, matching the desktop-autocomplete default of MUI and Angular Material.
+     * keys, the usual desktop-autocomplete default.
      *
      * @return the auto-select-first-suggestion property
      */

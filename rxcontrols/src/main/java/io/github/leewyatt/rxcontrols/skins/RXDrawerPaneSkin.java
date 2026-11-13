@@ -49,8 +49,7 @@ public class RXDrawerPaneSkin extends RXSkinBase<RXDrawerPane> {
 
     /**
      * Default drawer thickness used when {@code prefDrawerWidth} /
-     * {@code prefDrawerHeight} are not a finite positive value. Sits in the
-     * Fluent-small / Naive / antd thickness band.
+     * {@code prefDrawerHeight} are not a finite positive value.
      */
     private static final double DEFAULT_DRAWER_THICKNESS = 320.0;
 

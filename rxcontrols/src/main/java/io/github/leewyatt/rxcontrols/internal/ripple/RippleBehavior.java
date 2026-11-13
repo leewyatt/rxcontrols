@@ -29,7 +29,7 @@ public final class RippleBehavior {
     // keeps the overlap smooth; it stays small so runaway input cannot
     // accumulate ripple nodes and timelines without bound. Not a Material rule.
     private static final int MAX_RIPPLE_COUNT = 5;
-    // Press ripple timing favours a desktop M2 / JFoenix feel: a slow, clearly
+    // Press ripple timing favours a desktop M2 feel: a slow, clearly
     // visible grow rather than M3's near-instant subtle state layer.
     private static final Duration ENTER_DURATION = Duration.millis(500.0);
     private static final Duration EXIT_DURATION = Duration.millis(375.0);

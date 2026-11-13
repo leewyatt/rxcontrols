@@ -32,9 +32,8 @@
 .rx-kanban-view, .rx-list-view, .rx-menu-button, .rx-menu-list,
 .rx-tab-pane, .rx-tile-pane, .rx-tile-view, .rx-timeline-view, .rx-toggle-button, .rx-transition-button,
 .rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator {
-    /* brand / primary: the Modena accent, so RX controls match the native selection
-       and follow an application that recolors -fx-accent. Like Modena's own selected
-       rows, white text on #0096c9 is 3.38:1, below WCAG AA for body text; override
+    /* brand / primary: the Modena accent, so RX controls follow an application that
+       recolors -fx-accent. White text on it is 3.38:1, below WCAG AA; override
        -rx-primary with a darker color where AA text contrast is required. */
     -rx-primary: -fx-accent;
     -rx-primary-hover: derive(-rx-primary, 8%);
@@ -49,13 +48,10 @@
     -rx-warning: #e6a23c;
     -rx-danger: #f56c6c;
     -rx-info: #909399;
-    /* surface / text / outline: derived from the Modena palette so the defaults
-       follow an application that recolors Modena, globally or on one container.
-       Every ladder keys on -fx-background with the 45% / 46% stops Modena uses
-       for -fx-text-background-color, so all roles agree with Modena's own text
-       on whether the host is light or dark. The light side keeps the original
-       values. Each role is an independent override point; the AtlantaFX scope
-       below re-declares every one of them. */
+    /* surface / text / outline: derived from the Modena palette so the defaults follow
+       an application that recolors Modena. Every ladder keys on -fx-background with
+       Modena's 45% / 46% text stops, so all roles agree with Modena's own text on
+       whether the host is light or dark. */
     -rx-surface: -fx-background;
     -rx-surface-variant: ladder(-fx-background, derive(-fx-background, 8%) 45%, #f5f5f5 46%);
     -rx-on-surface: -fx-text-background-color;
@@ -70,27 +66,21 @@
     -rx-state-overlay-color: ladder(-fx-background, white 45%, black 46%);
     /* modal scrim (backdrop, dialog, drawer, state pane): Material's black at 32% on any host */
     -rx-scrim: rgba(0, 0, 0, 0.32);
-    /* elevation (RXShadows): umbra color is the only themeable knob — JavaFX
-       resolves only the COLOR of -fx-effect: dropshadow(...) through looked-up
-       tokens, never radius / spread / offset, so each consumer writes those as
-       literals. Reference scale (radius / spread / offsetY), Material-style:
+    /* elevation (RXShadows): JavaFX resolves only the color of a dropshadow(...)
+       through looked-up tokens, so the umbra color is the only themeable knob and
+       each consumer writes radius / spread / offset as literals. Reference scale
+       (radius / spread / offsetY):
          level 1: 4  / 0.0 / 2     level 4: 16 / 0.0 / 8
          level 2: 8  / 0.0 / 2     level 5: 16 / 0.0 / 12
-         level 3: 12 / 0.0 / 8
-       The RXDialog card does not use it: it sits on a scrim, where an opaque
-       light-gray theme shadow reads as a glow. Pre-existing structural
-       shadows (drawer / segmented) are not yet retrofitted onto
-       the token — that is a separate visual pass. */
+         level 3: 12 / 0.0 / 8 */
     -rx-elevation-umbra-color: rgba(0, 0, 0, 0.2);
 }
 
-/* The AtlantaFX scope lives in this user-agent stylesheet on purpose: when a
-   looked-up color is defined in an author stylesheet, JavaFX 17-23 raises the
-   calculated origin to AUTHOR (JDK-8336097), which then overrides colors the
-   application set in code. The per-control .rx-theme-atlantafx rules next to each
-   control's defaults stay here for the same reason, and so that application
-   stylesheets override them whatever their loading order. The bridge only toggles
-   the scope class. */
+/* The AtlantaFX scope lives in this user-agent stylesheet on purpose: a looked-up
+   color defined in an author stylesheet raises the calculated origin to AUTHOR on
+   JavaFX 17-23 (JDK-8336097) and overrides colors the application set in code. The
+   per-control .rx-theme-atlantafx rules stay here for the same reason, and so that
+   application stylesheets override them in any loading order. */
 .rx-theme-atlantafx .rx-audio-spectrum,
 .rx-theme-atlantafx.rx-audio-spectrum,
 .rx-theme-atlantafx .rx-auto-complete-field,
@@ -289,11 +279,9 @@
        becomes a large, heavy dark halo, so a dark host takes a translucent black. */
     -rx-elevation-umbra-color: ladder(-rx-surface, rgba(0, 0, 0, 0.5) 45%, -color-shadow-default 46%);
 
-    /* Modena base palette that AtlantaFX does not define. Component rules that
-       read these -fx-* colors directly (cascader field, focus glow, selection,
-       …) would otherwise fail to resolve under AtlantaFX and render
-       transparent or black. Every Modena palette token a component rule reads
-       must be supplied here. */
+    /* Modena palette that AtlantaFX does not define. Component rules read these -fx-*
+       colors directly and would otherwise render transparent or black, so every
+       Modena token a component rule reads must be supplied here. */
     -fx-base: -color-bg-default;
     -fx-color: -color-bg-default;
     -fx-control-inner-background: -color-bg-default;
@@ -409,14 +397,10 @@
  *                                                                             *
  ******************************************************************************/
 
-/* Flat by design: the sweep clip mirrors the host background fill list, dropping
-   any layer inset outward, so every state must keep exactly one non-negative fill
-   with the same insets and radii and vary only its color. Border width is pinned
-   for a second reason -- the sweep starts at the border inner edge, so a state
-   that widened it would shift the fill. Border color is free to change, and a
-   stroke may grow outward: the clip is rebuilt only when the border insets (the
-   innermost stroke edge) change. -rx-fill drives the outline, the
-   label and the sweep together, so recoloring the button is one token. */
+/* Flat by design: the sweep clip mirrors the background fill list, so every state
+   keeps exactly one non-negative fill with the same insets and radii and varies only
+   its color. Border width is pinned too: the sweep starts at its inner edge. -rx-fill
+   drives the outline, the label and the sweep together. */
 .rx-fill-button {
     -rx-fill: -rx-primary;
     -rx-fill-animation: left-to-right;
@@ -480,7 +464,6 @@
     -fx-opacity: 0.4;
 }
 
-/*fill label*/
 .rx-fill-label {
     -rx-fill: -rx-primary;
     -rx-fill-animation: left-to-right;
@@ -561,7 +544,6 @@
     -fx-opacity: 0.4;
 }
 
-/*line label*/
 .rx-line-label {
     -rx-line-color: -rx-primary;
     -rx-line-animation: underline-center-out;
@@ -947,8 +929,7 @@
     -rx-ripple-radius: 14px;
 }
 
-/* Size variants (style classes, AtlantaFX-style): scale the thumb, track, fill,
-   halo, and press ink. The skin reads the pref sizes, so no Java change is needed. */
+/* Size variants: the skin reads the pref sizes, so no Java change is needed. */
 .rx-slider.small > .thumb,
 .rx-range-slider.small > .thumb {
     -fx-pref-width: 10px;
@@ -1020,9 +1001,8 @@
 }
 
 /* The .box is the 40px circular touch target (= the halo size): a transparent base
-   layer makes the whole 40px pickable, so hover / press anywhere in it lights the halo /
-   ink (like MUI / the Material 40dp touch target), not just the small box. The visible
-   18px rounded box (an outline ring over a surface fill) is inset 11px and centred. */
+   layer makes all of it pickable, like the Material 40dp touch target. The visible
+   18px box is inset 11px and centred. */
 .rx-check-box > .box {
     -fx-pref-width: 40px;
     -fx-pref-height: 40px;
@@ -1032,9 +1012,8 @@
     -fx-background-insets: 0, 11, 13;
 }
 
-/* The mark is one Region whose shape the pseudo-classes swap (check vs dash). Its
-   scale is driven by the skin's markScale animation, so no -fx-scale-x/y here; the
-   unchecked "hidden" state is the skin's initial markScale = 0, not CSS. */
+/* One mark Region whose shape the pseudo-classes swap (check vs dash). The skin's
+   markScale animation scales it and hides it while unchecked, so no -fx-scale-x/y here. */
 .rx-check-box > .box > .mark {
     -fx-pref-width: 12px;
     -fx-pref-height: 12px;
@@ -1043,14 +1022,12 @@
     -fx-scale-shape: true;
 }
 
-/* Indeterminate: same mark node, a dash shape (drawn at its real size). */
 .rx-check-box:indeterminate > .box > .mark {
     -fx-shape: "M 4 9 H 14 V 11 H 4 Z";
     -fx-scale-shape: false;
 }
 
-/* Material state-layer halo: unbounded circle (50% radius), drawn below the box;
-   tier opacity comes from the global .state-overlay rule, driven by the skin. */
+/* Halo drawn below the box; tier opacity comes from the global .state-overlay rule. */
 .rx-check-box > .state-overlay {
     -fx-pref-width: 40px;
     -fx-pref-height: 40px;
@@ -1058,9 +1035,7 @@
     -fx-background-color: -rx-state-overlay-color;
 }
 
-/* Hover scoped to the box itself (.box:hover), not the control, so hovering the
-   label does not change the box; the state-layer halo behind the box gives the
-   Material hover feedback. */
+/* Hover on the box itself, not the control, so hovering the label leaves the box alone. */
 .rx-check-box > .box:hover {
     -fx-background-color: transparent, -rx-on-surface-secondary, -rx-surface-variant;
 }
@@ -1093,11 +1068,9 @@
     -fx-label-padding: 0 0 0 0.5em;
 }
 
-/* Thin solid rail (M2 / MUI: a single filled capsule, no border, no inset) with a
-   larger thumb that overflows it vertically. The thumb diameter (22) exceeds the
-   track height (14); the skin centres the thumb and reserves max(track, thumb) so
-   the overflow stays unclipped and inside the control bounds. The thumb's elevation
-   shadow (not its white fill) is what makes the overflow read against a light page. */
+/* Thin solid rail (M2) with a larger thumb that overflows it vertically (22 vs 14);
+   the skin reserves max(track, thumb) so the overflow stays inside the control bounds.
+   The thumb's shadow is what makes the overflow read against a light page. */
 .rx-switch-button > .track {
     -fx-pref-width: 44px;
     -fx-pref-height: 14px;
@@ -1128,8 +1101,7 @@
     -fx-scale-y: 1;
 }
 
-/* Material state-layer halo: unbounded circle (50% radius), drawn below the thumb;
-   tier opacity comes from the global .state-overlay rule, driven by the skin. */
+/* Halo drawn below the thumb; tier opacity comes from the global .state-overlay rule. */
 .rx-switch-button > .track > .state-overlay {
     -fx-pref-width: 40px;
     -fx-pref-height: 40px;
@@ -1166,7 +1138,6 @@
     -fx-opacity: 0.4;
 }
 
-/* Compact density variant. */
 .rx-switch-button.small > .track {
     -fx-pref-width: 36px;
     -fx-pref-height: 12px;
@@ -1202,9 +1173,7 @@
 }
 
 /* The .radio is the 36px circular touch target (= the halo size): a transparent fill
-   over the whole circle makes it pickable, so hover / press anywhere in it lights the
-   halo / ink (like MUI / the Material 40dp touch target), not just the small ring. The
-   visible 18px ring is the 2px border, inset 9px and centred in the touch circle. */
+   makes all of it pickable. The visible 18px ring is the 2px border, inset 9px. */
 .rx-radio-button > .radio {
     -fx-pref-width: 36px;
     -fx-pref-height: 36px;
@@ -1226,9 +1195,7 @@
     -fx-background-color: -rx-primary;
 }
 
-/* Material state-layer halo: unbounded circle (50% radius), a skin-level node drawn
-   BEHIND the ring (Material layering — the state layer sits below the content);
-   tier opacity comes from the global .state-overlay rule, driven by the skin. */
+/* Halo drawn behind the ring; tier opacity comes from the global .state-overlay rule. */
 .rx-radio-button > .state-overlay {
     -fx-pref-width: 36px;
     -fx-pref-height: 36px;
@@ -1236,8 +1203,7 @@
     -fx-background-color: -rx-state-overlay-color;
 }
 
-/* Explicit ripple radius (like the slider uses one, instead of the auto hypot radius
-   that is too large here): the ink fills the small touch circle, radius = halo / 2. */
+/* Explicit ripple radius = halo / 2: the auto hypot radius is too large here. */
 .rx-radio-button .ripple-layer {
     -rx-ripple-radius: 18px;
 }
@@ -1255,10 +1221,9 @@
     -fx-opacity: 0.4;
 }
 
-/* Size variants (style classes, AtlantaFX-style): scale the touch target, ring, dot and
-   halo. The .radio pref = the halo size (the touch circle); the border-inset = (touch -
-   ring) / 2 keeps the visible ring centred. The skin reads the pref sizes, so no Java
-   change is needed. */
+/* Size variants: the .radio pref is the touch circle and the border-inset
+   (touch - ring) / 2 keeps the ring centred. The skin reads the pref sizes, so no
+   Java change is needed. */
 .rx-radio-button.small > .radio {
     -fx-pref-width: 28px;
     -fx-pref-height: 28px;
@@ -1299,10 +1264,9 @@
  *                                                                             *
  ******************************************************************************/
 
-/* A capsule (stadium) pill: 999px radius, not 50% (a non-square node renders 50%
-   as an ellipse). The state overlay + press ripple fill comes from -rx-ripple-fill
-   (set in Java from this token); tier opacity comes from the global .state-overlay
-   rule. */
+/* A capsule: 999px radius, not 50% (50% renders a non-square node as an ellipse).
+   The ripple fill comes from -rx-ripple-fill; tier opacity comes from the global
+   .state-overlay rule. */
 .rx-chip {
     -rx-ripple-fill: -rx-state-overlay-color;
     -rx-ripple-opacity: 0.18;
@@ -1592,12 +1556,9 @@
     -fx-shape: "M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01zM0 0L0 0M24 24L24 24";
 }
 
-/* disabled: rely on modena's inherited .text-input:disabled whole-control opacity
-  ; do NOT also dim the text via a token, or it darkens twice (JDK-8152392).
-   The floating label keeps the built-in .label class, so modena's .label:disabled
-   0.4 opacity would MULTIPLY with the control-level 0.4 (child opacity composes);
-   counter it back to 1.0 — same pattern modena uses for .text-input:disabled
-   sub-structure. */
+/* Disabled relies on the inherited .text-input:disabled opacity; dimming the text as
+   well darkens it twice (JDK-8152392). The label's own .label:disabled opacity would
+   compound with it, so reset it to 1.0, as Modena does for .text-input sub-structure. */
 .rx-material-text-field:disabled > .label,
 .rx-material-password-field:disabled > .label {
     -fx-opacity: 1.0;
@@ -1716,16 +1677,13 @@
     -fx-border-width: 1px;
 }
 
-/* Inline keyboard-focus signal. */
 .rx-cascader-view:focused {
     -fx-border-color: -fx-focus-color;
 }
 
-/* Descendant (not child) selector: RXPopupSupport wraps the content in an
-   internal sizing shell between the popup bridge and the view; neither carries
-   RX style classes, so the shadow hangs on the view itself. Inside the popup the
-   view does hold the popup scene's focus, but the field already shows it, so the
-   popup keeps a plain frame like a ComboBox popup. */
+/* Descendant selector: the popup wraps the view in an unstyled sizing shell, so the
+   shadow hangs on the view. The field already shows focus, so the popup keeps a plain
+   frame like a ComboBox popup. */
 .rx-cascader-popup .rx-cascader-view,
 .rx-cascader-popup .rx-cascader-view:focused {
     -fx-background-radius: 3;
@@ -1797,7 +1755,7 @@
 }
 
 /* :focused is the keyboard-navigation highlight (column focus model, not scene
-   focus), styled like hover per ElementUI. */
+   focus), styled like hover. */
 .rx-cascader-view > .columns > .column .list-cell:filled:hover,
 .rx-cascader-view > .columns > .column .list-cell:filled:focused {
     -fx-background-color: ladder(-fx-control-inner-background, derive(-fx-control-inner-background, 12%) 45%, derive(-fx-control-inner-background, -8%) 46%);
@@ -1810,7 +1768,7 @@
     -fx-background-color: -rx-surface-variant;
 }
 
-/* Accent + bold text exactly as ElementUI (checkStrictly=false): the active
+/* Accent + bold text: the active
    (expanded) path, the single-select chosen leaf, and each checked leaf.
    Branch check state is carried by the checkbox, not the text colour. */
 .rx-cascader-cell:in-active-path > .container > .content > .label,
@@ -2189,13 +2147,10 @@
     -fx-background-color: -rx-scrim;
 }
 
-/* A raised surface: on a light host the content surface (white on a gray Modena
-   window), on a dark one a step lighter than the window so the drawer reads as a
-   layer above the content. A hairline on the edge that faces the content keeps
-   that edge visible where the shadow may not show (a black scrim on a dark host, a
-   pushing drawer with no scrim); it is
-   a background layer rather than a border, because border widths count toward the
-   insets and would make the drawer thicker than its content. */
+/* A raised surface: the content surface on a light host, a step lighter than the
+   window on a dark one. A hairline on the content-facing edge keeps that edge visible
+   where the shadow may not show; it is a background layer, not a border, so it does
+   not add to the insets. */
 .rx-drawer-pane > .drawer-wrapper {
     -fx-background-color: -rx-outline-variant,
         ladder(-rx-surface, -rx-surface-variant 45%, -fx-control-inner-background 46%);
@@ -2215,7 +2170,7 @@
     -fx-background-insets: 0, 1 0 0 0;
 }
 
-/* A pushing drawer sits beside the content like a sidebar. */
+/* A pushing drawer sits beside the content, so it casts no shadow. */
 .rx-drawer-pane:push > .drawer-wrapper {
     -fx-effect: null;
 }
@@ -2230,13 +2185,10 @@
     -fx-background-color: -rx-scrim;
 }
 
-/* A raised surface, as for the drawer: the content surface on a light host, a step
-   lighter than the window on a dark one. On a dark host a 1px outline edge (the
-   lower background layer, so the card keeps its size) keeps the card's outline clear
-   on any scrim, including a black one where the shadow does not show. The shadow is
-   translucent black rather
-   than the elevation token: a theme's opaque light-gray shadow is lighter than the
-   scrim around the card and reads as a glow. */
+/* A raised surface, as for the drawer. On a dark host a 1px outline (the lower
+   background layer, so the size stays) keeps the edge clear on any scrim. The shadow
+   is translucent black, not the elevation token: a theme's light-gray shadow reads as
+   a glow on the scrim. */
 .rx-dialog > .dialog-card {
     -fx-background-color: ladder(-rx-surface, -rx-outline 45%, -fx-control-inner-background 46%),
         ladder(-rx-surface, -rx-surface-variant 45%, -fx-control-inner-background 46%);
@@ -2250,10 +2202,8 @@
 
 .rx-dialog > .dialog-card > .actions {
     -fx-padding: 8 16 16 16;
-    /* Material 2: actions trailing-aligned (confirm on the right). The default BOX layout is an
-       RXBox styled here; change -rx-alignment / -rx-spacing / -rx-orientation to taste, and give
-       the buttons an explicit -fx-pref-width for equal widths. The native ButtonBar of PLATFORM
-       ignores these and manages its own (OS-ordered) layout. */
+    /* Material 2: actions trailing-aligned. The default BOX layout is an RXBox styled
+       here; the PLATFORM ButtonBar ignores these and uses its own OS-ordered layout. */
     -rx-spacing: 8;
     -rx-alignment: center-right;
 }
@@ -2303,11 +2253,8 @@
 }
 
 /* RXDialogs message-type heading accents (added by the RXDialogs facade as a
-   rx-dialog-<type> style class on the dialog; CONFIRMATION / NONE stay neutral). */
-.rx-dialog-information .rx-dialog-content > .container > .heading > .title-text {
-    /*-fx-text-fill: -rx-primary;*/
-}
-
+   rx-dialog-<type> style class on the dialog; INFORMATION / CONFIRMATION / NONE stay
+   neutral). */
 .rx-dialog-warning .rx-dialog-content > .container > .heading > .title-text {
     -fx-text-fill: -rx-warning;
 }
@@ -2524,11 +2471,9 @@
     -fx-background-color: -fx-base;
 }
 
-/* Under the AtlantaFX bridge -fx-base maps to -color-bg-default, the page
-   background itself, so the rail would merge into the content beside it. Sit the
-   rail on the subtle surface instead, and step the item hover / pressed fills off
-   that surface (lighter on dark themes, darker on light ones): the bridge's own
-   hover color is that same subtle surface and would vanish against it. */
+/* Under the AtlantaFX bridge -fx-base is the page background, so the rail would merge
+   into the content. Sit it on the subtle surface and step the item hover / pressed
+   fills off that surface; the bridge's own hover color is that same surface. */
 .rx-theme-atlantafx .rx-sidebar {
     -fx-background-color: -rx-surface-variant;
     -fx-hover-base: ladder(-rx-surface-variant, derive(-rx-surface-variant, 15%) 49%, derive(-rx-surface-variant, -5%) 50%);
@@ -2543,12 +2488,9 @@
     -fx-background-color: transparent;
 }
 
-/* Items inherit modena's .button / .toggle-button chrome; flatten it to a row.
-   Everything static lives here; the skin writes only what tracks a property it
-   owns — the left padding, which is the icon column and follows miniWidth, and
-   the content display, which collapses to icon-only in MINI. Overriding the
-   padding here is allowed and wins (author beats user-agent), but the icon
-   column then becomes the author's to place. */
+/* Items inherit the Modena .button / .toggle-button chrome; flatten it to a row. The
+   skin writes only the left padding (the icon column, following miniWidth) and the
+   content display (icon-only in MINI); an author padding wins but then owns the column. */
 .rx-sidebar .item {
     -fx-background-color: transparent;
     -rx-ripple-enabled: false;
@@ -2571,10 +2513,8 @@
     -fx-background-color: -fx-pressed-base;
 }
 
-/* :selected must out-prioritize :focused: a selected item that also holds focus
-   (e.g. re-clicking it, which focuses the sole Tab stop) has to keep its accent
-   fill, not the focus highlight. These rules share specificity, so the later one
-   in source order wins — hence :selected is placed after :focused. */
+/* Same specificity, so :selected comes after :focused: a selected item that also
+   holds focus keeps its accent fill. */
 .rx-sidebar .item:focused {
     -fx-background-color: -fx-hover-base;
 }
@@ -2586,11 +2526,8 @@
     -fx-text-fill: -rx-on-surface;
 }
 
-/* Opt-in slot for an item's icon: give the icon this class and the rail sizes it
-   to the column it centres on in MINI. max is pinned as well as pref, which the
-   usual "CSS gives pref, Java pins max" split would leave out — the icon belongs
-   to the caller, so there is no Java to pin it, and MINI's icon-only display would
-   otherwise stretch it to fill the row. */
+/* Opt-in icon class: the rail sizes it to the MINI column. max is pinned in CSS too,
+   since the icon belongs to the caller and MINI's icon-only display would stretch it. */
 .rx-sidebar .item > .graphic {
     -fx-pref-width: 24;
     -fx-pref-height: 24;
@@ -2931,8 +2868,7 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 6, 0, 0, 2);
 }
 
-/* The cell's own text: unthemed black on a light host as before, the surface text
-   on a dark one. */
+/* Black on a light host, the surface text on a dark one. */
 .rx-tile-cell {
     -fx-text-fill: ladder(-rx-surface, -rx-on-surface 45%, black 46%);
 }
@@ -2943,10 +2879,8 @@
     -fx-border-insets: 1;
 }
 
-/* Selection is a ring + background: the ring (a border) stays visible when a cell
-   paints its own -fx-background-color — the norm for a tile grid, and an inline
-   background cannot override a border — while default cells still get the solid
-   background. */
+/* Selection is a ring + background: the ring survives a cell that paints its own
+   background (an inline background cannot override a border). */
 .rx-tile-cell:selected {
     -fx-background-color: -fx-selection-bar-non-focused;
     /* reads on Modena's selection bars, focused or not, on light and dark hosts alike */
@@ -3040,7 +2974,6 @@
     /* Breathing room of the Labeled text/graphic content area, between the leading
        selection slot and the right edge. */
     -fx-label-padding: 0 0.75em 0 0.25em;
-    /* Interaction feedback comes from the embedded ripple / state overlay. */
     -rx-ripple-fill: -rx-state-overlay-color;
     -rx-ripple-opacity: 0.18;
     -rx-ripple-enabled: true;
@@ -3083,20 +3016,16 @@
     -fx-background-color: -fx-background;
 }
 
-/* Leading selection slot (a skin child, left of the Labeled content area). The slot
-   reserves a constant width for the leading checkbox / checkmark in the CHECKBOX /
-   CHECKMARK modes; ROW (no indicator) collapses it to zero below so a plain list reads
-   flush-left (trade-off: switching to a checkbox / checkmark mode then shifts the text
-   right by the slot width). */
+/* Leading selection slot: reserves a constant width for the CHECKBOX / CHECKMARK
+   indicator; ROW collapses it below for a flush-left plain list. */
 .rx-list-cell > .selection-slot {
     -fx-min-width: 2em;
     -fx-pref-width: 2em;
     -fx-alignment: center;
 }
 
-/* ROW shows no leading indicator, so drop the reserved slot for a flush-left plain list.
-   Scoped to the control's :selection-row pseudo-class (set by the skin from the effective
-   visual mode, so AUTO single-selection collapses it too). */
+/* :selection-row is set from the effective mode, so AUTO single selection collapses
+   the slot too. */
 .rx-list-view:selection-row .rx-list-cell > .selection-slot {
     -fx-min-width: 0;
     -fx-pref-width: 0;
@@ -3196,14 +3125,12 @@
 .rx-menu-item:checked > .leading > .radiomark {
     -fx-opacity: 1;
 }
-/* Destructive / dangerous action. */
 .rx-menu-item:danger > .label {
     -fx-text-fill: -rx-danger;
 }
 .rx-menu-item:danger > .leading > .checkmark {
     -fx-background-color: -rx-danger;
 }
-/* Dense (compact) vertical rhythm, driven by the list-level :dense pseudo-class. */
 .rx-menu-list:dense {
     -fx-padding: 2 0 2 0;
 }
@@ -3329,8 +3256,7 @@
     -fx-stroke-width: 1;
 }
 
-/* The cell's own text: unthemed black on a light host as before, the surface text
-   on a dark one. */
+/* Black on a light host, the surface text on a dark one. */
 .rx-masonry-cell {
     -fx-text-fill: ladder(-rx-surface, -rx-on-surface 45%, black 46%);
 }
@@ -3341,10 +3267,8 @@
     -fx-border-insets: 1;
 }
 
-/* Selection is a ring + background: the ring (a border) stays visible when a cell
-   paints its own -fx-background-color — the norm for a masonry grid, and an inline
-   background cannot override a border — while default cells still get the solid
-   background. */
+/* Selection is a ring + background: the ring survives a cell that paints its own
+   background (an inline background cannot override a border). */
 .rx-masonry-cell:selected {
     -fx-background-color: -fx-selection-bar-non-focused;
     /* reads on Modena's selection bars, focused or not, on light and dark hosts alike */
@@ -3394,11 +3318,9 @@
  * RXKanbanView                                                                *
  *                                                                             *
  ******************************************************************************/
-/* Three layers, like a Modena ListView / TableView: on a light host the board is the
-   white content surface inside a box border, columns are a light gray with a hairline,
-   and column headers are a step darker (lighter on a dark host) with a divider. The
-   hairlines are background layers rather than borders, because border widths count
-   toward the insets and would resize columns and headers. */
+/* Three layers like a Modena ListView: the board is the content surface in a box
+   border, columns a light gray, headers a step darker (lighter on a dark host). The
+   hairlines are background layers, not borders, so they do not resize anything. */
 .rx-kanban-view {
     -fx-background-color: -fx-box-border, ladder(-rx-surface, -rx-surface 45%, -fx-control-inner-background 46%);
     -fx-background-insets: 0, 1;
@@ -3466,18 +3388,16 @@
     -fx-border-radius: 6;
     -fx-padding: 0.75em;
     -fx-text-fill: -rx-on-surface;
-    /* Interaction feedback comes from the embedded ripple / state overlay. */
     -rx-ripple-fill: -rx-state-overlay-color;
     -rx-ripple-opacity: 0.18;
     -rx-ripple-enabled: true;
     -rx-ripple-state-overlay-enabled: true;
 }
 
-/* Selection is a tint and focus a single ring, so a selected card under the keyboard
-   cursor shows one border instead of two. The 2px ring stays inside the card (the
-   recolored 1px border plus a focus-colored background layer under a 2px-inset
-   surface): cards span the column's clipped content area, so anything drawn outside
-   them is cut off at the sides, and a wider border would shift the card content. */
+/* Selection is a tint and focus a single ring, so a selected focused card shows one
+   border. The 2px ring is drawn inside the card (1px border plus an inset background
+   layer): the column clips anything outside, and a wider border would shift the
+   content. */
 .rx-kanban-card-cell:selected {
     -fx-background-color: -rx-primary-bg;
 }

@@ -932,7 +932,7 @@ public class RXTileView<T> extends Control {
     /**
      * Whether the header of the section currently at the top of the viewport sticks
      * there while that section scrolls, sliding up only as the next section's header
-     * arrives to replace it (the iOS / MUI "sticky subheader" effect). On by
+     * arrives to replace it (a "sticky subheader"). On by
      * default, like the whole view family. Only has a visible effect when a
      * {@link #sectionKeyFactoryProperty() sectionKeyFactory} is set,
      * {@link #showSectionHeadersProperty() showSectionHeaders} is {@code true} and

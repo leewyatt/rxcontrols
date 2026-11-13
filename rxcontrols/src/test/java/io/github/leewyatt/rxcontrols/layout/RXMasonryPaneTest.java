@@ -322,7 +322,8 @@ public class RXMasonryPaneTest {
 
     /**
      * Verifies a child pref-height change at constant width re-packs the layout,
-     * guarding against the JFoenix column-count-only stale-cache bug.
+     * guarding against a layout cache that is invalidated only when the column
+     * count changes.
      */
     @Test
     public void childPrefHeightChangeInvalidatesPack() {

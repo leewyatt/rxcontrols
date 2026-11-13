@@ -31,11 +31,13 @@ import java.util.Objects;
  *
  * <p>Other ecosystems map onto the same tiers; port the pixel thresholds
  * deliberately rather than assuming {@code MD} is one fixed value (build via
- * {@link #of(int, Map)}; values in CSS pixels):</p>
+ * {@link #of(int, Map)}; values in CSS pixels). The values below are a
+ * reference only and may change as those frameworks evolve; their official
+ * documentation is authoritative:</p>
  * <pre>
  *                cols  thresholds (px)
  *   Tailwind     (12)  SM 640 / MD 768 / LG 1024 / XL 1280 / XXL 1536   (base = mobile)
- *   MUI v5        12   XS 0 / SM 600 / MD 900 / LG 1200 / XL 1536
+ *   MUI           12   XS 0 / SM 600 / MD 900 / LG 1200 / XL 1536
  *   Foundation    12   XS 0 / SM 640 / MD 1024 / LG 1200 / XL 1440      (small..xxlarge)
  *   Bulma         12   XS 0 / SM 769 / MD 1024 / LG 1216 / XL 1408      (mobile..fullhd)
  *   Material 3    --   XS 0 / SM 600 / MD 840 / LG 1200 / XL 1600       (Compact..ExtraLarge)
@@ -61,7 +63,9 @@ public final class RXBreakpointProfile {
             .build();
 
     /**
-     * Element-style profile: 24 columns and XS/SM/MD/LG/XL thresholds.
+     * Element-style profile: 24 columns and XS/SM/MD/LG/XL thresholds, aligned
+     * with Element UI and Element Plus, which share these values. This is a
+     * fixed preset, not a live mirror of the framework.
      */
     public static final RXBreakpointProfile ELEMENT = builder()
             .columns(24)
@@ -73,7 +77,9 @@ public final class RXBreakpointProfile {
             .build();
 
     /**
-     * Bootstrap-style profile: 12 columns and XS/SM/MD/LG/XL/XXL thresholds.
+     * Bootstrap-style profile: 12 columns and XS/SM/MD/LG/XL/XXL thresholds,
+     * aligned with Bootstrap 5 ({@code XXL} = 1400). This is a fixed preset,
+     * not a live mirror of the framework.
      */
     public static final RXBreakpointProfile BOOTSTRAP = builder()
             .columns(12)

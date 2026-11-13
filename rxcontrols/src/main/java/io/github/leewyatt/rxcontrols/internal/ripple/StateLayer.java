@@ -79,7 +79,7 @@ public final class StateLayer extends Region {
     public static final double DEFAULT_FOCUS_OPACITY = 0.10;
 
     /**
-     * Default pressed tier opacity: the desktop M2 / JFoenix level, deeper than
+     * Default pressed tier opacity: the desktop M2 level, deeper than
      * M3's 0.10, kept as the default so the existing controls are unchanged.
      */
     public static final double DEFAULT_PRESSED_OPACITY = 0.125;
