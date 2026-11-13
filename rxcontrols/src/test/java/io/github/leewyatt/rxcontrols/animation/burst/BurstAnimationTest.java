@@ -3,10 +3,12 @@ package io.github.leewyatt.rxcontrols.animation.burst;
 import javafx.application.Platform;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
+import javafx.scene.shape.StrokeLineCap;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +35,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class BurstAnimationTest {
 
     private static final int SIZE = 160;
-    private static final List<String> KEYWORDS = List.of("classic", "ring", "dots", "sparkles", "rays");
+    private static final List<String> KEYWORDS = List.of("classic", "ring", "dots", "sparkles", "rays",
+            "hearts", "bubbles", "confetti", "fireworks", "explosion");
+    private static final String STAR_PATH = "M12 2 L15 9 L22 9 L16.5 13.5 L18.5 21 L12 16.5 L5.5 21 L7.5 13.5 L2 9 L9 9 Z";
     private static final List<Paint> COLORS = List.of(Color.RED, Color.ORANGE, Color.BLUE);
 
     @BeforeAll
@@ -88,15 +92,81 @@ public class BurstAnimationTest {
             assertArrayEquals(render(new BurstAnimSparkles(1), frame), render(new BurstAnimSparkles(-3), frame));
             assertArrayEquals(render(new BurstAnimRays(2), frame), render(new BurstAnimRays(1), frame));
             assertArrayEquals(render(new BurstAnimRays(36), frame), render(new BurstAnimRays(1000), frame));
+            assertArrayEquals(render(new BurstAnimHearts(1), frame), render(new BurstAnimHearts(0), frame));
+            assertArrayEquals(render(new BurstAnimBubbles(24), frame), render(new BurstAnimBubbles(99), frame));
+            assertArrayEquals(render(new BurstAnimConfetti(80), frame), render(new BurstAnimConfetti(500), frame));
+            assertArrayEquals(render(new BurstAnimFireworks(3), frame), render(new BurstAnimFireworks(-1), frame));
+            assertArrayEquals(render(new BurstAnimExplosion(48), frame), render(new BurstAnimExplosion(100), frame));
+            assertArrayEquals(render(new BurstAnimShapes(STAR_PATH, 32), frame),
+                    render(new BurstAnimShapes(STAR_PATH, 64), frame));
+        });
+    }
+
+    @Test
+    public void customShapesDrawTheirPathAndNothingWithoutOne() throws Exception {
+        onFx(() -> {
+            BurstFrame frame = frame(0.4, 3L);
+            assertTrue(painted(render(new BurstAnimShapes(STAR_PATH), frame)) > 0);
+            assertEquals(0, painted(render(new BurstAnimShapes(STAR_PATH), frame(0.98, 3L))));
+            assertEquals(0, painted(render(new BurstAnimShapes(null), frame)));
+            assertEquals(0, painted(render(new BurstAnimShapes("  "), frame)));
+            assertEquals(0, painted(render(new BurstAnimShapes("not a path"), frame)));
         });
     }
 
     @Test
     public void aLargeBurstIsGoneBeforeTheEndToo() throws Exception {
         onFx(() -> {
-            for (String keyword : KEYWORDS) {
+            for (BurstAnimation animation : allPresets()) {
                 BurstFrame frame = new BurstFrame(0.98, 320.0, 320.0, 240.0, 96.0, COLORS, 5L);
-                assertEquals(0, painted(render(BurstAnimation.valueOf(keyword), frame, 640)), keyword);
+                assertEquals(0, painted(render(animation, frame, 640)), animation.getClass().getSimpleName());
+            }
+        });
+    }
+
+    @Test
+    public void noPresetPaintsPastTheReachPlusItsOvershoot() throws Exception {
+        onFx(() -> {
+            double anchor = 24.0;
+            for (double ratio : new double[]{0.4, 0.8, 1.6, 6.4}) {
+                double reach = anchor * ratio;
+                double limit = reach + anchor * BurstShapes.OVERSHOOT;
+                int size = (int) Math.ceil(2.0 * (limit + anchor));
+                double center = size / 2.0;
+                for (BurstAnimation animation : allPresets()) {
+                    for (int step = 1; step < 10; step++) {
+                        BurstFrame frame = new BurstFrame(step / 10.0, center, center, reach, anchor, COLORS, 9L + step);
+                        int[] pixels = render(animation, frame, size);
+                        for (int y = 0; y < size; y++) {
+                            for (int x = 0; x < size; x++) {
+                                // Half a pixel to the pixel center plus one of anti-aliasing.
+                                boolean outside = Math.hypot(x + 0.5 - center, y + 0.5 - center) > limit + 1.5;
+                                if (outside && (pixels[y * size + x] >>> 24) != 0) {
+                                    throw new AssertionError(animation.getClass().getSimpleName()
+                                            + " paints past the limit at reach/anchor " + ratio + ", t " + frame.progress());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    @Test
+    public void presetsLeaveTheGraphicsStateAsTheyFoundIt() throws Exception {
+        onFx(() -> {
+            for (BurstAnimation animation : allPresets()) {
+                Canvas canvas = new Canvas(SIZE, SIZE);
+                GraphicsContext gc = canvas.getGraphicsContext2D();
+                animation.draw(gc, frame(0.5, 4L));
+                String name = animation.getClass().getSimpleName();
+                assertEquals(1.0, gc.getGlobalAlpha(), name);
+                assertTrue(gc.getTransform().isIdentity(), name);
+                assertEquals(1.0, gc.getLineWidth(), name);
+                assertEquals(StrokeLineCap.SQUARE, gc.getLineCap(), name);
+                assertEquals(Color.BLACK, gc.getFill(), name);
+                assertEquals(Color.BLACK, gc.getStroke(), name);
             }
         });
     }
@@ -104,13 +174,13 @@ public class BurstAnimationTest {
     @Test
     public void degenerateFramesDrawNothingOrStayFinite() throws Exception {
         onFx(() -> {
-            for (String keyword : KEYWORDS) {
-                BurstAnimation animation = BurstAnimation.valueOf(keyword);
+            for (BurstAnimation animation : allPresets()) {
+                String name = animation.getClass().getSimpleName();
                 BurstFrame noAnchor = new BurstFrame(0.4, SIZE / 2.0, SIZE / 2.0, 60.0, 0.0, COLORS, 1L);
-                assertEquals(0, painted(render(animation, noAnchor)), keyword + " without an anchor size");
+                assertEquals(0, painted(render(animation, noAnchor)), name + " without an anchor size");
                 BurstFrame broken = new BurstFrame(0.4, Double.NaN, Double.POSITIVE_INFINITY, -60.0, Double.NaN,
                         COLORS, 1L);
-                assertEquals(0, painted(render(animation, broken)), keyword + " with unusable values");
+                assertEquals(0, painted(render(animation, broken)), name + " with unusable values");
             }
         });
     }
@@ -124,6 +194,11 @@ public class BurstAnimationTest {
         assertSame(BurstAnimation.DOTS, BurstAnimation.valueOf("Dots"));
         assertSame(BurstAnimation.SPARKLES, BurstAnimation.valueOf("sparkles"));
         assertSame(BurstAnimation.RAYS, BurstAnimation.valueOf("rays"));
+        assertSame(BurstAnimation.HEARTS, BurstAnimation.valueOf("hearts"));
+        assertSame(BurstAnimation.BUBBLES, BurstAnimation.valueOf("bubbles"));
+        assertSame(BurstAnimation.CONFETTI, BurstAnimation.valueOf("CONFETTI"));
+        assertSame(BurstAnimation.FIREWORKS, BurstAnimation.valueOf("fireworks"));
+        assertSame(BurstAnimation.EXPLOSION, BurstAnimation.valueOf("explosion"));
         assertNull(BurstAnimation.valueOf("none"));
         assertNull(BurstAnimation.valueOf("unknown"));
         assertNull(BurstAnimation.valueOf(null));
@@ -187,6 +262,16 @@ public class BurstAnimationTest {
     }
 
     // ==================== Helpers ====================
+
+    // Every built-in preset, in its default form, plus a custom shape.
+    private static List<BurstAnimation> allPresets() {
+        List<BurstAnimation> presets = new ArrayList<>();
+        for (String keyword : KEYWORDS) {
+            presets.add(BurstAnimation.valueOf(keyword));
+        }
+        presets.add(new BurstAnimShapes(STAR_PATH));
+        return presets;
+    }
 
     private static BurstFrame frame(double progress, long seed) {
         return new BurstFrame(progress, SIZE / 2.0, SIZE / 2.0, 60.0, 24.0, COLORS, seed);

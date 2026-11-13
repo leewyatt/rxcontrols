@@ -10,9 +10,11 @@ import java.util.Locale;
  *
  * <p>An implementation draws one frame of the burst on a canvas as a pure
  * function of a {@link BurstFrame}: progress, center, reach, colors and a
- * random seed. It keeps no state between frames and must leave nothing
- * visible at progress 1. The timing (one linear timeline per play, cleared
- * canvas before every frame) lives in the control's skin.</p>
+ * random seed. It keeps no state between frames, must leave nothing visible
+ * at progress 1 and paints nothing farther from the center than the reach
+ * plus 0.4 anchor sizes, which is all the canvas is sure to cover. The
+ * timing (one linear timeline per play, cleared canvas before every frame)
+ * lives in the control's skin.</p>
  *
  * <p>The built-in presets are exposed as constants and selectable from CSS
  * via {@code -rx-burst-animation} keywords; parameterized variants are
@@ -57,6 +59,31 @@ public interface BurstAnimation {
      */
     BurstAnimation RAYS = new BurstAnimRays();
 
+    /**
+     * Small hearts float up in a fan, swaying and fading.
+     */
+    BurstAnimation HEARTS = new BurstAnimHearts();
+
+    /**
+     * Hollow bubbles rise with a wobble and pop.
+     */
+    BurstAnimation BUBBLES = new BurstAnimBubbles();
+
+    /**
+     * Confetti strips scatter, spin, turn over and fall.
+     */
+    BurstAnimation CONFETTI = new BurstAnimConfetti();
+
+    /**
+     * A flash, then two rings of trailing sparks that droop and flicker out.
+     */
+    BurstAnimation FIREWORKS = new BurstAnimFireworks();
+
+    /**
+     * A flash, a shock wave, spinning shards and drifting smoke.
+     */
+    BurstAnimation EXPLOSION = new BurstAnimExplosion();
+
     // ==================== Factories ====================
 
     /**
@@ -74,9 +101,11 @@ public interface BurstAnimation {
      * Resolves a CSS keyword to a built-in preset.
      *
      * <p>Keywords are case-insensitive and accept {@code _} for {@code -}:
-     * {@code classic}, {@code ring}, {@code dots}, {@code sparkles} and
-     * {@code rays}. {@code none} and unknown keywords resolve to
-     * {@code null}; the caller decides what that falls back to.</p>
+     * {@code classic}, {@code ring}, {@code dots}, {@code sparkles},
+     * {@code rays}, {@code hearts}, {@code bubbles}, {@code confetti},
+     * {@code fireworks} and {@code explosion}. {@code none} and unknown
+     * keywords resolve to {@code null}; the caller decides what that falls
+     * back to.</p>
      *
      * @param keyword the keyword
      * @return the preset, or {@code null} for {@code none} or an unknown
@@ -97,6 +126,16 @@ public interface BurstAnimation {
                 return SPARKLES;
             case "rays":
                 return RAYS;
+            case "hearts":
+                return HEARTS;
+            case "bubbles":
+                return BUBBLES;
+            case "confetti":
+                return CONFETTI;
+            case "fireworks":
+                return FIREWORKS;
+            case "explosion":
+                return EXPLOSION;
             default:
                 return null;
         }
