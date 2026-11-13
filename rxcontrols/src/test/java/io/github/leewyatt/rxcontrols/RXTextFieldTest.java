@@ -4,6 +4,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.Insets;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.Region;
@@ -85,6 +86,32 @@ public class RXTextFieldTest {
             field.setTrailing(icon);
             field.setTrailing(null);
             assertSame(field.lookup(".leading-wrapper"), icon.getParent());
+        });
+    }
+
+    @Test
+    public void slotsShowTheDefaultCursorRatherThanTheTextCursor() {
+        runOnFx(() -> {
+            RXTextField text = new RXTextField();
+            RXPasswordField password = new RXPasswordField();
+            RXMaterialTextField material = new RXMaterialTextField();
+            RXMaterialPasswordField materialPassword = new RXMaterialPasswordField();
+            text.setLeading(new Region());
+            text.setTrailing(new Region());
+            password.setLeading(new Region());
+            password.setTrailing(new Region());
+            material.setLeading(new Region());
+            materialPassword.setLeading(new Region());
+            StackPane root = new StackPane(text, password, material, materialPassword);
+            new Scene(root, 300, 200);
+            root.applyCss();
+            for (Node wrapper : root.lookupAll(".leading-wrapper")) {
+                assertSame(Cursor.DEFAULT, wrapper.getCursor(), wrapper.getParent().getStyleClass().toString());
+            }
+            for (Node wrapper : root.lookupAll(".trailing-wrapper")) {
+                assertSame(Cursor.DEFAULT, wrapper.getCursor(), wrapper.getParent().getStyleClass().toString());
+            }
+            assertEquals(4, root.lookupAll(".leading-wrapper").size());
         });
     }
 

@@ -1445,11 +1445,25 @@
     -rx-text-padding: 0 0.583em 0 0.583em;
 }
 
+.rx-text-field > .leading-wrapper,
+.rx-text-field > .trailing-wrapper,
+.rx-password-field > .leading-wrapper,
+.rx-password-field > .trailing-wrapper {
+    -fx-cursor: default;
+}
+
 /*******************************************************************************
  *                                                                             *
  * RXMaterialTextField   RXMaterialPasswordField                               *
  *                                                                             *
  ******************************************************************************/
+.rx-material-text-field > .leading-wrapper,
+.rx-material-text-field > .trailing-wrapper,
+.rx-material-password-field > .leading-wrapper,
+.rx-material-password-field > .trailing-wrapper {
+    -fx-cursor: default;
+}
+
 .rx-material-text-field,
 .rx-material-password-field {
     -rx-floating-label: true;
