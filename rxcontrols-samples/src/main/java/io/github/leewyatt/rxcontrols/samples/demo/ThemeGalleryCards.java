@@ -3,20 +3,26 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 import io.github.leewyatt.rxcontrols.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.ImageFit;
 import io.github.leewyatt.rxcontrols.RXAudioSpectrum;
+import io.github.leewyatt.rxcontrols.RXAutoCompleteField;
 import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXAvatar.ShapeType;
+import io.github.leewyatt.rxcontrols.RXBackdrop;
 import io.github.leewyatt.rxcontrols.RXBarSpinner;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
+import io.github.leewyatt.rxcontrols.RXCheckBox;
 import io.github.leewyatt.rxcontrols.RXChip;
 import io.github.leewyatt.rxcontrols.RXChipInput;
 import io.github.leewyatt.rxcontrols.RXChipSet;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.RXClipPathImageView;
+import io.github.leewyatt.rxcontrols.RXCopyButton;
 import io.github.leewyatt.rxcontrols.RXDecimalField;
+import io.github.leewyatt.rxcontrols.RXDialog;
+import io.github.leewyatt.rxcontrols.RXDialogContent;
 import io.github.leewyatt.rxcontrols.RXDigit;
 import io.github.leewyatt.rxcontrols.RXDotPulse;
 import io.github.leewyatt.rxcontrols.RXDoubleField;
@@ -26,39 +32,59 @@ import io.github.leewyatt.rxcontrols.RXFillButton;
 import io.github.leewyatt.rxcontrols.RXFillLabel;
 import io.github.leewyatt.rxcontrols.RXFloatingActionButton;
 import io.github.leewyatt.rxcontrols.RXHighlightTextView;
+import io.github.leewyatt.rxcontrols.RXHoldButton;
 import io.github.leewyatt.rxcontrols.RXImagePane;
 import io.github.leewyatt.rxcontrols.RXImageView;
 import io.github.leewyatt.rxcontrols.RXIntegerField;
+import io.github.leewyatt.rxcontrols.RXKanbanColumn;
+import io.github.leewyatt.rxcontrols.RXKanbanView;
 import io.github.leewyatt.rxcontrols.RXLineButton;
 import io.github.leewyatt.rxcontrols.RXLineLabel;
+import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXLongField;
 import io.github.leewyatt.rxcontrols.RXLrcLineView;
 import io.github.leewyatt.rxcontrols.RXLrcView;
+import io.github.leewyatt.rxcontrols.RXMasonryCell;
+import io.github.leewyatt.rxcontrols.RXMasonryView;
 import io.github.leewyatt.rxcontrols.RXMaterialDecimalField;
 import io.github.leewyatt.rxcontrols.RXMaterialDoubleField;
 import io.github.leewyatt.rxcontrols.RXMaterialIntegerField;
 import io.github.leewyatt.rxcontrols.RXMaterialLongField;
 import io.github.leewyatt.rxcontrols.RXMaterialPasswordField;
 import io.github.leewyatt.rxcontrols.RXMaterialTextField;
+import io.github.leewyatt.rxcontrols.RXMenuButton;
+import io.github.leewyatt.rxcontrols.RXMenuItem;
+import io.github.leewyatt.rxcontrols.RXMenuList;
 import io.github.leewyatt.rxcontrols.RXPasswordField;
 import io.github.leewyatt.rxcontrols.RXPlaceholder;
+import io.github.leewyatt.rxcontrols.RXRadioButton;
 import io.github.leewyatt.rxcontrols.RXRadioToggleButton;
+import io.github.leewyatt.rxcontrols.RXRangeSlider;
 import io.github.leewyatt.rxcontrols.RXRipplePane;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.RXSegmentedProgressBar;
 import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
+import io.github.leewyatt.rxcontrols.RXSelectionBox;
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import io.github.leewyatt.rxcontrols.RXSidebarActionItem;
 import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
+import io.github.leewyatt.rxcontrols.RXSkeleton;
+import io.github.leewyatt.rxcontrols.RXSkeletonPane;
+import io.github.leewyatt.rxcontrols.RXSlider;
+import io.github.leewyatt.rxcontrols.RXSnackbars;
 import io.github.leewyatt.rxcontrols.RXSpeedDial;
 import io.github.leewyatt.rxcontrols.RXSpeedDialAction;
-import io.github.leewyatt.rxcontrols.RXSkeleton;
 import io.github.leewyatt.rxcontrols.RXStatePane;
+import io.github.leewyatt.rxcontrols.RXSwitchButton;
+import io.github.leewyatt.rxcontrols.RXTab;
+import io.github.leewyatt.rxcontrols.RXTabPane;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.RXTextView;
+import io.github.leewyatt.rxcontrols.RXTileCell;
+import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineItem.Type;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
@@ -83,12 +109,17 @@ import java.util.Locale;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TextField;
@@ -122,71 +153,102 @@ final class ThemeGalleryCards {
     private ThemeGalleryCards() {
     }
 
-    /** A control paired with its display name. */
-    record NamedControl(String name, Node node) {
+    /**
+     * A control paired with its display name and a one-line description;
+     * wide cards span two columns.
+     */
+    record NamedControl(String name, String description, Node node, boolean wide) {
     }
 
     /** Every gallery control, sorted by name. */
     static List<NamedControl> cards() {
         List<NamedControl> list = new ArrayList<>();
-        list.add(new NamedControl("RXAudioSpectrum", buildRXAudioSpectrum()));
-        list.add(new NamedControl("RXAvatar", buildRXAvatar()));
-        list.add(new NamedControl("RXBarSpinner", buildRXBarSpinner()));
-        list.add(new NamedControl("RXButton", buildRXButton()));
-        list.add(new NamedControl("RXCarousel", buildRXCarousel()));
-        list.add(new NamedControl("RXCascader", buildRXCascader()));
-        list.add(new NamedControl("RXCascaderView", buildRXCascaderView()));
-        list.add(new NamedControl("RXChip", buildRXChip()));
-        list.add(new NamedControl("RXChipInput", buildRXChipInput()));
-        list.add(new NamedControl("RXChipSet", buildRXChipSet()));
-        list.add(new NamedControl("RXCircularProgressIndicator", buildRXCircularProgressIndicator()));
-        list.add(new NamedControl("RXClipPathImageView", buildRXClipPathImageView()));
-        list.add(new NamedControl("RXDecimalField", buildRXDecimalField()));
-        list.add(new NamedControl("RXDigit", buildRXDigit()));
-        list.add(new NamedControl("RXDotPulse", buildRXDotPulse()));
-        list.add(new NamedControl("RXDoubleField", buildRXDoubleField()));
-        list.add(new NamedControl("RXDrawerPane", buildRXDrawerPane()));
-        list.add(new NamedControl("RXDualPane", buildRXDualPane()));
-        list.add(new NamedControl("RXFillButton", buildRXFillButton()));
-        list.add(new NamedControl("RXFillLabel", buildRXFillLabel()));
-        list.add(new NamedControl("RXFloatingActionButton", buildRXFloatingActionButton()));
-        list.add(new NamedControl("RXHighlightTextView", buildRXHighlightTextView()));
-        list.add(new NamedControl("RXImagePane", buildRXImagePane()));
-        list.add(new NamedControl("RXImageView", buildRXImageView()));
-        list.add(new NamedControl("RXIntegerField", buildRXIntegerField()));
-        list.add(new NamedControl("RXLineButton", buildRXLineButton()));
-        list.add(new NamedControl("RXLineLabel", buildRXLineLabel()));
-        list.add(new NamedControl("RXLongField", buildRXLongField()));
-        list.add(new NamedControl("RXLrcLineView", buildRXLrcLineView()));
-        list.add(new NamedControl("RXLrcView", buildRXLrcView()));
-        list.add(new NamedControl("RXMaterialDecimalField", buildRXMaterialDecimalField()));
-        list.add(new NamedControl("RXMaterialDoubleField", buildRXMaterialDoubleField()));
-        list.add(new NamedControl("RXMaterialIntegerField", buildRXMaterialIntegerField()));
-        list.add(new NamedControl("RXMaterialLongField", buildRXMaterialLongField()));
-        list.add(new NamedControl("RXMaterialPasswordField", buildRXMaterialPasswordField()));
-        list.add(new NamedControl("RXMaterialTextField", buildRXMaterialTextField()));
-        list.add(new NamedControl("RXPasswordField", buildRXPasswordField()));
-        list.add(new NamedControl("RXPlaceholder", buildRXPlaceholder()));
-        list.add(new NamedControl("RXRadioToggleButton", buildRXRadioToggleButton()));
-        list.add(new NamedControl("RXRipplePane", buildRXRipplePane()));
-        list.add(new NamedControl("RXSeekBar", buildRXSeekBar()));
-        list.add(new NamedControl("RXSegmentedControl", buildRXSegmentedControl()));
-        list.add(new NamedControl("RXSegmentedProgressBar", buildRXSegmentedProgressBar()));
-        list.add(new NamedControl("RXSegmentedStepIndicator", buildRXSegmentedStepIndicator()));
-        list.add(new NamedControl("RXSidebar", buildRXSidebar()));
-        list.add(new NamedControl("RXSpeedDial", buildRXSpeedDial()));
-        list.add(new NamedControl("RXSkeleton", buildRXSkeleton()));
-        list.add(new NamedControl("RXStatePane", buildRXStatePane()));
-        list.add(new NamedControl("RXTextField", buildRXTextField()));
-        list.add(new NamedControl("RXTextView", buildRXTextView()));
-        list.add(new NamedControl("RXTimelineView", buildRXTimelineView()));
-        list.add(new NamedControl("RXTimelineView Horizontal", buildRXTimelineViewHorizontal()));
-        list.add(new NamedControl("RXToggleButton", buildRXToggleButton()));
-        list.add(new NamedControl("RXTransitionButton", buildRXTransitionButton()));
-        list.add(new NamedControl("RXTransitionLabel", buildRXTransitionLabel()));
-        list.add(new NamedControl("RXTransitionPane", buildRXTransitionPane()));
-        list.add(new NamedControl("RXWaveProgressIndicator", buildRXWaveProgressIndicator()));
+        list.add(card("RXAudioSpectrum", "Canvas audio spectrum with pluggable visualizations.", buildRXAudioSpectrum()));
+        list.add(card("RXAutoCompleteField", "Text field with a filtered suggestion popup.", buildRXAutoCompleteField()));
+        list.add(card("RXAvatar", "Image, initials or icon in a circle or rounded square.", buildRXAvatar()));
+        list.add(card("RXBackdrop", "Fading scrim that dims the content beneath it.", buildRXBackdrop()));
+        list.add(card("RXBarSpinner", "Decorative loading bars.", buildRXBarSpinner()));
+        list.add(card("RXButton", "Button with bounded ripple feedback.", buildRXButton()));
+        list.add(wide("RXCarousel", "Paged carousel with animated page transitions.", buildRXCarousel()));
+        list.add(wide("RXCascader", "Drop-down selector for hierarchical options.", buildRXCascader()));
+        list.add(wide("RXCascaderView", "Inline multi-column hierarchy browser.", buildRXCascaderView()));
+        list.add(card("RXCheckBox", "Check box with halo and ripple feedback.", buildRXCheckBox()));
+        list.add(card("RXChip", "Compact tag with an optional remove action.", buildRXChip()));
+        list.add(card("RXChipInput", "Text field that turns entries into chips.", buildRXChipInput()));
+        list.add(card("RXChipSet", "Wrapping group of selectable chips.", buildRXChipSet()));
+        list.add(card("RXCircularProgressIndicator", "Ring progress with centered text.", buildRXCircularProgressIndicator()));
+        list.add(card("RXClipPathImageView", "Image clipped to an SVG path.", buildRXClipPathImageView()));
+        list.add(card("RXCopyButton", "Copies to the clipboard and confirms with a check.", buildRXCopyButton()));
+        list.add(card("RXDecimalField", "Locale-aware decimal number input.", buildRXDecimalField()));
+        list.add(card("RXDialog", "In-scene modal dialog shown over the page.", buildRXDialog()));
+        list.add(card("RXDigit", "Seven-segment numeric glyph.", buildRXDigit()));
+        list.add(card("RXDotPulse", "Decorative loading dots.", buildRXDotPulse()));
+        list.add(card("RXDoubleField", "Double number input with range checks.", buildRXDoubleField()));
+        list.add(card("RXDrawerPane", "Content with a sliding overlay drawer.", buildRXDrawerPane()));
+        list.add(card("RXDualPane", "Two slots that flip with a page transition.", buildRXDualPane()));
+        list.add(card("RXFillButton", "Button with an animated fill sweep.", buildRXFillButton()));
+        list.add(card("RXFillLabel", "Label with a hover fill sweep.", buildRXFillLabel()));
+        list.add(card("RXFloatingActionButton", "Circular button for the primary action.", buildRXFloatingActionButton()));
+        list.add(card("RXHighlightTextView", "Selectable text with highlighted keywords.", buildRXHighlightTextView()));
+        list.add(card("RXHoldButton", "Fires only after being held down.", buildRXHoldButton()));
+        list.add(card("RXImagePane", "Image background behind overlaid content.", buildRXImagePane()));
+        list.add(card("RXImageView", "Image area with fit modes and rounded corners.", buildRXImageView()));
+        list.add(card("RXIntegerField", "Integer input with range checks.", buildRXIntegerField()));
+        list.add(wide("RXKanbanView", "Board of draggable cards in columns.", buildRXKanbanView()));
+        list.add(card("RXLineButton", "Button with animated line decorations.", buildRXLineButton()));
+        list.add(card("RXLineLabel", "Label with animated line decorations.", buildRXLineLabel()));
+        list.add(card("RXListView", "Virtualized list with sections and selection.", buildRXListView()));
+        list.add(card("RXLongField", "Long integer input with range checks.", buildRXLongField()));
+        list.add(card("RXLrcLineView", "Current lyric line with transitions.", buildRXLrcLineView()));
+        list.add(card("RXLrcView", "Scrolling, time-synced lyrics.", buildRXLrcView()));
+        list.add(wide("RXMasonryView", "Virtualized masonry of variable-height cells.", buildRXMasonryView()));
+        list.add(card("RXMaterialDecimalField", "Material-style decimal field with a floating label.", buildRXMaterialDecimalField()));
+        list.add(card("RXMaterialDoubleField", "Material-style double field with a floating label.", buildRXMaterialDoubleField()));
+        list.add(card("RXMaterialIntegerField", "Material-style integer field with a floating label.", buildRXMaterialIntegerField()));
+        list.add(card("RXMaterialLongField", "Material-style long field with a floating label.", buildRXMaterialLongField()));
+        list.add(card("RXMaterialPasswordField", "Material-style password field with a floating label.", buildRXMaterialPasswordField()));
+        list.add(card("RXMaterialTextField", "Material-style text field with a floating label.", buildRXMaterialTextField()));
+        list.add(card("RXMenuButton", "Button that opens a command menu.", buildRXMenuButton()));
+        list.add(card("RXMenuList", "Inline command list with keyboard navigation.", buildRXMenuList()));
+        list.add(card("RXPasswordField", "Password field with side slots and reveal.", buildRXPasswordField()));
+        list.add(card("RXPlaceholder", "Empty-state message with actions.", buildRXPlaceholder()));
+        list.add(card("RXRadioButton", "Radio button with halo and ripple feedback.", buildRXRadioButton()));
+        list.add(card("RXRadioToggleButton", "Toggle buttons that select like radio buttons.", buildRXRadioToggleButton()));
+        list.add(card("RXRangeSlider", "Slider with a low and a high thumb.", buildRXRangeSlider()));
+        list.add(card("RXRipplePane", "Container with ripple and hover feedback.", buildRXRipplePane()));
+        list.add(card("RXSeekBar", "Seek bar with buffered progress.", buildRXSeekBar()));
+        list.add(card("RXSegmentedControl", "One-of-many switcher with a sliding indicator.", buildRXSegmentedControl()));
+        list.add(card("RXSegmentedProgressBar", "Progress split into segments.", buildRXSegmentedProgressBar()));
+        list.add(card("RXSegmentedStepIndicator", "Step progress across segments.", buildRXSegmentedStepIndicator()));
+        list.add(card("RXSelectionBox", "Searchable drop-down for one or many items.", buildRXSelectionBox()));
+        list.add(wide("RXSidebar", "Navigation sidebar, expanded or icon-only.", buildRXSidebar()));
+        list.add(card("RXSkeleton", "Loading placeholder shapes with shimmer.", buildRXSkeleton()));
+        list.add(card("RXSkeletonPane", "Swaps a skeleton for the content once loaded.", buildRXSkeletonPane()));
+        list.add(card("RXSlider", "Material slider with a value bubble.", buildRXSlider()));
+        list.add(card("RXSnackbarHost", "Short, auto-hiding notices.", buildRXSnackbarHost()));
+        list.add(card("RXSpeedDial", "Floating button that fans out related actions.", buildRXSpeedDial()));
+        list.add(card("RXStatePane", "Loading overlay over content.", buildRXStatePane()));
+        list.add(card("RXSwitchButton", "On / off switch.", buildRXSwitchButton()));
+        list.add(wide("RXTabPane", "Tabs with a sliding underline indicator.", buildRXTabPane()));
+        list.add(card("RXTextField", "Text field with leading and trailing slots.", buildRXTextField()));
+        list.add(card("RXTextView", "Wrapping text the user can select and copy.", buildRXTextView()));
+        list.add(wide("RXTileView", "Virtualized grid of uniform tiles.", buildRXTileView()));
+        list.add(card("RXTimelineView", "Vertical timeline of events.", buildRXTimelineView()));
+        list.add(wide("RXTimelineView Horizontal", "Horizontal timeline of events.", buildRXTimelineViewHorizontal()));
+        list.add(card("RXToggleButton", "Toggle button with ripple feedback.", buildRXToggleButton()));
+        list.add(card("RXTransitionButton", "Button that flips to alternate content.", buildRXTransitionButton()));
+        list.add(card("RXTransitionLabel", "Label that animates text changes.", buildRXTransitionLabel()));
+        list.add(card("RXTransitionPane", "Container that animates content changes.", buildRXTransitionPane()));
+        list.add(card("RXWaveProgressIndicator", "Circular progress filled by a wave.", buildRXWaveProgressIndicator()));
         return list;
+    }
+
+    private static NamedControl card(String name, String description, Node node) {
+        return new NamedControl(name, description, node, false);
+    }
+
+    private static NamedControl wide(String name, String description, Node node) {
+        return new NamedControl(name, description, node, true);
     }
 
     private static Node buildRXAudioSpectrum() {
@@ -257,7 +319,6 @@ final class ThemeGalleryCards {
         button.setRippleFill(Color.web("#1e88e5"));
         button.setRippleOpacity(0.30);
         button.setStateOverlayEnabled(true);
-        button.setMaxWidth(Double.MAX_VALUE);
         return button;
     }
 
@@ -497,7 +558,6 @@ final class ThemeGalleryCards {
         button.setFillCornerRadius(new CornerRadii(6.0));
         button.setStyle("-fx-background-radius: 6px; -fx-border-radius: 6px;");
         button.setAlignment(Pos.CENTER);
-        button.setMaxWidth(Double.MAX_VALUE);
         return button;
     }
 
@@ -618,7 +678,6 @@ final class ThemeGalleryCards {
         button.setLineAnimation(LineAnimation.UNDERLINE_LEFT_TO_RIGHT);
         button.setLineThickness(2.0);
         button.setLineGap(3.0);
-        button.setMaxWidth(Double.MAX_VALUE);
         return button;
     }
 
@@ -1164,4 +1223,284 @@ final class ThemeGalleryCards {
         return indicator;
     }
 
+    // ==================== Inputs and selection ====================
+
+    private static Node buildRXAutoCompleteField() {
+        RXAutoCompleteField field = new RXAutoCompleteField();
+        field.setPromptText("Type a fruit, e.g. \"an\"");
+        field.getSuggestions().setAll("Apple", "Apricot", "Banana", "Blueberry", "Cherry",
+                "Grape", "Mango", "Orange", "Peach", "Pear");
+        field.setMaxWidth(Double.MAX_VALUE);
+        return field;
+    }
+
+    private static Node buildRXCheckBox() {
+        RXCheckBox email = new RXCheckBox("Email notifications");
+        email.setSelected(true);
+        RXCheckBox digest = new RXCheckBox("Weekly digest");
+        RXCheckBox all = new RXCheckBox("Select all");
+        all.setAllowIndeterminate(true);
+        all.setIndeterminate(true);
+        VBox box = new VBox(12.0, email, digest, all);
+        box.setMaxWidth(Region.USE_PREF_SIZE);
+        return box;
+    }
+
+    private static Node buildRXRadioButton() {
+        ToggleGroup group = new ToggleGroup();
+        VBox box = new VBox(12.0);
+        for (String method : new String[]{"Credit card", "Bank transfer", "Cash on delivery"}) {
+            RXRadioButton radio = new RXRadioButton(method);
+            radio.setToggleGroup(group);
+            box.getChildren().add(radio);
+        }
+        group.selectToggle(group.getToggles().get(0));
+        box.setMaxWidth(Region.USE_PREF_SIZE);
+        return box;
+    }
+
+    private static Node buildRXSwitchButton() {
+        RXSwitchButton notifications = new RXSwitchButton("Notifications");
+        notifications.setSelected(true);
+        RXSwitchButton wifi = new RXSwitchButton("Wi-Fi");
+        VBox box = new VBox(12.0, notifications, wifi);
+        box.setMaxWidth(Region.USE_PREF_SIZE);
+        return box;
+    }
+
+    private static Node buildRXSlider() {
+        RXSlider slider = new RXSlider(0.0, 100.0, 60.0);
+        slider.setShowTickMarks(true);
+        slider.setShowTickLabels(true);
+        slider.setMajorTickUnit(25.0);
+        slider.setMinorTickCount(4);
+        slider.setMaxWidth(Double.MAX_VALUE);
+        return slider;
+    }
+
+    private static Node buildRXRangeSlider() {
+        RXRangeSlider slider = new RXRangeSlider(0.0, 100.0, 30.0, 70.0);
+        slider.setShowTickMarks(true);
+        slider.setShowTickLabels(true);
+        slider.setMajorTickUnit(25.0);
+        slider.setMinorTickCount(4);
+        slider.setMaxWidth(Double.MAX_VALUE);
+        return slider;
+    }
+
+    private static Node buildRXSelectionBox() {
+        RXSelectionBox<String> box = new RXSelectionBox<>(FXCollections.observableArrayList(
+                "Java", "Kotlin", "Scala", "Groovy", "Clojure", "Python", "Rust", "Go"));
+        box.setPromptText("Choose languages");
+        box.setSelectionMode(SelectionMode.MULTIPLE);
+        box.getSelectionModel().select("Java");
+        box.setMaxWidth(Double.MAX_VALUE);
+        return box;
+    }
+
+    // ==================== Buttons and menus ====================
+
+    private static Node buildRXCopyButton() {
+        RXCopyButton button = new RXCopyButton("Copy link");
+        button.setContentFactory(() -> RXCopyButton.textContent("https://example.com/invite"));
+        return button;
+    }
+
+    private static Node buildRXHoldButton() {
+        RXHoldButton button = new RXHoldButton("Hold to delete");
+        button.setCompletedText("Deleted");
+        button.setFeedbackDuration(Duration.seconds(1.5));
+        return button;
+    }
+
+    private static Node buildRXMenuButton() {
+        RXMenuButton button = new RXMenuButton("Account");
+        RXMenuItem signOut = RXMenuItem.of("Sign out");
+        signOut.setDanger(true);
+        button.getItems().addAll(RXMenuItem.of("Profile"), RXMenuItem.of("Settings"),
+                RXMenuItem.separator(), signOut);
+        return button;
+    }
+
+    private static Node buildRXMenuList() {
+        RXMenuList list = new RXMenuList();
+        RXMenuItem delete = RXMenuItem.of("Delete");
+        delete.setDanger(true);
+        list.getItems().addAll(RXMenuItem.of("New file"), RXMenuItem.of("Open…"),
+                RXMenuItem.of("Save"), RXMenuItem.separator(), delete);
+        list.setMaxSize(220.0, Region.USE_PREF_SIZE);
+        return list;
+    }
+
+    // ==================== Overlays ====================
+
+    private static Node buildRXBackdrop() {
+        RXBackdrop backdrop = new RXBackdrop();
+        backdrop.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> backdrop.hide());
+        Button show = new Button("Show backdrop");
+        show.setOnAction(event -> backdrop.show());
+        Label hint = new Label("Click to hide");
+        hint.setStyle("-fx-text-fill: white;");
+        hint.setMouseTransparent(true);
+        hint.visibleProperty().bind(backdrop.showingProperty());
+
+        VBox workspace = new VBox(10.0, new Label("Workspace"), show);
+        workspace.setAlignment(Pos.CENTER);
+        StackPane frame = new StackPane(workspace, backdrop, hint);
+        StackPane.setAlignment(hint, Pos.BOTTOM_CENTER);
+        StackPane.setMargin(hint, new Insets(0.0, 0.0, 12.0, 0.0));
+        frame.setPrefSize(260.0, 140.0);
+        frame.setMaxSize(260.0, 140.0);
+        frame.setStyle("-fx-border-color: rgba(128, 128, 128, 0.35); -fx-border-radius: 6;");
+        return frame;
+    }
+
+    private static Node buildRXDialog() {
+        Button open = new Button("Delete file…");
+        open.setOnAction(event -> {
+            RXDialog<ButtonType> dialog = new RXDialog<>();
+            dialog.setContent(new RXDialogContent("Delete file?",
+                    "“report.pdf” will be permanently removed."));
+            dialog.getButtonTypes().setAll(ButtonType.CANCEL,
+                    new ButtonType("Delete", ButtonBar.ButtonData.OK_DONE));
+            dialog.show(open);
+        });
+        return open;
+    }
+
+    private static Node buildRXSnackbarHost() {
+        Button show = new Button("Save file");
+        show.setOnAction(event -> RXSnackbars.show(show, "File saved"));
+        return show;
+    }
+
+    private static Node buildRXSkeletonPane() {
+        Label loaded = new Label("Ada Lovelace\nFirst published algorithm, 1843.");
+        loaded.setWrapText(true);
+        RXSkeletonPane pane = new RXSkeletonPane(buildRXSkeleton(), loaded);
+        CheckBox loading = new CheckBox("Loading");
+        loading.selectedProperty().bindBidirectional(pane.loadingProperty());
+        VBox box = new VBox(10.0, pane, loading);
+        box.setAlignment(Pos.CENTER_LEFT);
+        box.setMaxWidth(Double.MAX_VALUE);
+        return box;
+    }
+
+    // ==================== Data views ====================
+
+    private static Node buildRXListView() {
+        RXListView<String> list = new RXListView<>(FXCollections.observableArrayList(
+                "Design systems", "Accessibility", "Animation", "Data visualization",
+                "Performance", "Theming", "Layout", "Typography"));
+        list.getSelectionModel().select(1);
+        list.setPrefSize(260.0, 200.0);
+        list.setMaxSize(Double.MAX_VALUE, 200.0);
+        return list;
+    }
+
+    private static Node buildRXTileView() {
+        ObservableList<String> items = FXCollections.observableArrayList();
+        for (int i = 1; i <= 24; i++) {
+            items.add("Tile " + i);
+        }
+        RXTileView<String> tiles = new RXTileView<>(items);
+        tiles.setCellFactory(view -> new GalleryTileCell());
+        tiles.setPrefTileWidth(96.0);
+        tiles.setPrefTileHeight(64.0);
+        tiles.setHgap(10.0);
+        tiles.setVgap(10.0);
+        tiles.getSelectionModel().select(2);
+        tiles.setPrefSize(600.0, 220.0);
+        tiles.setMaxSize(Double.MAX_VALUE, 220.0);
+        return tiles;
+    }
+
+    private static Node buildRXMasonryView() {
+        ObservableList<Integer> notes = FXCollections.observableArrayList();
+        for (int i = 1; i <= 18; i++) {
+            notes.add(i);
+        }
+        RXMasonryView<Integer> masonry = new RXMasonryView<>(notes);
+        masonry.setColumnWidth(140.0);
+        masonry.setHgap(10.0);
+        masonry.setVgap(10.0);
+        masonry.setCellFactory(view -> new GalleryNoteCell());
+        masonry.setPrefSize(600.0, 260.0);
+        masonry.setMaxSize(Double.MAX_VALUE, 260.0);
+        return masonry;
+    }
+
+    private static Node buildRXKanbanView() {
+        RXKanbanView<String> board = new RXKanbanView<>(FXCollections.observableArrayList(
+                kanbanColumn("To do", "Wire up API", "Draft docs", "Design icons"),
+                kanbanColumn("Doing", "Drag and drop", "Settle animation"),
+                kanbanColumn("Done", "Column model", "Virtualized viewport")));
+        board.setPrefSize(600.0, 280.0);
+        board.setMaxSize(Double.MAX_VALUE, 280.0);
+        return board;
+    }
+
+    private static RXKanbanColumn<String> kanbanColumn(String title, String... cards) {
+        RXKanbanColumn<String> column = new RXKanbanColumn<>(title);
+        column.getCards().addAll(cards);
+        return column;
+    }
+
+    private static Node buildRXTabPane() {
+        RXTabPane tabs = new RXTabPane(
+                RXTab.of("Overview", tabPage("Project overview and recent activity.")),
+                RXTab.of("Analytics", tabPage("Traffic, conversions and retention.")),
+                RXTab.of("Settings", tabPage("Members, permissions and billing.")));
+        tabs.setPrefSize(600.0, 200.0);
+        tabs.setMaxSize(Double.MAX_VALUE, 200.0);
+        return tabs;
+    }
+
+    private static Node tabPage(String text) {
+        StackPane page = new StackPane(new Label(text));
+        page.setPadding(new Insets(16.0));
+        return page;
+    }
+
+    // Outlined in the theme's outline color, so the tiles read as tiles.
+    private static final class GalleryTileCell extends RXTileCell<String> {
+
+        private GalleryTileCell() {
+            setAlignment(Pos.CENTER);
+            setStyle("-fx-border-color: -rx-outline-variant; -fx-border-radius: 6;"
+                    + " -fx-background-radius: 6;");
+        }
+
+        @Override
+        protected void updateItem(String item, boolean empty) {
+            super.updateItem(item, empty);
+            setText(empty ? null : item);
+        }
+    }
+
+    // Line counts vary per note, so the measured heights make a real masonry.
+    private static final class GalleryNoteCell extends RXMasonryCell<Integer> {
+
+        private static final String BASE_STYLE = "-fx-text-fill: white; -fx-padding: 10;";
+
+        private GalleryNoteCell() {
+            setAlignment(Pos.TOP_LEFT);
+            setWrapText(true);
+            setStyle(BASE_STYLE);
+        }
+
+        @Override
+        protected void updateItem(Integer item, boolean empty) {
+            super.updateItem(item, empty);
+            if (empty || item == null) {
+                setText(null);
+                setStyle(BASE_STYLE);
+            } else {
+                setText("Note " + item + "\n" + "Lorem ipsum dolor sit amet.\n".repeat(item % 4));
+                double hue = (item * 37.0) % 360.0;
+                setStyle(BASE_STYLE + " -fx-background-color: hsb(" + hue + ", 55%, 70%);"
+                        + " -fx-background-radius: 8;");
+            }
+        }
+    }
 }

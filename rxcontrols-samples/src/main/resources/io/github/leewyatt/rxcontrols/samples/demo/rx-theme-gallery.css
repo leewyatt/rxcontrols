@@ -1,3 +1,79 @@
+/* Gallery chrome. The -gallery-* colors come from Modena's looked-up colors and,
+   while the AtlantaFX bridge marks the root, from AtlantaFX's own. Cards use the
+   theme's surface color, the same one the RX controls draw on, so a control
+   blends into its card the way it would into an application window. */
+.root {
+    -gallery-page: derive(-fx-background, -5%);
+    -gallery-card: -fx-background;
+    -gallery-line: derive(-fx-background, -14%);
+    -gallery-muted: #667085;
+    -gallery-shadow: rgba(0, 0, 0, 0.08);
+}
+
+.root.rx-theme-atlantafx {
+    -gallery-page: -color-bg-inset;
+    -gallery-card: -color-bg-default;
+    -gallery-line: -color-border-default;
+    -gallery-muted: -color-fg-muted;
+    -gallery-shadow: ladder(-color-bg-default, rgba(0, 0, 0, 0.6) 49%, rgba(0, 0, 0, 0.08) 50%);
+}
+
+.gallery-root {
+    -fx-background-color: -gallery-page;
+}
+
+.gallery-toolbar {
+    -fx-background-color: -gallery-line, -gallery-card;
+    -fx-background-insets: 0, 0 0 1 0;
+    -fx-padding: 12px 24px;
+}
+
+.gallery-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.gallery-count,
+.card-description {
+    -fx-text-fill: -gallery-muted;
+}
+
+.gallery-scroll,
+.gallery-scroll > .viewport {
+    -fx-background-color: -gallery-page;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+}
+
+.gallery-content {
+    -fx-padding: 24px;
+}
+
+.gallery-heading {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -gallery-muted;
+}
+
+.gallery-card {
+    -fx-background-color: -gallery-card;
+    -fx-background-radius: 10px;
+    -fx-border-color: -gallery-line;
+    -fx-border-radius: 10px;
+    -fx-padding: 16px;
+    -fx-effect: dropshadow(gaussian, -gallery-shadow, 10, 0, 0, 2);
+}
+
+.card-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.card-description {
+    -fx-font-size: 12px;
+}
+
 /* Field side nodes for the theme gallery cards. Side wrappers sit flush with the
    field's outer bounds; the addon-* classes tint them as attached blocks (inset
    1px so the field border stays visible). Colours use the -rx-* tokens so they
