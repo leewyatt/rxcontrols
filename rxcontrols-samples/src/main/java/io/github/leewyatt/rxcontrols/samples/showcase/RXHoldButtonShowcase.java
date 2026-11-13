@@ -38,7 +38,7 @@ import java.util.function.Supplier;
  * <p>The preview shows the button with its current state (idle, holding,
  * completed), an ActionEvent counter and an icon-only variant. The control
  * pane covers the hold duration, the text and graphic of each of the three
- * faces including {@code null}, the feedback duration (indefinite, finite,
+ * faces, the feedback duration (indefinite, finite,
  * zero) with {@code resetFeedback()}, the swap animation, the fill animation,
  * a solid and an outlined look, a stretched width, the disabled state,
  * right-to-left orientation and the untimed {@code fire()}.</p>
@@ -169,19 +169,15 @@ public class RXHoldButtonShowcase extends RXShowcaseApplication {
     }
 
     private Node buildFacesGrid() {
-        TextField textField = new TextField(button.getText());
-        TextField holdingField = new TextField(button.getHoldingText());
-        TextField completedField = new TextField(button.getCompletedText());
-
         // Each face needs its own node: the three faces are in the scene at once.
         Region idleIcon = icon("trash-icon");
         Region holdingIcon = icon("hourglass-icon");
         Region completedIcon = icon("check-icon");
 
         return createGrid(
-                row("Text", nullableText(textField, button::setText)),
-                row("Holding text", nullableText(holdingField, button::setHoldingText)),
-                row("Completed text", nullableText(completedField, button::setCompletedText)),
+                row("Text", textField(button.getText(), button::setText)),
+                row("Holding text", textField(button.getHoldingText(), button::setHoldingText)),
+                row("Completed text", textField(button.getCompletedText(), button::setCompletedText)),
                 row("Graphic", toggle(true, selected -> button.setGraphic(selected ? idleIcon : null))),
                 row("Holding graphic",
                         toggle(true, selected -> button.setHoldingGraphic(selected ? holdingIcon : null))),
@@ -311,16 +307,11 @@ public class RXHoldButtonShowcase extends RXShowcaseApplication {
 
     // ==================== Helpers ====================
 
-    // A text field plus a check box that sets the property to null instead.
-    private static Node nullableText(TextField field, Consumer<String> setter) {
-        CheckBox nullBox = new CheckBox("null");
-        field.disableProperty().bind(nullBox.selectedProperty());
-        Runnable apply = () -> setter.accept(nullBox.isSelected() ? null : field.getText());
-        field.textProperty().addListener((obs, oldV, newV) -> apply.run());
-        nullBox.selectedProperty().addListener((obs, oldV, newV) -> apply.run());
-        HBox box = new HBox(8.0, field, nullBox);
-        box.setAlignment(Pos.CENTER_LEFT);
-        return box;
+    // An empty field shows no text, the same as null.
+    private static TextField textField(String text, Consumer<String> setter) {
+        TextField field = new TextField(text);
+        field.textProperty().addListener((obs, oldV, newV) -> setter.accept(newV));
+        return field;
     }
 
     private static CheckBox toggle(boolean selected, Consumer<Boolean> action) {
