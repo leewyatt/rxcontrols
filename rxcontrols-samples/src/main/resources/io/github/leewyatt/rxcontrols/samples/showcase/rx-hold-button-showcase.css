@@ -65,7 +65,12 @@
 }
 
 .rx-hold-button.outlined:completed > .fill-layer > .fill-region {
+    -fx-background-color: -rx-success;
     -fx-opacity: 1;
+}
+
+.rx-hold-button.outlined:completed {
+    -fx-border-color: -rx-success;
 }
 
 .rx-hold-button.outlined:completed {

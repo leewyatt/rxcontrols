@@ -534,6 +534,12 @@
     -fx-background-color: derive(-rx-fill, -35%);
 }
 
+/* The fill stays full while the completed face shows, so it carries the
+   success color over the whole body. */
+.rx-hold-button:completed > .fill-layer > .fill-region {
+    -fx-background-color: -rx-success;
+}
+
 /*******************************************************************************
  *                                                                             *
  * RXLineButton                                                                *
