@@ -130,16 +130,20 @@ public final class PasswordMaskSupport {
     }
 
     /**
-     * @return whether the helper has degraded (discovery or rebind failed);
-     *         the mask stays permanently active in that state
+     * Returns whether the helper has degraded because discovery or rebinding
+     * failed; the mask then stays permanently active.
+     *
+     * @return {@code true} if the helper has degraded
      */
     public boolean isFailed() {
         return failed;
     }
 
     /**
-     * @return whether the dynamic display binding is installed; skins gate their
-     *         reveal logic on this so a failed install stays permanently masked
+     * Returns whether the dynamic display binding is installed. Skins gate their
+     * reveal logic on this, so a failed install stays permanently masked.
+     *
+     * @return {@code true} if the binding is installed
      */
     public boolean isInstalled() {
         return installed;
@@ -182,7 +186,7 @@ public final class PasswordMaskSupport {
         } finally {
             boundTextNode.textProperty().bind(displayBinding);
         }
-        if (control.getSkin() instanceof TextInputControlSkin<?> skin) {
+        if (owner instanceof TextInputControlSkin<?> skin) {
             skin.setForwardBias(true);
         }
         editorLayout.run();

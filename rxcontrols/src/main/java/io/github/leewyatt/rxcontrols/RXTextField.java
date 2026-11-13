@@ -31,8 +31,7 @@ import java.util.List;
  * <b>Slot migration semantics.</b> A single {@link Node} instance is moved
  * between slots rather than displayed in both: assigning a node to one slot
  * via the setter automatically clears the opposite slot if it currently holds
- * the same instance. This mirrors how {@link javafx.scene.layout.BorderPane}
- * treats its region properties. If the opposite slot is bound via JavaFX
+ * the same instance. If the opposite slot is bound via JavaFX
  * binding, the automatic clear is skipped (the JavaFX binding contract takes
  * precedence) and concurrent occupancy of both slots by the same node is
  * unsupported — callers using bindings must arrange uniqueness themselves.

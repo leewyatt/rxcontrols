@@ -8,11 +8,12 @@ import javafx.scene.text.Font;
 
 /**
  * Converts a CSS string literal (e.g. {@code '*'} or {@code "x"}) into a
- * {@link Character}. The first character of the parsed value is used; the
- * remainder is discarded.
+ * {@link Character}. Unicode escapes are decoded as for any string-valued
+ * property, then the first character is used and the remainder is discarded.
  * <p>
  * The converter <em>never</em> returns {@code null} — when the parsed value
- * is absent, empty, or not a string, it falls back to a configurable character:
+ * is absent, empty, or not a string (a color keyword, for example), it falls
+ * back to a configurable character:
  * {@link #getInstance()} uses {@link RXPasswordField#DEFAULT_ECHO_CHAR}, while
  * {@link #withFallback(char)} supplies a caller-chosen fallback so a control's
  * {@code -rx-echo-char} metadata can default to its own constant rather than
@@ -20,7 +21,9 @@ import javafx.scene.text.Font;
  * unparseable CSS value (typo, wrong type, empty literal) should render the
  * default mask rather than propagate {@code null} through to the skin. The
  * property itself tolerates {@code null} (skin renders the default in that case
- * too), so the fallback is convention, not necessity.
+ * too), so the fallback is convention, not necessity. A value the CSS parser
+ * types on its own, such as a bare number, carries its own converter and never
+ * reaches this one; it fails as it would on any built-in property.
  */
 public final class EchoCharConverter extends StyleConverter<String, Character> {
 

@@ -675,6 +675,9 @@ public class RXMaterialPasswordField extends PasswordField {
      * {@code false}. Tolerates {@code null} as a "use the default" signal — the
      * skin renders {@link #DEFAULT_ECHO_CHAR} when the value resolves to
      * {@code null}.
+     * <p>
+     * The mask is a single UTF-16 {@code char}, so a character outside the
+     * Basic Multilingual Plane, such as an emoji, cannot be used.
      *
      * @return the echo character property
      * @defaultValue {@link #DEFAULT_ECHO_CHAR} (U+25CF BLACK CIRCLE)

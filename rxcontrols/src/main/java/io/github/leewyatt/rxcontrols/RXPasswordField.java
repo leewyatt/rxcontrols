@@ -222,8 +222,10 @@ public class RXPasswordField extends PasswordField {
      * subsequently returns {@code null}. The skin renders
      * {@link #DEFAULT_ECHO_CHAR} whenever the property resolves to
      * {@code null}, so callers do not need to null-check a value forwarded
-     * from upstream. This mirrors the null-tolerant style of
-     * {@link javafx.scene.control.Labeled#textFillProperty()}.
+     * from upstream.
+     * <p>
+     * The mask is a single UTF-16 {@code char}, so a character outside the
+     * Basic Multilingual Plane, such as an emoji, cannot be used.
      *
      * @return the echo character property
      * @defaultValue {@link #DEFAULT_ECHO_CHAR} (U+25CF BLACK CIRCLE)

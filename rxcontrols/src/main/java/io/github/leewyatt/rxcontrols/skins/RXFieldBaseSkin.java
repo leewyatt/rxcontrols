@@ -69,6 +69,12 @@ import javafx.scene.text.HitInfo;
  * preferred and minimum widths, never shrinking below the minimum, so the
  * field's minimum width is honored.
  * <p>
+ * On JavaFX 17, {@code setSkin} ignores a new skin of the same class as the
+ * installed one, after the new skin's constructor has already attached its
+ * nodes and taken the slot nodes into its own wrappers. To change the slots or
+ * the padding, change the values of the observables given here instead of
+ * installing another instance.
+ * <p>
  * {@code effectiveTextPadding} resolves to the active text-editor inner
  * padding. A {@code null} value is treated as {@link Insets#EMPTY}, and a
  * negative or non-finite side as {@code 0}.
