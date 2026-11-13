@@ -106,6 +106,9 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
     // True from a completed hold until the feedback ends; presses are locked
     // out meanwhile.
     private boolean inFeedback;
+    // A zero feedback duration shows no completed face, so the feedback
+    // lasts only while the owner is down.
+    private boolean releaseEndsFeedback;
     private final PauseTransition feedbackTimer = new PauseTransition();
 
     // ==================== Window focus ====================
@@ -480,18 +483,13 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
             return;
         }
         // Snapshot: a duration change during the hold applies to the next one.
-        Timeline timeline = new Timeline(new KeyFrame(holdDurationOrDefault(),
-                new KeyValue(displayProgress, 1.0, Interpolator.LINEAR)));
         // A listener may have ended this hold and started another inside
-        // arm(); only the live hold's timeline may complete.
-        timeline.setOnFinished(event -> {
-            if (timeline == holdTimeline) {
-                complete();
-            }
-        });
+        // arm(): stop that one, so only one timeline can ever complete.
         stopHoldTimeline();
-        holdTimeline = timeline;
-        timeline.play();
+        holdTimeline = new Timeline(new KeyFrame(holdDurationOrDefault(),
+                new KeyValue(displayProgress, 1.0, Interpolator.LINEAR)));
+        holdTimeline.setOnFinished(event -> complete());
+        holdTimeline.play();
     }
 
     // The only path to the hold's ActionEvent. The state is written before
@@ -544,9 +542,8 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
             case COMPLETED_AWAIT_RELEASE:
                 state = State.IDLE;
                 owner = null;
-                // A zero duration shows no completed face: the feedback lasts
-                // only while the owner is down. Otherwise it runs its course.
-                if (pages.getCurrentPage() == pages.getPageA()) {
+                // Otherwise the feedback runs its course.
+                if (releaseEndsFeedback) {
                     leaveFeedback(true);
                 }
                 break;
@@ -619,7 +616,8 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
         inFeedback = true;
         getSkinnable().pseudoClassStateChanged(COMPLETED, true);
         Duration duration = feedbackDurationOrDefault();
-        if (duration.lessThanOrEqualTo(Duration.ZERO)) {
+        releaseEndsFeedback = duration.lessThanOrEqualTo(Duration.ZERO);
+        if (releaseEndsFeedback) {
             showHoldingCaption(false);
             return;
         }

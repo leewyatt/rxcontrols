@@ -33,11 +33,13 @@ import java.util.List;
  * {@link #holdDurationProperty() holdDuration}: a guard against accidental
  * activation of destructive or irreversible actions.
  *
- * <p>Pressing the primary mouse button, or SPACE (and ENTER on platforms
- * other than macOS), starts a hold. A progress fill sweeps across the button,
- * and the {@code ActionEvent} fires once, the moment the fill completes.
- * Releasing early, moving the pointer out, losing focus or disabling the
- * button cancels the hold without firing.</p>
+ * <p>A plain press of the primary mouse button, or of SPACE (and ENTER on
+ * platforms other than macOS), starts a hold; other buttons and modified
+ * presses do not. A progress fill sweeps across the button, and the
+ * {@code ActionEvent} fires once, the moment the fill completes. Releasing
+ * early, moving the pointer out, disabling, removing or hiding the button,
+ * the window losing focus, or the button losing focus during a key hold
+ * cancels the hold without firing.</p>
  *
  * <p>The button has three faces, each with its own text and graphic:</p>
  * <ul>
@@ -58,7 +60,8 @@ import java.util.List;
  * {@code completedGraphic} must be different nodes. The button is sized to the
  * largest face and keeps that size when the face changes; the default holding
  * and completed texts count toward its width too, so an icon-only button
- * should set both texts to {@code null}.</p>
+ * should set both texts to {@code null}. The default texts are English and
+ * not localized; set them for other locales.</p>
  *
  * <p>The idle and holding faces swap instantly. The completed face comes in,
  * and goes back to the idle face, with the
@@ -69,7 +72,10 @@ import java.util.List;
  * start until it ends. The default, {@code Duration.INDEFINITE}, keeps the
  * completed face until {@link #resetFeedback()} is called, which suits a
  * one-time confirmation. Actions that may be repeated should use a finite
- * duration, or {@code Duration.ZERO} to skip the completed face.</p>
+ * duration, or {@code Duration.ZERO} to skip the completed face. If a
+ * listener vetoes the action while the hold completes, for example by
+ * disabling the button when it disarms, nothing fires and no completed face
+ * shows.</p>
  *
  * <pre>{@code
  * RXHoldButton delete = new RXHoldButton("Hold to delete");
@@ -78,6 +84,9 @@ import java.util.List;
  *
  * // A repeatable action: back to the idle face after two seconds
  * clearLog.setFeedbackDuration(Duration.seconds(2));
+ *
+ * // No completed face: ready for the next hold once released
+ * nextTrack.setFeedbackDuration(Duration.ZERO);
  *
  * // A one-time confirmation that reopens once the work is done
  * submit.setOnAction(event -> service.submit().thenRun(
@@ -92,6 +101,11 @@ import java.util.List;
  * cannot hold a key or button. Handlers added with
  * {@code addEventHandler(ActionEvent.ACTION, ...)} before the skin is
  * installed may run before the hold is cancelled.</p>
+ *
+ * <p>JavaFX does not tell a key's auto-repeat from a new press. If
+ * {@code onAction} removes the button, focus may move on to another hold
+ * button, where a key still held down would start a new hold: move focus to
+ * a neutral node first.</p>
  *
  * <p>Mnemonics are not supported. An icon-only button should set
  * {@code accessibleText}.</p>
@@ -408,7 +422,8 @@ public class RXHoldButton extends ButtonBase {
      * How long the completed face stays after a hold completes; no new hold
      * can start meanwhile. The default {@code Duration.INDEFINITE} keeps it
      * until {@link #resetFeedback()}; {@code Duration.ZERO} skips the
-     * completed face, so the button can be held again once released;
+     * completed face, so the button can be held again once released, and the
+     * {@code completed} pseudo-class lasts only until that release;
      * {@code null}, negative and unknown values fall back to
      * {@link #DEFAULT_FEEDBACK_DURATION}. A change made while the completed
      * face shows applies from the next completion. From CSS:

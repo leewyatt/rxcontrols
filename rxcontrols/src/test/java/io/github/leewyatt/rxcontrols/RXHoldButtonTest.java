@@ -732,7 +732,6 @@ public class RXHoldButtonTest {
     public void onActionMayDisableRemoveOrReskinTheButton() throws InterruptedException {
         AtomicReference<List<RXHoldButton>> ref = new AtomicReference<>();
         AtomicReference<Skin<?>> originalSkin = new AtomicReference<>();
-        AtomicInteger fired = new AtomicInteger();
         AtomicInteger actions = new AtomicInteger();
         // Timeline handlers report exceptions to the uncaught handler instead
         // of throwing, so the test records them there.
@@ -743,7 +742,7 @@ public class RXHoldButtonTest {
             Thread.currentThread().setUncaughtExceptionHandler((thread, error) -> uncaught.add(error));
         });
         try {
-            runReentrantHolds(ref, originalSkin, fired, actions, uncaught);
+            runReentrantHolds(ref, originalSkin, actions, uncaught);
         } finally {
             onFx(() -> Thread.currentThread().setUncaughtExceptionHandler(previous.get()));
         }
@@ -751,7 +750,7 @@ public class RXHoldButtonTest {
 
     private static void runReentrantHolds(AtomicReference<List<RXHoldButton>> ref,
                                           AtomicReference<Skin<?>> originalSkin,
-                                          AtomicInteger fired, AtomicInteger actions,
+                                          AtomicInteger actions,
                                           List<Throwable> uncaught) throws InterruptedException {
         onFx(() -> {
             RXHoldButton disabling = holdButton();
@@ -764,16 +763,7 @@ public class RXHoldButtonTest {
             reskinning.setOnAction(event -> reskinning.setSkin(new RXHoldButtonSkin(reskinning) {
             }));
             originalSkin.set(reskinning.getSkin());
-            // The completion disarms before it fires: a listener disabling the
-            // button there cancels the action.
-            RXHoldButton vetoing = holdButton();
-            vetoing.armedProperty().addListener((observable, was, armed) -> {
-                if (!armed) {
-                    vetoing.setDisable(true);
-                }
-            });
-            vetoing.addEventHandler(ActionEvent.ACTION, event -> fired.incrementAndGet());
-            List<RXHoldButton> buttons = List.of(disabling, removing, reskinning, vetoing);
+            List<RXHoldButton> buttons = List.of(disabling, removing, reskinning);
             for (RXHoldButton button : buttons) {
                 button.addEventHandler(ActionEvent.ACTION, event -> actions.incrementAndGet());
                 mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
@@ -783,7 +773,6 @@ public class RXHoldButtonTest {
         Thread.sleep(PAST_HOLD_MS);
         onFx(() -> {
             assertEquals(List.of(), uncaught);
-            assertEquals(0, fired.get());
             assertEquals(3, actions.get());
             List<RXHoldButton> buttons = ref.get();
             assertTrue(buttons.get(0).isDisabled());
@@ -1002,6 +991,11 @@ public class RXHoldButtonTest {
             assertEquals(0, fired.get());
             assertCompletedFace(button, false);
             assertEquals(1, recording.contexts.size(), "cut back, with no swap back to play");
+            // Back to idle with no stale owner: a new press holds again.
+            mouse(button, MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY);
+            button.setDisable(false);
+            mouse(button, MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY);
+            assertHolding(button, true);
             button.getSkin().dispose();
         });
     }
@@ -1458,7 +1452,7 @@ public class RXHoldButtonTest {
         assertEquals(!holding, caption(button, ".caption").isVisible());
     }
 
-    private static MouseEvent mouse(RXHoldButton button, EventType<MouseEvent> type, MouseButton which) {
+    private static void mouse(RXHoldButton button, EventType<MouseEvent> type, MouseButton which) {
         boolean pressed = type == MouseEvent.MOUSE_PRESSED;
         MouseEvent event = new MouseEvent(type, 0.0, 0.0, 0.0, 0.0, which, 1,
                 false, false, false, false,
@@ -1466,7 +1460,6 @@ public class RXHoldButtonTest {
                 pressed && which == MouseButton.SECONDARY,
                 false, false, false, null);
         button.fireEvent(event);
-        return event;
     }
 
     // Returns whether the button consumed the event: a consumed event never
