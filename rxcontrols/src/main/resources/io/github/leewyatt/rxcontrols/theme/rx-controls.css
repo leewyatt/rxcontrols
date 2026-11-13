@@ -3588,6 +3588,19 @@
 
 /*******************************************************************************
  *                                                                             *
+ * RXBursts (scene burst overlay)                                              *
+ *                                                                             *
+ ******************************************************************************/
+/* The overlay is not a control, so the -rx-* tokens are not declared on it;
+   it maps straight to Modena's accent. The AtlantaFX mapping lives in
+   rx-controls-atlantafx.css: the overlay of a popup or a wrapped root sits
+   outside the scoped root. */
+.rx-burst-layer {
+    -rx-burst-color: -fx-accent;
+}
+
+/*******************************************************************************
+ *                                                                             *
  * RXSnackbarHost                                                              *
  *                                                                             *
  ******************************************************************************/
