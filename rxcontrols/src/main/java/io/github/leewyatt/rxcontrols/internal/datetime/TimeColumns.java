@@ -212,6 +212,24 @@ public final class TimeColumns extends HBox {
     }
 
     /**
+     * Shows the keyboard cursor on the first column.
+     */
+    public void showKeyboardCursor() {
+        cursorVisible = true;
+        activeColumn = 0;
+        refresh(false);
+    }
+
+    /**
+     * Returns whether the keyboard cursor is on the first (hour) column.
+     *
+     * @return {@code true} if the first column is active
+     */
+    public boolean isFirstColumnActive() {
+        return activeColumn == 0;
+    }
+
+    /**
      * Hides the keyboard cursor.
      */
     public void clearKeyboardCursor() {
