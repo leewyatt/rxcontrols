@@ -38,6 +38,7 @@ public abstract class RXTemporalViewBase<T> extends Control {
         setFocusTraversable(true);
     }
 
+    /** {@inheritDoc} */
     @Override
     public String getUserAgentStylesheet() {
         return RXResources.USER_AGENT_STYLESHEET;

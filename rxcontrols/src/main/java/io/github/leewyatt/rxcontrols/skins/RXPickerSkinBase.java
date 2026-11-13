@@ -6,7 +6,6 @@ import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeTexts.ParseResult
 import io.github.leewyatt.rxcontrols.internal.datetime.TemporalKeyTarget;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
-import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.value.ObservableValue;
 import javafx.css.PseudoClass;
@@ -76,7 +75,6 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
     private boolean focusInside;
     private boolean writingText;
     private boolean invalidText;
-    private boolean suppressReopen;
 
     // ==================== Constructor ====================
 
@@ -150,6 +148,11 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
         }
         getChildren().setAll(layoutNodes);
         getChildren().add(suffix);
+        // Remove only this skin's nodes: a replacement skin has already added its own.
+        disposer.registerDisposeTask(() -> {
+            getChildren().removeAll(layoutNodes);
+            getChildren().remove(suffix);
+        });
 
         disposer.registerEventHandler(suffix, MouseEvent.MOUSE_PRESSED, this::handleSuffixPressed);
         // A filter: the text field's own behavior consumes the presses it receives.
@@ -168,7 +171,6 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
                 control.hide();
             }
         });
-        disposer.registerListener(control.focusedProperty(), this::redirectFocus);
         disposer.registerListener(control.sceneProperty(), this::observeScene);
         disposer.registerDisposeTask(() -> {
             if (observedScene != null) {
@@ -560,7 +562,7 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
             commit(null);
         } else if (control.isShowing()) {
             control.hide();
-        } else if (!suppressReopen) {
+        } else {
             control.show();
         }
     }
@@ -570,17 +572,21 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
         if (event.getButton() != MouseButton.PRIMARY || control.isDisabled() || isInSuffix(event.getTarget())) {
             return;
         }
-        if (!(event.getTarget() instanceof TextField)) {
+        if (!isInside(event.getTarget(), editors)) {
             focusFirstEditor();
         }
-        if (!control.isShowing() && !suppressReopen) {
+        if (!control.isShowing()) {
             control.show();
         }
     }
 
     private boolean isInSuffix(Object target) {
+        return isInside(target, List.of(suffix));
+    }
+
+    private static boolean isInside(Object target, List<? extends Node> containers) {
         for (Node node = target instanceof Node ? (Node) target : null; node != null; node = node.getParent()) {
-            if (node == suffix) {
+            if (containers.contains(node)) {
                 return true;
             }
         }
@@ -628,7 +634,14 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
      * applications) neither commits nor reverts typed text.
      */
     private void onFocusOwnerChanged() {
-        boolean inside = observedScene != null && editors.contains(observedScene.getFocusOwner());
+        Node owner = observedScene == null ? null : observedScene.getFocusOwner();
+        if (owner != null && owner == getSkinnable()) {
+            // requestFocus() on the picker: hand focus to a field without counting it
+            // as leaving the picker.
+            focusFirstEditor();
+            return;
+        }
+        boolean inside = editors.contains(owner);
         boolean left = focusInside && !inside;
         focusInside = inside;
         if (left) {
@@ -641,14 +654,6 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
             revertFields();
         }
         getSkinnable().hide();
-    }
-
-    private void redirectFocus() {
-        C control = getSkinnable();
-        Scene scene = control.getScene();
-        if (control.isFocused() && scene != null && scene.getFocusOwner() == control) {
-            focusFirstEditor();
-        }
     }
 
     private void focusFirstEditor() {
@@ -697,14 +702,13 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
     }
 
     /**
-     * Every hide path of the popup window (outside click, owner detach) lands here:
-     * pull the picker's showing state back and arm the reopen guard for this pulse,
-     * so the press that auto-hid the popup cannot reopen it.
+     * Every hide path of the popup window (outside click, owner detach) lands here and
+     * pulls the picker's showing state back. A press on the picker itself never
+     * auto-hides the popup (the picker is the popup's owner node), so no reopen guard
+     * is needed.
      */
     private void onPopupHidden() {
         getSkinnable().hide();
-        suppressReopen = true;
-        Platform.runLater(() -> suppressReopen = false);
     }
 
     // ==================== Layout ====================
@@ -750,6 +754,24 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
             height = Math.max(height, node.prefHeight(-1));
         }
         return topInset + height + bottomInset;
+    }
+
+    @Override
+    protected double computeMinWidth(double height, double topInset, double rightInset,
+                                     double bottomInset, double leftInset) {
+        // Not SkinBase's default, which measures the children's current positions and
+        // so ratchets the minimum up to the last laid-out width.
+        double width = suffix.prefWidth(-1);
+        for (Node node : layoutNodes) {
+            width += node instanceof TextField ? node.minWidth(-1) : node.prefWidth(-1);
+        }
+        return leftInset + width + rightInset;
+    }
+
+    @Override
+    protected double computeMinHeight(double width, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        return computePrefHeight(width, topInset, rightInset, bottomInset, leftInset);
     }
 
     @Override

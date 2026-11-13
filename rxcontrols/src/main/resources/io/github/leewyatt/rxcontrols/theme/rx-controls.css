@@ -3870,91 +3870,91 @@
     -fx-background-color: -fx-focus-color, -fx-control-inner-background;
 }
 
-.calendar-panel {
+.rx-calendar-panel {
     -fx-spacing: 1.333333em;
 }
 
-.calendar-panel > .page {
+.rx-calendar-panel > .page {
     -fx-spacing: 0.333333em;
 }
 
-.calendar-panel > .page > .header {
+.rx-calendar-panel > .page > .header {
     -fx-alignment: center;
     -fx-padding: 0 0 0.25em 0;
 }
 
-.calendar-panel > .page > .header > .nav-button {
+.rx-calendar-panel > .page > .header > .nav-button {
     -fx-alignment: center;
     -fx-padding: 0.333333em 0.416667em;
     -fx-background-color: transparent;
     -fx-cursor: hand;
 }
 
-.calendar-panel > .page > .header > .nav-button > .arrow {
+.rx-calendar-panel > .page > .header > .nav-button > .arrow {
     -fx-background-color: -rx-on-surface-secondary;
     -fx-pref-width: 0.416667em;
     -fx-pref-height: 0.666667em;
 }
 
-.calendar-panel > .page > .header > .nav-button:hover > .arrow {
+.rx-calendar-panel > .page > .header > .nav-button:hover > .arrow {
     -fx-background-color: -rx-on-surface;
 }
 
-.calendar-panel > .page > .header > .nav-button:disabled {
+.rx-calendar-panel > .page > .header > .nav-button:disabled {
     -fx-opacity: 0.38;
 }
 
-.calendar-panel > .page > .header > .prev-button > .arrow {
+.rx-calendar-panel > .page > .header > .prev-button > .arrow {
     -fx-shape: "M6,0 L7.4,1.4 L2.8,6 L7.4,10.6 L6,12 L0,6 Z";
 }
 
-.calendar-panel > .page > .header > .next-button > .arrow {
+.rx-calendar-panel > .page > .header > .next-button > .arrow {
     -fx-shape: "M1.4,0 L7.4,6 L1.4,12 L0,10.6 L4.6,6 L0,1.4 Z";
 }
 
-.calendar-panel > .page > .header > .super-prev-button > .arrow {
+.rx-calendar-panel > .page > .header > .super-prev-button > .arrow {
     -fx-pref-width: 0.75em;
     -fx-shape: "M6,0 L7.4,1.4 L2.8,6 L7.4,10.6 L6,12 L0,6 Z M12,0 L13.4,1.4 L8.8,6 L13.4,10.6 L12,12 L6,6 Z";
 }
 
-.calendar-panel > .page > .header > .super-next-button > .arrow {
+.rx-calendar-panel > .page > .header > .super-next-button > .arrow {
     -fx-pref-width: 0.75em;
     -fx-shape: "M1.4,0 L7.4,6 L1.4,12 L0,10.6 L4.6,6 L0,1.4 Z M7.4,0 L13.4,6 L7.4,12 L6,10.6 L10.6,6 L6,1.4 Z";
 }
 
-.calendar-panel > .page > .header > .title {
+.rx-calendar-panel > .page > .header > .title {
     -fx-alignment: center;
     -fx-spacing: 0.333333em;
 }
 
-.calendar-panel > .page > .header > .title > .label {
+.rx-calendar-panel > .page > .header > .title > .label {
     -fx-font-weight: bold;
     -fx-text-fill: -rx-on-surface;
     -fx-padding: 0.083333em 0.25em;
     -fx-cursor: hand;
 }
 
-.calendar-panel > .page > .header > .title > .label:hover {
+.rx-calendar-panel > .page > .header > .title > .label:hover {
     -fx-text-fill: -rx-primary;
 }
 
 /* The century title of the decade grid is the top level and is not clickable. */
-.calendar-panel > .page > .header > .title > .label:disabled {
+.rx-calendar-panel > .page > .header > .title > .label:disabled {
     -fx-opacity: 1;
     -fx-cursor: default;
 }
 
-.calendar-panel .day-name,
-.calendar-panel .week-number {
+.rx-calendar-panel .day-name,
+.rx-calendar-panel .week-number {
     -fx-alignment: center;
     -fx-text-fill: -rx-on-surface-secondary;
 }
 
-.calendar-panel .week-number {
+.rx-calendar-panel .week-number {
     -fx-font-size: 0.916667em;
 }
 
-.calendar-panel .date-cell {
+.rx-calendar-panel .date-cell {
     -fx-alignment: center;
     -fx-padding: 0;
     -fx-text-fill: -rx-on-surface;
@@ -3966,50 +3966,50 @@
     -fx-cursor: hand;
 }
 
-.calendar-panel .day-cell,
-.calendar-panel .day-name,
-.calendar-panel .week-number {
+.rx-calendar-panel .day-cell,
+.rx-calendar-panel .day-name,
+.rx-calendar-panel .week-number {
     -fx-pref-width: 2.5em;
     -fx-pref-height: 2.166667em;
 }
 
 /* Period cells fill the same area as the 7 x 7 day grid, so drilling up never
    resizes the panel (and with it a hosting popup window). */
-.calendar-panel .month-cell,
-.calendar-panel .year-cell,
-.calendar-panel .decade-cell {
+.rx-calendar-panel .month-cell,
+.rx-calendar-panel .year-cell,
+.rx-calendar-panel .decade-cell {
     -fx-pref-width: 5.833333em;
     -fx-pref-height: 3.791667em;
     -fx-background-insets: 0.916667em 0.5em;
     -fx-border-insets: 0.916667em 0.5em;
 }
 
-.calendar-panel .quarter-cell {
+.rx-calendar-panel .quarter-cell {
     -fx-pref-width: 4.375em;
     -fx-pref-height: 3.791667em;
     -fx-background-insets: 0.916667em 0.333333em;
     -fx-border-insets: 0.916667em 0.333333em;
 }
 
-.calendar-panel .date-cell:hover {
+.rx-calendar-panel .date-cell:hover {
     -fx-background-color: -rx-surface-variant;
 }
 
-.calendar-panel .date-cell:adjacent {
+.rx-calendar-panel .date-cell:adjacent {
     -fx-text-fill: -rx-on-surface-disabled;
 }
 
-.calendar-panel .date-cell:today {
+.rx-calendar-panel .date-cell:today {
     -fx-border-color: -rx-primary;
 }
 
-.calendar-panel .date-cell:in-range {
+.rx-calendar-panel .date-cell:in-range {
     -fx-background-color: -rx-primary-bg;
     -fx-background-radius: 0;
     -fx-background-insets: 0.166667em 0;
 }
 
-.calendar-panel .date-cell:in-range:preview {
+.rx-calendar-panel .date-cell:in-range:preview {
     -fx-background-color: transparent;
     -fx-border-color: -rx-primary transparent;
     -fx-border-style: segments(0.25em, 0.25em);
@@ -4017,28 +4017,28 @@
     -fx-border-radius: 0;
 }
 
-.calendar-panel .date-cell:selected,
-.calendar-panel .date-cell:range-start,
-.calendar-panel .date-cell:range-end {
+.rx-calendar-panel .date-cell:disabled {
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-cursor: default;
+}
+
+.rx-calendar-panel .date-cell:selected,
+.rx-calendar-panel .date-cell:range-start,
+.rx-calendar-panel .date-cell:range-end {
     -fx-background-color: -rx-primary;
     -fx-background-insets: 0.166667em;
     -fx-background-radius: 3;
     -fx-text-fill: -rx-on-primary;
 }
 
-.calendar-panel .date-cell:selected:hover,
-.calendar-panel .date-cell:range-start:hover,
-.calendar-panel .date-cell:range-end:hover {
+.rx-calendar-panel .date-cell:selected:hover,
+.rx-calendar-panel .date-cell:range-start:hover,
+.rx-calendar-panel .date-cell:range-end:hover {
     -fx-background-color: -rx-primary-hover;
 }
 
-.calendar-panel .date-cell:disabled {
-    -fx-text-fill: -rx-on-surface-secondary;
-    -fx-cursor: default;
-}
-
 /* Keyboard cursor, after the today ring so it wins when both apply. */
-.calendar-panel .date-cell:focused {
+.rx-calendar-panel .date-cell:focused {
     -fx-border-color: -rx-focus;
     -fx-border-width: 1.5;
 }
@@ -4210,25 +4210,25 @@
     -fx-background-color: -fx-focus-color, -fx-control-inner-background;
 }
 
-.time-columns > .time-column,
-.time-columns > .time-column > .viewport {
+.rx-time-columns > .time-column,
+.rx-time-columns > .time-column > .viewport {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
     -fx-padding: 0;
 }
 
-.time-columns > .time-column {
+.rx-time-columns > .time-column {
     -fx-pref-width: 3.5em;
     -fx-pref-height: 15.166667em;
 }
 
-.time-columns > .minute-column,
-.time-columns > .second-column,
-.time-columns > .meridiem-column {
+.rx-time-columns > .minute-column,
+.rx-time-columns > .second-column,
+.rx-time-columns > .meridiem-column {
     -fx-border-color: transparent transparent transparent -rx-outline-variant;
 }
 
-.time-columns .time-cell {
+.rx-time-columns .time-cell {
     -fx-alignment: center;
     -fx-pref-height: 2.166667em;
     -fx-padding: 0 0.5em;
@@ -4241,21 +4241,21 @@
     -fx-cursor: hand;
 }
 
-.time-columns .time-cell:hover {
+.rx-time-columns .time-cell:hover {
     -fx-background-color: -rx-surface-variant;
 }
 
-.time-columns .time-cell:selected {
+.rx-time-columns .time-cell:selected {
     -fx-background-color: -rx-primary-bg;
     -fx-font-weight: bold;
 }
 
-.time-columns .time-cell:disabled {
+.rx-time-columns .time-cell:disabled {
     -fx-text-fill: -rx-on-surface-secondary;
     -fx-cursor: default;
 }
 
-.time-columns .time-cell:focused {
+.rx-time-columns .time-cell:focused {
     -fx-border-color: -rx-focus;
     -fx-border-width: 1.5;
 }

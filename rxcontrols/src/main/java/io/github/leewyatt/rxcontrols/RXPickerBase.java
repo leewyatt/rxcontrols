@@ -77,6 +77,7 @@ public abstract class RXPickerBase<T> extends Control {
         });
     }
 
+    /** {@inheritDoc} */
     @Override
     public String getUserAgentStylesheet() {
         return RXResources.USER_AGENT_STYLESHEET;
@@ -126,9 +127,9 @@ public abstract class RXPickerBase<T> extends Control {
     };
 
     /**
-     * Whether the text field accepts typing. When {@code false} the field is
-     * read-only and clicking it, or pressing Space, opens the popup. Defaults to
-     * {@code true}.
+     * Whether the text field accepts typing. Pressing the field opens the popup either
+     * way; when {@code false} the field is read-only and Space opens the popup too.
+     * Defaults to {@code true}.
      *
      * @return the editable property
      */

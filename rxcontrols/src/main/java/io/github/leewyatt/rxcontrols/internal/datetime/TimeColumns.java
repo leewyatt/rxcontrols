@@ -62,7 +62,7 @@ public final class TimeColumns extends HBox {
      * Creates the column set.
      */
     public TimeColumns() {
-        getStyleClass().add("time-columns");
+        getStyleClass().add("rx-time-columns");
         rebuildColumns();
     }
 

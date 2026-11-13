@@ -186,6 +186,44 @@ public class RXCalendarViewTest {
     }
 
     /**
+     * Verifies the rest of a double click after drilling up does not drill down again.
+     */
+    @Test
+    public void doubleClickAfterDrillUpIsIgnored() {
+        RXCalendarView view = newView(null);
+        click(view.lookup(".month-button"));
+        DateCell march = cellsOf(view, ".month-cell").stream()
+                .filter(cell -> cell.getItem().getMonthValue() == 3).findFirst().orElseThrow();
+        march.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, MouseButton.PRIMARY, 2,
+                false, false, false, false, true, false, false, true, false, false, null));
+        assertEquals(YearMonth.of(2026, 11), view.getDisplayedMonth());
+        assertTrue(march.isVisible() && march.getParent() != null);
+        click(march);
+        assertEquals(YearMonth.of(2026, 3), view.getDisplayedMonth());
+    }
+
+    /**
+     * Verifies hidden adjacent days are blank and cannot be picked.
+     */
+    @Test
+    public void hiddenAdjacentDaysAreInert() {
+        RXCalendarView view = newView(null);
+        view.setWeekFields(WeekFields.of(DayOfWeek.MONDAY, 4));
+        view.setShowAdjacentDays(false);
+        List<DateCell> adjacent = view.lookupAll(".day-cell").stream().map(node -> (DateCell) node)
+                .filter(cell -> cell.getPseudoClassStates().stream()
+                        .anyMatch(p -> p.getPseudoClassName().equals("adjacent")))
+                .collect(Collectors.toList());
+        assertFalse(adjacent.isEmpty());
+        for (DateCell cell : adjacent) {
+            assertTrue(cell.isDisabled());
+            assertTrue(cell.getText() == null || cell.getText().isEmpty());
+            click(cell);
+        }
+        assertNull(view.getValue());
+    }
+
+    /**
      * Verifies setting the displayed month pages the grid.
      */
     @Test

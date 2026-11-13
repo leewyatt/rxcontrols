@@ -127,6 +127,12 @@ public final class CalendarPanel extends HBox {
     private Level mode;
     private LocalDate cursor;
     private boolean cursorVisible;
+    /**
+     * Set after a click changed the level: the grid under the pointer was swapped, and
+     * JavaFX keeps counting clicks across the swap, so the rest of a double click must
+     * not activate the new cell or title under the pointer.
+     */
+    private boolean ignoreRepeatedClicks;
 
     private final List<Page> pages = new ArrayList<>();
 
@@ -143,7 +149,7 @@ public final class CalendarPanel extends HBox {
         }
         this.pickLevel = pickLevel;
         this.mode = pickLevel;
-        getStyleClass().add("calendar-panel");
+        getStyleClass().add("rx-calendar-panel");
         pages.add(new Page(0));
         getChildren().add(pages.get(0));
         refresh();
@@ -340,6 +346,9 @@ public final class CalendarPanel extends HBox {
         }
         reference = newReference;
         mode = pickLevel;
+        if (cursorVisible && cursor != null && !isDisplayed(cursor)) {
+            cursor = clampToBounds(firstEnabledDisplayed());
+        }
         refresh();
         onPageChanged.run();
     }
@@ -793,14 +802,27 @@ public final class CalendarPanel extends HBox {
         cell.getStyleClass().add(levelStyleClass);
         cell.setFocusTraversable(false);
         cell.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
-            if (event.getButton() == MouseButton.PRIMARY && cell.getItem() != null && !cell.isEmpty()) {
+            if (acceptClick(event) && cell.getItem() != null && !cell.isEmpty()) {
                 if (cursorVisible) {
                     cursor = cell.getItem();
                 }
+                Level before = mode;
                 activate(cell.getItem());
+                ignoreRepeatedClicks = mode != before;
             }
         });
         return cell;
+    }
+
+    private boolean acceptClick(MouseEvent event) {
+        if (event.getButton() != MouseButton.PRIMARY) {
+            return false;
+        }
+        if (event.getClickCount() <= 1) {
+            ignoreRepeatedClicks = false;
+            return true;
+        }
+        return !ignoreRepeatedClicks;
     }
 
     private static StackPane navButton(String styleClass, Runnable action) {
@@ -850,8 +872,9 @@ public final class CalendarPanel extends HBox {
             monthButton.getStyleClass().add("month-button");
             yearButton.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> onYearTitle(event));
             monthButton.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
-                if (event.getButton() == MouseButton.PRIMARY && mode == Level.DAY) {
+                if (acceptClick(event) && mode == Level.DAY) {
                     drillUp(Level.MONTH, pageMonth().atDay(1));
+                    ignoreRepeatedClicks = true;
                 }
             });
             title.getStyleClass().add("title");
@@ -871,9 +894,10 @@ public final class CalendarPanel extends HBox {
         }
 
         private void onYearTitle(MouseEvent event) {
-            if (event.getButton() != MouseButton.PRIMARY) {
+            if (!acceptClick(event)) {
                 return;
             }
+            ignoreRepeatedClicks = mode != Level.DECADE;
             switch (mode) {
                 case DAY:
                 case MONTH:
@@ -898,6 +922,13 @@ public final class CalendarPanel extends HBox {
             updateTitle(resolvedLocale);
             Node shown = gridFor(mode);
             if (body.getChildren().size() != 1 || body.getChildren().get(0) != shown) {
+                if (mode == Level.DAY) {
+                    body.setMinSize(Region.USE_COMPUTED_SIZE, Region.USE_COMPUTED_SIZE);
+                } else if (body.getChildren().contains(dayGrid) && dayGrid.getWidth() > 0.0) {
+                    // Keep the day grid's footprint (week numbers included) while drilled
+                    // up, so a hosting popup window does not resize.
+                    body.setMinSize(dayGrid.getWidth(), dayGrid.getHeight());
+                }
                 body.getChildren().setAll(shown);
             }
             if (mode == Level.DAY) {
@@ -919,31 +950,37 @@ public final class CalendarPanel extends HBox {
                 case DAY:
                     yearButton.setText(DateTimeTexts.yearLabel(month.getYear(), resolvedLocale));
                     if (DateTimeTexts.yearFirst(resolvedLocale)) {
-                        title.getChildren().setAll(yearButton, monthButton);
+                        setTitle(yearButton, monthButton);
                     } else {
-                        title.getChildren().setAll(monthButton, yearButton);
+                        setTitle(monthButton, yearButton);
                     }
                     break;
                 case MONTH:
                 case QUARTER:
                     yearButton.setText(DateTimeTexts.yearLabel(month.getYear(), resolvedLocale));
-                    title.getChildren().setAll(yearButton);
+                    setTitle(yearButton);
                     break;
                 case YEAR: {
                     int start = pageStartOf(Level.YEAR, reference).getYear();
                     yearButton.setText(start + "-" + (start + YEARS_PER_DECADE - 1));
-                    title.getChildren().setAll(yearButton);
+                    setTitle(yearButton);
                     break;
                 }
                 case DECADE:
                 default: {
                     int start = pageStartOf(Level.DECADE, reference).getYear();
                     yearButton.setText(start + "-" + (start + YEARS_PER_CENTURY - 1));
-                    title.getChildren().setAll(yearButton);
+                    setTitle(yearButton);
                     break;
                 }
             }
             yearButton.setDisable(mode == Level.DECADE);
+        }
+
+        private void setTitle(Label... labels) {
+            if (!title.getChildren().equals(List.of(labels))) {
+                title.getChildren().setAll(labels);
+            }
         }
 
         private Node gridFor(Level level) {

@@ -202,6 +202,89 @@ public class RXDatePickerPopupTest {
         });
     }
 
+    /**
+     * Verifies requesting focus on the picker while its field holds typed text keeps the
+     * text uncommitted and focus in the field.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void requestFocusOnPickerKeepsEditing() throws InterruptedException {
+        runOnFx(() -> {
+            RXDatePicker picker = newShownPicker();
+            AtomicInteger actions = new AtomicInteger();
+            picker.setOnAction(event -> actions.incrementAndGet());
+            TextField editor = editor(picker, 0);
+            editor.requestFocus();
+            editor.setText("1/2/2027");
+            picker.requestFocus();
+            assertEquals(editor, stage.getScene().getFocusOwner());
+            assertEquals("1/2/2027", editor.getText());
+            assertNull(picker.getValue());
+            assertEquals(0, actions.get());
+        });
+    }
+
+    /**
+     * Verifies leaving the field commits valid typed text with one action.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void focusLeaveCommitsTypedText() throws InterruptedException {
+        runOnFx(() -> {
+            RXDatePicker picker = newShownPicker();
+            AtomicInteger actions = new AtomicInteger();
+            picker.setOnAction(event -> actions.incrementAndGet());
+            TextField editor = editor(picker, 0);
+            editor.requestFocus();
+            editor.setText("1/2/2027");
+            stage.getScene().getRoot().lookup(".button").requestFocus();
+            assertEquals(LocalDate.of(2027, 1, 2), picker.getValue());
+            assertEquals(1, actions.get());
+        });
+    }
+
+    /**
+     * Verifies F4 toggles the popup and a read-only picker opens with Space.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void f4AndSpaceOpenPopup() throws InterruptedException {
+        runOnFx(() -> {
+            RXDatePicker picker = newShownPicker();
+            TextField editor = editor(picker, 0);
+            editor.requestFocus();
+            press(editor, KeyCode.F4);
+            assertTrue(picker.isShowing());
+            press(editor, KeyCode.F4);
+            assertFalse(picker.isShowing());
+            press(editor, KeyCode.SPACE);
+            assertFalse(picker.isShowing(), "an editable field types the space");
+            picker.setEditable(false);
+            assertFalse(editor.isEditable());
+            press(editor, KeyCode.SPACE);
+            assertTrue(picker.isShowing());
+        });
+    }
+
+    /**
+     * Verifies a stretched picker can shrink again (no minimum-width ratchet).
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void stretchedPickerCanShrink() throws InterruptedException {
+        runOnFx(() -> {
+            RXDatePicker picker = newShownPicker();
+            picker.setMaxWidth(Double.MAX_VALUE);
+            stage.getScene().getRoot().layout();
+            assertTrue(picker.getWidth() > 300);
+            assertTrue(picker.minWidth(-1) < 200, "min width " + picker.minWidth(-1));
+        });
+    }
+
     private RXDatePicker newShownPicker() {
         RXDatePicker picker = new RXDatePicker();
         picker.setLocale(Locale.US);
