@@ -29,3 +29,10 @@
     -fx-background-insets: 0;
     -fx-background-radius: 4px;
 }
+
+/* The same for the flat reaction button. */
+.rx-reaction-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 999px;
+}
