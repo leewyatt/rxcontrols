@@ -38,34 +38,34 @@ public final class BurstAnimHearts implements BurstAnimation {
     @Override
     public void draw(GraphicsContext gc, BurstFrame frame) {
         double t = frame.progress();
-        if (t >= BurstShapes.END) {
+        if (t >= BurstSupport.END) {
             return;
         }
         double anchor = frame.anchorSize();
-        double start = BurstShapes.startDistance(frame);
+        double start = BurstSupport.startDistance(frame);
         gc.save();
         for (int i = 0; i < count; i++) {
             double delay = frame.random(i, 0) * 0.2;
-            double local = BurstShapes.segment(t, delay, delay + (BurstShapes.END - 0.2));
+            double local = BurstSupport.segment(t, delay, delay + (BurstSupport.END - 0.2));
             if (local <= 0.0 || local >= 1.0) {
                 continue;
             }
             double size = anchor * (0.35 + 0.15 * frame.random(i, 1))
-                    * BurstShapes.easeOutCubic(BurstShapes.segment(local, 0.0, 0.2));
-            double alpha = 1.0 - BurstShapes.segment(local, 0.55, 1.0);
-            if (size < BurstShapes.MIN_VISIBLE_SIZE || alpha <= 0.0) {
+                    * BurstSupport.easeOutCubic(BurstSupport.segment(local, 0.0, 0.2));
+            double alpha = 1.0 - BurstSupport.segment(local, 0.55, 1.0);
+            if (size < BurstSupport.MIN_VISIBLE_SIZE || alpha <= 0.0) {
                 continue;
             }
             // One slot of the fan per heart, jittered within it, so they
             // never all lean one way.
-            double angle = BurstShapes.TOP + ((i + frame.random(i, 2)) / count - 0.5) * FAN;
-            double distance = start + (frame.radius() * 0.8 - start) * BurstShapes.easeOutQuad(local);
+            double angle = BurstSupport.TOP + ((i + frame.random(i, 2)) / count - 0.5) * FAN;
+            double distance = start + (frame.reach() * 0.8 - start) * BurstSupport.easeOutQuad(local);
             double sway = Math.sin(local * Math.PI * 2.0 + frame.random(i, 3) * Math.PI * 2.0) * anchor * 0.2 * local;
             double x = frame.centerX() + distance * Math.cos(angle) - sway * Math.sin(angle);
             double y = frame.centerY() + distance * Math.sin(angle) + sway * Math.cos(angle);
             gc.setGlobalAlpha(alpha);
             gc.setFill(frame.color(i));
-            BurstShapes.fillHeart(gc, x, y, size);
+            BurstSupport.fillHeart(gc, x, y, size);
         }
         gc.restore();
     }

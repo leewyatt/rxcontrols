@@ -39,14 +39,14 @@ public final class BurstAnimExplosion implements BurstAnimation {
     @Override
     public void draw(GraphicsContext gc, BurstFrame frame) {
         double t = frame.progress();
-        if (t >= BurstShapes.END || frame.anchorSize() < BurstShapes.MIN_VISIBLE_SIZE) {
+        if (t >= BurstSupport.END || frame.anchorSize() < BurstSupport.MIN_VISIBLE_SIZE) {
             return;
         }
         gc.save();
-        smoke(gc, frame, BurstShapes.segment(t, 0.2, BurstShapes.END));
-        flash(gc, frame, BurstShapes.segment(t, 0.0, 0.18));
-        shockWave(gc, frame, BurstShapes.segment(t, 0.03, 0.6));
-        drawShards(gc, frame, BurstShapes.segment(t, 0.04, BurstShapes.END));
+        smoke(gc, frame, BurstSupport.segment(t, 0.2, BurstSupport.END));
+        flash(gc, frame, BurstSupport.segment(t, 0.0, 0.18));
+        shockWave(gc, frame, BurstSupport.segment(t, 0.03, 0.6));
+        drawShards(gc, frame, BurstSupport.segment(t, 0.04, BurstSupport.END));
         gc.restore();
     }
 
@@ -54,14 +54,14 @@ public final class BurstAnimExplosion implements BurstAnimation {
         if (local >= 1.0) {
             return;
         }
-        double radius = Math.min(frame.anchorSize() * (0.5 + 0.9 * BurstShapes.easeOutCubic(local)),
-                BurstShapes.limit(frame));
+        double radius = Math.min(frame.anchorSize() * (0.5 + 0.9 * BurstSupport.easeOutCubic(local)),
+                BurstSupport.limit(frame));
         gc.setGlobalAlpha(0.85 * (1.0 - local));
         gc.setFill(Color.WHITE);
-        BurstShapes.fillCircle(gc, frame.centerX(), frame.centerY(), radius);
+        BurstSupport.fillCircle(gc, frame.centerX(), frame.centerY(), radius);
         gc.setGlobalAlpha(0.6 * (1.0 - local));
         gc.setFill(frame.color(1));
-        BurstShapes.fillCircle(gc, frame.centerX(), frame.centerY(), radius * 0.7);
+        BurstSupport.fillCircle(gc, frame.centerX(), frame.centerY(), radius * 0.7);
     }
 
     private static void shockWave(GraphicsContext gc, BurstFrame frame, double local) {
@@ -69,11 +69,11 @@ public final class BurstAnimExplosion implements BurstAnimation {
             return;
         }
         double width = frame.anchorSize() * 0.14 * (1.0 - local);
-        if (width < BurstShapes.MIN_VISIBLE_SIZE) {
+        if (width < BurstSupport.MIN_VISIBLE_SIZE) {
             return;
         }
-        double start = BurstShapes.startDistance(frame);
-        double radius = start + (frame.radius() - start) * BurstShapes.easeOutCubic(local);
+        double start = BurstSupport.startDistance(frame);
+        double radius = start + (frame.reach() - start) * BurstSupport.easeOutCubic(local);
         gc.setGlobalAlpha(1.0 - local);
         gc.setStroke(frame.color(0));
         gc.setLineWidth(width);
@@ -85,19 +85,19 @@ public final class BurstAnimExplosion implements BurstAnimation {
             return;
         }
         double anchor = frame.anchorSize();
-        double shrink = 1.0 - BurstShapes.segment(local, 0.55, 1.0);
-        double travel = BurstShapes.easeOutCubic(local);
+        double shrink = 1.0 - BurstSupport.segment(local, 0.55, 1.0);
+        double travel = BurstSupport.easeOutCubic(local);
         gc.setGlobalAlpha(1.0);
         for (int i = 0; i < shards; i++) {
             double size = anchor * (0.12 + 0.12 * frame.random(i, 0)) * shrink;
-            if (size < BurstShapes.MIN_VISIBLE_SIZE) {
+            if (size < BurstSupport.MIN_VISIBLE_SIZE) {
                 continue;
             }
             double angle = frame.random(i, 1) * 2.0 * Math.PI;
-            double distance = frame.radius() * (0.55 + 0.4 * frame.random(i, 2)) * travel;
+            double distance = frame.reach() * (0.55 + 0.4 * frame.random(i, 2)) * travel;
             double spin = (frame.random(i, 3) - 0.5) * 4.0 * Math.PI * local;
             gc.setFill(frame.color(i));
-            BurstShapes.fillTriangle(gc, frame.centerX() + distance * Math.cos(angle),
+            BurstSupport.fillTriangle(gc, frame.centerX() + distance * Math.cos(angle),
                     frame.centerY() + distance * Math.sin(angle), size, spin);
         }
     }
@@ -109,20 +109,20 @@ public final class BurstAnimExplosion implements BurstAnimation {
         double anchor = frame.anchorSize();
         gc.setFill(SMOKE);
         for (int i = 0; i < SMOKE_PUFFS; i++) {
-            double angle = BurstShapes.TOP + i * 2.0 * Math.PI / SMOKE_PUFFS + (frame.random(i, 7) - 0.5) * 0.8;
+            double angle = BurstSupport.TOP + i * 2.0 * Math.PI / SMOKE_PUFFS + (frame.random(i, 7) - 0.5) * 0.8;
             // Puffs start beside the anchor rather than on it, so the smoke
             // frames the icon.
-            double drift = Math.min(anchor * 0.7, frame.radius() * 0.5)
-                    + frame.radius() * 0.3 * BurstShapes.easeOutQuad(local);
+            double drift = Math.min(anchor * 0.7, frame.reach() * 0.5)
+                    + frame.reach() * 0.3 * BurstSupport.easeOutQuad(local);
             double x = frame.centerX() + drift * Math.cos(angle);
             double y = frame.centerY() + drift * Math.sin(angle) - drift * 0.2;
-            double radius = BurstShapes.fitRadius(frame, x, y,
-                    anchor * (0.25 + 0.4 * BurstShapes.easeOutCubic(local)));
-            if (radius < BurstShapes.MIN_VISIBLE_SIZE) {
+            double radius = BurstSupport.fitRadius(frame, x, y,
+                    anchor * (0.25 + 0.4 * BurstSupport.easeOutCubic(local)));
+            if (radius < BurstSupport.MIN_VISIBLE_SIZE) {
                 continue;
             }
             gc.setGlobalAlpha(0.16 * (1.0 - local));
-            BurstShapes.fillCircle(gc, x, y, radius);
+            BurstSupport.fillCircle(gc, x, y, radius);
         }
     }
 }

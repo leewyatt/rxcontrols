@@ -9,7 +9,8 @@ import java.util.List;
 
 /**
  * Immutable settings for one burst played through {@link RXBursts}: which
- * burst, how long, which colors, how far and how large its particles are.
+ * burst, how long, which colors, how far it reaches and the anchor size its
+ * particles scale with.
  * Build one with {@link #builder()}, or use {@link #defaults()}.
  *
  * <pre>{@code
@@ -46,7 +47,7 @@ public final class RXBurstOptions {
     private final Paint color;
     private final List<Paint> palette;
     private final double scale;
-    private final double size;
+    private final double anchorSize;
 
     private RXBurstOptions(Builder builder) {
         this.animation = builder.animation;
@@ -54,13 +55,13 @@ public final class RXBurstOptions {
         this.color = builder.color;
         this.palette = builder.palette;
         this.scale = builder.scale;
-        this.size = builder.size;
+        this.anchorSize = builder.anchorSize;
     }
 
     /**
      * Returns the default settings: {@link #DEFAULT_ANIMATION},
      * {@link #DEFAULT_DURATION}, the theme's color, {@link #DEFAULT_SCALE}
-     * and an automatic particle size.
+     * and an automatic anchor size.
      *
      * @return the shared default options
      */
@@ -123,12 +124,13 @@ public final class RXBurstOptions {
     }
 
     /**
-     * Returns the size particles scale with, in pixels.
+     * Returns the anchor size particle sizes and the reach scale with, in
+     * pixels.
      *
-     * @return the size, or 0 or less for an automatic size
+     * @return the anchor size, or 0 or less for an automatic size
      */
-    public double getSize() {
-        return size;
+    public double getAnchorSize() {
+        return anchorSize;
     }
 
     /**
@@ -141,7 +143,7 @@ public final class RXBurstOptions {
         private Paint color;
         private List<Paint> palette = List.of();
         private double scale = DEFAULT_SCALE;
-        private double size;
+        private double anchorSize;
 
         private Builder() {
         }
@@ -205,10 +207,12 @@ public final class RXBurstOptions {
         }
 
         /**
-         * Scales how far the burst reaches; 1 reaches about 1.6 particle
-         * sizes, never less than 24 pixels and never more than 480. Clamped
-         * into {@code [0.25, 4]} when used; a non-finite or non-positive
-         * value plays at {@link #DEFAULT_SCALE}.
+         * Scales how far the burst reaches from its center. At 1 the reach
+         * is 1.6 times the {@link #anchorSize(double) anchor size}, or 24
+         * pixels for an anchor smaller than 15 pixels; the scale multiplies
+         * that, and the result is capped at 480 pixels. Clamped into
+         * {@code [0.25, 4]} when used; a non-finite or non-positive value
+         * plays at {@link #DEFAULT_SCALE}.
          *
          * @param value the scale
          * @return this builder
@@ -219,16 +223,17 @@ public final class RXBurstOptions {
         }
 
         /**
-         * Sets the size particles scale with, in pixels, like the size of an
-         * icon the burst comes from. 0 or less (the default) sizes it from
-         * the node a burst is centered on, between 16 and 48 pixels, or 24
-         * pixels for a burst at a point.
+         * Sets the anchor size in pixels: the size of the icon the burst
+         * appears to come from, which particle sizes and the reach scale
+         * with. 0 or less (the default) sizes it from the node a burst is
+         * centered on, between 16 and 48 pixels, or 24 pixels for a burst at
+         * a point.
          *
-         * @param value the size in pixels
+         * @param value the anchor size in pixels
          * @return this builder
          */
-        public Builder size(double value) {
-            this.size = value;
+        public Builder anchorSize(double value) {
+            this.anchorSize = value;
             return this;
         }
 

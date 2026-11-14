@@ -47,9 +47,9 @@ import java.util.List;
  * <p>The no-argument and text constructors give the button a default icon, a
  * {@link Region} with the style class {@code reaction-icon} whose shape and
  * colors come from CSS: an outlined heart that turns into a filled one when
- * selected. The style classes {@code star} and {@code bookmark} on the button
- * switch it to a star or a bookmark. An icon-only button should set
- * {@code accessibleText}.</p>
+ * selected. The style classes {@link #STYLE_CLASS_STAR} and
+ * {@link #STYLE_CLASS_BOOKMARK} on the button switch it to a star or a
+ * bookmark. An icon-only button should set {@code accessibleText}.</p>
  *
  * <p>The burst is drawn on a canvas behind the icon and text, centered on
  * the icon, and may reach past the button's edges. It takes no part in layout and is hidden between
@@ -68,22 +68,16 @@ public class RXReactionButton extends RXToggleButton {
     private static final String ICON_STYLE_CLASS = "reaction-icon";
 
     /**
-     * Default {@link #burstAnimationProperty() burstAnimation}, also used for
-     * an unknown CSS keyword.
+     * Style class that switches the default icon to a star and the reaction
+     * color to the theme's warning color.
      */
-    public static final BurstAnimation DEFAULT_BURST_ANIMATION = BurstAnimation.CLASSIC;
+    public static final String STYLE_CLASS_STAR = "star";
 
     /**
-     * Default {@link #burstDurationProperty() burstDuration}, and the value
-     * used in place of a {@code null}, negative or otherwise unusable one.
+     * Style class that switches the default icon to a bookmark and the
+     * reaction color to the theme's primary color.
      */
-    public static final Duration DEFAULT_BURST_DURATION = Duration.millis(800.0);
-
-    /**
-     * Default {@link #burstScaleProperty() burstScale}, and the value used in
-     * place of a non-finite or non-positive one.
-     */
-    public static final double DEFAULT_BURST_SCALE = 1.0;
+    public static final String STYLE_CLASS_BOOKMARK = "bookmark";
 
     // ==================== Constructors ====================
 
@@ -147,7 +141,7 @@ public class RXReactionButton extends RXToggleButton {
     // ==================== Burst Animation ====================
 
     private final ObjectProperty<BurstAnimation> burstAnimation =
-            new StyleableObjectProperty<>(DEFAULT_BURST_ANIMATION) {
+            new StyleableObjectProperty<>(RXBurstOptions.DEFAULT_ANIMATION) {
                 @Override
                 public CssMetaData<? extends Styleable, BurstAnimation> getCssMetaData() {
                     return StyleableProperties.BURST_ANIMATION;
@@ -170,7 +164,7 @@ public class RXReactionButton extends RXToggleButton {
      * implementation. {@code null} plays no burst. From CSS,
      * {@code -rx-burst-animation} selects presets by keyword, {@code none}
      * turns the burst off and an unknown keyword falls back to
-     * {@link #DEFAULT_BURST_ANIMATION}.
+     * {@link RXBurstOptions#DEFAULT_ANIMATION}.
      *
      * @return the burst animation property
      */
@@ -199,7 +193,7 @@ public class RXReactionButton extends RXToggleButton {
     // ==================== Burst Duration ====================
 
     private final ObjectProperty<Duration> burstDuration =
-            new StyleableObjectProperty<>(DEFAULT_BURST_DURATION) {
+            new StyleableObjectProperty<>(RXBurstOptions.DEFAULT_DURATION) {
                 @Override
                 public CssMetaData<? extends Styleable, Duration> getCssMetaData() {
                     return StyleableProperties.BURST_DURATION;
@@ -219,7 +213,7 @@ public class RXReactionButton extends RXToggleButton {
     /**
      * How long one burst lasts. {@code Duration.ZERO} plays no burst; a
      * {@code null}, negative, unknown or indefinite value falls back to
-     * {@link #DEFAULT_BURST_DURATION}.
+     * {@link RXBurstOptions#DEFAULT_DURATION}.
      *
      * @return the burst duration property
      */
@@ -335,7 +329,7 @@ public class RXReactionButton extends RXToggleButton {
     // ==================== Burst Scale ====================
 
     private final DoubleProperty burstScale =
-            new StyleableDoubleProperty(DEFAULT_BURST_SCALE) {
+            new StyleableDoubleProperty(RXBurstOptions.DEFAULT_SCALE) {
                 @Override
                 public CssMetaData<? extends Styleable, Number> getCssMetaData() {
                     return StyleableProperties.BURST_SCALE;
@@ -353,10 +347,12 @@ public class RXReactionButton extends RXToggleButton {
             };
 
     /**
-     * Scales how far the burst reaches from the icon; 1 reaches about 1.6
-     * icon widths, never less than 24 pixels and never more than 480. Values
-     * are clamped into {@code [0.25, 4]} when used; a non-finite or
-     * non-positive value falls back to {@link #DEFAULT_BURST_SCALE}.
+     * Scales how far the burst reaches from the icon's center. At 1 the
+     * reach is 1.6 times the icon's larger side, or 24 pixels for an icon
+     * smaller than 15 pixels; the scale multiplies that, and the result is
+     * capped at 480 pixels. Values are clamped into {@code [0.25, 4]} when
+     * used; a non-finite or non-positive value falls back to
+     * {@link RXBurstOptions#DEFAULT_SCALE}.
      *
      * @return the burst scale property
      */
@@ -438,7 +434,7 @@ public class RXReactionButton extends RXToggleButton {
         private static final CssMetaData<RXReactionButton, BurstAnimation> BURST_ANIMATION =
                 new CssMetaData<>("-rx-burst-animation",
                         new KeywordConverter<>(StyleableProperties::burstAnimationOrDefault),
-                        DEFAULT_BURST_ANIMATION) {
+                        RXBurstOptions.DEFAULT_ANIMATION) {
                     @Override
                     public boolean isSettable(RXReactionButton button) {
                         return !button.burstAnimation.isBound();
@@ -453,7 +449,7 @@ public class RXReactionButton extends RXToggleButton {
 
         private static final CssMetaData<RXReactionButton, Duration> BURST_DURATION =
                 new CssMetaData<>("-rx-burst-duration",
-                        DurationConverter.getInstance(), DEFAULT_BURST_DURATION) {
+                        DurationConverter.getInstance(), RXBurstOptions.DEFAULT_DURATION) {
                     @Override
                     public boolean isSettable(RXReactionButton button) {
                         return !button.burstDuration.isBound();
@@ -482,7 +478,7 @@ public class RXReactionButton extends RXToggleButton {
 
         private static final CssMetaData<RXReactionButton, Number> BURST_SCALE =
                 new CssMetaData<>("-rx-burst-scale",
-                        SizeConverter.getInstance(), DEFAULT_BURST_SCALE) {
+                        SizeConverter.getInstance(), RXBurstOptions.DEFAULT_SCALE) {
                     @Override
                     public boolean isSettable(RXReactionButton button) {
                         return !button.burstScale.isBound();
@@ -530,7 +526,7 @@ public class RXReactionButton extends RXToggleButton {
                 return null;
             }
             BurstAnimation animation = BurstAnimation.valueOf(keyword);
-            return animation == null ? DEFAULT_BURST_ANIMATION : animation;
+            return animation == null ? RXBurstOptions.DEFAULT_ANIMATION : animation;
         }
     }
 

@@ -58,7 +58,7 @@ public final class RXBurstLayer extends RXSceneOverlayLayer {
     // pooled canvas holds its texture.
     private static final int MAX_IDLE = 4;
     private static final double MAX_IDLE_SIDE = 512.0;
-    // Automatic particle size: a burst centered on a node sizes with it
+    // Automatic anchor size: a burst centered on a node sizes with it
     // within these bounds; a burst at a point uses the fixed size.
     private static final double MIN_AUTO_SIZE = 16.0;
     private static final double MAX_AUTO_SIZE = 48.0;
@@ -129,10 +129,10 @@ public final class RXBurstLayer extends RXSceneOverlayLayer {
         burst.centered = Double.isNaN(x) || Double.isNaN(y);
         burst.anchorX = x;
         burst.anchorY = y;
-        burst.size = options.getSize() > 0.0 && Double.isFinite(options.getSize())
-                ? options.getSize()
+        burst.anchorSize = options.getAnchorSize() > 0.0 && Double.isFinite(options.getAnchorSize())
+                ? options.getAnchorSize()
                 : autoSize(anchor, burst.centered);
-        burst.reach = BurstSettings.reach(burst.size,
+        burst.reach = BurstSettings.reach(burst.anchorSize,
                 BurstSettings.scaleOrDefault(options.getScale(), RXBurstOptions.DEFAULT_SCALE));
         List<Paint> colors = BurstSettings.palette(options.getPalette(),
                 options.getColor() != null ? options.getColor() : getBurstColor(), FALLBACK_COLOR);
@@ -178,7 +178,7 @@ public final class RXBurstLayer extends RXSceneOverlayLayer {
         private boolean centered;
         private double anchorX;
         private double anchorY;
-        private double size;
+        private double anchorSize;
         private double reach;
         // The last center in layer coordinates, kept once the anchor leaves.
         private Point2D center = Point2D.ZERO;
@@ -186,7 +186,7 @@ public final class RXBurstLayer extends RXSceneOverlayLayer {
         private Burst() {
             canvas.setManaged(false);
             canvas.setMouseTransparent(true);
-            playback = new BurstPlayback(canvas, () -> reach, () -> size, this::place, () -> finish(this));
+            playback = new BurstPlayback(canvas, () -> reach, () -> anchorSize, this::place, () -> finish(this));
         }
 
         private void place() {

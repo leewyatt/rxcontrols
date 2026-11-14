@@ -42,25 +42,25 @@ public final class BurstAnimFireworks implements BurstAnimation {
     @Override
     public void draw(GraphicsContext gc, BurstFrame frame) {
         double t = frame.progress();
-        if (t >= BurstShapes.END) {
+        if (t >= BurstSupport.END) {
             return;
         }
         double anchor = frame.anchorSize();
-        if (anchor * SPARK_SIZE < BurstShapes.MIN_VISIBLE_SIZE) {
+        if (anchor * SPARK_SIZE < BurstSupport.MIN_VISIBLE_SIZE) {
             return;
         }
         gc.save();
         gc.setLineCap(StrokeLineCap.ROUND);
-        double flash = 1.0 - BurstShapes.segment(t, 0.0, 0.12);
+        double flash = 1.0 - BurstSupport.segment(t, 0.0, 0.12);
         if (flash > 0.0) {
             gc.setGlobalAlpha(0.5 * flash);
             gc.setFill(frame.color(1));
-            BurstShapes.fillCircle(gc, frame.centerX(), frame.centerY(),
-                    Math.min(anchor * (0.4 + 0.5 * (1.0 - flash)), BurstShapes.limit(frame)));
+            BurstSupport.fillCircle(gc, frame.centerX(), frame.centerY(),
+                    Math.min(anchor * (0.4 + 0.5 * (1.0 - flash)), BurstSupport.limit(frame)));
         }
-        ring(gc, frame, BurstShapes.segment(t, 0.0, BurstShapes.END), sparks, frame.radius(), 0, 0.0);
-        ring(gc, frame, BurstShapes.segment(t, 0.12, BurstShapes.END), Math.max(MIN_SPARKS, sparks / 2),
-                frame.radius() * 0.55, sparks, Math.PI / sparks);
+        ring(gc, frame, BurstSupport.segment(t, 0.0, BurstSupport.END), sparks, frame.reach(), 0, 0.0);
+        ring(gc, frame, BurstSupport.segment(t, 0.12, BurstSupport.END), Math.max(MIN_SPARKS, sparks / 2),
+                frame.reach() * 0.55, sparks, Math.PI / sparks);
         gc.restore();
     }
 
@@ -70,17 +70,17 @@ public final class BurstAnimFireworks implements BurstAnimation {
             return;
         }
         double anchor = frame.anchorSize();
-        double fade = 1.0 - BurstShapes.segment(local, 0.55, 1.0);
+        double fade = 1.0 - BurstSupport.segment(local, 0.55, 1.0);
         double size = anchor * SPARK_SIZE * fade;
-        if (size < BurstShapes.MIN_VISIBLE_SIZE) {
+        if (size < BurstSupport.MIN_VISIBLE_SIZE) {
             return;
         }
         // Eases the flicker in, so the brightness does not jump when it starts.
-        double flickerDepth = 0.45 * BurstShapes.segment(local, 0.5, 0.65);
+        double flickerDepth = 0.45 * BurstSupport.segment(local, 0.5, 0.65);
         double step = 2.0 * Math.PI / count;
         for (int k = 0; k < count; k++) {
             int i = k + indexOffset;
-            double angle = BurstShapes.TOP + angleOffset + k * step + (frame.random(i, 0) - 0.5) * step * 0.4;
+            double angle = BurstSupport.TOP + angleOffset + k * step + (frame.random(i, 0) - 0.5) * step * 0.4;
             // Leaves room for the droop below, so a spark stays within the reach.
             double sparkReach = reach * (0.7 + 0.15 * frame.random(i, 1));
             // Late flicker: each spark blinks on its own phase as it dies.
@@ -99,17 +99,17 @@ public final class BurstAnimFireworks implements BurstAnimation {
             gc.strokeLine(sparkX(frame, angle, sparkReach, tail), sparkY(frame, angle, sparkReach, tail), headX, headY);
             gc.setGlobalAlpha(alpha);
             gc.setFill(frame.color(i));
-            BurstShapes.fillCircle(gc, headX, headY, size);
+            BurstSupport.fillCircle(gc, headX, headY, size);
         }
     }
 
     private static double sparkX(BurstFrame frame, double angle, double reach, double local) {
-        return frame.centerX() + reach * BurstShapes.easeOutCubic(local) * Math.cos(angle);
+        return frame.centerX() + reach * BurstSupport.easeOutCubic(local) * Math.cos(angle);
     }
 
     // Gravity pulls the sparks down a little as they slow.
     private static double sparkY(BurstFrame frame, double angle, double reach, double local) {
-        return frame.centerY() + reach * BurstShapes.easeOutCubic(local) * Math.sin(angle)
+        return frame.centerY() + reach * BurstSupport.easeOutCubic(local) * Math.sin(angle)
                 + reach * 0.15 * local * local;
     }
 }

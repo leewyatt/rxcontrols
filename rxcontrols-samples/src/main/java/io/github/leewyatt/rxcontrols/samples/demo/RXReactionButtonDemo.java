@@ -33,12 +33,12 @@ public class RXReactionButtonDemo extends Application {
         like.setOnAction(event -> updateLikes(like));
 
         RXReactionButton favorite = new RXReactionButton();
-        favorite.getStyleClass().add("star");
+        favorite.getStyleClass().add(RXReactionButton.STYLE_CLASS_STAR);
         favorite.setBurstAnimation(BurstAnimation.SPARKLES);
         favorite.setAccessibleText("Favorite");
 
         RXReactionButton bookmark = new RXReactionButton();
-        bookmark.getStyleClass().add("bookmark");
+        bookmark.getStyleClass().add(RXReactionButton.STYLE_CLASS_BOOKMARK);
         bookmark.setBurstAnimation(BurstAnimation.RAYS);
         bookmark.setAccessibleText("Bookmark");
 

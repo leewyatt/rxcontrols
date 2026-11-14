@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.RXBurstOptions;
 import io.github.leewyatt.rxcontrols.RXReactionButton;
 import io.github.leewyatt.rxcontrols.animation.burst.BurstAnimation;
 import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
@@ -71,14 +72,15 @@ public class RXReactionButtonSkin extends RXToggleButtonSkin {
             }
         });
         // Deselected any way at all (from code, by a toggle group, or rolled
-        // back in onAction): the celebration ends. The shrink pop stays with
-        // user activation.
+        // back in onAction): the celebration ends, the select pop with it.
+        // The shrink pop stays with user activation, which starts it after
+        // this listener has run.
         disposer.registerListener(button.selectedProperty(), () -> {
             if (!button.isSelected()) {
                 burst.cancel();
+                pop.cancel();
             }
         });
-        disposer.registerListener(button.burstScaleProperty(), burst::refresh);
         disposer.registerListener(button.graphicProperty(), pop::cancel);
         disposer.registerListener(button.animatedProperty(), () -> {
             if (!button.isAnimated()) {
@@ -147,7 +149,7 @@ public class RXReactionButtonSkin extends RXToggleButtonSkin {
         RXReactionButton button = (RXReactionButton) getSkinnable();
         BurstAnimation animation = button.getBurstAnimation();
         Duration duration = BurstSettings.durationOrDefault(button.getBurstDuration(),
-                RXReactionButton.DEFAULT_BURST_DURATION);
+                RXBurstOptions.DEFAULT_DURATION);
         burst.cancel();
         if (animation == null || duration.lessThanOrEqualTo(Duration.ZERO)) {
             return;
@@ -177,7 +179,7 @@ public class RXReactionButtonSkin extends RXToggleButtonSkin {
 
     private double reach() {
         RXReactionButton button = (RXReactionButton) getSkinnable();
-        double scale = BurstSettings.scaleOrDefault(button.getBurstScale(), RXReactionButton.DEFAULT_BURST_SCALE);
+        double scale = BurstSettings.scaleOrDefault(button.getBurstScale(), RXBurstOptions.DEFAULT_SCALE);
         return BurstSettings.reach(anchorSize(), scale);
     }
 
@@ -194,7 +196,9 @@ public class RXReactionButtonSkin extends RXToggleButtonSkin {
             centerX = getSkinnable().getWidth() / 2.0;
             centerY = getSkinnable().getHeight() / 2.0;
         }
-        burstLayer.relocate(centerX - side / 2.0, centerY - side / 2.0);
+        // Snapped to device pixels, so particles stay sharp when the icon's
+        // center falls on a half pixel.
+        burstLayer.relocate(snapPositionX(centerX - side / 2.0), snapPositionY(centerY - side / 2.0));
     }
 
     // ==================== Pop ====================

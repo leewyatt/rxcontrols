@@ -130,7 +130,7 @@ public class BurstAnimationTest {
             double anchor = 24.0;
             for (double ratio : new double[]{0.4, 0.8, 1.6, 6.4}) {
                 double reach = anchor * ratio;
-                double limit = reach + anchor * BurstShapes.OVERSHOOT;
+                double limit = reach + anchor * BurstSupport.OVERSHOOT;
                 int size = (int) Math.ceil(2.0 * (limit + anchor));
                 double center = size / 2.0;
                 for (BurstAnimation animation : allPresets()) {
@@ -236,7 +236,7 @@ public class BurstAnimationTest {
         BurstFrame broken = new BurstFrame(0.5, Double.NaN, Double.NEGATIVE_INFINITY, -4.0, Double.NaN, null, 1L);
         assertEquals(0.0, broken.centerX());
         assertEquals(0.0, broken.centerY());
-        assertEquals(0.0, broken.radius());
+        assertEquals(0.0, broken.reach());
         assertEquals(0.0, broken.anchorSize());
 
         List<Paint> withNull = new ArrayList<>(Arrays.asList(Color.RED, null, Color.BLUE));

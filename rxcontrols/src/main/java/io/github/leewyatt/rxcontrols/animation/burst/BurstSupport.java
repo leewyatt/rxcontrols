@@ -6,7 +6,7 @@ import javafx.scene.canvas.GraphicsContext;
 /**
  * Easing, timing and shape helpers shared by the burst presets.
  */
-final class BurstShapes {
+final class BurstSupport {
 
     /**
      * Sizes below this many pixels are skipped: drawing them would leave
@@ -32,7 +32,7 @@ final class BurstShapes {
      */
     static final double OVERSHOOT = 0.4;
 
-    private BurstShapes() {
+    private BurstSupport() {
     }
 
     // ==================== Timing ====================
@@ -53,14 +53,14 @@ final class BurstShapes {
      * but never past half the reach.
      */
     static double startDistance(BurstFrame frame) {
-        return Math.min(frame.anchorSize() * 0.5, frame.radius() * 0.5);
+        return Math.min(frame.anchorSize() * 0.5, frame.reach() * 0.5);
     }
 
     /**
      * The farthest distance from the center any painted pixel may reach.
      */
     static double limit(BurstFrame frame) {
-        return frame.radius() + frame.anchorSize() * OVERSHOOT;
+        return frame.reach() + frame.anchorSize() * OVERSHOOT;
     }
 
     /**

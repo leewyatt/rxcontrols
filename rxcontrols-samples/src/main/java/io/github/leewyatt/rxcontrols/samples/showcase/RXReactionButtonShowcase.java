@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
+import io.github.leewyatt.rxcontrols.RXBurstOptions;
 import io.github.leewyatt.rxcontrols.RXReactionButton;
 import io.github.leewyatt.rxcontrols.animation.burst.BurstAnimShapes;
 import io.github.leewyatt.rxcontrols.animation.burst.BurstAnimation;
@@ -139,11 +140,11 @@ public class RXReactionButtonShowcase extends RXShowcaseApplication {
         presetBox.setValue(classic);
 
         // 0 ms plays no burst.
-        Slider durationSlider = createSlider(0.0, 3000.0, RXReactionButton.DEFAULT_BURST_DURATION.toMillis());
+        Slider durationSlider = createSlider(0.0, 3000.0, RXBurstOptions.DEFAULT_DURATION.toMillis());
         durationSlider.valueProperty().addListener((obs, oldV, newV) ->
                 button.setBurstDuration(Duration.millis(Math.round(newV.doubleValue()))));
 
-        Slider scaleSlider = createSlider(0.25, 4.0, RXReactionButton.DEFAULT_BURST_SCALE);
+        Slider scaleSlider = createSlider(0.25, 4.0, RXBurstOptions.DEFAULT_SCALE);
         scaleSlider.valueProperty().addListener((obs, oldV, newV) -> button.setBurstScale(newV.doubleValue()));
 
         Button playButton = new Button("playBurst()");
@@ -191,10 +192,12 @@ public class RXReactionButtonShowcase extends RXShowcaseApplication {
         iconBox.getItems().setAll("Heart", "Star", "Bookmark", noIcon);
         iconBox.setMaxWidth(Double.MAX_VALUE);
         iconBox.valueProperty().addListener((obs, oldV, newV) -> {
-            button.getStyleClass().removeAll("star", "bookmark");
+            button.getStyleClass().removeAll(RXReactionButton.STYLE_CLASS_STAR, RXReactionButton.STYLE_CLASS_BOOKMARK);
             button.setGraphic(noIcon.equals(newV) ? null : defaultIcon);
-            if ("Star".equals(newV) || "Bookmark".equals(newV)) {
-                button.getStyleClass().add(newV.toLowerCase());
+            if ("Star".equals(newV)) {
+                button.getStyleClass().add(RXReactionButton.STYLE_CLASS_STAR);
+            } else if ("Bookmark".equals(newV)) {
+                button.getStyleClass().add(RXReactionButton.STYLE_CLASS_BOOKMARK);
             }
         });
         iconBox.setValue("Heart");

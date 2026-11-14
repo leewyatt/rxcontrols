@@ -36,24 +36,24 @@ public final class BurstAnimDots implements BurstAnimation {
     @Override
     public void draw(GraphicsContext gc, BurstFrame frame) {
         double t = frame.progress();
-        if (t >= BurstShapes.END) {
+        if (t >= BurstSupport.END) {
             return;
         }
         double anchor = frame.anchorSize();
-        double startDistance = BurstShapes.startDistance(frame) * 0.9;
-        double travel = BurstShapes.easeOutCubic(t);
-        double shrink = 1.0 - BurstShapes.segment(t, 0.55, BurstShapes.END);
+        double startDistance = BurstSupport.startDistance(frame) * 0.9;
+        double travel = BurstSupport.easeOutCubic(t);
+        double shrink = 1.0 - BurstSupport.segment(t, 0.55, BurstSupport.END);
         double big = anchor * 0.16 * shrink;
         double small = anchor * 0.1 * shrink;
-        if (big < BurstShapes.MIN_VISIBLE_SIZE) {
+        if (big < BurstSupport.MIN_VISIBLE_SIZE) {
             return;
         }
         double step = 2.0 * Math.PI / pairs;
         gc.save();
         for (int i = 0; i < pairs; i++) {
             double jitter = (frame.random(i, 0) - 0.5) * step * 0.25;
-            double angle = BurstShapes.TOP + i * step + jitter;
-            double reach = frame.radius() * (0.88 + 0.12 * frame.random(i, 1));
+            double angle = BurstSupport.TOP + i * step + jitter;
+            double reach = frame.reach() * (0.88 + 0.12 * frame.random(i, 1));
             double distance = startDistance + (reach - startDistance) * travel;
             dot(gc, frame, i * 2, angle, distance, big);
             dot(gc, frame, i * 2 + 1, angle + step * 0.3, distance * 0.82, small);

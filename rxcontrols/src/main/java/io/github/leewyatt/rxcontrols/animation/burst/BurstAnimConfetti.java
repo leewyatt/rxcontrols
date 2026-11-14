@@ -35,21 +35,21 @@ public final class BurstAnimConfetti implements BurstAnimation {
      */
     @Override
     public void draw(GraphicsContext gc, BurstFrame frame) {
-        double t = BurstShapes.segment(frame.progress(), 0.0, BurstShapes.END);
+        double t = BurstSupport.segment(frame.progress(), 0.0, BurstSupport.END);
         if (t >= 1.0) {
             return;
         }
         double anchor = frame.anchorSize();
-        double alpha = 1.0 - BurstShapes.segment(t, 0.7, 1.0);
+        double alpha = 1.0 - BurstSupport.segment(t, 0.7, 1.0);
         double length = anchor * 0.32;
         double breadth = anchor * 0.15;
-        if (breadth < BurstShapes.MIN_VISIBLE_SIZE) {
+        if (breadth < BurstSupport.MIN_VISIBLE_SIZE) {
             return;
         }
         // Throw distance and fall stay within the reach together.
-        double throwReach = frame.radius() * 0.65;
-        double fall = frame.radius() * 0.3 * t * t;
-        double travel = BurstShapes.easeOutCubic(t);
+        double throwReach = frame.reach() * 0.65;
+        double fall = frame.reach() * 0.3 * t * t;
+        double travel = BurstSupport.easeOutCubic(t);
         gc.save();
         gc.setGlobalAlpha(alpha);
         for (int i = 0; i < count; i++) {

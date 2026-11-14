@@ -34,7 +34,7 @@ import java.util.Map;
  * button that bursts from its center and a list whose rows burst when
  * clicked, which shows that the overlay is not clipped by the list. The
  * control pane covers every preset plus a custom shape, a combined burst and
- * none, the duration, scale and particle size, a custom color and a
+ * none, the duration, scale and anchor size, a custom color and a
  * multi-color palette, all applied through {@link RXBurstOptions}.</p>
  */
 public class RXBurstsShowcase extends RXShowcaseApplication {
@@ -115,7 +115,7 @@ public class RXBurstsShowcase extends RXShowcaseApplication {
                 .animation(presets.get(presetBox.getValue()))
                 .duration(Duration.millis(Math.round(durationSlider.getValue())))
                 .scale(scaleSlider.getValue())
-                .size(Math.round(sizeSlider.getValue()))
+                .anchorSize(Math.round(sizeSlider.getValue()))
                 .color(customColorBox.isSelected() ? colorPicker.getValue() : null)
                 .palette(rainbowBox.isSelected() ? RAINBOW : null)
                 .build();
@@ -142,7 +142,7 @@ public class RXBurstsShowcase extends RXShowcaseApplication {
         presetBox.setMaxWidth(Double.MAX_VALUE);
         presetBox.setValue(classic);
 
-        Label sizeHint = new Label("Particle size 0 = automatic: from the node's size within 16-48 px,"
+        Label sizeHint = new Label("Anchor size 0 = automatic: from the node's size within 16-48 px,"
                 + " or 24 px at a point. Duration 0 plays nothing.");
         sizeHint.getStyleClass().add("hint-label");
         sizeHint.setWrapText(true);
@@ -151,7 +151,7 @@ public class RXBurstsShowcase extends RXShowcaseApplication {
                 row("Preset", presetBox),
                 row("Duration", durationSlider, createValueLabel(durationSlider, "%.0f ms")),
                 row("Scale", scaleSlider, createValueLabel(scaleSlider, "%.2f")),
-                row("Particle size", sizeSlider, createValueLabel(sizeSlider, "%.0f px")),
+                row("Anchor size", sizeSlider, createValueLabel(sizeSlider, "%.0f px")),
                 row(sizeHint));
     }
 

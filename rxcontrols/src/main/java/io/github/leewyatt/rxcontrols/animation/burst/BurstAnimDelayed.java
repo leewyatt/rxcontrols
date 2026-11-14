@@ -23,6 +23,6 @@ final class BurstAnimDelayed implements BurstAnimation {
         if (t < start || inner == null) {
             return;
         }
-        inner.draw(gc, frame.withProgress(BurstShapes.segment(t, start, BurstShapes.END)));
+        inner.draw(gc, frame.withProgress(BurstSupport.segment(t, start, BurstSupport.END)));
     }
 }

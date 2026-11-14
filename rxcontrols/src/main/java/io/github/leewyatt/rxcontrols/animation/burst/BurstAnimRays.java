@@ -37,19 +37,19 @@ public final class BurstAnimRays implements BurstAnimation {
     @Override
     public void draw(GraphicsContext gc, BurstFrame frame) {
         double t = frame.progress();
-        if (t >= BurstShapes.END) {
+        if (t >= BurstSupport.END) {
             return;
         }
         // Round caps keep a dot at each end even as a ray collapses, so the
         // width fades out as well.
-        double width = frame.anchorSize() * 0.09 * (1.0 - BurstShapes.segment(t, 0.7, BurstShapes.END));
-        if (width < BurstShapes.MIN_VISIBLE_SIZE) {
+        double width = frame.anchorSize() * 0.09 * (1.0 - BurstSupport.segment(t, 0.7, BurstSupport.END));
+        if (width < BurstSupport.MIN_VISIBLE_SIZE) {
             return;
         }
-        double base = BurstShapes.startDistance(frame);
-        double span = frame.radius() - base;
-        double outerT = BurstShapes.easeOutCubic(BurstShapes.segment(t, 0.0, 0.65));
-        double innerT = BurstShapes.easeInOutQuad(BurstShapes.segment(t, 0.15, BurstShapes.END));
+        double base = BurstSupport.startDistance(frame);
+        double span = frame.reach() - base;
+        double outerT = BurstSupport.easeOutCubic(BurstSupport.segment(t, 0.0, 0.65));
+        double innerT = BurstSupport.easeInOutQuad(BurstSupport.segment(t, 0.15, BurstSupport.END));
         double step = 2.0 * Math.PI / count;
         gc.save();
         gc.setLineCap(StrokeLineCap.ROUND);
@@ -57,10 +57,10 @@ public final class BurstAnimRays implements BurstAnimation {
             double scale = i % 2 == 0 ? 1.0 : 0.75;
             double outer = base + span * scale * outerT;
             double inner = base + span * scale * innerT;
-            if (outer - inner < BurstShapes.MIN_VISIBLE_SIZE) {
+            if (outer - inner < BurstSupport.MIN_VISIBLE_SIZE) {
                 continue;
             }
-            double angle = BurstShapes.TOP + i * step;
+            double angle = BurstSupport.TOP + i * step;
             double cos = Math.cos(angle);
             double sin = Math.sin(angle);
             gc.setStroke(frame.color(i));

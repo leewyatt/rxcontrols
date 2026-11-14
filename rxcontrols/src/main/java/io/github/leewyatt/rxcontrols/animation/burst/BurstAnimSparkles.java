@@ -36,7 +36,7 @@ public final class BurstAnimSparkles implements BurstAnimation {
     @Override
     public void draw(GraphicsContext gc, BurstFrame frame) {
         double t = frame.progress();
-        if (t >= BurstShapes.END) {
+        if (t >= BurstSupport.END) {
             return;
         }
         double anchor = frame.anchorSize();
@@ -44,17 +44,17 @@ public final class BurstAnimSparkles implements BurstAnimation {
         gc.save();
         for (int i = 0; i < count; i++) {
             double start = frame.random(i, 0) * 0.3;
-            double local = BurstShapes.segment(t, start, start + (BurstShapes.END - 0.3));
-            double size = anchor * (0.26 + 0.14 * frame.random(i, 1)) * BurstShapes.swell(local);
-            if (size < BurstShapes.MIN_VISIBLE_SIZE) {
+            double local = BurstSupport.segment(t, start, start + (BurstSupport.END - 0.3));
+            double size = anchor * (0.26 + 0.14 * frame.random(i, 1)) * BurstSupport.swell(local);
+            if (size < BurstSupport.MIN_VISIBLE_SIZE) {
                 continue;
             }
-            double angle = BurstShapes.TOP + i * step + (frame.random(i, 2) - 0.5) * step * 0.6;
-            double distance = frame.radius() * (0.5 + 0.25 * frame.random(i, 3))
-                    + frame.radius() * 0.2 * BurstShapes.easeOutQuad(local);
+            double angle = BurstSupport.TOP + i * step + (frame.random(i, 2) - 0.5) * step * 0.6;
+            double distance = frame.reach() * (0.5 + 0.25 * frame.random(i, 3))
+                    + frame.reach() * 0.2 * BurstSupport.easeOutQuad(local);
             double rotation = (frame.random(i, 4) - 0.5) * Math.PI / 2.0 * local;
             gc.setFill(frame.color(i));
-            BurstShapes.fillStar(gc, frame.centerX() + distance * Math.cos(angle),
+            BurstSupport.fillStar(gc, frame.centerX() + distance * Math.cos(angle),
                     frame.centerY() + distance * Math.sin(angle), 4, size, size * 0.3, rotation);
         }
         gc.restore();

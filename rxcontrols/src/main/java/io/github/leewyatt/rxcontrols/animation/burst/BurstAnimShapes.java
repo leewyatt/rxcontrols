@@ -45,22 +45,22 @@ public final class BurstAnimShapes implements BurstAnimation {
     @Override
     public void draw(GraphicsContext gc, BurstFrame frame) {
         double t = frame.progress();
-        if (t >= BurstShapes.END || svgPath == null || svgPath.isBlank()) {
+        if (t >= BurstSupport.END || svgPath == null || svgPath.isBlank()) {
             return;
         }
         double anchor = frame.anchorSize();
-        double start = BurstShapes.startDistance(frame);
-        double travel = BurstShapes.easeOutCubic(t);
-        double shrink = 1.0 - BurstShapes.segment(t, 0.6, BurstShapes.END);
+        double start = BurstSupport.startDistance(frame);
+        double travel = BurstSupport.easeOutCubic(t);
+        double shrink = 1.0 - BurstSupport.segment(t, 0.6, BurstSupport.END);
         double step = 2.0 * Math.PI / count;
         gc.save();
         for (int i = 0; i < count; i++) {
             double size = anchor * (0.32 + 0.16 * frame.random(i, 0)) * shrink;
-            if (size < BurstShapes.MIN_VISIBLE_SIZE) {
+            if (size < BurstSupport.MIN_VISIBLE_SIZE) {
                 continue;
             }
-            double angle = BurstShapes.TOP + i * step + (frame.random(i, 1) - 0.5) * step * 0.4;
-            double reach = frame.radius() * (0.85 + 0.15 * frame.random(i, 2));
+            double angle = BurstSupport.TOP + i * step + (frame.random(i, 1) - 0.5) * step * 0.4;
+            double reach = frame.reach() * (0.85 + 0.15 * frame.random(i, 2));
             double distance = start + (reach - start) * travel;
             double turn = (frame.random(i, 3) - 0.5) * 90.0 * t;
             gc.save();

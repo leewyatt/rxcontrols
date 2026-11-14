@@ -177,6 +177,7 @@ public class RXReactionButtonTest {
             rolledBack.setOnAction(event -> rolledBack.setSelected(false));
             rolledBack.fire();
             assertFalse(burstLayer(rolledBack).isVisible(), "rolled back in onAction");
+            assertTrue(scales(rolledBack.getGraphic()).isEmpty(), "the select pop ends with it");
             rolledBack.getSkin().dispose();
         });
     }
@@ -418,7 +419,7 @@ public class RXReactionButtonTest {
             assertNotEquals(idle, iconColor(heart));
 
             RXReactionButton star = new RXReactionButton();
-            star.getStyleClass().add("star");
+            star.getStyleClass().add(RXReactionButton.STYLE_CLASS_STAR);
             laidOut(star);
             star.setSelected(true);
             star.applyCss();

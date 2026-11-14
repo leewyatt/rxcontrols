@@ -13,19 +13,19 @@ public final class BurstAnimRing implements BurstAnimation {
      */
     @Override
     public void draw(GraphicsContext gc, BurstFrame frame) {
-        double t = BurstShapes.segment(frame.progress(), 0.0, BurstShapes.END);
+        double t = BurstSupport.segment(frame.progress(), 0.0, BurstSupport.END);
         if (t >= 1.0) {
             return;
         }
-        double reach = frame.radius();
-        double startRadius = BurstShapes.startDistance(frame);
-        double radius = startRadius + (reach - startRadius) * BurstShapes.easeOutCubic(t);
+        double reach = frame.reach();
+        double startRadius = BurstSupport.startDistance(frame);
+        double radius = startRadius + (reach - startRadius) * BurstSupport.easeOutCubic(t);
         double width = frame.anchorSize() * 0.2 * (1.0 - t);
-        if (width < BurstShapes.MIN_VISIBLE_SIZE) {
+        if (width < BurstSupport.MIN_VISIBLE_SIZE) {
             return;
         }
         gc.save();
-        gc.setGlobalAlpha(1.0 - BurstShapes.easeInQuad(t));
+        gc.setGlobalAlpha(1.0 - BurstSupport.easeInQuad(t));
         gc.setStroke(frame.color(0));
         gc.setLineWidth(width);
         gc.strokeOval(frame.centerX() - radius, frame.centerY() - radius, radius * 2.0, radius * 2.0);

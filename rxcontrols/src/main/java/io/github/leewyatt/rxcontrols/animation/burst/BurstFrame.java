@@ -23,7 +23,7 @@ import java.util.List;
  *                   reads as 0)
  * @param centerY    the burst center y, in canvas coordinates (non-finite
  *                   reads as 0)
- * @param radius     how far particles may travel from the center, in pixels
+ * @param reach      how far particles may travel from the center, in pixels
  *                   (negative or non-finite reads as 0)
  * @param anchorSize the approximate diameter of the node the burst comes
  *                   from, which particle sizes scale with (negative or
@@ -33,7 +33,7 @@ import java.util.List;
  * @param seed       the random seed of this play
  */
 public record BurstFrame(double progress, double centerX, double centerY,
-                         double radius, double anchorSize, List<Paint> colors, long seed) {
+                         double reach, double anchorSize, List<Paint> colors, long seed) {
 
     private static final Paint FALLBACK_COLOR = Color.GRAY;
 
@@ -45,7 +45,7 @@ public record BurstFrame(double progress, double centerX, double centerY,
      * @param progress   the burst progress
      * @param centerX    the burst center x
      * @param centerY    the burst center y
-     * @param radius     the burst reach
+     * @param reach      the burst reach
      * @param anchorSize the anchor diameter
      * @param colors     the particle colors, or {@code null} for none
      * @param seed       the random seed
@@ -54,7 +54,7 @@ public record BurstFrame(double progress, double centerX, double centerY,
         progress = RXMath.clamp0To1(progress);
         centerX = Double.isFinite(centerX) ? centerX : 0.0;
         centerY = Double.isFinite(centerY) ? centerY : 0.0;
-        radius = RXMath.sanitizeFiniteNonNegative(radius);
+        reach = RXMath.sanitizeFiniteNonNegative(reach);
         anchorSize = RXMath.sanitizeFiniteNonNegative(anchorSize);
         colors = copyWithoutNulls(colors);
     }
@@ -96,7 +96,7 @@ public record BurstFrame(double progress, double centerX, double centerY,
      * @return the copied frame
      */
     public BurstFrame withProgress(double value) {
-        return new BurstFrame(value, centerX, centerY, radius, anchorSize, colors, seed);
+        return new BurstFrame(value, centerX, centerY, reach, anchorSize, colors, seed);
     }
 
     private static List<Paint> copyWithoutNulls(List<Paint> source) {
