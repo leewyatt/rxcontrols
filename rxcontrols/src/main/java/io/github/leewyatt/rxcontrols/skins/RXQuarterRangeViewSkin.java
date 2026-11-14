@@ -4,7 +4,6 @@ import io.github.leewyatt.rxcontrols.RXQuarterRange;
 import io.github.leewyatt.rxcontrols.RXQuarterRangeView;
 import io.github.leewyatt.rxcontrols.RXYearQuarter;
 import io.github.leewyatt.rxcontrols.internal.datetime.PeriodRangeType;
-import javafx.beans.property.ObjectProperty;
 
 import java.time.Year;
 import java.util.function.Predicate;
@@ -22,7 +21,8 @@ public class RXQuarterRangeViewSkin
      */
     public RXQuarterRangeViewSkin(RXQuarterRangeView control) {
         super(control, PeriodRangeType.QUARTER);
-        initialize(control.yearCountProperty(), control.minQuarterProperty(), control.maxQuarterProperty(),
+        initialize(control.yearCountProperty(), control.displayedYearProperty(), year -> year.atDay(1),
+                month -> Year.of(month.getYear()), control.minQuarterProperty(), control.maxQuarterProperty(),
                 control.quarterFilterProperty());
     }
 
@@ -39,10 +39,5 @@ public class RXQuarterRangeViewSkin
     @Override
     protected Predicate<RXYearQuarter> filter() {
         return getSkinnable().getQuarterFilter();
-    }
-
-    @Override
-    protected ObjectProperty<Year> displayedYearProperty() {
-        return getSkinnable().displayedYearProperty();
     }
 }

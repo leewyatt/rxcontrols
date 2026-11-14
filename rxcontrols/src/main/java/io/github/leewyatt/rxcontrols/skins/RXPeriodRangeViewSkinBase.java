@@ -19,13 +19,16 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 
 import java.time.LocalDate;
-import java.time.Year;
+import java.time.YearMonth;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
- * Shared skin of the period range views (month, quarter, year): linked pages of period
- * cells with an anchor-then-end range selection and a live preview. Periods are handed
- * to the panel as their first day.
+ * Shared skin of the period range views (week, month, quarter, year): linked pages of
+ * period cells with an anchor-then-end range selection and a live preview. Periods are
+ * handed to the panel as their first day.
  *
  * @param <P> the period type
  * @param <R> the range type
@@ -40,7 +43,9 @@ abstract class RXPeriodRangeViewSkinBase<P extends Comparable<? super P>, R, C e
     private final CalendarPanel panel;
     private final ReadOnlyObjectWrapper<LocalDate> anchor = new ReadOnlyObjectWrapper<>(this, "anchor");
     private LocalDate hover;
-    private boolean writingDisplayedYear;
+    private Supplier<LocalDate> displayedStart = () -> null;
+    private Consumer<YearMonth> displayedWriter = month -> { };
+    private boolean writingDisplayed;
     private boolean pickingValue;
 
     /**
@@ -50,19 +55,61 @@ abstract class RXPeriodRangeViewSkinBase<P extends Comparable<? super P>, R, C e
      * @param type    the kind of range the view picks
      */
     protected RXPeriodRangeViewSkinBase(C control, PeriodRangeType<P, R> type) {
+        this(control, type, new CalendarPanel(type.level()));
+    }
+
+    /**
+     * Creates the skin around a given panel. Subclasses call {@link #initialize} at the
+     * end of their constructor.
+     *
+     * @param control the view
+     * @param type    the kind of range the view picks
+     * @param panel   the panel showing the periods
+     */
+    protected RXPeriodRangeViewSkinBase(C control, PeriodRangeType<P, R> type, CalendarPanel panel) {
         super(control);
         this.type = type;
-        panel = new CalendarPanel(type.level());
+        this.panel = panel;
+    }
+
+    /**
+     * Returns the panel showing the periods.
+     *
+     * @return the panel
+     */
+    protected final CalendarPanel panel() {
+        return panel;
     }
 
     /**
      * Wires the panel to the view's properties.
      *
      * @param pageCount            the view's number of linked pages
-     * @param constraintProperties the bound and filter properties of the view
+     * @param displayed            the view's property naming the first displayed page
+     * @param startOf              maps a value of that property to a day of the page
+     * @param displayedOf          maps the panel's first displayed month to a value of that property
+     * @param constraintProperties the properties that decide which periods are selectable
+     * @param <D>                  the type of the displayed-page property
      */
-    protected final void initialize(ObservableIntegerValue pageCount, Observable... constraintProperties) {
+    protected final <D> void initialize(ObservableIntegerValue pageCount, ObjectProperty<D> displayed,
+                                        Function<D, LocalDate> startOf, Function<YearMonth, D> displayedOf,
+                                        Observable... constraintProperties) {
         C control = getSkinnable();
+        displayedStart = () -> {
+            D value = displayed.get();
+            return value == null ? null : startOf.apply(value);
+        };
+        displayedWriter = month -> {
+            D shown = displayedOf.apply(month);
+            if (!displayed.isBound() && !shown.equals(displayed.get())) {
+                writingDisplayed = true;
+                try {
+                    displayed.set(shown);
+                } finally {
+                    writingDisplayed = false;
+                }
+            }
+        };
         panel.setStateProvider(this::stateOf);
         panel.setCursorSeed(this::cursorSeed);
         panel.setOnPick(this::onPick);
@@ -74,14 +121,14 @@ abstract class RXPeriodRangeViewSkinBase<P extends Comparable<? super P>, R, C e
         panel.setPageCount(pageCount.get());
         panel.setLocale(control.getLocale());
         updateToday();
-        showDisplayedYear();
+        showDisplayed();
         updateConstraints();
 
         disposer.registerListener(control.valueProperty(), this::onValueChanged);
         // A change listener reads the value on every change. An invalidation listener that
         // returns early during this skin's own write-back would leave the property invalid,
         // and the next set would notify nobody.
-        disposer.registerListener(displayedYearProperty(), (observable, old, year) -> showDisplayedYear());
+        disposer.registerListener(displayed, (observable, old, shown) -> showDisplayed());
         disposer.registerListener(pageCount, () -> panel.setPageCount(pageCount.get()));
         disposer.registerListener(control.localeProperty(), () -> panel.setLocale(control.getLocale()));
         for (Observable constraint : constraintProperties) {
@@ -128,13 +175,6 @@ abstract class RXPeriodRangeViewSkinBase<P extends Comparable<? super P>, R, C e
      * @return the filter, or {@code null}
      */
     protected abstract Predicate<P> filter();
-
-    /**
-     * Returns the view's displayed-year property.
-     *
-     * @return the property
-     */
-    protected abstract ObjectProperty<Year> displayedYearProperty();
 
     // ==================== Keyboard / anchor ====================
 
@@ -252,16 +292,7 @@ abstract class RXPeriodRangeViewSkinBase<P extends Comparable<? super P>, R, C e
     }
 
     private void onPageChanged() {
-        ObjectProperty<Year> displayed = displayedYearProperty();
-        Year shown = Year.of(panel.getDisplayedMonth().getYear());
-        if (!displayed.isBound() && !shown.equals(displayed.get())) {
-            writingDisplayedYear = true;
-            try {
-                displayed.set(shown);
-            } finally {
-                writingDisplayedYear = false;
-            }
-        }
+        displayedWriter.accept(panel.getDisplayedMonth());
     }
 
     // ==================== Updates ====================
@@ -284,18 +315,18 @@ abstract class RXPeriodRangeViewSkinBase<P extends Comparable<? super P>, R, C e
                 value != null && !(isSelectable(type.start(value)) && isSelectable(type.end(value))));
     }
 
-    private void showDisplayedYear() {
-        if (writingDisplayedYear) {
+    private void showDisplayed() {
+        if (writingDisplayed) {
             return;
         }
-        Year year = displayedYearProperty().get();
-        if (year == null) {
+        LocalDate start = displayedStart.get();
+        if (start == null) {
             R value = getSkinnable().getValue();
             LocalDate base = value != null ? type.firstDay(type.start(value)) : today();
             panel.showPeriodOf(TemporalRules.clamp(base, minDate(), maxDate()));
             onPageChanged();
         } else {
-            panel.showPeriodOf(year.atDay(1));
+            panel.showPeriodOf(start);
         }
     }
 

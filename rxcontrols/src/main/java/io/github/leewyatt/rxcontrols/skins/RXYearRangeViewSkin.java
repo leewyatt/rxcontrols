@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXYearRange;
 import io.github.leewyatt.rxcontrols.RXYearRangeView;
 import io.github.leewyatt.rxcontrols.internal.datetime.PeriodRangeType;
-import javafx.beans.property.ObjectProperty;
 
 import java.time.Year;
 import java.util.function.Predicate;
@@ -20,7 +19,8 @@ public class RXYearRangeViewSkin extends RXPeriodRangeViewSkinBase<Year, RXYearR
      */
     public RXYearRangeViewSkin(RXYearRangeView control) {
         super(control, PeriodRangeType.YEAR);
-        initialize(control.decadeCountProperty(), control.minYearProperty(), control.maxYearProperty(),
+        initialize(control.decadeCountProperty(), control.displayedYearProperty(), year -> year.atDay(1),
+                month -> Year.of(month.getYear()), control.minYearProperty(), control.maxYearProperty(),
                 control.yearFilterProperty());
     }
 
@@ -37,10 +37,5 @@ public class RXYearRangeViewSkin extends RXPeriodRangeViewSkinBase<Year, RXYearR
     @Override
     protected Predicate<Year> filter() {
         return getSkinnable().getYearFilter();
-    }
-
-    @Override
-    protected ObjectProperty<Year> displayedYearProperty() {
-        return getSkinnable().displayedYearProperty();
     }
 }

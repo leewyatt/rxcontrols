@@ -45,6 +45,9 @@ abstract class DateTimeShowcase extends RXShowcaseApplication {
     private static final LocalTime OPENING = LocalTime.of(9, 0);
     private static final LocalTime CLOSING = LocalTime.of(18, 0);
     private static final int LIMIT_DAYS = 30;
+    private static final int LIMIT_WEEKS = 8;
+    private static final int DAYS_PER_WEEK = 7;
+    private static final Predicate<LocalDate> NOT_FIRST_WEEK_OF_MONTH = week -> week.getDayOfMonth() > DAYS_PER_WEEK;
     private static final String WEEKDAYS_ONLY_TEXT = "dateFilter: weekdays only";
     private static final String NO_NOON_HOUR_TEXT = "timeFilter: not from 12:00 to 12:59";
 
@@ -257,6 +260,19 @@ abstract class DateTimeShowcase extends RXShowcaseApplication {
     }
 
     /**
+     * The week options: first day of the week and week numbers.
+     *
+     * @param weekFields      the week rules property
+     * @param showWeekNumbers the week-number flag
+     * @return the section content
+     */
+    protected Node weekGrid(ObjectProperty<WeekFields> weekFields, BooleanProperty showWeekNumbers) {
+        return createGrid(
+                firstDayRow(weekFields),
+                flagRow("showWeekNumbers", showWeekNumbers));
+    }
+
+    /**
      * The time-column options: seconds, 12-hour clock and the three steps.
      *
      * @param showSeconds     the seconds flag
@@ -292,6 +308,23 @@ abstract class DateTimeShowcase extends RXShowcaseApplication {
                 optionRow("minDate: today", min, today),
                 optionRow("maxDate: today + " + LIMIT_DAYS + " days", max, today.plusDays(LIMIT_DAYS)),
                 optionRow(WEEKDAYS_ONLY_TEXT, filter, WEEKDAYS_ONLY));
+    }
+
+    /**
+     * Limits for a week: a minimum, a maximum and a filter.
+     *
+     * @param min    a day of the earliest week
+     * @param max    a day of the latest week
+     * @param filter the week filter
+     * @return the section content
+     */
+    protected Node weekLimitGrid(ObjectProperty<LocalDate> min, ObjectProperty<LocalDate> max,
+                                 ObjectProperty<Predicate<LocalDate>> filter) {
+        LocalDate today = LocalDate.now();
+        return createGrid(
+                optionRow("minWeek: this week", min, today),
+                optionRow("maxWeek: this week + " + LIMIT_WEEKS, max, today.plusWeeks(LIMIT_WEEKS)),
+                optionRow("weekFilter: not the first week starting in a month", filter, NOT_FIRST_WEEK_OF_MONTH));
     }
 
     /**

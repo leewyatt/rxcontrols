@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.internal.datetime;
 
 import java.time.LocalDate;
+import java.time.temporal.WeekFields;
 import java.util.function.Predicate;
 
 /**
@@ -9,6 +10,8 @@ import java.util.function.Predicate;
  * filter. Bounds with {@code min > max} leave nothing selectable.
  */
 public final class TemporalRules {
+
+    private static final int DAYS_PER_WEEK = 7;
 
     private TemporalRules() {
     }
@@ -60,5 +63,33 @@ public final class TemporalRules {
             date = min;
         }
         return date;
+    }
+
+    /**
+     * Returns the first day of the week containing a date.
+     *
+     * @param date  the date
+     * @param rules the week rules, whose first day of week starts a week
+     * @return the first day of the week; at the very start of the supported range,
+     *         where that day does not exist, the earliest supported date
+     */
+    public static LocalDate weekStart(LocalDate date, WeekFields rules) {
+        int offset = Math.floorMod(date.getDayOfWeek().getValue() - rules.getFirstDayOfWeek().getValue(),
+                DAYS_PER_WEEK);
+        return date.toEpochDay() - offset < LocalDate.MIN.toEpochDay() ? LocalDate.MIN : date.minusDays(offset);
+    }
+
+    /**
+     * Returns the last day of the week containing a date.
+     *
+     * @param date  the date
+     * @param rules the week rules, whose first day of week starts a week
+     * @return the last day of the week; at the very end of the supported range, where
+     *         that day does not exist, the latest supported date
+     */
+    public static LocalDate weekEnd(LocalDate date, WeekFields rules) {
+        LocalDate start = weekStart(date, rules);
+        return LocalDate.MAX.toEpochDay() - start.toEpochDay() < DAYS_PER_WEEK - 1
+                ? LocalDate.MAX : start.plusDays(DAYS_PER_WEEK - 1L);
     }
 }

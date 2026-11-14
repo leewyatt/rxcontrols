@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.function.Predicate;
 
 /**
- * Shared skin of the period range pickers (month, quarter, year): start and end fields
- * around a separator, and a popup period range view.
+ * Shared skin of the period range pickers (week, month, quarter, year): start and end
+ * fields around a separator, and a popup period range view.
  *
  * @param <P> the period type
  * @param <R> the range type
@@ -241,6 +241,8 @@ abstract class RXPeriodRangePickerSkinBase<P extends Comparable<? super P>, R, C
     }
 
     private boolean isSelectable(P period) {
-        return TemporalRules.isSelectable(period, minValue(), maxValue(), filter());
+        // A converter may parse to any day of a week, which stands for that week.
+        P normalized = type.periodOf(type.firstDay(period));
+        return TemporalRules.isSelectable(normalized, minValue(), maxValue(), filter());
     }
 }

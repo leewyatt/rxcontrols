@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXMonthRange;
 import io.github.leewyatt.rxcontrols.RXMonthRangeView;
 import io.github.leewyatt.rxcontrols.internal.datetime.PeriodRangeType;
-import javafx.beans.property.ObjectProperty;
 
 import java.time.Year;
 import java.time.YearMonth;
@@ -21,7 +20,8 @@ public class RXMonthRangeViewSkin extends RXPeriodRangeViewSkinBase<YearMonth, R
      */
     public RXMonthRangeViewSkin(RXMonthRangeView control) {
         super(control, PeriodRangeType.MONTH);
-        initialize(control.yearCountProperty(), control.minMonthProperty(), control.maxMonthProperty(),
+        initialize(control.yearCountProperty(), control.displayedYearProperty(), year -> year.atDay(1),
+                month -> Year.of(month.getYear()), control.minMonthProperty(), control.maxMonthProperty(),
                 control.monthFilterProperty());
     }
 
@@ -38,10 +38,5 @@ public class RXMonthRangeViewSkin extends RXPeriodRangeViewSkinBase<YearMonth, R
     @Override
     protected Predicate<YearMonth> filter() {
         return getSkinnable().getMonthFilter();
-    }
-
-    @Override
-    protected ObjectProperty<Year> displayedYearProperty() {
-        return getSkinnable().displayedYearProperty();
     }
 }

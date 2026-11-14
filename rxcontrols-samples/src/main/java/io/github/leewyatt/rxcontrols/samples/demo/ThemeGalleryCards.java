@@ -121,6 +121,10 @@ import io.github.leewyatt.rxcontrols.RXTransitionButton;
 import io.github.leewyatt.rxcontrols.RXTransitionLabel;
 import io.github.leewyatt.rxcontrols.RXTransitionPane;
 import io.github.leewyatt.rxcontrols.RXWaveProgressIndicator;
+import io.github.leewyatt.rxcontrols.RXWeekPicker;
+import io.github.leewyatt.rxcontrols.RXWeekRangePicker;
+import io.github.leewyatt.rxcontrols.RXWeekRangeView;
+import io.github.leewyatt.rxcontrols.RXWeekView;
 import io.github.leewyatt.rxcontrols.RXYearPicker;
 import io.github.leewyatt.rxcontrols.RXYearQuarter;
 import io.github.leewyatt.rxcontrols.RXYearRange;
@@ -299,6 +303,11 @@ final class ThemeGalleryCards {
         list.add(card("RXTransitionLabel", "Label that animates text changes.", buildRXTransitionLabel()));
         list.add(card("RXTransitionPane", "Container that animates content changes.", buildRXTransitionPane()));
         list.add(card("RXWaveProgressIndicator", "Circular progress filled by a wave.", buildRXWaveProgressIndicator()));
+        list.add(card("RXWeekPicker", "Text field with a popup calendar that picks whole weeks.", buildRXWeekPicker()));
+        list.add(card("RXWeekRangePicker", "First and last weeks picked on two linked months.",
+                buildRXWeekRangePicker()));
+        list.add(wide("RXWeekRangeView", "Linked months for picking a range of whole weeks.", buildRXWeekRangeView()));
+        list.add(card("RXWeekView", "Month calendar whose rows are picked as whole weeks.", buildRXWeekView()));
         list.add(card("RXYearPicker", "Year picker on a decade grid.", buildRXYearPicker()));
         list.add(card("RXYearRangePicker", "Start and end years picked on two linked decades.", buildRXYearRangePicker()));
         list.add(wide("RXYearRangeView", "Linked decades for picking a year range.", buildRXYearRangeView()));
@@ -495,6 +504,14 @@ final class ThemeGalleryCards {
         return viewCard(new RXTimeView(LocalTime.of(14, 30)));
     }
 
+    private static Node buildRXWeekView() {
+        return viewCard(new RXWeekView(LocalDate.now()));
+    }
+
+    private static Node buildRXWeekRangeView() {
+        return viewCard(new RXWeekRangeView(RXDateRange.of(LocalDate.now(), LocalDate.now().plusWeeks(2))));
+    }
+
     private static Node buildRXYearRangeView() {
         return viewCard(new RXYearRangeView(RXYearRange.of(Year.now().minusYears(3), Year.now())));
     }
@@ -548,6 +565,14 @@ final class ThemeGalleryCards {
 
     private static Node buildRXTimePicker() {
         return pickerCard(new RXTimePicker(LocalTime.of(14, 30)));
+    }
+
+    private static Node buildRXWeekPicker() {
+        return pickerCard(new RXWeekPicker(LocalDate.now()));
+    }
+
+    private static Node buildRXWeekRangePicker() {
+        return pickerCard(new RXWeekRangePicker(RXDateRange.of(LocalDate.now(), LocalDate.now().plusWeeks(2))));
     }
 
     private static Node buildRXYearPicker() {

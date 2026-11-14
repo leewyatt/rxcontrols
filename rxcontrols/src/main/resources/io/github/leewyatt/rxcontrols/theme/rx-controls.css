@@ -32,7 +32,8 @@
 .rx-skeleton, .rx-skeleton-pane, .rx-state-pane, .rx-switch-button, .rx-text-field, .rx-text-view,
 .rx-kanban-view, .rx-list-view, .rx-menu-button, .rx-menu-list,
 .rx-tab-pane, .rx-tile-pane, .rx-tile-view, .rx-time-picker, .rx-time-view, .rx-timeline-view, .rx-toggle-button, .rx-transition-button,
-.rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator, .rx-year-picker, .rx-year-range-picker, .rx-year-range-view,
+.rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator, .rx-week-picker, .rx-week-range-picker,
+.rx-week-range-view, .rx-week-view, .rx-year-picker, .rx-year-range-picker, .rx-year-range-view,
 .rx-year-view {
     /* brand / primary: the Modena accent, so RX controls follow an application that
        recolors -fx-accent. White text on it is 3.38:1, below WCAG AA; override
@@ -293,6 +294,14 @@
 .rx-theme-atlantafx.rx-transition-pane,
 .rx-theme-atlantafx .rx-wave-progress-indicator,
 .rx-theme-atlantafx.rx-wave-progress-indicator,
+.rx-theme-atlantafx .rx-week-picker,
+.rx-theme-atlantafx.rx-week-picker,
+.rx-theme-atlantafx .rx-week-range-picker,
+.rx-theme-atlantafx.rx-week-range-picker,
+.rx-theme-atlantafx .rx-week-range-view,
+.rx-theme-atlantafx.rx-week-range-view,
+.rx-theme-atlantafx .rx-week-view,
+.rx-theme-atlantafx.rx-week-view,
 .rx-theme-atlantafx .rx-year-picker,
 .rx-theme-atlantafx.rx-year-picker,
 .rx-theme-atlantafx .rx-year-range-picker,
@@ -4133,6 +4142,8 @@
 .rx-month-range-view,
 .rx-quarter-view,
 .rx-quarter-range-view,
+.rx-week-view,
+.rx-week-range-view,
 .rx-year-view,
 .rx-year-range-view {
     -fx-background-color: -fx-box-border, -fx-control-inner-background;
@@ -4149,6 +4160,8 @@
 .rx-month-range-view:focused,
 .rx-quarter-view:focused,
 .rx-quarter-range-view:focused,
+.rx-week-view:focused,
+.rx-week-range-view:focused,
 .rx-year-view:focused,
 .rx-year-range-view:focused {
     -fx-background-color: -fx-focus-color, -fx-control-inner-background;
@@ -4544,6 +4557,103 @@
     -fx-padding: 0;
 }
 
+/* Week rows: the seven days of a week are one band, hovered, selected and ringed
+   together. The extra class outranks the day rules above in every state. */
+.rx-calendar-panel.week-rows .day-cell {
+    -fx-background-color: transparent;
+    -fx-background-radius: 0;
+    -fx-background-insets: 0.166667em 0;
+}
+
+.rx-calendar-panel.week-rows .day-cell:segment-start {
+    -fx-background-radius: 3 0 0 3;
+    -fx-background-insets: 0.166667em 0 0.166667em 0.166667em;
+}
+
+.rx-calendar-panel.week-rows .day-cell:segment-end {
+    -fx-background-radius: 0 3 3 0;
+    -fx-background-insets: 0.166667em 0.166667em 0.166667em 0;
+}
+
+.rx-calendar-panel.week-rows .day-cell:week-hover {
+    -fx-background-color: -rx-surface-variant;
+}
+
+.rx-calendar-panel.week-rows .day-cell:in-range {
+    -fx-background-color: -rx-primary-bg;
+}
+
+.rx-calendar-panel.week-rows .day-cell:preview {
+    -fx-background-color: transparent;
+}
+
+/* The picked week, and the first and the last week of a range, are filled. */
+.rx-calendar-panel.week-rows .day-cell:selected,
+.rx-calendar-panel.week-rows .day-cell:range-start,
+.rx-calendar-panel.week-rows .day-cell:range-end {
+    -fx-background-color: -rx-primary;
+    -fx-text-fill: -rx-on-primary;
+}
+
+/* A filled week needs no pending outline; its dashes would show along the edge. */
+.rx-calendar-panel.week-rows .day-cell:preview:range-start,
+.rx-calendar-panel.week-rows .day-cell:preview:range-end {
+    -fx-border-color: transparent;
+}
+
+.rx-calendar-panel.week-rows .day-cell:selected:week-hover,
+.rx-calendar-panel.week-rows .day-cell:range-start:week-hover,
+.rx-calendar-panel.week-rows .day-cell:range-end:week-hover {
+    -fx-background-color: -rx-primary-hover;
+}
+
+/* Keyboard cursor: one ring around the week. The longer selectors outrank the rule
+   that hides the pending outline. The ring runs across cells whose corners differ,
+   which JavaFX strokes side by side as open paths; an inside stroke leaves a tick
+   where two of them meet. */
+.rx-calendar-panel.week-rows .day-cell:focused,
+.rx-calendar-panel.week-rows .day-cell:preview:range-start:focused,
+.rx-calendar-panel.week-rows .day-cell:preview:range-end:focused {
+    -fx-border-color: -rx-focus transparent;
+    -fx-border-width: 1.5;
+    -fx-border-style: solid centered;
+    -fx-border-insets: 0.166667em 0;
+    -fx-border-radius: 0;
+}
+
+.rx-calendar-panel.week-rows .day-cell:focused:segment-start,
+.rx-calendar-panel.week-rows .day-cell:preview:range-start:focused:segment-start,
+.rx-calendar-panel.week-rows .day-cell:preview:range-end:focused:segment-start {
+    -fx-border-color: -rx-focus transparent -rx-focus -rx-focus;
+    -fx-border-insets: 0.166667em 0 0.166667em 0.166667em;
+    -fx-border-radius: 3 0 0 3;
+}
+
+.rx-calendar-panel.week-rows .day-cell:focused:segment-end,
+.rx-calendar-panel.week-rows .day-cell:preview:range-start:focused:segment-end,
+.rx-calendar-panel.week-rows .day-cell:preview:range-end:focused:segment-end {
+    -fx-border-color: -rx-focus -rx-focus -rx-focus transparent;
+    -fx-border-insets: 0.166667em 0.166667em 0.166667em 0;
+    -fx-border-radius: 0 3 3 0;
+}
+
+.rx-calendar-panel.week-rows .week-number {
+    -fx-cursor: hand;
+}
+
+.rx-calendar-panel.week-rows .week-number:week-hover {
+    -fx-opacity: 1;
+}
+
+.rx-calendar-panel.week-rows .week-number:selected {
+    -fx-text-fill: -rx-primary;
+    -fx-opacity: 1;
+}
+
+.rx-calendar-panel.week-rows .week-number:disabled {
+    -fx-cursor: default;
+}
+
 /*******************************************************************************
  *                                                                             *
  * Date / time pickers (RXDatePicker and siblings)                             *
@@ -4673,7 +4783,11 @@
 .rx-picker-popup .container > .rx-quarter-range-view,
 .rx-picker-popup .container > .rx-quarter-range-view:focused,
 .rx-picker-popup .container > .rx-year-range-view,
-.rx-picker-popup .container > .rx-year-range-view:focused {
+.rx-picker-popup .container > .rx-year-range-view:focused,
+.rx-picker-popup .container > .rx-week-view,
+.rx-picker-popup .container > .rx-week-view:focused,
+.rx-picker-popup .container > .rx-week-range-view,
+.rx-picker-popup .container > .rx-week-range-view:focused {
     -fx-background-color: transparent;
 }
 

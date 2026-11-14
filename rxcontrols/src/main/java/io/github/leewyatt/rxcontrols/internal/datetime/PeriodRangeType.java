@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal.datetime;
 
+import io.github.leewyatt.rxcontrols.RXDateRange;
 import io.github.leewyatt.rxcontrols.RXMonthRange;
 import io.github.leewyatt.rxcontrols.RXQuarterRange;
 import io.github.leewyatt.rxcontrols.RXYearQuarter;
@@ -8,13 +9,15 @@ import io.github.leewyatt.rxcontrols.RXYearRange;
 import java.time.LocalDate;
 import java.time.Year;
 import java.time.YearMonth;
+import java.time.temporal.WeekFields;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
- * Describes one kind of period range (months, quarters or years) to the skins that
- * share their logic: how a period maps to the days of the calendar panel and how a
- * range is taken apart and put together.
+ * Describes one kind of period range (weeks, months, quarters or years) to the skins
+ * that share their logic: how a period maps to the days of the calendar panel and how
+ * a range is taken apart and put together.
  *
  * @param <P> the period type
  * @param <R> the range type
@@ -35,6 +38,27 @@ public final class PeriodRangeType<P extends Comparable<? super P>, R> {
     public static final PeriodRangeType<Year, RXYearRange> YEAR = new PeriodRangeType<>(
             CalendarPanel.Level.YEAR, year -> year.atDay(1), year -> year.atDay(year.length()), Year::from,
             RXYearRange::start, RXYearRange::end, RXYearRange::ofOrdered);
+
+    /**
+     * Creates the type for ranges of weeks. A week is the date of its first day, and
+     * any other day stands for the week containing it; a range is an
+     * {@link RXDateRange} from the first day of its first week to the last day of its
+     * last week.
+     *
+     * @param rules supplies the week rules in effect; asked on every use
+     * @return the type
+     */
+    public static PeriodRangeType<LocalDate, RXDateRange> weeks(Supplier<WeekFields> rules) {
+        Function<LocalDate, LocalDate> weekStart = date -> TemporalRules.weekStart(date, rules.get());
+        return new PeriodRangeType<>(CalendarPanel.Level.DAY, weekStart,
+                week -> TemporalRules.weekEnd(week, rules.get()), weekStart,
+                range -> weekStart.apply(range.start()), range -> weekStart.apply(range.end()),
+                (first, second) -> {
+                    RXDateRange ordered = RXDateRange.ofOrdered(first, second);
+                    return RXDateRange.of(weekStart.apply(ordered.start()),
+                            TemporalRules.weekEnd(ordered.end(), rules.get()));
+                });
+    }
 
     private final CalendarPanel.Level level;
     private final Function<P, LocalDate> firstDay;

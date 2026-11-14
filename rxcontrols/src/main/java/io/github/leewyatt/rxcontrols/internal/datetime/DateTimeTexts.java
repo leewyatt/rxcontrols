@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXYearQuarter;
 import javafx.util.StringConverter;
 
 import java.time.Clock;
+import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -23,6 +24,7 @@ import java.time.temporal.WeekFields;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -36,6 +38,7 @@ public final class DateTimeTexts {
     private static final Pattern YEAR_RUN = Pattern.compile("y+");
     /** Matches exactly-doubled numeric fields, which parse as fixed width; a single letter accepts 1 or 2 digits. */
     private static final Pattern DOUBLED_NUMERIC = Pattern.compile("(?<![dMHh])([dMHh])\\1(?![dMHh])");
+    private static final Pattern WEEK_TEXT = Pattern.compile("(\\d{4})\\s*-?\\s*[Ww]\\s*(\\d{1,2})");
 
     private DateTimeTexts() {
     }
@@ -235,6 +238,39 @@ public final class DateTimeTexts {
      */
     public static StringConverter<RXYearQuarter> yearQuarterConverter() {
         return new TextConverter<>(RXYearQuarter::toString, RXYearQuarter::parse);
+    }
+
+    /**
+     * Default week converter, using the {@code 2026-W46} text form: the week-based year
+     * and the week number of the rules. It formats the week of any date and parses to
+     * the first day of the week; parsing also accepts a lower-case {@code w}, a
+     * single-digit week and a missing hyphen.
+     *
+     * @param rules the week rules
+     * @return the converter
+     */
+    public static StringConverter<LocalDate> weekConverter(WeekFields rules) {
+        return new TextConverter<>(date -> String.format(Locale.ROOT, "%04d-W%02d",
+                date.get(rules.weekBasedYear()), date.get(rules.weekOfWeekBasedYear())),
+                text -> parseWeek(text, rules));
+    }
+
+    private static LocalDate parseWeek(String text, WeekFields rules) {
+        Matcher matcher = WEEK_TEXT.matcher(text);
+        if (!matcher.matches()) {
+            throw new DateTimeException("Not a week: " + text);
+        }
+        int year = Integer.parseInt(matcher.group(1));
+        int week = Integer.parseInt(matcher.group(2));
+        // The middle of a year always belongs to the week-based year of the same number.
+        LocalDate date = LocalDate.of(year, Month.JULY, 1)
+                .with(rules.weekOfWeekBasedYear(), week)
+                .with(rules.dayOfWeek(), 1);
+        // A week number past the last week of the year rolls into the next year.
+        if (date.get(rules.weekBasedYear()) != year || date.get(rules.weekOfWeekBasedYear()) != week) {
+            throw new DateTimeException("No week " + week + " in " + year);
+        }
+        return date;
     }
 
     /**
