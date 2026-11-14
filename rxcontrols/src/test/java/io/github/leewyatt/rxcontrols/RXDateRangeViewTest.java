@@ -6,6 +6,8 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -13,6 +15,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -22,6 +25,7 @@ import static io.github.leewyatt.rxcontrols.PickerTestSupport.hasPseudoClass;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.press;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -88,6 +92,34 @@ public class RXDateRangeViewTest {
         assertTrue(hasPseudoClass(middle, "in-range"));
         assertTrue(hasPseudoClass(middle, "preview"));
         assertTrue(hasPseudoClass(target, "range-end"));
+    }
+
+    /**
+     * Verifies both ends of a previewed range are filled like the ends of a picked range.
+     */
+    @Test
+    public void previewedRangeEndsAreFilledLikePickedEnds() {
+        RXDateRangeView view = newView();
+        DateCell start = dayCell(view, LocalDate.of(2026, 11, 10));
+        DateCell end = dayCell(view, LocalDate.of(2026, 11, 13));
+        click(start);
+        end.fireEvent(new MouseEvent(MouseEvent.MOUSE_ENTERED, 0, 0, 0, 0, MouseButton.NONE, 0,
+                false, false, false, false, false, false, false, false, false, false, null));
+        view.applyCss();
+        assertTrue(hasPseudoClass(start, "preview"));
+        Paint previewedStart = fillOf(start);
+        Paint previewedEnd = fillOf(end);
+        assertEquals(Color.TRANSPARENT, fillOf(dayCell(view, LocalDate.of(2026, 11, 12))));
+        for (DateCell cell : List.of(start, end)) {
+            assertNotEquals(Color.TRANSPARENT, fillOf(cell));
+            assertNotEquals(fillOf(cell), cell.getTextFill());
+        }
+
+        click(end);
+        view.applyCss();
+        assertFalse(hasPseudoClass(start, "preview"));
+        assertEquals(fillOf(start), previewedStart);
+        assertEquals(fillOf(end), previewedEnd);
     }
 
     /**
@@ -191,6 +223,10 @@ public class RXDateRangeViewTest {
                 false, false, false, false, true, false, false, true, false, false, null));
         assertNull(view.getValue());
         assertEquals(0, actions.get());
+    }
+
+    private static Paint fillOf(DateCell cell) {
+        return cell.getBackground().getFills().get(0).getFill();
     }
 
     private static RXDateRangeView newView() {

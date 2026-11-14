@@ -4273,7 +4273,8 @@
     -fx-background-insets: 0.166667em 0;
 }
 
-.rx-calendar-panel .date-cell:in-range:preview {
+/* One pseudo-class, so the range-end rule below still wins on both ends of a preview. */
+.rx-calendar-panel .date-cell:preview {
     -fx-background-color: transparent;
     -fx-border-color: -rx-primary transparent;
     -fx-border-style: segments(0.25em, 0.25em);
@@ -4292,6 +4293,10 @@
     -fx-background-color: -rx-primary;
     -fx-background-insets: 0.166667em;
     -fx-background-radius: 3;
+    -fx-border-color: transparent;
+    -fx-border-style: solid;
+    -fx-border-insets: 0.166667em;
+    -fx-border-radius: 3;
     -fx-text-fill: -rx-on-primary;
 }
 
