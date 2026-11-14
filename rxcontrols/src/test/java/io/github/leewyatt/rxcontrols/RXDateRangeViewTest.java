@@ -5,6 +5,7 @@ import javafx.scene.control.DateCell;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
@@ -123,6 +124,49 @@ public class RXDateRangeViewTest {
     }
 
     /**
+     * Verifies each week row's run of range days is marked at both ends, and a linked
+     * page ends its runs at the month boundary.
+     */
+    @Test
+    public void rangeSegmentsAreMarkedPerWeekRow() {
+        RXDateRangeView view = newView();
+        view.setValue(RXDateRange.of(LocalDate.of(2026, 11, 10), LocalDate.of(2026, 12, 3)));
+        view.setDisplayedMonth(YearMonth.of(2026, 11));
+        view.applyCss();
+        assertSegment(view, LocalDate.of(2026, 11, 10), true, false);
+        assertSegment(view, LocalDate.of(2026, 11, 12), false, false);
+        assertSegment(view, LocalDate.of(2026, 11, 14), false, true);
+        assertSegment(view, LocalDate.of(2026, 11, 15), true, false);
+        assertSegment(view, LocalDate.of(2026, 11, 30), false, true);
+        assertSegment(view, LocalDate.of(2026, 12, 1), true, false);
+        assertSegment(view, LocalDate.of(2026, 12, 3), false, true);
+        assertSegment(view, LocalDate.of(2026, 12, 4), false, false);
+
+        view.setValue(RXDateRange.of(LocalDate.of(2026, 11, 14), LocalDate.of(2026, 11, 14)));
+        assertSegment(view, LocalDate.of(2026, 11, 14), true, true);
+    }
+
+    /**
+     * Verifies the band of a picked range runs on from under its ends, so no gap separates them.
+     */
+    @Test
+    public void bandReachesItsRangeEnds() {
+        RXDateRangeView view = newView();
+        view.setValue(RXDateRange.of(LocalDate.of(2026, 11, 10), LocalDate.of(2026, 11, 12)));
+        view.setDisplayedMonth(YearMonth.of(2026, 11));
+        view.applyCss();
+        BackgroundFill middle = dayCell(view, LocalDate.of(2026, 11, 11)).getBackground().getFills().get(0);
+        BackgroundFill underStart = dayCell(view, LocalDate.of(2026, 11, 10)).getBackground().getFills().get(0);
+        BackgroundFill underEnd = dayCell(view, LocalDate.of(2026, 11, 12)).getBackground().getFills().get(0);
+        assertEquals(middle.getFill(), underStart.getFill());
+        assertEquals(middle.getFill(), underEnd.getFill());
+        assertEquals(0.0, underStart.getInsets().getRight());
+        assertEquals(0.0, underEnd.getInsets().getLeft());
+        assertEquals(0.0, middle.getInsets().getLeft());
+        assertEquals(0.0, middle.getInsets().getRight());
+    }
+
+    /**
      * Verifies Escape and a programmatic value drop the pending anchor.
      */
     @Test
@@ -225,8 +269,16 @@ public class RXDateRangeViewTest {
         assertEquals(0, actions.get());
     }
 
+    /** The topmost fill: the square of a range end, the band of a day between the ends. */
     private static Paint fillOf(DateCell cell) {
-        return cell.getBackground().getFills().get(0).getFill();
+        List<BackgroundFill> fills = cell.getBackground().getFills();
+        return fills.get(fills.size() - 1).getFill();
+    }
+
+    private static void assertSegment(RXDateRangeView view, LocalDate date, boolean start, boolean end) {
+        DateCell cell = dayCell(view, date);
+        assertEquals(start, hasPseudoClass(cell, "segment-start"), date + " segment-start");
+        assertEquals(end, hasPseudoClass(cell, "segment-end"), date + " segment-end");
     }
 
     private static RXDateRangeView newView() {

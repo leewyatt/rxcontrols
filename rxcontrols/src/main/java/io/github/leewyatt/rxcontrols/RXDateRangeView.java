@@ -29,6 +29,8 @@ import java.util.function.Predicate;
  * <p>Keyboard and drill-up navigation work as in {@link RXCalendarView}. CSS: style
  * class {@code rx-date-range-view}; day cells carry {@code :range-start},
  * {@code :range-end}, {@code :in-range} and, while previewing, {@code :preview}.
+ * The first and the last range day of each week row also carry
+ * {@code :segment-start} and {@code :segment-end}.
  */
 public class RXDateRangeView extends RXTemporalViewBase<RXDateRange> {
 

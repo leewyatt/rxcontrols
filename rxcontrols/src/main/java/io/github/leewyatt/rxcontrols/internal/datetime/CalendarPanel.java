@@ -96,6 +96,8 @@ public final class CalendarPanel extends HBox {
     private static final PseudoClass PSEUDO_RANGE_END = PseudoClass.getPseudoClass("range-end");
     private static final PseudoClass PSEUDO_IN_RANGE = PseudoClass.getPseudoClass("in-range");
     private static final PseudoClass PSEUDO_PREVIEW = PseudoClass.getPseudoClass("preview");
+    private static final PseudoClass PSEUDO_SEGMENT_START = PseudoClass.getPseudoClass("segment-start");
+    private static final PseudoClass PSEUDO_SEGMENT_END = PseudoClass.getPseudoClass("segment-end");
 
     private static final int DAYS_PER_WEEK = 7;
     private static final int WEEK_ROWS = 6;
@@ -1100,6 +1102,7 @@ public final class CalendarPanel extends HBox {
 
             private final List<Label> dayNames = new ArrayList<>();
             private final List<Label> weekNumbers = new ArrayList<>();
+            private final int[] dayStates = new int[WEEK_ROWS * DAYS_PER_WEEK];
             private final List<DateCell> days = new ArrayList<>();
             private final Label corner = new Label();
             private CellGrid grid;
@@ -1167,8 +1170,29 @@ public final class CalendarPanel extends HBox {
                 }
                 for (int i = 0; i < days.size(); i++) {
                     LocalDate date = gridStart.plusDays(i);
+                    boolean adjacent = !YearMonth.from(date).equals(month);
+                    int state = 0;
+                    if (!adjacent || showAdjacentDays) {
+                        state = stateProvider.stateOf(date);
+                        if (adjacent && pageCount > 1) {
+                            // Linked pages show the range on the days of their own months only;
+                            // repeating it on adjacent days would draw it twice.
+                            state &= ~(SELECTED | RANGE_START | RANGE_END | IN_RANGE | PREVIEW);
+                        }
+                    }
+                    dayStates[i] = state;
+                }
+                for (int i = 0; i < days.size(); i++) {
+                    LocalDate date = gridStart.plusDays(i);
                     DateCell cell = days.get(i);
                     boolean adjacent = !YearMonth.from(date).equals(month);
+                    // A segment is a run of range days within one week row.
+                    int column = i % DAYS_PER_WEEK;
+                    boolean inRange = (dayStates[i] & IN_RANGE) != 0;
+                    cell.pseudoClassStateChanged(PSEUDO_SEGMENT_START,
+                            inRange && (column == 0 || (dayStates[i - 1] & IN_RANGE) == 0));
+                    cell.pseudoClassStateChanged(PSEUDO_SEGMENT_END,
+                            inRange && (column == DAYS_PER_WEEK - 1 || (dayStates[i + 1] & IN_RANGE) == 0));
                     if (adjacent && !showAdjacentDays) {
                         cell.updateItem(null, true);
                         cell.setText(null);
@@ -1183,14 +1207,8 @@ public final class CalendarPanel extends HBox {
                         cell.pseudoClassStateChanged(PSEUDO_ADJACENT, true);
                         continue;
                     }
-                    int state = stateProvider.stateOf(date);
-                    if (adjacent && pageCount > 1) {
-                        // Linked pages show the range on the days of their own months only;
-                        // repeating it on adjacent days would draw it twice.
-                        state &= ~(SELECTED | RANGE_START | RANGE_END | IN_RANGE | PREVIEW);
-                    }
                     boolean cursorMatch = cursorVisible && date.equals(cursor) && !adjacent;
-                    applyCellState(cell, date, state, adjacent, date.equals(today), cursorMatch);
+                    applyCellState(cell, date, dayStates[i], adjacent, date.equals(today), cursorMatch);
                     cell.setText(Integer.toString(date.getDayOfMonth()));
                 }
             }

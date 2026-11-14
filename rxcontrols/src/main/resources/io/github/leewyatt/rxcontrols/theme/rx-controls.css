@@ -4267,13 +4267,30 @@
     -fx-border-color: -rx-primary;
 }
 
+/* A range is drawn week row by week row: one band per run of days (a segment), with a
+   corner at both ends of the run. */
 .rx-calendar-panel .date-cell:in-range {
     -fx-background-color: -rx-primary-bg;
     -fx-background-radius: 0;
     -fx-background-insets: 0.166667em 0;
 }
 
-/* One pseudo-class, so the range-end rule below still wins on both ends of a preview. */
+.rx-calendar-panel .date-cell:segment-start {
+    -fx-background-radius: 3 0 0 3;
+    -fx-background-insets: 0.166667em 0 0.166667em 0.166667em;
+}
+
+.rx-calendar-panel .date-cell:segment-end {
+    -fx-background-radius: 0 3 3 0;
+    -fx-background-insets: 0.166667em 0.166667em 0.166667em 0;
+}
+
+.rx-calendar-panel .date-cell:segment-start:segment-end {
+    -fx-background-radius: 3;
+    -fx-background-insets: 0.166667em;
+}
+
+/* The pending range is outlined instead of filled. */
 .rx-calendar-panel .date-cell:preview {
     -fx-background-color: transparent;
     -fx-border-color: -rx-primary transparent;
@@ -4282,40 +4299,95 @@
     -fx-border-radius: 0;
 }
 
+.rx-calendar-panel .date-cell:preview:segment-start {
+    -fx-border-color: -rx-primary transparent -rx-primary -rx-primary;
+    -fx-border-insets: 0.166667em 0 0.166667em 0.166667em;
+    -fx-border-radius: 3 0 0 3;
+}
+
+.rx-calendar-panel .date-cell:preview:segment-end {
+    -fx-border-color: -rx-primary -rx-primary -rx-primary transparent;
+    -fx-border-insets: 0.166667em 0.166667em 0.166667em 0;
+    -fx-border-radius: 0 3 3 0;
+}
+
+.rx-calendar-panel .date-cell:preview:segment-start:segment-end {
+    -fx-border-color: -rx-primary;
+    -fx-border-insets: 0.166667em;
+    -fx-border-radius: 3;
+}
+
 .rx-calendar-panel .date-cell:disabled {
     -fx-text-fill: -rx-on-surface-secondary;
     -fx-cursor: default;
 }
 
-.rx-calendar-panel .date-cell:selected,
-.rx-calendar-panel .date-cell:range-start,
-.rx-calendar-panel .date-cell:range-end {
+/* No shape here: a selected cell keeps the shape of its own level. */
+.rx-calendar-panel .date-cell:selected {
     -fx-background-color: -rx-primary;
-    -fx-border-color: transparent;
     -fx-text-fill: -rx-on-primary;
 }
 
-/* Only the range ends restore the cell shape, undoing the in-range band and the
-   preview dashes; a selected cell keeps the shape of its own level. */
-.rx-calendar-panel .date-cell:range-start,
-.rx-calendar-panel .date-cell:range-end {
-    -fx-background-insets: 0.166667em;
-    -fx-background-radius: 3;
-    -fx-border-style: solid;
-    -fx-border-insets: 0.166667em;
-    -fx-border-radius: 3;
-}
-
-.rx-calendar-panel .date-cell:selected:hover,
-.rx-calendar-panel .date-cell:range-start:hover,
-.rx-calendar-panel .date-cell:range-end:hover {
+.rx-calendar-panel .date-cell:selected:hover {
     -fx-background-color: -rx-primary-hover;
 }
 
-/* Keyboard cursor, after the today ring so it wins when both apply. */
-.rx-calendar-panel .date-cell:focused {
+/* A range end is a filled square over the band, and the band runs on from under it
+   toward the rest of the range. */
+.rx-calendar-panel .date-cell:range-start {
+    -fx-background-color: -rx-primary-bg, -rx-primary;
+    -fx-background-radius: 3 0 0 3, 3;
+    -fx-background-insets: 0.166667em 0 0.166667em 0.166667em, 0.166667em;
+    -fx-text-fill: -rx-on-primary;
+}
+
+.rx-calendar-panel .date-cell:range-end {
+    -fx-background-color: -rx-primary-bg, -rx-primary;
+    -fx-background-radius: 0 3 3 0, 3;
+    -fx-background-insets: 0.166667em 0.166667em 0.166667em 0, 0.166667em;
+    -fx-text-fill: -rx-on-primary;
+}
+
+/* No band beside an end that also closes its segment. */
+.rx-calendar-panel .date-cell:range-start:segment-end,
+.rx-calendar-panel .date-cell:range-end:segment-start {
+    -fx-background-radius: 3, 3;
+    -fx-background-insets: 0.166667em, 0.166667em;
+}
+
+.rx-calendar-panel .date-cell:range-start:hover,
+.rx-calendar-panel .date-cell:range-end:hover {
+    -fx-background-color: -rx-primary-bg, -rx-primary-hover;
+}
+
+.rx-calendar-panel .date-cell:preview:range-start,
+.rx-calendar-panel .date-cell:preview:range-end {
+    -fx-background-color: transparent, -rx-primary;
+}
+
+.rx-calendar-panel .date-cell:preview:range-start:hover,
+.rx-calendar-panel .date-cell:preview:range-end:hover {
+    -fx-background-color: transparent, -rx-primary-hover;
+}
+
+/* Keyboard cursor, after the today ring so it wins when both apply. The longer
+   selectors outrank the preview outline rules. */
+.rx-calendar-panel .date-cell:focused,
+.rx-calendar-panel .date-cell:preview:focused,
+.rx-calendar-panel .date-cell:preview:segment-start:focused,
+.rx-calendar-panel .date-cell:preview:segment-end:focused,
+.rx-calendar-panel .date-cell:preview:segment-start:segment-end:focused {
     -fx-border-color: -rx-focus;
     -fx-border-width: 1.5;
+}
+
+.rx-calendar-panel .date-cell:preview:focused,
+.rx-calendar-panel .date-cell:preview:segment-start:focused,
+.rx-calendar-panel .date-cell:preview:segment-end:focused,
+.rx-calendar-panel .date-cell:preview:segment-start:segment-end:focused {
+    -fx-border-style: solid;
+    -fx-border-insets: 0.166667em;
+    -fx-border-radius: 3;
 }
 
 /*******************************************************************************
