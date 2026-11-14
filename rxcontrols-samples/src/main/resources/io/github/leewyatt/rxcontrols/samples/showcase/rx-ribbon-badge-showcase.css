@@ -1,0 +1,12 @@
+.sample-card {
+    -fx-padding: 40px 20px 20px 20px;
+    -fx-background-color: -fx-background;
+    -fx-background-radius: 10px;
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-radius: 10px;
+}
+
+.sample-card > .card-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}

@@ -83,6 +83,7 @@
 <ul>
     <li><a href="#rxAudioSpectrum">RXAudioSpectrum</a></li>
     <li><a href="#rxAvatar">RXAvatar</a></li>
+    <li><a href="#rxBadge">RXBadge</a></li>
     <li><a href="#rxCarousel">RXCarousel</a></li>
     <li><a href="#rxCascader">RXCascader</a></li>
     <li><a href="#rxCascaderView">RXCascaderView</a></li>
@@ -106,6 +107,7 @@
     <li><a href="#rxSegmentedControl">RXSegmentedControl</a></li>
     <li><a href="#rxPasswordField">RXPasswordField</a></li>
     <li><a href="#rxRadioToggleButton">RXRadioToggleButton</a></li>
+    <li><a href="#rxRibbonBadge">RXRibbonBadge</a></li>
     <li><a href="#rxRipplePane">RXRipplePane</a></li>
     <li><a href="#rxTextField">RXTextField</a></li>
     <li><a href="#rxTextView">RXTextView</a></li>
@@ -460,6 +462,82 @@ RXAtlantaFXThemeBridge.uninstall(scene);</code></pre>
    <code>-rx-elevation-umbra-color</code>), and the <code>.ring</code> outline (<code>-fx-stroke</code>)
    keeps the edge visible where the shadow cannot show, such as on a near-black page. The avatar's
    preferred size is 40 &times; 40.</p>
+
+<h3 id="rxBadge">RXBadge</h3>
+<p class="fxClass">Style class: rx-badge</p>
+<p>The RXBadge control has all the properties of Control;</p>
+<h4>Substructure</h4>
+.content-slot — StackPane (holds the content)<br/>
+.pulse — Region (the expanding ring shown while pulsing)<br/>
+.indicator — Label (the count, text or dot; has its own <code>:dot</code> pseudo-class)<br/><br/>
+<p>Pseudo-classes</p>
+<table>
+    <thead>
+    <tr>
+        <th>CSS Pseudo-class</th>
+        <th>Comments</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>dot</td>
+        <td>applies when the variant is DOT</td>
+    </tr>
+    <tr>
+        <td>standalone</td>
+        <td>applies when the badge has no content</td>
+    </tr>
+    </tbody>
+</table>
+<br/>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-variant</td>
+        <td>STANDARD,DOT</td>
+        <td>STANDARD</td>
+    </tr>
+    <tr>
+        <td>-rx-position</td>
+        <td>TOP_START,TOP_END,BOTTOM_START,BOTTOM_END</td>
+        <td>TOP_END</td>
+    </tr>
+    <tr>
+        <td>-rx-overlap</td>
+        <td>RECTANGULAR,CIRCULAR</td>
+        <td>RECTANGULAR</td>
+    </tr>
+    <tr>
+        <td>-rx-offset-x</td>
+        <td>size</td>
+        <td>0</td>
+    </tr>
+    <tr>
+        <td>-rx-offset-y</td>
+        <td>size</td>
+        <td>0</td>
+    </tr>
+    <tr>
+        <td>-rx-animated</td>
+        <td>boolean</td>
+        <td>true</td>
+    </tr>
+    </tbody>
+</table>
+<p>Positive offsets move the indicator toward the center of the content. The indicator is filled with the
+   looked-up color <code>-rx-badge-fill</code>, its text takes <code>-rx-badge-on-fill</code>, and
+   <code>-rx-badge-ring</code> (transparent by default) draws an outline around it; set them on
+   <code>.rx-badge</code>. The style classes <code>primary</code>, <code>success</code>,
+   <code>warning</code>, <code>danger</code> and <code>info</code> pick the fill. The indicator is sized in
+   <code>em</code>, so <code>-fx-font-size</code> on the badge scales it. The indicator takes no layout
+   space; <code>-fx-padding</code> on the badge reserves room for the part drawn past the content.</p>
 
 <h3 id="rxCarousel">RXCarousel</h3>
 <p class="fxClass">Style class:rx-carousel </p>
@@ -1673,6 +1751,65 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
 </table>
 
 <p><b>Sub-structure.</b> The floating label is the control's direct-child <code>.label</code>; the supporting row is <code>.supporting</code>; the bottom lines are <code>.activation-line</code> (1px) and <code>.accent-line</code> (2px), sized via <code>-fx-pref-height</code>. The built-in buttons live under the base trailing wrapper: <code>.trailing-wrapper .clear-button &gt; .graphic</code> and (password) <code>.trailing-wrapper .reveal-button &gt; .graphic</code> — shape-backed Regions recoloured via <code>-fx-background-color</code>.</p>
+
+<h3 id="rxRibbonBadge">RXRibbonBadge</h3>
+<p class="fxClass">Style class: rx-ribbon-badge</p>
+<p>The RXRibbonBadge control has all the properties of Control;</p>
+<h4>Substructure</h4>
+.content-slot — StackPane (holds the content)<br/>
+.fold — Region (the folded corner under the overhang)<br/>
+.ribbon — Label<br/><br/>
+<p>Pseudo-classes</p>
+<table>
+    <thead>
+    <tr>
+        <th>CSS Pseudo-class</th>
+        <th>Comments</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>start</td>
+        <td>applies when the placement is START</td>
+    </tr>
+    <tr>
+        <td>end</td>
+        <td>applies when the placement is END</td>
+    </tr>
+    </tbody>
+</table>
+<br/>
+<table>
+    <thead>
+    <tr>
+        <th>Css Property</th>
+        <th>Values</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>-rx-placement</td>
+        <td>START,END</td>
+        <td>END</td>
+    </tr>
+    <tr>
+        <td>-rx-ribbon-offset</td>
+        <td>size</td>
+        <td>8</td>
+    </tr>
+    <tr>
+        <td>-rx-overhang</td>
+        <td>size</td>
+        <td>8</td>
+    </tr>
+    </tbody>
+</table>
+<p>The ribbon is filled with the looked-up color <code>-rx-ribbon-fill</code> and its text takes
+   <code>-rx-ribbon-on-fill</code>; the fold is a darker shade of the fill. The style classes
+   <code>primary</code>, <code>success</code>, <code>warning</code>, <code>danger</code> and
+   <code>info</code> pick the fill. The ribbon takes no layout space; <code>-fx-padding</code> on the
+   control reserves room for the overhang.</p>
 
 <h3 id="rxRipplePane">RXRipplePane</h3>
 <p class="fxClass">Style class: rx-ripple-pane</p>

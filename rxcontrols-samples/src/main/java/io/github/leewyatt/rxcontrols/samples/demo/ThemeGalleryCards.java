@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.RXAudioSpectrum;
 import io.github.leewyatt.rxcontrols.RXAutoCompleteField;
 import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXAvatar.ShapeType;
+import io.github.leewyatt.rxcontrols.RXBadge;
 import io.github.leewyatt.rxcontrols.RXBackdrop;
 import io.github.leewyatt.rxcontrols.RXBarSpinner;
 import io.github.leewyatt.rxcontrols.RXButton;
@@ -60,6 +61,7 @@ import io.github.leewyatt.rxcontrols.RXPlaceholder;
 import io.github.leewyatt.rxcontrols.RXRadioButton;
 import io.github.leewyatt.rxcontrols.RXRadioToggleButton;
 import io.github.leewyatt.rxcontrols.RXRangeSlider;
+import io.github.leewyatt.rxcontrols.RXRibbonBadge;
 import io.github.leewyatt.rxcontrols.RXRipplePane;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
@@ -167,6 +169,7 @@ final class ThemeGalleryCards {
         list.add(card("RXAutoCompleteField", "Text field with a filtered suggestion popup.", buildRXAutoCompleteField()));
         list.add(card("RXAvatar", "Image, initials or icon in a circle or rounded square.", buildRXAvatar()));
         list.add(card("RXBackdrop", "Fading scrim that dims the content beneath it.", buildRXBackdrop()));
+        list.add(card("RXBadge", "Count, text or dot indicator on a corner of any node.", buildRXBadge()));
         list.add(card("RXBarSpinner", "Decorative loading bars.", buildRXBarSpinner()));
         list.add(card("RXButton", "Button with bounded ripple feedback.", buildRXButton()));
         list.add(wide("RXCarousel", "Paged carousel with animated page transitions.", buildRXCarousel()));
@@ -215,6 +218,7 @@ final class ThemeGalleryCards {
         list.add(card("RXRadioButton", "Radio button with halo and ripple feedback.", buildRXRadioButton()));
         list.add(card("RXRadioToggleButton", "Toggle buttons that select like radio buttons.", buildRXRadioToggleButton()));
         list.add(card("RXRangeSlider", "Slider with a low and a high thumb.", buildRXRangeSlider()));
+        list.add(card("RXRibbonBadge", "Text ribbon folded over the edge of a card.", buildRXRibbonBadge()));
         list.add(card("RXRipplePane", "Container with ripple and hover feedback.", buildRXRipplePane()));
         list.add(card("RXSeekBar", "Seek bar with buffered progress.", buildRXSeekBar()));
         list.add(card("RXSegmentedControl", "One-of-many switcher with a sliding indicator.", buildRXSegmentedControl()));
@@ -293,6 +297,42 @@ final class ThemeGalleryCards {
         avatar.setShapeType(ShapeType.CIRCLE);
         avatar.setPrefSize(96.0, 96.0);
         return avatar;
+    }
+
+    private static Node buildRXBadge() {
+        RXBadge count = new RXBadge(new Button("Inbox"));
+        count.setCount(128);
+
+        RXAvatar avatar = new RXAvatar();
+        avatar.setText("LW");
+        RXBadge online = new RXBadge(avatar);
+        online.setVariant(RXBadge.Variant.DOT);
+        online.setOverlap(RXBadge.Overlap.CIRCULAR);
+        online.setPosition(RXBadge.Position.BOTTOM_END);
+        online.getStyleClass().add("success");
+
+        RXBadge dot = new RXBadge();
+        dot.setVariant(RXBadge.Variant.DOT);
+        dot.setPulsing(true);
+        dot.getStyleClass().add("primary");
+        Label status = new Label("Syncing", dot);
+        status.setGraphicTextGap(8.0);
+
+        HBox row = new HBox(28.0, count, online, status);
+        row.setAlignment(Pos.CENTER);
+        return row;
+    }
+
+    private static Node buildRXRibbonBadge() {
+        Label title = new Label("Pro plan");
+        Label body = new Label("Unlimited projects");
+        VBox card = new VBox(6.0, title, body);
+        card.setPadding(new Insets(36.0, 16.0, 16.0, 16.0));
+        card.setPrefWidth(180.0);
+        card.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        card.setStyle("-fx-background-color: -rx-surface-variant; -fx-background-radius: 8px;"
+                + " -fx-border-color: -rx-outline-variant; -fx-border-radius: 8px;");
+        return new RXRibbonBadge(card, "Recommended");
     }
 
     private static Node buildRXBarSpinner() {

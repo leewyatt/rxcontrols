@@ -1,0 +1,25 @@
+.live-preview {
+    -fx-alignment: center;
+}
+
+.state-label {
+    -fx-padding: 5px 12px;
+    -fx-background-color: -fx-control-inner-background;
+    -fx-background-radius: 6px;
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-radius: 6px;
+    -fx-text-fill: -fx-text-base-color;
+    -fx-font-family: "Menlo", "Consolas", monospace;
+    -fx-font-size: 12px;
+}
+
+.status-strip {
+    -fx-alignment: center;
+}
+
+.sample-card {
+    -fx-background-color: -fx-background;
+    -fx-background-radius: 10px;
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-radius: 10px;
+}
