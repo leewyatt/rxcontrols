@@ -10,7 +10,8 @@ import java.util.function.Predicate;
  * the range and the filter accepts it. A column item is available when at least one
  * selectable time uses it, so an hour stays enabled while any of its minutes is.
  *
- * <p>Instances are immutable snapshots; build a new one when a property changes.
+ * <p>Instances are snapshots of the rules; build a new one when a property changes. They
+ * memoize availability internally, so a filter runs at most once per time of day.
  */
 public final class TimeConstraints {
 
@@ -35,6 +36,11 @@ public final class TimeConstraints {
     private final int minuteStep;
     private final int secondStep;
     private final boolean showSeconds;
+    /** Lazily computed availability: 0 unknown, 1 available, 2 unavailable. */
+    private final byte[] hourMemo = new byte[HOURS];
+    private final byte[] minuteMemo = new byte[HOURS * MINUTES];
+    /** Lazily computed range-and-filter result per second of day, so a filter runs once per time. */
+    private byte[] acceptMemo;
 
     /**
      * Creates a constraint snapshot. Steps below 1 are treated as 1.
@@ -101,7 +107,14 @@ public final class TimeConstraints {
         if (showSeconds ? time.getSecond() % secondStep != 0 : time.getSecond() != 0) {
             return false;
         }
-        return TemporalRules.isSelectable(time, min, max, filter);
+        if (acceptMemo == null) {
+            acceptMemo = new byte[HOURS * MINUTES * SECONDS];
+        }
+        int key = time.toSecondOfDay();
+        if (acceptMemo[key] == 0) {
+            acceptMemo[key] = TemporalRules.isSelectable(time, min, max, filter) ? (byte) 1 : (byte) 2;
+        }
+        return acceptMemo[key] == 1;
     }
 
     /**
@@ -126,12 +139,14 @@ public final class TimeConstraints {
         if (hour % hourStep != 0) {
             return false;
         }
-        for (int minute = 0; minute < MINUTES; minute += minuteStep) {
-            if (isMinuteAvailable(hour, minute)) {
-                return true;
+        if (hourMemo[hour] == 0) {
+            boolean available = false;
+            for (int minute = 0; minute < MINUTES && !available; minute += minuteStep) {
+                available = isMinuteAvailable(hour, minute);
             }
+            hourMemo[hour] = available ? (byte) 1 : (byte) 2;
         }
-        return false;
+        return hourMemo[hour] == 1;
     }
 
     /**
@@ -145,15 +160,16 @@ public final class TimeConstraints {
         if (minute % minuteStep != 0) {
             return false;
         }
-        if (!showSeconds) {
-            return isAllowed(LocalTime.of(hour, minute));
-        }
-        for (int second = 0; second < SECONDS; second += secondStep) {
-            if (isAllowed(LocalTime.of(hour, minute, second))) {
-                return true;
+        int key = hour * MINUTES + minute;
+        if (minuteMemo[key] == 0) {
+            boolean available = false;
+            int secondLimit = showSeconds ? SECONDS : 1;
+            for (int second = 0; second < secondLimit && !available; second += secondStep) {
+                available = isAllowed(LocalTime.of(hour, minute, second));
             }
+            minuteMemo[key] = available ? (byte) 1 : (byte) 2;
         }
-        return false;
+        return minuteMemo[key] == 1;
     }
 
     /**
@@ -169,43 +185,69 @@ public final class TimeConstraints {
     }
 
     /**
-     * Returns the selectable time nearest to {@code time}, preferring times that keep
-     * {@code fixed} unchanged (the unit the user just picked).
+     * Returns the selectable time nearest to {@code time}. With a {@code fixed} unit (the
+     * unit the user just picked) it prefers times that keep that unit, then times that
+     * keep more of the other units, then the smallest distance.
      *
      * @param time  the wished time
      * @param fixed the unit to keep if possible, or {@code null}
      * @return the nearest selectable time, or {@code null} if nothing is selectable
      */
     public LocalTime snap(LocalTime time, Unit fixed) {
-        if (isAllowed(time)) {
-            return time;
+        return snap(time, fixed, false);
+    }
+
+    /**
+     * Like {@link #snap(LocalTime, Unit)}, optionally keeping the result in the same
+     * half of the day (AM / PM) as {@code time}.
+     *
+     * @param time     the wished time
+     * @param fixed    the unit to keep if possible, or {@code null}
+     * @param sameHalf whether the result must stay in {@code time}'s half of the day
+     * @return the nearest selectable time, or {@code null} if nothing qualifies
+     */
+    public LocalTime snap(LocalTime time, Unit fixed, boolean sameHalf) {
+        LocalTime wished = time.withNano(0);
+        if (!showSeconds) {
+            wished = wished.withSecond(0);
         }
+        if (isAllowed(wished)) {
+            return wished;
+        }
+        int halfStart = wished.getHour() < HOURS / 2 ? 0 : HOURS / 2;
         LocalTime best = null;
-        long bestDistance = Long.MAX_VALUE;
-        LocalTime fallback = null;
-        long fallbackDistance = Long.MAX_VALUE;
-        int target = time.toSecondOfDay();
+        long bestRank = Long.MAX_VALUE;
+        int target = wished.toSecondOfDay();
+        int secondLimit = showSeconds ? SECONDS : 1;
         for (int hour = 0; hour < HOURS; hour += hourStep) {
+            if ((sameHalf && (hour < halfStart || hour >= halfStart + HOURS / 2)) || !isHourAvailable(hour)) {
+                continue;
+            }
             for (int minute = 0; minute < MINUTES; minute += minuteStep) {
-                int secondLimit = showSeconds ? SECONDS : 1;
+                if (!isMinuteAvailable(hour, minute)) {
+                    continue;
+                }
                 for (int second = 0; second < secondLimit; second += secondStep) {
                     LocalTime candidate = LocalTime.of(hour, minute, second);
-                    if (!TemporalRules.isSelectable(candidate, min, max, filter)) {
+                    if (!isAllowed(candidate)) {
                         continue;
                     }
-                    long distance = Math.abs(candidate.toSecondOfDay() - target);
-                    if (keepsUnit(candidate, time, fixed) && distance < bestDistance) {
+                    // Rank: a lost fixed unit costs most, then each other lost unit,
+                    // then the distance in seconds.
+                    // Unit keeping only matters for a pick; a free snap is purely nearest.
+                    long lost = fixed == null ? 0 : (keepsUnit(candidate, wished, fixed) ? 0 : 4)
+                            + (candidate.getHour() == wished.getHour() ? 0 : 1)
+                            + (candidate.getMinute() == wished.getMinute() ? 0 : 1)
+                            + (candidate.getSecond() == wished.getSecond() ? 0 : 1);
+                    long rank = lost * (HOURS * MINUTES * SECONDS) + Math.abs(candidate.toSecondOfDay() - target);
+                    if (rank < bestRank) {
                         best = candidate;
-                        bestDistance = distance;
-                    }
-                    if (distance < fallbackDistance) {
-                        fallback = candidate;
-                        fallbackDistance = distance;
+                        bestRank = rank;
                     }
                 }
             }
         }
-        return best != null ? best : fallback;
+        return best;
     }
 
     /**

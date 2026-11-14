@@ -474,8 +474,9 @@ public final class CalendarPanel extends HBox {
             revealInMode(cursor, cursor.isBefore(pageStartOf(mode, reference)));
         }
         refresh();
-        // The keyboard cursor previews like the pointer does (range highlighting).
-        if (mode == pickLevel) {
+        // The keyboard cursor previews like the pointer does (range highlighting); like
+        // the pointer, it previews only pickable cells.
+        if (mode == pickLevel && isPickable(cursor)) {
             onHover.accept(periodStart(mode, cursor));
         }
     }
@@ -1148,8 +1149,8 @@ public final class CalendarPanel extends HBox {
                     }
                     int state = stateProvider.stateOf(date);
                     if (adjacent && pageCount > 1) {
-                        // A neighbor page shows this day in full; repeating the range here
-                        // would draw it twice.
+                        // Linked pages show the range on the days of their own months only;
+                        // repeating it on adjacent days would draw it twice.
                         state &= ~(SELECTED | RANGE_START | RANGE_END | IN_RANGE | PREVIEW);
                     }
                     boolean cursorMatch = cursorVisible && date.equals(cursor) && !adjacent;

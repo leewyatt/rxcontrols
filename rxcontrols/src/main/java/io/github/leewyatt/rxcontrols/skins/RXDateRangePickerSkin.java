@@ -128,8 +128,9 @@ public class RXDateRangePickerSkin extends RXPickerSkinBase<RXDateRange, RXDateR
     // ==================== Internals ====================
 
     private void handleStartEnter(KeyEvent event) {
+        // While the calendar shows its keyboard cursor, Enter picks the cursor day.
         if (event.getCode() != KeyCode.ENTER || event.isShiftDown() || event.isControlDown()
-                || event.isAltDown() || event.isMetaDown()) {
+                || event.isAltDown() || event.isMetaDown() || isViewKeyboardCursorVisible()) {
             return;
         }
         ParseResult<LocalDate> start = DateTimeTexts.parse(converter(), startEditor.getText());

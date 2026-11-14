@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.internal.datetime.TimeConstraints.Unit;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalTime;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -51,6 +52,37 @@ public class TimeConstraintsTest {
         assertEquals(LocalTime.of(9, 30), rules.snap(LocalTime.of(3, 0), null));
         TimeConstraints none = new TimeConstraints(null, null, time -> false, 1, 1, 1, false);
         assertNull(none.snap(LocalTime.NOON, null));
+    }
+
+    /**
+     * Verifies an AM / PM snap stays in the picked half and keeps the other units when it can.
+     */
+    @Test
+    public void halfDaySnapStaysInHalfAndKeepsUnits() {
+        TimeConstraints noon = new TimeConstraints(null, null, time -> time.getHour() != 12, 1, 1, 1, false);
+        assertEquals(LocalTime.of(13, 10), noon.snap(LocalTime.of(12, 10), Unit.HOUR, true));
+        TimeConstraints fiveHours = new TimeConstraints(null, null, null, 5, 1, 1, false);
+        assertEquals(LocalTime.of(20, 0), fiveHours.snap(LocalTime.of(22, 0), Unit.HOUR, true));
+    }
+
+    /**
+     * Verifies a filter runs at most once per time of day for one snapshot.
+     */
+    @Test
+    public void filterRunsOncePerTime() {
+        AtomicInteger calls = new AtomicInteger();
+        TimeConstraints rules = new TimeConstraints(null, null, time -> {
+            calls.incrementAndGet();
+            return time.getHour() >= 9 && time.getHour() < 17;
+        }, 1, 1, 1, true);
+        rules.snap(LocalTime.of(3, 0), Unit.HOUR);
+        int first = calls.get();
+        assertTrue(first <= 24 * 60 * 60, "calls " + first);
+        rules.snap(LocalTime.of(4, 0), Unit.HOUR);
+        for (int hour = 0; hour < 24; hour++) {
+            rules.isHourAvailable(hour);
+        }
+        assertEquals(first, calls.get());
     }
 
     /**

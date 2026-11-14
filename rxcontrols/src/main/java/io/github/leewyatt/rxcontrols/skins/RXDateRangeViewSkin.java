@@ -31,6 +31,7 @@ public class RXDateRangeViewSkin extends RXSkinBase<RXDateRangeView>
     private final ReadOnlyObjectWrapper<LocalDate> anchor = new ReadOnlyObjectWrapper<>(this, "anchor");
     private LocalDate hover;
     private boolean writingDisplayedMonth;
+    private boolean pickingValue;
 
     /**
      * Creates the skin for the given range view.
@@ -74,7 +75,7 @@ public class RXDateRangeViewSkin extends RXSkinBase<RXDateRangeView>
                 event.consume();
             }
         });
-        disposer.registerEventHandler(control, MouseEvent.MOUSE_PRESSED, event -> {
+        disposer.registerEventFilter(control, MouseEvent.MOUSE_PRESSED, event -> {
             if (control.isFocusTraversable() && !control.isFocused()) {
                 control.requestFocus();
             }
@@ -159,7 +160,12 @@ public class RXDateRangeViewSkin extends RXSkinBase<RXDateRangeView>
         RXDateRange range = RXDateRange.ofOrdered(pending, date);
         hover = null;
         anchor.set(null);
-        control.setValue(range);
+        pickingValue = true;
+        try {
+            control.setValue(range);
+        } finally {
+            pickingValue = false;
+        }
         panel.refresh();
         control.fireEvent(new ActionEvent());
     }
@@ -198,7 +204,7 @@ public class RXDateRangeViewSkin extends RXSkinBase<RXDateRangeView>
         hover = null;
         anchor.set(null);
         RXDateRange value = getSkinnable().getValue();
-        if (value != null) {
+        if (value != null && !pickingValue) {
             panel.reveal(value.start());
         }
         updateValue();
@@ -239,6 +245,11 @@ public class RXDateRangeViewSkin extends RXSkinBase<RXDateRangeView>
 
     private void updateConstraints() {
         RXDateRangeView control = getSkinnable();
+        if (anchor.get() != null && !isSelectable(anchor.get())) {
+            // A bounds or filter change made the pending first endpoint unpickable.
+            hover = null;
+            anchor.set(null);
+        }
         panel.setBounds(control.getMinDate(), control.getMaxDate());
         updateValue();
     }

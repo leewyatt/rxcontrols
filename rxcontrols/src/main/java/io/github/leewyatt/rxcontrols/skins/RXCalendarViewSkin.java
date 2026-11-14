@@ -64,7 +64,7 @@ public class RXCalendarViewSkin extends RXSkinBase<RXCalendarView> implements Te
                 event.consume();
             }
         });
-        disposer.registerEventHandler(control, MouseEvent.MOUSE_PRESSED, event -> {
+        disposer.registerEventFilter(control, MouseEvent.MOUSE_PRESSED, event -> {
             // A calendar hosted in a picker popup is not focus-traversable and must
             // never pull focus into the popup.
             if (control.isFocusTraversable() && !control.isFocused()) {

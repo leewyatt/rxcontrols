@@ -39,6 +39,7 @@ public class RXDateTimeRangePickerSkin extends RXPickerSkinBase<RXDateTimeRange,
     private final InvalidationListener anchorListener = observable -> onAnchorChanged();
     private ReadOnlyObjectProperty<LocalDate> observedAnchor;
     private boolean typingDraft;
+    private boolean seeding;
 
     /**
      * Creates the skin for the given picker.
@@ -74,7 +75,7 @@ public class RXDateTimeRangePickerSkin extends RXPickerSkinBase<RXDateTimeRange,
         // Registered before the base filters so it sees Enter first.
         disposer.registerEventFilter(startEditor, KeyEvent.KEY_PRESSED, this::handleStartEnter);
 
-        okButton = footerButton("ok-button", control.okTextProperty(), this::commitDraft);
+        okButton = footerButton("ok-button", control.okTextProperty(), this::confirmFromButton);
         install(List.of(startEditor, separator, endEditor), rangeView, okButton);
 
         disposer.registerListener(rangeView.valueProperty(), this::onDraftChanged);
@@ -110,8 +111,19 @@ public class RXDateTimeRangePickerSkin extends RXPickerSkinBase<RXDateTimeRange,
         if (skin instanceof RangeAnchorSource) {
             ((RangeAnchorSource) skin).clearAnchor();
         }
-        rangeView.setValue(getSkinnable().getValue());
-        rangeView.setDisplayedMonth(null);
+        seeding = true;
+        try {
+            rangeView.setValue(getSkinnable().getValue());
+            rangeView.setDisplayedMonth(null);
+        } finally {
+            seeding = false;
+        }
+        if (anyUserEdited()) {
+            ParseResult<RXDateTimeRange> typed = parseFields();
+            if (typed.status() == ParseResult.Status.VALID && isAllowed(typed.value())) {
+                showTypedDraft(typed.value());
+            }
+        }
         updateOkButton();
     }
 
@@ -167,10 +179,18 @@ public class RXDateTimeRangePickerSkin extends RXPickerSkinBase<RXDateTimeRange,
     }
 
     private void onDraftChanged() {
-        if (!typingDraft && getSkinnable().isShowing() && rangeView.getValue() != null) {
+        if (!typingDraft && !seeding && getSkinnable().isShowing() && rangeView.getValue() != null) {
             writeFields(rangeView.getValue());
         }
         updateOkButton();
+    }
+
+    private void confirmFromButton() {
+        if (anyUserEdited()) {
+            commitTypedText();
+        } else {
+            commitDraft();
+        }
     }
 
     private void commitDraft() {
@@ -187,7 +207,7 @@ public class RXDateTimeRangePickerSkin extends RXPickerSkinBase<RXDateTimeRange,
 
     private void handleStartEnter(KeyEvent event) {
         if (event.getCode() != KeyCode.ENTER || event.isShiftDown() || event.isControlDown()
-                || event.isAltDown() || event.isMetaDown()) {
+                || event.isAltDown() || event.isMetaDown() || isViewKeyboardCursorVisible()) {
             return;
         }
         ParseResult<LocalDateTime> start = DateTimeTexts.parse(converter(), startEditor.getText());

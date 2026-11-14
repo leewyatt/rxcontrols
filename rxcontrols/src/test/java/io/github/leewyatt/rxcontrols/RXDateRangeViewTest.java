@@ -133,6 +133,36 @@ public class RXDateRangeViewTest {
         assertTrue(hasPseudoClass(view, "invalid"));
     }
 
+    /**
+     * Verifies an anchor made unpickable by a bounds change is dropped.
+     */
+    @Test
+    public void boundsChangeDropsUnpickableAnchor() {
+        RXDateRangeView view = newView();
+        click(dayCell(view, LocalDate.of(2026, 11, 5)));
+        view.setMinDate(LocalDate.of(2026, 11, 10));
+        click(dayCell(view, LocalDate.of(2026, 11, 20)));
+        assertNull(view.getValue());
+        click(dayCell(view, LocalDate.of(2026, 11, 22)));
+        assertEquals(RXDateRange.of(LocalDate.of(2026, 11, 20), LocalDate.of(2026, 11, 22)), view.getValue());
+    }
+
+    /**
+     * Verifies completing a range keeps the months the user paged to.
+     */
+    @Test
+    public void completingRangeKeepsDisplayedMonths() {
+        RXDateRangeView view = newView();
+        click(dayCell(view, LocalDate.of(2026, 11, 20)));
+        for (int i = 0; i < 4; i++) {
+            click(view.lookup(".next-button"));
+        }
+        assertEquals(YearMonth.of(2027, 3), view.getDisplayedMonth());
+        click(dayCell(view, LocalDate.of(2027, 3, 3)));
+        assertEquals(RXDateRange.of(LocalDate.of(2026, 11, 20), LocalDate.of(2027, 3, 3)), view.getValue());
+        assertEquals(YearMonth.of(2027, 3), view.getDisplayedMonth());
+    }
+
     private static RXDateRangeView newView() {
         RXDateRangeView view = new RXDateRangeView();
         view.setLocale(Locale.US);

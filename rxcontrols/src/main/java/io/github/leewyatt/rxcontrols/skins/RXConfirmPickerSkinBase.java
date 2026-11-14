@@ -30,6 +30,7 @@ public abstract class RXConfirmPickerSkinBase<T, C extends RXPickerBase<T>, V ex
     private Button nowButton;
     private Button okButton;
     private boolean typingDraft;
+    private boolean seeding;
 
     /**
      * Creates the skin. Subclasses bind the view's options and then call
@@ -66,7 +67,7 @@ public abstract class RXConfirmPickerSkinBase<T, C extends RXPickerBase<T>, V ex
         nowButton.getStyleClass().add("link-button");
         disposer.registerBinding(nowButton.visibleProperty(), showNow);
         disposer.registerBinding(nowButton.managedProperty(), showNow);
-        okButton = footerButton("ok-button", okText, this::commitDraft);
+        okButton = footerButton("ok-button", okText, this::confirmFromButton);
         install(List.of(editor), view, nowButton, okButton);
 
         disposer.registerListener(view.valueProperty(), this::onDraftChanged);
@@ -122,8 +123,21 @@ public abstract class RXConfirmPickerSkinBase<T, C extends RXPickerBase<T>, V ex
 
     @Override
     protected void seedDraft() {
-        view.setValue(getSkinnable().getValue());
-        resetDisplay();
+        // Seeding must not preview into the field: it may hold text the user typed
+        // while the popup was closed, which then seeds the draft instead.
+        seeding = true;
+        try {
+            view.setValue(getSkinnable().getValue());
+            resetDisplay();
+        } finally {
+            seeding = false;
+        }
+        if (anyUserEdited()) {
+            ParseResult<T> typed = parseFields();
+            if (typed.status() == ParseResult.Status.VALID && isAllowed(typed.value())) {
+                showTypedDraft(typed.value());
+            }
+        }
         updateButtons();
     }
 
@@ -161,10 +175,19 @@ public abstract class RXConfirmPickerSkinBase<T, C extends RXPickerBase<T>, V ex
 
     private void onDraftChanged() {
         // Preview the popup draft in the field, but never overwrite what the user types.
-        if (!typingDraft && getSkinnable().isShowing()) {
+        if (!typingDraft && !seeding && getSkinnable().isShowing()) {
             setFieldText(editor, DateTimeTexts.format(converter(), view.getValue()));
         }
         updateButtons();
+    }
+
+    private void confirmFromButton() {
+        // Typed text wins over the draft: OK behaves like Enter in the field.
+        if (anyUserEdited()) {
+            commitTypedText();
+        } else {
+            commitDraft();
+        }
     }
 
     private void commitDraft() {

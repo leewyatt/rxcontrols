@@ -434,10 +434,6 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
         updateInvalid();
     }
 
-    private void revertFields() {
-        refreshFields();
-    }
-
     private void onValueChanged() {
         refreshFields();
         if (getSkinnable().isShowing()) {
@@ -460,11 +456,11 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
         if (code == KeyCode.ESCAPE && plain) {
             if (control.isShowing()) {
                 // Escape discards both the popup draft and any typed text.
-                revertFields();
+                refreshFields();
                 control.hide();
                 event.consume();
             } else if (anyUserEdited()) {
-                revertFields();
+                refreshFields();
                 event.consume();
             }
             return;
@@ -535,6 +531,17 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
             default:
                 return false;
         }
+    }
+
+    /**
+     * Returns whether the popup view shows its keyboard cursor, i.e. whether Enter and
+     * the caret keys currently belong to the view.
+     *
+     * @return {@code true} if the view's keyboard cursor is shown
+     */
+    protected final boolean isViewKeyboardCursorVisible() {
+        TemporalKeyTarget target = keyTarget();
+        return target != null && target.isKeyboardCursorVisible();
     }
 
     private TemporalKeyTarget keyTarget() {
@@ -651,7 +658,7 @@ public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXS
 
     private void onFocusLeft() {
         if (anyUserEdited() && !commitTypedText()) {
-            revertFields();
+            refreshFields();
         }
         getSkinnable().hide();
     }

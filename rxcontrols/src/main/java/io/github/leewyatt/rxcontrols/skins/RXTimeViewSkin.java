@@ -54,7 +54,7 @@ public class RXTimeViewSkin extends RXSkinBase<RXTimeView> implements TemporalKe
                 event.consume();
             }
         });
-        disposer.registerEventHandler(control, MouseEvent.MOUSE_PRESSED, event -> {
+        disposer.registerEventFilter(control, MouseEvent.MOUSE_PRESSED, event -> {
             if (control.isFocusTraversable() && !control.isFocused()) {
                 control.requestFocus();
             }

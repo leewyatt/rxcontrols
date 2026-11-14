@@ -54,6 +54,7 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
     private LocalTime pendingEndTime;
     private boolean timeSection;
     private boolean writingDisplayedMonth;
+    private boolean pickingValue;
 
     /**
      * Creates the skin for the given view.
@@ -118,7 +119,7 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
                 event.consume();
             }
         });
-        disposer.registerEventHandler(control, MouseEvent.MOUSE_PRESSED, event -> {
+        disposer.registerEventFilter(control, MouseEvent.MOUSE_PRESSED, event -> {
             if (control.isFocusTraversable() && !control.isFocused()) {
                 control.requestFocus();
             }
@@ -254,7 +255,12 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
         }
         hover = null;
         anchor.set(null);
-        getSkinnable().setValue(RXDateTimeRange.of(start, end));
+        pickingValue = true;
+        try {
+            getSkinnable().setValue(RXDateTimeRange.of(start, end));
+        } finally {
+            pickingValue = false;
+        }
         if (fromKeyboard) {
             panel.clearKeyboardCursor();
             timeSection = true;
@@ -299,7 +305,12 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
         } else {
             start = start.toLocalDate().atTime(time);
         }
-        control.setValue(RXDateTimeRange.ofOrdered(start, end));
+        pickingValue = true;
+        try {
+            control.setValue(RXDateTimeRange.ofOrdered(start, end));
+        } finally {
+            pickingValue = false;
+        }
     }
 
     private void onTimeCommit() {
@@ -338,7 +349,7 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
         hover = null;
         anchor.set(null);
         RXDateTimeRange value = getSkinnable().getValue();
-        if (value != null) {
+        if (value != null && !pickingValue) {
             panel.reveal(value.start().toLocalDate());
         }
         updateValue(true);
@@ -413,6 +424,11 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
 
     private void updateConstraints() {
         DateTimeConstraints rules = constraints();
+        if (anchor.get() != null && !constraints().isDateSelectable(anchor.get())) {
+            // A bounds or filter change made the pending first endpoint unpickable.
+            hover = null;
+            anchor.set(null);
+        }
         panel.setBounds(rules.minDate(), rules.maxDate());
         updateValue(false);
     }

@@ -260,10 +260,11 @@ public final class TimeColumns extends HBox {
     }
 
     private void refresh(boolean animate) {
+        LocalTime base = baseTime();
         for (int i = 0; i < visibleColumns.size(); i++) {
             Column column = visibleColumns.get(i);
             column.scroll.pseudoClassStateChanged(PSEUDO_ACTIVE, cursorVisible && i == activeColumn);
-            column.update(cursorVisible && i == activeColumn);
+            column.update(cursorVisible && i == activeColumn, base);
             column.scrollToSelection(animate);
         }
     }
@@ -296,7 +297,8 @@ public final class TimeColumns extends HBox {
                 fixed = Unit.HOUR;
                 break;
         }
-        LocalTime snapped = constraints.snap(wished, fixed);
+        // An AM / PM pick must land in the picked half of the day.
+        LocalTime snapped = constraints.snap(wished, fixed, kind == Kind.MERIDIEM);
         if (snapped != null) {
             onChange.accept(snapped);
         }
@@ -336,6 +338,17 @@ public final class TimeColumns extends HBox {
             }
             content.getChildren().addAll(cells);
             content.getChildren().add(spacer);
+            // The first click scrolls the picked item to the top, so the second click of a
+            // double click lands on another item (or the spacer): confirm at column level.
+            content.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+                if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
+                    onCommit.run();
+                }
+            });
+            // ScrollPane's behavior requests focus on every press, even when not focus
+            // traversable; in a picker popup that focus would capture the keys meant for
+            // the text field.
+            content.addEventHandler(MouseEvent.MOUSE_PRESSED, MouseEvent::consume);
             scroll.setContent(content);
             // The trailing spacer lets the last item scroll up to the top of the column.
             scroll.viewportBoundsProperty().addListener((obs, oldBounds, bounds) -> {
@@ -353,19 +366,15 @@ public final class TimeColumns extends HBox {
         }
 
         private void onCellClicked(int index, MouseEvent event) {
-            if (event.getButton() != MouseButton.PRIMARY || index >= itemCount || cells.get(index).isDisabled()) {
-                return;
-            }
-            if (event.getClickCount() == 2) {
-                onCommit.run();
+            if (event.getButton() != MouseButton.PRIMARY || event.getClickCount() > 1 || index >= itemCount
+                    || cells.get(index).isDisabled()) {
                 return;
             }
             activeColumn = visibleColumns.indexOf(this);
             pick(kind, itemValues[index]);
         }
 
-        void update(boolean active) {
-            LocalTime base = baseTime();
+        void update(boolean active, LocalTime base) {
             itemCount = 0;
             selectedIndex = -1;
             switch (kind) {

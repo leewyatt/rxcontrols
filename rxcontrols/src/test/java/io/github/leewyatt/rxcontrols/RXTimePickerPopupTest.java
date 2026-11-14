@@ -177,6 +177,74 @@ public class RXTimePickerPopupTest {
         });
     }
 
+    /**
+     * Verifies a mouse pick leaves the popup without a focus owner, so later keys still
+     * reach the field.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void mousePickKeepsKeysInField() throws InterruptedException {
+        runOnFx(() -> {
+            RXTimePicker picker = newShownPicker();
+            TextField editor = editor(picker, 0);
+            editor.requestFocus();
+            picker.show();
+            Node root = findPopup().getScene().getRoot();
+            Label hour = cell(root, ".hour-column", "08");
+            PickerTestSupport.pressMouse(hour);
+            click(hour);
+            assertNull(findPopup().getScene().getFocusOwner());
+            press(editor, KeyCode.DOWN);
+            press(editor, KeyCode.DOWN);
+            assertEquals(LocalTime.of(9, 0), ((RXTimeView) root.lookup(".rx-time-view")).getValue());
+        });
+    }
+
+    /**
+     * Verifies reopening keeps text typed while the popup was closed and drafts from it.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void reopeningKeepsTypedText() throws InterruptedException {
+        runOnFx(() -> {
+            RXTimePicker picker = newShownPicker();
+            picker.setValue(LocalTime.of(10, 0));
+            TextField editor = editor(picker, 0);
+            editor.requestFocus();
+            picker.show();
+            click(cell(findPopup().getScene().getRoot(), ".hour-column", "11"));
+            picker.hide();
+            editor.setText("09:30");
+            picker.show();
+            assertEquals("09:30", editor.getText());
+            assertEquals(LocalTime.of(9, 30),
+                    ((RXTimeView) findPopup().getScene().getRoot().lookup(".rx-time-view")).getValue());
+        });
+    }
+
+    /**
+     * Verifies OK with unparsable typed text flags it instead of committing the old draft.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void okPrefersTypedText() throws InterruptedException {
+        runOnFx(() -> {
+            RXTimePicker picker = newShownPicker();
+            picker.setValue(LocalTime.of(10, 0));
+            TextField editor = editor(picker, 0);
+            editor.requestFocus();
+            picker.show();
+            editor.setText("9");
+            ((Button) findPopup().getScene().getRoot().lookup(".ok-button")).fire();
+            assertEquals(LocalTime.of(10, 0), picker.getValue());
+            assertEquals("9", editor.getText());
+            assertTrue(hasPseudoClass(picker, "invalid"));
+        });
+    }
+
     private RXTimePicker newShownPicker() {
         RXTimePicker picker = new RXTimePicker();
         picker.setLocale(Locale.US);

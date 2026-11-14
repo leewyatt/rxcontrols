@@ -171,6 +171,28 @@ public class RXDateRangePickerPopupTest {
         });
     }
 
+    /**
+     * Verifies Enter in the start field picks the calendar cursor day while it is shown.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void startEnterPicksCursorDay() throws InterruptedException {
+        runOnFx(() -> {
+            RXDateRangePicker picker = newShownPicker();
+            TextField start = editor(picker, 0);
+            start.requestFocus();
+            picker.show();
+            start.setText("11/20/2026");
+            press(start, KeyCode.DOWN);
+            press(start, KeyCode.RIGHT);
+            press(start, KeyCode.ENTER);
+            // The cursor seeds on today (Nov 14) and moves one day right.
+            assertTrue(hasPseudoClass(dayCell(findPopup().getScene().getRoot(), LocalDate.of(2026, 11, 15)),
+                    "range-start"));
+        });
+    }
+
     private RXDateRangePicker newShownPicker() {
         RXDateRangePicker picker = new RXDateRangePicker();
         picker.setLocale(Locale.US);
