@@ -4291,13 +4291,19 @@
 .rx-calendar-panel .date-cell:range-start,
 .rx-calendar-panel .date-cell:range-end {
     -fx-background-color: -rx-primary;
+    -fx-border-color: transparent;
+    -fx-text-fill: -rx-on-primary;
+}
+
+/* Only the range ends restore the cell shape, undoing the in-range band and the
+   preview dashes; a selected cell keeps the shape of its own level. */
+.rx-calendar-panel .date-cell:range-start,
+.rx-calendar-panel .date-cell:range-end {
     -fx-background-insets: 0.166667em;
     -fx-background-radius: 3;
-    -fx-border-color: transparent;
     -fx-border-style: solid;
     -fx-border-insets: 0.166667em;
     -fx-border-radius: 3;
-    -fx-text-fill: -rx-on-primary;
 }
 
 .rx-calendar-panel .date-cell:selected:hover,

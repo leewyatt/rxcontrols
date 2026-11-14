@@ -153,6 +153,33 @@ public class RXPeriodViewsTest {
         assertEquals(12, cells(view, ".year-cell").size());
     }
 
+    /**
+     * Verifies a selected period cell is filled over the same area as its unselected neighbors.
+     */
+    @Test
+    public void selectedPeriodCellKeepsItsFillArea() {
+        RXMonthView months = show(new RXMonthView());
+        months.setValue(YearMonth.of(2026, 2));
+        RXYearView years = show(new RXYearView());
+        years.setValue(Year.of(2023));
+        RXQuarterView quarters = show(new RXQuarterView());
+        quarters.setValue(RXYearQuarter.of(2026, 1));
+        assertSelectedFillMatches(months, ".month-cell", LocalDate.of(2026, 2, 1), LocalDate.of(2026, 3, 1));
+        assertSelectedFillMatches(years, ".year-cell", LocalDate.of(2023, 1, 1), LocalDate.of(2024, 1, 1));
+        assertSelectedFillMatches(quarters, ".quarter-cell", LocalDate.of(2026, 1, 1), LocalDate.of(2026, 4, 1));
+    }
+
+    private static void assertSelectedFillMatches(RXTemporalViewBase<?> view, String selector, LocalDate selected,
+                                                  LocalDate other) {
+        view.applyCss();
+        DateCell selectedCell = cell(view, selector, selected);
+        DateCell otherCell = cell(view, selector, other);
+        assertTrue(hasPseudoClass(selectedCell, "selected"), selector);
+        assertFalse(hasPseudoClass(otherCell, "selected"), selector);
+        assertEquals(otherCell.getBackground().getFills().get(0).getInsets(),
+                selectedCell.getBackground().getFills().get(0).getInsets(), selector);
+    }
+
     private static <V extends RXTemporalViewBase<?>> V show(V view) {
         view.setLocale(Locale.US);
         view.setClock(CLOCK);
