@@ -12,7 +12,9 @@ import java.util.function.Predicate;
  * so a bound of {@code 2026-11-14T15:30} keeps that day selectable while disabling
  * its earlier times.
  *
- * <p>Instances are immutable snapshots; build a new one when a property changes.
+ * <p>Instances are snapshots of the rules; build a new one when a property changes.
+ * They remember whether each bound's own day offers a time, so calendar refreshes do
+ * not rescan that day.
  */
 public final class DateTimeConstraints {
 
@@ -24,6 +26,9 @@ public final class DateTimeConstraints {
     private final int minuteStep;
     private final int secondStep;
     private final boolean showSeconds;
+    /** Whether the lower / upper bound's own day offers a selectable time; {@code null} until asked. */
+    private Boolean minDayHasTime;
+    private Boolean maxDayHasTime;
 
     /**
      * Creates a constraint snapshot.
@@ -81,8 +86,23 @@ public final class DateTimeConstraints {
         }
         // A bound's own day is only selectable when some time on it still is (for
         // example a minimum of 23:50 with a 15-minute step leaves none).
-        boolean boundDay = date.equals(minDate()) || date.equals(maxDate());
-        return !boundDay || timesOn(date).snap(LocalTime.MIDNIGHT, null) != null;
+        if (date.equals(minDate())) {
+            if (minDayHasTime == null) {
+                minDayHasTime = hasTimeOn(date);
+            }
+            return minDayHasTime;
+        }
+        if (date.equals(maxDate())) {
+            if (maxDayHasTime == null) {
+                maxDayHasTime = hasTimeOn(date);
+            }
+            return maxDayHasTime;
+        }
+        return true;
+    }
+
+    private boolean hasTimeOn(LocalDate date) {
+        return timesOn(date).snap(LocalTime.MIDNIGHT, null) != null;
     }
 
     /**
