@@ -174,6 +174,25 @@ public class RXDateRangeViewTest {
         assertTrue(dayCell(view, LocalDate.of(2020, 1, 15)).isVisible());
     }
 
+    /**
+     * Verifies a double click on an adjacent day only anchors the range.
+     */
+    @Test
+    public void doubleClickOnAdjacentDayOnlyAnchors() {
+        RXDateRangeView view = newView();
+        view.setMonthCount(1);
+        AtomicInteger actions = new AtomicInteger();
+        view.setOnAction(event -> actions.incrementAndGet());
+        LocalDate adjacent = LocalDate.of(2026, 12, 5);
+        DateCell cell = (DateCell) view.lookupAll(".day-cell").stream()
+                .filter(node -> adjacent.equals(((DateCell) node).getItem())).findFirst().orElseThrow();
+        click(cell);
+        cell.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, MouseButton.PRIMARY, 2,
+                false, false, false, false, true, false, false, true, false, false, null));
+        assertNull(view.getValue());
+        assertEquals(0, actions.get());
+    }
+
     private static RXDateRangeView newView() {
         RXDateRangeView view = new RXDateRangeView();
         view.setLocale(Locale.US);

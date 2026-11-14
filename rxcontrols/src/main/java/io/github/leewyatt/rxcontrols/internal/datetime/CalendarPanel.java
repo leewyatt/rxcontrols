@@ -128,9 +128,10 @@ public final class CalendarPanel extends HBox {
     private LocalDate cursor;
     private boolean cursorVisible;
     /**
-     * Set after a click changed the level: the grid under the pointer was swapped, and
-     * JavaFX keeps counting clicks across the swap, so the rest of a double click must
-     * not activate the new cell or title under the pointer.
+     * Set after a click changed the level or paged the grid: the cell under the pointer
+     * now stands for another period, and JavaFX keeps counting clicks across the change,
+     * so the rest of a double click must not activate the new cell or title under the
+     * pointer.
      */
     private boolean ignoreRepeatedClicks;
 
@@ -807,9 +808,10 @@ public final class CalendarPanel extends HBox {
                 if (cursorVisible) {
                     cursor = cell.getItem();
                 }
-                Level before = mode;
+                Level modeBefore = mode;
+                LocalDate referenceBefore = reference;
                 activate(cell.getItem());
-                ignoreRepeatedClicks = mode != before;
+                ignoreRepeatedClicks = mode != modeBefore || !reference.equals(referenceBefore);
             }
         });
         return cell;

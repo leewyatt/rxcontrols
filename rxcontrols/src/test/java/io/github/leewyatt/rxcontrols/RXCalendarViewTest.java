@@ -245,6 +245,21 @@ public class RXCalendarViewTest {
         assertTrue(dayCell(view, LocalDate.of(2020, 1, 15)).isVisible());
     }
 
+    /**
+     * Verifies the second click of a double click on an adjacent day does not pick the
+     * day that paged under the pointer.
+     */
+    @Test
+    public void doubleClickOnAdjacentDayPicksOnce() {
+        RXCalendarView view = newView(null);
+        LocalDate adjacent = LocalDate.of(2026, 12, 5);
+        DateCell cell = dayCells(view).stream().filter(c -> adjacent.equals(c.getItem())).findFirst().orElseThrow();
+        click(cell);
+        cell.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, MouseButton.PRIMARY, 2,
+                false, false, false, false, true, false, false, true, false, false, null));
+        assertEquals(adjacent, view.getValue());
+    }
+
     // ==================== Helpers ====================
 
     private static RXCalendarView newView(LocalDate value) {
