@@ -101,4 +101,20 @@ public class RXTimeViewSkin extends RXSkinBase<RXTimeView> implements TemporalKe
         columns.setValue(value, animate);
         control.pseudoClassStateChanged(INVALID, value != null && !constraints().isAcceptable(value));
     }
+
+    // ==================== Layout ====================
+
+    // SkinBase's default preferred size leaves the padding out, while its minimum size
+    // and its layout both count it.
+    @Override
+    protected double computePrefWidth(double height, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        return leftInset + columns.prefWidth(-1) + rightInset;
+    }
+
+    @Override
+    protected double computePrefHeight(double width, double topInset, double rightInset,
+                                       double bottomInset, double leftInset) {
+        return topInset + columns.prefHeight(-1) + bottomInset;
+    }
 }

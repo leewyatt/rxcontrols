@@ -258,4 +258,20 @@ abstract class RXPeriodViewSkinBase<T extends Comparable<? super T>, C extends R
     private boolean isSelectable(T value) {
         return TemporalRules.isSelectable(value, minValue(), maxValue(), filter());
     }
+
+    // ==================== Layout ====================
+
+    // SkinBase's default preferred size leaves the padding out, while its minimum size
+    // and its layout both count it.
+    @Override
+    protected double computePrefWidth(double height, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        return leftInset + panel.prefWidth(-1) + rightInset;
+    }
+
+    @Override
+    protected double computePrefHeight(double width, double topInset, double rightInset,
+                                       double bottomInset, double leftInset) {
+        return topInset + panel.prefHeight(-1) + bottomInset;
+    }
 }

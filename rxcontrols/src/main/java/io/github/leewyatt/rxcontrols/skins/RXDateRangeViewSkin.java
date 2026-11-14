@@ -270,4 +270,20 @@ public class RXDateRangeViewSkin extends RXSkinBase<RXDateRangeView>
         RXDateRangeView control = getSkinnable();
         return TemporalRules.isSelectable(date, control.getMinDate(), control.getMaxDate(), control.getDateFilter());
     }
+
+    // ==================== Layout ====================
+
+    // SkinBase's default preferred size leaves the padding out, while its minimum size
+    // and its layout both count it.
+    @Override
+    protected double computePrefWidth(double height, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        return leftInset + panel.prefWidth(-1) + rightInset;
+    }
+
+    @Override
+    protected double computePrefHeight(double width, double topInset, double rightInset,
+                                       double bottomInset, double leftInset) {
+        return topInset + panel.prefHeight(-1) + bottomInset;
+    }
 }

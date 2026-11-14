@@ -4511,7 +4511,7 @@
 .rx-time-columns .time-cell {
     -fx-alignment: center;
     -fx-pref-height: 2.166667em;
-    -fx-padding: 0 0.5em;
+    -fx-padding: 0;
     -fx-text-fill: -rx-on-surface;
     -fx-background-color: transparent;
     -fx-background-insets: 0.083333em 0.25em;
@@ -4549,25 +4549,25 @@
 .rx-date-time-range-view > .content > .time-pane {
     -fx-padding: 0 0 0 0.666667em;
     -fx-border-color: transparent transparent transparent -rx-outline-variant;
+    -fx-border-width: 0 0 0 1;
 }
 
-/* Same height as the calendar header, so the columns line up with the day grid. */
+/* The header and the tabs take the height of the calendar header plus the gap under
+   it, so the columns line up with the day grid. */
 .rx-date-time-view > .content > .time-pane > .time-header {
     -fx-alignment: center;
-    -fx-min-height: 2.25em;
-    -fx-padding: 0 0 0.25em 0;
+    -fx-padding: 0.083333em 0 0.666667em 0;
     -fx-font-weight: bold;
     -fx-text-fill: -rx-on-surface;
 }
 
 .rx-date-time-range-view > .content > .time-pane > .tabs {
-    -fx-min-height: 2.25em;
-    -fx-padding: 0 0 0.25em 0;
+    -fx-padding: 0 0 0.333333em 0;
 }
 
 .rx-date-time-range-view > .content > .time-pane > .tabs > .label {
     -fx-alignment: center;
-    -fx-padding: 0.25em 0.333333em;
+    -fx-padding: 0.083333em 0.333333em 0.166667em 0.333333em;
     -fx-text-fill: -rx-on-surface-secondary;
     -fx-border-color: transparent transparent -rx-outline-variant transparent;
     -fx-cursor: hand;

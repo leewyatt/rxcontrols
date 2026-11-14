@@ -281,4 +281,20 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
     private LocalDate today() {
         return LocalDate.now(DateTimeTexts.clock(getSkinnable().getClock()));
     }
+
+    // ==================== Layout ====================
+
+    // SkinBase's default preferred size leaves the padding out, while its minimum size
+    // and its layout both count it.
+    @Override
+    protected double computePrefWidth(double height, double topInset, double rightInset,
+                                      double bottomInset, double leftInset) {
+        return leftInset + content.prefWidth(-1) + rightInset;
+    }
+
+    @Override
+    protected double computePrefHeight(double width, double topInset, double rightInset,
+                                       double bottomInset, double leftInset) {
+        return topInset + content.prefHeight(-1) + bottomInset;
+    }
 }
