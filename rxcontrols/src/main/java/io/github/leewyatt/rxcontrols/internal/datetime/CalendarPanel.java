@@ -18,6 +18,7 @@ import javafx.scene.layout.VBox;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.Month;
+import java.time.Year;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.IsoFields;
@@ -39,6 +40,9 @@ import java.util.function.Supplier;
  *
  * <p>Every cell is created once per grid and only re-labeled on refresh, so paging
  * never adds or removes nodes (the popup tracks its content bounds and would jump).
+ *
+ * <p>The panel cannot show the first and last thousand years of {@link LocalDate}: a
+ * date out there is revealed as the nearest displayable month and is never marked.
  */
 public final class CalendarPanel extends HBox {
 
@@ -101,6 +105,14 @@ public final class CalendarPanel extends HBox {
     private static final int MONTHS_PER_QUARTER = 3;
     private static final int YEARS_PER_DECADE = 10;
     private static final int YEARS_PER_CENTURY = 100;
+    /**
+     * Distance kept from the first and last supported years: paging, linked pages and
+     * the adjacent cells of a grid compute dates around the displayed period, which
+     * must not overflow.
+     */
+    private static final int YEAR_MARGIN = 1000;
+    private static final LocalDate MIN_DISPLAYABLE = LocalDate.of(Year.MIN_VALUE + YEAR_MARGIN, 1, 1);
+    private static final LocalDate MAX_DISPLAYABLE = LocalDate.of(Year.MAX_VALUE - YEAR_MARGIN, 12, 31);
 
     // ==================== Configuration ====================
 
@@ -239,8 +251,8 @@ public final class CalendarPanel extends HBox {
      * @param max the latest reachable date, or {@code null}
      */
     public void setBounds(LocalDate min, LocalDate max) {
-        this.minDate = min;
-        this.maxDate = max;
+        this.minDate = min == null ? null : displayable(min);
+        this.maxDate = max == null ? null : displayable(max);
         refresh();
     }
 
@@ -260,7 +272,7 @@ public final class CalendarPanel extends HBox {
      * @param highlight the date, or {@code null}
      */
     public void setHighlight(LocalDate highlight) {
-        this.highlight = highlight;
+        this.highlight = highlight != null && isDisplayable(highlight) ? highlight : null;
         refresh();
     }
 
@@ -341,7 +353,7 @@ public final class CalendarPanel extends HBox {
         if (date == null) {
             return;
         }
-        LocalDate newReference = date.withDayOfMonth(1);
+        LocalDate newReference = referenceOf(date);
         if (newReference.equals(reference) && mode == pickLevel) {
             return;
         }
@@ -363,14 +375,15 @@ public final class CalendarPanel extends HBox {
         if (date == null) {
             return;
         }
+        LocalDate target = displayable(date);
         if (mode != pickLevel) {
-            showPeriodOf(date);
+            showPeriodOf(target);
             return;
         }
-        if (isDisplayed(date)) {
+        if (isDisplayed(target)) {
             return;
         }
-        revealInMode(date, date.isBefore(pageStartOf(mode, reference)));
+        revealInMode(target, target.isBefore(pageStartOf(mode, reference)));
         refresh();
     }
 
@@ -462,14 +475,14 @@ public final class CalendarPanel extends HBox {
 
     private void seedCursor() {
         LocalDate seed = cursorSeed.get();
-        if (seed == null || !isDisplayed(seed)) {
+        if (seed == null || !isDisplayable(seed) || !isDisplayed(seed)) {
             seed = firstEnabledDisplayed();
         }
         moveCursorTo(seed);
     }
 
     private void moveCursorTo(LocalDate target) {
-        cursor = clampToBounds(target);
+        cursor = clampToBounds(displayable(target));
         cursorVisible = true;
         if (!isDisplayed(cursor)) {
             revealInMode(cursor, cursor.isBefore(pageStartOf(mode, reference)));
@@ -554,7 +567,7 @@ public final class CalendarPanel extends HBox {
         }
         // A month cell picks the month; a year or decade cell only changes the year,
         // keeping the month the user was looking at.
-        reference = mode == Level.MONTH ? date.withDayOfMonth(1) : reference.withYear(date.getYear());
+        reference = referenceOf(mode == Level.MONTH ? date : reference.withYear(date.getYear()));
         mode = drillDownLevel(mode);
         if (cursorVisible) {
             cursor = clampToBounds(reference);
@@ -586,7 +599,7 @@ public final class CalendarPanel extends HBox {
     }
 
     private void drillUp(Level target, LocalDate newReference) {
-        reference = newReference.withDayOfMonth(1);
+        reference = referenceOf(newReference);
         mode = target;
         if (cursorVisible) {
             cursor = clampToBounds(reference);
@@ -598,7 +611,7 @@ public final class CalendarPanel extends HBox {
     // ==================== Paging ====================
 
     private void page(int direction, boolean large) {
-        reference = shiftedReference(direction, large);
+        reference = referenceOf(shiftedReference(direction, large));
         if (cursorVisible && cursor != null && !isDisplayed(cursor)) {
             cursor = clampToBounds(firstEnabledDisplayed());
         }
@@ -625,9 +638,9 @@ public final class CalendarPanel extends HBox {
     private void revealInMode(LocalDate date, boolean before) {
         if (mode == Level.DAY) {
             YearMonth target = YearMonth.from(date);
-            reference = (before ? target : target.minusMonths(pageCount - 1L)).atDay(1);
+            reference = referenceOf((before ? target : target.minusMonths(pageCount - 1L)).atDay(1));
         } else {
-            reference = reference.withYear(date.getYear());
+            reference = referenceOf(reference.withYear(date.getYear()));
         }
         onPageChanged.run();
     }
@@ -635,6 +648,9 @@ public final class CalendarPanel extends HBox {
     /** A page button is enabled while the window it leads to still intersects the bounds. */
     private boolean canPage(int direction, boolean large) {
         LocalDate shifted = shiftedReference(direction, large);
+        if (!isDisplayable(shifted)) {
+            return false;
+        }
         LocalDate start = pageStartOf(mode, shifted);
         LocalDate end = windowEnd(shifted);
         return (minDate == null || !end.isBefore(minDate)) && (maxDate == null || !start.isAfter(maxDate));
@@ -653,6 +669,24 @@ public final class CalendarPanel extends HBox {
             default:
                 return pageStartOf(mode, ref).plusYears(YEARS_PER_CENTURY).minusDays(1);
         }
+    }
+
+    // ==================== Displayable range ====================
+
+    private static boolean isDisplayable(LocalDate date) {
+        return !date.isBefore(MIN_DISPLAYABLE) && !date.isAfter(MAX_DISPLAYABLE);
+    }
+
+    private static LocalDate displayable(LocalDate date) {
+        if (date.isBefore(MIN_DISPLAYABLE)) {
+            return MIN_DISPLAYABLE;
+        }
+        return date.isAfter(MAX_DISPLAYABLE) ? MAX_DISPLAYABLE : date;
+    }
+
+    /** First day of the displayable month nearest to {@code date}. */
+    private static LocalDate referenceOf(LocalDate date) {
+        return displayable(date).withDayOfMonth(1);
     }
 
     // ==================== Geometry of periods ====================

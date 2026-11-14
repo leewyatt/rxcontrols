@@ -260,6 +260,23 @@ public class RXCalendarViewTest {
         assertEquals(adjacent, view.getValue());
     }
 
+    /**
+     * Verifies a value at either end of the supported dates leaves the calendar usable.
+     */
+    @Test
+    public void extremeValuesKeepCalendarUsable() {
+        RXCalendarView view = newView(null);
+        assertEquals(List.of(), PickerTestSupport.uncaughtDuring(() -> {
+            view.setValue(LocalDate.MIN);
+            view.setValue(LocalDate.MAX);
+        }));
+        assertEquals(LocalDate.MAX, view.getValue());
+        assertTrue(view.lookup(".next-button").isDisabled());
+        YearMonth last = view.getDisplayedMonth();
+        click(view.lookup(".prev-button"));
+        assertEquals(last.minusMonths(1), view.getDisplayedMonth());
+    }
+
     // ==================== Helpers ====================
 
     private static RXCalendarView newView(LocalDate value) {

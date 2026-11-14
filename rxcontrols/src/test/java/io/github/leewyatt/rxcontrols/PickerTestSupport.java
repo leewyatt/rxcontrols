@@ -14,6 +14,7 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -76,6 +77,23 @@ final class PickerTestSupport {
         stage.toFront();
         stage.requestFocus();
         return stage.isFocused();
+    }
+
+    /**
+     * Runs an action and returns what reached the thread's uncaught-exception handler
+     * meanwhile: JavaFX routes exceptions thrown by property listeners there.
+     */
+    static List<Throwable> uncaughtDuring(Runnable action) {
+        List<Throwable> errors = new ArrayList<>();
+        Thread thread = Thread.currentThread();
+        Thread.UncaughtExceptionHandler previous = thread.getUncaughtExceptionHandler();
+        thread.setUncaughtExceptionHandler((source, error) -> errors.add(error));
+        try {
+            action.run();
+        } finally {
+            thread.setUncaughtExceptionHandler(previous);
+        }
+        return errors;
     }
 
     static PopupControl findPopup() {

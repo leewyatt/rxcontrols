@@ -138,6 +138,21 @@ public class RXPeriodViewsTest {
         assertTrue(cell(view, ".month-cell", LocalDate.of(2020, 3, 1)).isVisible());
     }
 
+    /**
+     * Verifies a year at either end of the supported years leaves the year view usable.
+     */
+    @Test
+    public void extremeYearsKeepYearViewUsable() {
+        RXYearView view = show(new RXYearView());
+        assertEquals(List.of(), PickerTestSupport.uncaughtDuring(() -> {
+            view.setValue(Year.of(Year.MAX_VALUE));
+            view.setValue(Year.of(Year.MIN_VALUE));
+        }));
+        press(view, KeyCode.DOWN);
+        click(view.lookup(".super-next-button"));
+        assertEquals(12, cells(view, ".year-cell").size());
+    }
+
     private static <V extends RXTemporalViewBase<?>> V show(V view) {
         view.setLocale(Locale.US);
         view.setClock(CLOCK);
