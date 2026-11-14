@@ -47,7 +47,7 @@ public class RXTemporalViewSizingTest {
         runOnFx(() -> {
             List<Control> views = List.of(new RXCalendarView(), new RXDateRangeView(), new RXTimeView(),
                     new RXDateTimeView(), new RXDateTimeRangeView(), new RXMonthView(), new RXQuarterView(),
-                    new RXYearView());
+                    new RXYearView(), new RXMonthRangeView(), new RXQuarterRangeView(), new RXYearRangeView());
             for (Control view : views) {
                 show(view);
                 Region content = (Region) view.getChildrenUnmodifiable().get(0);
