@@ -1,0 +1,16 @@
+.live-preview {
+    -fx-padding: 28px;
+}
+
+.burst-area {
+    -fx-background-color: rgba(128, 128, 128, 0.08);
+    -fx-background-radius: 12px;
+    -fx-border-color: rgba(128, 128, 128, 0.35);
+    -fx-border-radius: 12px;
+    -fx-min-height: 200px;
+}
+
+.hint-label {
+    -fx-opacity: 0.6;
+    -fx-font-size: 11px;
+}

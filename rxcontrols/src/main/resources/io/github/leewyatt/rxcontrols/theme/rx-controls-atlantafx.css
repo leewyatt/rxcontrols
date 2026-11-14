@@ -29,3 +29,17 @@
     -fx-background-insets: 0;
     -fx-background-radius: 4px;
 }
+
+/* The burst overlay has no scope ancestor in a popup or over a wrapped root,
+   so its accent mapping is unscoped here, where the bridge's author sheet
+   reaches every window of the scene. */
+.rx-burst-layer {
+    -rx-burst-color: -color-accent-emphasis;
+}
+
+/* The same for the flat reaction button. */
+.rx-reaction-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 999px;
+}

@@ -61,6 +61,7 @@ import io.github.leewyatt.rxcontrols.RXPlaceholder;
 import io.github.leewyatt.rxcontrols.RXRadioButton;
 import io.github.leewyatt.rxcontrols.RXRadioToggleButton;
 import io.github.leewyatt.rxcontrols.RXRangeSlider;
+import io.github.leewyatt.rxcontrols.RXReactionButton;
 import io.github.leewyatt.rxcontrols.RXRibbonBadge;
 import io.github.leewyatt.rxcontrols.RXRipplePane;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
@@ -96,6 +97,7 @@ import io.github.leewyatt.rxcontrols.RXTransitionButton;
 import io.github.leewyatt.rxcontrols.RXTransitionLabel;
 import io.github.leewyatt.rxcontrols.RXTransitionPane;
 import io.github.leewyatt.rxcontrols.RXWaveProgressIndicator;
+import io.github.leewyatt.rxcontrols.animation.burst.BurstAnimation;
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
@@ -218,6 +220,7 @@ final class ThemeGalleryCards {
         list.add(card("RXRadioButton", "Radio button with halo and ripple feedback.", buildRXRadioButton()));
         list.add(card("RXRadioToggleButton", "Toggle buttons that select like radio buttons.", buildRXRadioToggleButton()));
         list.add(card("RXRangeSlider", "Slider with a low and a high thumb.", buildRXRangeSlider()));
+        list.add(card("RXReactionButton", "Like / favorite toggle that bursts when selected.", buildRXReactionButton()));
         list.add(card("RXRibbonBadge", "Text ribbon folded over the edge of a card.", buildRXRibbonBadge()));
         list.add(card("RXRipplePane", "Container with ripple and hover feedback.", buildRXRipplePane()));
         list.add(card("RXSeekBar", "Seek bar with buffered progress.", buildRXSeekBar()));
@@ -1383,6 +1386,21 @@ final class ThemeGalleryCards {
                 RXMenuItem.of("Save"), RXMenuItem.separator(), delete);
         list.setMaxSize(220.0, Region.USE_PREF_SIZE);
         return list;
+    }
+
+    private static Node buildRXReactionButton() {
+        RXReactionButton like = new RXReactionButton("128");
+        like.setSelected(true);
+        RXReactionButton favorite = new RXReactionButton("12");
+        favorite.getStyleClass().add("star");
+        favorite.setBurstAnimation(BurstAnimation.SPARKLES);
+        RXReactionButton bookmark = new RXReactionButton();
+        bookmark.getStyleClass().add("bookmark");
+        bookmark.setBurstAnimation(BurstAnimation.CONFETTI);
+        bookmark.setAccessibleText("Bookmark");
+        HBox row = new HBox(16.0, like, favorite, bookmark);
+        row.setAlignment(Pos.CENTER);
+        return row;
     }
 
     // ==================== Overlays ====================

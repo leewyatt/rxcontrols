@@ -1,0 +1,40 @@
+package io.github.leewyatt.rxcontrols.animation.burst;
+
+import javafx.scene.canvas.GraphicsContext;
+
+/**
+ * A shock ring: a circle grows from the edge of the anchor to the full reach,
+ * thinning and fading as it goes.
+ */
+public final class BurstAnimRing implements BurstAnimation {
+
+    /**
+     * Creates the preset.
+     */
+    public BurstAnimRing() {
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void draw(GraphicsContext gc, BurstFrame frame) {
+        double t = BurstSupport.segment(frame.progress(), 0.0, BurstSupport.END);
+        if (t >= 1.0) {
+            return;
+        }
+        double reach = frame.reach();
+        double startRadius = BurstSupport.startDistance(frame);
+        double radius = startRadius + (reach - startRadius) * BurstSupport.easeOutCubic(t);
+        double width = frame.anchorSize() * 0.2 * (1.0 - t);
+        if (width < BurstSupport.MIN_VISIBLE_SIZE) {
+            return;
+        }
+        gc.save();
+        gc.setGlobalAlpha(1.0 - BurstSupport.easeInQuad(t));
+        gc.setStroke(frame.color(0));
+        gc.setLineWidth(width);
+        gc.strokeOval(frame.centerX() - radius, frame.centerY() - radius, radius * 2.0, radius * 2.0);
+        gc.restore();
+    }
+}
