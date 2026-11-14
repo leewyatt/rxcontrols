@@ -4216,6 +4216,9 @@
 
 .rx-calendar-panel .week-number {
     -fx-font-size: 0.916667em;
+    -fx-opacity: 0.6;
+    -fx-border-color: transparent -rx-outline-variant transparent transparent;
+    -fx-border-insets: 0 0.25em 0 0;
 }
 
 .rx-calendar-panel .date-cell {
