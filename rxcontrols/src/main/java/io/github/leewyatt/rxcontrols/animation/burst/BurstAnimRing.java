@@ -9,6 +9,12 @@ import javafx.scene.canvas.GraphicsContext;
 public final class BurstAnimRing implements BurstAnimation {
 
     /**
+     * Creates the preset.
+     */
+    public BurstAnimRing() {
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
