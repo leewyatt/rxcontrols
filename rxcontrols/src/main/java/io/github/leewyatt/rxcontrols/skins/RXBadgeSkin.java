@@ -10,7 +10,9 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.ScaleTransition;
 import javafx.animation.Timeline;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -33,7 +35,9 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
 
     private static final Duration SHOW_HIDE_DURATION = Duration.millis(200.0);
     private static final Duration PULSE_DURATION = Duration.millis(1200.0);
-    private static final double PULSE_SCALE = 2.4;
+    // How far the ring grows past each side of the indicator, as a share of
+    // the indicator's height: the same distance all round, whatever the width.
+    private static final double PULSE_SPREAD = 0.7;
     private static final double PULSE_OPACITY = 0.5;
 
     private static final PseudoClass DOT_PSEUDO_CLASS = PseudoClass.getPseudoClass("dot");
@@ -44,6 +48,11 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
 
     private final ScaleTransition showHide;
     private final Timeline pulseTimeline;
+    private final DoubleProperty pulseProgress = new SimpleDoubleProperty();
+    private double indicatorX;
+    private double indicatorY;
+    private double indicatorWidth;
+    private double indicatorHeight;
     private final ReadOnlyBooleanProperty treeShowing;
 
     // ==================== Constructor ====================
@@ -82,12 +91,10 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
 
         pulseTimeline = new Timeline(
                 new KeyFrame(Duration.ZERO,
-                        new KeyValue(pulse.scaleXProperty(), 1.0),
-                        new KeyValue(pulse.scaleYProperty(), 1.0),
+                        new KeyValue(pulseProgress, 0.0),
                         new KeyValue(pulse.opacityProperty(), PULSE_OPACITY)),
                 new KeyFrame(PULSE_DURATION,
-                        new KeyValue(pulse.scaleXProperty(), PULSE_SCALE, Interpolator.EASE_OUT),
-                        new KeyValue(pulse.scaleYProperty(), PULSE_SCALE, Interpolator.EASE_OUT),
+                        new KeyValue(pulseProgress, 1.0, Interpolator.EASE_OUT),
                         new KeyValue(pulse.opacityProperty(), 0.0, Interpolator.EASE_OUT)));
         pulseTimeline.setCycleCount(Animation.INDEFINITE);
         disposer.registerDisposeTask(pulseTimeline::stop);
@@ -100,6 +107,7 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
         disposer.registerListener(control.indicatorShowingProperty(), this::onIndicatorShowingChanged);
         disposer.registerListener(control.pulsingProperty(), this::updatePulse);
         disposer.registerListener(treeShowing, this::updatePulse);
+        disposer.registerListener(pulseProgress, this::placePulse);
 
         updateContent();
         updatePulse();
@@ -110,7 +118,6 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
     private void updateContent() {
         Node content = getSkinnable().getContent();
         contentSlot.setContent(content);
-        contentSlot.setManaged(content != null);
         getSkinnable().requestLayout();
     }
 
@@ -178,8 +185,7 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
         } else {
             pulseTimeline.stop();
             pulse.setVisible(false);
-            pulse.setScaleX(1.0);
-            pulse.setScaleY(1.0);
+            pulseProgress.set(0.0);
             pulse.setOpacity(0.0);
         }
     }
@@ -219,7 +225,17 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
         double x = snapPositionX(centerX - width / 2.0);
         double y = snapPositionY(centerY - height / 2.0);
         indicator.resizeRelocate(x, y, width, height);
-        pulse.resizeRelocate(x, y, width, height);
+        indicatorX = x;
+        indicatorY = y;
+        indicatorWidth = width;
+        indicatorHeight = height;
+        placePulse();
+    }
+
+    private void placePulse() {
+        double spread = pulseProgress.get() * PULSE_SPREAD * indicatorHeight;
+        pulse.resizeRelocate(indicatorX - spread, indicatorY - spread,
+                indicatorWidth + 2.0 * spread, indicatorHeight + 2.0 * spread);
     }
 
     private double indicatorHeight() {

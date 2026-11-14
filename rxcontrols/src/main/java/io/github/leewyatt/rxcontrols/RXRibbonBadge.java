@@ -45,7 +45,7 @@ import java.util.List;
  *
  * <pre>{@code
  * RXRibbonBadge ribbon = new RXRibbonBadge(card, "NEW");
- * ribbon.setPlacement(RXRibbonBadge.Placement.START);
+ * ribbon.setPosition(RXRibbonBadge.Position.START);
  * ribbon.getStyleClass().add("success");
  * }</pre>
  *
@@ -55,7 +55,7 @@ import java.util.List;
  * and {@code -rx-ribbon-on-fill}; the fold is a darker shade of the fill. The
  * style classes {@code success}, {@code warning}, {@code danger} and {@code info}
  * switch the fill from the default primary color. The pseudo-classes
- * {@code :start} and {@code :end} follow the placement.</p>
+ * {@code :start} and {@code :end} follow the position.</p>
  */
 @DefaultProperty("content")
 public class RXRibbonBadge extends Control {
@@ -63,9 +63,9 @@ public class RXRibbonBadge extends Control {
     // ==================== Constants ====================
 
     /**
-     * Default placement, also the {@code null} fallback.
+     * Default position, also the {@code null} fallback.
      */
-    public static final Placement DEFAULT_PLACEMENT = Placement.END;
+    public static final Position DEFAULT_POSITION = Position.END;
 
     /**
      * Default distance between the top of the content and the ribbon.
@@ -116,7 +116,7 @@ public class RXRibbonBadge extends Control {
         setPickOnBounds(false);
         setContent(content);
         setText(text);
-        updatePlacementPseudoClass();
+        updatePositionPseudoClass();
     }
 
     @Override
@@ -204,18 +204,18 @@ public class RXRibbonBadge extends Control {
         text.set(value);
     }
 
-    // ==================== Placement ====================
+    // ==================== Position ====================
 
-    private final ObjectProperty<Placement> placement = new StyleableObjectProperty<>(DEFAULT_PLACEMENT) {
+    private final ObjectProperty<Position> position = new StyleableObjectProperty<>(DEFAULT_POSITION) {
         @Override
         protected void invalidated() {
-            updatePlacementPseudoClass();
+            updatePositionPseudoClass();
             requestLayout();
         }
 
         @Override
-        public CssMetaData<? extends Styleable, Placement> getCssMetaData() {
-            return StyleableProperties.PLACEMENT;
+        public CssMetaData<? extends Styleable, Position> getCssMetaData() {
+            return StyleableProperties.POSITION;
         }
 
         @Override
@@ -225,40 +225,40 @@ public class RXRibbonBadge extends Control {
 
         @Override
         public String getName() {
-            return "placement";
+            return "position";
         }
     };
 
     /**
      * The side of the content the ribbon reaches past. Initial value is
-     * {@link #DEFAULT_PLACEMENT}; {@code null} is treated as that default.
+     * {@link #DEFAULT_POSITION}; {@code null} is treated as that default.
      *
-     * @return the placement property
+     * @return the position property
      */
-    public final ObjectProperty<Placement> placementProperty() {
-        return placement;
+    public final ObjectProperty<Position> positionProperty() {
+        return position;
     }
 
     /**
-     * Returns the placement.
+     * Returns the position.
      *
-     * @return the placement, possibly {@code null}
+     * @return the position, possibly {@code null}
      */
-    public final Placement getPlacement() {
-        return placement.get();
+    public final Position getPosition() {
+        return position.get();
     }
 
     /**
-     * Sets the placement.
+     * Sets the position.
      *
-     * @param value the placement, or {@code null} for the default
+     * @param value the position, or {@code null} for the default
      */
-    public final void setPlacement(Placement value) {
-        placement.set(value);
+    public final void setPosition(Position value) {
+        position.set(value);
     }
 
-    private void updatePlacementPseudoClass() {
-        boolean start = getPlacement() == Placement.START;
+    private void updatePositionPseudoClass() {
+        boolean start = getPosition() == Position.START;
         pseudoClassStateChanged(START_PSEUDO_CLASS, start);
         pseudoClassStateChanged(END_PSEUDO_CLASS, !start);
     }
@@ -375,17 +375,17 @@ public class RXRibbonBadge extends Control {
 
     private static class StyleableProperties {
 
-        private static final CssMetaData<RXRibbonBadge, Placement> PLACEMENT =
-                new CssMetaData<>("-rx-placement", new EnumConverter<>(Placement.class), DEFAULT_PLACEMENT) {
+        private static final CssMetaData<RXRibbonBadge, Position> POSITION =
+                new CssMetaData<>("-rx-position", new EnumConverter<>(Position.class), DEFAULT_POSITION) {
                     @Override
                     public boolean isSettable(RXRibbonBadge control) {
-                        return !control.placement.isBound();
+                        return !control.position.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
-                    public StyleableProperty<Placement> getStyleableProperty(RXRibbonBadge control) {
-                        return (StyleableProperty<Placement>) control.placementProperty();
+                    public StyleableProperty<Position> getStyleableProperty(RXRibbonBadge control) {
+                        return (StyleableProperty<Position>) control.positionProperty();
                     }
                 };
 
@@ -422,7 +422,7 @@ public class RXRibbonBadge extends Control {
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Control.getClassCssMetaData());
-            styleables.add(PLACEMENT);
+            styleables.add(POSITION);
             styleables.add(RIBBON_OFFSET);
             styleables.add(OVERHANG);
             STYLEABLES = Collections.unmodifiableList(styleables);
@@ -449,7 +449,7 @@ public class RXRibbonBadge extends Control {
      * The side of the content the ribbon reaches past. Start and end follow the
      * node orientation: start is the left side in a left-to-right layout.
      */
-    public enum Placement {
+    public enum Position {
         /**
          * The ribbon reaches past the start side.
          */

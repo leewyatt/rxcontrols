@@ -9,6 +9,7 @@ import io.github.leewyatt.rxcontrols.samples.demo.RXBadgeDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
+import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -28,8 +29,8 @@ import java.util.List;
  *
  * <p>Exercises every public knob on one live badge: what the indicator shows
  * (count, cap, zero, text, dot, forced hiding), where it sits (corner, overlap,
- * offsets, padding that reserves room), and how it looks (color class, outline
- * ring, font scale, show / hide animation, pulse). The content can be swapped
+ * offsets, padding that reserves room, right-to-left), and how it looks (color
+ * class, indicator size, outline ring, show / hide animation, pulse). The content can be swapped
  * between a button, a round avatar, a card and none at all. A strip below the
  * preview shows the status-dot combination with a plain label.
  *
@@ -38,6 +39,8 @@ import java.util.List;
 public class RXBadgeShowcase extends RXShowcaseApplication {
 
     private static final List<String> COLOR_CLASSES = List.of("danger", "primary", "success", "warning", "info");
+    // Defined by the showcase stylesheet as a font size on the indicator.
+    private static final List<String> SIZE_CLASSES = List.of("small", "medium", "large");
 
     private RXBadge badge;
 
@@ -177,12 +180,18 @@ public class RXBadgeShowcase extends RXShowcaseApplication {
                 () -> new Insets(Math.round(padding.getValue())), padding.valueProperty()));
         Label paddingValue = createValueLabel(padding, "%.0f px");
 
+        CheckBox rightToLeft = new CheckBox("Right to left");
+        badge.nodeOrientationProperty().bind(Bindings.when(rightToLeft.selectedProperty())
+                .then(NodeOrientation.RIGHT_TO_LEFT)
+                .otherwise(NodeOrientation.LEFT_TO_RIGHT));
+
         return createGrid(
                 row("Position", positionBox),
                 row("Overlap", overlapBox),
                 row("Offset X", offsetX, offsetXValue),
                 row("Offset Y", offsetY, offsetYValue),
-                row("Padding", padding, paddingValue));
+                row("Padding", padding, paddingValue),
+                row(rightToLeft));
     }
 
     private Node buildAppearanceGrid() {
@@ -195,14 +204,19 @@ public class RXBadgeShowcase extends RXShowcaseApplication {
             badge.getStyleClass().add(newV);
         });
 
-        Slider fontSize = createSlider(9.0, 24.0, 13.0);
-        Label fontSizeValue = createValueLabel(fontSize, "%.0f px");
+        ComboBox<String> sizeBox = new ComboBox<>();
+        sizeBox.getItems().setAll(SIZE_CLASSES);
+        sizeBox.setValue("medium");
+        sizeBox.setMaxWidth(Double.MAX_VALUE);
+        sizeBox.valueProperty().addListener((obs, oldV, newV) -> {
+            badge.getStyleClass().removeAll(SIZE_CLASSES);
+            badge.getStyleClass().add(newV);
+        });
 
         CheckBox ring = new CheckBox("Outline ring");
-        badge.styleProperty().bind(Bindings.createStringBinding(
-                () -> "-fx-font-size: " + Math.round(fontSize.getValue()) + "px;"
-                        + (ring.isSelected() ? " -rx-badge-ring: -fx-control-inner-background;" : ""),
-                fontSize.valueProperty(), ring.selectedProperty()));
+        badge.styleProperty().bind(Bindings.when(ring.selectedProperty())
+                .then("-rx-badge-ring: -fx-control-inner-background;")
+                .otherwise(""));
 
         CheckBox animated = new CheckBox("Animated");
         animated.setSelected(badge.isAnimated());
@@ -213,7 +227,7 @@ public class RXBadgeShowcase extends RXShowcaseApplication {
 
         return createGrid(
                 row("Color class", colorBox),
-                row("Font size", fontSize, fontSizeValue),
+                row("Indicator size", sizeBox),
                 row(new HBox(16.0, ring, animated, pulsing)));
     }
 

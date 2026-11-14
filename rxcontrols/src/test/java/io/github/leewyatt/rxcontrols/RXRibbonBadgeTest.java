@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.RXRibbonBadge.Placement;
+import io.github.leewyatt.rxcontrols.RXRibbonBadge.Position;
 import io.github.leewyatt.rxcontrols.skins.RXRibbonBadgeSkin;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests {@link RXRibbonBadge}: defaults, the placement pseudo-classes and CSS
+ * Tests {@link RXRibbonBadge}: defaults, the position pseudo-classes and CSS
  * metadata, the geometry of the ribbon and its fold, the pass-through sizing,
  * content replacement, mouse transparency and disposal.
  */
@@ -61,14 +61,14 @@ public class RXRibbonBadgeTest {
 
     // ==================== Control ====================
 
-    /** Verifies the defaults: no content or text, end placement, 8px offset and overhang. */
+    /** Verifies the defaults: no content or text, end position, 8px offset and overhang. */
     @Test
     public void defaultsMatchTheContract() throws Exception {
         runOnFx(() -> {
             RXRibbonBadge badge = new RXRibbonBadge();
             assertNull(badge.getContent());
             assertNull(badge.getText());
-            assertEquals(Placement.END, badge.getPlacement());
+            assertEquals(Position.END, badge.getPosition());
             assertEquals(8.0, badge.getRibbonOffset(), EPSILON);
             assertEquals(8.0, badge.getOverhang(), EPSILON);
             assertFalse(badge.isFocusTraversable());
@@ -81,28 +81,28 @@ public class RXRibbonBadgeTest {
         });
     }
 
-    /** Verifies exactly one of :start and :end is set, with null placement counting as end. */
+    /** Verifies exactly one of :start and :end is set, with null position counting as end. */
     @Test
-    public void placementPseudoClassesFollowThePlacement() throws Exception {
+    public void positionPseudoClassesFollowThePosition() throws Exception {
         runOnFx(() -> {
             RXRibbonBadge badge = new RXRibbonBadge();
-            assertPlacementState(badge, false);
-            badge.setPlacement(Placement.START);
-            assertPlacementState(badge, true);
-            badge.setPlacement(null);
-            assertPlacementState(badge, false);
+            assertPositionState(badge, false);
+            badge.setPosition(Position.START);
+            assertPositionState(badge, true);
+            badge.setPosition(null);
+            assertPositionState(badge, false);
 
-            SimpleObjectProperty<Placement> source = new SimpleObjectProperty<>(Placement.START);
-            badge.placementProperty().bind(source);
-            assertPlacementState(badge, true);
-            source.set(Placement.END);
-            assertPlacementState(badge, false);
+            SimpleObjectProperty<Position> source = new SimpleObjectProperty<>(Position.START);
+            badge.positionProperty().bind(source);
+            assertPositionState(badge, true);
+            source.set(Position.END);
+            assertPositionState(badge, false);
         });
     }
 
-    /** Verifies the square corner of the ribbon moves to the start side with the placement. */
+    /** Verifies the square corner of the ribbon moves to the start side with the position. */
     @Test
-    public void squareCornerFollowsThePlacement() throws Exception {
+    public void squareCornerFollowsThePosition() throws Exception {
         runOnFx(() -> {
             RXRibbonBadge badge = laidOut(new RXRibbonBadge(content(), "NEW"));
             CornerRadii end = ribbon(badge).getBackground().getFills().get(0).getRadii();
@@ -110,7 +110,7 @@ public class RXRibbonBadgeTest {
             assertTrue(end.getBottomLeftHorizontalRadius() > 0.0);
             Object endFold = fold(badge).getShape();
 
-            badge.setPlacement(Placement.START);
+            badge.setPosition(Position.START);
             badge.applyCss();
             CornerRadii start = ribbon(badge).getBackground().getFills().get(0).getRadii();
             assertEquals(0.0, start.getBottomLeftHorizontalRadius(), EPSILON);
@@ -119,24 +119,24 @@ public class RXRibbonBadgeTest {
         });
     }
 
-    /** Verifies a stylesheet sets placement, ribbon offset and overhang. */
+    /** Verifies a stylesheet sets position, ribbon offset and overhang. */
     @Test
     public void stylesheetSetsTheStyleableProperties() throws Exception {
         runOnFx(() -> {
             Set<String> names = RXRibbonBadge.getClassCssMetaData().stream()
                     .map(CssMetaData::getProperty)
                     .collect(Collectors.toSet());
-            assertTrue(names.containsAll(Set.of("-rx-placement", "-rx-ribbon-offset", "-rx-overhang")),
+            assertTrue(names.containsAll(Set.of("-rx-position", "-rx-ribbon-offset", "-rx-overhang")),
                     names.toString());
 
             RXRibbonBadge badge = new RXRibbonBadge(content(), "NEW");
             StackPane root = new StackPane(badge);
-            root.getStylesheets().add("data:text/css,.rx-ribbon-badge{-rx-placement:start;"
+            root.getStylesheets().add("data:text/css,.rx-ribbon-badge{-rx-position:start;"
                     + "-rx-ribbon-offset:20;-rx-overhang:4;}");
             new Scene(root);
             root.applyCss();
-            assertEquals(Placement.START, badge.getPlacement());
-            assertPlacementState(badge, true);
+            assertEquals(Position.START, badge.getPosition());
+            assertPositionState(badge, true);
             assertEquals(20.0, badge.getRibbonOffset(), EPSILON);
             assertEquals(4.0, badge.getOverhang(), EPSILON);
         });
@@ -169,7 +169,7 @@ public class RXRibbonBadgeTest {
     public void startRibbonReachesPastTheStartSide() throws Exception {
         runOnFx(() -> {
             RXRibbonBadge badge = new RXRibbonBadge(content(), "NEW");
-            badge.setPlacement(Placement.START);
+            badge.setPosition(Position.START);
             laidOut(badge);
             Region ribbon = ribbon(badge);
             Region fold = fold(badge);
@@ -223,7 +223,7 @@ public class RXRibbonBadgeTest {
     public void fractionalOverhangIsSnapped() throws Exception {
         runOnFx(() -> {
             RXRibbonBadge badge = new RXRibbonBadge(content(), "NEW");
-            badge.setPlacement(Placement.START);
+            badge.setPosition(Position.START);
             badge.setOverhang(7.5);
             laidOut(badge);
             Region fold = fold(badge);
@@ -407,7 +407,7 @@ public class RXRibbonBadgeTest {
         return badge;
     }
 
-    private static void assertPlacementState(RXRibbonBadge badge, boolean start) {
+    private static void assertPositionState(RXRibbonBadge badge, boolean start) {
         assertEquals(start, badge.getPseudoClassStates().contains(START));
         assertEquals(!start, badge.getPseudoClassStates().contains(END));
     }

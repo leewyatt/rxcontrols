@@ -23,3 +23,11 @@
     -fx-border-color: -fx-text-box-border;
     -fx-border-radius: 10px;
 }
+
+.live-badge.small > .indicator {
+    -fx-font-size: 0.75em;
+}
+
+.live-badge.large > .indicator {
+    -fx-font-size: 1.25em;
+}

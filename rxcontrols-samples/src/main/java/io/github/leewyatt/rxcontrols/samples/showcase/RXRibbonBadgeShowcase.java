@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXRibbonBadge;
-import io.github.leewyatt.rxcontrols.RXRibbonBadge.Placement;
+import io.github.leewyatt.rxcontrols.RXRibbonBadge.Position;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
@@ -21,7 +21,7 @@ import java.util.List;
  * Showcase application for {@link RXRibbonBadge}.
  *
  * <p>Exercises every public knob on one live ribbon over a card: text (empty
- * hides the ribbon, a long one is cut at the far side of the card), placement,
+ * hides the ribbon, a long one is cut at the far side of the card), position,
  * offset from the top, overhang with its folded corner, the color classes,
  * padding that reserves room for the overhang, the card width and a
  * right-to-left switch that mirrors start and end.
@@ -101,11 +101,11 @@ public class RXRibbonBadgeShowcase extends RXShowcaseApplication {
         textField.setPromptText("Empty hides the ribbon");
         ribbon.textProperty().bind(textField.textProperty());
 
-        ComboBox<Placement> placementBox = new ComboBox<>();
-        placementBox.getItems().setAll(Placement.values());
-        placementBox.setValue(ribbon.getPlacement());
-        placementBox.setMaxWidth(Double.MAX_VALUE);
-        ribbon.placementProperty().bind(placementBox.valueProperty());
+        ComboBox<Position> positionBox = new ComboBox<>();
+        positionBox.getItems().setAll(Position.values());
+        positionBox.setValue(ribbon.getPosition());
+        positionBox.setMaxWidth(Double.MAX_VALUE);
+        ribbon.positionProperty().bind(positionBox.valueProperty());
 
         ComboBox<String> colorBox = new ComboBox<>();
         colorBox.getItems().setAll(COLOR_CLASSES);
@@ -126,7 +126,7 @@ public class RXRibbonBadgeShowcase extends RXShowcaseApplication {
 
         return createGrid(
                 row("Text", textField),
-                row("Placement", placementBox),
+                row("Position", positionBox),
                 row("Color class", colorBox),
                 row("Ribbon offset", offset, offsetValue),
                 row("Overhang", overhang, overhangValue));

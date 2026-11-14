@@ -249,7 +249,7 @@ public class RXBadgeTest {
                     .map(CssMetaData::getProperty)
                     .collect(Collectors.toSet());
             assertTrue(names.containsAll(Set.of("-rx-variant", "-rx-position", "-rx-overlap",
-                    "-rx-offset-x", "-rx-offset-y", "-rx-animated")), names.toString());
+                    "-rx-offset-x", "-rx-offset-y", "-rx-animated", "-rx-pulsing")), names.toString());
             RXBadge badge = new RXBadge();
             for (CssMetaData<? extends Styleable, ?> metaData : badge.getCssMetaData()) {
                 if (metaData.getProperty().startsWith("-rx-")) {
@@ -259,14 +259,14 @@ public class RXBadgeTest {
         });
     }
 
-    /** Verifies a stylesheet sets variant, position, overlap, offsets and animated. */
+    /** Verifies a stylesheet sets variant, position, overlap, offsets, animated and pulsing. */
     @Test
     public void stylesheetSetsTheStyleableProperties() throws Exception {
         runOnFx(() -> {
             RXBadge badge = new RXBadge(content());
             StackPane root = new StackPane(badge);
             root.getStylesheets().add("data:text/css,.rx-badge{-rx-variant:dot;-rx-position:bottom-start;"
-                    + "-rx-overlap:circular;-rx-offset-x:3;-rx-offset-y:4;-rx-animated:false;}");
+                    + "-rx-overlap:circular;-rx-offset-x:3;-rx-offset-y:4;-rx-animated:false;-rx-pulsing:true;}");
             new Scene(root);
             root.applyCss();
             assertEquals(Variant.DOT, badge.getVariant());
@@ -277,6 +277,7 @@ public class RXBadgeTest {
             assertEquals(3.0, badge.getOffsetX(), EPSILON);
             assertEquals(4.0, badge.getOffsetY(), EPSILON);
             assertFalse(badge.isAnimated());
+            assertTrue(badge.isPulsing());
             assertTrue(badge.isIndicatorShowing());
         });
     }

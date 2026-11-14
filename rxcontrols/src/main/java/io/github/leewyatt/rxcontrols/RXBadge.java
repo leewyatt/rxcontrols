@@ -97,7 +97,8 @@ import java.util.List;
  * {@code danger} and {@code info} pick the fill; danger is the default. The
  * pseudo-classes are {@code :dot} and {@code :standalone}; the indicator has a
  * {@code :dot} of its own, which it keeps while a dot scales out. The indicator
- * is sized in {@code em}, so {@code -fx-font-size} scales it.</p>
+ * is sized in {@code em}: {@code -fx-font-size} on {@code .rx-badge > .indicator}
+ * scales it, while on the badge itself it would scale the content as well.</p>
  *
  * <p><b>Accessibility.</b> A bare number does not say what is counted. Describe
  * it on the content, for example
@@ -725,7 +726,22 @@ public class RXBadge extends Control {
 
     // ==================== Pulsing ====================
 
-    private final BooleanProperty pulsing = new SimpleBooleanProperty(this, "pulsing");
+    private final BooleanProperty pulsing = new StyleableBooleanProperty(false) {
+        @Override
+        public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
+            return StyleableProperties.PULSING;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXBadge.this;
+        }
+
+        @Override
+        public String getName() {
+            return "pulsing";
+        }
+    };
 
     /**
      * Whether a ring keeps expanding and fading from the indicator while it is
@@ -924,6 +940,20 @@ public class RXBadge extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXBadge, Boolean> PULSING =
+                new CssMetaData<>("-rx-pulsing", BooleanConverter.getInstance(), false) {
+                    @Override
+                    public boolean isSettable(RXBadge control) {
+                        return !control.pulsing.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Boolean> getStyleableProperty(RXBadge control) {
+                        return (StyleableProperty<Boolean>) control.pulsingProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -935,6 +965,7 @@ public class RXBadge extends Control {
             styleables.add(OFFSET_X);
             styleables.add(OFFSET_Y);
             styleables.add(ANIMATED);
+            styleables.add(PULSING);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

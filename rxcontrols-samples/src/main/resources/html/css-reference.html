@@ -529,6 +529,11 @@ RXAtlantaFXThemeBridge.uninstall(scene);</code></pre>
         <td>boolean</td>
         <td>true</td>
     </tr>
+    <tr>
+        <td>-rx-pulsing</td>
+        <td>boolean</td>
+        <td>false</td>
+    </tr>
     </tbody>
 </table>
 <p>Positive offsets move the indicator toward the center of the content. The indicator is filled with the
@@ -536,7 +541,8 @@ RXAtlantaFXThemeBridge.uninstall(scene);</code></pre>
    <code>-rx-badge-ring</code> (transparent by default) draws an outline around it; set them on
    <code>.rx-badge</code>. The style classes <code>primary</code>, <code>success</code>,
    <code>warning</code>, <code>danger</code> and <code>info</code> pick the fill. The indicator is sized in
-   <code>em</code>, so <code>-fx-font-size</code> on the badge scales it. The indicator takes no layout
+   <code>em</code>, so <code>-fx-font-size</code> on <code>.rx-badge &gt; .indicator</code> scales it (on the
+   badge itself it would scale the content as well). The indicator takes no layout
    space; <code>-fx-padding</code> on the badge reserves room for the part drawn past the content.</p>
 
 <h3 id="rxCarousel">RXCarousel</h3>
@@ -1770,11 +1776,11 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
     <tbody>
     <tr>
         <td>start</td>
-        <td>applies when the placement is START</td>
+        <td>applies when the position is START</td>
     </tr>
     <tr>
         <td>end</td>
-        <td>applies when the placement is END</td>
+        <td>applies when the position is END</td>
     </tr>
     </tbody>
 </table>
@@ -1789,7 +1795,7 @@ alignment through <code>-fx-alignment</code> on the <code>.line</code> pane.</p>
     </thead>
     <tbody>
     <tr>
-        <td>-rx-placement</td>
+        <td>-rx-position</td>
         <td>START,END</td>
         <td>END</td>
     </tr>

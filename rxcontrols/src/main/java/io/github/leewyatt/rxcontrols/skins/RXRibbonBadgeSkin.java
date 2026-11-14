@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXRibbonBadge;
-import io.github.leewyatt.rxcontrols.RXRibbonBadge.Placement;
+import io.github.leewyatt.rxcontrols.RXRibbonBadge.Position;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -89,7 +89,7 @@ public class RXRibbonBadgeSkin extends RXSkinBase<RXRibbonBadge> {
         // Whole pixels, so the fold ends exactly on the side of the content.
         double overhang = snapSizeX(RXMath.sanitizeFiniteNonNegative(control.getOverhang()));
         double offset = Double.isFinite(control.getRibbonOffset()) ? control.getRibbonOffset() : 0.0;
-        boolean start = control.getPlacement() == Placement.START;
+        boolean start = control.getPosition() == Position.START;
         double contentX = contentSlot.contentX();
         double contentWidth = contentSlot.contentWidth();
 
