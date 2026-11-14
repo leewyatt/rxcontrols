@@ -24,7 +24,7 @@
 .rx-masonry-pane, .rx-masonry-view,
 .rx-material-decimal-field, .rx-material-double-field, .rx-material-integer-field,
 .rx-material-long-field, .rx-material-text-field, .rx-material-password-field,
-.rx-password-field, .rx-placeholder, .rx-radio-button, .rx-radio-toggle-button,
+.rx-password-field, .rx-placeholder, .rx-radio-button, .rx-radio-toggle-button, .rx-ribbon-badge,
 .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-selection-box, .rx-sidebar, .rx-snackbar-host, .rx-speed-dial,
 .rx-slider, .rx-range-slider,
@@ -189,6 +189,8 @@
 .rx-theme-atlantafx.rx-radio-button,
 .rx-theme-atlantafx .rx-radio-toggle-button,
 .rx-theme-atlantafx.rx-radio-toggle-button,
+.rx-theme-atlantafx .rx-ribbon-badge,
+.rx-theme-atlantafx.rx-ribbon-badge,
 .rx-theme-atlantafx .rx-ripple-pane,
 .rx-theme-atlantafx.rx-ripple-pane,
 .rx-theme-atlantafx .rx-row,
@@ -739,6 +741,58 @@
 .rx-badge > .pulse {
     -fx-background-color: -rx-badge-fill;
     -fx-background-radius: 999px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXRibbonBadge                                                               *
+ *                                                                             *
+ ******************************************************************************/
+.rx-ribbon-badge {
+    -rx-ribbon-fill: -rx-primary;
+    -rx-ribbon-on-fill: -rx-on-primary;
+}
+
+.rx-ribbon-badge.primary {
+    -rx-ribbon-fill: -rx-primary;
+}
+
+.rx-ribbon-badge.success {
+    -rx-ribbon-fill: -rx-success;
+}
+
+.rx-ribbon-badge.warning {
+    -rx-ribbon-fill: -rx-warning;
+}
+
+.rx-ribbon-badge.danger {
+    -rx-ribbon-fill: -rx-danger;
+}
+
+.rx-ribbon-badge.info {
+    -rx-ribbon-fill: -rx-info;
+}
+
+/* The corner above the fold stays square, so the ribbon and the fold meet in a
+   straight edge. */
+.rx-ribbon-badge > .ribbon {
+    -fx-background-color: -rx-ribbon-fill;
+    -fx-background-radius: 3px 3px 0 3px;
+    -fx-text-fill: -rx-ribbon-on-fill;
+    -fx-padding: 0.25em 0.667em;
+}
+
+.rx-ribbon-badge:start > .ribbon {
+    -fx-background-radius: 3px 3px 3px 0;
+}
+
+.rx-ribbon-badge > .fold {
+    -fx-background-color: derive(-rx-ribbon-fill, -35%);
+    -fx-shape: "M0 0 H4 L0 3 Z";
+}
+
+.rx-ribbon-badge:start > .fold {
+    -fx-shape: "M0 0 H4 V3 Z";
 }
 
 /*******************************************************************************

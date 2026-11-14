@@ -12,11 +12,9 @@ import javafx.animation.ScaleTransition;
 import javafx.animation.Timeline;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.css.PseudoClass;
-import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 
 /**
@@ -40,7 +38,7 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
 
     private static final PseudoClass DOT_PSEUDO_CLASS = PseudoClass.getPseudoClass("dot");
 
-    private final StackPane contentSlot;
+    private final ContentSlot contentSlot;
     private final Region pulse;
     private final Label indicator;
 
@@ -60,9 +58,7 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
         // A wrapper: mouse events on the content still reach the badge's ancestors.
         consumeMouseEvents(false);
 
-        contentSlot = new StackPane();
-        contentSlot.getStyleClass().add("content-slot");
-        contentSlot.setPickOnBounds(false);
+        contentSlot = new ContentSlot();
 
         pulse = new Region();
         pulse.getStyleClass().add("pulse");
@@ -113,11 +109,7 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
 
     private void updateContent() {
         Node content = getSkinnable().getContent();
-        if (content == null) {
-            contentSlot.getChildren().clear();
-        } else {
-            contentSlot.getChildren().setAll(content);
-        }
+        contentSlot.setContent(content);
         contentSlot.setManaged(content != null);
         getSkinnable().requestLayout();
     }
@@ -200,31 +192,19 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
         RXBadge control = getSkinnable();
-        Node content = control.getContent();
         double indicatorHeight = indicatorHeight();
         double indicatorWidth = indicatorWidth(indicatorHeight);
 
-        if (content == null) {
+        if (isStandalone()) {
             placeIndicator(x + w / 2.0, y + h / 2.0, indicatorWidth, indicatorHeight);
             return;
         }
 
-        contentSlot.resizeRelocate(x, y, w, h);
-        // Positions the content now, so the indicator can follow where it landed.
-        contentSlot.layout();
-        double contentX = x;
-        double contentY = y;
-        double contentW = w;
-        double contentH = h;
-        // Content moved to another parent by the application has no place here;
-        // the indicator then follows the slot.
-        if (content.getParent() == contentSlot) {
-            Bounds bounds = content.getLayoutBounds();
-            contentX = x + content.getLayoutX() + bounds.getMinX();
-            contentY = y + content.getLayoutY() + bounds.getMinY();
-            contentW = bounds.getWidth();
-            contentH = bounds.getHeight();
-        }
+        contentSlot.layoutContent(x, y, w, h);
+        double contentX = contentSlot.contentX();
+        double contentY = contentSlot.contentY();
+        double contentW = contentSlot.contentWidth();
+        double contentH = contentSlot.contentHeight();
 
         Position position = control.getPosition() == null ? RXBadge.DEFAULT_POSITION : control.getPosition();
         double inset = control.getOverlap() == Overlap.CIRCULAR ? CIRCULAR_INSET : 0.0;
@@ -327,14 +307,10 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
     @Override
     protected double computeMaxWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
-        Node content = getSkinnable().getContent();
-        if (content == null) {
-            return leftInset + standaloneWidth() + rightInset;
-        }
-        if (!content.isManaged()) {
-            return Double.MAX_VALUE;
-        }
-        return leftInset + content.maxWidth(innerSize(height, topInset, bottomInset)) + rightInset;
+        double inner = isStandalone()
+                ? standaloneWidth()
+                : contentSlot.contentMaxWidth(innerSize(height, topInset, bottomInset));
+        return leftInset + inner + rightInset;
     }
 
     /**
@@ -343,14 +319,10 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
     @Override
     protected double computeMaxHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        Node content = getSkinnable().getContent();
-        if (content == null) {
-            return topInset + standaloneHeight() + bottomInset;
-        }
-        if (!content.isManaged()) {
-            return Double.MAX_VALUE;
-        }
-        return topInset + content.maxHeight(innerSize(width, leftInset, rightInset)) + bottomInset;
+        double inner = isStandalone()
+                ? standaloneHeight()
+                : contentSlot.contentMaxHeight(innerSize(width, leftInset, rightInset));
+        return topInset + inner + bottomInset;
     }
 
     /**
@@ -371,7 +343,7 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
      */
     @Override
     protected void disposeSkin() {
-        contentSlot.getChildren().clear();
+        contentSlot.setContent(null);
         // A replacement skin is constructed before this one is disposed and has
         // already added its nodes: remove only our own.
         getChildren().removeAll(contentSlot, pulse, indicator);
