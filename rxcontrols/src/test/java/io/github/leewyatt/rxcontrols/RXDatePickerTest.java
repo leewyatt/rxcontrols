@@ -112,6 +112,25 @@ public class RXDatePickerTest {
     }
 
     /**
+     * Verifies text typed and then restored commits nothing.
+     */
+    @Test
+    public void restoredTextCommitsNothing() {
+        RXDatePicker picker = newPicker();
+        AtomicInteger actions = countActions(picker);
+        editor(picker).setText("1");
+        editor(picker).setText("");
+        press(editor(picker), KeyCode.ENTER);
+        assertEquals(0, actions.get());
+
+        picker.setValue(LocalDate.of(2026, 11, 14));
+        editor(picker).setText("11/14/20261");
+        editor(picker).setText("11/14/2026");
+        press(editor(picker), KeyCode.ENTER);
+        assertEquals(0, actions.get());
+    }
+
+    /**
      * Verifies the field's own ActionEvent never reaches the picker's onAction.
      */
     @Test

@@ -66,6 +66,8 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
     private final List<Node> layoutNodes = new ArrayList<>();
     private final List<TextField> editors = new ArrayList<>();
     private final List<Boolean> userEdited = new ArrayList<>();
+    /** The text this skin last wrote into each editor. */
+    private final List<String> writtenText = new ArrayList<>();
     private RXTemporalViewBase<?> view;
 
     // ==================== State ====================
@@ -143,6 +145,7 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
                 TextField editor = (TextField) node;
                 editors.add(editor);
                 userEdited.add(false);
+                writtenText.add(textOf(editor));
                 installEditor(control, editor);
             }
         }
@@ -199,7 +202,9 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
         disposer.registerEventFilter(editor, KeyEvent.KEY_PRESSED, this::handleEditorKey);
         disposer.registerListener(editor.textProperty(), () -> {
             if (!writingText) {
-                userEdited.set(index, true);
+                // Text typed back to what the skin last wrote counts as untouched, so it
+                // commits nothing.
+                userEdited.set(index, !textOf(editor).equals(writtenText.get(index)));
                 setInvalidText(false);
                 onFieldsEdited();
             }
@@ -338,14 +343,21 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
             int index = editors.indexOf(field);
             if (index >= 0) {
                 userEdited.set(index, false);
+                writtenText.set(index, textOf(field));
             }
         } finally {
             writingText = false;
         }
     }
 
+    private static String textOf(TextField field) {
+        String text = field.getText();
+        return text == null ? "" : text;
+    }
+
     /**
-     * Returns whether the user typed into any field since it was last written.
+     * Returns whether a field holds text the user typed that differs from what was last
+     * written into it.
      *
      * @return {@code true} if a field holds user-typed text
      */
