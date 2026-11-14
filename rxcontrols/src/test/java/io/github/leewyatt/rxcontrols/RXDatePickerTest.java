@@ -156,16 +156,18 @@ public class RXDatePickerTest {
     }
 
     /**
-     * Verifies a bound value is not overwritten by a commit.
+     * Verifies a commit on a bound value fires the action and leaves the value alone.
      */
     @Test
-    public void commitIgnoresBoundValue() {
+    public void commitOnBoundValueFiresActionAndKeepsValue() {
         RXDatePicker picker = newPicker();
         RXDatePicker source = new RXDatePicker(LocalDate.of(2026, 1, 1));
         picker.valueProperty().bind(source.valueProperty());
+        AtomicInteger actions = countActions(picker);
         editor(picker).setText("3/5/2026");
         press(editor(picker), KeyCode.ENTER);
         assertEquals(LocalDate.of(2026, 1, 1), picker.getValue());
+        assertEquals(1, actions.get());
     }
 
     /**

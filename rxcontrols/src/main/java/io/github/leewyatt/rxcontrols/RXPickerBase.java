@@ -318,7 +318,8 @@ public abstract class RXPickerBase<T> extends Control {
 
     /**
      * Handler invoked on every user commit, even when the committed value equals the
-     * current one. Programmatic value changes do not fire it.
+     * current one. Programmatic value changes do not fire it. A commit still fires it
+     * while the value is bound, although the value then stays what the binding supplies.
      *
      * @return the on-action property
      */

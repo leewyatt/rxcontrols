@@ -277,6 +277,21 @@ public class RXCalendarViewTest {
         assertEquals(last.minusMonths(1), view.getDisplayedMonth());
     }
 
+    /**
+     * Verifies a pick on a bound value fires the action and leaves the value alone.
+     */
+    @Test
+    public void pickOnBoundValueFiresActionAndKeepsValue() {
+        RXCalendarView view = newView(null);
+        RXCalendarView source = new RXCalendarView(LocalDate.of(2026, 11, 3));
+        view.valueProperty().bind(source.valueProperty());
+        AtomicInteger actions = new AtomicInteger();
+        view.setOnAction(event -> actions.incrementAndGet());
+        click(dayCell(view, LocalDate.of(2026, 11, 20)));
+        assertEquals(LocalDate.of(2026, 11, 3), view.getValue());
+        assertEquals(1, actions.get());
+    }
+
     // ==================== Helpers ====================
 
     private static RXCalendarView newView(LocalDate value) {

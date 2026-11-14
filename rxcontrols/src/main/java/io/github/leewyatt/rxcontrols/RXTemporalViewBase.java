@@ -165,7 +165,9 @@ public abstract class RXTemporalViewBase<T> extends Control {
 
     /**
      * Handler invoked when the user completes a selection (as defined by each view),
-     * even if the value did not change. Programmatic value changes do not fire it.
+     * even if the value did not change. Programmatic value changes do not fire it. A
+     * completed selection still fires it while the value is bound, although the value
+     * then stays what the binding supplies.
      *
      * @return the on-action property
      */
