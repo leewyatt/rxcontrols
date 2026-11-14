@@ -4368,12 +4368,11 @@
     -fx-padding: 0.666667em 0 0.666667em 1em;
 }
 
-/* Range pickers underline the field being edited. */
-.rx-picker:focused > .text-field:active,
-.rx-picker:showing > .text-field:active {
-    -fx-border-color: transparent transparent -rx-primary transparent;
-    -fx-border-width: 0 0 2 0;
-    -fx-border-insets: 0 0 1 0.583em;
+/* Range pickers underline the field being edited: 2px, clear of the 1px frame. */
+.rx-picker > .active-bar {
+    -fx-background-color: -rx-primary;
+    -fx-background-insets: 0 0 1 0;
+    -fx-pref-height: 3px;
 }
 
 .rx-picker > .separator {

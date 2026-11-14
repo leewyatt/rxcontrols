@@ -69,6 +69,9 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
     /** The text this skin last wrote into each editor. */
     private final List<String> writtenText = new ArrayList<>();
     private RXTemporalViewBase<?> view;
+    /** Underlines the active field; created when a field first becomes active. */
+    private Region activeBar;
+    private TextField activeField;
 
     // ==================== State ====================
 
@@ -376,13 +379,41 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
     }
 
     /**
-     * Marks a field as the active one (the {@code :active} pseudo-class).
+     * Marks a field as the active one: the {@code :active} pseudo-class, and the
+     * {@code .active-bar} drawn under it.
      *
      * @param field  the field
      * @param active whether it is active
      */
     protected final void setFieldActive(TextField field, boolean active) {
         field.pseudoClassStateChanged(ACTIVE, active);
+        if (active) {
+            activeField = field;
+        } else if (activeField == field) {
+            activeField = null;
+        }
+        updateActiveBar();
+    }
+
+    private void updateActiveBar() {
+        if (activeField == null) {
+            if (activeBar != null) {
+                activeBar.setVisible(false);
+            }
+            return;
+        }
+        if (activeBar == null) {
+            // A separate unmanaged node: a border on the field would add to its insets,
+            // resizing the picker and shifting the text whenever the field is active.
+            activeBar = new Region();
+            activeBar.getStyleClass().add("active-bar");
+            activeBar.setManaged(false);
+            activeBar.setMouseTransparent(true);
+            getChildren().add(activeBar);
+            disposer.registerDisposeTask(() -> getChildren().remove(activeBar));
+        }
+        activeBar.setVisible(true);
+        getSkinnable().requestLayout();
     }
 
     /**
@@ -753,6 +784,13 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
         }
         layoutInArea(suffix, x + w - suffix.prefWidth(h), y, suffix.prefWidth(h), h, 0.0,
                 HPos.CENTER, VPos.CENTER);
+        if (activeBar != null && activeField != null) {
+            // From where the field's text starts to the field's far edge, along its bottom.
+            double barX = activeField.getLayoutX() + activeField.snappedLeftInset();
+            double barHeight = snapSizeY(activeBar.prefHeight(-1));
+            activeBar.resizeRelocate(barX, y + h - barHeight,
+                    Math.max(0.0, activeField.getLayoutX() + activeField.getWidth() - barX), barHeight);
+        }
     }
 
     @Override

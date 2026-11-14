@@ -28,7 +28,8 @@ import java.util.function.Predicate;
  *
  * <p>See {@link RXPickerBase} for the commit, focus and constraint model. CSS: style
  * classes {@code rx-picker} and {@code rx-date-range-picker}; children are two
- * {@code .text-field}s (the focused one {@code :active}) around a {@code .separator};
+ * {@code .text-field}s (the focused one {@code :active}, underlined by an
+ * {@code .active-bar}) around a {@code .separator};
  * the popup hosts an {@code .rx-date-range-view}.
  */
 public class RXDateRangePicker extends RXPickerBase<RXDateRange> {
