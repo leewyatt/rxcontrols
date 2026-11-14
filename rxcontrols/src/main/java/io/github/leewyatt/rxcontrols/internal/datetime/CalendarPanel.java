@@ -34,7 +34,7 @@ import java.util.function.Supplier;
  * Multi-level calendar panel engine shared by the calendar-family views. It renders a
  * navigation header and a cell grid for the current {@link Level}, drills down when a
  * cell above the pick level is activated, drills up from the header title, links
- * several day pages side by side, and keeps a keyboard cursor. It carries no selection
+ * several pick-level pages side by side, and keeps a keyboard cursor. It carries no selection
  * semantics: the owner answers each pick-level cell's state through a
  * {@link CellStateProvider} and receives picks and hovers through callbacks.
  *
@@ -87,6 +87,7 @@ public final class CalendarPanel extends HBox {
     public static final int IN_RANGE = 1 << 4;
     /** The range bits describe a hover / keyboard preview, not the value. */
     public static final int PREVIEW = 1 << 5;
+    private static final int MARK_BITS = SELECTED | RANGE_START | RANGE_END | IN_RANGE | PREVIEW;
 
     private static final PseudoClass PSEUDO_SELECTED = PseudoClass.getPseudoClass("selected");
     private static final PseudoClass PSEUDO_TODAY = PseudoClass.getPseudoClass("today");
@@ -136,7 +137,7 @@ public final class CalendarPanel extends HBox {
 
     // ==================== State ====================
 
-    /** First day of the month shown by page 0 in DAY mode; upper levels derive their period from it. */
+    /** First day of the month shown by page 0 in DAY mode; the other levels derive page 0 from it. */
     private LocalDate reference = LocalDate.now().withDayOfMonth(1);
     private Level mode;
     private LocalDate cursor;
@@ -182,7 +183,9 @@ public final class CalendarPanel extends HBox {
     }
 
     /**
-     * Sets the number of linked day pages shown side by side (DAY mode only).
+     * Sets the number of linked pages shown side by side at the pick level: consecutive
+     * months of days, years of months or quarters, or decades of years. The levels above
+     * the pick level always show one page.
      *
      * @param count the page count; values below 1 are treated as 1
      */
@@ -369,7 +372,7 @@ public final class CalendarPanel extends HBox {
     }
 
     /**
-     * Ensures the date is on one of the displayed day pages, paging as little as possible.
+     * Ensures the date is on one of the displayed pick-level pages, paging as little as possible.
      *
      * @param date the date to reveal; {@code null} is ignored
      */
@@ -638,12 +641,8 @@ public final class CalendarPanel extends HBox {
 
     /** Moves the displayed window the least amount that brings {@code date} into view. */
     private void revealInMode(LocalDate date, boolean before) {
-        if (mode == Level.DAY) {
-            YearMonth target = YearMonth.from(date);
-            reference = referenceOf((before ? target : target.minusMonths(pageCount - 1L)).atDay(1));
-        } else {
-            reference = referenceOf(reference.withYear(date.getYear()));
-        }
+        LocalDate first = plusPages(date, before ? 0L : 1L - shownPages());
+        reference = referenceOf(mode == Level.DAY ? first : reference.withYear(first.getYear()));
         onPageChanged.run();
     }
 
@@ -659,17 +658,29 @@ public final class CalendarPanel extends HBox {
     }
 
     private LocalDate windowEnd(LocalDate ref) {
+        return plusPages(pageStartOf(mode, ref), shownPages()).minusDays(1);
+    }
+
+    // ==================== Linked pages ====================
+
+    /** Pages are linked side by side at the pick level only. */
+    private int shownPages() {
+        return mode == pickLevel ? pageCount : 1;
+    }
+
+    /** Moves a date by whole pages of the current level. */
+    private LocalDate plusPages(LocalDate date, long pages) {
         switch (mode) {
             case DAY:
-                return YearMonth.from(ref).plusMonths(pageCount - 1L).atEndOfMonth();
+                return date.plusMonths(pages);
             case MONTH:
             case QUARTER:
-                return pageStartOf(mode, ref).plusYears(1).minusDays(1);
+                return date.plusYears(pages);
             case YEAR:
-                return pageStartOf(mode, ref).plusYears(YEARS_PER_DECADE).minusDays(1);
+                return date.plusYears(pages * YEARS_PER_DECADE);
             case DECADE:
             default:
-                return pageStartOf(mode, ref).plusYears(YEARS_PER_CENTURY).minusDays(1);
+                return date.plusYears(pages * YEARS_PER_CENTURY);
         }
     }
 
@@ -741,25 +752,18 @@ public final class CalendarPanel extends HBox {
         }
     }
 
-    private LocalDate periodEnd(int pageIndex) {
-        return YearMonth.from(reference).plusMonths(pageIndex).atEndOfMonth();
-    }
-
     private boolean isDisplayed(LocalDate date) {
         if (date == null) {
             return false;
         }
-        if (mode == Level.DAY) {
-            LocalDate first = reference;
-            return !date.isBefore(first) && !date.isAfter(periodEnd(pageCount - 1));
-        }
-        return pageStartOf(mode, date).equals(pageStartOf(mode, reference));
+        LocalDate first = pageStartOf(mode, reference);
+        return !date.isBefore(first) && date.isBefore(plusPages(first, shownPages()));
     }
 
     private LocalDate firstEnabledDisplayed() {
         LocalDate start = pageStartOf(mode, reference);
         if (mode == Level.DAY) {
-            LocalDate end = periodEnd(pageCount - 1);
+            LocalDate end = windowEnd(reference);
             for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {
                 if (isWithinBounds(d) && (stateProvider.stateOf(d) & DISABLED) == 0) {
                     return d;
@@ -801,7 +805,7 @@ public final class CalendarPanel extends HBox {
         Locale resolvedLocale = DateTimeTexts.locale(locale);
         for (int i = 0; i < pages.size(); i++) {
             Page page = pages.get(i);
-            boolean visible = i == 0 || (mode == Level.DAY && i < pageCount);
+            boolean visible = i < shownPages();
             page.setVisible(visible);
             page.setManaged(visible);
             if (visible) {
@@ -824,6 +828,19 @@ public final class CalendarPanel extends HBox {
         cell.pseudoClassStateChanged(PSEUDO_PREVIEW, (state & PREVIEW) != 0);
     }
 
+    /** Marks the first and the last cell of every run of range cells within a grid row. */
+    private static void markSegments(List<? extends Node> cells, int[] states, int columns) {
+        for (int i = 0; i < cells.size(); i++) {
+            int column = i % columns;
+            boolean inRange = (states[i] & IN_RANGE) != 0;
+            Node cell = cells.get(i);
+            cell.pseudoClassStateChanged(PSEUDO_SEGMENT_START,
+                    inRange && (column == 0 || (states[i - 1] & IN_RANGE) == 0));
+            cell.pseudoClassStateChanged(PSEUDO_SEGMENT_END,
+                    inRange && (column == columns - 1 || (states[i + 1] & IN_RANGE) == 0));
+        }
+    }
+
     private int navigationState(Level level, LocalDate start) {
         int state = 0;
         if (highlight != null && start.equals(periodStart(level, highlight))) {
@@ -839,6 +856,11 @@ public final class CalendarPanel extends HBox {
         DateCell cell = new DateCell();
         cell.getStyleClass().add(levelStyleClass);
         cell.setFocusTraversable(false);
+        cell.addEventHandler(MouseEvent.MOUSE_ENTERED, event -> {
+            if (mode == pickLevel && cell.getItem() != null && !cell.isDisabled()) {
+                onHover.accept(cell.getItem());
+            }
+        });
         cell.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
             if (acceptClick(event) && cell.getItem() != null && !cell.isEmpty()) {
                 if (cursorVisible) {
@@ -898,6 +920,7 @@ public final class CalendarPanel extends HBox {
         private CellGrid quarterGrid;
         private CellGrid yearGrid;
         private CellGrid decadeGrid;
+        private final int[] periodStates = new int[PERIOD_CELLS];
 
         Page(int index) {
             this.index = index;
@@ -928,8 +951,9 @@ public final class CalendarPanel extends HBox {
             getChildren().setAll(header, body);
         }
 
+        /** The reference month moved to this page: the page's own month in DAY mode. */
         private YearMonth pageMonth() {
-            return YearMonth.from(reference).plusMonths(index);
+            return YearMonth.from(plusPages(reference, index));
         }
 
         private void onYearTitle(MouseEvent event) {
@@ -944,7 +968,7 @@ public final class CalendarPanel extends HBox {
                     drillUp(Level.YEAR, pageMonth().atDay(1));
                     break;
                 case YEAR:
-                    drillUp(Level.DECADE, reference);
+                    drillUp(Level.DECADE, pageMonth().atDay(1));
                     break;
                 default:
                     break;
@@ -953,7 +977,7 @@ public final class CalendarPanel extends HBox {
 
         void update(Locale resolvedLocale) {
             boolean first = index == 0;
-            boolean last = mode != Level.DAY || index == pageCount - 1;
+            boolean last = index == shownPages() - 1;
             setButton(superPrev, first, canPage(-1, true));
             setButton(prev, first && mode == Level.DAY, canPage(-1, false));
             setButton(next, last && mode == Level.DAY, canPage(1, false));
@@ -1000,14 +1024,14 @@ public final class CalendarPanel extends HBox {
                     setTitle(yearButton);
                     break;
                 case YEAR: {
-                    int start = pageStartOf(Level.YEAR, reference).getYear();
+                    int start = pageStartOf(Level.YEAR, month.atDay(1)).getYear();
                     yearButton.setText(start + "-" + (start + YEARS_PER_DECADE - 1));
                     setTitle(yearButton);
                     break;
                 }
                 case DECADE:
                 default: {
-                    int start = pageStartOf(Level.DECADE, reference).getYear();
+                    int start = pageStartOf(Level.DECADE, month.atDay(1)).getYear();
                     yearButton.setText(start + "-" + (start + YEARS_PER_CENTURY - 1));
                     setTitle(yearButton);
                     break;
@@ -1055,12 +1079,13 @@ public final class CalendarPanel extends HBox {
             for (int i = 0; i < count; i++) {
                 grid.cells().add(createCell(cellClass));
             }
+            grid.addEventHandler(MouseEvent.MOUSE_EXITED, event -> onHover.accept(null));
             return grid;
         }
 
         private void updatePeriodGrid(Locale resolvedLocale) {
             CellGrid grid = (CellGrid) gridFor(mode);
-            LocalDate pageStart = pageStartOf(mode, reference);
+            LocalDate pageStart = pageStartOf(mode, pageMonth().atDay(1));
             List<Node> cells = grid.cells();
             for (int i = 0; i < cells.size(); i++) {
                 DateCell cell = (DateCell) cells.get(i);
@@ -1089,11 +1114,18 @@ public final class CalendarPanel extends HBox {
                         break;
                 }
                 int state = mode == pickLevel ? stateProvider.stateOf(start) : navigationState(mode, start);
+                if (adjacent && shownPages() > 1) {
+                    // Linked pages show the range on the years of their own decade only;
+                    // repeating it on adjacent years would draw it twice.
+                    state &= ~MARK_BITS;
+                }
+                periodStates[i] = state;
                 boolean todayMatch = today != null && periodStart(mode, today).equals(start);
                 boolean cursorMatch = cursorVisible && cursor != null && periodStart(mode, cursor).equals(start);
                 applyCellState(cell, start, state, adjacent, todayMatch, cursorMatch);
                 cell.setText(text);
             }
+            markSegments(cells, periodStates, grid.columns());
         }
 
         // ==================== Day grid ====================
@@ -1121,13 +1153,7 @@ public final class CalendarPanel extends HBox {
                 }
                 corner.getStyleClass().add("week-number");
                 for (int i = 0; i < WEEK_ROWS * DAYS_PER_WEEK; i++) {
-                    DateCell cell = createCell("day-cell");
-                    cell.addEventHandler(MouseEvent.MOUSE_ENTERED, event -> {
-                        if (mode == pickLevel && cell.getItem() != null && !cell.isDisabled()) {
-                            onHover.accept(cell.getItem());
-                        }
-                    });
-                    days.add(cell);
+                    days.add(createCell("day-cell"));
                 }
                 addEventHandler(MouseEvent.MOUSE_EXITED, event -> onHover.accept(null));
                 rebuild();
@@ -1177,22 +1203,16 @@ public final class CalendarPanel extends HBox {
                         if (adjacent && pageCount > 1) {
                             // Linked pages show the range on the days of their own months only;
                             // repeating it on adjacent days would draw it twice.
-                            state &= ~(SELECTED | RANGE_START | RANGE_END | IN_RANGE | PREVIEW);
+                            state &= ~MARK_BITS;
                         }
                     }
                     dayStates[i] = state;
                 }
+                markSegments(days, dayStates, DAYS_PER_WEEK);
                 for (int i = 0; i < days.size(); i++) {
                     LocalDate date = gridStart.plusDays(i);
                     DateCell cell = days.get(i);
                     boolean adjacent = !YearMonth.from(date).equals(month);
-                    // A segment is a run of range days within one week row.
-                    int column = i % DAYS_PER_WEEK;
-                    boolean inRange = (dayStates[i] & IN_RANGE) != 0;
-                    cell.pseudoClassStateChanged(PSEUDO_SEGMENT_START,
-                            inRange && (column == 0 || (dayStates[i - 1] & IN_RANGE) == 0));
-                    cell.pseudoClassStateChanged(PSEUDO_SEGMENT_END,
-                            inRange && (column == DAYS_PER_WEEK - 1 || (dayStates[i + 1] & IN_RANGE) == 0));
                     if (adjacent && !showAdjacentDays) {
                         cell.updateItem(null, true);
                         cell.setText(null);

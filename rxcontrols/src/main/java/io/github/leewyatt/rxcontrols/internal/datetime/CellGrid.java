@@ -24,6 +24,10 @@ final class CellGrid extends Region {
         return getChildren();
     }
 
+    int columns() {
+        return columns;
+    }
+
     private int rows() {
         int count = getManagedChildren().size();
         return (count + columns - 1) / columns;
