@@ -67,11 +67,17 @@ import io.github.leewyatt.rxcontrols.RXMenuButton;
 import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXMenuList;
 import io.github.leewyatt.rxcontrols.RXMonthPicker;
+import io.github.leewyatt.rxcontrols.RXMonthRange;
+import io.github.leewyatt.rxcontrols.RXMonthRangePicker;
+import io.github.leewyatt.rxcontrols.RXMonthRangeView;
 import io.github.leewyatt.rxcontrols.RXMonthView;
 import io.github.leewyatt.rxcontrols.RXPasswordField;
 import io.github.leewyatt.rxcontrols.RXPickerBase;
 import io.github.leewyatt.rxcontrols.RXPlaceholder;
 import io.github.leewyatt.rxcontrols.RXQuarterPicker;
+import io.github.leewyatt.rxcontrols.RXQuarterRange;
+import io.github.leewyatt.rxcontrols.RXQuarterRangePicker;
+import io.github.leewyatt.rxcontrols.RXQuarterRangeView;
 import io.github.leewyatt.rxcontrols.RXQuarterView;
 import io.github.leewyatt.rxcontrols.RXRadioButton;
 import io.github.leewyatt.rxcontrols.RXRadioToggleButton;
@@ -117,6 +123,9 @@ import io.github.leewyatt.rxcontrols.RXTransitionPane;
 import io.github.leewyatt.rxcontrols.RXWaveProgressIndicator;
 import io.github.leewyatt.rxcontrols.RXYearPicker;
 import io.github.leewyatt.rxcontrols.RXYearQuarter;
+import io.github.leewyatt.rxcontrols.RXYearRange;
+import io.github.leewyatt.rxcontrols.RXYearRangePicker;
+import io.github.leewyatt.rxcontrols.RXYearRangeView;
 import io.github.leewyatt.rxcontrols.RXYearView;
 import io.github.leewyatt.rxcontrols.animation.burst.BurstAnimation;
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
@@ -249,10 +258,14 @@ final class ThemeGalleryCards {
         list.add(card("RXMenuButton", "Button that opens a command menu.", buildRXMenuButton()));
         list.add(card("RXMenuList", "Inline command list with keyboard navigation.", buildRXMenuList()));
         list.add(card("RXMonthPicker", "Month picker on a twelve-month grid.", buildRXMonthPicker()));
+        list.add(card("RXMonthRangePicker", "Start and end months picked on two linked years.", buildRXMonthRangePicker()));
+        list.add(wide("RXMonthRangeView", "Linked years of months for picking a month range.", buildRXMonthRangeView()));
         list.add(card("RXMonthView", "Twelve-month grid with a year header.", buildRXMonthView()));
         list.add(card("RXPasswordField", "Password field with side slots and reveal.", buildRXPasswordField()));
         list.add(card("RXPlaceholder", "Empty-state message with actions.", buildRXPlaceholder()));
         list.add(card("RXQuarterPicker", "Calendar quarter picker.", buildRXQuarterPicker()));
+        list.add(card("RXQuarterRangePicker", "Start and end quarters picked on two linked years.", buildRXQuarterRangePicker()));
+        list.add(wide("RXQuarterRangeView", "Linked years of quarters for picking a quarter range.", buildRXQuarterRangeView()));
         list.add(card("RXQuarterView", "Four quarters of a year.", buildRXQuarterView()));
         list.add(card("RXRadioButton", "Radio button with halo and ripple feedback.", buildRXRadioButton()));
         list.add(card("RXRadioToggleButton", "Toggle buttons that select like radio buttons.", buildRXRadioToggleButton()));
@@ -287,6 +300,8 @@ final class ThemeGalleryCards {
         list.add(card("RXTransitionPane", "Container that animates content changes.", buildRXTransitionPane()));
         list.add(card("RXWaveProgressIndicator", "Circular progress filled by a wave.", buildRXWaveProgressIndicator()));
         list.add(card("RXYearPicker", "Year picker on a decade grid.", buildRXYearPicker()));
+        list.add(card("RXYearRangePicker", "Start and end years picked on two linked decades.", buildRXYearRangePicker()));
+        list.add(wide("RXYearRangeView", "Linked decades for picking a year range.", buildRXYearRangeView()));
         list.add(card("RXYearView", "Decade grid of years.", buildRXYearView()));
         return list;
     }
@@ -464,12 +479,24 @@ final class ThemeGalleryCards {
         return viewCard(new RXMonthView(YearMonth.now()));
     }
 
+    private static Node buildRXMonthRangeView() {
+        return viewCard(new RXMonthRangeView(RXMonthRange.of(YearMonth.now(), YearMonth.now().plusMonths(5))));
+    }
+
+    private static Node buildRXQuarterRangeView() {
+        return viewCard(new RXQuarterRangeView(thisQuarterRange()));
+    }
+
     private static Node buildRXQuarterView() {
         return viewCard(new RXQuarterView(RXYearQuarter.from(LocalDate.now())));
     }
 
     private static Node buildRXTimeView() {
         return viewCard(new RXTimeView(LocalTime.of(14, 30)));
+    }
+
+    private static Node buildRXYearRangeView() {
+        return viewCard(new RXYearRangeView(RXYearRange.of(Year.now().minusYears(3), Year.now())));
     }
 
     private static Node buildRXYearView() {
@@ -502,8 +529,21 @@ final class ThemeGalleryCards {
         return pickerCard(new RXMonthPicker(YearMonth.now()));
     }
 
+    private static Node buildRXMonthRangePicker() {
+        return pickerCard(new RXMonthRangePicker(RXMonthRange.of(YearMonth.now(), YearMonth.now().plusMonths(5))));
+    }
+
     private static Node buildRXQuarterPicker() {
         return pickerCard(new RXQuarterPicker(RXYearQuarter.from(LocalDate.now())));
+    }
+
+    private static Node buildRXQuarterRangePicker() {
+        return pickerCard(new RXQuarterRangePicker(thisQuarterRange()));
+    }
+
+    private static RXQuarterRange thisQuarterRange() {
+        RXYearQuarter thisQuarter = RXYearQuarter.from(LocalDate.now());
+        return RXQuarterRange.of(thisQuarter, thisQuarter.plusQuarters(2));
     }
 
     private static Node buildRXTimePicker() {
@@ -512,6 +552,10 @@ final class ThemeGalleryCards {
 
     private static Node buildRXYearPicker() {
         return pickerCard(new RXYearPicker(Year.now()));
+    }
+
+    private static Node buildRXYearRangePicker() {
+        return pickerCard(new RXYearRangePicker(RXYearRange.of(Year.now().minusYears(3), Year.now())));
     }
 
     private static Node pickerCard(RXPickerBase<?> picker) {
