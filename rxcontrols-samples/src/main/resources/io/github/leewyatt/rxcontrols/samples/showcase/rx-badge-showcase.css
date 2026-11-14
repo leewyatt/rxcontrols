@@ -1,0 +1,45 @@
+.live-preview {
+    -fx-pref-width: 420px;
+    -fx-fill-width: true;
+}
+
+.live-preview > .caption {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.live-preview > .stage,
+.live-preview > .classic-panel,
+.live-preview > .standalone-panel {
+    -fx-background-color: -fx-background;
+    -fx-background-radius: 12px;
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-radius: 12px;
+}
+
+.live-preview > .stage {
+    -fx-pref-height: 200px;
+    -fx-padding: 32px;
+}
+
+.live-preview > .classic-panel,
+.live-preview > .standalone-panel {
+    -fx-padding: 22px 24px;
+    -fx-alignment: center;
+}
+
+.sample-card {
+    -fx-background-color: -fx-control-inner-background;
+    -fx-background-radius: 10px;
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-radius: 10px;
+}
+
+.live-badge.small > .indicator {
+    -fx-font-size: 0.75em;
+}
+
+.live-badge.large > .indicator {
+    -fx-font-size: 1.25em;
+}

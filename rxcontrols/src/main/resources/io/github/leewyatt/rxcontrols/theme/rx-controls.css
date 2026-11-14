@@ -14,7 +14,7 @@
  * scope further down re-declares every role for the AtlantaFX bridge.         *
  *                                                                             *
  ******************************************************************************/
-.rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-bar-spinner, .rx-box, .rx-button,
+.rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-badge, .rx-bar-spinner, .rx-box, .rx-button,
 .rx-calendar-view, .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-content-pane, .rx-copy-button, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-date-picker, .rx-date-range-picker, .rx-date-range-view, .rx-date-time-picker, .rx-date-time-range-picker, .rx-date-time-range-view, .rx-date-time-view, .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
@@ -25,7 +25,7 @@
 .rx-material-decimal-field, .rx-material-double-field, .rx-material-integer-field,
 .rx-material-long-field, .rx-material-text-field, .rx-material-password-field,
 .rx-password-field, .rx-placeholder, .rx-quarter-picker, .rx-quarter-view, .rx-radio-button, .rx-radio-toggle-button,
-.rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
+.rx-reaction-button, .rx-ribbon-badge, .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-selection-box, .rx-sidebar, .rx-snackbar-host, .rx-speed-dial,
 .rx-slider, .rx-range-slider,
 .rx-skeleton, .rx-skeleton-pane, .rx-state-pane, .rx-switch-button, .rx-text-field, .rx-text-view,
@@ -89,6 +89,8 @@
 .rx-theme-atlantafx.rx-avatar,
 .rx-theme-atlantafx .rx-backdrop,
 .rx-theme-atlantafx.rx-backdrop,
+.rx-theme-atlantafx .rx-badge,
+.rx-theme-atlantafx.rx-badge,
 .rx-theme-atlantafx .rx-bar-spinner,
 .rx-theme-atlantafx.rx-bar-spinner,
 .rx-theme-atlantafx .rx-box,
@@ -211,6 +213,10 @@
 .rx-theme-atlantafx.rx-radio-button,
 .rx-theme-atlantafx .rx-radio-toggle-button,
 .rx-theme-atlantafx.rx-radio-toggle-button,
+.rx-theme-atlantafx .rx-reaction-button,
+.rx-theme-atlantafx.rx-reaction-button,
+.rx-theme-atlantafx .rx-ribbon-badge,
+.rx-theme-atlantafx.rx-ribbon-badge,
 .rx-theme-atlantafx .rx-ripple-pane,
 .rx-theme-atlantafx.rx-ripple-pane,
 .rx-theme-atlantafx .rx-row,
@@ -715,6 +721,112 @@
 .rx-avatar > .text-wrapper > .label {
     -fx-font-weight: bold;
     -fx-text-fill: -rx-avatar-on-fill;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXBadge                                                                     *
+ *                                                                             *
+ ******************************************************************************/
+/* -rx-badge-ring outlines the indicator where it has to stand out from the content
+   under it; set it to the color of the surface behind the badge. */
+.rx-badge {
+    -rx-badge-fill: -rx-danger;
+    -rx-badge-on-fill: -rx-on-primary;
+    -rx-badge-ring: transparent;
+}
+
+.rx-badge.primary {
+    -rx-badge-fill: -rx-primary;
+}
+
+.rx-badge.success {
+    -rx-badge-fill: -rx-success;
+}
+
+.rx-badge.warning {
+    -rx-badge-fill: -rx-warning;
+}
+
+.rx-badge.danger {
+    -rx-badge-fill: -rx-danger;
+}
+
+.rx-badge.info {
+    -rx-badge-fill: -rx-info;
+}
+
+.rx-badge > .indicator {
+    -fx-background-color: -rx-badge-ring, -rx-badge-fill;
+    -fx-background-insets: -2, 0;
+    -fx-background-radius: 999px;
+    -fx-text-fill: -rx-badge-on-fill;
+    -fx-font-size: 0.917em;
+    -fx-padding: 0.167em 0.5em;
+    -fx-alignment: center;
+}
+
+.rx-badge > .indicator:dot {
+    -fx-padding: 0;
+    -fx-pref-width: 0.727em;
+    -fx-pref-height: 0.727em;
+}
+
+.rx-badge > .pulse {
+    -fx-background-color: -rx-badge-fill;
+    -fx-background-radius: 999px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXRibbonBadge                                                               *
+ *                                                                             *
+ ******************************************************************************/
+.rx-ribbon-badge {
+    -rx-ribbon-fill: -rx-primary;
+    -rx-ribbon-on-fill: -rx-on-primary;
+}
+
+.rx-ribbon-badge.primary {
+    -rx-ribbon-fill: -rx-primary;
+}
+
+.rx-ribbon-badge.success {
+    -rx-ribbon-fill: -rx-success;
+}
+
+.rx-ribbon-badge.warning {
+    -rx-ribbon-fill: -rx-warning;
+}
+
+.rx-ribbon-badge.danger {
+    -rx-ribbon-fill: -rx-danger;
+}
+
+.rx-ribbon-badge.info {
+    -rx-ribbon-fill: -rx-info;
+}
+
+/* The corner above the fold stays square, so the ribbon and the fold meet in a
+   straight edge. */
+.rx-ribbon-badge > .ribbon {
+    -fx-background-color: -rx-ribbon-fill;
+    -fx-background-radius: 3px 3px 0 3px;
+    -fx-text-fill: -rx-ribbon-on-fill;
+    -fx-padding: 0.25em 0.667em;
+}
+
+.rx-ribbon-badge:start > .ribbon {
+    -fx-background-radius: 3px 3px 3px 0;
+}
+
+.rx-ribbon-badge > .fold {
+    -fx-background-color: derive(-rx-ribbon-fill, -35%);
+    -fx-shape: "M0 0 H4 L0 3 Z";
+}
+
+.rx-ribbon-badge:start > .fold {
+    -fx-shape: "M0 0 H4 V3 Z";
 }
 
 /*******************************************************************************
@@ -2556,6 +2668,115 @@
 
 /*******************************************************************************
  *                                                                             *
+ * RXReactionButton                                                            *
+ *                                                                             *
+ ******************************************************************************/
+
+/* Flat: the icon is the button. The transparent 1.5px border is always there,
+   so the focus color can show up without moving the content. */
+.rx-reaction-button {
+    -rx-reaction-color: -rx-danger;
+    -rx-burst-color: -rx-reaction-color;
+    -rx-ripple-fill: -rx-reaction-color;
+    -rx-ripple-centered: true;
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 999px;
+    -fx-border-color: transparent;
+    -fx-border-width: 1.5px;
+    -fx-border-radius: 999px;
+    -fx-effect: null;
+    -fx-padding: 0.35em 0.55em;
+    -fx-graphic-text-gap: 0.4em;
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+/* The selected and focused toggle states would paint the toggle button body
+   back in, and their small radius would also square off the ripple clip. */
+.rx-reaction-button:focused,
+.rx-reaction-button:selected,
+.rx-reaction-button:selected:focused {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 999px;
+}
+
+.rx-reaction-button:focused {
+    -fx-border-color: -rx-focus;
+}
+
+.rx-reaction-button:selected {
+    -fx-text-fill: -rx-reaction-color;
+}
+
+.rx-reaction-button:disabled {
+    -fx-opacity: 0.4;
+}
+
+.rx-reaction-button .reaction-icon {
+    -fx-pref-width: 20px;
+    -fx-pref-height: 20px;
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-shape: "M12 20.5 C12 20.5 3 14.5 3 8.75 C3 5.85 5.3 3.75 7.9 3.75 C9.7 3.75 11.2 4.75 12 6.2 C12.8 4.75 14.3 3.75 16.1 3.75 C18.7 3.75 21 5.85 21 8.75 C21 14.5 12 20.5 12 20.5 Z M12 18.24 C12 18.24 18.66 13.8 18.66 9.54 C18.66 7.4 16.96 5.84 15.03 5.84 C13.7 5.84 12.59 6.58 12 7.66 C11.41 6.58 10.3 5.84 8.97 5.84 C7.04 5.84 5.34 7.4 5.34 9.54 C5.34 13.8 12 18.24 12 18.24 Z";
+}
+
+.rx-reaction-button:selected .reaction-icon {
+    -fx-background-color: -rx-reaction-color;
+    -fx-shape: "M12 20.5 C12 20.5 3 14.5 3 8.75 C3 5.85 5.3 3.75 7.9 3.75 C9.7 3.75 11.2 4.75 12 6.2 C12.8 4.75 14.3 3.75 16.1 3.75 C18.7 3.75 21 5.85 21 8.75 C21 14.5 12 20.5 12 20.5 Z";
+}
+
+.rx-reaction-button.star {
+    -rx-reaction-color: -rx-warning;
+}
+
+.rx-reaction-button.star .reaction-icon {
+    -fx-shape: "M12 2.6 L14.53 9.12 L21.51 9.51 L16.09 13.93 L17.88 20.69 L12 16.9 L6.12 20.69 L7.91 13.93 L2.49 9.51 L9.47 9.12 Z M10.32 10.29 L5.72 10.56 L9.29 13.48 L8.12 17.94 L12 15.45 L15.88 17.94 L14.71 13.48 L18.28 10.56 L13.68 10.29 L12 6 Z";
+}
+
+.rx-reaction-button.star:selected .reaction-icon {
+    -fx-shape: "M12 2.6 L14.53 9.12 L21.51 9.51 L16.09 13.93 L17.88 20.69 L12 16.9 L6.12 20.69 L7.91 13.93 L2.49 9.51 L9.47 9.12 Z";
+}
+
+.rx-reaction-button.bookmark {
+    -rx-reaction-color: -rx-primary;
+}
+
+.rx-reaction-button.bookmark .reaction-icon {
+    -fx-shape: "M6 3 H18 V21 L12 16.5 L6 21 Z M8 5 V17.1 L12 14.1 L16 17.1 V5 Z";
+}
+
+.rx-reaction-button.bookmark:selected .reaction-icon {
+    -fx-shape: "M6 3 H18 V21 L12 16.5 L6 21 Z";
+}
+
+/* AtlantaFX colors toggle button text and font icons through its button
+   color tokens; pointing them at the reaction colors keeps a label and any
+   font-icon graphic matching the state. The body is cleared in
+   rx-controls-atlantafx.css, which has to outrank AtlantaFX's state and
+   tool bar rules. */
+.rx-theme-atlantafx .rx-reaction-button,
+.rx-theme-atlantafx.rx-reaction-button {
+    -color-button-fg: -rx-on-surface-secondary;
+    -color-button-fg-hover: -rx-on-surface-secondary;
+    -color-button-fg-focused: -rx-on-surface-secondary;
+    -color-button-fg-pressed: -rx-on-surface-secondary;
+    -color-button-fg-selected: -rx-reaction-color;
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-border-color: transparent;
+}
+
+.rx-theme-atlantafx .rx-reaction-button:selected,
+.rx-theme-atlantafx.rx-reaction-button:selected {
+    -fx-text-fill: -rx-reaction-color;
+}
+
+.rx-theme-atlantafx .rx-reaction-button:focused,
+.rx-theme-atlantafx.rx-reaction-button:focused {
+    -fx-border-color: -rx-focus;
+}
+
+/*******************************************************************************
+ *                                                                             *
  * RXSidebar                                                                   *
  *                                                                             *
  ******************************************************************************/
@@ -3505,6 +3726,19 @@
 
 .rx-kanban-view:focused .rx-kanban-card-cell:selected:focused {
     -fx-background-color: -rx-focus, -rx-primary-bg;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXBursts (scene burst overlay)                                              *
+ *                                                                             *
+ ******************************************************************************/
+/* The overlay is not a control, so the -rx-* tokens are not declared on it;
+   it maps straight to Modena's accent. The AtlantaFX mapping lives in
+   rx-controls-atlantafx.css: the overlay of a popup or a wrapped root sits
+   outside the scoped root. */
+.rx-burst-layer {
+    -rx-burst-color: -fx-accent;
 }
 
 /*******************************************************************************

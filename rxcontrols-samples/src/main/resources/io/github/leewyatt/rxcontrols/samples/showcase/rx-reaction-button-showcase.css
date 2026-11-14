@@ -1,0 +1,17 @@
+.live-preview {
+    -fx-padding: 28px;
+}
+
+.state-label {
+    -fx-font-weight: bold;
+}
+
+.hint-label {
+    -fx-opacity: 0.6;
+    -fx-font-size: 11px;
+}
+
+/* The icon size comes from the Icon size slider. */
+.rx-reaction-button.showcase-large {
+    -fx-font-size: 20px;
+}

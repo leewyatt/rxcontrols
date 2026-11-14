@@ -16,9 +16,10 @@ import javafx.scene.layout.StackPane;
  * <p>Installation adapts to the root: if the scene root (or an explicit container)
  * is a {@link Pane}, the layer is added as a {@code managed = false} child sized to
  * fill it (so layout panes such as {@code BorderPane} do not reserve space for it);
- * if the root is not an addable {@code Pane}, the original root is wrapped in a
- * {@link StackPane} as a fallback. {@link #detachChild(Node)} uninstalls the layer
- * when its last child leaves.</p>
+ * if the root is not an addable {@code Pane}, the original root is wrapped,
+ * together with the layer, in a new {@code Pane} root as a fallback.
+ * {@link #detachChild(Node)} uninstalls the layer when its last child
+ * leaves.</p>
  *
  * <p>Stacking between different overlay layer types over the same scene is decided
  * by a fixed per-type {@link Node#viewOrderProperty() viewOrder} (lower renders in
@@ -30,7 +31,7 @@ public abstract class RXSceneOverlayLayer extends StackPane {
     private enum InstallMode {
         /** Added as a managed=false overlay child of a container / root pane. */
         PANE_CHILD,
-        /** The original root was wrapped in a StackPane holding it and this layer. */
+        /** The original root was wrapped in a new root holding it and this layer. */
         WRAP
     }
 
@@ -88,7 +89,7 @@ public abstract class RXSceneOverlayLayer extends StackPane {
      * Mounts this layer over the scene and caches it in the scene's property map
      * under this layer's key. With an explicit container the layer fills that pane;
      * otherwise it fills a {@code Pane} scene root, or wraps a non-{@code Pane} root
-     * in a {@code StackPane} as a fallback.
+     * in a new root pane as a fallback.
      *
      * @param targetScene the scene to mount over
      * @param container   the explicit pane to fill, or {@code null} to mount at the scene root
@@ -140,9 +141,9 @@ public abstract class RXSceneOverlayLayer extends StackPane {
     private void installByWrapping(Scene targetScene, Parent root) {
         this.mode = InstallMode.WRAP;
         this.originalRoot = root;
-        // Inside the wrapping StackPane this layer is a normal, filled child.
+        // Inside the wrapping root this layer is a normal, filled child.
         setManaged(true);
-        StackPane wrapper = new StackPane(root, this);
+        WrapRoot wrapper = new WrapRoot(root, this);
         targetScene.setRoot(wrapper);
     }
 
@@ -178,6 +179,35 @@ public abstract class RXSceneOverlayLayer extends StackPane {
             mode = null;
         } finally {
             uninstalling = false;
+        }
+    }
+
+    /**
+     * The root that wraps a non-{@code Pane} scene root and its layers. Like
+     * the scene itself, it stretches resizable children to its size; a
+     * non-resizable root (a {@code Group}) stays where it is, where a
+     * {@code StackPane} would move it so that its bounds start at the corner
+     * and shift the whole scene the moment a layer mounts. Its preferred
+     * size takes in every child, so a window sized to its scene keeps its
+     * size.
+     */
+    private static final class WrapRoot extends Pane {
+
+        private WrapRoot(Node... children) {
+            super(children);
+        }
+
+        @Override
+        protected void layoutChildren() {
+            double width = getWidth();
+            double height = getHeight();
+            for (Node child : getManagedChildren()) {
+                if (child.isResizable()) {
+                    child.resizeRelocate(0.0, 0.0, width, height);
+                } else {
+                    child.autosize();
+                }
+            }
         }
     }
 }
