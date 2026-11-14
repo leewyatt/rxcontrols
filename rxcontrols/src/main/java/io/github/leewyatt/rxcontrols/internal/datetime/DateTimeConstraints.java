@@ -117,15 +117,16 @@ public final class DateTimeConstraints {
     }
 
     /**
-     * Returns whether a date-time satisfies the bounds and both filters (the steps
-     * only shape the columns).
+     * Returns whether a date-time satisfies the bounds and both filters. This is the
+     * rule for typed and programmatic values; the steps only shape the columns, also
+     * on a bound's own day.
      *
      * @param value the date-time
      * @return {@code true} if acceptable; {@code false} for {@code null}
      */
     public boolean isAcceptable(LocalDateTime value) {
-        return value != null && isDateSelectable(value.toLocalDate())
-                && TemporalRules.withinBounds(value, min, max)
+        return value != null && TemporalRules.withinBounds(value, min, max)
+                && (dateFilter == null || dateFilter.test(value.toLocalDate()))
                 && (timeFilter == null || timeFilter.test(value.toLocalTime()));
     }
 
