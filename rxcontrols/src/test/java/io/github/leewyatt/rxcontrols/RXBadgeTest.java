@@ -22,6 +22,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Circle;
+import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -85,6 +86,7 @@ public class RXBadgeTest {
             assertEquals(0.0, badge.getOffsetX(), EPSILON);
             assertEquals(0.0, badge.getOffsetY(), EPSILON);
             assertTrue(badge.isAnimated());
+            assertEquals(Duration.millis(200.0), badge.getAnimationDuration());
             assertFalse(badge.isPulsing());
             assertFalse(badge.isFocusTraversable());
             assertFalse(badge.isPickOnBounds());
@@ -249,7 +251,8 @@ public class RXBadgeTest {
                     .map(CssMetaData::getProperty)
                     .collect(Collectors.toSet());
             assertTrue(names.containsAll(Set.of("-rx-variant", "-rx-position", "-rx-overlap",
-                    "-rx-offset-x", "-rx-offset-y", "-rx-animated", "-rx-pulsing")), names.toString());
+                    "-rx-offset-x", "-rx-offset-y", "-rx-animated", "-rx-animation-duration", "-rx-pulsing")),
+                    names.toString());
             RXBadge badge = new RXBadge();
             for (CssMetaData<? extends Styleable, ?> metaData : badge.getCssMetaData()) {
                 if (metaData.getProperty().startsWith("-rx-")) {
@@ -259,14 +262,14 @@ public class RXBadgeTest {
         });
     }
 
-    /** Verifies a stylesheet sets variant, position, overlap, offsets, animated and pulsing. */
+    /** Verifies a stylesheet sets variant, position, overlap, offsets, animated, its duration and pulsing. */
     @Test
     public void stylesheetSetsTheStyleableProperties() throws Exception {
         runOnFx(() -> {
             RXBadge badge = new RXBadge(content());
             StackPane root = new StackPane(badge);
             root.getStylesheets().add("data:text/css,.rx-badge{-rx-variant:dot;-rx-position:bottom-start;"
-                    + "-rx-overlap:circular;-rx-offset-x:3;-rx-offset-y:4;-rx-animated:false;-rx-pulsing:true;}");
+                    + "-rx-overlap:circular;-rx-offset-x:3;-rx-offset-y:4;-rx-animated:false;-rx-animation-duration:350ms;-rx-pulsing:true;}");
             new Scene(root);
             root.applyCss();
             assertEquals(Variant.DOT, badge.getVariant());
@@ -277,6 +280,7 @@ public class RXBadgeTest {
             assertEquals(3.0, badge.getOffsetX(), EPSILON);
             assertEquals(4.0, badge.getOffsetY(), EPSILON);
             assertFalse(badge.isAnimated());
+            assertEquals(Duration.millis(350.0), badge.getAnimationDuration());
             assertTrue(badge.isPulsing());
             assertTrue(badge.isIndicatorShowing());
         });

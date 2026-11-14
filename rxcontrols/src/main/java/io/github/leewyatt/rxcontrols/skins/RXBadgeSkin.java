@@ -33,7 +33,6 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
     // share of the side: the point of the circle nearest to the corner.
     private static final double CIRCULAR_INSET = (1.0 - Math.cos(Math.PI / 4.0)) / 2.0;
 
-    private static final Duration SHOW_HIDE_DURATION = Duration.millis(200.0);
     private static final Duration PULSE_DURATION = Duration.millis(1200.0);
     // How far the ring grows past each side of the indicator, as a share of
     // the indicator's height: the same distance all round, whatever the width.
@@ -84,7 +83,8 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
 
         getChildren().addAll(contentSlot, pulse, indicator);
 
-        showHide = new ScaleTransition(SHOW_HIDE_DURATION, indicator);
+        showHide = new ScaleTransition();
+        showHide.setNode(indicator);
         showHide.setInterpolator(Interpolator.EASE_BOTH);
         showHide.setOnFinished(event -> onShowHideFinished());
         disposer.registerDisposeTask(showHide::stop);
@@ -142,13 +142,17 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
             syncIndicatorLook();
         }
         boolean inShowingTree = treeShowing.get();
-        if (control.isAnimated() && inShowingTree) {
+        Duration duration = control.getAnimationDuration();
+        boolean playable = duration != null && !duration.isUnknown() && !duration.isIndefinite()
+                && duration.greaterThan(Duration.ZERO);
+        if (control.isAnimated() && inShowingTree && playable) {
             if (showing && !indicator.isVisible()) {
                 indicator.setScaleX(0.0);
                 indicator.setScaleY(0.0);
                 indicator.setVisible(true);
             }
             double target = showing ? 1.0 : 0.0;
+            showHide.setDuration(duration);
             showHide.setFromX(indicator.getScaleX());
             showHide.setFromY(indicator.getScaleY());
             showHide.setToX(target);

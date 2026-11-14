@@ -25,12 +25,14 @@ import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
+import javafx.css.converter.DurationConverter;
 import javafx.css.converter.EnumConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
+import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -128,6 +130,11 @@ public class RXBadge extends Control {
      * Default overlap, also the {@code null} fallback.
      */
     public static final Overlap DEFAULT_OVERLAP = Overlap.RECTANGULAR;
+
+    /**
+     * Default duration of the show and hide animation.
+     */
+    public static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
 
     private static final String DEFAULT_STYLE_CLASS = "rx-badge";
     private static final boolean DEFAULT_ANIMATED = true;
@@ -724,6 +731,57 @@ public class RXBadge extends Control {
         animated.set(value);
     }
 
+    // ==================== Animation Duration ====================
+
+    private final ObjectProperty<Duration> animationDuration =
+            new StyleableObjectProperty<>(DEFAULT_ANIMATION_DURATION) {
+                @Override
+                public CssMetaData<? extends Styleable, Duration> getCssMetaData() {
+                    return StyleableProperties.ANIMATION_DURATION;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXBadge.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "animationDuration";
+                }
+            };
+
+    /**
+     * How long the indicator takes to scale in or out. Initial value is
+     * {@link #DEFAULT_ANIMATION_DURATION}. A {@code null}, non-positive, unknown
+     * or indefinite value shows and hides the indicator at once, like
+     * {@link #animatedProperty() animated} set to {@code false}. A change applies
+     * from the next show or hide.
+     *
+     * @return the animation duration property
+     */
+    public final ObjectProperty<Duration> animationDurationProperty() {
+        return animationDuration;
+    }
+
+    /**
+     * Returns the duration of the show and hide animation.
+     *
+     * @return the animation duration, possibly {@code null}
+     */
+    public final Duration getAnimationDuration() {
+        return animationDuration.get();
+    }
+
+    /**
+     * Sets the duration of the show and hide animation.
+     *
+     * @param value the animation duration
+     */
+    public final void setAnimationDuration(Duration value) {
+        animationDuration.set(value);
+    }
+
     // ==================== Pulsing ====================
 
     private final BooleanProperty pulsing = new StyleableBooleanProperty(false) {
@@ -940,6 +998,21 @@ public class RXBadge extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXBadge, Duration> ANIMATION_DURATION =
+                new CssMetaData<>("-rx-animation-duration", DurationConverter.getInstance(),
+                        DEFAULT_ANIMATION_DURATION) {
+                    @Override
+                    public boolean isSettable(RXBadge control) {
+                        return !control.animationDuration.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Duration> getStyleableProperty(RXBadge control) {
+                        return (StyleableProperty<Duration>) control.animationDurationProperty();
+                    }
+                };
+
         private static final CssMetaData<RXBadge, Boolean> PULSING =
                 new CssMetaData<>("-rx-pulsing", BooleanConverter.getInstance(), false) {
                     @Override
@@ -965,6 +1038,7 @@ public class RXBadge extends Control {
             styleables.add(OFFSET_X);
             styleables.add(OFFSET_Y);
             styleables.add(ANIMATED);
+            styleables.add(ANIMATION_DURATION);
             styleables.add(PULSING);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }

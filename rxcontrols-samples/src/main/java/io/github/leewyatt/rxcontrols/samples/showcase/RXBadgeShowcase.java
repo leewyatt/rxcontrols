@@ -21,6 +21,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 
 import java.util.List;
 
@@ -222,12 +223,18 @@ public class RXBadgeShowcase extends RXShowcaseApplication {
         animated.setSelected(badge.isAnimated());
         badge.animatedProperty().bind(animated.selectedProperty());
 
+        Slider duration = createSlider(0.0, 1000.0, RXBadge.DEFAULT_ANIMATION_DURATION.toMillis());
+        badge.animationDurationProperty().bind(Bindings.createObjectBinding(
+                () -> Duration.millis(Math.round(duration.getValue())), duration.valueProperty()));
+        Label durationValue = createValueLabel(duration, "%.0f ms");
+
         CheckBox pulsing = new CheckBox("Pulsing");
         badge.pulsingProperty().bind(pulsing.selectedProperty());
 
         return createGrid(
                 row("Color class", colorBox),
                 row("Indicator size", sizeBox),
+                row("Duration", duration, durationValue),
                 row(new HBox(16.0, ring, animated, pulsing)));
     }
 
