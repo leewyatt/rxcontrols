@@ -9,6 +9,7 @@ import io.github.leewyatt.rxcontrols.RXAvatar.ShapeType;
 import io.github.leewyatt.rxcontrols.RXBackdrop;
 import io.github.leewyatt.rxcontrols.RXBarSpinner;
 import io.github.leewyatt.rxcontrols.RXButton;
+import io.github.leewyatt.rxcontrols.RXCalendarView;
 import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
@@ -20,6 +21,12 @@ import io.github.leewyatt.rxcontrols.RXChipSet;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.RXClipPathImageView;
 import io.github.leewyatt.rxcontrols.RXCopyButton;
+import io.github.leewyatt.rxcontrols.RXDatePicker;
+import io.github.leewyatt.rxcontrols.RXDateRange;
+import io.github.leewyatt.rxcontrols.RXDateRangePicker;
+import io.github.leewyatt.rxcontrols.RXDateTimePicker;
+import io.github.leewyatt.rxcontrols.RXDateTimeRange;
+import io.github.leewyatt.rxcontrols.RXDateTimeRangePicker;
 import io.github.leewyatt.rxcontrols.RXDecimalField;
 import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.RXDialogContent;
@@ -55,8 +62,11 @@ import io.github.leewyatt.rxcontrols.RXMaterialTextField;
 import io.github.leewyatt.rxcontrols.RXMenuButton;
 import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXMenuList;
+import io.github.leewyatt.rxcontrols.RXMonthPicker;
 import io.github.leewyatt.rxcontrols.RXPasswordField;
+import io.github.leewyatt.rxcontrols.RXPickerBase;
 import io.github.leewyatt.rxcontrols.RXPlaceholder;
+import io.github.leewyatt.rxcontrols.RXQuarterPicker;
 import io.github.leewyatt.rxcontrols.RXRadioButton;
 import io.github.leewyatt.rxcontrols.RXRadioToggleButton;
 import io.github.leewyatt.rxcontrols.RXRangeSlider;
@@ -85,6 +95,7 @@ import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.RXTileCell;
 import io.github.leewyatt.rxcontrols.RXTileView;
+import io.github.leewyatt.rxcontrols.RXTimePicker;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineItem.Type;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
@@ -94,6 +105,8 @@ import io.github.leewyatt.rxcontrols.RXTransitionButton;
 import io.github.leewyatt.rxcontrols.RXTransitionLabel;
 import io.github.leewyatt.rxcontrols.RXTransitionPane;
 import io.github.leewyatt.rxcontrols.RXWaveProgressIndicator;
+import io.github.leewyatt.rxcontrols.RXYearPicker;
+import io.github.leewyatt.rxcontrols.RXYearQuarter;
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
@@ -103,6 +116,10 @@ import io.github.leewyatt.rxcontrols.samples.support.SampleIcons;
 import io.github.leewyatt.rxcontrols.spectrum.VisRadial;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.Year;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -169,6 +186,7 @@ final class ThemeGalleryCards {
         list.add(card("RXBackdrop", "Fading scrim that dims the content beneath it.", buildRXBackdrop()));
         list.add(card("RXBarSpinner", "Decorative loading bars.", buildRXBarSpinner()));
         list.add(card("RXButton", "Button with bounded ripple feedback.", buildRXButton()));
+        list.add(card("RXCalendarView", "Month calendar with month and year drill-up.", buildRXCalendarView()));
         list.add(wide("RXCarousel", "Paged carousel with animated page transitions.", buildRXCarousel()));
         list.add(wide("RXCascader", "Drop-down selector for hierarchical options.", buildRXCascader()));
         list.add(wide("RXCascaderView", "Inline multi-column hierarchy browser.", buildRXCascaderView()));
@@ -179,6 +197,10 @@ final class ThemeGalleryCards {
         list.add(card("RXCircularProgressIndicator", "Ring progress with centered text.", buildRXCircularProgressIndicator()));
         list.add(card("RXClipPathImageView", "Image clipped to an SVG path.", buildRXClipPathImageView()));
         list.add(card("RXCopyButton", "Copies to the clipboard and confirms with a check.", buildRXCopyButton()));
+        list.add(card("RXDatePicker", "Text field with a popup calendar.", buildRXDatePicker()));
+        list.add(card("RXDateRangePicker", "Start and end dates picked on two linked months.", buildRXDateRangePicker()));
+        list.add(card("RXDateTimePicker", "Date and time with a confirmed popup draft.", buildRXDateTimePicker()));
+        list.add(wide("RXDateTimeRangePicker", "Date-time range with start and end times.", buildRXDateTimeRangePicker()));
         list.add(card("RXDecimalField", "Locale-aware decimal number input.", buildRXDecimalField()));
         list.add(card("RXDialog", "In-scene modal dialog shown over the page.", buildRXDialog()));
         list.add(card("RXDigit", "Seven-segment numeric glyph.", buildRXDigit()));
@@ -210,8 +232,10 @@ final class ThemeGalleryCards {
         list.add(card("RXMaterialTextField", "Material-style text field with a floating label.", buildRXMaterialTextField()));
         list.add(card("RXMenuButton", "Button that opens a command menu.", buildRXMenuButton()));
         list.add(card("RXMenuList", "Inline command list with keyboard navigation.", buildRXMenuList()));
+        list.add(card("RXMonthPicker", "Month picker on a twelve-month grid.", buildRXMonthPicker()));
         list.add(card("RXPasswordField", "Password field with side slots and reveal.", buildRXPasswordField()));
         list.add(card("RXPlaceholder", "Empty-state message with actions.", buildRXPlaceholder()));
+        list.add(card("RXQuarterPicker", "Calendar quarter picker.", buildRXQuarterPicker()));
         list.add(card("RXRadioButton", "Radio button with halo and ripple feedback.", buildRXRadioButton()));
         list.add(card("RXRadioToggleButton", "Toggle buttons that select like radio buttons.", buildRXRadioToggleButton()));
         list.add(card("RXRangeSlider", "Slider with a low and a high thumb.", buildRXRangeSlider()));
@@ -233,6 +257,7 @@ final class ThemeGalleryCards {
         list.add(card("RXTextField", "Text field with leading and trailing slots.", buildRXTextField()));
         list.add(card("RXTextView", "Wrapping text the user can select and copy.", buildRXTextView()));
         list.add(wide("RXTileView", "Virtualized grid of uniform tiles.", buildRXTileView()));
+        list.add(card("RXTimePicker", "Time picker with scrolling columns.", buildRXTimePicker()));
         list.add(card("RXTimelineView", "Vertical timeline of events.", buildRXTimelineView()));
         list.add(wide("RXTimelineView Horizontal", "Horizontal timeline of events.", buildRXTimelineViewHorizontal()));
         list.add(card("RXToggleButton", "Toggle button with ripple feedback.", buildRXToggleButton()));
@@ -240,6 +265,7 @@ final class ThemeGalleryCards {
         list.add(card("RXTransitionLabel", "Label that animates text changes.", buildRXTransitionLabel()));
         list.add(card("RXTransitionPane", "Container that animates content changes.", buildRXTransitionPane()));
         list.add(card("RXWaveProgressIndicator", "Circular progress filled by a wave.", buildRXWaveProgressIndicator()));
+        list.add(card("RXYearPicker", "Year picker on a decade grid.", buildRXYearPicker()));
         return list;
     }
 
@@ -341,6 +367,53 @@ final class ThemeGalleryCards {
         carousel.setMaxSize(Double.MAX_VALUE, Region.USE_PREF_SIZE);
         carousel.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return carousel;
+    }
+
+    private static Node buildRXCalendarView() {
+        RXCalendarView calendar = new RXCalendarView(LocalDate.now());
+        StackPane card = new StackPane(calendar);
+        card.setPadding(new Insets(16));
+        return card;
+    }
+
+    private static Node buildRXDatePicker() {
+        return pickerCard(new RXDatePicker(LocalDate.now()));
+    }
+
+    private static Node buildRXDateRangePicker() {
+        return pickerCard(new RXDateRangePicker(RXDateRange.of(LocalDate.now(), LocalDate.now().plusDays(6))));
+    }
+
+    private static Node buildRXDateTimePicker() {
+        return pickerCard(new RXDateTimePicker(LocalDate.now().atTime(9, 30)));
+    }
+
+    private static Node buildRXDateTimeRangePicker() {
+        return pickerCard(new RXDateTimeRangePicker(RXDateTimeRange.of(LocalDate.now().atTime(9, 0),
+                LocalDate.now().plusDays(1).atTime(17, 30))));
+    }
+
+    private static Node buildRXMonthPicker() {
+        return pickerCard(new RXMonthPicker(YearMonth.now()));
+    }
+
+    private static Node buildRXQuarterPicker() {
+        return pickerCard(new RXQuarterPicker(RXYearQuarter.from(LocalDate.now())));
+    }
+
+    private static Node buildRXTimePicker() {
+        return pickerCard(new RXTimePicker(LocalTime.of(14, 30)));
+    }
+
+    private static Node buildRXYearPicker() {
+        return pickerCard(new RXYearPicker(Year.now()));
+    }
+
+    private static Node pickerCard(RXPickerBase<?> picker) {
+        picker.setClearable(true);
+        StackPane card = new StackPane(picker);
+        card.setPadding(new Insets(16));
+        return card;
     }
 
     private static Node buildRXCascader() {

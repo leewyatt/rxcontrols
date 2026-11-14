@@ -4127,6 +4127,13 @@
     -fx-opacity: 1;
 }
 
+/* AtlantaFX text inputs are taller (8px x 12px padding); match them so pickers line
+   up with plain text fields in AtlantaFX forms. */
+.rx-theme-atlantafx .rx-picker > .text-field,
+.rx-theme-atlantafx.rx-picker > .text-field {
+    -fx-padding: 0.666667em 0 0.666667em 1em;
+}
+
 /* Range pickers underline the field being edited. */
 .rx-picker:focused > .text-field:active,
 .rx-picker:showing > .text-field:active {
