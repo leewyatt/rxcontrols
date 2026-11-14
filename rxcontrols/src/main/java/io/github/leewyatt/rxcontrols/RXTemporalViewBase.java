@@ -17,10 +17,10 @@ import java.util.Locale;
  * does not know whether it sits in a page, a dialog or a picker popup.
  *
  * <p>The {@link #valueProperty() value} is the view's current selection. When the
- * user completes a selection — by clicking a cell or pressing Enter / Space on the
- * keyboard cursor — the view updates the value and fires an {@link ActionEvent},
- * even when the picked value equals the current one; programmatic writes to the
- * value fire no action. A view is a single Tab stop: its cells take no focus, and a
+ * user completes a selection the view fires an {@link ActionEvent}, even when the
+ * value did not change; each view documents what completes a selection (a cell pick
+ * for the calendars, a confirmation in the time columns for the time-based views).
+ * Programmatic writes to the value fire no action. A view is a single Tab stop: its cells take no focus, and a
  * keyboard cursor (the cells' {@code :focused} pseudo-class) appears with the first
  * navigation key.
  *
@@ -164,8 +164,8 @@ public abstract class RXTemporalViewBase<T> extends Control {
     };
 
     /**
-     * Handler invoked when the user completes a selection, even if the picked value
-     * equals the current one. Programmatic value changes do not fire it.
+     * Handler invoked when the user completes a selection (as defined by each view),
+     * even if the value did not change. Programmatic value changes do not fire it.
      *
      * @return the on-action property
      */

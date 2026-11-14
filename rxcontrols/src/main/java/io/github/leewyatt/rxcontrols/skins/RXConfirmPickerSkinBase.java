@@ -22,7 +22,7 @@ import java.util.List;
  * @param <C> the picker type
  * @param <V> the popup view type
  */
-public abstract class RXConfirmPickerSkinBase<T, C extends RXPickerBase<T>, V extends RXTemporalViewBase<T>>
+abstract class RXConfirmPickerSkinBase<T, C extends RXPickerBase<T>, V extends RXTemporalViewBase<T>>
         extends RXPickerSkinBase<T, C> {
 
     private final TextField editor = new TextField();

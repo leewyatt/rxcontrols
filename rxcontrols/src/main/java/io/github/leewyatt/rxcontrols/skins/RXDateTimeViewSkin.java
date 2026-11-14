@@ -31,6 +31,7 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
 
     private static final PseudoClass INVALID = PseudoClass.getPseudoClass("invalid");
     private static final String EMPTY_TIME = "--:--";
+    private static final int DAYS_SEARCHED = 366;
 
     private final CalendarPanel panel = new CalendarPanel(CalendarPanel.Level.DAY);
     private final TimeColumns columns = new TimeColumns();
@@ -38,6 +39,8 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
     private final HBox content;
     private boolean timeSection;
     private boolean writingDisplayedMonth;
+    /** Constraint snapshot, rebuilt after any rule property changes. */
+    private DateTimeConstraints rules;
 
     /**
      * Creates the skin for the given view.
@@ -177,9 +180,19 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
         return first != null ? first : LocalTime.MIDNIGHT;
     }
 
+    /** Today, clamped into the bounds and moved to the nearest selectable day. */
     private LocalDate defaultDate() {
         DateTimeConstraints rules = constraints();
-        return TemporalRules.clamp(today(), rules.minDate(), rules.maxDate());
+        LocalDate base = TemporalRules.clamp(today(), rules.minDate(), rules.maxDate());
+        for (int offset = 0; offset <= DAYS_SEARCHED; offset++) {
+            if (rules.isDateSelectable(base.plusDays(offset))) {
+                return base.plusDays(offset);
+            }
+            if (rules.isDateSelectable(base.minusDays(offset))) {
+                return base.minusDays(offset);
+            }
+        }
+        return base;
     }
 
     private void onPageChanged() {
@@ -239,6 +252,7 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
     }
 
     private void updateConstraints() {
+        this.rules = null;
         DateTimeConstraints rules = constraints();
         panel.setBounds(rules.minDate(), rules.maxDate());
         panel.refresh();
@@ -246,10 +260,14 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
     }
 
     private DateTimeConstraints constraints() {
+        if (rules != null) {
+            return rules;
+        }
         RXDateTimeView control = getSkinnable();
-        return new DateTimeConstraints(control.getMinDateTime(), control.getMaxDateTime(), control.getDateFilter(),
+        rules = new DateTimeConstraints(control.getMinDateTime(), control.getMaxDateTime(), control.getDateFilter(),
                 control.getTimeFilter(), control.getHourStep(), control.getMinuteStep(), control.getSecondStep(),
                 control.isShowSeconds());
+        return rules;
     }
 
     private void updateToday() {

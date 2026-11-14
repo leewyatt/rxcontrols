@@ -116,6 +116,32 @@ public class RXDateTimeRangePickerPopupTest {
         });
     }
 
+    /**
+     * Verifies OK is disabled while a new range is half picked over a committed one.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void okDisabledWhileHalfPicked() throws InterruptedException {
+        runOnFx(() -> {
+            RXDateTimeRangePicker picker = newShownPicker();
+            RXDateTimeRange old = RXDateTimeRange.of(LocalDate.of(2026, 11, 1).atStartOfDay(),
+                    LocalDate.of(2026, 11, 2).atStartOfDay());
+            picker.setValue(old);
+            int[] actions = new int[1];
+            picker.setOnAction(event -> actions[0]++);
+            picker.show();
+            Node root = findPopup().getScene().getRoot();
+            click(dayCell(root, LocalDate.of(2026, 11, 20)));
+            Button ok = (Button) root.lookup(".ok-button");
+            assertTrue(ok.isDisabled());
+            ok.fire();
+            press(editor(picker, 1), KeyCode.ENTER);
+            assertEquals(old, picker.getValue());
+            assertEquals(0, actions[0]);
+        });
+    }
+
     private RXDateTimeRangePicker newShownPicker() {
         RXDateTimeRangePicker picker = new RXDateTimeRangePicker();
         picker.setLocale(Locale.US);

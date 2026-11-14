@@ -72,10 +72,17 @@ public final class DateTimeConstraints {
      * Returns whether a day may be picked.
      *
      * @param date the date
-     * @return {@code true} if within the bounds' dates and accepted by the date filter
+     * @return {@code true} if within the bounds' dates, accepted by the date filter and,
+     *         on a bound's own day, offering at least one selectable time
      */
     public boolean isDateSelectable(LocalDate date) {
-        return TemporalRules.isSelectable(date, minDate(), maxDate(), dateFilter);
+        if (!TemporalRules.isSelectable(date, minDate(), maxDate(), dateFilter)) {
+            return false;
+        }
+        // A bound's own day is only selectable when some time on it still is (for
+        // example a minimum of 23:50 with a 15-minute step leaves none).
+        boolean boundDay = date.equals(minDate()) || date.equals(maxDate());
+        return !boundDay || timesOn(date).snap(LocalTime.MIDNIGHT, null) != null;
     }
 
     /**

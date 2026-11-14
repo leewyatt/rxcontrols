@@ -4,6 +4,8 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -20,6 +22,7 @@ import static io.github.leewyatt.rxcontrols.PickerTestSupport.dayCell;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.hasPseudoClass;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.press;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -98,6 +101,65 @@ public class RXDateTimeRangeViewTest {
         assertEquals(1, actions.get());
         assertEquals(RXDateTimeRange.of(LocalDateTime.of(2026, 11, 14, 1, 0), LocalDateTime.of(2026, 11, 15, 2, 0)),
                 view.getValue());
+    }
+
+    /**
+     * Verifies Escape on a half-picked range restores the columns and drops pending times.
+     */
+    @Test
+    public void escapeDropsPendingState() {
+        RXDateTimeRangeView view = newView();
+        view.setMinDateTime(LocalDateTime.of(2026, 11, 14, 15, 30));
+        click(timeCell(view, ".hour-column", "16"));
+        click(dayCell(view, LocalDate.of(2026, 11, 20)));
+        press(view, KeyCode.ESCAPE);
+        assertTrue(hasPseudoClass(view.lookup(".start-tab"), "selected"));
+        click(dayCell(view, LocalDate.of(2026, 11, 25)));
+        click(dayCell(view, LocalDate.of(2026, 11, 26)));
+        assertEquals(LocalDate.of(2026, 11, 25).atStartOfDay(), view.getValue().start());
+    }
+
+    /**
+     * Verifies the anchor day's bound limits do not apply to the end time while half picked.
+     */
+    @Test
+    public void halfPickedEndTimeHasNoAnchorDayLimit() {
+        RXDateTimeRangeView view = newView();
+        view.setMinDateTime(LocalDateTime.of(2026, 11, 14, 15, 30));
+        click(dayCell(view, LocalDate.of(2026, 11, 14)));
+        view.applyCss();
+        assertFalse(timeCell(view, ".hour-column", "09").isDisabled());
+    }
+
+    /**
+     * Verifies Space and a double click on the start time move on to the end time instead of confirming.
+     */
+    @Test
+    public void startTimeConfirmationAdvancesToEnd() {
+        RXDateTimeRangeView view = newView();
+        view.setValue(RXDateTimeRange.of(LocalDateTime.of(2026, 11, 20, 9, 0), LocalDateTime.of(2026, 11, 21, 9, 0)));
+        AtomicInteger actions = new AtomicInteger();
+        view.setOnAction(event -> actions.incrementAndGet());
+        Label hour = timeCell(view, ".hour-column", "10");
+        hour.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, true, false, false, null));
+        view.lookup(".hour-column").lookup(".items").fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0,
+                MouseButton.PRIMARY, 2, false, false, false, false, true, false, false, true, false, false, null));
+        assertEquals(0, actions.get());
+        assertTrue(hasPseudoClass(view.lookup(".end-tab"), "selected"));
+
+        RXDateTimeRangeView keyboard = newView();
+        AtomicInteger keyboardActions = new AtomicInteger();
+        keyboard.setOnAction(event -> keyboardActions.incrementAndGet());
+        press(keyboard, KeyCode.DOWN);
+        press(keyboard, KeyCode.ENTER);
+        press(keyboard, KeyCode.RIGHT);
+        press(keyboard, KeyCode.ENTER);
+        press(keyboard, KeyCode.SPACE);
+        assertEquals(0, keyboardActions.get());
+        assertTrue(hasPseudoClass(keyboard.lookup(".end-tab"), "selected"));
+        press(keyboard, KeyCode.SPACE);
+        assertEquals(1, keyboardActions.get());
     }
 
     private static RXDateTimeRangeView newView() {

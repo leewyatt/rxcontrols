@@ -55,6 +55,8 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
     private boolean timeSection;
     private boolean writingDisplayedMonth;
     private boolean pickingValue;
+    /** Constraint snapshot, rebuilt after any rule property changes. */
+    private DateTimeConstraints rules;
 
     /**
      * Creates the skin for the given view.
@@ -151,7 +153,7 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
             columns.clearKeyboardCursor();
             return panel.handleKey(event);
         }
-        if (code == KeyCode.ENTER && columns.isKeyboardCursorVisible() && !editingEnd) {
+        if ((code == KeyCode.ENTER || code == KeyCode.SPACE) && columns.isKeyboardCursorVisible() && !editingEnd) {
             // The start time is done: continue with the end time before confirming.
             editingEnd = true;
             updateValue(false);
@@ -186,7 +188,15 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
     public void clearAnchor() {
         hover = null;
         anchor.set(null);
-        panel.refresh();
+        resetPendingTimes();
+        updateValue(false);
+    }
+
+    /** Drops times chosen for a range that was never completed, back on the start tab. */
+    private void resetPendingTimes() {
+        pendingStartTime = null;
+        pendingEndTime = null;
+        editingEnd = false;
     }
 
     // ==================== Days ====================
@@ -314,6 +324,17 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
     }
 
     private void onTimeCommit() {
+        // Confirming the start time (double click) continues with the end time; only
+        // the end time confirms the range.
+        if (!editingEnd) {
+            editingEnd = true;
+            boolean keyboard = columns.isKeyboardCursorVisible();
+            updateValue(false);
+            if (keyboard) {
+                columns.showKeyboardCursor();
+            }
+            return;
+        }
         getSkinnable().fireEvent(new ActionEvent());
     }
 
@@ -349,8 +370,11 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
         hover = null;
         anchor.set(null);
         RXDateTimeRange value = getSkinnable().getValue();
-        if (value != null && !pickingValue) {
-            panel.reveal(value.start().toLocalDate());
+        if (!pickingValue) {
+            resetPendingTimes();
+            if (value != null) {
+                panel.reveal(value.start().toLocalDate());
+            }
         }
         updateValue(true);
     }
@@ -370,7 +394,8 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
                     ? rules.timesOn(day, sameDay ? startTime : null, null)
                     : rules.timesOn(day, null, sameDay ? endTime : null);
         } else {
-            times = rules.timesOn(anchor.get());
+            // The other endpoint's day is still unknown, so no day-specific limits apply.
+            times = rules.timesOn(null);
         }
         columns.configure(times, control.isTwelveHourClock(), control.getLocale());
         columns.setValue(editingEnd ? endTime : startTime, animate);
@@ -423,6 +448,7 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
     }
 
     private void updateConstraints() {
+        this.rules = null;
         DateTimeConstraints rules = constraints();
         if (anchor.get() != null && !constraints().isDateSelectable(anchor.get())) {
             // A bounds or filter change made the pending first endpoint unpickable.
@@ -434,10 +460,14 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
     }
 
     private DateTimeConstraints constraints() {
+        if (rules != null) {
+            return rules;
+        }
         RXDateTimeRangeView control = getSkinnable();
-        return new DateTimeConstraints(control.getMinDateTime(), control.getMaxDateTime(), control.getDateFilter(),
+        rules = new DateTimeConstraints(control.getMinDateTime(), control.getMaxDateTime(), control.getDateFilter(),
                 control.getTimeFilter(), control.getHourStep(), control.getMinuteStep(), control.getSecondStep(),
                 control.isShowSeconds());
+        return rules;
     }
 
     private void updateToday() {

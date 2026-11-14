@@ -193,7 +193,15 @@ public class RXDateTimeRangePickerSkin extends RXPickerSkinBase<RXDateTimeRange,
         }
     }
 
+    private boolean isHalfPicked() {
+        return observedAnchor != null && observedAnchor.get() != null;
+    }
+
     private void commitDraft() {
+        // A half-picked new range is not confirmable; the old range must not slip through.
+        if (isHalfPicked()) {
+            return;
+        }
         RXDateTimeRange draft = rangeView.getValue();
         if (draft != null && isAllowed(draft)) {
             commit(draft);
@@ -202,7 +210,7 @@ public class RXDateTimeRangePickerSkin extends RXPickerSkinBase<RXDateTimeRange,
 
     private void updateOkButton() {
         RXDateTimeRange draft = rangeView.getValue();
-        okButton.setDisable(draft == null || !isAllowed(draft));
+        okButton.setDisable(draft == null || isHalfPicked() || !isAllowed(draft));
     }
 
     private void handleStartEnter(KeyEvent event) {

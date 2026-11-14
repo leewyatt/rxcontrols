@@ -45,7 +45,7 @@ import java.util.List;
  * @param <T> the picker value type
  * @param <C> the picker type
  */
-public abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase<C> {
+abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase<C> {
 
     // ==================== Constants ====================
 

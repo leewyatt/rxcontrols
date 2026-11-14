@@ -112,6 +112,30 @@ public class RXDateTimeViewTest {
         assertEquals(LocalDate.of(2026, 11, 12), view.getValue().toLocalDate());
     }
 
+    /**
+     * Verifies a time pick without a value lands on the nearest selectable day.
+     */
+    @Test
+    public void timeFirstSkipsFilteredToday() {
+        RXDateTimeView view = newView();
+        view.setDateFilter(date -> date.getDayOfWeek().getValue() < 6);
+        click(timeCell(view, ".hour-column", "10"));
+        assertEquals(LocalDate.of(2026, 11, 13).atTime(10, 0), view.getValue());
+        assertFalse(hasPseudoClass(view, "invalid"));
+    }
+
+    /**
+     * Verifies a bound day without any selectable time is disabled.
+     */
+    @Test
+    public void boundDayWithoutTimesIsDisabled() {
+        RXDateTimeView view = newView();
+        view.setMinuteStep(15);
+        view.setMinDateTime(LocalDateTime.of(2026, 11, 14, 23, 50));
+        assertTrue(dayCell(view, LocalDate.of(2026, 11, 14)).isDisabled());
+        assertFalse(dayCell(view, LocalDate.of(2026, 11, 15)).isDisabled());
+    }
+
     private static RXDateTimeView newView() {
         RXDateTimeView view = new RXDateTimeView();
         view.setLocale(Locale.US);

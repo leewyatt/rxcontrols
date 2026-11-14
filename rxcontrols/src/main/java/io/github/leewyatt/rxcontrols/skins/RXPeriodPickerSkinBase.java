@@ -21,7 +21,7 @@ import java.util.function.Predicate;
  * @param <C> the picker type
  * @param <V> the popup view type
  */
-public abstract class RXPeriodPickerSkinBase<T extends Comparable<? super T>, C extends RXPickerBase<T>,
+abstract class RXPeriodPickerSkinBase<T extends Comparable<? super T>, C extends RXPickerBase<T>,
         V extends RXTemporalViewBase<T>> extends RXPickerSkinBase<T, C> {
 
     private static final int FIELD_COLUMNS = 8;

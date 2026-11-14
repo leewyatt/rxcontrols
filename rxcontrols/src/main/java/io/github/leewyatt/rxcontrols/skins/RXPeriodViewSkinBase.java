@@ -24,7 +24,7 @@ import java.util.function.Predicate;
  * @param <T> the period value type
  * @param <C> the view type
  */
-public abstract class RXPeriodViewSkinBase<T extends Comparable<? super T>, C extends RXTemporalViewBase<T>>
+abstract class RXPeriodViewSkinBase<T extends Comparable<? super T>, C extends RXTemporalViewBase<T>>
         extends RXSkinBase<C> implements TemporalKeyTarget {
 
     private static final PseudoClass INVALID = PseudoClass.getPseudoClass("invalid");
