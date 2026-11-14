@@ -20,6 +20,7 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -32,8 +33,9 @@ import java.util.List;
  * (count, cap, zero, text, dot, forced hiding), where it sits (corner, overlap,
  * offsets, padding that reserves room, right-to-left), and how it looks (color
  * class, indicator size, outline ring, show / hide animation, pulse). The content can be swapped
- * between a button, a round avatar, a card and none at all. A strip below the
- * preview shows the status-dot combination with a plain label.
+ * between a button, a round avatar, a card and none at all. A panel below the
+ * live badge shows badges without content: status dots and counts beside a
+ * plain label.
  *
  * <p>For a minimal "few lines of code" example see {@link RXBadgeDemo}.
  */
@@ -88,17 +90,17 @@ public class RXBadgeShowcase extends RXShowcaseApplication {
         badge.setCount(5);
         badge.getStyleClass().add("live-badge");
 
-        Label state = new Label();
-        state.getStyleClass().add("state-label");
-        state.textProperty().bind(Bindings.createStringBinding(
-                () -> badge.isIndicatorShowing()
-                        ? "showing \"" + badge.getIndicatorText() + "\""
-                        : "hidden",
-                badge.indicatorShowingProperty(), badge.indicatorTextProperty()));
+        StackPane stage = new StackPane(badge);
+        stage.getStyleClass().add("stage");
 
-        VBox stack = new VBox(36.0, badge, state, buildStatusStrip());
-        stack.getStyleClass().add("live-preview");
-        return stack;
+        Label standaloneCaption = caption("Without content");
+        VBox.setMargin(standaloneCaption, new Insets(18.0, 0.0, 0.0, 0.0));
+        VBox preview = new VBox(10.0,
+                caption("Live badge"), stage,
+                standaloneCaption, buildStandalonePanel());
+        preview.getStyleClass().add("live-preview");
+        preview.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return preview;
     }
 
     @Override
@@ -240,16 +242,26 @@ public class RXBadgeShowcase extends RXShowcaseApplication {
 
     // ==================== Preview helpers ====================
 
-    private Node buildStatusStrip() {
-        HBox strip = new HBox(24.0,
+    private Label caption(String text) {
+        Label caption = new Label(text);
+        caption.getStyleClass().add("caption");
+        return caption;
+    }
+
+    private Node buildStandalonePanel() {
+        HBox statuses = new HBox(28.0,
                 statusLabel("Online", "success", false),
                 statusLabel("Syncing", "primary", true),
                 statusLabel("Warning", "warning", false),
-                statusLabel("Offline", "info", false),
+                statusLabel("Offline", "info", false));
+        statuses.setAlignment(Pos.CENTER);
+        HBox counts = new HBox(36.0,
                 inlineCount("Inbox", 12),
                 inlineCount("Updates", 150));
-        strip.getStyleClass().add("status-strip");
-        return strip;
+        counts.setAlignment(Pos.CENTER);
+        VBox panel = new VBox(18.0, statuses, counts);
+        panel.getStyleClass().add("standalone-panel");
+        return panel;
     }
 
     private Label statusLabel(String text, String colorClass, boolean pulsing) {
@@ -259,13 +271,16 @@ public class RXBadgeShowcase extends RXShowcaseApplication {
         dot.getStyleClass().add(colorClass);
         Label label = new Label(text, dot);
         label.setGraphicTextGap(8.0);
+        label.setMinWidth(Region.USE_PREF_SIZE);
         return label;
     }
 
     private Node inlineCount(String text, int count) {
         RXBadge inline = new RXBadge();
         inline.setCount(count);
-        HBox box = new HBox(6.0, new Label(text), inline);
+        Label label = new Label(text);
+        label.setMinWidth(Region.USE_PREF_SIZE);
+        HBox box = new HBox(6.0, label, inline);
         box.setAlignment(Pos.CENTER_LEFT);
         return box;
     }
