@@ -14,7 +14,7 @@
  * scope further down re-declares every role for the AtlantaFX bridge.         *
  *                                                                             *
  ******************************************************************************/
-.rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-bar-spinner, .rx-box, .rx-button,
+.rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-badge, .rx-bar-spinner, .rx-box, .rx-button,
 .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-content-pane, .rx-copy-button, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
@@ -25,7 +25,7 @@
 .rx-material-decimal-field, .rx-material-double-field, .rx-material-integer-field,
 .rx-material-long-field, .rx-material-text-field, .rx-material-password-field,
 .rx-password-field, .rx-placeholder, .rx-radio-button, .rx-radio-toggle-button,
-.rx-reaction-button, .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
+.rx-reaction-button, .rx-ribbon-badge, .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-selection-box, .rx-sidebar, .rx-snackbar-host, .rx-speed-dial,
 .rx-slider, .rx-range-slider,
 .rx-skeleton, .rx-skeleton-pane, .rx-state-pane, .rx-switch-button, .rx-text-field, .rx-text-view,
@@ -89,6 +89,8 @@
 .rx-theme-atlantafx.rx-avatar,
 .rx-theme-atlantafx .rx-backdrop,
 .rx-theme-atlantafx.rx-backdrop,
+.rx-theme-atlantafx .rx-badge,
+.rx-theme-atlantafx.rx-badge,
 .rx-theme-atlantafx .rx-bar-spinner,
 .rx-theme-atlantafx.rx-bar-spinner,
 .rx-theme-atlantafx .rx-box,
@@ -189,6 +191,8 @@
 .rx-theme-atlantafx.rx-radio-toggle-button,
 .rx-theme-atlantafx .rx-reaction-button,
 .rx-theme-atlantafx.rx-reaction-button,
+.rx-theme-atlantafx .rx-ribbon-badge,
+.rx-theme-atlantafx.rx-ribbon-badge,
 .rx-theme-atlantafx .rx-ripple-pane,
 .rx-theme-atlantafx.rx-ripple-pane,
 .rx-theme-atlantafx .rx-row,
@@ -685,6 +689,112 @@
 .rx-avatar > .text-wrapper > .label {
     -fx-font-weight: bold;
     -fx-text-fill: -rx-avatar-on-fill;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXBadge                                                                     *
+ *                                                                             *
+ ******************************************************************************/
+/* -rx-badge-ring outlines the indicator where it has to stand out from the content
+   under it; set it to the color of the surface behind the badge. */
+.rx-badge {
+    -rx-badge-fill: -rx-danger;
+    -rx-badge-on-fill: -rx-on-primary;
+    -rx-badge-ring: transparent;
+}
+
+.rx-badge.primary {
+    -rx-badge-fill: -rx-primary;
+}
+
+.rx-badge.success {
+    -rx-badge-fill: -rx-success;
+}
+
+.rx-badge.warning {
+    -rx-badge-fill: -rx-warning;
+}
+
+.rx-badge.danger {
+    -rx-badge-fill: -rx-danger;
+}
+
+.rx-badge.info {
+    -rx-badge-fill: -rx-info;
+}
+
+.rx-badge > .indicator {
+    -fx-background-color: -rx-badge-ring, -rx-badge-fill;
+    -fx-background-insets: -2, 0;
+    -fx-background-radius: 999px;
+    -fx-text-fill: -rx-badge-on-fill;
+    -fx-font-size: 0.917em;
+    -fx-padding: 0.167em 0.5em;
+    -fx-alignment: center;
+}
+
+.rx-badge > .indicator:dot {
+    -fx-padding: 0;
+    -fx-pref-width: 0.727em;
+    -fx-pref-height: 0.727em;
+}
+
+.rx-badge > .pulse {
+    -fx-background-color: -rx-badge-fill;
+    -fx-background-radius: 999px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXRibbonBadge                                                               *
+ *                                                                             *
+ ******************************************************************************/
+.rx-ribbon-badge {
+    -rx-ribbon-fill: -rx-primary;
+    -rx-ribbon-on-fill: -rx-on-primary;
+}
+
+.rx-ribbon-badge.primary {
+    -rx-ribbon-fill: -rx-primary;
+}
+
+.rx-ribbon-badge.success {
+    -rx-ribbon-fill: -rx-success;
+}
+
+.rx-ribbon-badge.warning {
+    -rx-ribbon-fill: -rx-warning;
+}
+
+.rx-ribbon-badge.danger {
+    -rx-ribbon-fill: -rx-danger;
+}
+
+.rx-ribbon-badge.info {
+    -rx-ribbon-fill: -rx-info;
+}
+
+/* The corner above the fold stays square, so the ribbon and the fold meet in a
+   straight edge. */
+.rx-ribbon-badge > .ribbon {
+    -fx-background-color: -rx-ribbon-fill;
+    -fx-background-radius: 3px 3px 0 3px;
+    -fx-text-fill: -rx-ribbon-on-fill;
+    -fx-padding: 0.25em 0.667em;
+}
+
+.rx-ribbon-badge:start > .ribbon {
+    -fx-background-radius: 3px 3px 3px 0;
+}
+
+.rx-ribbon-badge > .fold {
+    -fx-background-color: derive(-rx-ribbon-fill, -35%);
+    -fx-shape: "M0 0 H4 L0 3 Z";
+}
+
+.rx-ribbon-badge:start > .fold {
+    -fx-shape: "M0 0 H4 V3 Z";
 }
 
 /*******************************************************************************

@@ -16,6 +16,14 @@ public final class SampleIcons {
             + "1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 "
             + "2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z M24 24L24 24";
 
+    /** Material "notifications" bell glyph on a 24x24 view box. */
+    public static final String BELL = "M0 0L0 0 M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4"
+            + "c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z M24 24L24 24";
+
+    /** Material "chat bubble" message glyph on a 24x24 view box. */
+    public static final String MESSAGE = "M0 0L0 0 M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z "
+            + "M24 24L24 24";
+
     private SampleIcons() {
     }
 
