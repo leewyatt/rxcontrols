@@ -44,7 +44,11 @@ public class RXCalendarViewSkin extends RXSkinBase<RXCalendarView> implements Te
         updateConstraints();
 
         disposer.registerListener(control.valueProperty(), this::updateValue);
-        disposer.registerListener(control.displayedMonthProperty(), this::showDisplayedMonth);
+        // A change listener reads the value on every change. An invalidation listener that
+        // returns early during this skin's own write-back would leave the property invalid,
+        // and the next set would notify nobody.
+        disposer.registerListener(control.displayedMonthProperty(),
+                (observable, old, month) -> showDisplayedMonth());
         disposer.registerListener(control.localeProperty(), this::updateConfiguration);
         disposer.registerListener(control.weekFieldsProperty(), this::updateConfiguration);
         disposer.registerListener(control.showWeekNumbersProperty(), this::updateConfiguration);

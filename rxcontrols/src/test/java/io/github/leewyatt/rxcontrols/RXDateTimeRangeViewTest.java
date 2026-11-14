@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -160,6 +161,17 @@ public class RXDateTimeRangeViewTest {
         assertTrue(hasPseudoClass(keyboard.lookup(".end-tab"), "selected"));
         press(keyboard, KeyCode.SPACE);
         assertEquals(1, keyboardActions.get());
+    }
+
+    /**
+     * Verifies a displayed month set right after paging still pages the grid.
+     */
+    @Test
+    public void displayedMonthSetAfterPagingPagesGrid() {
+        RXDateTimeRangeView view = newView();
+        click(view.lookup(".next-button"));
+        view.setDisplayedMonth(YearMonth.of(2020, 1));
+        assertTrue(dayCell(view, LocalDate.of(2020, 1, 15)).isVisible());
     }
 
     private static RXDateTimeRangeView newView() {

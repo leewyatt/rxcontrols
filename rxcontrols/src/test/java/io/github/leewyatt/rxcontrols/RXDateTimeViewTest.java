@@ -12,6 +12,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -134,6 +135,17 @@ public class RXDateTimeViewTest {
         view.setMinDateTime(LocalDateTime.of(2026, 11, 14, 23, 50));
         assertTrue(dayCell(view, LocalDate.of(2026, 11, 14)).isDisabled());
         assertFalse(dayCell(view, LocalDate.of(2026, 11, 15)).isDisabled());
+    }
+
+    /**
+     * Verifies a displayed month set right after paging still pages the grid.
+     */
+    @Test
+    public void displayedMonthSetAfterPagingPagesGrid() {
+        RXDateTimeView view = newView();
+        click(view.lookup(".next-button"));
+        view.setDisplayedMonth(YearMonth.of(2020, 1));
+        assertTrue(dayCell(view, LocalDate.of(2020, 1, 15)).isVisible());
     }
 
     private static RXDateTimeView newView() {

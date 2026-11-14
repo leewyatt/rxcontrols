@@ -72,7 +72,11 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
         updateConstraints();
 
         disposer.registerListener(control.valueProperty(), () -> updateValue(true));
-        disposer.registerListener(control.displayedMonthProperty(), this::showDisplayedMonth);
+        // A change listener reads the value on every change. An invalidation listener that
+        // returns early during this skin's own write-back would leave the property invalid,
+        // and the next set would notify nobody.
+        disposer.registerListener(control.displayedMonthProperty(),
+                (observable, old, month) -> showDisplayedMonth());
         for (Observable option : List.of(control.localeProperty(), control.weekFieldsProperty(),
                 control.showWeekNumbersProperty(), control.showAdjacentDaysProperty())) {
             disposer.registerListener(option, this::updateConfiguration);

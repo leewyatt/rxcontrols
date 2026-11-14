@@ -54,7 +54,11 @@ public class RXDateRangeViewSkin extends RXSkinBase<RXDateRangeView>
         updateConstraints();
 
         disposer.registerListener(control.valueProperty(), this::onValueChanged);
-        disposer.registerListener(control.displayedMonthProperty(), this::showDisplayedMonth);
+        // A change listener reads the value on every change. An invalidation listener that
+        // returns early during this skin's own write-back would leave the property invalid,
+        // and the next set would notify nobody.
+        disposer.registerListener(control.displayedMonthProperty(),
+                (observable, old, month) -> showDisplayedMonth());
         disposer.registerListener(control.monthCountProperty(), this::updateConfiguration);
         disposer.registerListener(control.localeProperty(), this::updateConfiguration);
         disposer.registerListener(control.weekFieldsProperty(), this::updateConfiguration);

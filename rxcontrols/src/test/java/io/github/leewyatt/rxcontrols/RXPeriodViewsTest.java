@@ -127,6 +127,17 @@ public class RXPeriodViewsTest {
         assertTrue(hasPseudoClass(view, "invalid"));
     }
 
+    /**
+     * Verifies a displayed year set right after paging still pages the grid.
+     */
+    @Test
+    public void displayedYearSetAfterPagingPagesGrid() {
+        RXMonthView view = show(new RXMonthView());
+        click(view.lookup(".super-next-button"));
+        view.setDisplayedYear(Year.of(2020));
+        assertTrue(cell(view, ".month-cell", LocalDate.of(2020, 3, 1)).isVisible());
+    }
+
     private static <V extends RXTemporalViewBase<?>> V show(V view) {
         view.setLocale(Locale.US);
         view.setClock(CLOCK);

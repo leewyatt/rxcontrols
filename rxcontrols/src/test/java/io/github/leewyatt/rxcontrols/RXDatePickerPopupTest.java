@@ -287,6 +287,24 @@ public class RXDatePickerPopupTest {
         });
     }
 
+    /**
+     * Verifies reopening the popup returns to the value's month after the user paged away.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void reopeningReturnsToValueMonth() throws InterruptedException {
+        runOnFx(() -> {
+            RXDatePicker picker = newShownPicker();
+            picker.setValue(TODAY);
+            picker.show();
+            click(findPopup().getScene().getRoot().lookup(".next-button"));
+            picker.hide();
+            picker.show();
+            assertTrue(dayCell(findPopup().getScene().getRoot(), TODAY).isVisible());
+        });
+    }
+
     private RXDatePicker newShownPicker() {
         RXDatePicker picker = new RXDatePicker();
         picker.setLocale(Locale.US);

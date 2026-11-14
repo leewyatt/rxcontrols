@@ -234,6 +234,17 @@ public class RXCalendarViewTest {
         assertEquals(YearMonth.of(2025, 2), view.getDisplayedMonth());
     }
 
+    /**
+     * Verifies a displayed month set right after paging still pages the grid.
+     */
+    @Test
+    public void displayedMonthSetAfterPagingPagesGrid() {
+        RXCalendarView view = newView(null);
+        click(view.lookup(".next-button"));
+        view.setDisplayedMonth(YearMonth.of(2020, 1));
+        assertTrue(dayCell(view, LocalDate.of(2020, 1, 15)).isVisible());
+    }
+
     // ==================== Helpers ====================
 
     private static RXCalendarView newView(LocalDate value) {

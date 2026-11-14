@@ -63,7 +63,10 @@ abstract class RXPeriodViewSkinBase<T extends Comparable<? super T>, C extends R
         updateConstraints();
 
         disposer.registerListener(control.valueProperty(), this::onValueChanged);
-        disposer.registerListener(displayedYearProperty(), this::showDisplayedYear);
+        // A change listener reads the value on every change. An invalidation listener that
+        // returns early during this skin's own write-back would leave the property invalid,
+        // and the next set would notify nobody.
+        disposer.registerListener(displayedYearProperty(), (observable, old, year) -> showDisplayedYear());
         disposer.registerListener(control.localeProperty(), () -> panel.setLocale(control.getLocale()));
         for (Observable constraint : constraintProperties) {
             disposer.registerListener(constraint, this::updateConstraints);

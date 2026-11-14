@@ -163,6 +163,17 @@ public class RXDateRangeViewTest {
         assertEquals(YearMonth.of(2027, 3), view.getDisplayedMonth());
     }
 
+    /**
+     * Verifies a displayed month set right after paging still pages the grid.
+     */
+    @Test
+    public void displayedMonthSetAfterPagingPagesGrid() {
+        RXDateRangeView view = newView();
+        click(view.lookup(".next-button"));
+        view.setDisplayedMonth(YearMonth.of(2020, 1));
+        assertTrue(dayCell(view, LocalDate.of(2020, 1, 15)).isVisible());
+    }
+
     private static RXDateRangeView newView() {
         RXDateRangeView view = new RXDateRangeView();
         view.setLocale(Locale.US);
