@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.RXBadge.Position;
 import io.github.leewyatt.rxcontrols.RXBadge.Variant;
 import io.github.leewyatt.rxcontrols.samples.demo.RXBadgeDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.samples.support.SampleIcons;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
@@ -33,9 +34,10 @@ import java.util.List;
  * (count, cap, zero, text, dot, forced hiding), where it sits (corner, overlap,
  * offsets, padding that reserves room, right-to-left), and how it looks (color
  * class, indicator size, outline ring, show / hide animation, pulse). The content can be swapped
- * between a button, a round avatar, a card and none at all. A panel below the
- * live badge shows badges without content: status dots and counts beside a
- * plain label.
+ * between a button, a round avatar, a card and none at all. Below the live
+ * badge are the two classic uses, a bell with a dot and a message icon with a
+ * count, and badges without content: status dots and counts beside a plain
+ * label.
  *
  * <p>For a minimal "few lines of code" example see {@link RXBadgeDemo}.
  */
@@ -93,10 +95,13 @@ public class RXBadgeShowcase extends RXShowcaseApplication {
         StackPane stage = new StackPane(badge);
         stage.getStyleClass().add("stage");
 
+        Label classicCaption = caption("Classic");
+        VBox.setMargin(classicCaption, new Insets(18.0, 0.0, 0.0, 0.0));
         Label standaloneCaption = caption("Without content");
         VBox.setMargin(standaloneCaption, new Insets(18.0, 0.0, 0.0, 0.0));
         VBox preview = new VBox(10.0,
                 caption("Live badge"), stage,
+                classicCaption, buildClassicPanel(),
                 standaloneCaption, buildStandalonePanel());
         preview.getStyleClass().add("live-preview");
         preview.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
@@ -246,6 +251,21 @@ public class RXBadgeShowcase extends RXShowcaseApplication {
         Label caption = new Label(text);
         caption.getStyleClass().add("caption");
         return caption;
+    }
+
+    private Node buildClassicPanel() {
+        RXBadge alerts = new RXBadge(SampleIcons.icon(SampleIcons.BELL, 28.0, "-fx-text-base-color"));
+        alerts.setVariant(Variant.DOT);
+        alerts.setOverlap(Overlap.CIRCULAR);
+
+        RXBadge messages = new RXBadge(SampleIcons.icon(SampleIcons.MESSAGE, 28.0, "-fx-text-base-color"));
+        messages.setCount(8);
+        messages.setOffsetX(2.0);
+        messages.setOffsetY(2.0);
+
+        HBox panel = new HBox(56.0, alerts, messages);
+        panel.getStyleClass().add("classic-panel");
+        return panel;
     }
 
     private Node buildStandalonePanel() {

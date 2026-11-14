@@ -10,6 +10,7 @@
 }
 
 .live-preview > .stage,
+.live-preview > .classic-panel,
 .live-preview > .standalone-panel {
     -fx-background-color: -fx-background;
     -fx-background-radius: 12px;
@@ -18,10 +19,11 @@
 }
 
 .live-preview > .stage {
-    -fx-pref-height: 240px;
+    -fx-pref-height: 200px;
     -fx-padding: 32px;
 }
 
+.live-preview > .classic-panel,
 .live-preview > .standalone-panel {
     -fx-padding: 22px 24px;
     -fx-alignment: center;

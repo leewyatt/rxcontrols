@@ -300,6 +300,15 @@ final class ThemeGalleryCards {
     }
 
     private static Node buildRXBadge() {
+        RXBadge alerts = new RXBadge(SampleIcons.icon(SampleIcons.BELL, 26.0, "-fx-text-base-color"));
+        alerts.setVariant(RXBadge.Variant.DOT);
+        alerts.setOverlap(RXBadge.Overlap.CIRCULAR);
+
+        RXBadge messages = new RXBadge(SampleIcons.icon(SampleIcons.MESSAGE, 26.0, "-fx-text-base-color"));
+        messages.setCount(8);
+        messages.setOffsetX(2.0);
+        messages.setOffsetY(2.0);
+
         RXBadge count = new RXBadge(new Button("Inbox"));
         count.setCount(128);
 
@@ -318,9 +327,13 @@ final class ThemeGalleryCards {
         Label status = new Label("Syncing", dot);
         status.setGraphicTextGap(8.0);
 
-        HBox row = new HBox(28.0, count, online, status);
-        row.setAlignment(Pos.CENTER);
-        return row;
+        HBox icons = new HBox(40.0, alerts, messages, online);
+        icons.setAlignment(Pos.CENTER);
+        HBox labeled = new HBox(28.0, count, status);
+        labeled.setAlignment(Pos.CENTER);
+        VBox box = new VBox(20.0, icons, labeled);
+        box.setAlignment(Pos.CENTER);
+        return box;
     }
 
     private static Node buildRXRibbonBadge() {
