@@ -205,6 +205,22 @@ public class RXListViewCollapsibleSectionsInteractionTest {
     }
 
     @Test
+    public void themeShapesTheArrowAndTurnsItWhenCollapsed() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = collapsible(100);
+            view.setSectionExpanded(1, false);
+            StackPane root = host(view);
+            pump(root);
+            Region expandedArrow = (Region) header(view, 0).lookup(".disclosure > .arrow");
+            Region collapsedArrow = (Region) header(view, 1).lookup(".disclosure > .arrow");
+            assertNotNull(expandedArrow.getShape(), "the theme gives the arrow its shape");
+            assertTrue(expandedArrow.prefWidth(-1) > 0.0);
+            assertEquals(0.0, expandedArrow.getRotate(), 1e-9);
+            assertEquals(-90.0, collapsedArrow.getRotate(), 1e-9, ":collapsed turns the arrow");
+        });
+    }
+
+    @Test
     public void customHeaderGetsTheDisclosureArrowToo() throws Exception {
         onFx(() -> {
             RXListView<Integer> view = collapsible(100);

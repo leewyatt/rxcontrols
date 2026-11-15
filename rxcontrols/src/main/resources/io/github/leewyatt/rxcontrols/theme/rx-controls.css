@@ -3401,6 +3401,47 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 6, 0, 0, 2);
 }
 
+/* Collapsible sections: the header is the toggle, so it shows a disclosure arrow
+   and reacts to hover. */
+.rx-list-section-header > .disclosure {
+    -fx-padding: 0 0.5em 0 0;
+}
+
+.rx-list-section-header > .disclosure > .arrow {
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-pref-width: 0.666667em; /* 8 */
+    -fx-pref-height: 0.416667em; /* 5 */
+    -fx-shape: "M 0 0 L 8 0 L 4 5 Z";
+}
+
+.rx-list-section-header:collapsed > .disclosure > .arrow {
+    -fx-rotate: -90;
+}
+
+.rx-list-section-header:expanded:hover,
+.rx-list-section-header:collapsed:hover {
+    -fx-background-color: ladder(-fx-background, derive(-fx-background, 14%) 45%, #ebebeb 46%);
+}
+
+.rx-theme-atlantafx .rx-list-section-header:expanded:hover,
+.rx-theme-atlantafx .rx-list-section-header:collapsed:hover {
+    -fx-background-color: -rx-surface-variant, -color-neutral-muted;
+}
+
+/* The keyboard cursor can rest on a header row; like a cell it only shows while the
+   list holds focus. */
+.rx-list-view:focused .rx-list-section-header:focused {
+    -fx-background-color: -rx-surface-variant, -fx-cell-focus-inner-border, -rx-surface-variant;
+    -fx-background-insets: 0, 1, 2;
+}
+
+/* AtlantaFX lists draw no focus ring; a header gets the hover tint instead, since
+   the selection does not follow the cursor onto it. */
+.rx-theme-atlantafx .rx-list-view:focused .rx-list-section-header:focused {
+    -fx-background-color: -rx-surface-variant, -color-neutral-muted;
+    -fx-background-insets: 0;
+}
+
 /*******************************************************************************
  *                                                                             *
  * RXMenuList                                                                  *
