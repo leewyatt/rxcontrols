@@ -261,6 +261,16 @@ final class RXListRowPlan {
     }
 
     /**
+     * The section at {@code sectionIndex}.
+     *
+     * @param sectionIndex a valid section index
+     * @return the section
+     */
+    RXListSection section(int sectionIndex) {
+        return sections.get(sectionIndex);
+    }
+
+    /**
      * Whether the section at {@code sectionIndex} is laid out collapsed (header row
      * only). Always {@code false} while headers are hidden.
      *

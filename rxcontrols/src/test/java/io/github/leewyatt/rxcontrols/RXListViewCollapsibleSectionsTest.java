@@ -320,6 +320,76 @@ public class RXListViewCollapsibleSectionsTest {
     }
 
     @Test
+    public void filterAndCollapseInTheSamePulseAnchorOnTheSectionByKey() throws Exception {
+        for (boolean filterFirst : new boolean[] {true, false}) {
+            onFx(() -> {
+                FilteredList<Integer> filtered = new FilteredList<>(numbers(60));
+                RXListView<Integer> view = new RXListView<>(filtered);
+                view.setSectionKeyFactory(i -> i / 20);
+                view.setFixedCellSize(20);
+                view.setSectionHeaderHeight(30);
+                view.setCollapsibleSections(true);
+                StackPane root = host(view);
+                pump(root);
+                view.scrollTo(25, ScrollAlignment.START);
+                pump(root);
+                assertEquals(1, view.getVisibleSection().key(), "precondition: key 1 at the top");
+                if (filterFirst) {
+                    filtered.setPredicate(i -> i >= 20);
+                    view.setSectionExpanded(1, false);
+                } else {
+                    view.setSectionExpanded(1, false);
+                    filtered.setPredicate(i -> i >= 20);
+                }
+                pump(root);
+                // Key 1 is now section 0 and collapsed: its header rests at the top.
+                assertEquals(1, view.getVisibleSection().key(), "filterFirst=" + filterFirst);
+                assertEquals(20, view.getVisibleRange().firstIndex(),
+                        "key 2 (filtered index 20 = item 40) follows the header");
+            });
+        }
+    }
+
+    @Test
+    public void showingHeadersOverACollapsedSectionKeepsTheVisibleSection() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = grouped(60, 20, false);
+            view.setCollapsibleSections(true);
+            view.setShowSectionHeaders(false);
+            view.setSectionExpanded(0, false);
+            StackPane root = host(view);
+            pump(root);
+            view.scrollTo(25, ScrollAlignment.START);
+            pump(root);
+            assertEquals(25, view.getVisibleRange().firstIndex(), "precondition: headers hidden, item 25 on top");
+            view.setShowSectionHeaders(true);
+            pump(root);
+            assertEquals(1, view.getVisibleSection().key());
+            int first = view.getVisibleRange().firstIndex();
+            assertTrue(first >= 20 && first <= 25, "the view stays near item 25, was " + first);
+        });
+    }
+
+    @Test
+    public void collapsingASectionAboveKeepsTheVisibleItemsWithSpacing() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = grouped(60, 20, false);
+            view.setSectionSpacing(15);
+            view.setCollapsibleSections(true);
+            StackPane root = host(view);
+            pump(root);
+            view.scrollTo(45, ScrollAlignment.START);
+            pump(root);
+            int before = view.getVisibleRange().firstIndex();
+            view.setSectionExpanded(0, false);
+            view.setSectionExpanded(1, false);
+            pump(root);
+            assertEquals(before, view.getVisibleRange().firstIndex());
+            assertEquals(2, view.getVisibleSection().sectionIndex());
+        });
+    }
+
+    @Test
     public void scrollToAnItemCollapsedInTheSamePulseLandsOnItsHeader() throws Exception {
         onFx(() -> {
             RXListView<Integer> view = grouped(100);

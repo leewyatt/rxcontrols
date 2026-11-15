@@ -26,6 +26,7 @@ import javafx.util.StringConverter;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -120,20 +121,12 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     }
 
     // The plan installed by the most recent layout pass — the geometry the current
-    // scroll offset refers to.
+    // scroll offset refers to until the next pass replaces it.
     private RXListRowPlan currentPlan;
-    // Bumped on every sections change; a reflow anchor captured under one sections
-    // list is only replayed against the same list.
-    private int sectionsRevision;
 
-    // Reflow anchor for a collapsed-state change: the section at the top of the
-    // viewport (captured from the plan in effect before the change) and the offset of
-    // the viewport top inside it. Replayed once on the next layout pass.
+    // Set by a collapsed-state change; the next layout pass anchors the view across it
+    // (see anchorReflow).
     private boolean reflowAnchorPending;
-    private int reflowAnchorSection;
-    private double reflowAnchorOffset;
-    private boolean reflowAnchorWasCollapsed;
-    private int reflowAnchorSectionsRevision;
 
     /**
      * Creates the skin for the given list view.
@@ -191,7 +184,7 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         // flag / heights / spacing flow through the row-plan key; a section-header
         // factory change rebuilds the header pool.
         disposer.registerListener(control.sectionsProperty(), this::onSectionsChanged);
-        disposer.registerListener(control.showSectionHeadersProperty(), this::requestLayoutPass);
+        disposer.registerListener(control.showSectionHeadersProperty(), this::onShowSectionHeadersChanged);
         disposer.registerListener(control.sectionHeaderHeightProperty(), this::requestLayoutPass);
         disposer.registerListener(control.sectionSpacingProperty(), this::requestLayoutPass);
         disposer.registerListener(control.sectionHeaderFactoryProperty(), this::onSectionHeaderFactoryChanged);
@@ -293,15 +286,23 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         // The sections list content changed; the row-plan key cannot cheaply hash it,
         // so a revision bump forces a rebuild.
         rowPlanRevision++;
-        sectionsRevision++;
         requestLayoutPass();
     }
 
     private void onCollapsedStateChanged() {
-        captureReflowAnchor();
+        reflowAnchorPending = true;
         // The collapsed flags are read from the key set when the plan is built; the
         // revision bump makes the cached fixed-mode plan miss.
         rowPlanRevision++;
+        requestLayoutPass();
+    }
+
+    private void onShowSectionHeadersChanged() {
+        // Showing or hiding the headers also switches collapsing on or off.
+        RXListView<T> control = getSkinnable();
+        if (control.isCollapsibleSections() && !control.getCollapsedSectionKeys().isEmpty()) {
+            reflowAnchorPending = true;
+        }
         requestLayoutPass();
     }
 
@@ -312,36 +313,68 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     // the viewport's offset inside it (so toggling a section above it, or expanding S
     // itself, does not move what is on screen), except that collapsing S aligns its
     // header to the top — S's items vanish, and keeping the offset would land the
-    // view in an unrelated section further down. Several changes before the next
-    // pass anchor on the state before the first one.
-    private void captureReflowAnchor() {
-        RXListRowPlan plan = currentPlan;
-        if (reflowAnchorPending || plan == null || plan.sectionCount() == 0 || plan.totalVisualRows() == 0) {
+    // view in an unrelated section further down.
+    //
+    // Runs at the start of the layout pass, before the new plan replaces currentPlan,
+    // so the anchor is read from the geometry the live scroll offset refers to (any
+    // wheel / bar scroll since the change included). S is identified by key and by its
+    // occurrence among same-key runs, so a filter applied in the same pulse that
+    // renumbers the sections still finds it; when S is gone the offset is left alone.
+    private void anchorReflow() {
+        RXListRowPlan oldPlan = currentPlan;
+        reflowAnchorPending = false;
+        if (oldPlan == null || oldPlan.sectionCount() == 0 || oldPlan.totalVisualRows() == 0) {
+            updateRowPlan();
             return;
         }
         double scrollY = viewport.scrollOffset();
-        int section = plan.sectionIndexAt(scrollY);
-        reflowAnchorSection = section;
-        reflowAnchorOffset = scrollY - plan.sectionTop(section);
-        reflowAnchorWasCollapsed = plan.sectionCollapsed(section);
-        reflowAnchorSectionsRevision = sectionsRevision;
-        reflowAnchorPending = true;
+        int oldIndex = oldPlan.sectionIndexAt(scrollY);
+        Object key = oldPlan.section(oldIndex).key();
+        int occurrence = keyOccurrence(oldPlan, oldIndex);
+        double offset = scrollY - oldPlan.sectionTop(oldIndex);
+        boolean wasCollapsed = oldPlan.sectionCollapsed(oldIndex);
+
+        updateRowPlan();
+        RXListRowPlan plan = currentPlan;
+        int index = sectionWithKey(plan, key, occurrence);
+        if (index < 0) {
+            return;
+        }
+        double top = plan.sectionTop(index);
+        boolean collapseHidSection = plan.sectionCollapsed(index) && !wasCollapsed;
+        // A filter can shrink S below the offset; then show S from its header.
+        boolean offsetOutside = offset >= sectionExtent(plan, index);
+        viewport.applyReflowScroll(collapseHidSection || offsetOutside ? top : top + offset);
     }
 
-    private void replayReflowAnchor(RXListRowPlan plan) {
-        if (!reflowAnchorPending) {
-            return;
+    // How many sections before sectionIndex share its key.
+    private static int keyOccurrence(RXListRowPlan plan, int sectionIndex) {
+        Object key = plan.section(sectionIndex).key();
+        int occurrence = 0;
+        for (int s = 0; s < sectionIndex; s++) {
+            if (Objects.equals(plan.section(s).key(), key)) {
+                occurrence++;
+            }
         }
-        reflowAnchorPending = false;
-        int section = reflowAnchorSection;
-        // A regrouping in the same pulse renumbers the sections; the anchor no longer
-        // names the same section, so leave the offset alone.
-        if (reflowAnchorSectionsRevision != sectionsRevision || section >= plan.sectionCount()) {
-            return;
+        return occurrence;
+    }
+
+    // The index of the occurrence-th section with the given key, or -1.
+    private static int sectionWithKey(RXListRowPlan plan, Object key, int occurrence) {
+        int seen = 0;
+        for (int s = 0; s < plan.sectionCount(); s++) {
+            if (Objects.equals(plan.section(s).key(), key) && seen++ == occurrence) {
+                return s;
+            }
         }
-        double top = plan.sectionTop(section);
-        boolean collapsedNow = plan.sectionCollapsed(section);
-        viewport.applyReflowScroll(collapsedNow && !reflowAnchorWasCollapsed ? top : top + reflowAnchorOffset);
+        return -1;
+    }
+
+    // The content-space height a section occupies, up to the next section's top.
+    private static double sectionExtent(RXListRowPlan plan, int sectionIndex) {
+        double end = sectionIndex + 1 < plan.sectionCount()
+                ? plan.sectionTop(sectionIndex + 1) : plan.contentHeight();
+        return end - plan.sectionTop(sectionIndex);
     }
 
     private void onSectionHeaderFactoryChanged() {
@@ -540,11 +573,16 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         double rightInset = Math.max(0.0, control.getWidth() - contentX - contentWidth);
         double bottomInset = Math.max(0.0, control.getHeight() - contentY - contentHeight);
         viewport.setChromeInsets(contentX, contentY, rightInset, bottomInset);
-        updateRowPlan();
+        // Sized first: the anchor clamps its offset against the viewport height.
         viewport.resizeRelocate(contentX, contentY, contentWidth, contentHeight);
         placeholderRegion.resizeRelocate(contentX, contentY, contentWidth, contentHeight);
-        // Before the pending scroll, so an explicit scrollTo issued with the change wins.
-        replayReflowAnchor(currentPlan);
+        // Both paths install the new plan; the anchor runs before the pending scroll so
+        // an explicit scrollTo issued with the change wins.
+        if (reflowAnchorPending) {
+            anchorReflow();
+        } else {
+            updateRowPlan();
+        }
         consumePendingScroll();
         boolean variable = isVariableHeight(control);
         viewport.setMeasureGate(variable);
