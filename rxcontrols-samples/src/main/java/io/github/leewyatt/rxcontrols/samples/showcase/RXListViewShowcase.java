@@ -274,8 +274,9 @@ public class RXListViewShowcase extends RXShowcaseApplication {
                         + "working.")),
                 row(hint("Collapsible: click a header (or the sticky one) to collapse it; the keyboard cursor "
                         + "then stops on headers — Space / Enter toggle, Left collapses, Right expands. Collapsed "
-                        + "state is kept per key, also while the switch is off or headers are hidden. Scroll to "
-                        + "item expands a collapsed target.")));
+                        + "state is kept per key, also while the switch is off or headers are hidden — so "
+                        + "toggling a key no section has (yet) is recorded too. Scroll to item expands a "
+                        + "collapsed target.")));
     }
 
     private Node smoothScrollGrid() {
