@@ -19,14 +19,15 @@ record SamplerEntry(String name, SamplerCategory category, List<SamplerVariant> 
     }
 
     /**
-     * Matches the query against the entry name and the type names of its variants, so a
-     * search for a member of a merged page finds that page.
+     * Matches the query against the entry name, its category and the type names of its
+     * variants, so a search for a member of a merged page finds that page.
      */
     boolean matches(String query) {
         if (query.isEmpty()) {
             return true;
         }
-        if (name.toLowerCase(Locale.ROOT).contains(query)) {
+        if (name.toLowerCase(Locale.ROOT).contains(query)
+                || category.title().toLowerCase(Locale.ROOT).contains(query)) {
             return true;
         }
         for (SamplerVariant variant : variants) {

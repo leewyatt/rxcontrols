@@ -76,7 +76,7 @@
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>rxcontrols.samples/io.github.leewyatt.rxcontrols.samples.AppShowcase</mainClass>
+                    <mainClass>rxcontrols.samples/io.github.leewyatt.rxcontrols.samples.sampler.RXSampler</mainClass>
                 </configuration>
             </plugin>
         </plugins>

@@ -13,6 +13,7 @@ open module rxcontrols.samples {
     exports io.github.leewyatt.rxcontrols.samples.demo.carousel;
 
     exports io.github.leewyatt.rxcontrols.samples;
+    exports io.github.leewyatt.rxcontrols.samples.sampler;
     exports io.github.leewyatt.rxcontrols.samples.showcase;
     exports io.github.leewyatt.rxcontrols.samples.support;
     exports io.github.leewyatt.rxcontrols.samples.test;
