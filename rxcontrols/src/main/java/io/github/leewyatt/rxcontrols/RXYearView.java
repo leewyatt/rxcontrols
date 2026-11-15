@@ -13,7 +13,7 @@ import java.util.function.Predicate;
  * the first year of the next decade (3 x 4). Usable on its own or as the content
  * of {@link RXYearPicker}'s popup.
  *
- * <p>The header pages through years; its title drills up to coarser grids for fast
+ * <p>The header pages through decades; its title drills up to coarser grids for fast
  * navigation, and picking there drills back down. Clicking a year (or pressing
  * Enter / Space on the keyboard cursor) sets the value and fires the
  * {@link #onActionProperty() action}. Years outside the bounds or rejected

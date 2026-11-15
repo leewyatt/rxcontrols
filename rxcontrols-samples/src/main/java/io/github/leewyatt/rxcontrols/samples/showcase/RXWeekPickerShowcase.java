@@ -33,6 +33,7 @@ public class RXWeekPickerShowcase extends DateTimeShowcase {
 
     @Override
     protected Node createPreview() {
+        picker.setPromptText("Select week");
         return pickerPreview(picker);
     }
 
@@ -40,7 +41,7 @@ public class RXWeekPickerShowcase extends DateTimeShowcase {
     protected List<Section> createSections() {
         return List.of(
                 section("Picker", pickerGrid(picker,
-                        textRow("Prompt", picker.promptTextProperty()))),
+                        textRow("Prompt text", picker.promptTextProperty()))),
                 section("Weeks", weekGrid(picker.weekFieldsProperty(), picker.showWeekNumbersProperty())),
                 section("Selectable weeks", weekLimitGrid(picker.minWeekProperty(), picker.maxWeekProperty(),
                         picker.weekFilterProperty())));

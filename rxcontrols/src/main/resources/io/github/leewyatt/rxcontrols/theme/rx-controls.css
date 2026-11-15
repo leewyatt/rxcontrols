@@ -4557,8 +4557,7 @@
     -fx-padding: 0;
 }
 
-/* Week rows: the seven days of a week are one band, hovered, selected and ringed
-   together. The extra class outranks the day rules above in every state. */
+/* The extra class outranks the day rules above in every state. */
 .rx-calendar-panel.week-rows .day-cell {
     -fx-background-color: transparent;
     -fx-background-radius: 0;
@@ -4587,7 +4586,6 @@
     -fx-background-color: transparent;
 }
 
-/* The picked week, and the first and the last week of a range, are filled. */
 .rx-calendar-panel.week-rows .day-cell:selected,
 .rx-calendar-panel.week-rows .day-cell:range-start,
 .rx-calendar-panel.week-rows .day-cell:range-end {
@@ -4607,10 +4605,8 @@
     -fx-background-color: -rx-primary-hover;
 }
 
-/* Keyboard cursor: one ring around the week. The longer selectors outrank the rule
-   that hides the pending outline. The ring runs across cells whose corners differ,
-   which JavaFX strokes side by side as open paths; an inside stroke leaves a tick
-   where two of them meet. */
+/* The longer selectors outrank the rule that hides the pending outline. A centered
+   stroke: an inside one leaves a tick where the borders of two cells meet. */
 .rx-calendar-panel.week-rows .day-cell:focused,
 .rx-calendar-panel.week-rows .day-cell:preview:range-start:focused,
 .rx-calendar-panel.week-rows .day-cell:preview:range-end:focused {
