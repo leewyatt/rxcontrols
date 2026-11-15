@@ -103,6 +103,12 @@ public class RXListSectionCellSkin extends CellSkinBase<RXListSectionCell> {
 
     // ==================== Dispose ====================
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Removes the collapsible-state listener and the disclosure arrow before the
+     * standard cell-skin cleanup.
+     */
     @Override
     public void dispose() {
         if (getSkinnable() == null) {

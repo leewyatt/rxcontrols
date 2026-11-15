@@ -578,8 +578,24 @@ final class RXListRowPlan {
         return result;
     }
 
-    // Last section whose first item index is <= itemIndex.
     private int sectionAtItem(int itemIndex) {
+        return findSectionOfItem(sections, itemIndex);
+    }
+
+    /**
+     * The index of the section containing an item: the last section whose first
+     * item index is at or below it. Shared by the plan and the skin's cursor logic,
+     * which looks items up in the live sections between layout passes.
+     *
+     * @param sections  sections partitioning the items, in item order
+     * @param itemIndex an item index
+     * @return the section index, or {@code -1} when {@code sections} is empty or the
+     *         index lies outside the items they cover
+     */
+    static int findSectionOfItem(List<RXListSection> sections, int itemIndex) {
+        if (sections.isEmpty() || itemIndex < 0 || itemIndex >= sections.get(sections.size() - 1).endItemIndex()) {
+            return -1;
+        }
         int lo = 0;
         int hi = sections.size() - 1;
         int result = 0;

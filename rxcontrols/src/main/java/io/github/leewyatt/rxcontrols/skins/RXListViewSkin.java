@@ -139,8 +139,12 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     // focus model holds no item (-1); focusing an item clears it.
     private int cursorSection = -1;
     private Object cursorSectionKey;
+    private int cursorSectionFirstItem = -1;
     // The keyboard's own scroll-into-view request (see scrollCursorIntoView).
     private boolean cursorScrollPending;
+    // Set when a header press toggled its section; the further presses and clicks of
+    // the same multi-click are ignored (see onHeaderPressed).
+    private boolean headerMultiClick;
 
     /**
      * Creates the skin for the given list view.
@@ -349,29 +353,41 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         boolean valid = sectionIndex >= 0 && sectionIndex < sections.size();
         cursorSection = valid ? sectionIndex : -1;
         cursorSectionKey = valid ? sections.get(sectionIndex).key() : null;
+        cursorSectionFirstItem = valid ? sections.get(sectionIndex).firstItemIndex() : -1;
         viewport.setFocusedHeaderSection(cursorSection);
     }
 
-    // After a regrouping the header cursor follows its key: the same index when it
-    // still carries that key, else the first section with it, else the cursor is lost.
+    // After a regrouping the header cursor follows its key. When the view turned flat
+    // (no sections left, the items unchanged) it moves to its section's first item;
+    // when the key is simply gone the cursor is lost.
     private void relocateHeaderCursor() {
         if (cursorSection < 0) {
             return;
         }
         List<RXListSection> sections = getSkinnable().getSections();
-        int index = -1;
-        if (cursorSection < sections.size() && Objects.equals(sections.get(cursorSection).key(), cursorSectionKey)) {
-            index = cursorSection;
-        } else {
-            for (RXListSection section : sections) {
-                if (Objects.equals(section.key(), cursorSectionKey)) {
-                    index = section.sectionIndex();
-                    break;
-                }
-            }
+        int index = resolveSection(sections, cursorSection, cursorSectionKey);
+        if (index < 0 && sections.isEmpty() && cursorSectionFirstItem < itemCount()) {
+            int item = cursorSectionFirstItem;
+            setHeaderCursor(-1);
+            focusModel.focus(item);
+            return;
         }
         setHeaderCursor(index);
         repairCursor();
+    }
+
+    // A section remembered by index and key, in the given sections: the same index
+    // while it still carries the key, else the first section with the key, else -1.
+    private static int resolveSection(List<RXListSection> sections, int index, Object key) {
+        if (index >= 0 && index < sections.size() && Objects.equals(sections.get(index).key(), key)) {
+            return index;
+        }
+        for (RXListSection section : sections) {
+            if (Objects.equals(section.key(), key)) {
+                return section.sectionIndex();
+            }
+        }
+        return -1;
     }
 
     // Keeps the cursor on a shown row: an item that became hidden hands the cursor to
@@ -407,23 +423,7 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     // The section holding the item, by binary search over the live sections; -1 when
     // flat or out of range.
     private int sectionIndexOfItem(int itemIndex) {
-        List<RXListSection> sections = getSkinnable().getSections();
-        if (itemIndex < 0 || sections.isEmpty() || itemIndex >= sections.get(sections.size() - 1).endItemIndex()) {
-            return -1;
-        }
-        int lo = 0;
-        int hi = sections.size() - 1;
-        int found = 0;
-        while (lo <= hi) {
-            int mid = (lo + hi) >>> 1;
-            if (sections.get(mid).firstItemIndex() <= itemIndex) {
-                found = mid;
-                lo = mid + 1;
-            } else {
-                hi = mid - 1;
-            }
-        }
-        return found;
+        return RXListRowPlan.findSectionOfItem(getSkinnable().getSections(), itemIndex);
     }
 
     private void toggleSection(int sectionIndex) {
@@ -717,10 +717,7 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         boolean applied;
         int focus = focusModel.getFocusedIndex();
         if (cursorSection >= 0) {
-            // The pinned sticky header already shows it; scrolling its in-flow row
-            // into view would jump back to the start of a long section.
-            applied = viewport.stickyShows(cursorSection)
-                    || viewport.scrollToSectionIndex(cursorSection, ScrollAlignment.NEAREST);
+            applied = viewport.scrollToSectionHeader(cursorSection);
         } else if (focus >= 0 && focus < itemCount()) {
             applied = viewport.scrollToIndex(focus, ScrollAlignment.NEAREST);
         } else {
@@ -866,6 +863,10 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         // detachItems / detachSelectionModel run via the disposer (registerDisposeTask).
         viewport.dispose();
         placeholderRegion.getChildren().clear();
+        // JFX does not remove a replaced SkinBase skin's nodes, and a replacement skin
+        // has already added its own: remove exactly ours, or the old viewport stays in
+        // the control and keeps laying out (and re-creating cells) under the new one.
+        getChildren().removeAll(viewport, placeholderRegion);
     }
 
     // ==================== Selection model wiring ====================
@@ -961,6 +962,9 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         if (itemCount == 0) {
             return;
         }
+        // An item mutation since the last layout pass may have left focus on a hidden
+        // item; repair before any key acts on it.
+        repairCursor();
         int focus = focusModel.getFocusedIndex();
         boolean shift = event.isShiftDown();
         boolean shortcut = event.isShortcutDown();
@@ -1128,8 +1132,13 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     }
 
     // A header is not selectable: the cursor moves, the selection and the range
-    // anchor stay.
+    // anchor stay. An anchor that was only implied by the focused item is stored
+    // first, so a Shift range continued past the header still starts there.
     private void moveToHeader(int sectionIndex) {
+        int focus = focusModel.getFocusedIndex();
+        if (focus >= 0 && !(getSkinnable().getProperties().get(ANCHOR_KEY) instanceof Integer)) {
+            setAnchor(focus);
+        }
         focusHeader(sectionIndex);
         focusModel.syncSelectionLeadState();
         scrollCursorIntoView();
@@ -1367,6 +1376,12 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         if (control.isFocusTraversable()) {
             control.requestFocus();
         }
+        if (event.getClickCount() == 1) {
+            headerMultiClick = false;
+        } else if (headerMultiClick) {
+            return;
+        }
+        repairCursor();
         RXListSectionCell header = viewport.headerAt(event.getTarget());
         if (header != null) {
             onHeaderPressed(event, header);
@@ -1390,29 +1405,19 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         if (!headersNavigable() || event.getClickCount() != 1) {
             return;
         }
-        int sectionIndex = liveSectionIndex(header.getItem());
+        // The header's record was bound by an earlier pass; find it in the live sections.
+        RXListSection bound = header.getItem();
+        int sectionIndex = resolveSection(getSkinnable().getSections(), bound.sectionIndex(), bound.key());
         if (sectionIndex < 0) {
             return;
         }
         focusHeader(sectionIndex);
         focusModel.syncSelectionLeadState();
         toggleSection(sectionIndex);
-    }
-
-    // The current index of a section record bound by an earlier pass: its own index
-    // while that still carries its key, else the first section with the key, else -1.
-    private int liveSectionIndex(RXListSection bound) {
-        List<RXListSection> sections = getSkinnable().getSections();
-        int index = bound.sectionIndex();
-        if (index < sections.size() && Objects.equals(sections.get(index).key(), bound.key())) {
-            return index;
-        }
-        for (RXListSection section : sections) {
-            if (Objects.equals(section.key(), bound.key())) {
-                return section.sectionIndex();
-            }
-        }
-        return -1;
+        // The toggle can move the content under the pointer (a collapse near the end
+        // clamps the scroll offset), so the rest of this multi-click must not land on
+        // whatever row is there now.
+        headerMultiClick = true;
     }
 
     // "Accumulate" modes show a per-item indicator (checkbox / checkmark) in
@@ -1470,6 +1475,9 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     }
 
     private void onMouseClicked(MouseEvent event) {
+        if (headerMultiClick) {
+            return;
+        }
         if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
             RXListCell<T> cell = viewport.cellAt(event.getTarget());
             if (cell != null) {

@@ -185,15 +185,41 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
     }
 
     /**
-     * Whether the sticky header currently shows the given section — then that
-     * section's header is on screen even when its in-flow row is scrolled away.
+     * Scrolls the minimum distance that fully shows the given section's header —
+     * the keyboard cursor's scroll when it rests on a header. While the sticky header
+     * pins that section, the sticky is its header: only the push-up by the next
+     * section's header can hide part of it, so the scroll just backs off that push
+     * instead of jumping to the section's in-flow header row at the section start.
      *
-     * @param sectionIndex a section index
-     * @return {@code true} if the visible sticky header renders that section
+     * @param sectionIndex the section index
+     * @return {@code true} if the request was applied; {@code false} when the
+     *         viewport has no height yet, so the caller should keep it pending
      */
-    boolean stickyShows(int sectionIndex) {
-        return stickyHeader != null && stickyHeader.isVisible() && stickyHeader.getItem() != null
-                && stickyHeader.getItem().sectionIndex() == sectionIndex;
+    boolean scrollToSectionHeader(int sectionIndex) {
+        double viewportHeight = getHeight();
+        if (viewportHeight <= 0.0) {
+            return false;
+        }
+        RXListRowPlan plan = rowPlan;
+        if (plan == null || plan.totalVisualRows() == 0 || sectionIndex < 0 || sectionIndex >= plan.sectionCount()) {
+            return true;
+        }
+        double stickyH = stickyOverlayHeight(plan);
+        boolean pinned = stickyH > 0.0 && plan.sectionIndexAt(scrollY) == sectionIndex;
+        if (!pinned) {
+            return scrollToSectionIndex(sectionIndex, ScrollAlignment.NEAREST);
+        }
+        if (sectionIndex + 1 < plan.sectionCount()) {
+            double nextTop = plan.sectionTop(sectionIndex + 1);
+            if (nextTop - scrollY < stickyH) {
+                double maxScroll = Math.max(0.0, plan.contentHeight() - viewportHeight);
+                stopSmoothScrolling();
+                setVerticalScrollOffset(RXMath.clamp(nextTop - stickyH, 0.0, maxScroll),
+                        ScrollOffsetWriteReason.PROGRAMMATIC_JUMP);
+                requestLayout();
+            }
+        }
+        return true;
     }
 
     /**
@@ -593,9 +619,14 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         // updateItem on the (possibly heavy) factory cell. Section records are fresh
         // instances after a recompute, so reference inequality is the right signal.
         // The expansion state and focus ring are synced every pass: a toggle changes
-        // them without changing the section.
+        // them without changing the section. A state change also re-binds, so a
+        // custom header that renders from isExpanded() is not left stale.
+        boolean wasCollapsible = stickyHeader.isCollapsible();
+        boolean wasExpanded = stickyHeader.isExpanded();
         syncHeaderExpansion(stickyHeader, plan, topSection);
-        if (stickyHeader.getItem() != topSection) {
+        boolean stateChanged = wasCollapsible != stickyHeader.isCollapsible()
+                || wasExpanded != stickyHeader.isExpanded();
+        if (stickyHeader.getItem() != topSection || stateChanged) {
             String oldStyle = stickyHeader.getStyle();
             stickyHeader.updateSection(topSection);
             applyCssAfterCellUpdate(stickyHeader, oldStyle);

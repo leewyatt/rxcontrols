@@ -12,9 +12,10 @@ package io.github.leewyatt.rxcontrols;
  * without being visible. Rows are the shown data rows — one per visible item,
  * skipping section headers and the items of collapsed sections — numbered
  * contiguously, so {@code lastRow - firstRow + 1 == visibleRowCount}. With nothing
- * collapsed a row number equals the item index. {@link #EMPTY} represents "nothing
- * visible" (no items, every section collapsed, or not yet laid out) and reports
- * {@link #isEmpty()} {@code true} with a {@link #size()} of {@code 0}.
+ * collapsed a row number equals the item index. {@link #EMPTY} represents "no item
+ * row in the window" (no items, not yet laid out, or only section headers in view —
+ * for example every section collapsed) and reports {@link #isEmpty()} {@code true}
+ * with a {@link #size()} of {@code 0}.
  *
  * <p>This object is immutable and replaced when the realized range changes, so a
  * listener always sees a consistent pair of bounds and never a torn read.

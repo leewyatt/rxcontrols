@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.skins.RXListViewSkin;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -542,6 +543,232 @@ public class RXListViewCollapsibleSectionsInteractionTest {
         });
     }
 
+    // ==================== Edge cases ====================
+
+    @Test
+    public void secondClickAfterAHeaderToggleDoesNotHitTheShiftedRow() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = collapsible(100);
+            AtomicInteger actions = new AtomicInteger();
+            view.setOnAction(e -> actions.incrementAndGet());
+            StackPane root = host(view);
+            pump(root);
+            view.scrollTo(99, ScrollAlignment.END);
+            pump(root);
+            pressCount(header(view, 9), 1);
+            pump(root);
+            // Collapsing the last section clamps the offset: an item row is now where
+            // the header was. The rest of the double-click lands on it.
+            RXListCell<?> shifted = cellByIndex(view, 85);
+            assertNotNull(shifted);
+            pressCount(shifted, 2);
+            doubleClick(shifted);
+            assertTrue(view.getSelectionModel().getSelectedIndices().isEmpty(), "nothing gets selected");
+            assertEquals(0, actions.get(), "nothing gets activated");
+            assertFalse(view.isSectionExpanded(9));
+            pressCount(shifted, 1);
+            assertEquals(85, view.getSelectionModel().getSelectedIndex(), "a new click works again");
+        });
+    }
+
+    @Test
+    public void stickyCustomHeaderRerendersWhenItsSectionToggles() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = collapsible(100);
+            view.setSectionHeaderFactory(list -> new RXListSectionCell() {
+                @Override
+                protected void updateItem(RXListSection section, boolean empty) {
+                    super.updateItem(section, empty);
+                    if (!empty && section != null) {
+                        setText(section.key() + (isExpanded() ? " open" : " closed"));
+                    }
+                }
+            });
+            StackPane root = host(view);
+            pump(root);
+            view.scrollTo(35, ScrollAlignment.START);
+            pump(root);
+            assertEquals("3 open", stickyHeader(view).getText());
+            press(stickyHeader(view), false, false);
+            pump(root);
+            assertEquals("3 closed", stickyHeader(view).getText());
+        });
+    }
+
+    @Test
+    public void shiftRangeThroughAHeaderKeepsTheImpliedAnchor() throws Exception {
+        onFx(() -> {
+            ObservableList<Integer> data = numbers(100);
+            RXListView<Integer> view = new RXListView<>(data);
+            configure(view);
+            view.setSelectionMode(SelectionMode.MULTIPLE);
+            StackPane root = host(view);
+            pump(root);
+            press(cellByIndex(view, 9), false, false);
+            // An item change drops the stored anchor; the focused item implies it.
+            data.add(100);
+            key(view, KeyCode.DOWN, true, false);
+            key(view, KeyCode.DOWN, true, false);
+            assertEquals(10, view.getFocusedIndex());
+            assertEquals(List.of(9, 10), List.copyOf(view.getSelectionModel().getSelectedIndices()));
+        });
+    }
+
+    @Test
+    public void ungroupingMovesAHeaderCursorToItsFirstItem() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = collapsible(100);
+            StackPane root = host(view);
+            pump(root);
+            press(cellByIndex(view, 15), false, false);
+            key(view, KeyCode.LEFT, false, false);
+            assertEquals(-1, view.getFocusedIndex(), "precondition: cursor on header 1");
+            view.setSectionKeyFactory(null);
+            assertEquals(10, view.getFocusedIndex());
+        });
+    }
+
+    @Test
+    public void headerCursorFollowsItsKeyWhenSectionsAreRenumbered() throws Exception {
+        onFx(() -> {
+            ObservableList<Integer> data = numbers(100);
+            RXListView<Integer> view = new RXListView<>(data);
+            configure(view);
+            StackPane root = host(view, 600);
+            pump(root);
+            press(cellByIndex(view, 25), false, false);
+            key(view, KeyCode.LEFT, false, false);
+            data.remove(0, 10);
+            pump(root);
+            RXListSectionCell focused = header(view, 1);
+            assertEquals(2, focused.getItem().key(), "section 0 is gone; key 2 is now section 1");
+            assertTrue(hasPseudo(focused, "focused"));
+        });
+    }
+
+    @Test
+    public void keysActOnTheRepairedCursorBeforeTheNextLayout() throws Exception {
+        onFx(() -> {
+            ObservableList<Integer> data = numbers(100);
+            RXListView<Integer> view = new RXListView<>(data);
+            configure(view);
+            view.setSectionExpanded(0, false);
+            AtomicInteger actions = new AtomicInteger();
+            view.setOnAction(e -> actions.incrementAndGet());
+            StackPane root = host(view);
+            pump(root);
+            press(cellByIndex(view, 11), false, false);
+            key(view, KeyCode.UP, false, true);
+            data.remove(10);
+            // No layout pass: focus fell back to hidden item 9 and is repaired by the key.
+            key(view, KeyCode.ENTER, false, false);
+            assertEquals(0, actions.get(), "Enter acts on header 0, not on hidden item 9");
+            assertTrue(view.isSectionExpanded(0), "Enter on the header toggles it");
+            assertEquals(List.of(10), List.copyOf(view.getSelectionModel().getSelectedIndices()));
+        });
+    }
+
+    @Test
+    public void headerCursorOnAPushedStickyBacksOffThePush() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = collapsible(100);
+            StackPane root = host(view, 200);
+            pump(root);
+            // Section 1 spans [230, 460); at 455 section 2's header (y = 5) pushes the
+            // sticky up to -25.
+            view.scrollBy(455);
+            pump(root);
+            assertEquals(-25.0, stickyHeader(view).getLayoutY(), 0.5);
+            press(cellByIndex(view, 19), false, false);
+            key(view, KeyCode.LEFT, false, false);
+            pump(root);
+            RXListSectionCell sticky = stickyHeader(view);
+            assertEquals(1, sticky.getItem().sectionIndex());
+            assertEquals(0.0, sticky.getLayoutY(), 0.5, "scrolled back just enough to show it fully");
+            assertTrue(hasPseudo(sticky, "focused"));
+            assertNotNull(cellByIndex(view, 19), "the view stays at the end of section 1");
+        });
+    }
+
+    @Test
+    public void stickyFocusRingFollowsTheCursorHeaderOnly() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = collapsible(100);
+            StackPane root = host(view);
+            pump(root);
+            view.scrollTo(35, ScrollAlignment.START);
+            pump(root);
+            press(cellByIndex(view, 35), false, false);
+            key(view, KeyCode.LEFT, false, false);
+            pump(root);
+            assertTrue(hasPseudo(stickyHeader(view), "focused"));
+            view.scrollToSection(5);
+            pump(root);
+            assertEquals(5, stickyHeader(view).getItem().sectionIndex());
+            assertFalse(hasPseudo(stickyHeader(view), "focused"), "the sticky now shows another section");
+        });
+    }
+
+    @Test
+    public void laterScrollRequestWinsBetweenKeyboardAndScrollTo() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = collapsible(100);
+            StackPane root = host(view);
+            pump(root);
+            press(cellByIndex(view, 0), false, false);
+            key(view, KeyCode.DOWN, false, false);
+            view.scrollTo(80, ScrollAlignment.START);
+            pump(root);
+            assertEquals(8, view.getVisibleSection().sectionIndex(), "scrollTo after the key wins");
+
+            view.scrollTo(30, ScrollAlignment.START);
+            key(view, KeyCode.DOWN, false, false);
+            pump(root);
+            assertEquals(0, view.getVisibleSection().sectionIndex(),
+                    "the key after scrollTo wins: the view goes to the cursor (item 2), not to item 30");
+            assertNotNull(cellByIndex(view, 2));
+        });
+    }
+
+    @Test
+    public void variableHeightRowsNavigateThroughHeadersToo() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = collapsible(100);
+            view.setFixedCellSize(-1);
+            view.setSectionExpanded(1, false);
+            StackPane root = host(view, 600);
+            pump(root);
+            press(cellByIndex(view, 9), false, false);
+            key(view, KeyCode.DOWN, false, false);
+            key(view, KeyCode.DOWN, false, false);
+            pump(root);
+            assertTrue(hasPseudo(header(view, 2), "focused"));
+            key(view, KeyCode.DOWN, false, false);
+            assertEquals(20, view.getFocusedIndex());
+        });
+    }
+
+    @Test
+    public void skinReplacementDropsAHeaderCursor() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = collapsible(100);
+            StackPane root = host(view);
+            pump(root);
+            press(cellByIndex(view, 5), false, false);
+            key(view, KeyCode.LEFT, false, false);
+            // Another skin class: JavaFX ignores setSkin with a skin of the same class.
+            view.setSkin(new RXListViewSkin<>(view) {
+            });
+            pump(root);
+            assertEquals(1, view.lookupAll(".viewport").size(), "the old skin's viewport is gone");
+            for (Node node : view.lookupAll(".rx-list-section-header")) {
+                assertFalse(hasPseudo(node, "focused"));
+            }
+            key(view, KeyCode.DOWN, false, false);
+            assertEquals(0, view.getFocusedIndex(), "a fresh skin starts without a cursor");
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static ObservableList<Integer> numbers(int count) {
@@ -638,6 +865,12 @@ public class RXListViewCollapsibleSectionsInteractionTest {
     private static void pressCount(Node target, int clickCount) {
         target.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, 5, 5, 5, 5, MouseButton.PRIMARY, clickCount,
                 false, false, false, false, true, false, false, false, false, true,
+                new PickResult(target, 5, 5)));
+    }
+
+    private static void doubleClick(Node target) {
+        target.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 5, 5, 5, 5, MouseButton.PRIMARY, 2,
+                false, false, false, false, false, false, false, false, false, true,
                 new PickResult(target, 5, 5)));
     }
 

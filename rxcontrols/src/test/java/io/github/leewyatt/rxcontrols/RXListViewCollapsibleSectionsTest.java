@@ -248,7 +248,9 @@ public class RXListViewCollapsibleSectionsTest {
             view.setSectionExpanded(1, false);
             StackPane root = host(view);
             pump(root);
-            view.setSkin(new RXListViewSkin<>(view));
+            // Another skin class: JavaFX ignores setSkin with a skin of the same class.
+            view.setSkin(new RXListViewSkin<>(view) {
+            });
             pump(root);
             assertEquals(23, view.getRowCount());
         });
