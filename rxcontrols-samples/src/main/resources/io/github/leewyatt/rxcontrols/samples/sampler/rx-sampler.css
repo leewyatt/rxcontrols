@@ -7,16 +7,12 @@
 .root {
     -sampler-accent-soft: derive(-fx-accent, 85%);
     -sampler-accent-text: derive(-fx-accent, -25%);
-    -sampler-new-bg: #e3f5e9;
-    -sampler-new-fg: #1b6e35;
     -sampler-mono: "Menlo", "Consolas", monospace;
 }
 
 .root.rx-theme-atlantafx {
     -sampler-accent-soft: -color-accent-subtle;
     -sampler-accent-text: -color-accent-fg;
-    -sampler-new-bg: -color-success-subtle;
-    -sampler-new-fg: -color-success-fg;
 }
 
 .sampler {
@@ -141,15 +137,6 @@
 .nav-cell:selected .name {
     -fx-text-fill: -sampler-accent-text;
     -fx-font-weight: bold;
-}
-
-.nav-cell .new-badge {
-    -fx-font-size: 10.5px;
-    -fx-font-weight: bold;
-    -fx-padding: 0 6px;
-    -fx-background-color: -sampler-new-bg;
-    -fx-background-radius: 999px;
-    -fx-text-fill: -sampler-new-fg;
 }
 
 .sampler-nav .nav-section {
@@ -430,7 +417,6 @@
 }
 
 .secondary-button,
-.recent-chip,
 .category-card {
     -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
     -fx-background-insets: 0, 1px;
@@ -443,8 +429,7 @@
     -fx-padding: 8px 18px;
 }
 
-.secondary-button:hover,
-.recent-chip:hover {
+.secondary-button:hover {
     -fx-background-color: -fx-text-box-border, -fx-background;
 }
 
@@ -458,7 +443,6 @@
 }
 
 .secondary-button:focused,
-.recent-chip:focused,
 .category-card:focused {
     -fx-background-color: -fx-focus-color, -fx-control-inner-background;
     -fx-background-insets: 0, 1.5px;
@@ -490,17 +474,4 @@
 .card-sample {
     -fx-font-size: 12.5px;
     -fx-text-fill: -showcase-caption-color;
-}
-
-.recent-chip {
-    -fx-background-radius: 999px;
-    -fx-padding: 6px 14px 6px 12px;
-    -fx-graphic-text-gap: 8px;
-}
-
-.recent-chip .dot {
-    -fx-pref-width: 6px;
-    -fx-pref-height: 6px;
-    -fx-background-color: -sampler-new-fg;
-    -fx-background-radius: 50%;
 }

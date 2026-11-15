@@ -185,18 +185,12 @@ final class SamplerNav extends VBox {
 
         private final Label prefix = new Label();
         private final Label rest = new Label();
-        private final Label badge = new Label("New");
         private final HBox content = new HBox(prefix, rest);
 
         EntryCell() {
             getStyleClass().add("nav-cell");
             prefix.getStyleClass().add("prefix");
             rest.getStyleClass().add("name");
-            badge.getStyleClass().add("new-badge");
-            badge.setMinWidth(Region.USE_PREF_SIZE);
-            Region spacer = new Region();
-            HBox.setHgrow(spacer, Priority.ALWAYS);
-            content.getChildren().addAll(spacer, badge);
             content.setAlignment(Pos.CENTER_LEFT);
             setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
         }
@@ -213,7 +207,6 @@ final class SamplerNav extends VBox {
             boolean rx = name.startsWith(RX_PREFIX);
             prefix.setText(rx ? RX_PREFIX : "");
             rest.setText(rx ? name.substring(RX_PREFIX.length()) : name);
-            badge.setVisible(item.isNew());
             setGraphic(content);
         }
     }

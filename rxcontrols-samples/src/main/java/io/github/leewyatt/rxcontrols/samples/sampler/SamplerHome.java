@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.sampler;
 
 import io.github.leewyatt.rxcontrols.ItemsJustify;
-import io.github.leewyatt.rxcontrols.layout.RXFlowPane;
 import io.github.leewyatt.rxcontrols.layout.RXTilePane;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -23,8 +22,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
- * The first page: what the library is, a card per category that opens its first page,
- * and the recently added components.
+ * The first page: what the library is, and a card per category that opens its first page.
  */
 final class SamplerHome extends ScrollPane {
 
@@ -35,7 +33,6 @@ final class SamplerHome extends ScrollPane {
         setFitToWidth(true);
 
         Map<SamplerCategory, List<SamplerEntry>> byCategory = new EnumMap<>(SamplerCategory.class);
-        List<SamplerEntry> recent = new ArrayList<>();
         int controls = 0;
         for (SamplerEntry entry : entries) {
             if (entry.isHome()) {
@@ -43,15 +40,11 @@ final class SamplerHome extends ScrollPane {
             }
             byCategory.computeIfAbsent(entry.category(), c -> new ArrayList<>()).add(entry);
             controls += entry.variants().size();
-            if (entry.isNew()) {
-                recent.add(entry);
-            }
         }
 
         VBox column = new VBox(32.0,
                 buildHero(byCategory, controls, open, openGallery),
-                section("Browse by category", buildCategories(byCategory, open)),
-                section("Recently added", buildRecent(recent, open)));
+                section("Browse by category", buildCategories(byCategory, open)));
         column.getStyleClass().add("home-column");
         column.setMaxWidth(1080.0);
 
@@ -139,19 +132,5 @@ final class SamplerHome extends ScrollPane {
         card.setMaxWidth(Double.MAX_VALUE);
         card.setOnAction(event -> open.accept(list.get(0)));
         return card;
-    }
-
-    private static RXFlowPane buildRecent(List<SamplerEntry> recent, Consumer<SamplerEntry> open) {
-        RXFlowPane flow = new RXFlowPane(8.0, 8.0);
-        for (SamplerEntry entry : recent) {
-            Region dot = new Region();
-            dot.getStyleClass().add("dot");
-            dot.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-            Button chip = new Button(entry.name(), dot);
-            chip.getStyleClass().add("recent-chip");
-            chip.setOnAction(event -> open.accept(entry));
-            flow.getChildren().add(chip);
-        }
-        return flow;
     }
 }

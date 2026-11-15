@@ -315,7 +315,6 @@ import javafx.application.Application;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -324,9 +323,6 @@ import java.util.function.Supplier;
  * silently dropping a page.
  */
 final class SamplerCatalog {
-
-    private static final Set<Class<?>> NEW_TYPES = Set.of(RXReactionButton.class, RXBadge.class,
-            RXRibbonBadge.class, RXTimeRangePicker.class, RXDateTimeRangePicker.class);
 
     private static final List<SamplerEntry> ENTRIES = build();
 
@@ -339,7 +335,7 @@ final class SamplerCatalog {
 
     private static List<SamplerEntry> build() {
         List<SamplerEntry> list = new ArrayList<>();
-        list.add(new SamplerEntry("Overview", SamplerCategory.START, List.of(), false));
+        list.add(new SamplerEntry("Overview", SamplerCategory.START, List.of()));
 
         SamplerCategory c = SamplerCategory.BUTTONS;
         list.add(single(c, RXButton.class, RXButtonShowcase::new, null));
@@ -496,8 +492,7 @@ final class SamplerCatalog {
 
         c = SamplerCategory.LAYOUT;
         list.add(single(c, RXBox.class, RXBoxShowcase::new, RXBoxDemo.class));
-        list.add(new SamplerEntry("RXRow / RXCol", c,
-                List.of(variant("RXRow", RXRow.class, RXRowShowcase::new, RXRowDemo.class)), false));
+        list.add(family(c, "RXRow / RXCol", variant("RXRow", RXRow.class, RXRowShowcase::new, RXRowDemo.class)));
         list.add(single(c, RXFlowPane.class, RXFlowPaneShowcase::new, RXFlowPaneDemo.class));
         list.add(single(c, RXTilePane.class, RXTilePaneShowcase::new, RXTilePaneDemo.class));
         list.add(single(c, RXMasonryPane.class, RXMasonryPaneShowcase::new, RXMasonryPaneDemo.class));
@@ -516,11 +511,7 @@ final class SamplerCatalog {
     }
 
     private static SamplerEntry family(SamplerCategory category, String name, SamplerVariant... variants) {
-        boolean isNew = false;
-        for (SamplerVariant variant : variants) {
-            isNew |= NEW_TYPES.contains(variant.type());
-        }
-        return new SamplerEntry(name, category, List.of(variants), isNew);
+        return new SamplerEntry(name, category, List.of(variants));
     }
 
     private static SamplerVariant variant(String label, Class<?> type, Supplier<RXShowcaseApplication> showcase,

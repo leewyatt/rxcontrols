@@ -10,9 +10,8 @@ import java.util.Locale;
  * @param name     the navigation label
  * @param category the navigation group
  * @param variants the controls shown on the page, in switch order
- * @param isNew    whether the navigation marks the entry as recently added
  */
-record SamplerEntry(String name, SamplerCategory category, List<SamplerVariant> variants, boolean isNew) {
+record SamplerEntry(String name, SamplerCategory category, List<SamplerVariant> variants) {
 
     boolean isHome() {
         return variants.isEmpty();
