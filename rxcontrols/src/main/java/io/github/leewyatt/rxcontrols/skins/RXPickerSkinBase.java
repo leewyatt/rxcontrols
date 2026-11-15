@@ -81,6 +81,8 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
     private boolean focusInside;
     private boolean writingText;
     private boolean invalidText;
+    /** Set while a commit runs, so that the popup it closes is not taken for an abandoned one. */
+    private boolean committing;
 
     // ==================== Constructor ====================
 
@@ -256,12 +258,25 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
     protected abstract void onViewAction();
 
     /**
-     * Shows a value parsed from typed text in the popup, as a draft: while the popup is
-     * open, and when it opens over text typed before. The default does nothing.
+     * Shows a value parsed from typed text in the popup, as a draft. The default does
+     * nothing.
      *
      * @param value the parsed, allowed value
      */
     protected void showTypedDraft(T value) {
+    }
+
+    /**
+     * Called when the popup should take up the fields' typed text: whenever the user
+     * edits a field while the popup is open, and when the popup opens over text typed
+     * before. The default parses the fields and hands an allowed value to
+     * {@link #showTypedDraft}.
+     */
+    protected void previewTypedText() {
+        ParseResult<T> result = parseFields();
+        if (result.status() == ParseResult.Status.VALID && isAllowed(result.value())) {
+            showTypedDraft(result.value());
+        }
     }
 
     /**
@@ -274,6 +289,14 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
     }
 
     /**
+     * Called for Enter while the popup is open and a field holds typed text. The default
+     * commits the typed text.
+     */
+    protected void confirmTypedText() {
+        commitTypedText();
+    }
+
+    /**
      * Called after the popup closed without a commit. The default restores the
      * fields' text from the committed value unless the user typed into them.
      */
@@ -281,6 +304,15 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
         if (!anyUserEdited()) {
             refreshFields();
         }
+    }
+
+    /**
+     * Called when the scene's focus arrives on one of the picker's fields. The default
+     * does nothing.
+     *
+     * @param field the field that took the focus
+     */
+    protected void onFieldFocused(TextField field) {
     }
 
     // ==================== Commit ====================
@@ -293,10 +325,15 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
      */
     protected final void commit(T value) {
         C control = getSkinnable();
-        control.setValue(value);
-        refreshFields();
-        control.fireEvent(new ActionEvent());
-        control.hide();
+        committing = true;
+        try {
+            control.setValue(value);
+            refreshFields();
+            control.fireEvent(new ActionEvent());
+            control.hide();
+        } finally {
+            committing = false;
+        }
     }
 
     /**
@@ -373,6 +410,26 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
      */
     protected final boolean anyUserEdited() {
         return userEdited.contains(Boolean.TRUE);
+    }
+
+    /**
+     * Returns whether one field holds text the user typed that differs from what was
+     * last written into it.
+     *
+     * @param field the field
+     * @return {@code true} if the field holds user-typed text
+     */
+    protected final boolean isUserEdited(TextField field) {
+        int index = editors.indexOf(field);
+        return index >= 0 && userEdited.get(index);
+    }
+
+    /**
+     * Flags the fields' text as invalid, as a failed {@link #commitTypedText} does. The
+     * flag goes with the next edit or rewrite of the fields.
+     */
+    protected final void markTextInvalid() {
+        setInvalidText(true);
     }
 
     /**
@@ -470,21 +527,14 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
             return;
         }
         clearKeyboardCursor();
-        showTypedTextAsDraft();
-    }
-
-    private void showTypedTextAsDraft() {
-        ParseResult<T> result = parseFields();
-        if (result.status() == ParseResult.Status.VALID && isAllowed(result.value())) {
-            showTypedDraft(result.value());
-        }
+        previewTypedText();
     }
 
     /** Seeds the popup from the committed value, then from valid text typed while it was closed. */
     private void seedPopup() {
         seedDraft();
         if (anyUserEdited()) {
-            showTypedTextAsDraft();
+            previewTypedText();
         }
     }
 
@@ -556,7 +606,7 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
                 return;
             }
             if (anyUserEdited()) {
-                commitTypedText();
+                confirmTypedText();
             } else {
                 confirmDraft();
             }
@@ -611,7 +661,11 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
         return skin instanceof TemporalKeyTarget ? (TemporalKeyTarget) skin : null;
     }
 
-    private void clearKeyboardCursor() {
+    /**
+     * Hides the popup view's keyboard cursor, handing Enter and the caret keys back to
+     * the fields.
+     */
+    protected final void clearKeyboardCursor() {
         TemporalKeyTarget target = keyTarget();
         if (target != null) {
             target.clearKeyboardCursor();
@@ -715,6 +769,8 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
         focusInside = inside;
         if (left) {
             onFocusLeft();
+        } else if (inside) {
+            onFieldFocused((TextField) owner);
         }
     }
 
@@ -784,7 +840,9 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
         } else {
             popupSupport.hide();
             clearKeyboardCursor();
-            onPopupClosed();
+            if (!committing) {
+                onPopupClosed();
+            }
         }
     }
 
