@@ -29,10 +29,11 @@ import java.util.function.Predicate;
  *
  * <p>See {@link RXPickerBase} for the commit, focus and constraint model, and
  * {@link RXDatePicker} for the keys. CSS: style classes {@code rx-picker} and
- * {@code rx-week-picker}; children {@code .text-field} and {@code .suffix}
- * ({@code .icon}, {@code .clear-button}); the popup has style class
+ * {@code rx-week-picker}; children {@code .leading}, {@code .text-field} and
+ * {@code .suffix} ({@code .icon}, {@code .clear-button}); the popup has style class
  * {@code rx-picker-popup} and hosts an {@code .rx-week-view}. Pseudo-classes:
- * {@code :focused}, {@code :showing}, {@code :editable}, {@code :invalid}.
+ * {@code :focused}, {@code :showing}, {@code :editable}, {@code :has-leading},
+ * {@code :invalid}.
  */
 public class RXWeekPicker extends RXPickerBase<LocalDate> {
 

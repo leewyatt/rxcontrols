@@ -31,11 +31,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Shared skeleton of the picker skins: text field layout with a trailing icon / clear
- * button, the popup lifecycle around a selection view, keyboard routing from the
- * fields into the popup view, focus mirroring, and the commit / revert flow of typed
- * text. Subclasses supply the fields, the view, the footer, and the value-specific
- * parsing, formatting and draft handling.
+ * Shared skeleton of the picker skins: text field layout with an optional leading node
+ * and a trailing icon / clear button, the popup lifecycle around a selection view,
+ * keyboard routing from the fields into the popup view, focus mirroring, and the
+ * commit / revert flow of typed text. Subclasses supply the fields, the view, the
+ * footer, and the value-specific parsing, formatting and draft handling.
  *
  * <p>The popup never takes focus. Keys reach the view through a filter on each
  * field: Up / Down / Page Up / Page Down always go to the view while the popup is
@@ -56,6 +56,7 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
 
     // ==================== Nodes ====================
 
+    private final StackPane leadingHolder = new StackPane();
     private final StackPane suffix = new StackPane();
     private final Region icon = new Region();
     private final StackPane clearButton = new StackPane();
@@ -104,6 +105,7 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
         popupSupport.setOnHidden(this::onPopupHidden);
         disposer.registerDisposeTask(popupSupport::dispose);
 
+        leadingHolder.getStyleClass().add("leading");
         icon.getStyleClass().add("icon");
         icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         icon.setMouseTransparent(true);
@@ -153,11 +155,12 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
             }
         }
         getChildren().setAll(layoutNodes);
-        getChildren().add(suffix);
+        getChildren().addAll(leadingHolder, suffix);
         // Remove only this skin's nodes: a replacement skin has already added its own.
         disposer.registerDisposeTask(() -> {
             getChildren().removeAll(layoutNodes);
-            getChildren().remove(suffix);
+            getChildren().removeAll(leadingHolder, suffix);
+            leadingHolder.getChildren().clear();
         });
 
         disposer.registerEventHandler(suffix, MouseEvent.MOUSE_PRESSED, this::handleSuffixPressed);
@@ -190,11 +193,13 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
         disposer.registerListener(control.clearableProperty(), this::updateSuffix);
         disposer.registerListener(control.valueProperty(), this::onValueChanged);
         disposer.registerListener(control.editableProperty(), this::updateEditable);
+        disposer.registerListener(control.leadingProperty(), this::updateLeading);
         disposer.registerEventHandler(selectionView, ActionEvent.ACTION, event -> {
             event.consume();
             onViewAction();
         });
         updateEditable();
+        updateLeading();
         updateSuffix();
         refreshFields();
         syncPopup();
@@ -738,6 +743,24 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
         }
     }
 
+    // ==================== Leading ====================
+
+    private void updateLeading() {
+        Node leading = getSkinnable().getLeading();
+        if (leading == null) {
+            leadingHolder.getChildren().clear();
+        } else {
+            leadingHolder.getChildren().setAll(leading);
+        }
+        leadingHolder.setVisible(leading != null);
+        leadingHolder.setManaged(leading != null);
+    }
+
+    /** The width the leading slot takes: none while it is empty. */
+    private double leadingWidth(double height) {
+        return leadingHolder.isManaged() ? leadingHolder.prefWidth(height) : 0.0;
+    }
+
     // ==================== Suffix ====================
 
     private boolean isClearVisible() {
@@ -779,7 +802,8 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
 
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
-        double fixed = suffix.prefWidth(h);
+        double leadingWidth = leadingWidth(h);
+        double fixed = leadingWidth + suffix.prefWidth(h);
         int growCount = 0;
         for (Node node : layoutNodes) {
             if (node instanceof TextField) {
@@ -789,7 +813,10 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
             }
         }
         double growWidth = growCount == 0 ? 0.0 : Math.max(0.0, (w - fixed) / growCount);
-        double cursorX = x;
+        if (leadingHolder.isManaged()) {
+            layoutInArea(leadingHolder, x, y, leadingWidth, h, 0.0, HPos.CENTER, VPos.CENTER);
+        }
+        double cursorX = x + leadingWidth;
         for (Node node : layoutNodes) {
             double nodeWidth = node instanceof TextField ? growWidth : node.prefWidth(h);
             layoutInArea(node, cursorX, y, nodeWidth, h, 0.0, HPos.CENTER,
@@ -810,7 +837,7 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
     @Override
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        double width = suffix.prefWidth(-1);
+        double width = leadingWidth(-1) + suffix.prefWidth(-1);
         for (Node node : layoutNodes) {
             width += node.prefWidth(-1);
         }
@@ -821,6 +848,9 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
         double height = suffix.prefHeight(-1);
+        if (leadingHolder.isManaged()) {
+            height = Math.max(height, leadingHolder.prefHeight(-1));
+        }
         for (Node node : layoutNodes) {
             height = Math.max(height, node.prefHeight(-1));
         }
@@ -832,7 +862,7 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
                                      double bottomInset, double leftInset) {
         // Not SkinBase's default, which measures the children's current positions and
         // so ratchets the minimum up to the last laid-out width.
-        double width = suffix.prefWidth(-1);
+        double width = leadingWidth(-1) + suffix.prefWidth(-1);
         for (Node node : layoutNodes) {
             width += node instanceof TextField ? node.minWidth(-1) : node.prefWidth(-1);
         }

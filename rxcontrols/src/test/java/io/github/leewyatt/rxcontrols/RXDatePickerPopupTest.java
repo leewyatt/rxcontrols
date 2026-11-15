@@ -5,6 +5,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.PopupControl;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.junit.jupiter.api.AfterEach;
@@ -187,6 +188,23 @@ public class RXDatePickerPopupTest {
             click(popup.getScene().getRoot().lookup(".next-button"));
             assertNull(popup.getScene().getFocusOwner());
             assertTrue(picker.isShowing());
+        });
+    }
+
+    /**
+     * Verifies a press on the leading node focuses the field and opens the popup.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void pressOnLeadingNodeOpensPopup() throws InterruptedException {
+        runOnFx(() -> {
+            RXDatePicker picker = newShownPicker();
+            Region icon = new Region();
+            picker.setLeading(icon);
+            pressMouse(icon);
+            assertTrue(picker.isShowing());
+            assertEquals(editor(picker, 0), stage.getScene().getFocusOwner());
         });
     }
 

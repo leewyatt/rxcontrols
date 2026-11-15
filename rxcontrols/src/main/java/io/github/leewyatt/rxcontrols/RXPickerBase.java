@@ -15,6 +15,7 @@ import javafx.event.EventHandler;
 import javafx.scene.AccessibleAction;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
+import javafx.scene.Node;
 import javafx.scene.control.Control;
 
 import java.time.Clock;
@@ -55,6 +56,7 @@ public abstract class RXPickerBase<T> extends Control {
     private static final String DEFAULT_STYLE_CLASS = "rx-picker";
     private static final PseudoClass SHOWING_PSEUDO_CLASS = PseudoClass.getPseudoClass("showing");
     private static final PseudoClass EDITABLE_PSEUDO_CLASS = PseudoClass.getPseudoClass("editable");
+    private static final PseudoClass HAS_LEADING_PSEUDO_CLASS = PseudoClass.getPseudoClass("has-leading");
     /** Properties key through which the skin mirrors its text fields' focus onto the picker. */
     private static final String FOCUSED_KEY = "FOCUSED";
 
@@ -253,6 +255,46 @@ public abstract class RXPickerBase<T> extends Control {
      */
     public final void setClearable(boolean value) {
         clearable.set(value);
+    }
+
+    // ==================== Leading ====================
+
+    private final ObjectProperty<Node> leading = new SimpleObjectProperty<>(this, "leading") {
+        @Override
+        protected void invalidated() {
+            pseudoClassStateChanged(HAS_LEADING_PSEUDO_CLASS, get() != null);
+        }
+    };
+
+    /**
+     * A decorative node, such as an icon, shown before the text field(s) in a
+     * {@code .leading} child; {@code null} (the initial value) shows none. The slot is
+     * not meant for interactive nodes: a press on it focuses the field and opens the
+     * popup, like a press on the field. The {@code :has-leading} pseudo-class is set
+     * while the node is non-null.
+     *
+     * @return the leading property
+     */
+    public final ObjectProperty<Node> leadingProperty() {
+        return leading;
+    }
+
+    /**
+     * Returns the leading node.
+     *
+     * @return the node, or {@code null}
+     */
+    public final Node getLeading() {
+        return leading.get();
+    }
+
+    /**
+     * Sets the leading node.
+     *
+     * @param value the node, or {@code null} for none
+     */
+    public final void setLeading(Node value) {
+        leading.set(value);
     }
 
     // ==================== Showing ====================

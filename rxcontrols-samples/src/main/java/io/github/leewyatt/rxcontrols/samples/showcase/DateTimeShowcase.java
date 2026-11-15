@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.RXPickerBase;
 import io.github.leewyatt.rxcontrols.RXTemporalViewBase;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.samples.support.SampleIcons;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
@@ -207,8 +208,8 @@ abstract class DateTimeShowcase extends RXShowcaseApplication {
     // ==================== Sections ====================
 
     /**
-     * The options every picker has: locale, editable, clearable, disabled and
-     * orientation, followed by the picker's own rows.
+     * The options every picker has: locale, editable, clearable, leading icon, disabled
+     * and orientation, followed by the picker's own rows.
      *
      * @param picker    the showcased picker
      * @param extraRows rows specific to the picker
@@ -219,6 +220,8 @@ abstract class DateTimeShowcase extends RXShowcaseApplication {
                 localeRow(picker.localeProperty()),
                 flagRow("editable", picker.editableProperty()),
                 flagRow("clearable", picker.clearableProperty()),
+                optionRow("leading icon", picker.leadingProperty(),
+                        SampleIcons.icon(SampleIcons.BELL, 14.0, "derive(-fx-text-base-color, 45%)")),
                 flagRow("disabled", picker.disableProperty()),
                 rightToLeftRow(picker)), extraRows);
     }
