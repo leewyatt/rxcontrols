@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXTimeView;
+import io.github.leewyatt.rxcontrols.internal.datetime.MemoizedTimeFilter;
 import io.github.leewyatt.rxcontrols.internal.datetime.TemporalKeyTarget;
 import io.github.leewyatt.rxcontrols.internal.datetime.TimeColumns;
 import io.github.leewyatt.rxcontrols.internal.datetime.TimeConstraints;
@@ -10,6 +11,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 
 import java.time.LocalTime;
+import java.util.function.Predicate;
 
 /**
  * Default skin for {@link RXTimeView}: scrolling time columns.
@@ -19,6 +21,8 @@ public class RXTimeViewSkin extends RXSkinBase<RXTimeView> implements TemporalKe
     private static final PseudoClass INVALID = PseudoClass.getPseudoClass("invalid");
 
     private final TimeColumns columns = new TimeColumns();
+    /** The control's time filter with its answers remembered; replaced when the filter is. */
+    private Predicate<LocalTime> timeFilter;
 
     /**
      * Creates the skin for the given time view.
@@ -93,7 +97,8 @@ public class RXTimeViewSkin extends RXSkinBase<RXTimeView> implements TemporalKe
 
     private TimeConstraints constraints() {
         RXTimeView control = getSkinnable();
-        return new TimeConstraints(control.getMinTime(), control.getMaxTime(), control.getTimeFilter(),
+        timeFilter = MemoizedTimeFilter.of(control.getTimeFilter(), timeFilter);
+        return new TimeConstraints(control.getMinTime(), control.getMaxTime(), timeFilter,
                 control.getHourStep(), control.getMinuteStep(), control.getSecondStep(), control.isShowSeconds());
     }
 

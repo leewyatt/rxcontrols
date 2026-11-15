@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -178,6 +179,26 @@ public class RXDateTimeViewTest {
         click(timeCell(view, ".hour-column", "08"));
         doubleClick(view.lookup(".hour-column").lookup(".items"));
         assertEquals(1, actions.get());
+    }
+
+    /**
+     * Verifies day picks, a time pick and a bound change ask the time filter once per time.
+     */
+    @Test
+    public void timeFilterIsAskedOncePerTime() {
+        RXDateTimeView view = newView();
+        int[] asked = new int[24 * 60];
+        view.setTimeFilter(time -> {
+            asked[time.toSecondOfDay() / 60]++;
+            return time.getHour() >= 9 && time.getHour() < 18;
+        });
+        click(dayCell(view, LocalDate.of(2026, 11, 20)));
+        click(dayCell(view, LocalDate.of(2026, 11, 21)));
+        click(timeCell(view, ".hour-column", "10"));
+        view.setMinDateTime(LocalDateTime.of(2026, 11, 14, 15, 30));
+        click(dayCell(view, LocalDate.of(2026, 11, 14)));
+        assertEquals(LocalDateTime.of(2026, 11, 14, 15, 30), view.getValue());
+        assertEquals(1, Arrays.stream(asked).max().getAsInt());
     }
 
     /**

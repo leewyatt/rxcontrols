@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -92,6 +93,35 @@ public class RXTimeViewTest {
         view.setShowSeconds(true);
         view.applyCss();
         assertEquals(60, texts(view, ".second-column").size());
+    }
+
+    /**
+     * Verifies picks and a bound change ask a time filter once per time, and a new filter is asked.
+     */
+    @Test
+    public void timeFilterIsAskedOncePerTime() {
+        RXTimeView view = newView();
+        int[] asked = new int[24 * 60];
+        view.setTimeFilter(time -> {
+            asked[time.toSecondOfDay() / 60]++;
+            return time.getHour() != 12;
+        });
+        view.applyCss();
+        PickerTestSupport.click(cell(view, ".hour-column", "09"));
+        PickerTestSupport.click(cell(view, ".minute-column", "30"));
+        view.setMinTime(LocalTime.of(8, 0));
+        view.applyCss();
+        assertTrue(cell(view, ".hour-column", "12").isDisabled());
+        assertEquals(1, Arrays.stream(asked).max().getAsInt());
+
+        AtomicInteger calls = new AtomicInteger();
+        view.setTimeFilter(time -> {
+            calls.incrementAndGet();
+            return true;
+        });
+        view.applyCss();
+        assertTrue(calls.get() > 0);
+        assertFalse(cell(view, ".hour-column", "12").isDisabled());
     }
 
     /**

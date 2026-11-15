@@ -349,6 +349,8 @@ public class RXTimePicker extends RXPickerBase<LocalTime> {
     /**
      * Decides which times within the bounds are selectable: {@code true} keeps a
      * time selectable, {@code false} disables it. {@code null} accepts every time.
+     * The popup's time columns ask the filter once for each time and keep the answer
+     * until another filter instance is set.
      *
      * @return the time-filter property
      */

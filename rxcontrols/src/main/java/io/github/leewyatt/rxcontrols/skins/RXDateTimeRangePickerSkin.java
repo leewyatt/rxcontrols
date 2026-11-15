@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.RXDateTimeRangeView;
 import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeConstraints;
 import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeTexts;
 import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeTexts.ParseResult;
+import io.github.leewyatt.rxcontrols.internal.datetime.MemoizedTimeFilter;
 import io.github.leewyatt.rxcontrols.internal.datetime.RangeAnchorSource;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
@@ -22,6 +23,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * Default skin for {@link RXDateTimeRangePicker}: start and end fields around a
@@ -41,6 +43,8 @@ public class RXDateTimeRangePickerSkin extends RXPickerSkinBase<RXDateTimeRange,
     private ReadOnlyObjectProperty<LocalDate> observedAnchor;
     private boolean typingDraft;
     private boolean seeding;
+    /** The control's time filter with its answers remembered; replaced when the filter is. */
+    private Predicate<LocalTime> timeFilter;
 
     /**
      * Creates the skin for the given picker.
@@ -275,8 +279,9 @@ public class RXDateTimeRangePickerSkin extends RXPickerSkinBase<RXDateTimeRange,
 
     private DateTimeConstraints constraints() {
         RXDateTimeRangePicker control = getSkinnable();
+        timeFilter = MemoizedTimeFilter.of(control.getTimeFilter(), timeFilter);
         return new DateTimeConstraints(control.getMinDateTime(), control.getMaxDateTime(), control.getDateFilter(),
-                control.getTimeFilter(), control.getHourStep(), control.getMinuteStep(), control.getSecondStep(),
+                timeFilter, control.getHourStep(), control.getMinuteStep(), control.getSecondStep(),
                 control.isShowSeconds());
     }
 }

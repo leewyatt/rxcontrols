@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXDateTimeView;
 import io.github.leewyatt.rxcontrols.internal.datetime.CalendarPanel;
 import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeConstraints;
 import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeTexts;
+import io.github.leewyatt.rxcontrols.internal.datetime.MemoizedTimeFilter;
 import io.github.leewyatt.rxcontrols.internal.datetime.TemporalKeyTarget;
 import io.github.leewyatt.rxcontrols.internal.datetime.TemporalRules;
 import io.github.leewyatt.rxcontrols.internal.datetime.TimeColumns;
@@ -23,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * Default skin for {@link RXDateTimeView}: a day calendar beside time columns.
@@ -43,6 +45,8 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
     private boolean writingDisplayedMonth;
     /** Constraint snapshot, rebuilt after any rule property changes. */
     private DateTimeConstraints rules;
+    /** The control's time filter with its answers remembered; replaced when the filter is. */
+    private Predicate<LocalTime> timeFilter;
 
     /**
      * Creates the skin for the given view.
@@ -298,8 +302,9 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
             return rules;
         }
         RXDateTimeView control = getSkinnable();
+        timeFilter = MemoizedTimeFilter.of(control.getTimeFilter(), timeFilter);
         rules = new DateTimeConstraints(control.getMinDateTime(), control.getMaxDateTime(), control.getDateFilter(),
-                control.getTimeFilter(), control.getHourStep(), control.getMinuteStep(), control.getSecondStep(),
+                timeFilter, control.getHourStep(), control.getMinuteStep(), control.getSecondStep(),
                 control.isShowSeconds());
         return rules;
     }

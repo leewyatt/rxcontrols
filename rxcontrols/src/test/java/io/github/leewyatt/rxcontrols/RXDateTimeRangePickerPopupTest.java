@@ -16,6 +16,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.Locale;
 
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.click;
@@ -162,6 +163,33 @@ public class RXDateTimeRangePickerPopupTest {
             press(end, KeyCode.ENTER);
             assertEquals(RXDateTimeRange.of(LocalDateTime.of(2026, 11, 20, 8, 0),
                     LocalDateTime.of(2026, 11, 25, 10, 0)), picker.getValue());
+        });
+    }
+
+    /**
+     * Verifies repeated first-day picks in the popup do not ask the time filter about a time again.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void firstDayPicksDoNotAskTimeFilterAgain() throws InterruptedException {
+        runOnFx(() -> {
+            RXDateTimeRangePicker picker = newShownPicker();
+            int[] asked = new int[24 * 60];
+            picker.setTimeFilter(time -> {
+                asked[time.toSecondOfDay() / 60]++;
+                return time.getHour() >= 9 && time.getHour() < 18;
+            });
+            picker.show();
+            Node root = findPopup().getScene().getRoot();
+            click(dayCell(root, LocalDate.of(2026, 11, 20)));
+            click(dayCell(root, LocalDate.of(2026, 11, 22)));
+            click(dayCell(root, LocalDate.of(2026, 11, 24)));
+            click(dayCell(root, LocalDate.of(2026, 11, 26)));
+            click(dayCell(root, LocalDate.of(2026, 11, 27)));
+            assertEquals("11/27/2026 09:00", editor(picker, 0).getText());
+            // The picker and its popup view each remember the answers.
+            assertTrue(Arrays.stream(asked).max().getAsInt() <= 2);
         });
     }
 

@@ -256,6 +256,8 @@ public class RXDateTimeRangePicker extends RXPickerBase<RXDateTimeRange> {
     /**
      * Decides which times of day are selectable on every date: {@code true} keeps a
      * time selectable, {@code false} disables it. {@code null} accepts every time.
+     * The popup's time columns ask the filter once for each time and keep the answer
+     * until another filter instance is set.
      *
      * @return the time-filter property
      */

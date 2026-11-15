@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -226,6 +227,27 @@ public class RXDateTimeRangeViewTest {
         assertTrue(hasPseudoClass(keyboard.lookup(".end-tab"), "selected"));
         press(keyboard, KeyCode.SPACE);
         assertEquals(1, keyboardActions.get());
+    }
+
+    /**
+     * Verifies picking ranges and their times asks the time filter once per time.
+     */
+    @Test
+    public void timeFilterIsAskedOncePerTime() {
+        RXDateTimeRangeView view = newView();
+        int[] asked = new int[24 * 60];
+        view.setTimeFilter(time -> {
+            asked[time.toSecondOfDay() / 60]++;
+            return time.getHour() >= 9 && time.getHour() < 18;
+        });
+        click(dayCell(view, LocalDate.of(2026, 11, 20)));
+        click(dayCell(view, LocalDate.of(2026, 11, 22)));
+        click(timeCell(view, ".hour-column", "17"));
+        click(dayCell(view, LocalDate.of(2026, 11, 24)));
+        click(dayCell(view, LocalDate.of(2026, 11, 24)));
+        assertEquals(RXDateTimeRange.of(LocalDateTime.of(2026, 11, 24, 9, 0), LocalDateTime.of(2026, 11, 24, 17, 0)),
+                view.getValue());
+        assertEquals(1, Arrays.stream(asked).max().getAsInt());
     }
 
     /**
