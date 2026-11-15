@@ -10,13 +10,18 @@ import java.util.function.Predicate;
  * date-time bounds, a date filter, a time-of-day filter and the time steps. On the
  * first and last allowed day the time columns are further limited by the bounds' time,
  * so a bound of {@code 2026-11-14T15:30} keeps that day selectable while disabling
- * its earlier times.
+ * its earlier times. Such a day stays selectable while any time on it is acceptable:
+ * where the step grid offers none, picking the day takes the acceptable time nearest
+ * to the bound.
  *
  * <p>Instances are snapshots of the rules; build a new one when a property changes.
  * They remember whether each bound's own day offers a time, so calendar refreshes do
  * not rescan that day.
  */
 public final class DateTimeConstraints {
+
+    private static final int SECONDS_PER_MINUTE = 60;
+    private static final int SECONDS_PER_DAY = 24 * 60 * SECONDS_PER_MINUTE;
 
     private final LocalDateTime min;
     private final LocalDateTime max;
@@ -26,7 +31,7 @@ public final class DateTimeConstraints {
     private final int minuteStep;
     private final int secondStep;
     private final boolean showSeconds;
-    /** Whether the lower / upper bound's own day offers a selectable time; {@code null} until asked. */
+    /** Whether the lower / upper bound's own day has an acceptable time; {@code null} until asked. */
     private Boolean minDayHasTime;
     private Boolean maxDayHasTime;
 
@@ -78,14 +83,14 @@ public final class DateTimeConstraints {
      *
      * @param date the date
      * @return {@code true} if within the bounds' dates, accepted by the date filter and,
-     *         on a bound's own day, offering at least one selectable time
+     *         on a bound's own day, having at least one acceptable time
      */
     public boolean isDateSelectable(LocalDate date) {
         if (!TemporalRules.isSelectable(date, minDate(), maxDate(), dateFilter)) {
             return false;
         }
-        // A bound's own day is only selectable when some time on it still is (for
-        // example a minimum of 23:50 with a 15-minute step leaves none).
+        // A bound's own day is selectable while some time on it is acceptable, on the
+        // step grid or off it (a minimum of 23:50 with a 15-minute step leaves 23:50).
         if (date.equals(minDate())) {
             if (minDayHasTime == null) {
                 minDayHasTime = hasTimeOn(date);
@@ -102,7 +107,41 @@ public final class DateTimeConstraints {
     }
 
     private boolean hasTimeOn(LocalDate date) {
-        return timesOn(date).snap(LocalTime.MIDNIGHT, null) != null;
+        return timesOn(date).snap(LocalTime.MIDNIGHT, null) != null || boundTimeOn(date) != null;
+    }
+
+    /**
+     * Returns the time nearest to a bound on that bound's own day that the bounds and
+     * the time filter accept, at the precision the columns show. It stands in for the
+     * day where the step grid offers no time.
+     *
+     * @param date the day
+     * @return the time, or {@code null} if the day is no bound's own or has no such time
+     */
+    private LocalTime boundTimeOn(LocalDate date) {
+        boolean minDay = date.equals(minDate());
+        boolean maxDay = date.equals(maxDate());
+        if (!minDay && !maxDay) {
+            return null;
+        }
+        int unit = showSeconds ? 1 : SECONDS_PER_MINUTE;
+        int first = 0;
+        if (minDay) {
+            LocalTime from = min.toLocalTime();
+            int seconds = from.toSecondOfDay() + (from.getNano() == 0 ? 0 : 1);
+            first = (seconds + unit - 1) / unit * unit;
+        }
+        int last = maxDay ? max.toLocalTime().toSecondOfDay() / unit * unit : SECONDS_PER_DAY - unit;
+        // Upwards from the lower bound; downwards from the upper bound on a day that
+        // is only the upper bound's.
+        int step = minDay ? unit : -unit;
+        for (int second = minDay ? first : last; second >= first && second <= last; second += step) {
+            LocalTime time = LocalTime.ofSecondOfDay(second);
+            if (timeFilter == null || timeFilter.test(time)) {
+                return time;
+            }
+        }
+        return null;
     }
 
     /**
@@ -152,7 +191,8 @@ public final class DateTimeConstraints {
 
     /**
      * Combines a day with a wished time, moving the time to the nearest selectable one
-     * on that day when the wished time is not acceptable there.
+     * on that day when the wished time is not acceptable there. On a bound's own day
+     * whose step grid offers no time, the acceptable time nearest to the bound is taken.
      *
      * @param date the day
      * @param time the wished time
@@ -164,6 +204,9 @@ public final class DateTimeConstraints {
             return date.atTime(time);
         }
         LocalTime snapped = times.snap(time, null);
+        if (snapped == null) {
+            snapped = boundTimeOn(date);
+        }
         return date.atTime(snapped != null ? snapped : time);
     }
 

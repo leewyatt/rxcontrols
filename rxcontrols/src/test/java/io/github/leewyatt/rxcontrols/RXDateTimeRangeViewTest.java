@@ -230,6 +230,22 @@ public class RXDateTimeRangeViewTest {
     }
 
     /**
+     * Verifies a range starting on a bound day without a time in the columns starts at the bound.
+     */
+    @Test
+    public void boundDayWithoutColumnTimesStartsAtBound() {
+        RXDateTimeRangeView view = newView();
+        view.setMinuteStep(15);
+        view.setMinDateTime(LocalDateTime.of(2026, 11, 14, 23, 50));
+        assertFalse(dayCell(view, LocalDate.of(2026, 11, 14)).isDisabled());
+        click(dayCell(view, LocalDate.of(2026, 11, 14)));
+        click(dayCell(view, LocalDate.of(2026, 11, 16)));
+        assertEquals(RXDateTimeRange.of(LocalDateTime.of(2026, 11, 14, 23, 50), LocalDateTime.of(2026, 11, 16, 0, 0)),
+                view.getValue());
+        assertFalse(hasPseudoClass(view, "invalid"));
+    }
+
+    /**
      * Verifies the preview of a date-time range ends when the pointer leaves the calendar.
      */
     @Test

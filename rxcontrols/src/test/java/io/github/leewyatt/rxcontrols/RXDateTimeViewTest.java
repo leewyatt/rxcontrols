@@ -128,13 +128,49 @@ public class RXDateTimeViewTest {
     }
 
     /**
-     * Verifies a bound day without any selectable time is disabled.
+     * Verifies a bound day without a time in the columns is picked with the bound's time and shown selected.
+     */
+    @Test
+    public void boundDayWithoutColumnTimesPicksBound() {
+        RXDateTimeView view = newView();
+        view.setMinuteStep(15);
+        view.setMinDateTime(LocalDateTime.of(2026, 11, 14, 23, 50));
+        view.setValue(LocalDateTime.of(2026, 11, 16, 10, 0));
+        assertFalse(dayCell(view, LocalDate.of(2026, 11, 14)).isDisabled());
+        click(dayCell(view, LocalDate.of(2026, 11, 14)));
+        assertEquals(LocalDateTime.of(2026, 11, 14, 23, 50), view.getValue());
+        assertTrue(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 14)), "selected"));
+        assertFalse(hasPseudoClass(view, "invalid"));
+    }
+
+    /**
+     * Verifies the keys on the time columns of such a day keep its value.
+     */
+    @Test
+    public void keysOnBoundDayWithoutColumnTimesKeepValue() {
+        RXDateTimeView view = newView();
+        view.setMinuteStep(15);
+        view.setMinDateTime(LocalDateTime.of(2026, 11, 14, 23, 50));
+        view.setValue(LocalDateTime.of(2026, 11, 15, 10, 0));
+        press(view, KeyCode.DOWN);
+        press(view, KeyCode.LEFT);
+        press(view, KeyCode.ENTER);
+        assertEquals(LocalDateTime.of(2026, 11, 14, 23, 50), view.getValue());
+        press(view, KeyCode.DOWN);
+        press(view, KeyCode.UP);
+        press(view, KeyCode.RIGHT);
+        assertEquals(LocalDateTime.of(2026, 11, 14, 23, 50), view.getValue());
+    }
+
+    /**
+     * Verifies a bound day without any acceptable time is disabled.
      */
     @Test
     public void boundDayWithoutTimesIsDisabled() {
         RXDateTimeView view = newView();
         view.setMinuteStep(15);
         view.setMinDateTime(LocalDateTime.of(2026, 11, 14, 23, 50));
+        view.setTimeFilter(time -> time.getHour() != 23);
         assertTrue(dayCell(view, LocalDate.of(2026, 11, 14)).isDisabled());
         assertFalse(dayCell(view, LocalDate.of(2026, 11, 15)).isDisabled());
     }
