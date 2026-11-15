@@ -15,23 +15,26 @@
  *                                                                             *
  ******************************************************************************/
 .rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-badge, .rx-bar-spinner, .rx-box, .rx-button,
-.rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
+.rx-calendar-view, .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-content-pane, .rx-copy-button, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
-.rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
+.rx-date-picker, .rx-date-range-picker, .rx-date-range-view, .rx-date-time-picker, .rx-date-time-range-picker, .rx-date-time-range-view, .rx-date-time-view, .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
 .rx-decimal-field, .rx-double-field, .rx-fab, .rx-highlight-text-view, .rx-hold-button,
 .rx-image-pane, .rx-image-view, .rx-integer-field,
 .rx-line-button, .rx-line-label, .rx-long-field, .rx-lrc-line-view, .rx-lrc-view,
-.rx-masonry-pane, .rx-masonry-view,
+.rx-masonry-pane, .rx-masonry-view, .rx-month-picker, .rx-month-range-picker, .rx-month-range-view, .rx-month-view,
 .rx-material-decimal-field, .rx-material-double-field, .rx-material-integer-field,
 .rx-material-long-field, .rx-material-text-field, .rx-material-password-field,
-.rx-password-field, .rx-placeholder, .rx-radio-button, .rx-radio-toggle-button,
+.rx-password-field, .rx-placeholder, .rx-quarter-picker, .rx-quarter-range-picker, .rx-quarter-range-view, .rx-quarter-view,
+.rx-radio-button, .rx-radio-toggle-button,
 .rx-reaction-button, .rx-ribbon-badge, .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-selection-box, .rx-sidebar, .rx-snackbar-host, .rx-speed-dial,
 .rx-slider, .rx-range-slider,
 .rx-skeleton, .rx-skeleton-pane, .rx-state-pane, .rx-switch-button, .rx-text-field, .rx-text-view,
 .rx-kanban-view, .rx-list-view, .rx-menu-button, .rx-menu-list,
-.rx-tab-pane, .rx-tile-pane, .rx-tile-view, .rx-timeline-view, .rx-toggle-button, .rx-transition-button,
-.rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator {
+.rx-tab-pane, .rx-tile-pane, .rx-tile-view, .rx-time-picker, .rx-time-view, .rx-timeline-view, .rx-toggle-button, .rx-transition-button,
+.rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator, .rx-week-picker, .rx-week-range-picker,
+.rx-week-range-view, .rx-week-view, .rx-year-picker, .rx-year-range-picker, .rx-year-range-view,
+.rx-year-view {
     /* brand / primary: the Modena accent, so RX controls follow an application that
        recolors -fx-accent. White text on it is 3.38:1, below WCAG AA; override
        -rx-primary with a darker color where AA text contrast is required. */
@@ -97,6 +100,8 @@
 .rx-theme-atlantafx.rx-box,
 .rx-theme-atlantafx .rx-button,
 .rx-theme-atlantafx.rx-button,
+.rx-theme-atlantafx .rx-calendar-view,
+.rx-theme-atlantafx.rx-calendar-view,
 .rx-theme-atlantafx .rx-carousel,
 .rx-theme-atlantafx.rx-carousel,
 .rx-theme-atlantafx .rx-cascader,
@@ -131,6 +136,20 @@
 .rx-theme-atlantafx.rx-dot-pulse,
 .rx-theme-atlantafx .rx-drawer-pane,
 .rx-theme-atlantafx.rx-drawer-pane,
+.rx-theme-atlantafx .rx-date-picker,
+.rx-theme-atlantafx.rx-date-picker,
+.rx-theme-atlantafx .rx-date-range-picker,
+.rx-theme-atlantafx.rx-date-range-picker,
+.rx-theme-atlantafx .rx-date-range-view,
+.rx-theme-atlantafx.rx-date-range-view,
+.rx-theme-atlantafx .rx-date-time-picker,
+.rx-theme-atlantafx.rx-date-time-picker,
+.rx-theme-atlantafx .rx-date-time-range-picker,
+.rx-theme-atlantafx.rx-date-time-range-picker,
+.rx-theme-atlantafx .rx-date-time-range-view,
+.rx-theme-atlantafx.rx-date-time-range-view,
+.rx-theme-atlantafx .rx-date-time-view,
+.rx-theme-atlantafx.rx-date-time-view,
 .rx-theme-atlantafx .rx-dual-pane,
 .rx-theme-atlantafx.rx-dual-pane,
 .rx-theme-atlantafx .rx-fill-button,
@@ -169,6 +188,14 @@
 .rx-theme-atlantafx.rx-masonry-pane,
 .rx-theme-atlantafx .rx-masonry-view,
 .rx-theme-atlantafx.rx-masonry-view,
+.rx-theme-atlantafx .rx-month-picker,
+.rx-theme-atlantafx.rx-month-picker,
+.rx-theme-atlantafx .rx-month-range-picker,
+.rx-theme-atlantafx.rx-month-range-picker,
+.rx-theme-atlantafx .rx-month-range-view,
+.rx-theme-atlantafx.rx-month-range-view,
+.rx-theme-atlantafx .rx-month-view,
+.rx-theme-atlantafx.rx-month-view,
 .rx-theme-atlantafx .rx-material-decimal-field,
 .rx-theme-atlantafx.rx-material-decimal-field,
 .rx-theme-atlantafx .rx-material-double-field,
@@ -185,6 +212,14 @@
 .rx-theme-atlantafx.rx-password-field,
 .rx-theme-atlantafx .rx-placeholder,
 .rx-theme-atlantafx.rx-placeholder,
+.rx-theme-atlantafx .rx-quarter-picker,
+.rx-theme-atlantafx.rx-quarter-picker,
+.rx-theme-atlantafx .rx-quarter-range-picker,
+.rx-theme-atlantafx.rx-quarter-range-picker,
+.rx-theme-atlantafx .rx-quarter-range-view,
+.rx-theme-atlantafx.rx-quarter-range-view,
+.rx-theme-atlantafx .rx-quarter-view,
+.rx-theme-atlantafx.rx-quarter-view,
 .rx-theme-atlantafx .rx-radio-button,
 .rx-theme-atlantafx.rx-radio-button,
 .rx-theme-atlantafx .rx-radio-toggle-button,
@@ -243,6 +278,10 @@
 .rx-theme-atlantafx.rx-tile-pane,
 .rx-theme-atlantafx .rx-tile-view,
 .rx-theme-atlantafx.rx-tile-view,
+.rx-theme-atlantafx .rx-time-picker,
+.rx-theme-atlantafx.rx-time-picker,
+.rx-theme-atlantafx .rx-time-view,
+.rx-theme-atlantafx.rx-time-view,
 .rx-theme-atlantafx .rx-timeline-view,
 .rx-theme-atlantafx.rx-timeline-view,
 .rx-theme-atlantafx .rx-toggle-button,
@@ -254,7 +293,23 @@
 .rx-theme-atlantafx .rx-transition-pane,
 .rx-theme-atlantafx.rx-transition-pane,
 .rx-theme-atlantafx .rx-wave-progress-indicator,
-.rx-theme-atlantafx.rx-wave-progress-indicator {
+.rx-theme-atlantafx.rx-wave-progress-indicator,
+.rx-theme-atlantafx .rx-week-picker,
+.rx-theme-atlantafx.rx-week-picker,
+.rx-theme-atlantafx .rx-week-range-picker,
+.rx-theme-atlantafx.rx-week-range-picker,
+.rx-theme-atlantafx .rx-week-range-view,
+.rx-theme-atlantafx.rx-week-range-view,
+.rx-theme-atlantafx .rx-week-view,
+.rx-theme-atlantafx.rx-week-view,
+.rx-theme-atlantafx .rx-year-picker,
+.rx-theme-atlantafx.rx-year-picker,
+.rx-theme-atlantafx .rx-year-range-picker,
+.rx-theme-atlantafx.rx-year-range-picker,
+.rx-theme-atlantafx .rx-year-range-view,
+.rx-theme-atlantafx.rx-year-range-view,
+.rx-theme-atlantafx .rx-year-view,
+.rx-theme-atlantafx.rx-year-view {
     /* brand / primary */
     -rx-primary: -color-accent-emphasis;
     -rx-primary-hover: derive(-color-accent-emphasis, 8%);
@@ -4072,4 +4127,816 @@
     -fx-alignment: center-right;
     -fx-spacing: 0.5em; /* 6 */
     -fx-padding: 0.25em 0 0 0;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Calendar panel (RXCalendarView and the other date / period views)           *
+ *                                                                             *
+ ******************************************************************************/
+.rx-calendar-view,
+.rx-date-range-view,
+.rx-date-time-view,
+.rx-date-time-range-view,
+.rx-month-view,
+.rx-month-range-view,
+.rx-quarter-view,
+.rx-quarter-range-view,
+.rx-week-view,
+.rx-week-range-view,
+.rx-year-view,
+.rx-year-range-view {
+    -fx-background-color: -fx-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
+    -fx-padding: 0.5em 0.666667em 0.666667em 0.666667em;
+}
+
+.rx-calendar-view:focused,
+.rx-date-range-view:focused,
+.rx-date-time-view:focused,
+.rx-date-time-range-view:focused,
+.rx-month-view:focused,
+.rx-month-range-view:focused,
+.rx-quarter-view:focused,
+.rx-quarter-range-view:focused,
+.rx-week-view:focused,
+.rx-week-range-view:focused,
+.rx-year-view:focused,
+.rx-year-range-view:focused {
+    -fx-background-color: -fx-focus-color, -fx-control-inner-background;
+}
+
+.rx-calendar-panel {
+    -fx-spacing: 1.333333em;
+}
+
+.rx-calendar-panel > .page {
+    -fx-spacing: 0.333333em;
+}
+
+.rx-calendar-panel > .page > .header {
+    -fx-alignment: center;
+    -fx-padding: 0 0 0.25em 0;
+}
+
+.rx-calendar-panel > .page > .header > .nav-button {
+    -fx-alignment: center;
+    -fx-padding: 0.333333em 0.416667em;
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+}
+
+.rx-calendar-panel > .page > .header > .nav-button > .arrow {
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-pref-width: 0.416667em;
+    -fx-pref-height: 0.666667em;
+}
+
+.rx-calendar-panel > .page > .header > .nav-button:hover > .arrow {
+    -fx-background-color: -rx-on-surface;
+}
+
+.rx-calendar-panel > .page > .header > .nav-button:disabled {
+    -fx-opacity: 0.38;
+}
+
+.rx-calendar-panel > .page > .header > .prev-button > .arrow {
+    -fx-shape: "M6,0 L7.4,1.4 L2.8,6 L7.4,10.6 L6,12 L0,6 Z";
+}
+
+.rx-calendar-panel > .page > .header > .next-button > .arrow {
+    -fx-shape: "M1.4,0 L7.4,6 L1.4,12 L0,10.6 L4.6,6 L0,1.4 Z";
+}
+
+.rx-calendar-panel > .page > .header > .super-prev-button > .arrow {
+    -fx-pref-width: 0.75em;
+    -fx-shape: "M6,0 L7.4,1.4 L2.8,6 L7.4,10.6 L6,12 L0,6 Z M12,0 L13.4,1.4 L8.8,6 L13.4,10.6 L12,12 L6,6 Z";
+}
+
+.rx-calendar-panel > .page > .header > .super-next-button > .arrow {
+    -fx-pref-width: 0.75em;
+    -fx-shape: "M1.4,0 L7.4,6 L1.4,12 L0,10.6 L4.6,6 L0,1.4 Z M7.4,0 L13.4,6 L7.4,12 L6,10.6 L10.6,6 L6,1.4 Z";
+}
+
+.rx-calendar-panel > .page > .header > .title {
+    -fx-alignment: center;
+    -fx-spacing: 0.333333em;
+}
+
+.rx-calendar-panel > .page > .header > .title > .label {
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface;
+    -fx-padding: 0.083333em 0.25em;
+    -fx-cursor: hand;
+}
+
+.rx-calendar-panel > .page > .header > .title > .label:hover {
+    -fx-text-fill: -rx-primary;
+}
+
+/* The century title of the decade grid is the top level and is not clickable. */
+.rx-calendar-panel > .page > .header > .title > .label:disabled {
+    -fx-opacity: 1;
+    -fx-cursor: default;
+}
+
+.rx-calendar-panel .day-name,
+.rx-calendar-panel .week-number {
+    -fx-alignment: center;
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.rx-calendar-panel .week-number {
+    -fx-font-size: 0.916667em;
+    -fx-opacity: 0.6;
+    -fx-border-color: transparent -rx-outline-variant transparent transparent;
+    -fx-border-insets: 0 0.25em 0 0;
+}
+
+.rx-calendar-panel .date-cell {
+    -fx-alignment: center;
+    -fx-padding: 0;
+    -fx-text-fill: -rx-on-surface;
+    -fx-background-color: transparent;
+    -fx-background-insets: 0.166667em;
+    -fx-background-radius: 3;
+    -fx-border-insets: 0.166667em;
+    -fx-border-radius: 3;
+    -fx-cursor: hand;
+}
+
+.rx-calendar-panel .day-cell,
+.rx-calendar-panel .day-name,
+.rx-calendar-panel .week-number {
+    -fx-pref-width: 2.5em;
+    -fx-pref-height: 2.166667em;
+}
+
+/* Period cells fill the same area as the 7 x 7 day grid, so drilling up never
+   resizes the panel (and with it a hosting popup window). */
+.rx-calendar-panel .month-cell,
+.rx-calendar-panel .year-cell,
+.rx-calendar-panel .decade-cell {
+    -fx-pref-width: 5.833333em;
+    -fx-pref-height: 3.791667em;
+    -fx-background-insets: 0.916667em 0.5em;
+    -fx-border-insets: 0.916667em 0.5em;
+}
+
+/* A decade label nearly fills its cell, and a border narrows the text area by its
+   insets: the negative padding gives that width back. */
+.rx-calendar-panel .decade-cell {
+    -fx-background-insets: 0.916667em 0.166667em;
+    -fx-border-insets: 0.916667em 0.166667em;
+    -fx-padding: 0 -0.166667em;
+}
+
+.rx-calendar-panel .quarter-cell {
+    -fx-pref-width: 4.375em;
+    -fx-pref-height: 3.791667em;
+    -fx-background-insets: 0.916667em 0.333333em;
+    -fx-border-insets: 0.916667em 0.333333em;
+}
+
+.rx-calendar-panel .date-cell:hover {
+    -fx-background-color: -rx-surface-variant;
+}
+
+.rx-calendar-panel .date-cell:adjacent {
+    -fx-text-fill: -rx-on-surface-disabled;
+}
+
+.rx-calendar-panel .date-cell:today {
+    -fx-border-color: -rx-primary;
+}
+
+/* A range is drawn week row by week row: one band per run of days (a segment), with a
+   corner at both ends of the run. */
+.rx-calendar-panel .date-cell:in-range {
+    -fx-background-color: -rx-primary-bg;
+    -fx-background-radius: 0;
+    -fx-background-insets: 0.166667em 0;
+}
+
+.rx-calendar-panel .date-cell:segment-start {
+    -fx-background-radius: 3 0 0 3;
+    -fx-background-insets: 0.166667em 0 0.166667em 0.166667em;
+}
+
+.rx-calendar-panel .date-cell:segment-end {
+    -fx-background-radius: 0 3 3 0;
+    -fx-background-insets: 0.166667em 0.166667em 0.166667em 0;
+}
+
+.rx-calendar-panel .date-cell:segment-start:segment-end {
+    -fx-background-radius: 3;
+    -fx-background-insets: 0.166667em;
+}
+
+/* The pending range is outlined instead of filled. */
+.rx-calendar-panel .date-cell:preview {
+    -fx-background-color: transparent;
+    -fx-border-color: -rx-primary transparent;
+    -fx-border-style: segments(0.25em, 0.25em);
+    -fx-border-insets: 0.166667em 0;
+    -fx-border-radius: 0;
+}
+
+.rx-calendar-panel .date-cell:preview:segment-start {
+    -fx-border-color: -rx-primary transparent -rx-primary -rx-primary;
+    -fx-border-insets: 0.166667em 0 0.166667em 0.166667em;
+    -fx-border-radius: 3 0 0 3;
+}
+
+.rx-calendar-panel .date-cell:preview:segment-end {
+    -fx-border-color: -rx-primary -rx-primary -rx-primary transparent;
+    -fx-border-insets: 0.166667em 0.166667em 0.166667em 0;
+    -fx-border-radius: 0 3 3 0;
+}
+
+.rx-calendar-panel .date-cell:preview:segment-start:segment-end {
+    -fx-border-color: -rx-primary;
+    -fx-border-insets: 0.166667em;
+    -fx-border-radius: 3;
+}
+
+.rx-calendar-panel .date-cell:disabled {
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-cursor: default;
+}
+
+/* No shape here: a selected cell keeps the shape of its own level. */
+.rx-calendar-panel .date-cell:selected {
+    -fx-background-color: -rx-primary;
+    -fx-text-fill: -rx-on-primary;
+}
+
+.rx-calendar-panel .date-cell:selected:hover {
+    -fx-background-color: -rx-primary-hover;
+}
+
+/* A range end is a filled square over the band, and the band runs on from under it
+   toward the rest of the range. */
+.rx-calendar-panel .date-cell:range-start {
+    -fx-background-color: -rx-primary-bg, -rx-primary;
+    -fx-background-radius: 3 0 0 3, 3;
+    -fx-background-insets: 0.166667em 0 0.166667em 0.166667em, 0.166667em;
+    -fx-text-fill: -rx-on-primary;
+}
+
+.rx-calendar-panel .date-cell:range-end {
+    -fx-background-color: -rx-primary-bg, -rx-primary;
+    -fx-background-radius: 0 3 3 0, 3;
+    -fx-background-insets: 0.166667em 0.166667em 0.166667em 0, 0.166667em;
+    -fx-text-fill: -rx-on-primary;
+}
+
+/* No band beside an end that also closes its segment. */
+.rx-calendar-panel .date-cell:range-start:segment-end,
+.rx-calendar-panel .date-cell:range-end:segment-start {
+    -fx-background-radius: 3, 3;
+    -fx-background-insets: 0.166667em, 0.166667em;
+}
+
+.rx-calendar-panel .date-cell:range-start:hover,
+.rx-calendar-panel .date-cell:range-end:hover {
+    -fx-background-color: -rx-primary-bg, -rx-primary-hover;
+}
+
+.rx-calendar-panel .date-cell:preview:range-start,
+.rx-calendar-panel .date-cell:preview:range-end {
+    -fx-background-color: transparent, -rx-primary;
+}
+
+.rx-calendar-panel .date-cell:preview:range-start:hover,
+.rx-calendar-panel .date-cell:preview:range-end:hover {
+    -fx-background-color: transparent, -rx-primary-hover;
+}
+
+/* Keyboard cursor, after the today ring so it wins when both apply. The longer
+   selectors outrank the preview outline rules. */
+.rx-calendar-panel .date-cell:focused,
+.rx-calendar-panel .date-cell:preview:focused,
+.rx-calendar-panel .date-cell:preview:segment-start:focused,
+.rx-calendar-panel .date-cell:preview:segment-end:focused,
+.rx-calendar-panel .date-cell:preview:segment-start:segment-end:focused {
+    -fx-border-color: -rx-focus;
+    -fx-border-width: 1.5;
+}
+
+.rx-calendar-panel .date-cell:preview:focused,
+.rx-calendar-panel .date-cell:preview:segment-start:focused,
+.rx-calendar-panel .date-cell:preview:segment-end:focused,
+.rx-calendar-panel .date-cell:preview:segment-start:segment-end:focused {
+    -fx-border-style: solid;
+    -fx-border-insets: 0.166667em;
+    -fx-border-radius: 3;
+}
+
+/* Period cells are inset further than day cells, so every range rule that sets insets
+   is repeated here with theirs. A one-sided border inset would push the text off
+   center; padding on the other side balances it. */
+.rx-calendar-panel .month-cell:in-range,
+.rx-calendar-panel .year-cell:in-range {
+    -fx-background-insets: 0.916667em 0;
+}
+
+.rx-calendar-panel .month-cell:segment-start,
+.rx-calendar-panel .year-cell:segment-start {
+    -fx-background-insets: 0.916667em 0 0.916667em 0.5em;
+}
+
+.rx-calendar-panel .month-cell:segment-end,
+.rx-calendar-panel .year-cell:segment-end {
+    -fx-background-insets: 0.916667em 0.5em 0.916667em 0;
+}
+
+.rx-calendar-panel .month-cell:segment-start:segment-end,
+.rx-calendar-panel .year-cell:segment-start:segment-end {
+    -fx-background-insets: 0.916667em 0.5em;
+}
+
+.rx-calendar-panel .month-cell:preview,
+.rx-calendar-panel .year-cell:preview {
+    -fx-border-insets: 0.916667em 0;
+}
+
+.rx-calendar-panel .month-cell:preview:segment-start,
+.rx-calendar-panel .year-cell:preview:segment-start {
+    -fx-border-insets: 0.916667em 0 0.916667em 0.5em;
+    -fx-padding: 0 0.5em 0 0;
+}
+
+.rx-calendar-panel .month-cell:preview:segment-end,
+.rx-calendar-panel .year-cell:preview:segment-end {
+    -fx-border-insets: 0.916667em 0.5em 0.916667em 0;
+    -fx-padding: 0 0 0 0.5em;
+}
+
+.rx-calendar-panel .month-cell:preview:segment-start:segment-end,
+.rx-calendar-panel .year-cell:preview:segment-start:segment-end {
+    -fx-border-insets: 0.916667em 0.5em;
+    -fx-padding: 0;
+}
+
+.rx-calendar-panel .month-cell:range-start,
+.rx-calendar-panel .year-cell:range-start {
+    -fx-background-insets: 0.916667em 0 0.916667em 0.5em, 0.916667em 0.5em;
+}
+
+.rx-calendar-panel .month-cell:range-end,
+.rx-calendar-panel .year-cell:range-end {
+    -fx-background-insets: 0.916667em 0.5em 0.916667em 0, 0.916667em 0.5em;
+}
+
+.rx-calendar-panel .month-cell:range-start:segment-end,
+.rx-calendar-panel .year-cell:range-start:segment-end,
+.rx-calendar-panel .month-cell:range-end:segment-start,
+.rx-calendar-panel .year-cell:range-end:segment-start {
+    -fx-background-insets: 0.916667em 0.5em, 0.916667em 0.5em;
+}
+
+.rx-calendar-panel .month-cell:preview:focused,
+.rx-calendar-panel .year-cell:preview:focused,
+.rx-calendar-panel .month-cell:preview:segment-start:focused,
+.rx-calendar-panel .year-cell:preview:segment-start:focused,
+.rx-calendar-panel .month-cell:preview:segment-end:focused,
+.rx-calendar-panel .year-cell:preview:segment-end:focused,
+.rx-calendar-panel .month-cell:preview:segment-start:segment-end:focused,
+.rx-calendar-panel .year-cell:preview:segment-start:segment-end:focused {
+    -fx-border-insets: 0.916667em 0.5em;
+    -fx-padding: 0;
+}
+
+.rx-calendar-panel .quarter-cell:in-range {
+    -fx-background-insets: 0.916667em 0;
+}
+
+.rx-calendar-panel .quarter-cell:segment-start {
+    -fx-background-insets: 0.916667em 0 0.916667em 0.333333em;
+}
+
+.rx-calendar-panel .quarter-cell:segment-end {
+    -fx-background-insets: 0.916667em 0.333333em 0.916667em 0;
+}
+
+.rx-calendar-panel .quarter-cell:segment-start:segment-end {
+    -fx-background-insets: 0.916667em 0.333333em;
+}
+
+.rx-calendar-panel .quarter-cell:preview {
+    -fx-border-insets: 0.916667em 0;
+}
+
+.rx-calendar-panel .quarter-cell:preview:segment-start {
+    -fx-border-insets: 0.916667em 0 0.916667em 0.333333em;
+    -fx-padding: 0 0.333333em 0 0;
+}
+
+.rx-calendar-panel .quarter-cell:preview:segment-end {
+    -fx-border-insets: 0.916667em 0.333333em 0.916667em 0;
+    -fx-padding: 0 0 0 0.333333em;
+}
+
+.rx-calendar-panel .quarter-cell:preview:segment-start:segment-end {
+    -fx-border-insets: 0.916667em 0.333333em;
+    -fx-padding: 0;
+}
+
+.rx-calendar-panel .quarter-cell:range-start {
+    -fx-background-insets: 0.916667em 0 0.916667em 0.333333em, 0.916667em 0.333333em;
+}
+
+.rx-calendar-panel .quarter-cell:range-end {
+    -fx-background-insets: 0.916667em 0.333333em 0.916667em 0, 0.916667em 0.333333em;
+}
+
+.rx-calendar-panel .quarter-cell:range-start:segment-end,
+.rx-calendar-panel .quarter-cell:range-end:segment-start {
+    -fx-background-insets: 0.916667em 0.333333em, 0.916667em 0.333333em;
+}
+
+.rx-calendar-panel .quarter-cell:preview:focused,
+.rx-calendar-panel .quarter-cell:preview:segment-start:focused,
+.rx-calendar-panel .quarter-cell:preview:segment-end:focused,
+.rx-calendar-panel .quarter-cell:preview:segment-start:segment-end:focused {
+    -fx-border-insets: 0.916667em 0.333333em;
+    -fx-padding: 0;
+}
+
+/* The extra class outranks the day rules above in every state. */
+.rx-calendar-panel.week-rows .day-cell {
+    -fx-background-color: transparent;
+    -fx-background-radius: 0;
+    -fx-background-insets: 0.166667em 0;
+}
+
+.rx-calendar-panel.week-rows .day-cell:segment-start {
+    -fx-background-radius: 3 0 0 3;
+    -fx-background-insets: 0.166667em 0 0.166667em 0.166667em;
+}
+
+.rx-calendar-panel.week-rows .day-cell:segment-end {
+    -fx-background-radius: 0 3 3 0;
+    -fx-background-insets: 0.166667em 0.166667em 0.166667em 0;
+}
+
+.rx-calendar-panel.week-rows .day-cell:week-hover {
+    -fx-background-color: -rx-surface-variant;
+}
+
+.rx-calendar-panel.week-rows .day-cell:in-range {
+    -fx-background-color: -rx-primary-bg;
+}
+
+.rx-calendar-panel.week-rows .day-cell:preview {
+    -fx-background-color: transparent;
+}
+
+.rx-calendar-panel.week-rows .day-cell:selected,
+.rx-calendar-panel.week-rows .day-cell:range-start,
+.rx-calendar-panel.week-rows .day-cell:range-end {
+    -fx-background-color: -rx-primary;
+    -fx-text-fill: -rx-on-primary;
+}
+
+/* A filled week needs no pending outline; its dashes would show along the edge. */
+.rx-calendar-panel.week-rows .day-cell:preview:range-start,
+.rx-calendar-panel.week-rows .day-cell:preview:range-end {
+    -fx-border-color: transparent;
+}
+
+.rx-calendar-panel.week-rows .day-cell:selected:week-hover,
+.rx-calendar-panel.week-rows .day-cell:range-start:week-hover,
+.rx-calendar-panel.week-rows .day-cell:range-end:week-hover {
+    -fx-background-color: -rx-primary-hover;
+}
+
+/* The longer selectors outrank the rule that hides the pending outline. A centered
+   stroke: an inside one leaves a tick where the borders of two cells meet. */
+.rx-calendar-panel.week-rows .day-cell:focused,
+.rx-calendar-panel.week-rows .day-cell:preview:range-start:focused,
+.rx-calendar-panel.week-rows .day-cell:preview:range-end:focused {
+    -fx-border-color: -rx-focus transparent;
+    -fx-border-width: 1.5;
+    -fx-border-style: solid centered;
+    -fx-border-insets: 0.166667em 0;
+    -fx-border-radius: 0;
+}
+
+.rx-calendar-panel.week-rows .day-cell:focused:segment-start,
+.rx-calendar-panel.week-rows .day-cell:preview:range-start:focused:segment-start,
+.rx-calendar-panel.week-rows .day-cell:preview:range-end:focused:segment-start {
+    -fx-border-color: -rx-focus transparent -rx-focus -rx-focus;
+    -fx-border-insets: 0.166667em 0 0.166667em 0.166667em;
+    -fx-border-radius: 3 0 0 3;
+}
+
+.rx-calendar-panel.week-rows .day-cell:focused:segment-end,
+.rx-calendar-panel.week-rows .day-cell:preview:range-start:focused:segment-end,
+.rx-calendar-panel.week-rows .day-cell:preview:range-end:focused:segment-end {
+    -fx-border-color: -rx-focus -rx-focus -rx-focus transparent;
+    -fx-border-insets: 0.166667em 0.166667em 0.166667em 0;
+    -fx-border-radius: 0 3 3 0;
+}
+
+.rx-calendar-panel.week-rows .week-number {
+    -fx-cursor: hand;
+}
+
+.rx-calendar-panel.week-rows .week-number:week-hover {
+    -fx-opacity: 1;
+}
+
+.rx-calendar-panel.week-rows .week-number:selected {
+    -fx-text-fill: -rx-primary;
+    -fx-opacity: 1;
+}
+
+.rx-calendar-panel.week-rows .week-number:disabled {
+    -fx-cursor: default;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Date / time pickers (RXDatePicker and siblings)                             *
+ *                                                                             *
+ ******************************************************************************/
+.rx-picker {
+    -fx-background-color: linear-gradient(to bottom, derive(-fx-text-box-border, -10%), -fx-text-box-border),
+    linear-gradient(from 0px 0px to 0px 5px, derive(-fx-control-inner-background, -9%), -fx-control-inner-background);
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
+}
+
+.rx-picker:focused,
+.rx-picker:showing {
+    -fx-background-color: -fx-focus-color,
+    -fx-control-inner-background,
+    -fx-faint-focus-color,
+    linear-gradient(from 0px 0px to 0px 5px, derive(-fx-control-inner-background, -9%), -fx-control-inner-background);
+    -fx-background-insets: -0.2, 1, -1.4, 3;
+    -fx-background-radius: 3, 2, 4, 0;
+}
+
+.rx-theme-atlantafx .rx-picker:focused,
+.rx-theme-atlantafx.rx-picker:focused,
+.rx-theme-atlantafx .rx-picker:showing,
+.rx-theme-atlantafx.rx-picker:showing {
+    -fx-background-color: -fx-focus-color, -fx-control-inner-background;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
+}
+
+.rx-picker:invalid {
+    -fx-background-color: -rx-danger, -fx-control-inner-background;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
+}
+
+.rx-picker:disabled {
+    -fx-opacity: 0.4;
+}
+
+/* The fields sit on the picker's own surface; the picker draws the frame. */
+.rx-picker > .text-field,
+.rx-picker > .text-field:focused {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0.333333em 0 0.333333em 0.583em;
+    -fx-text-fill: -fx-text-inner-color;
+}
+
+.rx-picker > .text-field:disabled {
+    -fx-opacity: 1;
+}
+
+/* AtlantaFX text inputs are taller (8px x 12px padding); match them so pickers line
+   up with plain text fields in AtlantaFX forms. */
+.rx-theme-atlantafx .rx-picker > .text-field,
+.rx-theme-atlantafx.rx-picker > .text-field {
+    -fx-padding: 0.666667em 0 0.666667em 1em;
+}
+
+/* Range pickers underline the field being edited: 2px, clear of the 1px frame. */
+.rx-picker > .active-bar {
+    -fx-background-color: -rx-primary;
+    -fx-background-insets: 0 0 1 0;
+    -fx-pref-height: 3px;
+}
+
+.rx-picker > .separator {
+    -fx-background-color: derive(-fx-text-base-color, 45%);
+    -fx-pref-width: 1.166667em;
+    -fx-pref-height: 0.666667em;
+    -fx-shape: "M0,4.25 H10.5 V2 L14,5 L10.5,8 V5.75 H0 Z";
+}
+
+.rx-picker > .suffix {
+    -fx-padding: 0 0.583em 0 0.416667em;
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+}
+
+.rx-picker > .suffix > .icon {
+    -fx-background-color: derive(-fx-text-base-color, 45%);
+    -fx-pref-width: 1em;
+    -fx-pref-height: 1em;
+    -fx-shape: "M1,3 H15 V6.5 H1 Z M1,6.5 H2.5 V16 H1 Z M13.5,6.5 H15 V16 H13.5 Z M2.5,14.5 H13.5 V16 H2.5 Z M4,0.5 H6 V4 H4 Z M10,0.5 H12 V4 H10 Z M4.5,8.5 H7.5 V11.5 H4.5 Z";
+}
+
+.rx-picker > .suffix > .clear-button > .graphic {
+    -fx-background-color: derive(-fx-text-base-color, 45%);
+    -fx-pref-width: 0.666667em;
+    -fx-pref-height: 0.666667em;
+    -fx-shape: "M2,0 L5,3 L8,0 L10,2 L7,5 L10,8 L8,10 L5,7 L2,10 L0,8 L3,5 L0,2 Z";
+}
+
+.rx-picker > .suffix:hover > .clear-button > .graphic {
+    -fx-background-color: derive(-fx-text-base-color, 20%);
+}
+
+.rx-picker-popup .container {
+    -fx-background-color: -fx-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
+    -fx-padding: 1;
+    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 8);
+}
+
+/* The popup container draws the frame; the hosted view keeps only its padding. */
+.rx-picker-popup .container > .rx-calendar-view,
+.rx-picker-popup .container > .rx-calendar-view:focused,
+.rx-picker-popup .container > .rx-time-view,
+.rx-picker-popup .container > .rx-time-view:focused,
+.rx-picker-popup .container > .rx-date-range-view,
+.rx-picker-popup .container > .rx-date-range-view:focused,
+.rx-picker-popup .container > .rx-date-time-view,
+.rx-picker-popup .container > .rx-date-time-view:focused,
+.rx-picker-popup .container > .rx-date-time-range-view,
+.rx-picker-popup .container > .rx-date-time-range-view:focused,
+.rx-picker-popup .container > .rx-month-view,
+.rx-picker-popup .container > .rx-month-view:focused,
+.rx-picker-popup .container > .rx-quarter-view,
+.rx-picker-popup .container > .rx-quarter-view:focused,
+.rx-picker-popup .container > .rx-year-view,
+.rx-picker-popup .container > .rx-year-view:focused,
+.rx-picker-popup .container > .rx-month-range-view,
+.rx-picker-popup .container > .rx-month-range-view:focused,
+.rx-picker-popup .container > .rx-quarter-range-view,
+.rx-picker-popup .container > .rx-quarter-range-view:focused,
+.rx-picker-popup .container > .rx-year-range-view,
+.rx-picker-popup .container > .rx-year-range-view:focused,
+.rx-picker-popup .container > .rx-week-view,
+.rx-picker-popup .container > .rx-week-view:focused,
+.rx-picker-popup .container > .rx-week-range-view,
+.rx-picker-popup .container > .rx-week-range-view:focused {
+    -fx-background-color: transparent;
+}
+
+.rx-picker-popup .container > .footer {
+    -fx-alignment: center;
+    -fx-spacing: 0.5em;
+    -fx-padding: 0.333333em 0.666667em;
+    -fx-border-color: -rx-outline-variant transparent transparent transparent;
+}
+
+.rx-picker-popup .container > .footer > .link-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0.25em 0.5em;
+    -fx-text-fill: -rx-primary;
+    -fx-cursor: hand;
+}
+
+.rx-picker-popup .container > .footer > .link-button:hover {
+    -fx-underline: true;
+}
+
+.rx-picker-popup .container > .footer > .ok-button {
+    -fx-background-color: -rx-primary;
+    -fx-background-insets: 0;
+    -fx-background-radius: 3;
+    -fx-padding: 0.25em 0.833333em;
+    -fx-text-fill: -rx-on-primary;
+    -fx-cursor: hand;
+}
+
+.rx-picker-popup .container > .footer > .ok-button:hover {
+    -fx-background-color: -rx-primary-hover;
+}
+
+.rx-picker-popup .container > .footer > .button:disabled {
+    -fx-opacity: 0.4;
+}
+
+.rx-time-picker > .suffix > .icon {
+    -fx-shape: "M8,0 A8,8 0 1 1 7.99,0 Z M8,1.5 A6.5,6.5 0 1 0 8.01,1.5 Z M7.25,3.5 H8.75 V7.4 L11.4,10 L10.35,11.05 L7.25,8 Z";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Time columns (RXTimeView and the date-time views)                           *
+ *                                                                             *
+ ******************************************************************************/
+.rx-time-view {
+    -fx-background-color: -fx-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
+    -fx-padding: 0.333333em;
+}
+
+.rx-time-view:focused {
+    -fx-background-color: -fx-focus-color, -fx-control-inner-background;
+}
+
+.rx-time-columns > .time-column,
+.rx-time-columns > .time-column > .viewport {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.rx-time-columns > .time-column {
+    -fx-pref-width: 3.5em;
+    -fx-pref-height: 15.166667em;
+}
+
+.rx-time-columns > .minute-column,
+.rx-time-columns > .second-column,
+.rx-time-columns > .meridiem-column {
+    -fx-border-color: transparent transparent transparent -rx-outline-variant;
+}
+
+.rx-time-columns .time-cell {
+    -fx-alignment: center;
+    -fx-pref-height: 2.166667em;
+    -fx-padding: 0;
+    -fx-text-fill: -rx-on-surface;
+    -fx-background-color: transparent;
+    -fx-background-insets: 0.083333em 0.25em;
+    -fx-background-radius: 3;
+    -fx-border-insets: 0.083333em 0.25em;
+    -fx-border-radius: 3;
+    -fx-cursor: hand;
+}
+
+.rx-time-columns .time-cell:hover {
+    -fx-background-color: -rx-surface-variant;
+}
+
+.rx-time-columns .time-cell:selected {
+    -fx-background-color: -rx-primary-bg;
+    -fx-font-weight: bold;
+}
+
+.rx-time-columns .time-cell:disabled {
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-cursor: default;
+}
+
+.rx-time-columns .time-cell:focused {
+    -fx-border-color: -rx-focus;
+    -fx-border-width: 1.5;
+}
+
+.rx-date-time-view > .content,
+.rx-date-time-range-view > .content {
+    -fx-spacing: 0.666667em;
+}
+
+.rx-date-time-view > .content > .time-pane,
+.rx-date-time-range-view > .content > .time-pane {
+    -fx-padding: 0 0 0 0.666667em;
+    -fx-border-color: transparent transparent transparent -rx-outline-variant;
+    -fx-border-width: 0 0 0 1;
+}
+
+/* The header and the tabs take the height of the calendar header plus the gap under
+   it, so the columns line up with the day grid. */
+.rx-date-time-view > .content > .time-pane > .time-header {
+    -fx-alignment: center;
+    -fx-padding: 0.083333em 0 0.666667em 0;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface;
+}
+
+.rx-date-time-range-view > .content > .time-pane > .tabs {
+    -fx-padding: 0 0 0.333333em 0;
+}
+
+.rx-date-time-range-view > .content > .time-pane > .tabs > .label {
+    -fx-alignment: center;
+    -fx-padding: 0.083333em 0.333333em 0.166667em 0.333333em;
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-border-color: transparent transparent -rx-outline-variant transparent;
+    -fx-cursor: hand;
+}
+
+.rx-date-time-range-view > .content > .time-pane > .tabs > .label:selected {
+    -fx-text-fill: -rx-primary;
+    -fx-font-weight: bold;
+    -fx-border-color: transparent transparent -rx-primary transparent;
+    -fx-border-width: 0 0 2 0;
 }
