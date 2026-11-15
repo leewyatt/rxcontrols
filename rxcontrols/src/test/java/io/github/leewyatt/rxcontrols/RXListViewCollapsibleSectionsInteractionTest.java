@@ -221,6 +221,27 @@ public class RXListViewCollapsibleSectionsInteractionTest {
     }
 
     @Test
+    public void arrowHiddenThroughCssGivesItsWidthBack() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = collapsible(100);
+            StackPane root = host(view);
+            pump(root);
+            RXListSectionCell header = header(view, 1);
+            Node text = header.getChildrenUnmodifiable().stream()
+                    .filter(node -> node instanceof Text).findFirst().orElse(null);
+            assertNotNull(text);
+            double withArrow = text.getLayoutX();
+            // The documented opt-out: an author rule, switched on by a style class.
+            root.getScene().getStylesheets().add("data:text/css,"
+                    + ".hide-arrows .rx-list-section-header > .disclosure { visibility: hidden; }");
+            view.getStyleClass().add("hide-arrows");
+            pump(root);
+            assertTrue(text.getLayoutX() < withArrow - 1.0,
+                    "the label moves into the arrow's place: " + text.getLayoutX() + " vs " + withArrow);
+        });
+    }
+
+    @Test
     public void customHeaderGetsTheDisclosureArrowToo() throws Exception {
         onFx(() -> {
             RXListView<Integer> view = collapsible(100);
