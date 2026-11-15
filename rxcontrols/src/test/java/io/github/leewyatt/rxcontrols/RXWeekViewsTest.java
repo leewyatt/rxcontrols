@@ -108,7 +108,7 @@ public class RXWeekViewsTest {
     }
 
     /**
-     * Verifies pointing at a day or a week number marks the whole row, and leaving the grid clears it.
+     * Verifies pointing at a day or a week number marks the whole row, and a disabled row or leaving clears it.
      */
     @Test
     public void hoverMarksTheRow() {
@@ -122,13 +122,37 @@ public class RXWeekViewsTest {
         assertRow(view, LocalDate.of(2026, 11, 23), "week-hover", false);
         assertTrue(hasPseudoClass(weekNumber(view, "47"), "week-hover"));
 
+        // Disabled nodes are not picked: over a disabled row the pointer is on the grid.
         assertTrue(weekNumber(view, "49").isDisabled());
-        hover(weekNumber(view, "49"));
+        hover(view.lookup(".cells"));
+        assertRow(view, LocalDate.of(2026, 11, 16), "week-hover", false);
         assertRow(view, LocalDate.of(2026, 11, 30), "week-hover", false);
-        assertRow(view, LocalDate.of(2026, 11, 16), "week-hover", true);
 
+        hover(day(view, LocalDate.of(2026, 11, 18)));
+        assertRow(view, LocalDate.of(2026, 11, 16), "week-hover", true);
         view.lookup(".day-grid").fireEvent(mouse(MouseEvent.MOUSE_EXITED));
         assertRow(view, LocalDate.of(2026, 11, 16), "week-hover", false);
+    }
+
+    /**
+     * Verifies paging drops the pointed-at row, which is not under the pointer anymore.
+     */
+    @Test
+    public void pagingClearsRowHover() {
+        RXWeekView view = show(new RXWeekView());
+        hover(day(view, LocalDate.of(2026, 11, 18)));
+        click(view.lookup(".next-button"));
+        click(view.lookup(".prev-button"));
+        assertRow(view, LocalDate.of(2026, 11, 16), "week-hover", false);
+    }
+
+    /**
+     * Verifies the first page shows the month of the value, not of its week's first day.
+     */
+    @Test
+    public void firstPageShowsValueMonth() {
+        RXWeekView view = show(new RXWeekView(LocalDate.of(2026, 11, 1)));
+        assertEquals(YearMonth.of(2026, 11), view.getDisplayedMonth());
     }
 
     /**
@@ -165,7 +189,7 @@ public class RXWeekViewsTest {
     }
 
     /**
-     * Verifies every arrow key moves the cursor by a week, paging at the month edge, and Enter picks it.
+     * Verifies every arrow key moves the cursor by a week, paging only past the rows on screen, and Enter picks it.
      */
     @Test
     public void keyboardMovesByWeek() {
@@ -179,11 +203,55 @@ public class RXWeekViewsTest {
         press(view, KeyCode.LEFT);
         assertRow(view, LocalDate.of(2026, 11, 2), "focused", true);
         press(view, KeyCode.UP);
-        assertEquals(YearMonth.of(2026, 10), view.getDisplayedMonth());
+        assertEquals(YearMonth.of(2026, 11), view.getDisplayedMonth(), "the week of 26 Oct is on screen");
         assertRow(view, LocalDate.of(2026, 10, 26), "focused", true);
         press(view, KeyCode.ENTER);
         assertEquals(LocalDate.of(2026, 10, 26), view.getValue());
+        assertEquals(YearMonth.of(2026, 11), view.getDisplayedMonth());
+        press(view, KeyCode.UP);
         assertEquals(YearMonth.of(2026, 10), view.getDisplayedMonth());
+        assertRow(view, LocalDate.of(2026, 10, 19), "focused", true);
+    }
+
+    /**
+     * Verifies paging by key does not depend on the weekday the cursor took from a click.
+     */
+    @Test
+    public void keyboardPagingIgnoresCursorWeekday() {
+        RXWeekView view = show(new RXWeekView());
+        press(view, KeyCode.DOWN);
+        click(day(view, LocalDate.of(2026, 11, 2)));
+        press(view, KeyCode.UP);
+        assertEquals(YearMonth.of(2026, 11), view.getDisplayedMonth());
+        assertRow(view, LocalDate.of(2026, 10, 26), "focused", true);
+    }
+
+    /**
+     * Verifies the cursor stops on the last pickable week without paging past it.
+     */
+    @Test
+    public void keyboardStopsAtBoundWeek() {
+        RXWeekView view = show(new RXWeekView());
+        view.setMaxWeek(LocalDate.of(2026, 11, 30));
+        for (int i = 0; i < 5; i++) {
+            press(view, KeyCode.DOWN);
+        }
+        assertEquals(YearMonth.of(2026, 11), view.getDisplayedMonth());
+        assertRow(view, LocalDate.of(2026, 11, 30), "focused", true);
+    }
+
+    /**
+     * Verifies the first arrow key puts the cursor on a picked week that only shows days of the next month.
+     */
+    @Test
+    public void cursorSeedsOnPickedTrailingWeek() {
+        RXWeekView view = show(new RXWeekView());
+        view.setDisplayedMonth(YearMonth.of(2026, 1));
+        click(anyDay(view, LocalDate.of(2026, 2, 4)));
+        assertEquals(LocalDate.of(2026, 2, 2), view.getValue());
+        press(view, KeyCode.DOWN);
+        assertEquals(YearMonth.of(2026, 1), view.getDisplayedMonth());
+        assertRow(view, LocalDate.of(2026, 2, 2), "focused", true);
     }
 
     /**
@@ -226,6 +294,21 @@ public class RXWeekViewsTest {
             assertTrue(hasPseudoClass(copy, "range-start") && hasPseudoClass(copy, "range-end"));
             assertTrue(hasPseudoClass(copy, "segment-start"));
         }
+    }
+
+    /**
+     * Verifies the keyboard cursor on a week shared by two linked months is drawn on one page only.
+     */
+    @Test
+    public void sharedWeekCursorIsDrawnOnce() {
+        RXWeekRangeView view = show(new RXWeekRangeView());
+        for (int i = 0; i < 4; i++) {
+            press(view, KeyCode.DOWN);
+        }
+        List<DateCell> focused = cells(view, ".day-cell").stream()
+                .filter(cell -> hasPseudoClass(cell, "focused")).collect(Collectors.toList());
+        assertEquals(7, focused.size());
+        assertEquals(LocalDate.of(2026, 11, 30), focused.get(0).getItem());
     }
 
     /**
@@ -300,8 +383,10 @@ public class RXWeekViewsTest {
                 .orElseThrow(() -> new AssertionError("no week number " + text));
     }
 
+    /** The pointer moving onto a node. */
     private static void hover(Node node) {
         node.fireEvent(mouse(MouseEvent.MOUSE_ENTERED));
+        node.fireEvent(mouse(MouseEvent.MOUSE_MOVED));
     }
 
     private static MouseEvent mouse(EventType<MouseEvent> type) {

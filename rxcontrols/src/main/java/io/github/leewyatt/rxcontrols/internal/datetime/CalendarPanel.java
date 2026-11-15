@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.internal.datetime;
 
 import javafx.css.PseudoClass;
+import javafx.event.EventTarget;
 import javafx.geometry.NodeOrientation;
 import javafx.scene.Node;
 import javafx.scene.control.DateCell;
@@ -147,7 +148,10 @@ public final class CalendarPanel extends HBox {
     private Level mode;
     private LocalDate cursor;
     private boolean cursorVisible;
-    /** First day of the week row under the pointer, in a panel that picks weeks. */
+    /**
+     * First day of the week row under the pointer, in a panel that picks weeks. Dropped
+     * whenever the grid pages: the row under the pointer stands for another week then.
+     */
     private LocalDate hoveredWeek;
     /**
      * Set after a click changed the level or paged the grid: the cell under the pointer
@@ -199,15 +203,6 @@ public final class CalendarPanel extends HBox {
     }
 
     // ==================== Configuration API ====================
-
-    /**
-     * Returns the pick level.
-     *
-     * @return the level at which cells are picked
-     */
-    public Level getPickLevel() {
-        return pickLevel;
-    }
 
     /**
      * Sets the number of linked pages shown side by side at the pick level: consecutive
@@ -392,7 +387,8 @@ public final class CalendarPanel extends HBox {
         }
         reference = newReference;
         mode = pickLevel;
-        if (cursorVisible && cursor != null && !isDisplayed(cursor)) {
+        hoveredWeek = null;
+        if (cursorVisible && cursor != null && !isUnitDisplayed(cursor)) {
             cursor = clampToBounds(firstEnabledDisplayed());
         }
         refresh();
@@ -401,7 +397,7 @@ public final class CalendarPanel extends HBox {
 
     /**
      * Ensures the date is on one of the displayed pick-level pages, paging as little as possible.
-     * A panel that picks weeks is content when any day of the date's week is on them.
+     * A panel that picks weeks is content when the row of the date's week is on them.
      *
      * @param date the date to reveal; {@code null} is ignored
      */
@@ -414,10 +410,14 @@ public final class CalendarPanel extends HBox {
             showPeriodOf(target);
             return;
         }
-        if (isDisplayed(target) || (weekRows && isWeekOnScreen(target))) {
+        if (isUnitDisplayed(target)) {
             return;
         }
         revealInMode(target, target.isBefore(pageStartOf(mode, reference)));
+        if (cursorVisible && cursor != null && !isUnitDisplayed(cursor)) {
+            // A cursor left behind off screen would still be activated by Enter.
+            cursor = cursorDayOf(clampToBounds(target));
+        }
         refresh();
     }
 
@@ -489,15 +489,6 @@ public final class CalendarPanel extends HBox {
     }
 
     /**
-     * Returns the keyboard cursor date.
-     *
-     * @return the cursor date, or {@code null}
-     */
-    public LocalDate getKeyboardCursor() {
-        return cursor;
-    }
-
-    /**
      * Hides the keyboard cursor; the next navigation key re-seeds it.
      */
     public void clearKeyboardCursor() {
@@ -509,7 +500,7 @@ public final class CalendarPanel extends HBox {
 
     private void seedCursor() {
         LocalDate seed = cursorSeed.get();
-        if (seed == null || !isDisplayable(seed) || !isDisplayed(seed)) {
+        if (seed == null || !isDisplayable(seed) || !isUnitDisplayed(seed)) {
             seed = firstEnabledDisplayed();
         }
         moveCursorTo(seed);
@@ -518,9 +509,10 @@ public final class CalendarPanel extends HBox {
     private void moveCursorTo(LocalDate target) {
         cursor = clampToBounds(displayable(target));
         cursorVisible = true;
-        if (!isDisplayed(cursor)) {
+        if (!isUnitDisplayed(cursor)) {
             revealInMode(cursor, cursor.isBefore(pageStartOf(mode, reference)));
         }
+        cursor = cursorDayOf(cursor);
         refresh();
         // The keyboard cursor previews like the pointer does (range highlighting); like
         // the pointer, it previews only pickable cells.
@@ -648,7 +640,8 @@ public final class CalendarPanel extends HBox {
 
     private void page(int direction, boolean large) {
         reference = referenceOf(shiftedReference(direction, large));
-        if (cursorVisible && cursor != null && !isDisplayed(cursor)) {
+        hoveredWeek = null;
+        if (cursorVisible && cursor != null && !isUnitDisplayed(cursor)) {
             cursor = clampToBounds(firstEnabledDisplayed());
         }
         refresh();
@@ -674,6 +667,7 @@ public final class CalendarPanel extends HBox {
     private void revealInMode(LocalDate date, boolean before) {
         LocalDate first = plusPages(date, before ? 0L : 1L - shownPages());
         reference = referenceOf(mode == Level.DAY ? first : reference.withYear(first.getYear()));
+        hoveredWeek = null;
         onPageChanged.run();
     }
 
@@ -728,8 +722,8 @@ public final class CalendarPanel extends HBox {
 
     /**
      * The day that stands for a date under the keyboard cursor. Of a week row it is a
-     * day of a displayed month where there is one, so that the cursor does not page
-     * away from a row that is on screen.
+     * day of a displayed month where the row has one, so that the keys moving by month
+     * start from a month on screen.
      */
     private LocalDate cursorDayOf(LocalDate date) {
         if (!weekRows || mode != Level.DAY || isDisplayed(date)) {
@@ -744,10 +738,29 @@ public final class CalendarPanel extends HBox {
         return date;
     }
 
-    /** Whether a day of the date's week is in a displayed month: its whole row is shown then. */
-    private boolean isWeekOnScreen(LocalDate date) {
-        LocalDate start = weekStart(date);
-        return isDisplayed(start) || isDisplayed(start.plusDays(DAYS_PER_WEEK - 1L));
+    /**
+     * Index of the page that draws the keyboard cursor of a date's week: the page of the
+     * date's month, else the first page whose grid holds the row of the week; -1 when
+     * the row is not on screen.
+     */
+    private int weekPageOf(LocalDate date) {
+        long page = ChronoUnit.MONTHS.between(reference, date.withDayOfMonth(1));
+        if (page >= 0 && page < shownPages()) {
+            return (int) page;
+        }
+        LocalDate week = weekStart(date);
+        for (int i = 0; i < shownPages(); i++) {
+            LocalDate gridStart = weekStart(reference.plusMonths(i));
+            if (!week.isBefore(gridStart) && week.isBefore(gridStart.plusWeeks(WEEK_ROWS))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /** Whether the unit a date stands for is on screen: its week row, or else the page of its cell. */
+    private boolean isUnitDisplayed(LocalDate date) {
+        return weekRows && mode == Level.DAY ? weekPageOf(date) >= 0 : isDisplayed(date);
     }
 
     private void setHoveredWeek(LocalDate week) {
@@ -931,9 +944,7 @@ public final class CalendarPanel extends HBox {
         cell.setFocusTraversable(false);
         cell.addEventHandler(MouseEvent.MOUSE_ENTERED, event -> {
             if (mode == pickLevel && cell.getItem() != null && !cell.isDisabled()) {
-                LocalDate unit = unitStart(cell.getItem());
-                setHoveredWeek(unit);
-                onHover.accept(unit);
+                onHover.accept(unitStart(cell.getItem()));
             }
         });
         cell.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
@@ -1196,7 +1207,8 @@ public final class CalendarPanel extends HBox {
                 }
                 periodStates[i] = state;
                 boolean todayMatch = today != null && periodStart(mode, today).equals(start);
-                boolean cursorMatch = cursorVisible && cursor != null && periodStart(mode, cursor).equals(start);
+                boolean cursorMatch = cursorVisible && cursor != null && !adjacent
+                        && periodStart(mode, cursor).equals(start);
                 applyCellState(cell, start, state, adjacent, todayMatch, cursorMatch);
                 cell.setText(text);
             }
@@ -1220,7 +1232,6 @@ public final class CalendarPanel extends HBox {
                 for (int i = 0; i < DAYS_PER_WEEK; i++) {
                     Label name = new Label();
                     name.getStyleClass().add("day-name");
-                    name.addEventHandler(MouseEvent.MOUSE_ENTERED, event -> setHoveredWeek(null));
                     dayNames.add(name);
                 }
                 for (int i = 0; i < WEEK_ROWS; i++) {
@@ -1238,6 +1249,11 @@ public final class CalendarPanel extends HBox {
                 for (int i = 0; i < WEEK_ROWS * DAYS_PER_WEEK; i++) {
                     days.add(createCell("day-cell"));
                 }
+                if (weekRows) {
+                    // A disabled row is not picked, so nothing hears the pointer arrive on
+                    // it: the row under the pointer is read from the target of every move.
+                    addEventHandler(MouseEvent.MOUSE_MOVED, event -> setHoveredWeek(weekUnder(event.getTarget())));
+                }
                 addEventHandler(MouseEvent.MOUSE_EXITED, event -> {
                     setHoveredWeek(null);
                     onHover.accept(null);
@@ -1245,10 +1261,26 @@ public final class CalendarPanel extends HBox {
                 rebuild();
             }
 
+            /** The week of the row a pointer target belongs to; {@code null} off the pickable rows. */
+            private LocalDate weekUnder(EventTarget target) {
+                Node node = target instanceof Node ? (Node) target : null;
+                while (node != null && node != this) {
+                    int day = days.indexOf(node);
+                    if (day >= 0) {
+                        return rowStarts[day / DAYS_PER_WEEK];
+                    }
+                    int row = weekNumbers.indexOf(node);
+                    if (row >= 0) {
+                        return rowStarts[row];
+                    }
+                    node = node.getParent();
+                }
+                return null;
+            }
+
             private void onWeekNumberEntered(int row) {
                 LocalDate week = rowStarts[row];
                 if (mode == pickLevel && week != null && !weekNumbers.get(row).isDisabled()) {
-                    setHoveredWeek(week);
                     onHover.accept(week);
                 }
             }
@@ -1345,16 +1377,17 @@ public final class CalendarPanel extends HBox {
             /**
              * Marks every row as one unit. A week shared by two linked pages is marked
              * on both, since each shows the whole row; the keyboard cursor is drawn on
-             * the page of the cursor day's month only.
+             * one of them only.
              */
             private void updateWeekRows(YearMonth month) {
+                LocalDate cursorWeek = cursorVisible && cursor != null && weekPageOf(cursor) == index
+                        ? weekStart(cursor) : null;
                 for (int row = 0; row < WEEK_ROWS; row++) {
                     LocalDate rowStart = rowStarts[row];
                     int state = stateProvider.stateOf(rowStart);
                     boolean disabled = (state & DISABLED) != 0;
                     boolean hovered = !disabled && rowStart.equals(hoveredWeek);
-                    boolean cursorMatch = cursorVisible && cursor != null && YearMonth.from(cursor).equals(month)
-                            && rowStart.equals(weekStart(cursor));
+                    boolean cursorMatch = rowStart.equals(cursorWeek);
                     for (int col = 0; col < DAYS_PER_WEEK; col++) {
                         LocalDate date = rowStart.plusDays(col);
                         DateCell cell = days.get(row * DAYS_PER_WEEK + col);

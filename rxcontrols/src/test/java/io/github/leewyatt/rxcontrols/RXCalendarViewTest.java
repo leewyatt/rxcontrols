@@ -119,6 +119,44 @@ public class RXCalendarViewTest {
 
         click(dayCell(view, LocalDate.of(2026, 11, 15)));
         assertNull(view.getValue());
+
+        press(view, KeyCode.RIGHT, false);
+        press(view, KeyCode.RIGHT, false);
+        assertTrue(PickerTestSupport.hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 15)), "focused"));
+        press(view, KeyCode.ENTER, false);
+        assertNull(view.getValue(), "Enter on a disabled day under the cursor");
+    }
+
+    /**
+     * Verifies a constraint change and the skin's creation keep the displayed month.
+     */
+    @Test
+    public void constraintChangeKeepsDisplayedMonth() {
+        RXCalendarView view = newView(TODAY);
+        click(view.lookup(".next-button"));
+        view.setMinDate(LocalDate.of(2026, 1, 1));
+        view.setDateFilter(date -> true);
+        assertEquals(YearMonth.of(2026, 12), view.getDisplayedMonth());
+
+        RXCalendarView preset = new RXCalendarView(TODAY);
+        preset.setDisplayedMonth(YearMonth.of(2020, 1));
+        Scene scene = new Scene(new StackPane(preset), 400, 400);
+        preset.applyCss();
+        scene.getRoot().layout();
+        assertEquals(YearMonth.of(2020, 1), preset.getDisplayedMonth());
+    }
+
+    /**
+     * Verifies a value set while the keyboard cursor shows takes the cursor along to its month.
+     */
+    @Test
+    public void cursorFollowsRevealedValue() {
+        RXCalendarView view = newView(TODAY);
+        press(view, KeyCode.DOWN, false);
+        view.setValue(LocalDate.of(2027, 3, 10));
+        assertTrue(PickerTestSupport.hasPseudoClass(dayCell(view, LocalDate.of(2027, 3, 10)), "focused"));
+        press(view, KeyCode.ENTER, false);
+        assertEquals(LocalDate.of(2027, 3, 10), view.getValue());
     }
 
     /**

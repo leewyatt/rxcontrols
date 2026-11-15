@@ -128,6 +128,21 @@ public class RXPeriodRangeViewsTest {
     }
 
     /**
+     * Verifies the keyboard cursor is drawn once where two linked decades repeat a year.
+     */
+    @Test
+    public void cursorIsDrawnOnOwnDecadeOnly() {
+        RXYearRangeView view = show(new RXYearRangeView());
+        for (int year = 2026; year <= 2031; year++) {
+            press(view, KeyCode.RIGHT);
+            long focused = cells(view, ".year-cell").stream()
+                    .filter(cell -> shown(cell) && hasPseudoClass(cell, "focused")).count();
+            assertEquals(1, focused, "cursor cells for " + year);
+        }
+        assertTrue(hasPseudoClass(cell(view, ".year-cell", LocalDate.of(2031, 1, 1)), "focused"));
+    }
+
+    /**
      * Verifies the keyboard cursor moves onto the second page without paging, pages past
      * it, and picks both endpoints.
      */
