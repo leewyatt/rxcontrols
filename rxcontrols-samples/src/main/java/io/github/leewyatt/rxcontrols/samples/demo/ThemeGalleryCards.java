@@ -9,6 +9,7 @@ import io.github.leewyatt.rxcontrols.RXAvatar.ShapeType;
 import io.github.leewyatt.rxcontrols.RXBadge;
 import io.github.leewyatt.rxcontrols.RXBackdrop;
 import io.github.leewyatt.rxcontrols.RXBarSpinner;
+import io.github.leewyatt.rxcontrols.RXBreadcrumbBar;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCalendarView;
 import io.github.leewyatt.rxcontrols.RXCarousel;
@@ -149,6 +150,7 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
@@ -212,6 +214,7 @@ final class ThemeGalleryCards {
         list.add(card("RXBackdrop", "Fading scrim that dims the content beneath it.", buildRXBackdrop()));
         list.add(card("RXBadge", "Count, text or dot indicator on a corner of any node.", buildRXBadge()));
         list.add(card("RXBarSpinner", "Decorative loading bars.", buildRXBarSpinner()));
+        list.add(card("RXBreadcrumbBar", "Path trail with sibling menus and overflow.", buildRXBreadcrumbBar()));
         list.add(card("RXButton", "Button with bounded ripple feedback.", buildRXButton()));
         list.add(card("RXCalendarView", "Month calendar with month and year drill-up.", buildRXCalendarView()));
         list.add(wide("RXCarousel", "Paged carousel with animated page transitions.", buildRXCarousel()));
@@ -416,6 +419,18 @@ final class ThemeGalleryCards {
         card.setStyle("-fx-background-color: -rx-surface-variant; -fx-background-radius: 8px;"
                 + " -fx-border-color: -rx-outline-variant; -fx-border-radius: 8px;");
         return new RXRibbonBadge(card, "Recommended");
+    }
+
+    private static Node buildRXBreadcrumbBar() {
+        Map<String, List<String>> children = Map.of(
+                "Components", List.of("Buttons", "Data Display", "Inputs"),
+                "Data Display", List.of("Badge", "Chip", "Avatar"));
+        RXBreadcrumbBar<String> breadcrumb = new RXBreadcrumbBar<>("Components", "Data Display", "Badge");
+        breadcrumb.setBranchFactory(prefix -> prefix.size() < 2
+                ? List.of()
+                : children.getOrDefault(prefix.get(prefix.size() - 2), List.of()));
+        breadcrumb.setOnNavigate(event -> breadcrumb.getItems().setAll(event.getPath()));
+        return breadcrumb;
     }
 
     private static Node buildRXBarSpinner() {
