@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -12,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Value semantics of {@link RXDateRange} and {@link RXDateTimeRange}.
+ * Value semantics of {@link RXDateRange}, {@link RXDateTimeRange} and {@link RXTimeRange}.
  */
 public class RXDateRangeTest {
 
@@ -66,5 +67,25 @@ public class RXDateRangeTest {
         assertTrue(range.contains(five));
         assertFalse(range.contains(five.plusSeconds(1)));
         assertEquals(Duration.ofMinutes(510), range.duration());
+    }
+
+    /**
+     * Verifies the time range validates, orders and measures its endpoints.
+     */
+    @Test
+    public void timeRangeSemantics() {
+        LocalTime nine = LocalTime.of(9, 0);
+        LocalTime five = LocalTime.of(17, 30);
+        assertThrows(NullPointerException.class, () -> RXTimeRange.of(nine, null));
+        assertThrows(IllegalArgumentException.class, () -> RXTimeRange.of(five, nine));
+        RXTimeRange range = RXTimeRange.ofOrdered(five, nine);
+        assertEquals(RXTimeRange.of(nine, five), range);
+        assertTrue(range.contains(nine));
+        assertTrue(range.contains(five));
+        assertFalse(range.contains(five.plusSeconds(1)));
+        assertFalse(range.contains(null));
+        assertEquals(Duration.ofMinutes(510), range.duration());
+        assertEquals(Duration.ZERO, RXTimeRange.of(nine, nine).duration());
+        assertEquals("09:00/17:30", range.toString());
     }
 }
