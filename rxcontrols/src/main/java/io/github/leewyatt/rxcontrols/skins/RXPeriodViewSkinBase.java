@@ -72,7 +72,13 @@ abstract class RXPeriodViewSkinBase<T extends Comparable<? super T>, C extends R
             disposer.registerListener(constraint, this::updateConstraints);
         }
         disposer.registerListener(control.clockProperty(), this::updateToday);
-        disposer.registerListener(controlTreeShowingProperty(), this::updateToday);
+        // A change listener reads the value: an invalidation listener that never does is
+        // notified once and then never again.
+        disposer.registerListener(controlTreeShowingProperty(), (observable, was, showing) -> {
+            if (showing) {
+                updateToday();
+            }
+        });
         disposer.registerListener(control.focusedProperty(), () -> {
             if (!control.isFocused()) {
                 clearKeyboardCursor();

@@ -24,8 +24,8 @@ import java.util.function.Predicate;
  * no value yet); picking a time keeps the current day (or today). Either pick updates
  * the value at once. The bounds apply to whole date-times: on the bounds' own days the
  * time columns only offer times inside them. The {@link #onActionProperty() action}
- * fires when the user confirms in the time columns (Enter, or a double click on an
- * item).
+ * fires when the user confirms the value in the time columns (Enter / Space, or a
+ * double click on an item).
  *
  * <p><b>Keyboard</b> (while focused): the calendar keys of {@link RXCalendarView};
  * Enter on a day picks it and moves the keyboard cursor to the time columns, which

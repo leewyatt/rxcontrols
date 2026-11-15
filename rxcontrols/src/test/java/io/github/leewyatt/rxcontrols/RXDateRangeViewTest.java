@@ -24,6 +24,7 @@ import static io.github.leewyatt.rxcontrols.PickerTestSupport.click;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.dayCell;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.hasPseudoClass;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.press;
+import static io.github.leewyatt.rxcontrols.PickerTestSupport.visible;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -56,7 +57,7 @@ public class RXDateRangeViewTest {
         RXDateRangeView view = newView();
         assertEquals(YearMonth.of(2026, 11), view.getDisplayedMonth());
         dayCell(view, LocalDate.of(2026, 12, 31));
-        click(view.lookup(".next-button"));
+        click(visible(view, ".next-button"));
         assertEquals(YearMonth.of(2026, 12), view.getDisplayedMonth());
         dayCell(view, LocalDate.of(2027, 1, 31));
     }
@@ -231,7 +232,7 @@ public class RXDateRangeViewTest {
         RXDateRangeView view = newView();
         click(dayCell(view, LocalDate.of(2026, 11, 20)));
         for (int i = 0; i < 4; i++) {
-            click(view.lookup(".next-button"));
+            click(visible(view, ".next-button"));
         }
         assertEquals(YearMonth.of(2027, 3), view.getDisplayedMonth());
         click(dayCell(view, LocalDate.of(2027, 3, 3)));
@@ -245,7 +246,7 @@ public class RXDateRangeViewTest {
     @Test
     public void displayedMonthSetAfterPagingPagesGrid() {
         RXDateRangeView view = newView();
-        click(view.lookup(".next-button"));
+        click(visible(view, ".next-button"));
         view.setDisplayedMonth(YearMonth.of(2020, 1));
         assertTrue(dayCell(view, LocalDate.of(2020, 1, 15)).isVisible());
     }

@@ -13,7 +13,9 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -181,6 +183,7 @@ public class RXDatePickerPopupTest {
             pressMouse(editor(picker, 0));
             assertTrue(picker.isShowing());
             PopupControl popup = findPopup();
+            pressMouse(popup.getScene().getRoot().lookup(".next-button"));
             click(popup.getScene().getRoot().lookup(".next-button"));
             assertNull(popup.getScene().getFocusOwner());
             assertTrue(picker.isShowing());
@@ -302,6 +305,43 @@ public class RXDatePickerPopupTest {
             picker.hide();
             picker.show();
             assertTrue(dayCell(findPopup().getScene().getRoot(), TODAY).isVisible());
+        });
+    }
+
+    /**
+     * Verifies today's mark follows the clock every time the popup opens.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void todayIsRefreshedOnEveryOpen() throws InterruptedException {
+        runOnFx(() -> {
+            RXDatePicker picker = newShownPicker();
+            Instant[] now = {TODAY.atStartOfDay().toInstant(ZoneOffset.UTC)};
+            picker.setClock(new Clock() {
+                @Override
+                public ZoneId getZone() {
+                    return ZoneOffset.UTC;
+                }
+
+                @Override
+                public Clock withZone(ZoneId zone) {
+                    return this;
+                }
+
+                @Override
+                public Instant instant() {
+                    return now[0];
+                }
+            });
+            for (int day = 0; day < 3; day++) {
+                LocalDate today = TODAY.plusDays(day);
+                now[0] = today.atStartOfDay().toInstant(ZoneOffset.UTC);
+                picker.show();
+                assertTrue(hasPseudoClass(dayCell(findPopup().getScene().getRoot(), today), "today"),
+                        "open " + day);
+                picker.hide();
+            }
         });
     }
 

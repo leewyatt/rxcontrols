@@ -53,6 +53,8 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
     private LocalTime pendingStartTime;
     private LocalTime pendingEndTime;
     private boolean timeSection;
+    /** Set while the calendar handles a key: a day picked meanwhile was picked by the keyboard. */
+    private boolean calendarKey;
     private boolean writingDisplayedMonth;
     private boolean pickingValue;
     /** Constraint snapshot, rebuilt after any rule property changes. */
@@ -114,7 +116,13 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
             disposer.registerListener(rule, this::updateConstraints);
         }
         disposer.registerListener(control.clockProperty(), this::updateToday);
-        disposer.registerListener(controlTreeShowingProperty(), this::updateToday);
+        // A change listener reads the value: an invalidation listener that never does is
+        // notified once and then never again.
+        disposer.registerListener(controlTreeShowingProperty(), (observable, was, showing) -> {
+            if (showing) {
+                updateToday();
+            }
+        });
         disposer.registerListener(control.focusedProperty(), () -> {
             if (!control.isFocused()) {
                 clearKeyboardCursor();
@@ -147,7 +155,7 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
                 clearAnchor();
                 return true;
             }
-            return panel.handleKey(event);
+            return handleCalendarKey(event);
         }
         boolean rtl = getSkinnable().getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT;
         KeyCode back = rtl ? KeyCode.RIGHT : KeyCode.LEFT;
@@ -155,7 +163,7 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
                 && columns.isFirstColumnActive()) {
             timeSection = false;
             columns.clearKeyboardCursor();
-            return panel.handleKey(event);
+            return handleCalendarKey(event);
         }
         if ((code == KeyCode.ENTER || code == KeyCode.SPACE) && columns.isKeyboardCursorVisible() && !editingEnd) {
             // The start time is done: continue with the end time before confirming.
@@ -165,6 +173,15 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
             return true;
         }
         return columns.handleKey(event);
+    }
+
+    private boolean handleCalendarKey(KeyEvent event) {
+        calendarKey = true;
+        try {
+            return panel.handleKey(event);
+        } finally {
+            calendarKey = false;
+        }
     }
 
     /** {@inheritDoc} */
@@ -245,7 +262,7 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
 
     private void onDatePick(LocalDate date) {
         LocalDate pending = anchor.get();
-        boolean fromKeyboard = panel.isKeyboardCursorVisible();
+        boolean fromKeyboard = calendarKey;
         if (pending == null) {
             RXDateTimeRange value = getSkinnable().getValue();
             if (value != null) {
@@ -253,6 +270,10 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
                 pendingStartTime = value.start().toLocalTime();
                 pendingEndTime = value.end().toLocalTime();
             }
+            // A click starts the new range while the keys are on the time columns: they
+            // return to the calendar, where the second day and Escape belong.
+            timeSection = false;
+            columns.clearKeyboardCursor();
             hover = date;
             anchor.set(date);
             editingEnd = true;
@@ -339,7 +360,11 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
             }
             return;
         }
-        getSkinnable().fireEvent(new ActionEvent());
+        RXDateTimeRangeView control = getSkinnable();
+        // Without a complete range there is nothing to confirm.
+        if (control.getValue() != null && anchor.get() == null) {
+            control.fireEvent(new ActionEvent());
+        }
     }
 
     private LocalTime startTimeOrFirst(LocalDate day) {
@@ -458,6 +483,7 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
             // A bounds or filter change made the pending first endpoint unpickable.
             hover = null;
             anchor.set(null);
+            resetPendingTimes();
         }
         panel.setBounds(rules.minDate(), rules.maxDate());
         updateValue(false);

@@ -130,6 +130,20 @@ public class RXTimeViewTest {
     }
 
     /**
+     * Verifies Enter and a double click fire no action while there is no value.
+     */
+    @Test
+    public void confirmWithoutValueFiresNothing() {
+        RXTimeView view = newView();
+        AtomicInteger actions = new AtomicInteger();
+        view.setOnAction(event -> actions.incrementAndGet());
+        press(view, KeyCode.DOWN);
+        press(view, KeyCode.ENTER);
+        PickerTestSupport.doubleClick(view.lookup(".hour-column").lookup(".items"));
+        assertEquals(0, actions.get());
+    }
+
+    /**
      * Verifies a value outside the bounds is kept and flagged invalid.
      */
     @Test

@@ -23,8 +23,8 @@ import java.util.function.Predicate;
  * is selectable. The value has whole-second precision.
  *
  * <p>Picks only update the value; the {@link #onActionProperty() action} fires when
- * the user confirms with Enter / Space (keyboard cursor shown) or double-clicks an
- * item.
+ * the user confirms the value with Enter / Space (keyboard cursor shown) or
+ * double-clicks an item.
  *
  * <p><b>Keyboard</b> (while focused): the first arrow key shows the cursor on the
  * hour column; Left / Right choose the column (mirrored under right-to-left

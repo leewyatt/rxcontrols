@@ -28,7 +28,7 @@ public class RXTimeViewSkin extends RXSkinBase<RXTimeView> implements TemporalKe
     public RXTimeViewSkin(RXTimeView control) {
         super(control);
         columns.setOnChange(this::onPick);
-        columns.setOnCommit(() -> control.fireEvent(new ActionEvent()));
+        columns.setOnCommit(this::onCommit);
         getChildren().add(columns);
         disposer.registerDisposeTask(() -> getChildren().remove(columns));
         disposer.registerDisposeTask(columns::dispose);
@@ -81,6 +81,14 @@ public class RXTimeViewSkin extends RXSkinBase<RXTimeView> implements TemporalKe
 
     private void onPick(LocalTime time) {
         getSkinnable().setValue(time);
+    }
+
+    private void onCommit() {
+        RXTimeView control = getSkinnable();
+        // Without a value there is nothing to confirm.
+        if (control.getValue() != null) {
+            control.fireEvent(new ActionEvent());
+        }
     }
 
     private TimeConstraints constraints() {

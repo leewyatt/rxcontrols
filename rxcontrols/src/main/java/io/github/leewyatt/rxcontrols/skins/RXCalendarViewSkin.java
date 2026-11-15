@@ -43,7 +43,7 @@ public class RXCalendarViewSkin extends RXSkinBase<RXCalendarView> implements Te
         showDisplayedMonth();
         updateConstraints();
 
-        disposer.registerListener(control.valueProperty(), this::updateValue);
+        disposer.registerListener(control.valueProperty(), this::onValueChanged);
         // A change listener reads the value on every change. An invalidation listener that
         // returns early during this skin's own write-back would leave the property invalid,
         // and the next set would notify nobody.
@@ -57,7 +57,13 @@ public class RXCalendarViewSkin extends RXSkinBase<RXCalendarView> implements Te
         disposer.registerListener(control.maxDateProperty(), this::updateConstraints);
         disposer.registerListener(control.dateFilterProperty(), this::updateConstraints);
         disposer.registerListener(control.clockProperty(), this::updateToday);
-        disposer.registerListener(controlTreeShowingProperty(), this::updateToday);
+        // A change listener reads the value: an invalidation listener that never does is
+        // notified once and then never again.
+        disposer.registerListener(controlTreeShowingProperty(), (observable, was, showing) -> {
+            if (showing) {
+                updateToday();
+            }
+        });
         disposer.registerListener(control.focusedProperty(), () -> {
             if (!control.isFocused()) {
                 clearKeyboardCursor();
@@ -138,13 +144,18 @@ public class RXCalendarViewSkin extends RXSkinBase<RXCalendarView> implements Te
 
     // ==================== Updates ====================
 
+    private void onValueChanged() {
+        LocalDate value = getSkinnable().getValue();
+        if (value != null) {
+            panel.reveal(value);
+        }
+        updateValue();
+    }
+
     private void updateValue() {
         RXCalendarView control = getSkinnable();
         LocalDate value = control.getValue();
         panel.setHighlight(value);
-        if (value != null) {
-            panel.reveal(value);
-        }
         control.pseudoClassStateChanged(INVALID, value != null && !isSelectable(value));
     }
 

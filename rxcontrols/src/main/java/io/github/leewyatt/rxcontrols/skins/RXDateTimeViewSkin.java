@@ -38,6 +38,8 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
     private final Label timeHeader = new Label();
     private final HBox content;
     private boolean timeSection;
+    /** Set while the calendar handles a key: a day picked meanwhile was picked by the keyboard. */
+    private boolean calendarKey;
     private boolean writingDisplayedMonth;
     /** Constraint snapshot, rebuilt after any rule property changes. */
     private DateTimeConstraints rules;
@@ -61,7 +63,7 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
         panel.setOnPick(this::onDatePick);
         panel.setOnPageChanged(this::onPageChanged);
         columns.setOnChange(this::onTimePick);
-        columns.setOnCommit(() -> control.fireEvent(new ActionEvent()));
+        columns.setOnCommit(this::onTimeCommit);
         getChildren().add(content);
         disposer.registerDisposeTask(() -> getChildren().remove(content));
         disposer.registerDisposeTask(columns::dispose);
@@ -71,7 +73,7 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
         showDisplayedMonth();
         updateConstraints();
 
-        disposer.registerListener(control.valueProperty(), () -> updateValue(true));
+        disposer.registerListener(control.valueProperty(), this::onValueChanged);
         // A change listener reads the value on every change. An invalidation listener that
         // returns early during this skin's own write-back would leave the property invalid,
         // and the next set would notify nobody.
@@ -88,7 +90,13 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
             disposer.registerListener(rule, this::updateConstraints);
         }
         disposer.registerListener(control.clockProperty(), this::updateToday);
-        disposer.registerListener(controlTreeShowingProperty(), this::updateToday);
+        // A change listener reads the value: an invalidation listener that never does is
+        // notified once and then never again.
+        disposer.registerListener(controlTreeShowingProperty(), (observable, was, showing) -> {
+            if (showing) {
+                updateToday();
+            }
+        });
         disposer.registerListener(control.focusedProperty(), () -> {
             if (!control.isFocused()) {
                 clearKeyboardCursor();
@@ -112,7 +120,7 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
     @Override
     public boolean handleKey(KeyEvent event) {
         if (!timeSection) {
-            return panel.handleKey(event);
+            return handleCalendarKey(event);
         }
         boolean rtl = getSkinnable().getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT;
         KeyCode back = rtl ? KeyCode.RIGHT : KeyCode.LEFT;
@@ -122,9 +130,18 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
             timeSection = false;
             columns.clearKeyboardCursor();
             // Seeds the calendar cursor on the selected day.
-            return panel.handleKey(event);
+            return handleCalendarKey(event);
         }
         return columns.handleKey(event);
+    }
+
+    private boolean handleCalendarKey(KeyEvent event) {
+        calendarKey = true;
+        try {
+            return panel.handleKey(event);
+        } finally {
+            calendarKey = false;
+        }
     }
 
     /** {@inheritDoc} */
@@ -161,7 +178,7 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
         RXDateTimeView control = getSkinnable();
         LocalDateTime value = control.getValue();
         LocalTime time = value != null ? value.toLocalTime() : firstTimeOn(date);
-        boolean fromKeyboard = panel.isKeyboardCursorVisible();
+        boolean fromKeyboard = calendarKey;
         control.setValue(constraints().combine(date, time));
         if (fromKeyboard) {
             // Like the hours-then-minutes flow of a clock, a keyboard day pick moves on
@@ -177,6 +194,14 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
         LocalDateTime value = control.getValue();
         LocalDate date = value != null ? value.toLocalDate() : defaultDate();
         control.setValue(date.atTime(time));
+    }
+
+    private void onTimeCommit() {
+        RXDateTimeView control = getSkinnable();
+        // Without a value there is nothing to confirm.
+        if (control.getValue() != null) {
+            control.fireEvent(new ActionEvent());
+        }
     }
 
     private LocalTime firstTimeOn(LocalDate date) {
@@ -214,14 +239,19 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
 
     // ==================== Updates ====================
 
+    private void onValueChanged() {
+        LocalDateTime value = getSkinnable().getValue();
+        if (value != null) {
+            panel.reveal(value.toLocalDate());
+        }
+        updateValue(true);
+    }
+
     private void updateValue(boolean animate) {
         RXDateTimeView control = getSkinnable();
         LocalDateTime value = control.getValue();
         LocalDate date = value != null ? value.toLocalDate() : defaultDate();
         panel.setHighlight(value == null ? null : date);
-        if (value != null) {
-            panel.reveal(date);
-        }
         columns.configure(constraints().timesOn(date), control.isTwelveHourClock(), control.getLocale());
         columns.setValue(value == null ? null : value.toLocalTime(), animate);
         timeHeader.setText(value == null ? EMPTY_TIME : DateTimeTexts.format(

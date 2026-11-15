@@ -27,8 +27,8 @@ import java.util.function.Predicate;
  * a time, chosen with the Start / End tabs above them (the End tab is selected after
  * the first day pick); on a single-day range the end time cannot precede the start
  * time. The value only ever changes to a complete range. The
- * {@link #onActionProperty() action} fires when the user confirms the end time
- * (Enter in the time columns, or a double click on an item).
+ * {@link #onActionProperty() action} fires when the user confirms the end time of a
+ * complete range (Enter / Space in the time columns, or a double click on an item).
  *
  * <p><b>Keyboard</b> (while focused): the calendar keys of {@link RXCalendarView}; once
  * a range is completed with Enter the keyboard moves to the start time, Enter there

@@ -20,8 +20,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.click;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.dayCell;
+import static io.github.leewyatt.rxcontrols.PickerTestSupport.doubleClick;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.hasPseudoClass;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.press;
+import static io.github.leewyatt.rxcontrols.PickerTestSupport.visible;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -127,9 +129,72 @@ public class RXDateTimeRangeViewTest {
     public void halfPickedEndTimeHasNoAnchorDayLimit() {
         RXDateTimeRangeView view = newView();
         view.setMinDateTime(LocalDateTime.of(2026, 11, 14, 15, 30));
+        view.setValue(RXDateTimeRange.of(LocalDateTime.of(2026, 11, 14, 16, 0),
+                LocalDateTime.of(2026, 11, 14, 18, 0)));
+        click(view.lookup(".end-tab"));
+        view.applyCss();
+        assertTrue(timeCell(view, ".hour-column", "09").isDisabled());
         click(dayCell(view, LocalDate.of(2026, 11, 14)));
         view.applyCss();
         assertFalse(timeCell(view, ".hour-column", "09").isDisabled());
+    }
+
+    /**
+     * Verifies confirming the end time fires no action until a range is complete.
+     */
+    @Test
+    public void unfinishedRangeFiresNoAction() {
+        RXDateTimeRangeView view = newView();
+        AtomicInteger actions = new AtomicInteger();
+        view.setOnAction(event -> actions.incrementAndGet());
+        Node hours = view.lookup(".hour-column").lookup(".items");
+        click(view.lookup(".end-tab"));
+        doubleClick(hours);
+        click(dayCell(view, LocalDate.of(2026, 11, 20)));
+        doubleClick(hours);
+        assertEquals(0, actions.get());
+        click(dayCell(view, LocalDate.of(2026, 11, 22)));
+        doubleClick(hours);
+        assertEquals(1, actions.get());
+    }
+
+    /**
+     * Verifies a rule change that makes the pending day unpickable drops it with its pending times.
+     */
+    @Test
+    public void ruleChangeDropsPendingState() {
+        RXDateTimeRangeView view = newView();
+        click(dayCell(view, LocalDate.of(2026, 11, 20)));
+        click(timeCell(view, ".hour-column", "17"));
+        assertTrue(hasPseudoClass(view.lookup(".end-tab"), "selected"));
+        view.setMinDateTime(LocalDateTime.of(2026, 11, 22, 0, 0));
+        assertTrue(hasPseudoClass(view.lookup(".start-tab"), "selected"));
+        click(dayCell(view, LocalDate.of(2026, 11, 25)));
+        click(dayCell(view, LocalDate.of(2026, 11, 26)));
+        assertEquals(LocalDate.of(2026, 11, 26).atStartOfDay(), view.getValue().end());
+    }
+
+    /**
+     * Verifies a mouse day pick returns the keys to the calendar and never moves on to the times.
+     */
+    @Test
+    public void mousePickKeepsKeysOnCalendar() {
+        RXDateTimeRangeView view = newView();
+        press(view, KeyCode.DOWN);
+        press(view, KeyCode.ENTER);
+        press(view, KeyCode.RIGHT);
+        press(view, KeyCode.ENTER);
+        assertTrue(hasPseudoClass(view.lookup(".hour-column"), "active"));
+        click(dayCell(view, LocalDate.of(2026, 11, 20)));
+        assertFalse(hasPseudoClass(view.lookup(".hour-column"), "active"));
+        press(view, KeyCode.ESCAPE);
+        assertTrue(hasPseudoClass(view.lookup(".start-tab"), "selected"), "Escape drops the half-picked range");
+
+        click(dayCell(view, LocalDate.of(2026, 11, 20)));
+        press(view, KeyCode.DOWN);
+        click(dayCell(view, LocalDate.of(2026, 11, 22)));
+        assertEquals(LocalDate.of(2026, 11, 22), view.getValue().end().toLocalDate());
+        assertFalse(hasPseudoClass(view.lookup(".hour-column"), "active"));
     }
 
     /**
@@ -169,7 +234,7 @@ public class RXDateTimeRangeViewTest {
     @Test
     public void displayedMonthSetAfterPagingPagesGrid() {
         RXDateTimeRangeView view = newView();
-        click(view.lookup(".next-button"));
+        click(visible(view, ".next-button"));
         view.setDisplayedMonth(YearMonth.of(2020, 1));
         assertTrue(dayCell(view, LocalDate.of(2020, 1, 15)).isVisible());
     }

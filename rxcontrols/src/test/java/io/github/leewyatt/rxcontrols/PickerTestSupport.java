@@ -134,8 +134,20 @@ final class PickerTestSupport {
                 .findFirst().orElseThrow(() -> new AssertionError("no cell for " + date));
     }
 
+    /** The match the user sees: every linked page holds the paging buttons, shown on one page only. */
+    static Node visible(Node root, String selector) {
+        return root.lookupAll(selector).stream().filter(Node::isVisible).findFirst()
+                .orElseThrow(() -> new AssertionError("no visible " + selector));
+    }
+
     static void click(Node node) {
         node.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, true, false, false, null));
+    }
+
+    /** The second click of a double click. */
+    static void doubleClick(Node node) {
+        node.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, MouseButton.PRIMARY, 2,
                 false, false, false, false, true, false, false, true, false, false, null));
     }
 

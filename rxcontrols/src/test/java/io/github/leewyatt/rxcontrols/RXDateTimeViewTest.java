@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.click;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.dayCell;
+import static io.github.leewyatt.rxcontrols.PickerTestSupport.doubleClick;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.hasPseudoClass;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.press;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -135,6 +136,48 @@ public class RXDateTimeViewTest {
         view.setMinDateTime(LocalDateTime.of(2026, 11, 14, 23, 50));
         assertTrue(dayCell(view, LocalDate.of(2026, 11, 14)).isDisabled());
         assertFalse(dayCell(view, LocalDate.of(2026, 11, 15)).isDisabled());
+    }
+
+    /**
+     * Verifies a rule change keeps the displayed month.
+     */
+    @Test
+    public void ruleChangeKeepsDisplayedMonth() {
+        RXDateTimeView view = newView();
+        view.setValue(LocalDateTime.of(2026, 11, 14, 9, 0));
+        click(view.lookup(".next-button"));
+        view.setTwelveHourClock(true);
+        view.setMinDateTime(LocalDateTime.of(2026, 1, 1, 0, 0));
+        assertEquals(YearMonth.of(2026, 12), view.getDisplayedMonth());
+    }
+
+    /**
+     * Verifies a mouse day pick made while the keyboard cursor shows keeps the keys on the calendar.
+     */
+    @Test
+    public void mousePickKeepsKeysOnCalendar() {
+        RXDateTimeView view = newView();
+        press(view, KeyCode.DOWN);
+        click(dayCell(view, LocalDate.of(2026, 11, 20)));
+        assertFalse(hasPseudoClass(view.lookup(".hour-column"), "active"));
+        assertTrue(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 20)), "focused"));
+        press(view, KeyCode.RIGHT);
+        assertTrue(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 21)), "focused"));
+    }
+
+    /**
+     * Verifies confirming a time fires no action while there is no value.
+     */
+    @Test
+    public void confirmWithoutValueFiresNothing() {
+        RXDateTimeView view = newView();
+        AtomicInteger actions = new AtomicInteger();
+        view.setOnAction(event -> actions.incrementAndGet());
+        doubleClick(view.lookup(".hour-column").lookup(".items"));
+        assertEquals(0, actions.get());
+        click(timeCell(view, ".hour-column", "08"));
+        doubleClick(view.lookup(".hour-column").lookup(".items"));
+        assertEquals(1, actions.get());
     }
 
     /**
