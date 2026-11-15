@@ -4284,6 +4284,14 @@
     -fx-border-insets: 0.916667em 0.5em;
 }
 
+/* A decade label nearly fills its cell, and a border narrows the text area by its
+   insets: the negative padding gives that width back. */
+.rx-calendar-panel .decade-cell {
+    -fx-background-insets: 0.916667em 0.166667em;
+    -fx-border-insets: 0.916667em 0.166667em;
+    -fx-padding: 0 -0.166667em;
+}
+
 .rx-calendar-panel .quarter-cell {
     -fx-pref-width: 4.375em;
     -fx-pref-height: 3.791667em;

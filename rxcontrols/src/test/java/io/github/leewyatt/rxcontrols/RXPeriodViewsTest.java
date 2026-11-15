@@ -5,6 +5,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.DateCell;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.StackPane;
+import javafx.scene.text.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -97,6 +98,24 @@ public class RXPeriodViewsTest {
         click(view.lookup(".year-button"));
         click(cell(view, ".decade-cell", LocalDate.of(1990, 1, 1)));
         assertEquals(1999, cells(view, ".year-cell").get(10).getItem().getYear());
+    }
+
+    /**
+     * Verifies a decade cell shows its whole label under the today ring and the keyboard cursor.
+     */
+    @Test
+    public void decadeLabelsAreNotTruncated() {
+        RXYearView view = show(new RXYearView());
+        click(view.lookup(".year-button"));
+        press(view, KeyCode.DOWN);
+        view.applyCss();
+        view.getScene().getRoot().layout();
+        DateCell current = cell(view, ".decade-cell", LocalDate.of(2020, 1, 1));
+        assertTrue(hasPseudoClass(current, "today"));
+        assertTrue(hasPseudoClass(current, "focused"));
+        for (DateCell cell : cells(view, ".decade-cell")) {
+            assertEquals(cell.getText(), ((Text) cell.lookup(".text")).getText());
+        }
     }
 
     /**
