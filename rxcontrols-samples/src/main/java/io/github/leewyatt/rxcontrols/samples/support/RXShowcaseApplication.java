@@ -53,8 +53,6 @@ public abstract class RXShowcaseApplication extends Application {
 
     // ==================== Application lifecycle ====================
 
-    private Scene scene;
-    private ComboBox<ThemeChoice> themePicker;
 
     private final List<SceneFilter<?>> sceneFilters = new ArrayList<>();
 
@@ -66,14 +64,11 @@ public abstract class RXShowcaseApplication extends Application {
         root.setRight(buildControlPane(true));
         trackSceneFilters(root);
 
-        scene = new Scene(root, sceneWidth(), sceneHeight());
+        Scene scene = new Scene(root, sceneWidth(), sceneHeight());
         scene.getStylesheets().add(shellStylesheet());
         String stylesheetPath = stylesheetPath();
         if (stylesheetPath != null) {
             scene.getStylesheets().add(stylesheetPath);
-        }
-        if (themePicker != null) {
-            themePicker.getSelectionModel().selectFirst(); // applies the initial theme
         }
         configureScene(scene);
 
@@ -261,10 +256,8 @@ public abstract class RXShowcaseApplication extends Application {
 
     private Node buildThemeBar() {
         ComboBox<ThemeChoice> picker = new ComboBox<>();
-        picker.getItems().setAll(ShowcaseThemes.all());
         picker.setMaxWidth(Double.MAX_VALUE);
-        ShowcaseThemes.bindPicker(picker, () -> scene);
-        themePicker = picker;
+        ShowcaseThemes.bindPicker(picker);
 
         Label label = new Label("Theme");
         label.getStyleClass().add("section-label");

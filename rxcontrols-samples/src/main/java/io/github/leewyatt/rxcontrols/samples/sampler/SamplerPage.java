@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.sampler;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -190,7 +191,10 @@ final class SamplerPage extends BorderPane {
         Class<? extends Application> type = v.demo();
         try {
             Application demo = type.getDeclaredConstructor().newInstance();
-            demo.start(new Stage());
+            Stage stage = new Stage();
+            // The demo builds its own scene; it joins the theme the sampler windows share.
+            stage.sceneProperty().addListener((obs, old, scene) -> ShowcaseThemes.register(scene));
+            demo.start(stage);
         } catch (Exception e) {
             LOG.log(Level.WARNING, "Could not start " + type.getName(), e);
             new Alert(Alert.AlertType.ERROR, "Could not start " + type.getSimpleName() + ":\n" + e).show();

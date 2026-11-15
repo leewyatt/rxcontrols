@@ -58,10 +58,8 @@ public class RXSampler extends Application {
     private final Button previous = new Button();
     private final Button next = new Button();
     private final Label position = new Label();
-    private final ComboBox<ThemeChoice> themePicker = new ComboBox<>();
 
     private SamplerNav nav;
-    private Scene scene;
     private SamplerEntry current;
 
     /** {@inheritDoc} */
@@ -83,14 +81,13 @@ public class RXSampler extends Application {
         root.getStyleClass().add("sampler");
         root.setLeft(nav);
 
-        scene = new Scene(root, 1360.0, 880.0);
+        Scene scene = new Scene(root, 1360.0, 880.0);
         scene.getStylesheets().addAll(RXShowcaseApplication.shellStylesheet(),
                 RXSampler.class.getResource("rx-sampler.css").toExternalForm());
         // Some page animations of the carousel showcase rotate in 3D.
         scene.setCamera(new PerspectiveCamera());
         scene.getAccelerators().put(new KeyCodeCombination(KeyCode.K, KeyCombination.SHORTCUT_DOWN),
                 nav::focusSearch);
-        themePicker.setValue(themePicker.getItems().get(0)); // applies the initial theme
 
         show(entries.get(0));
         stage.setScene(scene);
@@ -110,8 +107,8 @@ public class RXSampler extends Application {
         crumbs.setAlignment(Pos.CENTER_LEFT);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        themePicker.getItems().setAll(ShowcaseThemes.all());
-        ShowcaseThemes.bindPicker(themePicker, () -> scene);
+        ComboBox<ThemeChoice> themePicker = new ComboBox<>();
+        ShowcaseThemes.bindPicker(themePicker);
         Label themeLabel = new Label("Theme");
         themeLabel.getStyleClass().add("theme-label");
         themeLabel.setLabelFor(themePicker);
