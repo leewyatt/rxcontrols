@@ -106,6 +106,9 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView>
         disposer.registerListener(controlTreeShowingProperty(), (observable, was, showing) -> {
             if (showing) {
                 updateToday();
+            } else {
+                // A view hidden under the pointer is not told that the pointer left.
+                onHover(null);
             }
         });
         disposer.registerListener(control.focusedProperty(), () -> {

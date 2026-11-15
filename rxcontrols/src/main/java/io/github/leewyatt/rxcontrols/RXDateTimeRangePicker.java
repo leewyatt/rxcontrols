@@ -20,18 +20,25 @@ import java.util.function.Predicate;
 
 /**
  * Date-time range picker: start and end fields for an {@link RXDateTimeRange} with a
- * popup {@link RXDateTimeRangeView} showing two months, or as many as
- * {@link #monthCountProperty() monthCount} says.
+ * popup {@link RXDateTimeView} that edits one endpoint at a time.
  *
- * <p>In the popup the user picks the two days, then adjusts the start and end times;
- * the field previews the draft and the OK button (or Enter) commits the complete
- * range at once. Closing any other way discards the draft. Typed endpoints are
- * committed together, with Enter or when focus leaves the picker, and are put in
- * order. The endpoints are local date-times without a time zone.
+ * <p>The popup opens on the endpoint of the field it was opened from, marked by the
+ * bar under that field. Picking a day or a time changes that endpoint's draft, which
+ * its field previews. The OK button (Enter, or a double click on a time) confirms the
+ * endpoint: the popup moves on to the other endpoint, or, once both endpoints have
+ * been gone through, commits the range and closes. The other field cannot be entered
+ * before the current endpoint is confirmed; Tab confirms the endpoint it leaves. The
+ * committed endpoints are put in order, so the end may be picked before the start.
+ *
+ * <p>Escape discards the drafts. Closing the popup any other way commits them only
+ * if a change was confirmed and the endpoint then shown was left as it was;
+ * otherwise it discards them. Typed endpoints are committed together when focus
+ * leaves the picker, and with Enter while the popup is closed. The endpoints are
+ * local date-times without a time zone.
  *
  * <p>See {@link RXPickerBase} for the commit, focus and constraint model. CSS: style
  * classes {@code rx-picker} and {@code rx-date-time-range-picker}; the popup hosts an
- * {@code .rx-date-time-range-view} and a {@code .footer} with an {@code .ok-button}.
+ * {@code .rx-date-time-view} and a {@code .footer} with an {@code .ok-button}.
  */
 public class RXDateTimeRangePicker extends RXPickerBase<RXDateTimeRange> {
 
@@ -154,38 +161,6 @@ public class RXDateTimeRangePicker extends RXPickerBase<RXDateTimeRange> {
      */
     public final void setConverter(StringConverter<LocalDateTime> value) {
         converter.set(value);
-    }
-
-    // ==================== Month Count ====================
-
-    private final IntegerProperty monthCount = new SimpleIntegerProperty(this, "monthCount", 2);
-
-    /**
-     * Number of consecutive months the popup shows side by side. Values below 1 are
-     * treated as 1. Defaults to 2.
-     *
-     * @return the month-count property
-     */
-    public final IntegerProperty monthCountProperty() {
-        return monthCount;
-    }
-
-    /**
-     * Returns the number of months the popup shows.
-     *
-     * @return the number of months the popup shows
-     */
-    public final int getMonthCount() {
-        return monthCount.get();
-    }
-
-    /**
-     * Sets the number of months the popup shows.
-     *
-     * @param value the number of months the popup shows
-     */
-    public final void setMonthCount(int value) {
-        monthCount.set(value);
     }
 
     // ==================== Min Date Time ====================
@@ -565,68 +540,6 @@ public class RXDateTimeRangePicker extends RXPickerBase<RXDateTimeRange> {
      */
     public final void setSecondStep(int value) {
         secondStep.set(value);
-    }
-
-    // ==================== Start Time Text ====================
-
-    private final StringProperty startTimeText = new SimpleStringProperty(this, "startTimeText", "Start");
-
-    /**
-     * Text of the popup's start-time tab. Defaults to {@code "Start"}.
-     *
-     * @return the start-time-text property
-     */
-    public final StringProperty startTimeTextProperty() {
-        return startTimeText;
-    }
-
-    /**
-     * Returns the popup's start-time tab text.
-     *
-     * @return the popup's start-time tab text
-     */
-    public final String getStartTimeText() {
-        return startTimeText.get();
-    }
-
-    /**
-     * Sets the popup's start-time tab text.
-     *
-     * @param value the popup's start-time tab text
-     */
-    public final void setStartTimeText(String value) {
-        startTimeText.set(value);
-    }
-
-    // ==================== End Time Text ====================
-
-    private final StringProperty endTimeText = new SimpleStringProperty(this, "endTimeText", "End");
-
-    /**
-     * Text of the popup's end-time tab. Defaults to {@code "End"}.
-     *
-     * @return the end-time-text property
-     */
-    public final StringProperty endTimeTextProperty() {
-        return endTimeText;
-    }
-
-    /**
-     * Returns the popup's end-time tab text.
-     *
-     * @return the popup's end-time tab text
-     */
-    public final String getEndTimeText() {
-        return endTimeText.get();
-    }
-
-    /**
-     * Sets the popup's end-time tab text.
-     *
-     * @param value the popup's end-time tab text
-     */
-    public final void setEndTimeText(String value) {
-        endTimeText.set(value);
     }
 
     // ==================== Ok Text ====================

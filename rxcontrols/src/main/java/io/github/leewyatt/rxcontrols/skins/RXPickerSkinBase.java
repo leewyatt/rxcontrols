@@ -426,7 +426,7 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
 
     /**
      * Flags the fields' text as invalid, as a failed {@link #commitTypedText} does. The
-     * flag goes with the next edit or rewrite of the fields.
+     * flag goes with the next edit of a field or the next {@link #refreshFields()}.
      */
     protected final void markTextInvalid() {
         setInvalidText(true);

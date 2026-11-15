@@ -19,8 +19,9 @@ import java.time.temporal.WeekFields;
 import java.util.function.Predicate;
 
 /**
- * A range calendar beside time columns for picking an {@link RXDateTimeRange}, usable
- * on its own or as the content of {@link RXDateTimeRangePicker}'s popup.
+ * A range calendar beside time columns for picking an {@link RXDateTimeRange}, for
+ * use on its own. ({@link RXDateTimeRangePicker}'s popup edits one endpoint at a time
+ * in an {@link RXDateTimeView} instead.)
  *
  * <p>Days are picked like in {@link RXDateRangeView}: the first pick anchors the range
  * and the second completes it in either order. The time columns edit one endpoint at
