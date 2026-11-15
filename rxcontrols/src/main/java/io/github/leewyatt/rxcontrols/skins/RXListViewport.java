@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.css.PseudoClass;
+import javafx.event.EventTarget;
 import javafx.scene.Node;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.util.Callback;
@@ -66,6 +67,13 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
 
     // Published to the skin after each pass (null when flat or empty).
     private RXListSection topSection;
+    // The visual rows realized by the last pass (-1 when nothing is), for row-wise paging.
+    private int visibleFirstRow = -1;
+    private int visibleLastRow = -1;
+
+    // The section whose header holds the skin's keyboard cursor, or -1. Drives the
+    // header focus ring (in-flow headers and the sticky header alike).
+    private int focusedHeaderSection = -1;
 
     // ==================== Variable-height measure / anchor ====================
 
@@ -136,6 +144,75 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
      */
     RXListSection getTopSection() {
         return topSection;
+    }
+
+    /**
+     * The first visual row realized by the most recent pass (header rows included).
+     *
+     * @return the first realized visual row, or {@code -1} when nothing is realized
+     */
+    int getVisibleFirstRow() {
+        return visibleFirstRow;
+    }
+
+    /**
+     * The last visual row realized by the most recent pass (header rows included).
+     *
+     * @return the last realized visual row, or {@code -1} when nothing is realized
+     */
+    int getVisibleLastRow() {
+        return visibleLastRow;
+    }
+
+    /**
+     * Moves the header focus ring to the given section's header (in-flow or sticky),
+     * without a relayout.
+     *
+     * @param sectionIndex the section whose header holds the keyboard cursor, or
+     *                     {@code -1} for none
+     */
+    void setFocusedHeaderSection(int sectionIndex) {
+        if (focusedHeaderSection == sectionIndex) {
+            return;
+        }
+        focusedHeaderSection = sectionIndex;
+        for (RXListSectionCell header : headerPool) {
+            syncHeaderFocus(header);
+        }
+        if (stickyHeader != null) {
+            syncHeaderFocus(stickyHeader);
+        }
+    }
+
+    /**
+     * Whether the sticky header currently shows the given section — then that
+     * section's header is on screen even when its in-flow row is scrolled away.
+     *
+     * @param sectionIndex a section index
+     * @return {@code true} if the visible sticky header renders that section
+     */
+    boolean stickyShows(int sectionIndex) {
+        return stickyHeader != null && stickyHeader.isVisible() && stickyHeader.getItem() != null
+                && stickyHeader.getItem().sectionIndex() == sectionIndex;
+    }
+
+    /**
+     * The realized section header (in-flow or sticky) under the given event target,
+     * or {@code null} when the target is not inside a bound header of this viewport.
+     *
+     * @param target the event target (typically {@code MouseEvent.getTarget()})
+     * @return the hit header, or {@code null}
+     */
+    RXListSectionCell headerAt(EventTarget target) {
+        Node node = target instanceof Node ? (Node) target : null;
+        while (node != null && node != this) {
+            if (node instanceof RXListSectionCell header) {
+                boolean own = node == stickyHeader || headerPool.contains(header);
+                return own && header.getItem() != null ? header : null;
+            }
+            node = node.getParent();
+        }
+        return null;
     }
 
     /**
@@ -357,6 +434,8 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         }
 
         topSection = plan.sectionOf(first);
+        visibleFirstRow = first;
+        visibleLastRow = last;
         fillVisibleRows(plan, first, last, contentWidth);
         layoutStickyHeader(plan, contentWidth);
     }
@@ -384,7 +463,10 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
                 }
                 RXListSectionCell header = acquireHeader(headerCursor++);
                 String oldStyle = header.getStyle();
+                // State first, so a custom updateItem can read it while rendering.
+                syncHeaderExpansion(header, plan, info.section());
                 header.updateSection(info.section());
+                syncHeaderFocus(header);
                 header.setVisible(true);
                 applyCssAfterCellUpdate(header, oldStyle);
                 header.resizeRelocate(snapPositionX(0.0), rowTop, contentWidth, snapSizeY(info.height()));
@@ -442,6 +524,8 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
     protected void clearVisibleMetrics() {
         super.clearVisibleMetrics();
         topSection = null;
+        visibleFirstRow = -1;
+        visibleLastRow = -1;
         anchorIndex = -1;
         anchorOffset = 0.0;
     }
@@ -508,11 +592,15 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         // shows the same section across many scroll frames, so this skips a per-frame
         // updateItem on the (possibly heavy) factory cell. Section records are fresh
         // instances after a recompute, so reference inequality is the right signal.
+        // The expansion state and focus ring are synced every pass: a toggle changes
+        // them without changing the section.
+        syncHeaderExpansion(stickyHeader, plan, topSection);
         if (stickyHeader.getItem() != topSection) {
             String oldStyle = stickyHeader.getStyle();
             stickyHeader.updateSection(topSection);
             applyCssAfterCellUpdate(stickyHeader, oldStyle);
         }
+        syncHeaderFocus(stickyHeader);
         stickyHeader.setVisible(true);
         stickyHeader.resizeRelocate(snapPositionX(0.0), snapPositionY(stickyY), contentWidth, stickyH);
 
@@ -526,9 +614,27 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         }
         if (stickyHeader.isVisible() || stickyHeader.getItem() != null) {
             stickyHeader.setVisible(false);
+            resetHeaderState(stickyHeader);
             stickyHeader.updateSection(null);
         }
         stickyHeader.pseudoClassStateChanged(PINNED_PSEUDO_CLASS, false);
+    }
+
+    // ==================== Header state ====================
+
+    private void syncHeaderExpansion(RXListSectionCell header, RXListRowPlan plan, RXListSection section) {
+        header.updateExpansion(control.isCollapsibleSections(), !plan.sectionCollapsed(section.sectionIndex()));
+    }
+
+    private void syncHeaderFocus(RXListSectionCell header) {
+        RXListSection section = header.getItem();
+        header.updateListFocus(section != null && section.sectionIndex() == focusedHeaderSection);
+    }
+
+    // A parked header carries no state into its next binding (or into a screen reader).
+    private static void resetHeaderState(RXListSectionCell header) {
+        header.updateExpansion(false, true);
+        header.updateListFocus(false);
     }
 
     // ==================== Header pool ====================
@@ -547,6 +653,7 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
             RXListSectionCell header = headerPool.get(i);
             if (header.isVisible() || header.getItem() != null) {
                 header.setVisible(false);
+                resetHeaderState(header);
                 header.updateSection(null);
             }
         }
@@ -555,6 +662,7 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
     private RXListSectionCell createHeader() {
         Callback<RXListView<T>, RXListSectionCell> factory = control.getSectionHeaderFactory();
         RXListSectionCell header = factory != null ? factory.call(control) : createDefaultHeader();
+        header.updateListView(control);
         header.setManaged(false);
         return header;
     }

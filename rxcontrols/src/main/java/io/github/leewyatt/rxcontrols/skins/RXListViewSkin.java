@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXIndexedSelectionModel;
 import io.github.leewyatt.rxcontrols.RXListCell;
 import io.github.leewyatt.rxcontrols.RXListSection;
+import io.github.leewyatt.rxcontrols.RXListSectionCell;
 import io.github.leewyatt.rxcontrols.RXListSelectionVisualMode;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXListVisibleRange;
@@ -14,6 +15,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
+import javafx.geometry.NodeOrientation;
 import javafx.scene.Node;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.SelectionMode;
@@ -24,6 +26,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.util.StringConverter;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -35,7 +38,10 @@ import java.util.Set;
  * {@link RXListRowPlan} and shares it with the viewport, drives the placeholder
  * and the {@code :empty} state, consumes pending scroll requests, publishes the
  * read-only {@code rowCount} / {@code visibleRange} metrics after every pass, and
- * carries the keyboard (including type-ahead) and mouse selection behavior.
+ * carries the keyboard (including type-ahead) and mouse selection behavior. With
+ * collapsible sections it also toggles sections on header presses, lets the keyboard
+ * cursor rest on header rows, keeps the cursor off hidden items and anchors the view
+ * across a collapse or expand.
  *
  * @param <T> the item type
  */
@@ -128,6 +134,14 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     // (see anchorReflow).
     private boolean reflowAnchorPending;
 
+    // Keyboard cursor on a section header (collapsible sections only): the section
+    // index and its key (to find it again after a regrouping). While it is set the
+    // focus model holds no item (-1); focusing an item clears it.
+    private int cursorSection = -1;
+    private Object cursorSectionKey;
+    // The keyboard's own scroll-into-view request (see scrollCursorIntoView).
+    private boolean cursorScrollPending;
+
     /**
      * Creates the skin for the given list view.
      *
@@ -197,6 +211,7 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         // Selection / focus: re-apply the per-cell state on change; re-wire on a
         // selection-model swap; install keyboard and mouse handlers on the control.
         disposer.registerListener(focusModel.focusedIndexProperty(), this::refreshSelectionAndFocus);
+        disposer.registerListener(focusModel.focusedIndexProperty(), this::onFocusedIndexChanged);
         disposer.registerListener(control.selectionModelProperty(), this::onSelectionModelSwapped);
         disposer.registerEventHandler(control, KeyEvent.KEY_PRESSED, this::onKeyPressed);
         disposer.registerEventHandler(control, MouseEvent.MOUSE_PRESSED, this::onMousePressed);
@@ -286,6 +301,7 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         // The sections list content changed; the row-plan key cannot cheaply hash it,
         // so a revision bump forces a rebuild.
         rowPlanRevision++;
+        relocateHeaderCursor();
         requestLayoutPass();
     }
 
@@ -294,6 +310,7 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         // The collapsed flags are read from the key set when the plan is built; the
         // revision bump makes the cached fixed-mode plan miss.
         rowPlanRevision++;
+        repairCursor();
         requestLayoutPass();
     }
 
@@ -303,7 +320,116 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         if (control.isCollapsibleSections() && !control.getCollapsedSectionKeys().isEmpty()) {
             reflowAnchorPending = true;
         }
+        repairCursor();
         requestLayoutPass();
+    }
+
+    // ==================== Keyboard cursor ====================
+
+    // The cursor is either on an item (the focus model's index) or on a header row
+    // (cursorSection); header rows only hold it while they are navigable.
+    private boolean headersNavigable() {
+        RXListView<T> control = getSkinnable();
+        return control.isCollapsibleSections() && control.isShowSectionHeaders() && !control.getSections().isEmpty();
+    }
+
+    private void onFocusedIndexChanged() {
+        if (focusModel.getFocusedIndex() >= 0 && cursorSection >= 0) {
+            setHeaderCursor(-1);
+        }
+    }
+
+    private void focusHeader(int sectionIndex) {
+        focusModel.focus(-1);
+        setHeaderCursor(sectionIndex);
+    }
+
+    private void setHeaderCursor(int sectionIndex) {
+        List<RXListSection> sections = getSkinnable().getSections();
+        boolean valid = sectionIndex >= 0 && sectionIndex < sections.size();
+        cursorSection = valid ? sectionIndex : -1;
+        cursorSectionKey = valid ? sections.get(sectionIndex).key() : null;
+        viewport.setFocusedHeaderSection(cursorSection);
+    }
+
+    // After a regrouping the header cursor follows its key: the same index when it
+    // still carries that key, else the first section with it, else the cursor is lost.
+    private void relocateHeaderCursor() {
+        if (cursorSection < 0) {
+            return;
+        }
+        List<RXListSection> sections = getSkinnable().getSections();
+        int index = -1;
+        if (cursorSection < sections.size() && Objects.equals(sections.get(cursorSection).key(), cursorSectionKey)) {
+            index = cursorSection;
+        } else {
+            for (RXListSection section : sections) {
+                if (Objects.equals(section.key(), cursorSectionKey)) {
+                    index = section.sectionIndex();
+                    break;
+                }
+            }
+        }
+        setHeaderCursor(index);
+        repairCursor();
+    }
+
+    // Keeps the cursor on a shown row: an item that became hidden hands the cursor to
+    // its section's header (always shown while anything is hidden); a header that is
+    // no longer navigable hands it to its section's first item (shown, since nothing
+    // collapses then).
+    private void repairCursor() {
+        if (cursorSection >= 0) {
+            if (!headersNavigable()) {
+                List<RXListSection> sections = getSkinnable().getSections();
+                int item = cursorSection < sections.size() ? sections.get(cursorSection).firstItemIndex() : -1;
+                setHeaderCursor(-1);
+                focusModel.focus(item);
+            }
+            return;
+        }
+        int focus = focusModel.getFocusedIndex();
+        int section = sectionIndexOfItem(focus);
+        if (section >= 0 && isSectionLaidOutCollapsed(section)) {
+            focusHeader(section);
+        }
+    }
+
+    // Whether the section is collapsed in the layout right now (switch on, headers
+    // shown, key recorded) — independent of the last built plan.
+    private boolean isSectionLaidOutCollapsed(int sectionIndex) {
+        RXListView<T> control = getSkinnable();
+        List<RXListSection> sections = control.getSections();
+        return headersNavigable() && sectionIndex >= 0 && sectionIndex < sections.size()
+                && control.getCollapsedSectionKeys().contains(sections.get(sectionIndex).key());
+    }
+
+    // The section holding the item, by binary search over the live sections; -1 when
+    // flat or out of range.
+    private int sectionIndexOfItem(int itemIndex) {
+        List<RXListSection> sections = getSkinnable().getSections();
+        if (itemIndex < 0 || sections.isEmpty() || itemIndex >= sections.get(sections.size() - 1).endItemIndex()) {
+            return -1;
+        }
+        int lo = 0;
+        int hi = sections.size() - 1;
+        int found = 0;
+        while (lo <= hi) {
+            int mid = (lo + hi) >>> 1;
+            if (sections.get(mid).firstItemIndex() <= itemIndex) {
+                found = mid;
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
+        }
+        return found;
+    }
+
+    private void toggleSection(int sectionIndex) {
+        RXListView<T> control = getSkinnable();
+        Object key = control.getSections().get(sectionIndex).key();
+        control.setSectionExpanded(key, !control.isSectionExpanded(key));
     }
 
     // ==================== Reflow anchor ====================
@@ -487,13 +613,17 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         RXListView<T> control = getSkinnable();
         int firstIndex = viewport.getVisibleFirstIndex();
         int lastIndex = viewport.getVisibleLastIndex();
-        if (firstIndex < 0 || lastIndex < 0) {
+        RXListRowPlan plan = currentPlan;
+        int firstRow = plan == null ? -1 : plan.dataRowOfItem(firstIndex);
+        int lastRow = plan == null ? -1 : plan.dataRowOfItem(lastIndex);
+        if (firstIndex < 0 || lastIndex < 0 || firstRow < 0 || lastRow < 0) {
             setVisibleRangeIfChanged(control, RXListVisibleRange.EMPTY);
             return;
         }
-        // Single column: each data row holds one item, so row bounds mirror item bounds.
+        // Rows are the shown data rows: contiguous even when a collapsed section's
+        // hidden items lie between the item bounds.
         setVisibleRangeIfChanged(control, new RXListVisibleRange(firstIndex, lastIndex,
-                firstIndex, lastIndex, lastIndex - firstIndex + 1));
+                firstRow, lastRow, lastRow - firstRow + 1));
     }
 
     private void setVisibleRangeIfChanged(RXListView<T> control, RXListVisibleRange range) {
@@ -529,11 +659,24 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
 
     // ==================== Scrolling ====================
 
+    // The keyboard scrolls the cursor into view through this skin-internal request,
+    // never through the control's public scrollTo (which expands a collapsed section
+    // to reveal its target). Setting it drops any earlier control request, so a
+    // control request still pending at layout time was issued later and wins —
+    // the same latest-wins rule as the control's single request slot.
+    private void scrollCursorIntoView() {
+        getSkinnable().clearPendingScroll();
+        cursorScrollPending = true;
+        getSkinnable().requestLayout();
+    }
+
     private void consumePendingScroll() {
         RXListView<T> control = getSkinnable();
         if (!control.hasPendingScroll()) {
+            consumeCursorScroll();
             return;
         }
+        cursorScrollPending = false;
         int itemCount = itemCount();
         if (itemCount == 0) {
             control.clearPendingScroll();
@@ -565,6 +708,29 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         }
     }
 
+    // Scrolls to wherever the cursor is now (an item or a header row), the minimum
+    // distance. Kept armed until the viewport has a height.
+    private void consumeCursorScroll() {
+        if (!cursorScrollPending) {
+            return;
+        }
+        boolean applied;
+        int focus = focusModel.getFocusedIndex();
+        if (cursorSection >= 0) {
+            // The pinned sticky header already shows it; scrolling its in-flow row
+            // into view would jump back to the start of a long section.
+            applied = viewport.stickyShows(cursorSection)
+                    || viewport.scrollToSectionIndex(cursorSection, ScrollAlignment.NEAREST);
+        } else if (focus >= 0 && focus < itemCount()) {
+            applied = viewport.scrollToIndex(focus, ScrollAlignment.NEAREST);
+        } else {
+            applied = true;
+        }
+        if (applied) {
+            cursorScrollPending = false;
+        }
+    }
+
     // ==================== Layout ====================
 
     @Override
@@ -573,6 +739,10 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         double rightInset = Math.max(0.0, control.getWidth() - contentX - contentWidth);
         double bottomInset = Math.max(0.0, control.getHeight() - contentY - contentHeight);
         viewport.setChromeInsets(contentX, contentY, rightInset, bottomInset);
+        // An item mutation can leave the focus model on an item hidden in a collapsed
+        // section (it re-targets focus at the end of the items listener chain, after
+        // this skin's listener ran); move the cursor to that section's header.
+        repairCursor();
         // Sized first: the anchor clamps its offset against the viewport height.
         viewport.resizeRelocate(contentX, contentY, contentWidth, contentHeight);
         placeholderRegion.resizeRelocate(contentX, contentY, contentWidth, contentHeight);
@@ -770,6 +940,15 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         getSkinnable().getProperties().remove(ANCHOR_KEY);
     }
 
+    // The Shift-range origin for a move to target: the stored anchor, else the
+    // focused item. With the cursor on a header and nothing stored the range starts
+    // at the target itself — the header is not an item to range from.
+    private int rangeAnchor(int target) {
+        boolean stored = getSkinnable().getProperties().get(ANCHOR_KEY) instanceof Integer;
+        int anchor = !stored && cursorSection >= 0 ? target : getAnchor();
+        return clampIndex(anchor, itemCount());
+    }
+
     // ==================== Keyboard ====================
 
     private void onKeyPressed(KeyEvent event) {
@@ -792,6 +971,12 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
                 sm.selectAll();
                 focusModel.syncSelectionLeadState();
             }
+            event.consume();
+            return;
+        }
+        // Collapsible sections navigate visual rows (headers included); everything
+        // that path does not handle falls through to the item keys below.
+        if (headersNavigable() && handleRowKey(event, shift, shortcut)) {
             event.consume();
             return;
         }
@@ -826,6 +1011,156 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     private static void consume(KeyEvent event, Runnable action) {
         action.run();
         event.consume();
+    }
+
+    // ==================== Keyboard: collapsible sections ====================
+
+    // With navigable headers the cursor moves over visual rows — header rows and the
+    // shown items — so hidden items are skipped by construction. Returns whether the
+    // key was handled.
+    private boolean handleRowKey(KeyEvent event, boolean shift, boolean shortcut) {
+        RXListRowPlan plan = structurePlan();
+        if (plan.totalVisualRows() == 0) {
+            return false;
+        }
+        switch (event.getCode()) {
+            case UP, KP_UP -> rowStep(plan, -1, shift, shortcut);
+            case DOWN, KP_DOWN -> rowStep(plan, 1, shift, shortcut);
+            case HOME -> moveToRow(plan, edgeRow(plan, true), shift, shortcut);
+            case END -> moveToRow(plan, edgeRow(plan, false), shift, shortcut);
+            case PAGE_UP -> rowPage(plan, -1, shift, shortcut);
+            case PAGE_DOWN -> rowPage(plan, 1, shift, shortcut);
+            case LEFT, KP_LEFT, RIGHT, KP_RIGHT -> horizontalArrow(event.getCode(), shift, shortcut);
+            case SPACE, ENTER -> {
+                if (cursorSection < 0) {
+                    return false;
+                }
+                toggleSection(cursorSection);
+            }
+            default -> {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // The row structure of the current state (sections, header flag, collapsed keys)
+    // with unit heights: the navigation only needs row order, never pixel geometry,
+    // and building it is O(sections) — it does not wait for the next layout pass.
+    private RXListRowPlan structurePlan() {
+        RXListView<T> control = getSkinnable();
+        return RXListRowPlan.fixed(control.getSections(), control.isShowSectionHeaders(), 1.0, 1.0,
+                itemCount(), 0.0, collapsedFlags(control));
+    }
+
+    // The cursor's visual row, or -1 when there is no cursor. A focused item that is
+    // hidden (not yet repaired) counts as its section's header.
+    private int cursorRow(RXListRowPlan plan) {
+        if (cursorSection >= 0) {
+            return plan.visualRowOfSection(cursorSection);
+        }
+        int focus = focusModel.getFocusedIndex();
+        if (focus < 0 || focus >= plan.itemCount()) {
+            return -1;
+        }
+        int row = plan.visualRowOfItem(focus);
+        return row >= 0 ? row : plan.visualRowOfSection(plan.sectionIndexOfItem(focus));
+    }
+
+    // The first (forward) or last shown item's row; the first / last header row when
+    // every section is collapsed. Also the first step when there is no cursor yet.
+    private static int edgeRow(RXListRowPlan plan, boolean forward) {
+        int dataRows = plan.dataRowCount();
+        if (dataRows > 0) {
+            return plan.visualRowOfItem(plan.itemOfDataRow(forward ? 0 : dataRows - 1));
+        }
+        return forward ? 0 : plan.totalVisualRows() - 1;
+    }
+
+    private void rowStep(RXListRowPlan plan, int direction, boolean shift, boolean shortcut) {
+        int row = cursorRow(plan);
+        if (row < 0) {
+            moveToRow(plan, edgeRow(plan, direction > 0), shift, shortcut);
+            return;
+        }
+        int target = RXMath.clamp(row + direction, 0, plan.totalVisualRows() - 1);
+        if (target != row) {
+            moveToRow(plan, target, shift, shortcut);
+        }
+    }
+
+    // The row-wise "sink then page" of page(): first to the realized window's edge
+    // row, then by the window's height in rows. Headers count as rows here.
+    private void rowPage(RXListRowPlan plan, int direction, boolean shift, boolean shortcut) {
+        int row = cursorRow(plan);
+        if (row < 0) {
+            moveToRow(plan, edgeRow(plan, direction > 0), shift, shortcut);
+            return;
+        }
+        int lastRow = plan.totalVisualRows() - 1;
+        int top = viewport.getVisibleFirstRow();
+        int bottom = viewport.getVisibleLastRow();
+        if (top < 0 || bottom < 0) {
+            top = row;
+            bottom = row;
+        }
+        top = RXMath.clamp(top, 0, lastRow);
+        bottom = RXMath.clamp(bottom, top, lastRow);
+        int step = Math.max(1, bottom - top);
+        int target;
+        if (direction > 0) {
+            target = row < bottom ? bottom : Math.min(lastRow, row + step);
+        } else {
+            target = row > top ? top : Math.max(0, row - step);
+        }
+        if (target != row) {
+            moveToRow(plan, target, shift, shortcut);
+        }
+    }
+
+    private void moveToRow(RXListRowPlan plan, int row, boolean shift, boolean shortcut) {
+        RXListRowPlan.RowInfo info = plan.rowInfo(row);
+        if (info.header()) {
+            moveToHeader(info.section().sectionIndex());
+        } else {
+            moveTo(info.itemIndex(), shift, shortcut);
+        }
+    }
+
+    // A header is not selectable: the cursor moves, the selection and the range
+    // anchor stay.
+    private void moveToHeader(int sectionIndex) {
+        focusHeader(sectionIndex);
+        focusModel.syncSelectionLeadState();
+        scrollCursorIntoView();
+    }
+
+    // Tree-style left / right (mirrored in RTL, like TreeView): on a header the
+    // collapse key collapses and the expand key expands, or enters the first item
+    // when already expanded; on an item the collapse key moves to its header.
+    private void horizontalArrow(KeyCode code, boolean shift, boolean shortcut) {
+        RXListView<T> control = getSkinnable();
+        boolean left = code == KeyCode.LEFT || code == KeyCode.KP_LEFT;
+        boolean rtl = control.getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT;
+        boolean collapseKey = left != rtl;
+        if (cursorSection >= 0) {
+            RXListSection section = control.getSections().get(cursorSection);
+            boolean collapsed = isSectionLaidOutCollapsed(cursorSection);
+            if (collapseKey) {
+                if (!collapsed) {
+                    control.setSectionExpanded(section.key(), false);
+                }
+            } else if (collapsed) {
+                control.setSectionExpanded(section.key(), true);
+            } else {
+                moveTo(section.firstItemIndex(), shift, shortcut);
+            }
+            return;
+        }
+        int section = sectionIndexOfItem(focusModel.getFocusedIndex());
+        if (collapseKey && section >= 0) {
+            moveToHeader(section);
+        }
     }
 
     private void verticalArrow(int focus, int direction, boolean shift, boolean shortcut) {
@@ -882,7 +1217,7 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         if (sm == null) {
             focusModel.focus(target);
             setAnchor(target);
-            getSkinnable().scrollTo(target, ScrollAlignment.NEAREST);
+            scrollCursorIntoView();
             return;
         }
         // Capture the range anchor from the CURRENT focus before moving it.
@@ -890,7 +1225,7 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         // focus(target) would collapse a Shift-extend to a single row whenever no
         // explicit anchor is stored (mirrors CellBehaviorBase, which records the
         // anchor before fm.focus).
-        int anchor = clampIndex(getAnchor(), itemCount());
+        int anchor = rangeAnchor(target);
         boolean accumulate = isAccumulateMode();
         focusModel.focus(target);
         if (shortcut) {
@@ -910,7 +1245,7 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
             sm.clearAndSelect(target);
         }
         focusModel.syncSelectionLeadState();
-        getSkinnable().scrollTo(target, ScrollAlignment.NEAREST);
+        scrollCursorIntoView();
     }
 
     private void toggleFocused(int focus) {
@@ -985,16 +1320,30 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
             return -1;
         }
         // A single-character burst cycles to the next match; a growing buffer
-        // refines from the current focus.
+        // refines from the current focus. A cursor on a header searches from its
+        // section's first item; items hidden in collapsed sections never match.
         int focus = focusModel.getFocusedIndex();
-        int start = prefixLower.length() <= 1 ? focus + 1 : Math.max(0, focus);
+        int start;
+        if (cursorSection >= 0) {
+            start = getSkinnable().getSections().get(cursorSection).firstItemIndex();
+        } else {
+            start = prefixLower.length() <= 1 ? focus + 1 : Math.max(0, focus);
+        }
+        boolean mayHide = headersNavigable();
         for (int i = 0; i < itemCount; i++) {
             int index = Math.floorMod(start + i, itemCount);
+            if (mayHide && isItemHidden(index)) {
+                continue;
+            }
             if (cellText(index).toLowerCase(Locale.ROOT).startsWith(prefixLower)) {
                 return index;
             }
         }
         return -1;
+    }
+
+    private boolean isItemHidden(int itemIndex) {
+        return isSectionLaidOutCollapsed(sectionIndexOfItem(itemIndex));
     }
 
     private String cellText(int index) {
@@ -1018,6 +1367,11 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         if (control.isFocusTraversable()) {
             control.requestFocus();
         }
+        RXListSectionCell header = viewport.headerAt(event.getTarget());
+        if (header != null) {
+            onHeaderPressed(event, header);
+            return;
+        }
         RXListCell<T> cell = viewport.cellAt(event.getTarget());
         if (cell == null) {
             // Blank area below the items: the list has no marquee selection (a
@@ -1026,6 +1380,39 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         }
         int index = cell.getIndex();
         handlePointerSelect(event, index, isAccumulateMode());
+    }
+
+    // A press on a header (in-flow or sticky) toggles its section and puts the
+    // keyboard cursor on it; the selection stays. Only the first press of a
+    // multi-click counts, so a double-click does not toggle twice. Nodes inside a
+    // custom header that consume their press never get here.
+    private void onHeaderPressed(MouseEvent event, RXListSectionCell header) {
+        if (!headersNavigable() || event.getClickCount() != 1) {
+            return;
+        }
+        int sectionIndex = liveSectionIndex(header.getItem());
+        if (sectionIndex < 0) {
+            return;
+        }
+        focusHeader(sectionIndex);
+        focusModel.syncSelectionLeadState();
+        toggleSection(sectionIndex);
+    }
+
+    // The current index of a section record bound by an earlier pass: its own index
+    // while that still carries its key, else the first section with the key, else -1.
+    private int liveSectionIndex(RXListSection bound) {
+        List<RXListSection> sections = getSkinnable().getSections();
+        int index = bound.sectionIndex();
+        if (index < sections.size() && Objects.equals(sections.get(index).key(), bound.key())) {
+            return index;
+        }
+        for (RXListSection section : sections) {
+            if (Objects.equals(section.key(), bound.key())) {
+                return section.sectionIndex();
+            }
+        }
+        return -1;
     }
 
     // "Accumulate" modes show a per-item indicator (checkbox / checkmark) in
@@ -1049,7 +1436,7 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     private void handlePointerSelect(MouseEvent event, int index, boolean accumulate) {
         MultipleSelectionModel<T> sm = getSkinnable().getSelectionModel();
         // Capture the range anchor from the current focus before moving it (see moveTo).
-        int anchor = clampIndex(getAnchor(), itemCount());
+        int anchor = rangeAnchor(index);
         focusModel.focus(index);
         // Without a selection model the press still moves the focus cursor (like
         // the keyboard path); only the selection updates are skipped.
@@ -1092,6 +1479,10 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     }
 
     private void clearAndSelectRange(MultipleSelectionModel<T> selectionModel, int anchor, int target) {
+        if (headersNavigable() && !getSkinnable().getCollapsedSectionKeys().isEmpty()) {
+            clearAndSelectShownRange(selectionModel, anchor, target);
+            return;
+        }
         int end = target >= anchor ? target + 1 : target - 1;
         if (selectionModel instanceof RXIndexedSelectionModel<?> rxSelectionModel) {
             @SuppressWarnings("unchecked")
@@ -1101,6 +1492,34 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
             selectionModel.clearSelection();
             selectionModel.selectRange(anchor, end);
         }
+    }
+
+    // A range is what lies between anchor and target on screen: items hidden in a
+    // collapsed section in between are left out (and, as with any range, a previous
+    // selection among them is replaced). The target stays the selection lead.
+    private void clearAndSelectShownRange(MultipleSelectionModel<T> selectionModel, int anchor, int target) {
+        int step = target >= anchor ? 1 : -1;
+        List<Integer> shown = new ArrayList<>();
+        for (int i = anchor; ; i += step) {
+            if (!isItemHidden(i)) {
+                shown.add(i);
+            }
+            if (i == target) {
+                break;
+            }
+        }
+        if (selectionModel instanceof RXIndexedSelectionModel<?> rxSelectionModel) {
+            @SuppressWarnings("unchecked")
+            RXIndexedSelectionModel<T> typedModel = (RXIndexedSelectionModel<T>) rxSelectionModel;
+            typedModel.clearAndSelectIndices(shown, target);
+            return;
+        }
+        selectionModel.clearSelection();
+        int[] rest = new int[shown.size() - 1];
+        for (int i = 1; i < shown.size(); i++) {
+            rest[i - 1] = shown.get(i);
+        }
+        selectionModel.selectIndices(shown.get(0), rest);
     }
 
     // ==================== Shared helpers ====================
