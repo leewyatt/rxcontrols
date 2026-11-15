@@ -14,7 +14,7 @@
  * scope further down re-declares every role for the AtlantaFX bridge.         *
  *                                                                             *
  ******************************************************************************/
-.rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-badge, .rx-bar-spinner, .rx-box, .rx-button,
+.rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-badge, .rx-bar-spinner, .rx-box, .rx-breadcrumb-bar, .rx-button,
 .rx-calendar-view, .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-content-pane, .rx-copy-button, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-date-picker, .rx-date-range-picker, .rx-date-range-view, .rx-date-time-picker, .rx-date-time-range-picker, .rx-date-time-view, .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
@@ -98,6 +98,8 @@
 .rx-theme-atlantafx.rx-bar-spinner,
 .rx-theme-atlantafx .rx-box,
 .rx-theme-atlantafx.rx-box,
+.rx-theme-atlantafx .rx-breadcrumb-bar,
+.rx-theme-atlantafx.rx-breadcrumb-bar,
 .rx-theme-atlantafx .rx-button,
 .rx-theme-atlantafx.rx-button,
 .rx-theme-atlantafx .rx-calendar-view,
@@ -3498,6 +3500,83 @@
     -fx-background-color: transparent;
     -fx-background-insets: 0;
     -fx-padding: 0;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXBreadcrumbBar                                                             *
+ *                                                                             *
+ ******************************************************************************/
+.rx-breadcrumb-bar > .item,
+.rx-breadcrumb-bar > .branch-button,
+.rx-breadcrumb-bar > .overflow-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 4px;
+    -fx-border-color: transparent;
+    -fx-border-width: 1.5px;
+    -fx-border-radius: 4px;
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+.rx-breadcrumb-bar > .item {
+    -fx-padding: 0.083em 0.25em 0.083em 0.25em;
+    -fx-graphic-text-gap: 0.333em;
+}
+.rx-breadcrumb-bar > .item:hover {
+    -fx-text-fill: -rx-primary;
+    -fx-cursor: hand;
+}
+.rx-breadcrumb-bar > .item:armed {
+    -fx-text-fill: -rx-primary-active;
+}
+.rx-breadcrumb-bar > .item:current {
+    -fx-text-fill: -rx-on-surface;
+}
+.rx-breadcrumb-bar > .branch-button,
+.rx-breadcrumb-bar > .overflow-button {
+    -fx-padding: 0.25em 0.167em 0.25em 0.167em;
+}
+.rx-breadcrumb-bar > .item:hover,
+.rx-breadcrumb-bar > .branch-button:hover,
+.rx-breadcrumb-bar > .overflow-button:hover,
+.rx-breadcrumb-bar > .branch-button:showing,
+.rx-breadcrumb-bar > .overflow-button:showing {
+    -fx-background-color: -rx-primary-bg;
+}
+.rx-breadcrumb-bar > .branch-button > .arrow {
+    -fx-pref-width: 0.583em;
+    -fx-pref-height: 0.333em;
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-shape: "M0 0 L7 0 L3.5 4 Z";
+}
+.rx-breadcrumb-bar > .branch-button:showing > .arrow {
+    -fx-background-color: -rx-primary;
+    -fx-rotate: 180;
+}
+.rx-breadcrumb-bar > .overflow-button > .icon {
+    -fx-pref-width: 1em;
+    -fx-pref-height: 0.25em;
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-shape: "M2 0 A2 2 0 1 1 2 4 A2 2 0 1 1 2 0 Z M8 0 A2 2 0 1 1 8 4 A2 2 0 1 1 8 0 Z M14 0 A2 2 0 1 1 14 4 A2 2 0 1 1 14 0 Z";
+}
+.rx-breadcrumb-bar > .separator {
+    -fx-padding: 0 0.25em 0 0.25em;
+}
+.rx-breadcrumb-bar > .separator > .icon {
+    -fx-pref-width: 0.333em;
+    -fx-pref-height: 0.583em;
+    -fx-background-color: -rx-outline;
+    -fx-shape: "M0 0 L1.4 0 L5 4.5 L1.4 9 L0 9 L3.6 4.5 Z";
+}
+.rx-breadcrumb-bar > .item:focus-shown,
+.rx-breadcrumb-bar > .branch-button:focus-shown,
+.rx-breadcrumb-bar > .overflow-button:focus-shown {
+    -fx-border-color: -rx-focus;
+}
+.rx-breadcrumb-bar:disabled {
+    -fx-opacity: 0.4;
+}
+.rx-menu-item.breadcrumb-current > .label {
+    -fx-text-fill: -rx-primary;
 }
 
 /*******************************************************************************
