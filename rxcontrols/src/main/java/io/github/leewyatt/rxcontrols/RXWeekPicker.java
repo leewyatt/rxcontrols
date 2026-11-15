@@ -21,9 +21,11 @@ import java.util.function.Predicate;
  * commits it and closes the popup; typed text is committed with Enter or when focus
  * leaves the field.
  *
- * <p>The value is a {@link LocalDate}: a commit sets it to the first day of the week.
- * A value set to any other day shows the week that contains it. Where a week starts
- * follows the {@link #weekFieldsProperty() week rules}.
+ * <p>The value is a {@link LocalDate}: a commit sets it to the first day of the week,
+ * so the committed week is the seven days starting at the value. A value set to any
+ * other day shows the week that contains it. Where a week starts follows the
+ * {@link #weekFieldsProperty() week rules} in effect at the commit; under other rules
+ * the same date can belong to a different week.
  *
  * <p>See {@link RXPickerBase} for the commit, focus and constraint model, and
  * {@link RXDatePicker} for the keys. CSS: style classes {@code rx-picker} and

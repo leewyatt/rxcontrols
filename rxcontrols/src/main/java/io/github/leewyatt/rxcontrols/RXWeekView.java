@@ -19,10 +19,12 @@ import java.util.function.Predicate;
  * {@link RXWeekPicker}'s popup. Every row is one week: pointing at any of its days, or
  * at its week number, highlights the row, and clicking picks it.
  *
- * <p>The value is a {@link LocalDate}: a pick sets it to the first day of the week.
- * A value set to any other day selects the week that contains it, so the value never
- * needs to be normalized by the caller. Where a week starts follows the
- * {@link #weekFieldsProperty() week rules}.
+ * <p>The value is a {@link LocalDate}: a pick sets it to the first day of the week,
+ * so the picked week is the seven days starting at the value. A value set to any
+ * other day selects the week that contains it, so the value never needs to be
+ * normalized by the caller. Where a week starts follows the
+ * {@link #weekFieldsProperty() week rules} in effect at the pick; under other rules
+ * the same date can belong to a different week.
  *
  * <p>The header pages by month and year; clicking the month or year title drills up
  * to a month or year grid for fast navigation, and picking there drills back down.
