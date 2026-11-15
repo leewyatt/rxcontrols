@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXIndexedSelectionModel;
 import io.github.leewyatt.rxcontrols.RXListCell;
+import io.github.leewyatt.rxcontrols.RXListSection;
 import io.github.leewyatt.rxcontrols.RXListSelectionVisualMode;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXListVisibleRange;
@@ -23,7 +24,9 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.util.StringConverter;
 
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * Skin for {@link RXListView}. It assembles the self-built virtualizing
@@ -104,9 +107,10 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     private long lastTypeAheadTime;
 
     // Row-plan cache: the plan is width-independent (single column), so it only
-    // changes when the revision (sections content), header flag, header / row
-    // height, item count or section spacing change. The revision is bumped on a
-    // sections change so a same-size regrouping still rebuilds.
+    // changes when the revision (sections content or collapsed state), header flag,
+    // header / row height, item count or section spacing change. The revision is
+    // bumped on a sections change so a same-size regrouping still rebuilds, and on a
+    // collapsed-state change (the key set or the collapsibleSections switch).
     private int rowPlanRevision;
     private RowPlanKey cachedRowPlanKey;
     private RXListRowPlan cachedRowPlan;
@@ -176,6 +180,8 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         disposer.registerListener(control.sectionSpacingProperty(), this::requestLayoutPass);
         disposer.registerListener(control.sectionHeaderFactoryProperty(), this::onSectionHeaderFactoryChanged);
         disposer.registerListener(control.stickySectionHeaderProperty(), this::onStickyChanged);
+        disposer.registerListener(control.collapsibleSectionsProperty(), this::onCollapsedStateChanged);
+        disposer.registerListener(control.getCollapsedSectionKeys(), this::onCollapsedStateChanged);
         // Visual mode: re-render the cells (their selection slot is derived) and
         // refresh the control-root pseudo-classes.
         disposer.registerListener(control.selectionVisualModeProperty(), this::onDecorationStateChanged);
@@ -274,6 +280,13 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         requestLayoutPass();
     }
 
+    private void onCollapsedStateChanged() {
+        // The collapsed flags are read from the key set when the plan is built; the
+        // revision bump makes the cached fixed-mode plan miss.
+        rowPlanRevision++;
+        requestLayoutPass();
+    }
+
     private void onSectionHeaderFactoryChanged() {
         // recreateHeaders() discards the header pool and requests a viewport layout.
         viewport.recreateHeaders();
@@ -318,10 +331,26 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
             return cachedRowPlan;
         }
         RXListRowPlan plan = RXListRowPlan.fixed(control.getSections(), control.isShowSectionHeaders(),
-                key.headerHeight(), key.rowHeight(), key.itemCount(), key.sectionSpacing());
+                key.headerHeight(), key.rowHeight(), key.itemCount(), key.sectionSpacing(),
+                collapsedFlags(control));
         cachedRowPlanKey = key;
         cachedRowPlan = plan;
         return plan;
+    }
+
+    // Per-section collapsed flags for the plan, or null when nothing can collapse. The
+    // plan itself ignores them while headers are hidden.
+    private static boolean[] collapsedFlags(RXListView<?> control) {
+        Set<Object> collapsedKeys = control.getCollapsedSectionKeys();
+        if (!control.isCollapsibleSections() || collapsedKeys.isEmpty()) {
+            return null;
+        }
+        List<RXListSection> sections = control.getSections();
+        boolean[] flags = new boolean[sections.size()];
+        for (int s = 0; s < flags.length; s++) {
+            flags[s] = collapsedKeys.contains(sections.get(s).key());
+        }
+        return flags;
     }
 
     // Variable mode: heights come from the cache (measured or estimated). The plan is
@@ -338,7 +367,7 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         }
         return RXListRowPlan.variable(control.getSections(), control.isShowSectionHeaders(),
                 snapSizeY(sectionHeaderHeightOrDefault(control)), heights,
-                snapSizeY(sectionSpacingOrZero(control.getSectionSpacing())));
+                snapSizeY(sectionSpacingOrZero(control.getSectionSpacing())), collapsedFlags(control));
     }
 
     private RXListSelectionVisualMode effectiveSelectionVisualMode() {

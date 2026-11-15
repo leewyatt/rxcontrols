@@ -162,6 +162,10 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         // the sole caller already clamps, but this keeps the method safe on its own.
         int clamped = RXMath.clamp(index, 0, plan.itemCount() - 1);
         int visualRow = plan.visualRowOfItem(clamped);
+        if (visualRow < 0) {
+            // The item is hidden in a collapsed section; its header row stands in for it.
+            return scrollToSectionIndex(plan.sectionIndexOfItem(clamped), alignment);
+        }
         RXListRowPlan.RowInfo info = plan.rowInfo(visualRow);
         double maxScroll = Math.max(0.0, plan.contentHeight() - viewportHeight);
         // Land the item within the area below an active sticky header instead of under it.

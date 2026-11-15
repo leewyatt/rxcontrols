@@ -20,7 +20,7 @@ import java.util.List;
  * is O(sections) — it scales to millions of items. A section-header row is
  * {@code headerHeight}; a data row is the uniform {@code rowHeight}.
  *
- * <p><b>Variable mode</b> ({@link #variable(java.util.List, boolean, double, double[], double)})
+ * <p><b>Variable mode</b> ({@link #variable(java.util.List, boolean, double, double[], double, boolean[])})
  * stores a per-item prefix-sum of the supplied heights (measured or estimated), so it is
  * O(items) in memory — the cost of non-uniform rows — and answers a content-space query
  * by a binary search over the per-item tops. Section-header rows stay the fixed
@@ -36,6 +36,15 @@ import java.util.List;
  * <p>{@code sectionSpacing} is extra blank content-space inserted before every group
  * after the first (it is not a visual row, just added to the section's top Y). It only
  * has a visible effect with two or more sections.
+ *
+ * <p><b>Collapsed sections.</b> A per-section {@code collapsed} flag reduces that
+ * section to its header row: its items get no data row, no height and no Y, and the
+ * item lookups report them as hidden ({@code -1}). The flag only takes effect while
+ * header rows are shown — without a header a collapsed section would leave no row to
+ * expand it from, so a plan with hidden headers lays every section out expanded. The
+ * shown data rows are numbered contiguously ({@link #dataRowOfItem} /
+ * {@link #itemOfDataRow}), skipping header rows and hidden items; with nothing
+ * collapsed a data row number equals the item index.
  */
 final class RXListRowPlan {
 
@@ -63,6 +72,10 @@ final class RXListRowPlan {
     // Per-section offset index (length == section count; empty when flat).
     private final int[] sectionFirstVisualRow;
     private final double[] sectionTopY;
+    // Shown data rows before each section, and whether the section is laid out
+    // collapsed (only ever true while headers are shown).
+    private final int[] sectionFirstDataRow;
+    private final boolean[] sectionCollapsed;
 
     // Variable mode only (null when fixed): per-item content-space top and height,
     // both length itemCount. itemTops is ascending so a content-space query binary-searches it.
@@ -70,6 +83,7 @@ final class RXListRowPlan {
     private final double[] itemHeights;
 
     private final int totalVisualRows;
+    private final int dataRowCount;
     private final double contentHeight;
 
     /**
@@ -82,11 +96,14 @@ final class RXListRowPlan {
      *                       to {@code 1} so the row math never divides by zero
      * @param itemCount      the total item count
      * @param sectionSpacing the extra blank space inserted before each section after the first
+     * @param collapsed      per-section collapsed flags, indexed like {@code sections}; may be
+     *                       {@code null} or shorter (missing entries are expanded)
      * @return the fixed-height plan
      */
     static RXListRowPlan fixed(List<RXListSection> sections, boolean showHeaders, double headerHeight,
-                               double rowHeight, int itemCount, double sectionSpacing) {
-        return new RXListRowPlan(sections, showHeaders, headerHeight, rowHeight, itemCount, null, sectionSpacing);
+                               double rowHeight, int itemCount, double sectionSpacing, boolean[] collapsed) {
+        return new RXListRowPlan(sections, showHeaders, headerHeight, rowHeight, itemCount, null, sectionSpacing,
+                collapsed);
     }
 
     /**
@@ -99,16 +116,19 @@ final class RXListRowPlan {
      * @param headerHeight   the height of one section-header row
      * @param itemHeights    the effective per-item data-row heights
      * @param sectionSpacing the extra blank space inserted before each section after the first
+     * @param collapsed      per-section collapsed flags, indexed like {@code sections}; may be
+     *                       {@code null} or shorter (missing entries are expanded)
      * @return the variable-height plan
      */
     static RXListRowPlan variable(List<RXListSection> sections, boolean showHeaders, double headerHeight,
-                                  double[] itemHeights, double sectionSpacing) {
+                                  double[] itemHeights, double sectionSpacing, boolean[] collapsed) {
         return new RXListRowPlan(sections, showHeaders, headerHeight, 0.0, itemHeights.length, itemHeights,
-                sectionSpacing);
+                sectionSpacing, collapsed);
     }
 
     private RXListRowPlan(List<RXListSection> sections, boolean showHeaders, double headerHeight,
-                          double rowHeight, int itemCount, double[] itemHeights, double sectionSpacing) {
+                          double rowHeight, int itemCount, double[] itemHeights, double sectionSpacing,
+                          boolean[] collapsed) {
         this.sections = List.copyOf(sections);
         this.grouped = !this.sections.isEmpty();
         this.headersShown = grouped && showHeaders;
@@ -134,12 +154,16 @@ final class RXListRowPlan {
         int count = this.sections.size();
         sectionFirstVisualRow = new int[count];
         sectionTopY = new double[count];
+        sectionFirstDataRow = new int[count];
+        sectionCollapsed = new boolean[count];
 
         if (!grouped) {
             totalVisualRows = this.itemCount;
+            dataRowCount = this.itemCount;
             contentHeight = variable ? fillFlatItemTops() : this.itemCount * this.rowHeight;
         } else {
             int visualRow = 0;
+            int dataRow = 0;
             double y = 0.0;
             for (int s = 0; s < count; s++) {
                 // Blank separator before every group after the first — not a visual
@@ -149,27 +173,36 @@ final class RXListRowPlan {
                 }
                 sectionFirstVisualRow[s] = visualRow;
                 sectionTopY[s] = y;
+                sectionFirstDataRow[s] = dataRow;
                 if (headersShown) {
                     visualRow += 1;
                     y += this.headerHeight;
                 }
+                boolean hidden = headersShown && collapsed != null && s < collapsed.length && collapsed[s];
+                sectionCollapsed[s] = hidden;
                 RXListSection section = this.sections.get(s);
-                int dataRows = section.itemCount();
+                int dataRows = hidden ? 0 : section.itemCount();
                 if (variable) {
                     // Sections partition [0, itemCount) exactly (class doc), so every item
-                    // index is in range and each itemTops slot is written exactly once.
+                    // index is in range and each itemTops slot is written exactly once. A
+                    // hidden item keeps the section's data start as its top and adds no
+                    // height, so itemTops stays ascending.
                     int firstItem = section.firstItemIndex();
-                    for (int k = 0; k < dataRows; k++) {
+                    for (int k = 0; k < section.itemCount(); k++) {
                         int itemIndex = firstItem + k;
                         itemTops[itemIndex] = y;
-                        y += itemHeights[itemIndex];
+                        if (!hidden) {
+                            y += this.itemHeights[itemIndex];
+                        }
                     }
                 } else {
                     y += dataRows * this.rowHeight;
                 }
                 visualRow += dataRows;
+                dataRow += dataRows;
             }
             totalVisualRows = visualRow;
+            dataRowCount = dataRow;
             contentHeight = y;
         }
     }
@@ -204,6 +237,16 @@ final class RXListRowPlan {
         return totalVisualRows;
     }
 
+    /**
+     * The number of shown data rows: the item count minus the items of collapsed
+     * sections.
+     *
+     * @return the shown data-row count
+     */
+    int dataRowCount() {
+        return dataRowCount;
+    }
+
     boolean headersShown() {
         return headersShown;
     }
@@ -217,14 +260,118 @@ final class RXListRowPlan {
     }
 
     /**
+     * Whether the section at {@code sectionIndex} is laid out collapsed (header row
+     * only). Always {@code false} while headers are hidden.
+     *
+     * @param sectionIndex a section index
+     * @return {@code true} if the section is collapsed; {@code false} when out of range
+     */
+    boolean sectionCollapsed(int sectionIndex) {
+        return sectionIndex >= 0 && sectionIndex < sectionCollapsed.length && sectionCollapsed[sectionIndex];
+    }
+
+    /**
+     * Whether the item at {@code itemIndex} has a data row — it exists and its
+     * section is not collapsed.
+     *
+     * @param itemIndex an item index
+     * @return {@code true} if the item is shown
+     */
+    boolean isItemShown(int itemIndex) {
+        if (itemIndex < 0 || itemIndex >= itemCount) {
+            return false;
+        }
+        return !grouped || !sectionCollapsed[sectionAtItem(itemIndex)];
+    }
+
+    /**
+     * The index of the section containing the item at {@code itemIndex}.
+     *
+     * @param itemIndex an item index
+     * @return the section index, or {@code -1} when flat or out of range
+     */
+    int sectionIndexOfItem(int itemIndex) {
+        if (!grouped || itemIndex < 0 || itemIndex >= itemCount) {
+            return -1;
+        }
+        return sectionAtItem(itemIndex);
+    }
+
+    /**
+     * The index of the section whose band contains content-space {@code y}: the last
+     * section whose top is at or above it (so the spacing gap before a section still
+     * belongs to the previous one), clamped to the first section.
+     *
+     * @param y a content-space offset
+     * @return the section index, or {@code -1} when flat
+     */
+    int sectionIndexAt(double y) {
+        if (!grouped) {
+            return -1;
+        }
+        return sectionAtY(y);
+    }
+
+    /**
+     * The shown data-row number of the item at {@code itemIndex}: its position among
+     * the shown data rows, which skip header rows and the items of collapsed sections.
+     *
+     * @param itemIndex an item index
+     * @return the data-row number, or {@code -1} when out of range or hidden
+     */
+    int dataRowOfItem(int itemIndex) {
+        if (itemIndex < 0 || itemIndex >= itemCount) {
+            return -1;
+        }
+        if (!grouped) {
+            return itemIndex;
+        }
+        int s = sectionAtItem(itemIndex);
+        if (sectionCollapsed[s]) {
+            return -1;
+        }
+        return sectionFirstDataRow[s] + itemIndex - sections.get(s).firstItemIndex();
+    }
+
+    /**
+     * The item shown on the given data row; the inverse of {@link #dataRowOfItem}.
+     *
+     * @param dataRow a shown data-row number
+     * @return the item index, or {@code -1} when out of range
+     */
+    int itemOfDataRow(int dataRow) {
+        if (dataRow < 0 || dataRow >= dataRowCount) {
+            return -1;
+        }
+        if (!grouped) {
+            return dataRow;
+        }
+        // The last section starting at or before dataRow always has rows here: a
+        // collapsed one shares its start with the section after it, which wins the tie.
+        int lo = 0;
+        int hi = sectionFirstDataRow.length - 1;
+        int s = 0;
+        while (lo <= hi) {
+            int mid = (lo + hi) >>> 1;
+            if (sectionFirstDataRow[mid] <= dataRow) {
+                s = mid;
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
+        }
+        return sections.get(s).firstItemIndex() + dataRow - sectionFirstDataRow[s];
+    }
+
+    /**
      * The content-space top Y of the data row holding {@code itemIndex}, used by the
      * variable-height anchor pin.
      *
      * @param itemIndex an item index
-     * @return the data row's content-space top, or {@code -1} when out of range
+     * @return the data row's content-space top, or {@code -1} when out of range or hidden
      */
     double itemTop(int itemIndex) {
-        if (itemIndex < 0 || itemIndex >= itemCount) {
+        if (!isItemShown(itemIndex)) {
             return -1.0;
         }
         if (variable) {
@@ -269,7 +416,9 @@ final class RXListRowPlan {
         int s = sectionAtY(y);
         double dy = y - sectionTopY[s];
         int baseVisualRow = sectionFirstVisualRow[s];
-        if (headersShown && dy < headerHeight) {
+        // A collapsed section is its header row alone, so the spacing gap after it
+        // also resolves to the header.
+        if (headersShown && (dy < headerHeight || sectionCollapsed[s])) {
             return baseVisualRow;
         }
         int firstDataVisualRow = baseVisualRow + (headersShown ? 1 : 0);
@@ -317,13 +466,17 @@ final class RXListRowPlan {
      * The visual row holding the data item at {@code itemIndex}.
      *
      * @param itemIndex a valid item index
-     * @return the visual-row index of the data row containing the item
+     * @return the visual-row index of the data row containing the item, or {@code -1}
+     *         when the item is hidden in a collapsed section
      */
     int visualRowOfItem(int itemIndex) {
         if (!grouped) {
             return itemIndex;
         }
         int s = sectionAtItem(itemIndex);
+        if (sectionCollapsed[s]) {
+            return -1;
+        }
         RXListSection section = sections.get(s);
         int localRow = itemIndex - section.firstItemIndex();
         return sectionFirstVisualRow[s] + (headersShown ? 1 : 0) + localRow;
