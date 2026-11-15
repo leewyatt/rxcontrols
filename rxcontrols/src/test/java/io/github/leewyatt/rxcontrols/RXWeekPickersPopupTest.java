@@ -28,6 +28,7 @@ import static io.github.leewyatt.rxcontrols.PickerTestSupport.hasPseudoClass;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.hideAllPopups;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.press;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.runOnFx;
+import static io.github.leewyatt.rxcontrols.PickerTestSupport.shownPages;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -254,6 +255,21 @@ public class RXWeekPickersPopupTest {
             press(end, KeyCode.ENTER);
             assertEquals(committed, picker.getValue());
             assertTrue(hasPseudoClass(picker, "invalid"));
+        });
+    }
+
+    /**
+     * Verifies the month count sets the number of pages in the week range popup.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void monthCountSetsPopupPages() throws InterruptedException {
+        runOnFx(() -> {
+            RXWeekRangePicker picker = shown(new RXWeekRangePicker());
+            picker.setMonthCount(3);
+            picker.show();
+            assertEquals(3, shownPages(findPopup().getScene().getRoot()));
         });
     }
 

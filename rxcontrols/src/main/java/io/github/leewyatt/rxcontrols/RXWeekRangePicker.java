@@ -2,8 +2,10 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.skins.RXWeekRangePickerSkin;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -16,7 +18,8 @@ import java.util.function.Predicate;
 
 /**
  * Week range picker: start and end fields for a range of whole weeks with a popup
- * {@link RXWeekRangeView} showing two months.
+ * {@link RXWeekRangeView} showing two months, or as many as
+ * {@link #monthCountProperty() monthCount} says.
  *
  * <p>The value is an {@link RXDateRange}: a commit sets it to the days from the first
  * day of the first week to the last day of the last week. A value with other
@@ -160,6 +163,38 @@ public class RXWeekRangePicker extends RXPickerBase<RXDateRange> {
      */
     public final void setConverter(StringConverter<LocalDate> value) {
         converter.set(value);
+    }
+
+    // ==================== Month Count ====================
+
+    private final IntegerProperty monthCount = new SimpleIntegerProperty(this, "monthCount", 2);
+
+    /**
+     * Number of consecutive months the popup shows side by side. Values below 1 are
+     * treated as 1. Defaults to 2.
+     *
+     * @return the month-count property
+     */
+    public final IntegerProperty monthCountProperty() {
+        return monthCount;
+    }
+
+    /**
+     * Returns the number of months the popup shows.
+     *
+     * @return the number of months the popup shows
+     */
+    public final int getMonthCount() {
+        return monthCount.get();
+    }
+
+    /**
+     * Sets the number of months the popup shows.
+     *
+     * @param value the number of months the popup shows
+     */
+    public final void setMonthCount(int value) {
+        monthCount.set(value);
     }
 
     // ==================== Min Week ====================

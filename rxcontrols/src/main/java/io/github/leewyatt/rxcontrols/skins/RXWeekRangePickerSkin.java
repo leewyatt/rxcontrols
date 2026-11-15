@@ -28,6 +28,7 @@ public class RXWeekRangePickerSkin
     public RXWeekRangePickerSkin(RXWeekRangePicker control) {
         super(control, new RXWeekRangeView(), PeriodRangeType.weeks(() -> rules(control)));
         RXWeekRangeView view = rangeView();
+        disposer.registerBinding(view.monthCountProperty(), control.monthCountProperty());
         disposer.registerBinding(view.minWeekProperty(), control.minWeekProperty());
         disposer.registerBinding(view.maxWeekProperty(), control.maxWeekProperty());
         disposer.registerBinding(view.weekFilterProperty(), control.weekFilterProperty());

@@ -2,8 +2,10 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.skins.RXDateRangePickerSkin;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -16,7 +18,8 @@ import java.util.function.Predicate;
 
 /**
  * Date range picker: start and end fields for an {@link RXDateRange} with a popup
- * {@link RXDateRangeView} showing two months.
+ * {@link RXDateRangeView} showing two months, or as many as
+ * {@link #monthCountProperty() monthCount} says.
  *
  * <p>The first pick in the popup marks the start (shown in the start field while the
  * end field takes focus); the second pick completes the range in either order,
@@ -154,6 +157,38 @@ public class RXDateRangePicker extends RXPickerBase<RXDateRange> {
      */
     public final void setConverter(StringConverter<LocalDate> value) {
         converter.set(value);
+    }
+
+    // ==================== Month Count ====================
+
+    private final IntegerProperty monthCount = new SimpleIntegerProperty(this, "monthCount", 2);
+
+    /**
+     * Number of consecutive months the popup shows side by side. Values below 1 are
+     * treated as 1. Defaults to 2.
+     *
+     * @return the month-count property
+     */
+    public final IntegerProperty monthCountProperty() {
+        return monthCount;
+    }
+
+    /**
+     * Returns the number of months the popup shows.
+     *
+     * @return the number of months the popup shows
+     */
+    public final int getMonthCount() {
+        return monthCount.get();
+    }
+
+    /**
+     * Sets the number of months the popup shows.
+     *
+     * @param value the number of months the popup shows
+     */
+    public final void setMonthCount(int value) {
+        monthCount.set(value);
     }
 
     // ==================== Min Date ====================

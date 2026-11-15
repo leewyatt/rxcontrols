@@ -1,7 +1,9 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.skins.RXYearRangePickerSkin;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -13,7 +15,8 @@ import java.util.function.Predicate;
 
 /**
  * Year range picker: start and end fields for an {@link RXYearRange} with a popup
- * {@link RXYearRangeView} showing two decades.
+ * {@link RXYearRangeView} showing two decades, or as many as
+ * {@link #decadeCountProperty() decadeCount} says.
  *
  * <p>The first pick in the popup marks the start (shown in the start field while the
  * end field takes focus); the second pick completes the range in either order,
@@ -150,6 +153,38 @@ public class RXYearRangePicker extends RXPickerBase<RXYearRange> {
      */
     public final void setConverter(StringConverter<Year> value) {
         converter.set(value);
+    }
+
+    // ==================== Decade Count ====================
+
+    private final IntegerProperty decadeCount = new SimpleIntegerProperty(this, "decadeCount", 2);
+
+    /**
+     * Number of consecutive decades the popup shows side by side. Values below 1 are
+     * treated as 1. Defaults to 2.
+     *
+     * @return the decade-count property
+     */
+    public final IntegerProperty decadeCountProperty() {
+        return decadeCount;
+    }
+
+    /**
+     * Returns the number of decades the popup shows.
+     *
+     * @return the number of decades the popup shows
+     */
+    public final int getDecadeCount() {
+        return decadeCount.get();
+    }
+
+    /**
+     * Sets the number of decades the popup shows.
+     *
+     * @param value the number of decades the popup shows
+     */
+    public final void setDecadeCount(int value) {
+        decadeCount.set(value);
     }
 
     // ==================== Min Year ====================

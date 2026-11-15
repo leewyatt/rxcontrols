@@ -48,7 +48,8 @@ public class RXMonthRangePickerShowcase extends DateTimeShowcase {
         return List.of(
                 section("Picker", pickerGrid(picker,
                         textRow("Start prompt", picker.startPromptTextProperty()),
-                        textRow("End prompt", picker.endPromptTextProperty()))),
+                        textRow("End prompt", picker.endPromptTextProperty()),
+                        intRow("Years", picker.yearCountProperty(), 3))),
                 section("Selectable months", createGrid(
                         optionRow("minMonth: this month", picker.minMonthProperty(), YearMonth.now()),
                         optionRow("maxMonth: this month + 12", picker.maxMonthProperty(),

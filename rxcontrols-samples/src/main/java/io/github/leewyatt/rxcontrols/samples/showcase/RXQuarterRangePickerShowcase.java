@@ -48,7 +48,8 @@ public class RXQuarterRangePickerShowcase extends DateTimeShowcase {
         return List.of(
                 section("Picker", pickerGrid(picker,
                         textRow("Start prompt", picker.startPromptTextProperty()),
-                        textRow("End prompt", picker.endPromptTextProperty()))),
+                        textRow("End prompt", picker.endPromptTextProperty()),
+                        intRow("Years", picker.yearCountProperty(), 3))),
                 section("Selectable quarters", createGrid(
                         optionRow("minQuarter: this quarter", picker.minQuarterProperty(), THIS_QUARTER),
                         optionRow("maxQuarter: this quarter + 4", picker.maxQuarterProperty(),

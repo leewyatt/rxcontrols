@@ -26,7 +26,6 @@ import java.util.List;
 public class RXDateRangePickerSkin extends RXPickerSkinBase<RXDateRange, RXDateRangePicker> {
 
     private static final int FIELD_COLUMNS = 8;
-    private static final int POPUP_MONTHS = 2;
 
     private final TextField startEditor = new TextField();
     private final TextField endEditor = new TextField();
@@ -47,7 +46,7 @@ public class RXDateRangePickerSkin extends RXPickerSkinBase<RXDateRange, RXDateR
         separator.getStyleClass().add("separator");
         separator.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         separator.setMouseTransparent(true);
-        rangeView.setMonthCount(POPUP_MONTHS);
+        disposer.registerBinding(rangeView.monthCountProperty(), control.monthCountProperty());
         disposer.registerBinding(startEditor.promptTextProperty(), control.startPromptTextProperty());
         disposer.registerBinding(endEditor.promptTextProperty(), control.endPromptTextProperty());
         disposer.registerBinding(rangeView.localeProperty(), control.localeProperty());

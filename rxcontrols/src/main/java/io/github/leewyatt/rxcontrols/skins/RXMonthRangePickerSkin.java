@@ -26,6 +26,7 @@ public class RXMonthRangePickerSkin
     public RXMonthRangePickerSkin(RXMonthRangePicker control) {
         super(control, new RXMonthRangeView(), PeriodRangeType.MONTH);
         RXMonthRangeView view = rangeView();
+        disposer.registerBinding(view.yearCountProperty(), control.yearCountProperty());
         disposer.registerBinding(view.minMonthProperty(), control.minMonthProperty());
         disposer.registerBinding(view.maxMonthProperty(), control.maxMonthProperty());
         disposer.registerBinding(view.monthFilterProperty(), control.monthFilterProperty());

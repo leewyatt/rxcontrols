@@ -26,6 +26,7 @@ import static io.github.leewyatt.rxcontrols.PickerTestSupport.findPopup;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.hideAllPopups;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.press;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.runOnFx;
+import static io.github.leewyatt.rxcontrols.PickerTestSupport.shownPages;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -190,6 +191,21 @@ public class RXDateTimeRangePickerPopupTest {
             assertEquals("11/27/2026 09:00", editor(picker, 0).getText());
             // The picker and its popup view each remember the answers.
             assertTrue(Arrays.stream(asked).max().getAsInt() <= 2);
+        });
+    }
+
+    /**
+     * Verifies the month count sets the number of pages in the popup.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void monthCountSetsPopupPages() throws InterruptedException {
+        runOnFx(() -> {
+            RXDateTimeRangePicker picker = newShownPicker();
+            picker.setMonthCount(1);
+            picker.show();
+            assertEquals(1, shownPages(findPopup().getScene().getRoot()));
         });
     }
 

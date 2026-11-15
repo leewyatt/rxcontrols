@@ -26,6 +26,7 @@ public class RXQuarterRangePickerSkin
     public RXQuarterRangePickerSkin(RXQuarterRangePicker control) {
         super(control, new RXQuarterRangeView(), PeriodRangeType.QUARTER);
         RXQuarterRangeView view = rangeView();
+        disposer.registerBinding(view.yearCountProperty(), control.yearCountProperty());
         disposer.registerBinding(view.minQuarterProperty(), control.minQuarterProperty());
         disposer.registerBinding(view.maxQuarterProperty(), control.maxQuarterProperty());
         disposer.registerBinding(view.quarterFilterProperty(), control.quarterFilterProperty());

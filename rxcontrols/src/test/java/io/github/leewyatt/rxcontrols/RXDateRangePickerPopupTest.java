@@ -26,6 +26,7 @@ import static io.github.leewyatt.rxcontrols.PickerTestSupport.hasPseudoClass;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.hideAllPopups;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.press;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.runOnFx;
+import static io.github.leewyatt.rxcontrols.PickerTestSupport.shownPages;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -190,6 +191,24 @@ public class RXDateRangePickerPopupTest {
             // The cursor seeds on today (Nov 14) and moves one day right.
             assertTrue(hasPseudoClass(dayCell(findPopup().getScene().getRoot(), LocalDate.of(2026, 11, 15)),
                     "range-start"));
+        });
+    }
+
+    /**
+     * Verifies the month count sets the number of pages in the popup, also while it shows.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void monthCountSetsPopupPages() throws InterruptedException {
+        runOnFx(() -> {
+            RXDateRangePicker picker = newShownPicker();
+            picker.show();
+            Node root = findPopup().getScene().getRoot();
+            assertEquals(2, shownPages(root));
+            picker.setMonthCount(3);
+            assertEquals(3, shownPages(root));
+            assertTrue(dayCell(root, LocalDate.of(2027, 1, 15)).isVisible());
         });
     }
 

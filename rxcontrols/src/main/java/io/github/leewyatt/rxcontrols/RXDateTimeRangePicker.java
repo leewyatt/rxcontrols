@@ -20,7 +20,8 @@ import java.util.function.Predicate;
 
 /**
  * Date-time range picker: start and end fields for an {@link RXDateTimeRange} with a
- * popup {@link RXDateTimeRangeView}.
+ * popup {@link RXDateTimeRangeView} showing two months, or as many as
+ * {@link #monthCountProperty() monthCount} says.
  *
  * <p>In the popup the user picks the two days, then adjusts the start and end times;
  * the field previews the draft and the OK button (or Enter) commits the complete
@@ -153,6 +154,38 @@ public class RXDateTimeRangePicker extends RXPickerBase<RXDateTimeRange> {
      */
     public final void setConverter(StringConverter<LocalDateTime> value) {
         converter.set(value);
+    }
+
+    // ==================== Month Count ====================
+
+    private final IntegerProperty monthCount = new SimpleIntegerProperty(this, "monthCount", 2);
+
+    /**
+     * Number of consecutive months the popup shows side by side. Values below 1 are
+     * treated as 1. Defaults to 2.
+     *
+     * @return the month-count property
+     */
+    public final IntegerProperty monthCountProperty() {
+        return monthCount;
+    }
+
+    /**
+     * Returns the number of months the popup shows.
+     *
+     * @return the number of months the popup shows
+     */
+    public final int getMonthCount() {
+        return monthCount.get();
+    }
+
+    /**
+     * Sets the number of months the popup shows.
+     *
+     * @param value the number of months the popup shows
+     */
+    public final void setMonthCount(int value) {
+        monthCount.set(value);
     }
 
     // ==================== Min Date Time ====================

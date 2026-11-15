@@ -26,6 +26,7 @@ public class RXYearRangePickerSkin
     public RXYearRangePickerSkin(RXYearRangePicker control) {
         super(control, new RXYearRangeView(), PeriodRangeType.YEAR);
         RXYearRangeView view = rangeView();
+        disposer.registerBinding(view.decadeCountProperty(), control.decadeCountProperty());
         disposer.registerBinding(view.minYearProperty(), control.minYearProperty());
         disposer.registerBinding(view.maxYearProperty(), control.maxYearProperty());
         disposer.registerBinding(view.yearFilterProperty(), control.yearFilterProperty());

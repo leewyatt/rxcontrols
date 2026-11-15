@@ -46,7 +46,8 @@ public class RXYearRangePickerShowcase extends DateTimeShowcase {
         return List.of(
                 section("Picker", pickerGrid(picker,
                         textRow("Start prompt", picker.startPromptTextProperty()),
-                        textRow("End prompt", picker.endPromptTextProperty()))),
+                        textRow("End prompt", picker.endPromptTextProperty()),
+                        intRow("Decades", picker.decadeCountProperty(), 3))),
                 section("Selectable years", createGrid(
                         optionRow("minYear: this year - 5", picker.minYearProperty(), Year.now().minusYears(5)),
                         optionRow("maxYear: this year + 5", picker.maxYearProperty(), Year.now().plusYears(5)),

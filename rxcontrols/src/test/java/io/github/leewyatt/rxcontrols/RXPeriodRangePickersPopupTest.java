@@ -29,6 +29,7 @@ import static io.github.leewyatt.rxcontrols.PickerTestSupport.hasPseudoClass;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.hideAllPopups;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.press;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.runOnFx;
+import static io.github.leewyatt.rxcontrols.PickerTestSupport.shownPages;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -179,6 +180,35 @@ public class RXPeriodRangePickersPopupTest {
             press(end, KeyCode.ENTER);
             assertEquals(RXYearRange.of(Year.of(2020), Year.of(2030)), picker.getValue());
             assertFalse(hasPseudoClass(picker, "invalid"));
+        });
+    }
+
+    /**
+     * Verifies the year count and the decade count set the number of pages in the popup.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void pageCountSetsPopupPages() throws InterruptedException {
+        runOnFx(() -> {
+            RXMonthRangePicker months = shown(new RXMonthRangePicker());
+            months.setYearCount(3);
+            months.show();
+            assertEquals(3, shownPages(findPopup().getScene().getRoot()));
+            months.setYearCount(1);
+            assertEquals(1, shownPages(findPopup().getScene().getRoot()));
+            months.hide();
+
+            RXQuarterRangePicker quarters = shown(new RXQuarterRangePicker());
+            quarters.setYearCount(1);
+            quarters.show();
+            assertEquals(1, shownPages(findPopup().getScene().getRoot()));
+            quarters.hide();
+
+            RXYearRangePicker years = shown(new RXYearRangePicker());
+            years.setDecadeCount(3);
+            years.show();
+            assertEquals(3, shownPages(findPopup().getScene().getRoot()));
         });
     }
 

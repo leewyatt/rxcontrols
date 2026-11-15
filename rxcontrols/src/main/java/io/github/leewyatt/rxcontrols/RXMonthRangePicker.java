@@ -1,7 +1,9 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.skins.RXMonthRangePickerSkin;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -13,7 +15,8 @@ import java.util.function.Predicate;
 
 /**
  * Month range picker: start and end fields for an {@link RXMonthRange} with a popup
- * {@link RXMonthRangeView} showing two years.
+ * {@link RXMonthRangeView} showing two years, or as many as
+ * {@link #yearCountProperty() yearCount} says.
  *
  * <p>The first pick in the popup marks the start (shown in the start field while the
  * end field takes focus); the second pick completes the range in either order,
@@ -150,6 +153,38 @@ public class RXMonthRangePicker extends RXPickerBase<RXMonthRange> {
      */
     public final void setConverter(StringConverter<YearMonth> value) {
         converter.set(value);
+    }
+
+    // ==================== Year Count ====================
+
+    private final IntegerProperty yearCount = new SimpleIntegerProperty(this, "yearCount", 2);
+
+    /**
+     * Number of consecutive years the popup shows side by side. Values below 1 are
+     * treated as 1. Defaults to 2.
+     *
+     * @return the year-count property
+     */
+    public final IntegerProperty yearCountProperty() {
+        return yearCount;
+    }
+
+    /**
+     * Returns the number of years the popup shows.
+     *
+     * @return the number of years the popup shows
+     */
+    public final int getYearCount() {
+        return yearCount.get();
+    }
+
+    /**
+     * Sets the number of years the popup shows.
+     *
+     * @param value the number of years the popup shows
+     */
+    public final void setYearCount(int value) {
+        yearCount.set(value);
     }
 
     // ==================== Min Month ====================

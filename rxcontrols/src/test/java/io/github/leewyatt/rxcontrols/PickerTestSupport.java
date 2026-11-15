@@ -140,6 +140,11 @@ final class PickerTestSupport {
                 .orElseThrow(() -> new AssertionError("no visible " + selector));
     }
 
+    /** The pages the user sees: a calendar panel keeps the pages it no longer shows, hidden. */
+    static int shownPages(Node root) {
+        return (int) root.lookupAll(".page").stream().filter(Node::isVisible).count();
+    }
+
     static void click(Node node) {
         node.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, MouseButton.PRIMARY, 1,
                 false, false, false, false, true, false, false, true, false, false, null));

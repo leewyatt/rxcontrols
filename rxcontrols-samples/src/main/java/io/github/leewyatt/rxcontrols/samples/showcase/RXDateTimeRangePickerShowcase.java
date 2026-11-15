@@ -47,7 +47,8 @@ public class RXDateTimeRangePickerShowcase extends DateTimeShowcase {
         return List.of(
                 section("Picker", pickerGrid(picker,
                         textRow("Start prompt", picker.startPromptTextProperty()),
-                        textRow("End prompt", picker.endPromptTextProperty()))),
+                        textRow("End prompt", picker.endPromptTextProperty()),
+                        intRow("Months", picker.monthCountProperty(), 3))),
                 section("Calendar", calendarGrid(picker.weekFieldsProperty(), picker.showWeekNumbersProperty(),
                         picker.showAdjacentDaysProperty())),
                 section("Time", timeGrid(picker.showSecondsProperty(), picker.twelveHourClockProperty(),

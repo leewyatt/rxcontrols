@@ -42,7 +42,8 @@ public class RXWeekRangePickerShowcase extends DateTimeShowcase {
         return List.of(
                 section("Picker", pickerGrid(picker,
                         textRow("Start prompt", picker.startPromptTextProperty()),
-                        textRow("End prompt", picker.endPromptTextProperty()))),
+                        textRow("End prompt", picker.endPromptTextProperty()),
+                        intRow("Months", picker.monthCountProperty(), 3))),
                 section("Weeks", weekGrid(picker.weekFieldsProperty(), picker.showWeekNumbersProperty())),
                 section("Selectable weeks", weekLimitGrid(picker.minWeekProperty(), picker.maxWeekProperty(),
                         picker.weekFilterProperty())));
