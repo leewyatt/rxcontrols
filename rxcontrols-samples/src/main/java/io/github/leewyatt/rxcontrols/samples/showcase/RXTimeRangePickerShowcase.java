@@ -7,8 +7,8 @@ import java.util.List;
 
 /**
  * Showcase for {@link RXTimeRangePicker}: the picker with its committed value and commit
- * count, and a control panel for the shared picker options, the two prompts, the time
- * columns, the selectable times and the OK button.
+ * count, and a control panel for the shared picker options, the two prompts, the
+ * ordering of the endpoints, the time columns, the selectable times and the OK button.
  * For the smallest working example see {@code RXTimeRangePickerDemo}.
  */
 public class RXTimeRangePickerShowcase extends DateTimeShowcase {
@@ -42,7 +42,8 @@ public class RXTimeRangePickerShowcase extends DateTimeShowcase {
         return List.of(
                 section("Picker", pickerGrid(picker,
                         textRow("Start prompt", picker.startPromptTextProperty()),
-                        textRow("End prompt", picker.endPromptTextProperty()))),
+                        textRow("End prompt", picker.endPromptTextProperty()),
+                        flagRow("ordered", picker.orderedProperty()))),
                 section("Time", timeGrid(picker.showSecondsProperty(), picker.twelveHourClockProperty(),
                         picker.hourStepProperty(), picker.minuteStepProperty(), picker.secondStepProperty())),
                 section("Selectable times", timeLimitGrid(picker.minTimeProperty(), picker.maxTimeProperty(),

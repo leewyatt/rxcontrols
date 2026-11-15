@@ -26,9 +26,11 @@ import java.util.function.Predicate;
  * the popup moves on to the other endpoint, or, once both endpoints have been gone
  * through, commits the range and closes. An endpoint without a draft is picked
  * starting from the other endpoint's time. The other field cannot be entered before
- * the current endpoint is confirmed; Tab confirms the endpoint it leaves. The
- * committed endpoints are put in order, so the end may be picked before the start;
- * the range never runs past midnight.
+ * the current endpoint is confirmed; Tab confirms the endpoint it leaves.
+ *
+ * <p>The committed endpoints are put in order, so the end may be picked before the
+ * start. With {@link #orderedProperty() ordered} off they are committed as picked,
+ * and a start after the end is a range that runs past midnight.
  *
  * <p>Escape discards the drafts. Closing the popup any other way commits them only
  * if a change was confirmed and the endpoint then shown was left as it was;
@@ -130,6 +132,40 @@ public class RXTimeRangePicker extends RXPickerBase<RXTimeRange> {
      */
     public final void setEndPromptText(String value) {
         endPromptText.set(value);
+    }
+
+    // ==================== Ordered ====================
+
+    private final BooleanProperty ordered = new SimpleBooleanProperty(this, "ordered", true);
+
+    /**
+     * Whether the endpoints the user commits are put in order. Defaults to
+     * {@code true}. When {@code false} they are committed as picked or typed, and a
+     * start after the end is a range that runs past midnight. A value set by code is
+     * never reordered.
+     *
+     * @return the ordered property
+     */
+    public final BooleanProperty orderedProperty() {
+        return ordered;
+    }
+
+    /**
+     * Returns whether committed endpoints are put in order.
+     *
+     * @return whether committed endpoints are put in order
+     */
+    public final boolean isOrdered() {
+        return ordered.get();
+    }
+
+    /**
+     * Sets whether committed endpoints are put in order.
+     *
+     * @param value whether committed endpoints are put in order
+     */
+    public final void setOrdered(boolean value) {
+        ordered.set(value);
     }
 
     // ==================== Converter ====================

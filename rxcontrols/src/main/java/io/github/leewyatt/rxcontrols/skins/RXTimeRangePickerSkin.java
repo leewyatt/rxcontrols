@@ -62,7 +62,7 @@ public class RXTimeRangePickerSkin
 
     @Override
     protected RXTimeRange rangeOf(LocalTime first, LocalTime second) {
-        return RXTimeRange.ofOrdered(first, second);
+        return getSkinnable().isOrdered() ? RXTimeRange.ofOrdered(first, second) : RXTimeRange.of(first, second);
     }
 
     @Override

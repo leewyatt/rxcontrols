@@ -148,6 +148,34 @@ public class RXTimeRangePickerPopupTest {
     }
 
     /**
+     * Verifies endpoints are committed as picked and as typed when ordering is off.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void unorderedKeepsEndBeforeStart() throws InterruptedException {
+        runOnFx(() -> {
+            RXTimeRangePicker picker = newShownPicker();
+            picker.setOrdered(false);
+            picker.show();
+            Node root = findPopup().getScene().getRoot();
+            Button ok = (Button) root.lookup(".ok-button");
+            click(timeCell(root, ".hour-column", "22"));
+            ok.fire();
+            click(timeCell(root, ".hour-column", "06"));
+            ok.fire();
+            assertEquals(hours(22, 6), picker.getValue());
+            assertEquals("22:00", editor(picker, 0).getText());
+            assertEquals("06:00", editor(picker, 1).getText());
+
+            editor(picker, 0).setText("23:00");
+            editor(picker, 1).setText("02:00");
+            press(editor(picker, 1), KeyCode.ENTER);
+            assertEquals(hours(23, 2), picker.getValue());
+        });
+    }
+
+    /**
      * Verifies a pick for an empty end starts from the start's time, and the same time twice is a range.
      *
      * @throws InterruptedException if the FX task is interrupted

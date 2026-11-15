@@ -8,10 +8,10 @@ import java.util.Objects;
  * Immutable, closed range of times of day, used as the value of
  * {@link RXTimeRangePicker}.
  *
- * <p>Both endpoints are always present and inclusive, and {@code start} never
- * comes after {@code end}: the range lies within one day and does not run past
- * midnight. Like {@link RXDateRange}, a half-picked range is an editing state,
- * never a value.
+ * <p>Both endpoints are always present and inclusive. A {@code start} after the
+ * {@code end} is a range that runs past midnight into the next day, such as
+ * 22:00 to 06:00; equal endpoints are a single time. Like {@link RXDateRange}, a
+ * half-picked range is an editing state, never a value.
  *
  * @param start the first time of the range, inclusive
  * @param end   the last time of the range, inclusive
@@ -23,36 +23,31 @@ public record RXTimeRange(LocalTime start, LocalTime end) {
      *
      * @param start the first time of the range, inclusive
      * @param end   the last time of the range, inclusive
-     * @throws NullPointerException     if either endpoint is {@code null}
-     * @throws IllegalArgumentException if {@code end} is before {@code start}
+     * @throws NullPointerException if either endpoint is {@code null}
      */
     public RXTimeRange {
         Objects.requireNonNull(start, "start");
         Objects.requireNonNull(end, "end");
-        if (end.isBefore(start)) {
-            throw new IllegalArgumentException("end " + end + " is before start " + start);
-        }
     }
 
     /**
-     * Creates a range from the given endpoints.
+     * Creates a range from the given endpoints, kept as given.
      *
      * @param start the first time, inclusive
-     * @param end   the last time, inclusive
+     * @param end   the last time, inclusive; before {@code start} for a range that runs past midnight
      * @return the range
-     * @throws NullPointerException     if either endpoint is {@code null}
-     * @throws IllegalArgumentException if {@code end} is before {@code start}
+     * @throws NullPointerException if either endpoint is {@code null}
      */
     public static RXTimeRange of(LocalTime start, LocalTime end) {
         return new RXTimeRange(start, end);
     }
 
     /**
-     * Creates a range from two times given in either order.
+     * Creates a range within one day from two times given in either order.
      *
      * @param first  one endpoint
      * @param second the other endpoint
-     * @return the range spanning both times
+     * @return the range from the earlier to the later time
      * @throws NullPointerException if either time is {@code null}
      */
     public static RXTimeRange ofOrdered(LocalTime first, LocalTime second) {
@@ -65,19 +60,28 @@ public record RXTimeRange(LocalTime start, LocalTime end) {
      * Returns whether the time lies within this range, endpoints included.
      *
      * @param time the time to test
-     * @return {@code true} if {@code start <= time <= end}; {@code false} for {@code null}
+     * @return {@code true} if the time is reached going from {@code start} to
+     *         {@code end}, past midnight if the range runs past it; {@code false} for {@code null}
      */
     public boolean contains(LocalTime time) {
-        return time != null && !time.isBefore(start) && !time.isAfter(end);
+        if (time == null) {
+            return false;
+        }
+        if (end.isBefore(start)) {
+            return !time.isBefore(start) || !time.isAfter(end);
+        }
+        return !time.isBefore(start) && !time.isAfter(end);
     }
 
     /**
      * Returns the length of this range.
      *
-     * @return the duration from {@code start} to {@code end}, never negative
+     * @return the duration from {@code start} to {@code end}, past midnight if the
+     *         range runs past it; never negative
      */
     public Duration duration() {
-        return Duration.between(start, end);
+        Duration length = Duration.between(start, end);
+        return length.isNegative() ? length.plusDays(1) : length;
     }
 
     /**

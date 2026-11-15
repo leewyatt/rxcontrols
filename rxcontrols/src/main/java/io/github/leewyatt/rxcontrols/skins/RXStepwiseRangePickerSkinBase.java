@@ -126,11 +126,12 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
     protected abstract boolean isAcceptable(E endpoint);
 
     /**
-     * Creates the range between two endpoints given in either order.
+     * Creates the range to commit from the endpoints of the start and end fields,
+     * which the user may have given in either order.
      *
-     * @param first  one endpoint
-     * @param second the other endpoint
-     * @return the range, its endpoints in order
+     * @param first  the start field's endpoint
+     * @param second the end field's endpoint
+     * @return the range
      */
     protected abstract R rangeOf(E first, E second);
 
@@ -254,7 +255,7 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
     @Override
     protected void onPopupClosed() {
         if (flow.close()) {
-            R range = orderedDrafts();
+            R range = draftRange();
             if (isAllowed(range)) {
                 commit(range);
                 return;
@@ -306,7 +307,7 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
 
     /** Commits the drafts of a completed round; an endpoint that is not acceptable only closes the popup. */
     private void finishRound() {
-        R range = orderedDrafts();
+        R range = draftRange();
         if (isAllowed(range)) {
             commit(range);
         } else {
@@ -343,7 +344,7 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
         return flow.draft(endpoint);
     }
 
-    private R orderedDrafts() {
+    private R draftRange() {
         return rangeOf(flow.draft(Endpoint.START), flow.draft(Endpoint.END));
     }
 

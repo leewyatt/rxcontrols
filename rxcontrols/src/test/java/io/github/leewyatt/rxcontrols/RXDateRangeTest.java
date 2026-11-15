@@ -70,6 +70,21 @@ public class RXDateRangeTest {
     }
 
     /**
+     * Verifies a time range with its start after its end runs past midnight.
+     */
+    @Test
+    public void timeRangePastMidnight() {
+        RXTimeRange night = RXTimeRange.of(LocalTime.of(22, 0), LocalTime.of(6, 0));
+        assertEquals(LocalTime.of(22, 0), night.start());
+        assertTrue(night.contains(LocalTime.of(23, 30)));
+        assertTrue(night.contains(LocalTime.MIDNIGHT));
+        assertTrue(night.contains(LocalTime.of(6, 0)));
+        assertFalse(night.contains(LocalTime.of(12, 0)));
+        assertEquals(Duration.ofHours(8), night.duration());
+        assertEquals("22:00/06:00", night.toString());
+    }
+
+    /**
      * Verifies the time range validates, orders and measures its endpoints.
      */
     @Test
@@ -77,7 +92,6 @@ public class RXDateRangeTest {
         LocalTime nine = LocalTime.of(9, 0);
         LocalTime five = LocalTime.of(17, 30);
         assertThrows(NullPointerException.class, () -> RXTimeRange.of(nine, null));
-        assertThrows(IllegalArgumentException.class, () -> RXTimeRange.of(five, nine));
         RXTimeRange range = RXTimeRange.ofOrdered(five, nine);
         assertEquals(RXTimeRange.of(nine, five), range);
         assertTrue(range.contains(nine));
