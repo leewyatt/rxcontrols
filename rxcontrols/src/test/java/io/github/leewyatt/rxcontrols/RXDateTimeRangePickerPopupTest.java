@@ -277,6 +277,41 @@ public class RXDateTimeRangePickerPopupTest {
     }
 
     /**
+     * Verifies the keyboard alone picks and confirms both endpoints from the fields.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void keyboardConfirmsBothEndpoints() throws InterruptedException {
+        runOnFx(() -> {
+            RXDateTimeRangePicker picker = newShownPicker();
+            picker.setValue(novemberRange(10, 20));
+            TextField start = editor(picker, 0);
+            TextField end = editor(picker, 1);
+            start.requestFocus();
+            press(start, KeyCode.F4);
+            assertTrue(picker.isShowing());
+            press(start, KeyCode.DOWN);
+            press(start, KeyCode.RIGHT);
+            press(start, KeyCode.ENTER);
+            assertEquals("11/11/2026 00:00", start.getText());
+            press(start, KeyCode.ENTER);
+            assertSame(end, picker.getScene().getFocusOwner());
+            assertTrue(picker.isShowing());
+
+            press(end, KeyCode.DOWN);
+            press(end, KeyCode.DOWN);
+            press(end, KeyCode.ENTER);
+            assertEquals("11/27/2026 00:00", end.getText());
+            press(end, KeyCode.DOWN);
+            press(end, KeyCode.ENTER);
+            assertFalse(picker.isShowing());
+            assertEquals(RXDateTimeRange.of(LocalDate.of(2026, 11, 11).atStartOfDay(),
+                    LocalDateTime.of(2026, 11, 27, 1, 0)), picker.getValue());
+        });
+    }
+
+    /**
      * Verifies moving on to the other endpoint keeps the month on screen.
      *
      * @throws InterruptedException if the FX task is interrupted
