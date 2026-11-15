@@ -6,7 +6,7 @@ import java.util.Objects;
 
 /**
  * Immutable, closed range of local date-times, used as the value of
- * {@link RXDateTimeRangePicker} and {@link RXDateTimeRangeView}.
+ * {@link RXDateTimeRangePicker}.
  *
  * <p>Both endpoints are always present and inclusive, and {@code start} never
  * comes after {@code end}. Like {@link RXDateRange}, a half-picked range is an
