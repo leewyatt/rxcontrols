@@ -46,9 +46,9 @@ public class RXTemporalViewSizingTest {
     public void preferredSizeIncludesPadding() throws InterruptedException {
         runOnFx(() -> {
             List<Control> views = List.of(new RXCalendarView(), new RXDateRangeView(), new RXTimeView(),
-                    new RXDateTimeView(), new RXDateTimeRangeView(), new RXMonthView(), new RXQuarterView(),
-                    new RXYearView(), new RXMonthRangeView(), new RXQuarterRangeView(), new RXYearRangeView(),
-                    new RXWeekView(), new RXWeekRangeView());
+                    new RXDateTimeView(), new RXMonthView(), new RXQuarterView(), new RXYearView(),
+                    new RXMonthRangeView(), new RXQuarterRangeView(), new RXYearRangeView(), new RXWeekView(),
+                    new RXWeekRangeView());
             for (Control view : views) {
                 show(view);
                 Region content = (Region) view.getChildrenUnmodifiable().get(0);
@@ -70,7 +70,7 @@ public class RXTemporalViewSizingTest {
     @Test
     public void timeColumnsKeepPreferredWidth() throws InterruptedException {
         runOnFx(() -> {
-            for (Control view : List.of(new RXTimeView(), new RXDateTimeView(), new RXDateTimeRangeView())) {
+            for (Control view : List.of(new RXTimeView(), new RXDateTimeView())) {
                 show(view);
                 for (Node node : view.lookupAll(".time-column")) {
                     Region column = (Region) node;
@@ -89,8 +89,8 @@ public class RXTemporalViewSizingTest {
     @Test
     public void focusedTimeCellFitsItsText() throws InterruptedException {
         runOnFx(() -> {
-            RXDateTimeRangeView view = new RXDateTimeRangeView();
-            view.setValue(RXDateTimeRange.of(LocalDateTime.of(2026, 11, 3, 9, 0), LocalDateTime.of(2026, 12, 25, 19, 32)));
+            RXDateTimeView view = new RXDateTimeView();
+            view.setValue(LocalDateTime.of(2026, 12, 25, 19, 32));
             VBox root = show(view);
             Label selected = null;
             for (Node node : view.lookupAll(".time-cell")) {

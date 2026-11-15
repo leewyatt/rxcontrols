@@ -1,9 +1,12 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.datetime.RangeEndpointTarget;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -246,6 +249,58 @@ public class RXDateTimeViewTest {
         click(view.lookup(".next-button"));
         view.setDisplayedMonth(YearMonth.of(2020, 1));
         assertTrue(dayCell(view, LocalDate.of(2020, 1, 15)).isVisible());
+    }
+
+    /**
+     * Verifies a view given a range's other endpoint draws the span to its value instead of a selected day.
+     */
+    @Test
+    public void otherEndpointDrawsSpanToValue() {
+        RXDateTimeView view = newView();
+        view.setValue(LocalDateTime.of(2026, 11, 20, 10, 0));
+        RangeEndpointTarget endpoint = (RangeEndpointTarget) view.getSkin();
+        endpoint.setOtherEndpoint(LocalDate.of(2026, 11, 17));
+        assertTrue(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 17)), "range-start"));
+        assertTrue(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 18)), "in-range"));
+        assertTrue(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 20)), "range-end"));
+        assertFalse(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 20)), "selected"));
+        assertFalse(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 21)), "in-range"));
+        endpoint.setOtherEndpoint(null);
+        assertTrue(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 20)), "selected"));
+        assertFalse(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 18)), "in-range"));
+    }
+
+    /**
+     * Verifies the hovered day previews the span from the other endpoint until the pointer leaves.
+     */
+    @Test
+    public void hoverPreviewsSpanFromOtherEndpoint() {
+        RXDateTimeView view = newView();
+        ((RangeEndpointTarget) view.getSkin()).setOtherEndpoint(LocalDate.of(2026, 11, 17));
+        assertTrue(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 17)), "range-start"));
+        assertTrue(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 17)), "range-end"));
+        dayCell(view, LocalDate.of(2026, 11, 13)).fireEvent(new MouseEvent(MouseEvent.MOUSE_ENTERED, 0, 0, 0, 0,
+                MouseButton.NONE, 0, false, false, false, false, false, false, false, false, false, false, null));
+        assertTrue(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 13)), "range-start"));
+        assertTrue(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 15)), "preview"));
+        assertTrue(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 17)), "range-end"));
+        view.lookup(".rx-calendar-panel").fireEvent(new MouseEvent(MouseEvent.MOUSE_EXITED_TARGET, 0, 0, 0, 0,
+                MouseButton.NONE, 0, false, false, false, false, false, false, false, false, false, false, null));
+        assertFalse(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 15)), "in-range"));
+        click(dayCell(view, LocalDate.of(2026, 11, 13)));
+        assertFalse(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 15)), "preview"));
+        assertTrue(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 15)), "in-range"));
+    }
+
+    /**
+     * Verifies a time pick without a value uses the other endpoint's day.
+     */
+    @Test
+    public void timeFirstUsesOtherEndpointDay() {
+        RXDateTimeView view = newView();
+        ((RangeEndpointTarget) view.getSkin()).setOtherEndpoint(LocalDate.of(2026, 11, 17));
+        click(timeCell(view, ".hour-column", "08"));
+        assertEquals(LocalDate.of(2026, 11, 17).atTime(8, 0), view.getValue());
     }
 
     private static RXDateTimeView newView() {

@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * Showcase for {@link RXDateTimeRangePicker}: the picker with its committed value and
  * commit count, and a control panel for the shared picker options, the two prompts, the day
- * grid, the time columns with their two tabs, the selectable date-times and the OK button.
+ * grid, the time columns, the selectable date-times and the OK button.
  * For the smallest working example see {@code RXDateTimeRangePickerDemo}.
  */
 public class RXDateTimeRangePickerShowcase extends DateTimeShowcase {
@@ -47,14 +47,11 @@ public class RXDateTimeRangePickerShowcase extends DateTimeShowcase {
         return List.of(
                 section("Picker", pickerGrid(picker,
                         textRow("Start prompt", picker.startPromptTextProperty()),
-                        textRow("End prompt", picker.endPromptTextProperty()),
-                        intRow("Months", picker.monthCountProperty(), 3))),
+                        textRow("End prompt", picker.endPromptTextProperty()))),
                 section("Calendar", calendarGrid(picker.weekFieldsProperty(), picker.showWeekNumbersProperty(),
                         picker.showAdjacentDaysProperty())),
                 section("Time", timeGrid(picker.showSecondsProperty(), picker.twelveHourClockProperty(),
-                        picker.hourStepProperty(), picker.minuteStepProperty(), picker.secondStepProperty(),
-                        textRow("Start tab", picker.startTimeTextProperty()),
-                        textRow("End tab", picker.endTimeTextProperty()))),
+                        picker.hourStepProperty(), picker.minuteStepProperty(), picker.secondStepProperty())),
                 section("Selectable date-times", dateTimeLimitGrid(picker.minDateTimeProperty(),
                         picker.maxDateTimeProperty(), picker.dateFilterProperty(), picker.timeFilterProperty())),
                 section("Footer", createGrid(

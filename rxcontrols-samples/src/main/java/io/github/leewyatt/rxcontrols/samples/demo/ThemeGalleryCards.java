@@ -29,7 +29,6 @@ import io.github.leewyatt.rxcontrols.RXDateRangeView;
 import io.github.leewyatt.rxcontrols.RXDateTimePicker;
 import io.github.leewyatt.rxcontrols.RXDateTimeRange;
 import io.github.leewyatt.rxcontrols.RXDateTimeRangePicker;
-import io.github.leewyatt.rxcontrols.RXDateTimeRangeView;
 import io.github.leewyatt.rxcontrols.RXDateTimeView;
 import io.github.leewyatt.rxcontrols.RXDecimalField;
 import io.github.leewyatt.rxcontrols.RXDialog;
@@ -228,7 +227,6 @@ final class ThemeGalleryCards {
         list.add(wide("RXDateRangeView", "Linked months for picking a date range.", buildRXDateRangeView()));
         list.add(card("RXDateTimePicker", "Date and time with a confirmed popup draft.", buildRXDateTimePicker()));
         list.add(wide("RXDateTimeRangePicker", "Date-time range with start and end times.", buildRXDateTimeRangePicker()));
-        list.add(wide("RXDateTimeRangeView", "Calendar and time tabs for a date-time range.", buildRXDateTimeRangeView()));
         list.add(wide("RXDateTimeView", "Calendar with time columns for one date-time.", buildRXDateTimeView()));
         list.add(card("RXDecimalField", "Locale-aware decimal number input.", buildRXDecimalField()));
         list.add(card("RXDialog", "In-scene modal dialog shown over the page.", buildRXDialog()));
@@ -470,14 +468,6 @@ final class ThemeGalleryCards {
 
     private static Node buildRXDateRangeView() {
         return viewCard(new RXDateRangeView(RXDateRange.of(LocalDate.now(), LocalDate.now().plusDays(6))));
-    }
-
-    private static Node buildRXDateTimeRangeView() {
-        RXDateTimeRangeView view = new RXDateTimeRangeView(RXDateTimeRange.of(LocalDate.now().atTime(9, 0),
-                LocalDate.now().plusDays(1).atTime(17, 30)));
-        // Two months and the time columns are wider than a wide card.
-        view.setMonthCount(1);
-        return viewCard(view);
     }
 
     private static Node buildRXDateTimeView() {

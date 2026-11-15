@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.internal.datetime.CalendarPanel;
 import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeConstraints;
 import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeTexts;
 import io.github.leewyatt.rxcontrols.internal.datetime.MemoizedTimeFilter;
+import io.github.leewyatt.rxcontrols.internal.datetime.RangeEndpointTarget;
 import io.github.leewyatt.rxcontrols.internal.datetime.TemporalKeyTarget;
 import io.github.leewyatt.rxcontrols.internal.datetime.TemporalRules;
 import io.github.leewyatt.rxcontrols.internal.datetime.TimeColumns;
@@ -24,12 +25,14 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 /**
  * Default skin for {@link RXDateTimeView}: a day calendar beside time columns.
  */
-public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements TemporalKeyTarget {
+public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView>
+        implements TemporalKeyTarget, RangeEndpointTarget {
 
     private static final PseudoClass INVALID = PseudoClass.getPseudoClass("invalid");
     private static final String EMPTY_TIME = "--:--";
@@ -43,6 +46,9 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
     /** Set while the calendar handles a key: a day picked meanwhile was picked by the keyboard. */
     private boolean calendarKey;
     private boolean writingDisplayedMonth;
+    /** The day of the other endpoint while the view edits one endpoint of a range. */
+    private LocalDate otherEndpoint;
+    private LocalDate hover;
     /** Constraint snapshot, rebuilt after any rule property changes. */
     private DateTimeConstraints rules;
     /** The control's time filter with its answers remembered; replaced when the filter is. */
@@ -65,6 +71,7 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
         panel.setStateProvider(this::stateOf);
         panel.setCursorSeed(this::cursorSeed);
         panel.setOnPick(this::onDatePick);
+        panel.setOnHover(this::onHover);
         panel.setOnPageChanged(this::onPageChanged);
         columns.setOnChange(this::onTimePick);
         columns.setOnCommit(this::onTimeCommit);
@@ -99,6 +106,9 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
         disposer.registerListener(controlTreeShowingProperty(), (observable, was, showing) -> {
             if (showing) {
                 updateToday();
+            } else {
+                // A view hidden under the pointer is not told that the pointer left.
+                onHover(null);
             }
         });
         disposer.registerListener(control.focusedProperty(), () -> {
@@ -162,12 +172,57 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
         columns.clearKeyboardCursor();
     }
 
+    // ==================== Range endpoint ====================
+
+    /** {@inheritDoc} */
+    @Override
+    public void setOtherEndpoint(LocalDate day) {
+        if (!Objects.equals(day, otherEndpoint)) {
+            otherEndpoint = day;
+            updateValue(false);
+        }
+    }
+
+    /** A {@code null} date (the pointer left the calendar) ends the preview. */
+    private void onHover(LocalDate date) {
+        if (!Objects.equals(date, hover)) {
+            hover = date;
+            if (otherEndpoint != null) {
+                panel.refresh();
+            }
+        }
+    }
+
+    /** The span from the other endpoint to the value's day, or to the hovered day as a preview. */
+    private int rangeStateOf(LocalDate date, LocalDate valueDay) {
+        boolean preview = hover != null && !hover.equals(valueDay);
+        LocalDate edited = preview ? hover : valueDay;
+        LocalDate first = edited != null && edited.isBefore(otherEndpoint) ? edited : otherEndpoint;
+        LocalDate last = edited != null && edited.isAfter(otherEndpoint) ? edited : otherEndpoint;
+        if (date.isBefore(first) || date.isAfter(last)) {
+            return 0;
+        }
+        int state = preview ? CalendarPanel.IN_RANGE | CalendarPanel.PREVIEW : CalendarPanel.IN_RANGE;
+        if (date.equals(first)) {
+            state |= CalendarPanel.RANGE_START;
+        }
+        if (date.equals(last)) {
+            state |= CalendarPanel.RANGE_END;
+        }
+        return state;
+    }
+
     // ==================== Picks ====================
 
     private int stateOf(LocalDate date) {
         LocalDateTime value = getSkinnable().getValue();
-        int state = constraints().isDateSelectable(date) ? 0 : CalendarPanel.DISABLED;
-        if (value != null && date.equals(value.toLocalDate()) && constraints().isDateSelectable(date)) {
+        LocalDate valueDay = value == null ? null : value.toLocalDate();
+        boolean selectable = constraints().isDateSelectable(date);
+        int state = selectable ? 0 : CalendarPanel.DISABLED;
+        if (otherEndpoint != null) {
+            return state | rangeStateOf(date, valueDay);
+        }
+        if (selectable && date.equals(valueDay)) {
             state |= CalendarPanel.SELECTED;
         }
         return state;
@@ -175,7 +230,10 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
 
     private LocalDate cursorSeed() {
         LocalDateTime value = getSkinnable().getValue();
-        return value != null ? value.toLocalDate() : today();
+        if (value != null) {
+            return value.toLocalDate();
+        }
+        return otherEndpoint != null ? otherEndpoint : today();
     }
 
     private void onDatePick(LocalDate date) {
@@ -196,7 +254,7 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
     private void onTimePick(LocalTime time) {
         RXDateTimeView control = getSkinnable();
         LocalDateTime value = control.getValue();
-        LocalDate date = value != null ? value.toLocalDate() : defaultDate();
+        LocalDate date = value != null ? value.toLocalDate() : dayWithoutValue();
         control.setValue(date.atTime(time));
     }
 
@@ -211,6 +269,14 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
     private LocalTime firstTimeOn(LocalDate date) {
         LocalTime first = constraints().timesOn(date).snap(LocalTime.MIDNIGHT, null);
         return first != null ? first : LocalTime.MIDNIGHT;
+    }
+
+    /** The day a time is picked on while there is no value. */
+    private LocalDate dayWithoutValue() {
+        if (otherEndpoint != null && constraints().isDateSelectable(otherEndpoint)) {
+            return otherEndpoint;
+        }
+        return defaultDate();
     }
 
     /** Today, clamped into the bounds and moved to the nearest selectable day. */
@@ -254,7 +320,7 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView> implements Te
     private void updateValue(boolean animate) {
         RXDateTimeView control = getSkinnable();
         LocalDateTime value = control.getValue();
-        LocalDate date = value != null ? value.toLocalDate() : defaultDate();
+        LocalDate date = value != null ? value.toLocalDate() : dayWithoutValue();
         panel.setHighlight(value == null ? null : date);
         columns.configure(constraints().timesOn(date), control.isTwelveHourClock(), control.getLocale());
         columns.setValue(value == null ? null : value.toLocalTime(), animate);
