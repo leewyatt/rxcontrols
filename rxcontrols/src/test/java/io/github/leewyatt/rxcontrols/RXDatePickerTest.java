@@ -7,6 +7,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -182,6 +184,44 @@ public class RXDatePickerTest {
         assertTrue(picker.lookup(".icon").isVisible());
     }
 
+    /**
+     * Verifies a leading node sits before the field and widens the picker, and removing it undoes both.
+     */
+    @Test
+    public void leadingNodeTakesSpaceBeforeField() {
+        RXDatePicker picker = newPicker();
+        double plainWidth = picker.prefWidth(-1);
+        Region icon = newIcon();
+
+        picker.setLeading(icon);
+        layout(picker);
+        Node wrapper = picker.lookup(".leading-wrapper");
+        assertSame(wrapper, icon.getParent());
+        assertTrue(hasPseudoClass(picker, "has-leading"));
+        assertTrue(wrapper.prefWidth(-1) >= icon.getPrefWidth());
+        assertEquals(plainWidth + wrapper.prefWidth(-1), picker.prefWidth(-1), 0.01);
+        assertEquals(wrapper.getBoundsInParent().getMaxX(), editor(picker).getLayoutX(), 1.0);
+
+        picker.setLeading(null);
+        layout(picker);
+        assertNull(icon.getParent());
+        assertFalse(hasPseudoClass(picker, "has-leading"));
+        assertEquals(plainWidth, picker.prefWidth(-1), 0.01);
+    }
+
+    /**
+     * Verifies disposing the skin releases the leading node.
+     */
+    @Test
+    public void disposedSkinReleasesLeadingNode() {
+        RXDatePicker picker = newPicker();
+        Region icon = newIcon();
+        picker.setLeading(icon);
+        picker.setSkin(null);
+        assertNull(icon.getParent());
+        assertSame(icon, picker.getLeading());
+    }
+
     // ==================== Helpers ====================
 
     static RXDatePicker newPicker() {
@@ -191,6 +231,18 @@ public class RXDatePickerTest {
         picker.applyCss();
         scene.getRoot().layout();
         return picker;
+    }
+
+    private static Region newIcon() {
+        Region icon = new Region();
+        icon.setPrefSize(16.0, 16.0);
+        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return icon;
+    }
+
+    private static void layout(RXDatePicker picker) {
+        picker.applyCss();
+        picker.getScene().getRoot().layout();
     }
 
     static TextField editor(RXPickerBase<?> picker) {

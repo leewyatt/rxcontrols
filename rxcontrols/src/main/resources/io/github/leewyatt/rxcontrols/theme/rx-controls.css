@@ -4719,6 +4719,15 @@
     -fx-padding: 0.666667em 0 0.666667em 1em;
 }
 
+.rx-picker > .leading-wrapper {
+    -fx-padding: 0 0 0 0.583em;
+}
+
+.rx-theme-atlantafx .rx-picker > .leading-wrapper,
+.rx-theme-atlantafx.rx-picker > .leading-wrapper {
+    -fx-padding: 0 0 0 1em;
+}
+
 /* Range pickers underline the field being edited: 2px, clear of the 1px frame. */
 .rx-picker > .active-bar {
     -fx-background-color: -rx-primary;
