@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.datetime.TimeEndpointTarget;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -183,6 +184,49 @@ public class RXTimeViewTest {
         view.setValue(LocalTime.of(13, 0));
         assertTrue(hasPseudoClass(view, "invalid"));
         assertEquals(LocalTime.of(13, 0), view.getValue());
+    }
+
+    /**
+     * Verifies a view without a value picks from the other endpoint's time, and from the first time without one.
+     */
+    @Test
+    public void otherEndpointSeedsPicks() {
+        RXTimeView view = newView();
+        TimeEndpointTarget endpoint = (TimeEndpointTarget) view.getSkin();
+        endpoint.setOtherEndpoint(LocalTime.of(18, 30));
+        PickerTestSupport.click(cell(view, ".minute-column", "45"));
+        assertEquals(LocalTime.of(18, 45), view.getValue());
+
+        view.setValue(null);
+        endpoint.setOtherEndpoint(null);
+        PickerTestSupport.click(cell(view, ".minute-column", "45"));
+        assertEquals(LocalTime.of(0, 45), view.getValue());
+    }
+
+    /**
+     * Verifies keyboard moves without a value start from the other endpoint's time, snapped to the steps.
+     */
+    @Test
+    public void otherEndpointSeedsKeyboardMoves() {
+        RXTimeView view = newView();
+        view.setMinuteStep(15);
+        ((TimeEndpointTarget) view.getSkin()).setOtherEndpoint(LocalTime.of(18, 37));
+        press(view, KeyCode.DOWN);
+        press(view, KeyCode.DOWN);
+        assertEquals(LocalTime.of(19, 30), view.getValue());
+    }
+
+    /**
+     * Verifies a 12-hour view without a value offers the half of the day of the other endpoint.
+     */
+    @Test
+    public void otherEndpointChoosesHalfOfDay() {
+        RXTimeView view = newView();
+        view.setTwelveHourClock(true);
+        view.applyCss();
+        ((TimeEndpointTarget) view.getSkin()).setOtherEndpoint(LocalTime.of(18, 30));
+        PickerTestSupport.click(cell(view, ".hour-column", "07"));
+        assertEquals(LocalTime.of(19, 30), view.getValue());
     }
 
     // ==================== Helpers ====================

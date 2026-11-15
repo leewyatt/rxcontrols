@@ -23,6 +23,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -53,6 +54,8 @@ public final class TimeColumns extends HBox {
     private boolean twelveHour;
     private Locale locale;
     private LocalTime value;
+    /** Where picks start from while there is no selection; {@code null} for the first selectable time. */
+    private LocalTime fallback;
     private Consumer<LocalTime> onChange = time -> { };
     private Runnable onCommit = () -> { };
     private int activeColumn;
@@ -117,7 +120,24 @@ public final class TimeColumns extends HBox {
     }
 
     /**
-     * Returns the time a pick starts from: the selection, or the first selectable time.
+     * Sets the time picks and keyboard moves start from while there is no selection,
+     * instead of the first selectable time.
+     *
+     * @param time the time, or {@code null} for the first selectable time
+     */
+    public void setFallbackTime(LocalTime time) {
+        if (Objects.equals(time, fallback)) {
+            return;
+        }
+        fallback = time;
+        if (value == null) {
+            refresh(false);
+        }
+    }
+
+    /**
+     * Returns the time a pick starts from: the selection, or without one the selectable
+     * time nearest to the fallback time (the first selectable time if none is set).
      *
      * @return the base time
      */
@@ -125,8 +145,9 @@ public final class TimeColumns extends HBox {
         if (value != null) {
             return value;
         }
-        LocalTime first = constraints.snap(LocalTime.MIDNIGHT, null);
-        return first != null ? first : LocalTime.MIDNIGHT;
+        LocalTime wished = fallback != null ? fallback : LocalTime.MIDNIGHT;
+        LocalTime nearest = constraints.snap(wished, null);
+        return nearest != null ? nearest : wished;
     }
 
     /**
@@ -453,7 +474,7 @@ public final class TimeColumns extends HBox {
         }
 
         void moveSelection(int delta) {
-            int start = selectedIndex >= 0 ? selectedIndex : (delta > 0 ? -1 : itemCount);
+            int start = selectedIndex >= 0 ? selectedIndex : entryIndex(delta);
             int target = Math.max(0, Math.min(itemCount - 1, start + delta));
             int direction = delta > 0 ? 1 : -1;
             // Skip unavailable items, first in the move direction, then back.
@@ -469,6 +490,34 @@ public final class TimeColumns extends HBox {
             }
             if (index >= 0 && index < itemCount && index != selectedIndex) {
                 pick(kind, itemValues[index]);
+            }
+        }
+
+        /** Where a move starts while nothing is selected: the fallback time's item, else just outside the column. */
+        private int entryIndex(int delta) {
+            if (fallback != null) {
+                int unit = unitOf(baseTime());
+                for (int i = 0; i < itemCount; i++) {
+                    if (itemValues[i] == unit) {
+                        return i;
+                    }
+                }
+            }
+            return delta > 0 ? -1 : itemCount;
+        }
+
+        /** The item value standing for a time in this column. */
+        private int unitOf(LocalTime time) {
+            switch (kind) {
+                case HOUR:
+                    return twelveHour ? time.getHour() % HALF_DAY : time.getHour();
+                case MINUTE:
+                    return time.getMinute();
+                case SECOND:
+                    return time.getSecond();
+                case MERIDIEM:
+                default:
+                    return isPm(time) ? 1 : 0;
             }
         }
 
