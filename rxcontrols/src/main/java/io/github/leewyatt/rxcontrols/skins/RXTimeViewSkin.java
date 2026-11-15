@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.internal.datetime.MemoizedTimeFilter;
 import io.github.leewyatt.rxcontrols.internal.datetime.TemporalKeyTarget;
 import io.github.leewyatt.rxcontrols.internal.datetime.TimeColumns;
 import io.github.leewyatt.rxcontrols.internal.datetime.TimeConstraints;
+import io.github.leewyatt.rxcontrols.internal.datetime.TimeEndpointTarget;
 import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.scene.input.KeyEvent;
@@ -16,7 +17,7 @@ import java.util.function.Predicate;
 /**
  * Default skin for {@link RXTimeView}: scrolling time columns.
  */
-public class RXTimeViewSkin extends RXSkinBase<RXTimeView> implements TemporalKeyTarget {
+public class RXTimeViewSkin extends RXSkinBase<RXTimeView> implements TemporalKeyTarget, TimeEndpointTarget {
 
     private static final PseudoClass INVALID = PseudoClass.getPseudoClass("invalid");
 
@@ -81,6 +82,12 @@ public class RXTimeViewSkin extends RXSkinBase<RXTimeView> implements TemporalKe
     @Override
     public void clearKeyboardCursor() {
         columns.clearKeyboardCursor();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setOtherEndpoint(LocalTime time) {
+        columns.setFallbackTime(time);
     }
 
     private void onPick(LocalTime time) {

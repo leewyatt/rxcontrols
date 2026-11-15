@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -12,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Value semantics of {@link RXDateRange} and {@link RXDateTimeRange}.
+ * Value semantics of {@link RXDateRange}, {@link RXDateTimeRange} and {@link RXTimeRange}.
  */
 public class RXDateRangeTest {
 
@@ -66,5 +67,39 @@ public class RXDateRangeTest {
         assertTrue(range.contains(five));
         assertFalse(range.contains(five.plusSeconds(1)));
         assertEquals(Duration.ofMinutes(510), range.duration());
+    }
+
+    /**
+     * Verifies a time range with its start after its end runs past midnight.
+     */
+    @Test
+    public void timeRangePastMidnight() {
+        RXTimeRange night = RXTimeRange.of(LocalTime.of(22, 0), LocalTime.of(6, 0));
+        assertEquals(LocalTime.of(22, 0), night.start());
+        assertTrue(night.contains(LocalTime.of(23, 30)));
+        assertTrue(night.contains(LocalTime.MIDNIGHT));
+        assertTrue(night.contains(LocalTime.of(6, 0)));
+        assertFalse(night.contains(LocalTime.of(12, 0)));
+        assertEquals(Duration.ofHours(8), night.duration());
+        assertEquals("22:00/06:00", night.toString());
+    }
+
+    /**
+     * Verifies the time range validates, orders and measures its endpoints.
+     */
+    @Test
+    public void timeRangeSemantics() {
+        LocalTime nine = LocalTime.of(9, 0);
+        LocalTime five = LocalTime.of(17, 30);
+        assertThrows(NullPointerException.class, () -> RXTimeRange.of(nine, null));
+        RXTimeRange range = RXTimeRange.ofOrdered(five, nine);
+        assertEquals(RXTimeRange.of(nine, five), range);
+        assertTrue(range.contains(nine));
+        assertTrue(range.contains(five));
+        assertFalse(range.contains(five.plusSeconds(1)));
+        assertFalse(range.contains(null));
+        assertEquals(Duration.ofMinutes(510), range.duration());
+        assertEquals(Duration.ZERO, RXTimeRange.of(nine, nine).duration());
+        assertEquals("09:00/17:30", range.toString());
     }
 }
