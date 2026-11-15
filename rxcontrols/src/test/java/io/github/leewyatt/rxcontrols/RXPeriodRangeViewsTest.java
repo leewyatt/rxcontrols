@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.cells;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.click;
+import static io.github.leewyatt.rxcontrols.PickerTestSupport.doubleClick;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.hasPseudoClass;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.press;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -143,18 +144,58 @@ public class RXPeriodRangeViewsTest {
     }
 
     /**
-     * Verifies the keyboard cursor stays visible on a clicked year only the adjacent cell shows.
+     * Verifies the keyboard cursor follows a click that pages to a year outside the linked decades.
      */
     @Test
-    public void cursorIsDrawnOnClickedOuterYear() {
+    public void cursorFollowsClickedOuterYear() {
         RXYearRangeView view = show(new RXYearRangeView());
         press(view, KeyCode.DOWN);
-        DateCell year2019 = adjacentCell(view, LocalDate.of(2019, 1, 1));
-        click(year2019);
-        assertTrue(hasPseudoClass(year2019, "focused"));
+        click(adjacentCell(view, LocalDate.of(2019, 1, 1)));
+        assertTrue(hasPseudoClass(cell(view, ".year-cell", LocalDate.of(2019, 1, 1)), "focused"));
         long focused = cells(view, ".year-cell").stream()
                 .filter(cell -> shown(cell) && hasPseudoClass(cell, "focused")).count();
         assertEquals(1, focused);
+    }
+
+    /**
+     * Verifies a click on a year outside the linked decades pages to its decade and picks it there.
+     */
+    @Test
+    public void outerAdjacentYearPagesBeforePick() {
+        RXYearRangeView view = show(new RXYearRangeView());
+        click(adjacentCell(view, LocalDate.of(2019, 1, 1)));
+        assertEquals(List.of("2010-2019", "2020-2029"), titles(view));
+        assertTrue(hasPseudoClass(cell(view, ".year-cell", LocalDate.of(2019, 1, 1)), "range-start"));
+        click(adjacentCell(view, LocalDate.of(2030, 1, 1)));
+        assertEquals(List.of("2020-2029", "2030-2039"), titles(view));
+        assertEquals(RXYearRange.of(Year.of(2019), Year.of(2030)), view.getValue());
+    }
+
+    /**
+     * Verifies a click on an adjacent year the other linked decade shows picks it without paging.
+     */
+    @Test
+    public void sharedAdjacentYearPicksWithoutPaging() {
+        RXYearRangeView view = show(new RXYearRangeView());
+        click(adjacentCell(view, LocalDate.of(2030, 1, 1)));
+        assertEquals(List.of("2020-2029", "2030-2039"), titles(view));
+        assertTrue(hasPseudoClass(cell(view, ".year-cell", LocalDate.of(2030, 1, 1)), "range-start"));
+    }
+
+    /**
+     * Verifies a double click on a year outside the linked decades only anchors the range.
+     */
+    @Test
+    public void doubleClickOnOuterAdjacentYearOnlyAnchors() {
+        RXYearRangeView view = show(new RXYearRangeView());
+        AtomicInteger actions = new AtomicInteger();
+        view.setOnAction(event -> actions.incrementAndGet());
+        DateCell outer = adjacentCell(view, LocalDate.of(2019, 1, 1));
+        click(outer);
+        doubleClick(outer);
+        assertNull(view.getValue());
+        assertEquals(0, actions.get());
+        assertTrue(hasPseudoClass(cell(view, ".year-cell", LocalDate.of(2019, 1, 1)), "range-start"));
     }
 
     /**

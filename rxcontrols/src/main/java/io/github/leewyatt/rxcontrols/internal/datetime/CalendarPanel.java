@@ -580,8 +580,9 @@ public final class CalendarPanel extends HBox {
     private void activate(LocalDate date) {
         if (mode == pickLevel) {
             if (isPickable(date)) {
-                // A week row is on screen as a whole, so picking it never pages.
-                if (mode == Level.DAY && !weekRows && !isDisplayed(date)) {
+                // An adjacent cell of a period no page shows: page to it, so that the pick is
+                // marked on a cell of its own.
+                if (!isUnitDisplayed(date)) {
                     reveal(date);
                 }
                 cursor = cursorDayOf(date);

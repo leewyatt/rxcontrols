@@ -90,6 +90,20 @@ public class RXPeriodViewsTest {
     }
 
     /**
+     * Verifies a click on an adjacent year pages the year view by exactly one decade.
+     */
+    @Test
+    public void adjacentYearClickPagesOneDecade() {
+        RXYearView view = show(new RXYearView(Year.of(2026)));
+        click(cells(view, ".year-cell").get(0));
+        assertEquals(Year.of(2019), view.getValue());
+        assertEquals(2009, cells(view, ".year-cell").get(0).getItem().getYear());
+        click(cells(view, ".year-cell").get(11));
+        assertEquals(Year.of(2020), view.getValue());
+        assertEquals(2019, cells(view, ".year-cell").get(0).getItem().getYear());
+    }
+
+    /**
      * Verifies the year view drills up to decades and back.
      */
     @Test
