@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * Showcase for {@link RXDateTimeRangePicker}: the picker with its committed value and
  * commit count, and a control panel for the shared picker options, the two prompts, the day
- * grid, the time columns with their two tabs, the selectable date-times and the OK button.
+ * grid, the time columns, the selectable date-times and the OK button.
  * For the smallest working example see {@code RXDateTimeRangePickerDemo}.
  */
 public class RXDateTimeRangePickerShowcase extends DateTimeShowcase {
