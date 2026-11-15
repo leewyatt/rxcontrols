@@ -493,13 +493,16 @@ public final class TimeColumns extends HBox {
             }
         }
 
-        /** Where a move starts while nothing is selected: the fallback time's item, else just outside the column. */
+        /**
+         * Where a move starts while nothing is selected, so that the first move lands
+         * on the fallback time's item, or without one on the column's first or last item.
+         */
         private int entryIndex(int delta) {
             if (fallback != null) {
                 int unit = unitOf(baseTime());
                 for (int i = 0; i < itemCount; i++) {
                     if (itemValues[i] == unit) {
-                        return i;
+                        return i - delta;
                     }
                 }
             }

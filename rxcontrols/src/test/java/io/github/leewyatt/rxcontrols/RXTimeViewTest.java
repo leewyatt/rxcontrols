@@ -204,7 +204,7 @@ public class RXTimeViewTest {
     }
 
     /**
-     * Verifies keyboard moves without a value start from the other endpoint's time, snapped to the steps.
+     * Verifies the first keyboard move without a value lands on the other endpoint's time, snapped to the steps.
      */
     @Test
     public void otherEndpointSeedsKeyboardMoves() {
@@ -212,6 +212,8 @@ public class RXTimeViewTest {
         view.setMinuteStep(15);
         ((TimeEndpointTarget) view.getSkin()).setOtherEndpoint(LocalTime.of(18, 37));
         press(view, KeyCode.DOWN);
+        press(view, KeyCode.DOWN);
+        assertEquals(LocalTime.of(18, 30), view.getValue());
         press(view, KeyCode.DOWN);
         assertEquals(LocalTime.of(19, 30), view.getValue());
     }
