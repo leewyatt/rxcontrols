@@ -62,7 +62,10 @@ public class RXWeekPickerSkin extends RXPickerSkinBase<LocalDate, RXWeekPicker> 
 
     @Override
     protected void writeFieldsFromValue() {
-        setFieldText(editor, DateTimeTexts.format(converter(), getSkinnable().getValue()));
+        LocalDate value = getSkinnable().getValue();
+        // The value may be any day of its week; the text is that of the week's first day.
+        setFieldText(editor, DateTimeTexts.format(converter(),
+                value == null ? null : TemporalRules.weekStart(value, rules())));
     }
 
     @Override

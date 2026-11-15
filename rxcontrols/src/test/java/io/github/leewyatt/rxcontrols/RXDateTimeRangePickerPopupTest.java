@@ -142,6 +142,29 @@ public class RXDateTimeRangePickerPopupTest {
         });
     }
 
+    /**
+     * Verifies a half-picked range is previewed in the fields, so a typed end completes it.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void typedEndCompletesHalfPickedRange() throws InterruptedException {
+        runOnFx(() -> {
+            RXDateTimeRangePicker picker = newShownPicker();
+            picker.setValue(RXDateTimeRange.of(LocalDateTime.of(2026, 11, 1, 8, 0),
+                    LocalDateTime.of(2026, 11, 2, 9, 0)));
+            picker.show();
+            click(dayCell(findPopup().getScene().getRoot(), LocalDate.of(2026, 11, 20)));
+            TextField end = editor(picker, 1);
+            assertEquals("11/20/2026 08:00", editor(picker, 0).getText());
+            assertEquals("", end.getText());
+            end.setText("11/25/2026 10:00");
+            press(end, KeyCode.ENTER);
+            assertEquals(RXDateTimeRange.of(LocalDateTime.of(2026, 11, 20, 8, 0),
+                    LocalDateTime.of(2026, 11, 25, 10, 0)), picker.getValue());
+        });
+    }
+
     private RXDateTimeRangePicker newShownPicker() {
         RXDateTimeRangePicker picker = new RXDateTimeRangePicker();
         picker.setLocale(Locale.US);

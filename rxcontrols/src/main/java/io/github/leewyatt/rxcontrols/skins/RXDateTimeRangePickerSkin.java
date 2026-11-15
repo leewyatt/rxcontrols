@@ -20,6 +20,7 @@ import javafx.util.StringConverter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 /**
@@ -243,10 +244,21 @@ public class RXDateTimeRangePickerSkin extends RXPickerSkinBase<RXDateTimeRange,
     }
 
     private void onAnchorChanged() {
-        if (observedAnchor != null && observedAnchor.get() != null && getSkinnable().isShowing()) {
+        LocalDate anchor = observedAnchor == null ? null : observedAnchor.get();
+        if (anchor != null && getSkinnable().isShowing()) {
+            // Preview the half-picked range and hand the end over to the end field. Left
+            // in the fields, the old range would lend its start to an end typed now.
+            setFieldText(startEditor, DateTimeTexts.format(converter(), startOn(anchor)));
+            setFieldText(endEditor, "");
             endEditor.requestFocus();
         }
         updateOkButton();
+    }
+
+    /** The start a new range gets on its first picked day: the draft keeps its start time. */
+    private LocalDateTime startOn(LocalDate day) {
+        RXDateTimeRange draft = rangeView.getValue();
+        return constraints().combine(day, draft == null ? LocalTime.MIDNIGHT : draft.start().toLocalTime());
     }
 
     private void updateActiveField() {

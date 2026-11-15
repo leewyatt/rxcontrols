@@ -94,6 +94,32 @@ public class RXWeekPickersPopupTest {
     }
 
     /**
+     * Verifies a custom converter formats the first day of the value's week.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void customConverterFormatsWeekStart() throws InterruptedException {
+        runOnFx(() -> {
+            RXWeekPicker picker = shown(new RXWeekPicker());
+            picker.setWeekFields(WeekFields.ISO);
+            picker.setConverter(new StringConverter<>() {
+                @Override
+                public String toString(LocalDate date) {
+                    return date == null ? "" : date.toString();
+                }
+
+                @Override
+                public LocalDate fromString(String text) {
+                    return LocalDate.parse(text);
+                }
+            });
+            picker.setValue(LocalDate.of(2027, 1, 2));
+            assertEquals("2026-12-28", editor(picker, 0).getText());
+        });
+    }
+
+    /**
      * Verifies week text is parsed to the first day of the week, and a week the year lacks is rejected.
      *
      * @throws InterruptedException if the FX task is interrupted
