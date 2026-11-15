@@ -11,6 +11,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.geometry.HPos;
+import javafx.geometry.NodeOrientation;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -73,6 +74,9 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
     /** Underlines the active field; created when a field first becomes active. */
     private Region activeBar;
     private TextField activeField;
+    /** The field the popup lines up with; {@code null} for the picker's leading edge. */
+    private TextField popupField;
+    private double popupShift;
 
     // ==================== State ====================
 
@@ -478,6 +482,32 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
         }
         activeBar.setVisible(true);
         getSkinnable().requestLayout();
+    }
+
+    /**
+     * Lines the popup up with a field instead of the picker's leading edge. The popup
+     * moves at once if it is showing.
+     *
+     * @param field the field, or {@code null} for the picker's leading edge
+     */
+    protected final void alignPopupTo(TextField field) {
+        popupField = field;
+        updatePopupShift();
+    }
+
+    private void updatePopupShift() {
+        double shift = 0.0;
+        if (popupField != null) {
+            // Measured from the first field, under which the popup opens by default.
+            shift = popupField.getLayoutX() - editors.get(0).getLayoutX();
+            if (getSkinnable().getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT) {
+                shift = -shift;
+            }
+        }
+        if (shift != popupShift) {
+            popupShift = shift;
+            popupSupport.setOffset(shift, POPUP_GAP);
+        }
     }
 
     /**
@@ -890,6 +920,7 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
             activeBar.resizeRelocate(barX, y + h - barHeight,
                     Math.max(0.0, activeField.getLayoutX() + activeField.getWidth() - barX), barHeight);
         }
+        updatePopupShift();
     }
 
     @Override

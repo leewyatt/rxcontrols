@@ -20,7 +20,8 @@ import java.util.function.Predicate;
  * {@link RXTimeView} that edits one endpoint at a time.
  *
  * <p>The popup opens on the endpoint of the field it was opened from, marked by the
- * bar under that field. Picking a time changes that endpoint's draft, which its field
+ * bar under that field, and sits under the field of the endpoint it edits. Picking a
+ * time changes that endpoint's draft, which its field
  * previews. The OK button (Enter, or a double click on a time) confirms the endpoint:
  * the popup moves on to the other endpoint, or, once both endpoints have been gone
  * through, commits the range and closes. An endpoint without a draft is picked

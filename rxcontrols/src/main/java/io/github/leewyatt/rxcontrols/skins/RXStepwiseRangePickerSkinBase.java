@@ -461,6 +461,10 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
         boolean stepping = getSkinnable().isShowing() && flow.isActive();
         setFieldActive(startEditor, stepping ? flow.current() == Endpoint.START : startFocused);
         setFieldActive(endEditor, stepping ? flow.current() == Endpoint.END : endFocused);
+        if (stepping) {
+            // The popup sits under the field of the endpoint it edits.
+            alignPopupTo(editorOf(flow.current()));
+        }
     }
 
     private void updateOkButton() {

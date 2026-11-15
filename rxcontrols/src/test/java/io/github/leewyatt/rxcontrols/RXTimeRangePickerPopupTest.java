@@ -103,6 +103,31 @@ public class RXTimeRangePickerPopupTest {
     }
 
     /**
+     * Verifies the popup moves under the field of the endpoint it edits.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void popupFollowsEditedField() throws InterruptedException {
+        runOnFx(() -> {
+            RXTimeRangePicker picker = newShownPicker();
+            picker.setValue(hours(10, 20));
+            double fieldDistance = editor(picker, 1).getLayoutX() - editor(picker, 0).getLayoutX();
+            editor(picker, 0).requestFocus();
+            picker.show();
+            double underStart = findPopup().getAnchorX();
+            ((Button) findPopup().getScene().getRoot().lookup(".ok-button")).fire();
+            assertEquals(underStart + fieldDistance, findPopup().getAnchorX(), 0.5);
+            picker.hide();
+
+            pressMouse(editor(picker, 1));
+            assertEquals(underStart + fieldDistance, findPopup().getAnchorX(), 0.5);
+            ((Button) findPopup().getScene().getRoot().lookup(".ok-button")).fire();
+            assertEquals(underStart, findPopup().getAnchorX(), 0.5);
+        });
+    }
+
+    /**
      * Verifies an end picked before the start is committed in order.
      *
      * @throws InterruptedException if the FX task is interrupted
