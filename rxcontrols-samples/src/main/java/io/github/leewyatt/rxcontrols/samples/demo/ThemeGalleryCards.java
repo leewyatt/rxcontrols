@@ -110,6 +110,8 @@ import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.RXTileCell;
 import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.RXTimePicker;
+import io.github.leewyatt.rxcontrols.RXTimeRange;
+import io.github.leewyatt.rxcontrols.RXTimeRangePicker;
 import io.github.leewyatt.rxcontrols.RXTimeView;
 import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineItem.Type;
@@ -293,6 +295,8 @@ final class ThemeGalleryCards {
         list.add(card("RXTextView", "Wrapping text the user can select and copy.", buildRXTextView()));
         list.add(wide("RXTileView", "Virtualized grid of uniform tiles.", buildRXTileView()));
         list.add(card("RXTimePicker", "Time picker with scrolling columns.", buildRXTimePicker()));
+        list.add(card("RXTimeRangePicker", "Start and end times confirmed one after the other.",
+                buildRXTimeRangePicker()));
         list.add(card("RXTimeView", "Scrolling hour and minute columns.", buildRXTimeView()));
         list.add(card("RXTimelineView", "Vertical timeline of events.", buildRXTimelineView()));
         list.add(wide("RXTimelineView Horizontal", "Horizontal timeline of events.", buildRXTimelineViewHorizontal()));
@@ -555,6 +559,10 @@ final class ThemeGalleryCards {
 
     private static Node buildRXTimePicker() {
         return pickerCard(new RXTimePicker(LocalTime.of(14, 30)));
+    }
+
+    private static Node buildRXTimeRangePicker() {
+        return pickerCard(new RXTimeRangePicker(RXTimeRange.of(LocalTime.of(9, 0), LocalTime.of(17, 30))));
     }
 
     private static Node buildRXWeekPicker() {
