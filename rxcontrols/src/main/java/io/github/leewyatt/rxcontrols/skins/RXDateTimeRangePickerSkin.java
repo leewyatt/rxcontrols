@@ -122,12 +122,6 @@ public class RXDateTimeRangePickerSkin extends RXPickerSkinBase<RXDateTimeRange,
         } finally {
             seeding = false;
         }
-        if (anyUserEdited()) {
-            ParseResult<RXDateTimeRange> typed = parseFields();
-            if (typed.status() == ParseResult.Status.VALID && isAllowed(typed.value())) {
-                showTypedDraft(typed.value());
-            }
-        }
         updateOkButton();
     }
 

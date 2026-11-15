@@ -29,7 +29,9 @@ import java.util.Locale;
  * changes when the user commits — by picking in the popup, confirming with OK,
  * pressing Enter on valid typed text, leaving the field with valid typed text, or
  * clearing. Browsing and partial edits in the popup are a draft that is discarded
- * when the popup closes without a commit. Every user commit fires an
+ * when the popup closes without a commit. Valid typed text that is not committed yet
+ * is shown in the popup as a draft, whether it was typed before or after the popup
+ * opened. Every user commit fires an
  * {@link ActionEvent} (also when the committed value equals the current one);
  * programmatic {@link #setValue} calls fire none.
  *

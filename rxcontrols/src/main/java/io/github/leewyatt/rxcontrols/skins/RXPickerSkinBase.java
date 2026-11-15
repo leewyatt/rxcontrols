@@ -220,6 +220,8 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
 
     /**
      * Seeds the popup view's draft from the committed value, just before the popup opens.
+     * Valid text typed while the popup was closed is shown on top of it through
+     * {@link #showTypedDraft}.
      */
     protected abstract void seedDraft();
 
@@ -249,8 +251,8 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
     protected abstract void onViewAction();
 
     /**
-     * Shows a value parsed from typed text in the open popup, as a draft. The default
-     * does nothing.
+     * Shows a value parsed from typed text in the popup, as a draft: while the popup is
+     * open, and when it opens over text typed before. The default does nothing.
      *
      * @param value the parsed, allowed value
      */
@@ -463,9 +465,21 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
             return;
         }
         clearKeyboardCursor();
+        showTypedTextAsDraft();
+    }
+
+    private void showTypedTextAsDraft() {
         ParseResult<T> result = parseFields();
         if (result.status() == ParseResult.Status.VALID && isAllowed(result.value())) {
             showTypedDraft(result.value());
+        }
+    }
+
+    /** Seeds the popup from the committed value, then from valid text typed while it was closed. */
+    private void seedPopup() {
+        seedDraft();
+        if (anyUserEdited()) {
+            showTypedTextAsDraft();
         }
     }
 
@@ -480,7 +494,7 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
     private void onValueChanged() {
         refreshFields();
         if (getSkinnable().isShowing()) {
-            seedDraft();
+            seedPopup();
         }
         updateSuffix();
     }
@@ -742,7 +756,7 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
     private void syncPopup() {
         C control = getSkinnable();
         if (control.isShowing()) {
-            seedDraft();
+            seedPopup();
             popupSupport.show(control);
         } else {
             popupSupport.hide();

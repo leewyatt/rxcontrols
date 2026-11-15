@@ -132,12 +132,6 @@ abstract class RXConfirmPickerSkinBase<T, C extends RXPickerBase<T>, V extends R
         } finally {
             seeding = false;
         }
-        if (anyUserEdited()) {
-            ParseResult<T> typed = parseFields();
-            if (typed.status() == ParseResult.Status.VALID && isAllowed(typed.value())) {
-                showTypedDraft(typed.value());
-            }
-        }
         updateButtons();
     }
 
