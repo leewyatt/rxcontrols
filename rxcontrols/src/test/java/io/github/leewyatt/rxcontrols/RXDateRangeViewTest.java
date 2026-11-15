@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
+import javafx.event.EventType;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.DateCell;
 import javafx.scene.input.KeyCode;
@@ -273,6 +275,43 @@ public class RXDateRangeViewTest {
     }
 
     /** The topmost fill: the square of a range end, the band of a day between the ends. */
+    /**
+     * Verifies the preview survives the pointer leaving one page's grid and ends when it leaves the calendar.
+     */
+    @Test
+    public void previewEndsWhenPointerLeavesCalendar() {
+        RXDateRangeView view = newView();
+        click(dayCell(view, LocalDate.of(2026, 11, 10)));
+        pointer(dayCell(view, LocalDate.of(2026, 11, 13)), MouseEvent.MOUSE_ENTERED);
+        DateCell middle = dayCell(view, LocalDate.of(2026, 11, 12));
+        pointer(view.lookup(".day-grid"), MouseEvent.MOUSE_EXITED_TARGET);
+        assertTrue(hasPseudoClass(middle, "in-range"));
+        pointer(view.lookup(".rx-calendar-panel"), MouseEvent.MOUSE_EXITED_TARGET);
+        assertFalse(hasPseudoClass(middle, "in-range"));
+        assertTrue(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 10)), "range-start"));
+    }
+
+    /**
+     * Verifies the preview stays on the keyboard cursor when the pointer leaves the calendar.
+     */
+    @Test
+    public void previewStaysOnKeyboardCursorWhenPointerLeaves() {
+        RXDateRangeView view = newView();
+        click(dayCell(view, LocalDate.of(2026, 11, 10)));
+        press(view, KeyCode.RIGHT);
+        press(view, KeyCode.RIGHT);
+        press(view, KeyCode.RIGHT);
+        pointer(dayCell(view, LocalDate.of(2026, 11, 20)), MouseEvent.MOUSE_ENTERED);
+        pointer(view.lookup(".rx-calendar-panel"), MouseEvent.MOUSE_EXITED_TARGET);
+        assertTrue(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 12)), "in-range"));
+        assertFalse(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 14)), "in-range"));
+    }
+
+    private static void pointer(Node node, EventType<MouseEvent> type) {
+        node.fireEvent(new MouseEvent(type, 0, 0, 0, 0, MouseButton.NONE, 0,
+                false, false, false, false, false, false, false, false, false, false, null));
+    }
+
     /**
      * Verifies today is marked once: on its own month's page, or on its only adjacent cell.
      */

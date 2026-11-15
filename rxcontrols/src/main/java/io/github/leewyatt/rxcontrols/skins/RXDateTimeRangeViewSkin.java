@@ -31,6 +31,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 /**
@@ -309,8 +310,9 @@ public class RXDateTimeRangeViewSkin extends RXSkinBase<RXDateTimeRangeView>
         }
     }
 
+    /** A {@code null} date (the pointer left the calendar) ends the preview at the anchor. */
     private void onHover(LocalDate date) {
-        if (anchor.get() != null && date != null && !date.equals(hover)) {
+        if (anchor.get() != null && !Objects.equals(date, hover)) {
             hover = date;
             panel.refresh();
         }

@@ -158,6 +158,20 @@ public class RXPeriodRangeViewsTest {
     }
 
     /**
+     * Verifies the preview of a period range ends when the pointer leaves the calendar.
+     */
+    @Test
+    public void previewEndsWhenPointerLeavesCalendar() {
+        RXQuarterRangeView view = show(new RXQuarterRangeView());
+        click(cell(view, ".quarter-cell", LocalDate.of(2026, 4, 1)));
+        hover(cell(view, ".quarter-cell", LocalDate.of(2027, 7, 1)));
+        view.lookup(".rx-calendar-panel").fireEvent(new MouseEvent(MouseEvent.MOUSE_EXITED_TARGET, 0, 0, 0, 0,
+                MouseButton.NONE, 0, false, false, false, false, false, false, false, false, false, false, null));
+        assertFalse(hasPseudoClass(cell(view, ".quarter-cell", LocalDate.of(2026, 10, 1)), "in-range"));
+        assertTrue(hasPseudoClass(cell(view, ".quarter-cell", LocalDate.of(2026, 4, 1)), "range-start"));
+    }
+
+    /**
      * Verifies the current year shown by two linked decades is marked on its own decade only.
      */
     @Test

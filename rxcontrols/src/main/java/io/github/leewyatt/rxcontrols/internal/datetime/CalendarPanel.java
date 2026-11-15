@@ -187,6 +187,9 @@ public final class CalendarPanel extends HBox {
         }
         pages.add(new Page(0));
         getChildren().add(pages.get(0));
+        // The panel, not a page's grid: the pointer crosses the gap between linked pages
+        // without ending the hover.
+        addEventHandler(MouseEvent.MOUSE_EXITED, event -> onPointerLeft());
         refresh();
     }
 
@@ -333,8 +336,9 @@ public final class CalendarPanel extends HBox {
     }
 
     /**
-     * Sets the callback receiving the hovered pick-level date, or {@code null} when the
-     * pointer leaves the grid.
+     * Sets the callback receiving the hovered pick-level date. When the pointer leaves
+     * the panel it receives the date under the keyboard cursor, or {@code null} if no
+     * cursor shows.
      *
      * @param onHover the callback
      */
@@ -519,6 +523,12 @@ public final class CalendarPanel extends HBox {
         if (mode == pickLevel && isPickable(cursor)) {
             onHover.accept(unitStart(cursor));
         }
+    }
+
+    /** The hover ends where the pointer left; the keyboard cursor, if it shows, previews again. */
+    private void onPointerLeft() {
+        boolean onCursor = cursorVisible && cursor != null && mode == pickLevel && isPickable(cursor);
+        onHover.accept(onCursor ? unitStart(cursor) : null);
     }
 
     private LocalDate movedCursor(KeyCode code, boolean shift) {
@@ -1166,7 +1176,6 @@ public final class CalendarPanel extends HBox {
             for (int i = 0; i < count; i++) {
                 grid.cells().add(createCell(cellClass));
             }
-            grid.addEventHandler(MouseEvent.MOUSE_EXITED, event -> onHover.accept(null));
             return grid;
         }
 
@@ -1258,10 +1267,7 @@ public final class CalendarPanel extends HBox {
                     // it: the row under the pointer is read from the target of every move.
                     addEventHandler(MouseEvent.MOUSE_MOVED, event -> setHoveredWeek(weekUnder(event.getTarget())));
                 }
-                addEventHandler(MouseEvent.MOUSE_EXITED, event -> {
-                    setHoveredWeek(null);
-                    onHover.accept(null);
-                });
+                addEventHandler(MouseEvent.MOUSE_EXITED, event -> setHoveredWeek(null));
                 rebuild();
             }
 

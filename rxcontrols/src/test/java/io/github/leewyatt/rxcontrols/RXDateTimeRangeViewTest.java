@@ -230,6 +230,21 @@ public class RXDateTimeRangeViewTest {
     }
 
     /**
+     * Verifies the preview of a date-time range ends when the pointer leaves the calendar.
+     */
+    @Test
+    public void previewEndsWhenPointerLeavesCalendar() {
+        RXDateTimeRangeView view = newView();
+        click(dayCell(view, LocalDate.of(2026, 11, 10)));
+        dayCell(view, LocalDate.of(2026, 11, 13)).fireEvent(new MouseEvent(MouseEvent.MOUSE_ENTERED, 0, 0, 0, 0,
+                MouseButton.NONE, 0, false, false, false, false, false, false, false, false, false, false, null));
+        assertTrue(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 12)), "in-range"));
+        view.lookup(".rx-calendar-panel").fireEvent(new MouseEvent(MouseEvent.MOUSE_EXITED_TARGET, 0, 0, 0, 0,
+                MouseButton.NONE, 0, false, false, false, false, false, false, false, false, false, false, null));
+        assertFalse(hasPseudoClass(dayCell(view, LocalDate.of(2026, 11, 12)), "in-range"));
+    }
+
+    /**
      * Verifies picking ranges and their times asks the time filter once per time.
      */
     @Test

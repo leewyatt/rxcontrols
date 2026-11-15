@@ -20,6 +20,7 @@ import javafx.scene.input.MouseEvent;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -290,8 +291,9 @@ abstract class RXPeriodRangeViewSkinBase<P extends Comparable<? super P>, R, C e
         control.fireEvent(new ActionEvent());
     }
 
+    /** A {@code null} day (the pointer left the calendar) ends the preview at the anchor. */
     private void onHover(LocalDate firstDay) {
-        if (anchor.get() != null && firstDay != null && !firstDay.equals(hover)) {
+        if (anchor.get() != null && !Objects.equals(firstDay, hover)) {
             hover = firstDay;
             panel.refresh();
         }

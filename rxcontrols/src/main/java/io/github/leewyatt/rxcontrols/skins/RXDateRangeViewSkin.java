@@ -17,6 +17,7 @@ import javafx.scene.input.MouseEvent;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.Objects;
 
 /**
  * Default skin for {@link RXDateRangeView}: linked day pages with an anchor-then-end
@@ -180,8 +181,9 @@ public class RXDateRangeViewSkin extends RXSkinBase<RXDateRangeView>
         control.fireEvent(new ActionEvent());
     }
 
+    /** A {@code null} date (the pointer left the calendar) ends the preview at the anchor. */
     private void onHover(LocalDate date) {
-        if (anchor.get() != null && date != null && !date.equals(hover)) {
+        if (anchor.get() != null && !Objects.equals(date, hover)) {
             hover = date;
             panel.refresh();
         }
