@@ -29,10 +29,10 @@ import java.util.Objects;
  * ({@link #visualRowOfItem}, {@link #visualRowOfSection}, {@link #sectionOf}) are
  * height-independent and identical in both modes.
  *
- * <p>Grouped variable mode requires the {@code sections} to exactly partition
+ * <p>A grouped plan requires the {@code sections} to exactly partition
  * {@code [0, itemCount)} (each section a contiguous run, every item in one section) —
- * the invariant {@code recomputeSections} guarantees. Both the prefix-sum build and the
- * per-item lookups rely on it.
+ * the invariant {@code recomputeSections} guarantees. The variable-mode prefix-sum
+ * build and the per-item lookups of both modes rely on it.
  *
  * <p>{@code sectionSpacing} is extra blank content-space inserted before every group
  * after the first (it is not a visual row, just added to the section's top Y). It only
@@ -578,8 +578,14 @@ final class RXListRowPlan {
         return result;
     }
 
+    // Clamped to the first / last section, so a lookup outside the partition (which
+    // the class invariant rules out) degrades instead of indexing with -1.
     private int sectionAtItem(int itemIndex) {
-        return findSectionOfItem(sections, itemIndex);
+        int section = findSectionOfItem(sections, itemIndex);
+        if (section >= 0) {
+            return section;
+        }
+        return itemIndex < 0 ? 0 : sections.size() - 1;
     }
 
     /**
