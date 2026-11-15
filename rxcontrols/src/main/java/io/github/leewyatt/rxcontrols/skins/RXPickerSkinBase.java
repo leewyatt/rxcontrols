@@ -56,7 +56,7 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
 
     // ==================== Nodes ====================
 
-    private final StackPane leadingHolder = new StackPane();
+    private final StackPane leadingWrapper = new StackPane();
     private final StackPane suffix = new StackPane();
     private final Region icon = new Region();
     private final StackPane clearButton = new StackPane();
@@ -105,7 +105,7 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
         popupSupport.setOnHidden(this::onPopupHidden);
         disposer.registerDisposeTask(popupSupport::dispose);
 
-        leadingHolder.getStyleClass().add("leading");
+        leadingWrapper.getStyleClass().add("leading-wrapper");
         icon.getStyleClass().add("icon");
         icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         icon.setMouseTransparent(true);
@@ -155,12 +155,12 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
             }
         }
         getChildren().setAll(layoutNodes);
-        getChildren().addAll(leadingHolder, suffix);
+        getChildren().addAll(leadingWrapper, suffix);
         // Remove only this skin's nodes: a replacement skin has already added its own.
         disposer.registerDisposeTask(() -> {
             getChildren().removeAll(layoutNodes);
-            getChildren().removeAll(leadingHolder, suffix);
-            leadingHolder.getChildren().clear();
+            getChildren().removeAll(leadingWrapper, suffix);
+            leadingWrapper.getChildren().clear();
         });
 
         disposer.registerEventHandler(suffix, MouseEvent.MOUSE_PRESSED, this::handleSuffixPressed);
@@ -748,17 +748,17 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
     private void updateLeading() {
         Node leading = getSkinnable().getLeading();
         if (leading == null) {
-            leadingHolder.getChildren().clear();
+            leadingWrapper.getChildren().clear();
         } else {
-            leadingHolder.getChildren().setAll(leading);
+            leadingWrapper.getChildren().setAll(leading);
         }
-        leadingHolder.setVisible(leading != null);
-        leadingHolder.setManaged(leading != null);
+        leadingWrapper.setVisible(leading != null);
+        leadingWrapper.setManaged(leading != null);
     }
 
     /** The width the leading slot takes: none while it is empty. */
     private double leadingWidth(double height) {
-        return leadingHolder.isManaged() ? leadingHolder.prefWidth(height) : 0.0;
+        return leadingWrapper.isManaged() ? leadingWrapper.prefWidth(height) : 0.0;
     }
 
     // ==================== Suffix ====================
@@ -813,8 +813,8 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
             }
         }
         double growWidth = growCount == 0 ? 0.0 : Math.max(0.0, (w - fixed) / growCount);
-        if (leadingHolder.isManaged()) {
-            layoutInArea(leadingHolder, x, y, leadingWidth, h, 0.0, HPos.CENTER, VPos.CENTER);
+        if (leadingWrapper.isManaged()) {
+            layoutInArea(leadingWrapper, x, y, leadingWidth, h, 0.0, HPos.CENTER, VPos.CENTER);
         }
         double cursorX = x + leadingWidth;
         for (Node node : layoutNodes) {
@@ -848,8 +848,8 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
         double height = suffix.prefHeight(-1);
-        if (leadingHolder.isManaged()) {
-            height = Math.max(height, leadingHolder.prefHeight(-1));
+        if (leadingWrapper.isManaged()) {
+            height = Math.max(height, leadingWrapper.prefHeight(-1));
         }
         for (Node node : layoutNodes) {
             height = Math.max(height, node.prefHeight(-1));

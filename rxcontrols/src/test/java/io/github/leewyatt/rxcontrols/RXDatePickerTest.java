@@ -195,12 +195,12 @@ public class RXDatePickerTest {
 
         picker.setLeading(icon);
         layout(picker);
-        Node holder = picker.lookup(".leading");
-        assertSame(holder, icon.getParent());
+        Node wrapper = picker.lookup(".leading-wrapper");
+        assertSame(wrapper, icon.getParent());
         assertTrue(hasPseudoClass(picker, "has-leading"));
-        assertTrue(holder.prefWidth(-1) >= icon.getPrefWidth());
-        assertEquals(plainWidth + holder.prefWidth(-1), picker.prefWidth(-1), 0.01);
-        assertEquals(holder.getBoundsInParent().getMaxX(), editor(picker).getLayoutX(), 1.0);
+        assertTrue(wrapper.prefWidth(-1) >= icon.getPrefWidth());
+        assertEquals(plainWidth + wrapper.prefWidth(-1), picker.prefWidth(-1), 0.01);
+        assertEquals(wrapper.getBoundsInParent().getMaxX(), editor(picker).getLayoutX(), 1.0);
 
         picker.setLeading(null);
         layout(picker);

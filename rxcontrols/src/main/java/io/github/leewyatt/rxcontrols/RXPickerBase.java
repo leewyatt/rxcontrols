@@ -268,11 +268,11 @@ public abstract class RXPickerBase<T> extends Control {
 
     /**
      * A decorative node, such as an icon, shown before the text field(s) in a
-     * {@code .leading} child; {@code null} (the initial value) shows none. The slot is
-     * not meant for interactive nodes: a press on it focuses the field and opens the
-     * popup, like a press on the field. A resizable node is stretched to the picker's
-     * height; limit its maximum size to keep its shape. The {@code :has-leading}
-     * pseudo-class is set while the node is non-null.
+     * {@code .leading-wrapper} child; {@code null} (the initial value) shows none. The
+     * slot is not meant for interactive nodes: a press on it focuses the field and
+     * opens the popup, like a press on the field. A resizable node is stretched to the
+     * picker's height; limit its maximum size to keep its shape. The
+     * {@code :has-leading} pseudo-class is set while the node is non-null.
      *
      * @return the leading property
      */

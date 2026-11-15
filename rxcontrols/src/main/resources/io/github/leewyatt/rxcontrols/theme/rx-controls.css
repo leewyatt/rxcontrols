@@ -4719,12 +4719,12 @@
     -fx-padding: 0.666667em 0 0.666667em 1em;
 }
 
-.rx-picker > .leading {
+.rx-picker > .leading-wrapper {
     -fx-padding: 0 0 0 0.583em;
 }
 
-.rx-theme-atlantafx .rx-picker > .leading,
-.rx-theme-atlantafx.rx-picker > .leading {
+.rx-theme-atlantafx .rx-picker > .leading-wrapper,
+.rx-theme-atlantafx.rx-picker > .leading-wrapper {
     -fx-padding: 0 0 0 1em;
 }
 

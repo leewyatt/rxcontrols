@@ -28,12 +28,13 @@ import java.util.function.Predicate;
  * Home / End and Enter work on the calendar too.
  *
  * <p>CSS: style classes {@code rx-picker} and {@code rx-date-picker}; children
- * {@code .leading}, {@code .text-field} and {@code .suffix} ({@code .icon},
- * {@code .clear-button}); the popup has style class {@code rx-picker-popup} and hosts
- * an {@code .rx-calendar-view} plus a {@code .footer}. Pseudo-classes: {@code :focused},
- * {@code :showing}, {@code :editable}, {@code :has-leading}, {@code :invalid}. The
- * popup calendar declares its own color tokens, so a token override meant for both
- * must also target {@code .rx-picker-popup .rx-calendar-view}.
+ * {@code .leading-wrapper}, {@code .text-field} and {@code .suffix}
+ * ({@code .icon}, {@code .clear-button}); the popup has style class
+ * {@code rx-picker-popup} and hosts an {@code .rx-calendar-view} plus a
+ * {@code .footer}. Pseudo-classes: {@code :focused}, {@code :showing},
+ * {@code :editable}, {@code :has-leading}, {@code :invalid}. The popup calendar
+ * declares its own color tokens, so a token override meant for both must also
+ * target {@code .rx-picker-popup .rx-calendar-view}.
  */
 public class RXDatePicker extends RXPickerBase<LocalDate> {
 
