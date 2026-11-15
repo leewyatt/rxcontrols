@@ -8,3 +8,7 @@
     -fx-font-size: 11px;
     -fx-text-fill: -showcase-caption-color;
 }
+
+.hide-arrows .rx-list-section-header > .disclosure {
+    visibility: hidden;
+}

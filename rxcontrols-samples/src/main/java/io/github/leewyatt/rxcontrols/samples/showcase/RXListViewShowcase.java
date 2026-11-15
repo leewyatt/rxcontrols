@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXListCell;
 import io.github.leewyatt.rxcontrols.RXListSection;
+import io.github.leewyatt.rxcontrols.RXListSectionCell;
 import io.github.leewyatt.rxcontrols.RXListSelectionVisualMode;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXListVisibleRange;
@@ -219,6 +220,22 @@ public class RXListViewShowcase extends RXShowcaseApplication {
         collapsedKeys.textProperty().bind(Bindings.createStringBinding(
                 () -> list.getCollapsedSectionKeys().size() + " key(s) collapsed", list.getCollapsedSectionKeys()));
 
+        // A custom header renders its own content; the arrow is still added by the
+        // header's skin, and the "Hide arrows" style class shows the CSS opt-out.
+        CheckBox customHeaders = new CheckBox("Custom headers");
+        customHeaders.selectedProperty().addListener((obs, old, on) ->
+                list.setSectionHeaderFactory(on ? view -> new CountingHeader() : null));
+        CheckBox hideArrows = new CheckBox("Hide arrows");
+        hideArrows.selectedProperty().addListener((obs, old, on) -> {
+            if (on) {
+                list.getStyleClass().add("hide-arrows");
+            } else {
+                list.getStyleClass().remove("hide-arrows");
+            }
+        });
+        HBox headerBox = new HBox(12.0, customHeaders, hideArrows);
+        headerBox.setAlignment(Pos.CENTER_LEFT);
+
         Slider headerHeight = createSlider(20, 64, list.getSectionHeaderHeight());
         headerHeight.valueProperty().addListener((obs, old, value) ->
                 list.setSectionHeaderHeight(value.doubleValue()));
@@ -230,7 +247,9 @@ public class RXListViewShowcase extends RXShowcaseApplication {
         sectionKey.setPrefColumnCount(5);
         Button goSection = new Button("Scroll to section");
         goSection.setOnAction(e -> scrollToSection(sectionKey.getText()));
-        HBox sectionBox = new HBox(8.0, sectionKey, goSection);
+        Button toggleSection = new Button("Toggle section");
+        toggleSection.setOnAction(e -> toggleSection(sectionKey.getText()));
+        HBox sectionBox = new HBox(8.0, sectionKey, goSection, toggleSection);
         sectionBox.setAlignment(Pos.CENTER_LEFT);
 
         Label topSection = new Label();
@@ -244,6 +263,7 @@ public class RXListViewShowcase extends RXShowcaseApplication {
                 row("Collapse", collapsible),
                 row(collapseBox),
                 row("Collapsed", collapsedKeys),
+                row("Header", headerBox),
                 row("Header h", headerHeight, createValueLabel(headerHeight, "%.0f px")),
                 row("Spacing", spacing, createValueLabel(spacing, "%.0f px")),
                 row(sectionBox),
@@ -278,6 +298,27 @@ public class RXListViewShowcase extends RXShowcaseApplication {
             list.scrollToSection(Integer.parseInt(text.trim()), ScrollAlignment.START);
         } catch (NumberFormatException ignored) {
             // Leave an unparseable key alone rather than disrupting the view.
+        }
+    }
+
+    private void toggleSection(String text) {
+        try {
+            int key = Integer.parseInt(text.trim());
+            list.setSectionExpanded(key, !list.isSectionExpanded(key));
+        } catch (NumberFormatException ignored) {
+            // Leave an unparseable key alone rather than disrupting the view.
+        }
+    }
+
+    /** A custom section header: the key plus the section's item count and state. */
+    private static final class CountingHeader extends RXListSectionCell {
+        @Override
+        protected void updateItem(RXListSection section, boolean empty) {
+            super.updateItem(section, empty);
+            if (!empty && section != null) {
+                String state = isCollapsible() && !isExpanded() ? " · collapsed" : "";
+                setText("Hundred " + section.key() + " — " + section.itemCount() + " items" + state);
+            }
         }
     }
 

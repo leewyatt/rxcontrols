@@ -21,18 +21,22 @@ import java.util.Set;
 /**
  * Compact demo for collapsible sections in {@link RXListView}: a settings navigation
  * grouped by category with sticky, collapsible headers. Clicking a header (or using
- * Left / Right on it) collapses and expands its group. The search field filters the
- * entries; while a query is active every group with a hit is shown expanded, and
- * clearing the query restores the groups the user had collapsed — the list only
- * offers the collapsed-key set, the search policy lives here.
+ * Left / Right on it) collapses and expands its group. The search field filters by
+ * page or category name; a search opens every group once when it starts, and
+ * clearing it restores the groups the user had collapsed and the page that was open
+ * — the list only offers the collapsed-key set, the search policy lives here.
  */
 public class RXListViewCollapsibleDemo extends Application {
+
+    private static final String NO_PAGE = "Pick a page";
 
     private record Entry(String category, String name) {
     }
 
     // The collapsed keys before the current search, or null when no search is active.
     private Set<Object> collapsedBeforeSearch;
+    // The open page; kept while a search filters it out of the list.
+    private Entry currentPage;
 
     @Override
     public void start(Stage primaryStage) {
@@ -40,6 +44,7 @@ public class RXListViewCollapsibleDemo extends Application {
         RXListView<Entry> list = new RXListView<>(filtered);
         list.setSectionKeyFactory(Entry::category);
         list.setCollapsibleSections(true);
+        list.setPlaceholder(new Label("No matching settings"));
         list.setConverter(new StringConverter<>() {
             @Override
             public String toString(Entry entry) {
@@ -54,10 +59,16 @@ public class RXListViewCollapsibleDemo extends Application {
         });
         list.setSectionExpanded("Advanced", false);
 
-        Label status = new Label("Pick a page");
+        Label status = new Label(NO_PAGE);
         status.setPadding(new Insets(10, 14, 10, 14));
-        list.getSelectionModel().selectedItemProperty().addListener((obs, old, entry) ->
-                status.setText(entry == null ? "Pick a page" : entry.category() + " › " + entry.name()));
+        list.getSelectionModel().selectedItemProperty().addListener((obs, old, entry) -> {
+            // A search that filters the open page out clears the selection; the page
+            // itself stays open.
+            if (entry != null) {
+                currentPage = entry;
+                status.setText(entry.category() + " › " + entry.name());
+            }
+        });
 
         TextField search = new TextField();
         search.setPromptText("Search settings");
@@ -84,14 +95,20 @@ public class RXListViewCollapsibleDemo extends Application {
                 list.getCollapsedSectionKeys().addAll(collapsedBeforeSearch);
                 collapsedBeforeSearch = null;
             }
-            return;
+        } else {
+            if (collapsedBeforeSearch == null) {
+                // The search starts: remember the groups and open them all once. A group
+                // the user collapses while searching stays collapsed until the search ends.
+                collapsedBeforeSearch = new HashSet<>(list.getCollapsedSectionKeys());
+                list.expandAllSections();
+            }
+            filtered.setPredicate(entry -> entry.name().toLowerCase(Locale.ROOT).contains(query)
+                    || entry.category().toLowerCase(Locale.ROOT).contains(query));
         }
-        if (collapsedBeforeSearch == null) {
-            collapsedBeforeSearch = new HashSet<>(list.getCollapsedSectionKeys());
+        if (currentPage != null && list.getSelectionModel().getSelectedItem() == null
+                && filtered.contains(currentPage)) {
+            list.getSelectionModel().select(currentPage);
         }
-        filtered.setPredicate(entry -> entry.name().toLowerCase(Locale.ROOT).contains(query));
-        // Every group left in the filtered list has a hit: show them all open.
-        list.expandAllSections();
     }
 
     private static ObservableList<Entry> entries() {
