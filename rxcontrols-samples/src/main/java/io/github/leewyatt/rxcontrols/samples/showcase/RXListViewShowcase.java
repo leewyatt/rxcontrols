@@ -31,9 +31,10 @@ import java.util.List;
  * #ITEM_COUNT} rows and exposes the M1 knobs — selection mode and visual mode
  * (row / checkmark / checkbox / auto, the appearance of the single selection) and
  * fixed cell size — plus scroll-to-item / scroll-by controls, clear / restore of the
- * items (showing the placeholder), an activation status line and a live readout of
- * the row count, visible range and selected count, so virtualization and the
- * selection across visual modes can be exercised at scale.
+ * items (showing the placeholder), grouping with sticky and collapsible sections, an
+ * activation status line and a live readout of the row count, visible range and
+ * selected count, so virtualization and the selection across visual modes can be
+ * exercised at scale.
  */
 public class RXListViewShowcase extends RXShowcaseApplication {
 
@@ -203,6 +204,21 @@ public class RXListViewShowcase extends RXShowcaseApplication {
         sticky.setSelected(list.isStickySectionHeader());
         sticky.selectedProperty().addListener((obs, old, on) -> list.setStickySectionHeader(on));
 
+        CheckBox collapsible = new CheckBox("Collapsible sections");
+        collapsible.setSelected(list.isCollapsibleSections());
+        collapsible.selectedProperty().addListener((obs, old, on) -> list.setCollapsibleSections(on));
+
+        Button expandAll = new Button("Expand all");
+        expandAll.setOnAction(e -> list.expandAllSections());
+        Button collapseAll = new Button("Collapse all");
+        collapseAll.setOnAction(e -> list.collapseAllSections());
+        HBox collapseBox = new HBox(8.0, expandAll, collapseAll);
+        collapseBox.setAlignment(Pos.CENTER_LEFT);
+
+        Label collapsedKeys = new Label();
+        collapsedKeys.textProperty().bind(Bindings.createStringBinding(
+                () -> list.getCollapsedSectionKeys().size() + " key(s) collapsed", list.getCollapsedSectionKeys()));
+
         Slider headerHeight = createSlider(20, 64, list.getSectionHeaderHeight());
         headerHeight.valueProperty().addListener((obs, old, value) ->
                 list.setSectionHeaderHeight(value.doubleValue()));
@@ -225,13 +241,21 @@ public class RXListViewShowcase extends RXShowcaseApplication {
                 row("Grouping", grouped),
                 row("Headers", headers),
                 row("Sticky", sticky),
+                row("Collapse", collapsible),
+                row(collapseBox),
+                row("Collapsed", collapsedKeys),
                 row("Header h", headerHeight, createValueLabel(headerHeight, "%.0f px")),
                 row("Spacing", spacing, createValueLabel(spacing, "%.0f px")),
                 row(sectionBox),
                 row("Top section", topSection),
                 row(hint("Grouping derives sections from the items (no item is moved). Headers are a separate "
-                        + "pooled row type — arrow keys skip them and they are never selected. With headers off, "
-                        + "sections are still computed so scroll-to-section keeps working.")));
+                        + "pooled row type and are never selected; arrow keys skip them unless sections are "
+                        + "collapsible. With headers off, sections are still computed so scroll-to-section keeps "
+                        + "working.")),
+                row(hint("Collapsible: click a header (or the sticky one) to collapse it; the keyboard cursor "
+                        + "then stops on headers — Space / Enter toggle, Left collapses, Right expands. Collapsed "
+                        + "state is kept per key, also while the switch is off or headers are hidden. Scroll to "
+                        + "item expands a collapsed target.")));
     }
 
     private Node smoothScrollGrid() {
@@ -309,7 +333,7 @@ public class RXListViewShowcase extends RXShowcaseApplication {
         if (range == null || range.isEmpty()) {
             return "—";
         }
-        return "items " + range.firstIndex() + ".." + range.lastIndex();
+        return "items " + range.firstIndex() + ".." + range.lastIndex() + " (" + range.size() + " visible)";
     }
 
     private void logSelectionChanges() {
