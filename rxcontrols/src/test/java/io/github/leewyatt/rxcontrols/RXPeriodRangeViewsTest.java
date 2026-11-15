@@ -143,6 +143,21 @@ public class RXPeriodRangeViewsTest {
     }
 
     /**
+     * Verifies the keyboard cursor stays visible on a clicked year only the adjacent cell shows.
+     */
+    @Test
+    public void cursorIsDrawnOnClickedOuterYear() {
+        RXYearRangeView view = show(new RXYearRangeView());
+        press(view, KeyCode.DOWN);
+        DateCell year2019 = adjacentCell(view, LocalDate.of(2019, 1, 1));
+        click(year2019);
+        assertTrue(hasPseudoClass(year2019, "focused"));
+        long focused = cells(view, ".year-cell").stream()
+                .filter(cell -> shown(cell) && hasPseudoClass(cell, "focused")).count();
+        assertEquals(1, focused);
+    }
+
+    /**
      * Verifies the keyboard cursor moves onto the second page without paging, pages past
      * it, and picks both endpoints.
      */

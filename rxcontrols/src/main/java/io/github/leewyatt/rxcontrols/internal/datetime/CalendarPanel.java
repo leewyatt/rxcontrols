@@ -1207,7 +1207,9 @@ public final class CalendarPanel extends HBox {
                 }
                 periodStates[i] = state;
                 boolean todayMatch = today != null && periodStart(mode, today).equals(start);
-                boolean cursorMatch = cursorVisible && cursor != null && !adjacent
+                // An adjacent cell repeating a period another page shows leaves the cursor to
+                // that page; the outer ones are the only cells of theirs.
+                boolean cursorMatch = cursorVisible && cursor != null && !(adjacent && isDisplayed(start))
                         && periodStart(mode, cursor).equals(start);
                 applyCellState(cell, start, state, adjacent, todayMatch, cursorMatch);
                 cell.setText(text);
