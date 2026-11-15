@@ -158,6 +158,21 @@ public class RXPeriodRangeViewsTest {
     }
 
     /**
+     * Verifies the current year shown by two linked decades is marked on its own decade only.
+     */
+    @Test
+    public void currentYearIsMarkedOnce() {
+        RXYearRangeView view = show(new RXYearRangeView());
+        view.setClock(Clock.fixed(LocalDate.of(2030, 6, 1).atStartOfDay().toInstant(ZoneOffset.UTC), ZoneOffset.UTC));
+        view.setDisplayedYear(Year.of(2020));
+        assertEquals(List.of("2020-2029", "2030-2039"), titles(view));
+        List<DateCell> marked = cells(view, ".year-cell").stream()
+                .filter(cell -> shown(cell) && hasPseudoClass(cell, "today")).collect(Collectors.toList());
+        assertEquals(1, marked.size());
+        assertFalse(hasPseudoClass(marked.get(0), "adjacent"));
+    }
+
+    /**
      * Verifies a click on a year outside the linked decades pages to its decade and picks it there.
      */
     @Test

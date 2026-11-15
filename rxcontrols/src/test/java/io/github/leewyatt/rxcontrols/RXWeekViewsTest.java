@@ -312,6 +312,20 @@ public class RXWeekViewsTest {
     }
 
     /**
+     * Verifies today in a week shared by two linked months is marked on its own month only.
+     */
+    @Test
+    public void todayInSharedWeekIsMarkedOnce() {
+        RXWeekRangeView view = show(new RXWeekRangeView());
+        view.setClock(Clock.fixed(LocalDate.of(2026, 11, 30).atStartOfDay().toInstant(ZoneOffset.UTC),
+                ZoneOffset.UTC));
+        List<DateCell> marked = cells(view, ".day-cell").stream()
+                .filter(cell -> hasPseudoClass(cell, "today")).collect(Collectors.toList());
+        assertEquals(1, marked.size());
+        assertFalse(hasPseudoClass(marked.get(0), "adjacent"));
+    }
+
+    /**
      * Verifies only the first and the last week must be selectable, and a rules change drops the anchor.
      */
     @Test

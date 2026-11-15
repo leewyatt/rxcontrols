@@ -1207,10 +1207,11 @@ public final class CalendarPanel extends HBox {
                     state &= ~MARK_BITS;
                 }
                 periodStates[i] = state;
-                boolean todayMatch = today != null && periodStart(mode, today).equals(start);
-                // An adjacent cell repeating a period another page shows leaves the cursor to
-                // that page; the outer ones are the only cells of theirs.
-                boolean cursorMatch = cursorVisible && cursor != null && !(adjacent && isDisplayed(start))
+                // An adjacent cell repeating a period another page shows leaves today's mark
+                // and the cursor to that page; the outer ones are the only cells of theirs.
+                boolean repeated = adjacent && isDisplayed(start);
+                boolean todayMatch = today != null && !repeated && periodStart(mode, today).equals(start);
+                boolean cursorMatch = cursorVisible && cursor != null && !repeated
                         && periodStart(mode, cursor).equals(start);
                 applyCellState(cell, start, state, adjacent, todayMatch, cursorMatch);
                 cell.setText(text);
@@ -1372,15 +1373,23 @@ public final class CalendarPanel extends HBox {
                         continue;
                     }
                     boolean cursorMatch = cursorVisible && date.equals(cursor) && !adjacent;
-                    applyCellState(cell, date, dayStates[i], adjacent, date.equals(today), cursorMatch);
+                    applyCellState(cell, date, dayStates[i], adjacent, isTodayCell(date, adjacent), cursorMatch);
                     cell.setText(Integer.toString(date.getDayOfMonth()));
                 }
             }
 
             /**
+             * Whether a day cell carries today's mark. An adjacent day whose month another
+             * page shows leaves the mark to that page; an outer one is today's only cell.
+             */
+            private boolean isTodayCell(LocalDate date, boolean adjacent) {
+                return date.equals(today) && !(adjacent && isDisplayed(date));
+            }
+
+            /**
              * Marks every row as one unit. A week shared by two linked pages is marked
              * on both, since each shows the whole row; the keyboard cursor is drawn on
-             * one of them only.
+             * one of them only, and today's mark on the page of its own month.
              */
             private void updateWeekRows(YearMonth month) {
                 LocalDate cursorWeek = cursorVisible && cursor != null && weekPageOf(cursor) == index
@@ -1394,8 +1403,8 @@ public final class CalendarPanel extends HBox {
                     for (int col = 0; col < DAYS_PER_WEEK; col++) {
                         LocalDate date = rowStart.plusDays(col);
                         DateCell cell = days.get(row * DAYS_PER_WEEK + col);
-                        applyCellState(cell, date, state, !YearMonth.from(date).equals(month), date.equals(today),
-                                cursorMatch);
+                        boolean adjacent = !YearMonth.from(date).equals(month);
+                        applyCellState(cell, date, state, adjacent, isTodayCell(date, adjacent), cursorMatch);
                         cell.setText(Integer.toString(date.getDayOfMonth()));
                         cell.pseudoClassStateChanged(PSEUDO_WEEK_HOVER, hovered);
                         cell.pseudoClassStateChanged(PSEUDO_SEGMENT_START, col == 0);

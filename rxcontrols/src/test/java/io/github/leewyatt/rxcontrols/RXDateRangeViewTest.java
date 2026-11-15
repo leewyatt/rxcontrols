@@ -19,7 +19,9 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
+import static io.github.leewyatt.rxcontrols.PickerTestSupport.cells;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.click;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.dayCell;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.hasPseudoClass;
@@ -271,6 +273,30 @@ public class RXDateRangeViewTest {
     }
 
     /** The topmost fill: the square of a range end, the band of a day between the ends. */
+    /**
+     * Verifies today is marked once: on its own month's page, or on its only adjacent cell.
+     */
+    @Test
+    public void todayIsMarkedOnce() {
+        RXDateRangeView view = newView();
+        LocalDate today = LocalDate.of(2026, 11, 30);
+        view.setClock(Clock.fixed(today.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneOffset.UTC));
+        List<DateCell> marked = todayCells(view);
+        assertEquals(1, marked.size());
+        assertFalse(hasPseudoClass(marked.get(0), "adjacent"));
+
+        view.setDisplayedMonth(YearMonth.of(2026, 12));
+        marked = todayCells(view);
+        assertEquals(1, marked.size());
+        assertEquals(today, marked.get(0).getItem());
+        assertTrue(hasPseudoClass(marked.get(0), "adjacent"));
+    }
+
+    private static List<DateCell> todayCells(RXDateRangeView view) {
+        return cells(view, ".day-cell").stream()
+                .filter(cell -> hasPseudoClass(cell, "today")).collect(Collectors.toList());
+    }
+
     private static Paint fillOf(DateCell cell) {
         List<BackgroundFill> fills = cell.getBackground().getFills();
         return fills.get(fills.size() - 1).getFill();
