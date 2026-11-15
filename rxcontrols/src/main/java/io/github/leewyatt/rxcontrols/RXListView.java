@@ -640,10 +640,18 @@ public class RXListView<T> extends Control {
 
     private final ObjectProperty<Callback<T, Object>> sectionKeyFactory =
             new SimpleObjectProperty<>(this, "sectionKeyFactory") {
+                // A bound factory invalidates whenever its binding does, even when it
+                // re-evaluates to the same instance; only a different factory clears.
+                private Callback<T, Object> lastFactory;
+
                 @Override
                 protected void invalidated() {
-                    // The recorded keys belong to the old factory's key space.
-                    collapsedSectionKeys.clear();
+                    Callback<T, Object> factory = get();
+                    if (factory != lastFactory) {
+                        lastFactory = factory;
+                        // The recorded keys belong to the old factory's key space.
+                        collapsedSectionKeys.clear();
+                    }
                     recomputeSections();
                 }
             };

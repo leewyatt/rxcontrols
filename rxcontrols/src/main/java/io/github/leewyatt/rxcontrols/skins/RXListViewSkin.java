@@ -119,6 +119,22 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
                               double rowHeight, int itemCount, double sectionSpacing) {
     }
 
+    // The plan installed by the most recent layout pass — the geometry the current
+    // scroll offset refers to.
+    private RXListRowPlan currentPlan;
+    // Bumped on every sections change; a reflow anchor captured under one sections
+    // list is only replayed against the same list.
+    private int sectionsRevision;
+
+    // Reflow anchor for a collapsed-state change: the section at the top of the
+    // viewport (captured from the plan in effect before the change) and the offset of
+    // the viewport top inside it. Replayed once on the next layout pass.
+    private boolean reflowAnchorPending;
+    private int reflowAnchorSection;
+    private double reflowAnchorOffset;
+    private boolean reflowAnchorWasCollapsed;
+    private int reflowAnchorSectionsRevision;
+
     /**
      * Creates the skin for the given list view.
      *
@@ -277,14 +293,55 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         // The sections list content changed; the row-plan key cannot cheaply hash it,
         // so a revision bump forces a rebuild.
         rowPlanRevision++;
+        sectionsRevision++;
         requestLayoutPass();
     }
 
     private void onCollapsedStateChanged() {
+        captureReflowAnchor();
         // The collapsed flags are read from the key set when the plan is built; the
         // revision bump makes the cached fixed-mode plan miss.
         rowPlanRevision++;
         requestLayoutPass();
+    }
+
+    // ==================== Reflow anchor ====================
+
+    // A collapsed-state change keeps the content at the top of the viewport put,
+    // identically in fixed and variable height mode: the section S at the top keeps
+    // the viewport's offset inside it (so toggling a section above it, or expanding S
+    // itself, does not move what is on screen), except that collapsing S aligns its
+    // header to the top — S's items vanish, and keeping the offset would land the
+    // view in an unrelated section further down. Several changes before the next
+    // pass anchor on the state before the first one.
+    private void captureReflowAnchor() {
+        RXListRowPlan plan = currentPlan;
+        if (reflowAnchorPending || plan == null || plan.sectionCount() == 0 || plan.totalVisualRows() == 0) {
+            return;
+        }
+        double scrollY = viewport.scrollOffset();
+        int section = plan.sectionIndexAt(scrollY);
+        reflowAnchorSection = section;
+        reflowAnchorOffset = scrollY - plan.sectionTop(section);
+        reflowAnchorWasCollapsed = plan.sectionCollapsed(section);
+        reflowAnchorSectionsRevision = sectionsRevision;
+        reflowAnchorPending = true;
+    }
+
+    private void replayReflowAnchor(RXListRowPlan plan) {
+        if (!reflowAnchorPending) {
+            return;
+        }
+        reflowAnchorPending = false;
+        int section = reflowAnchorSection;
+        // A regrouping in the same pulse renumbers the sections; the anchor no longer
+        // names the same section, so leave the offset alone.
+        if (reflowAnchorSectionsRevision != sectionsRevision || section >= plan.sectionCount()) {
+            return;
+        }
+        double top = plan.sectionTop(section);
+        boolean collapsedNow = plan.sectionCollapsed(section);
+        viewport.applyReflowScroll(collapsedNow && !reflowAnchorWasCollapsed ? top : top + reflowAnchorOffset);
     }
 
     private void onSectionHeaderFactoryChanged() {
@@ -312,6 +369,7 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         if (control.getRowCount() != plan.totalVisualRows()) {
             control.setRowCount(plan.totalVisualRows());
         }
+        currentPlan = plan;
         viewport.setRowPlan(plan);
     }
 
@@ -485,6 +543,8 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         updateRowPlan();
         viewport.resizeRelocate(contentX, contentY, contentWidth, contentHeight);
         placeholderRegion.resizeRelocate(contentX, contentY, contentWidth, contentHeight);
+        // Before the pending scroll, so an explicit scrollTo issued with the change wins.
+        replayReflowAnchor(currentPlan);
         consumePendingScroll();
         boolean variable = isVariableHeight(control);
         viewport.setMeasureGate(variable);

@@ -7,6 +7,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -30,13 +31,17 @@ public class RXListRowPlanTest {
         return RXListRowPlan.fixed(SECTIONS, showHeaders, HEADER, ROW, 9, spacing, collapsed);
     }
 
-    // Item i is 10 * (i + 1) tall, so every row has a distinct height.
     private static RXListRowPlan variable(boolean showHeaders, boolean... collapsed) {
+        return variable(showHeaders, 0.0, collapsed);
+    }
+
+    // Item i is 10 * (i + 1) tall, so every row has a distinct height.
+    private static RXListRowPlan variable(boolean showHeaders, double spacing, boolean... collapsed) {
         double[] heights = new double[9];
         for (int i = 0; i < heights.length; i++) {
             heights[i] = 10.0 * (i + 1);
         }
-        return RXListRowPlan.variable(SECTIONS, showHeaders, HEADER, heights, 0.0, collapsed);
+        return RXListRowPlan.variable(SECTIONS, showHeaders, HEADER, heights, spacing, collapsed);
     }
 
     // ==================== Flat / empty ====================
@@ -252,6 +257,15 @@ public class RXListRowPlanTest {
         assertEquals(HEADER, plan.itemTop(2), EPS);
     }
 
+    @Test
+    public void rowInfoRejectsRowsOutsideThePlan() {
+        RXListRowPlan plan = fixed(true, 0.0, false, true, false);
+        assertThrows(IndexOutOfBoundsException.class, () -> plan.rowInfo(plan.visualRowOfItem(3)));
+        assertThrows(IndexOutOfBoundsException.class, () -> plan.rowInfo(plan.totalVisualRows()));
+        RXListRowPlan varPlan = variable(true, false, true, false);
+        assertThrows(IndexOutOfBoundsException.class, () -> varPlan.rowInfo(-1));
+    }
+
     // ==================== Round trips ====================
 
     @Test
@@ -263,7 +277,9 @@ public class RXListRowPlanTest {
                 fixed(false, 5.0, true, true, true),
                 variable(true),
                 variable(true, false, true, false),
-                variable(true, true, false, true));
+                variable(true, true, false, true),
+                variable(true, 12.0, false, true, true),
+                variable(false, 12.0, true, false, true));
         for (RXListRowPlan plan : plans) {
             int shown = 0;
             for (int i = 0; i < 9; i++) {

@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXListSection;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Immutable visual-row plan for {@link RXListViewport}: the interleaved sequence
@@ -20,7 +21,7 @@ import java.util.List;
  * is O(sections) — it scales to millions of items. A section-header row is
  * {@code headerHeight}; a data row is the uniform {@code rowHeight}.
  *
- * <p><b>Variable mode</b> ({@link #variable(java.util.List, boolean, double, double[], double, boolean[])})
+ * <p><b>Variable mode</b> ({@link #variable(List, boolean, double, double[], double, boolean[])})
  * stores a per-item prefix-sum of the supplied heights (measured or estimated), so it is
  * O(items) in memory — the cost of non-uniform rows — and answers a content-space query
  * by a binary search over the per-item tops. Section-header rows stay the fixed
@@ -439,8 +440,13 @@ final class RXListRowPlan {
      *
      * @param visualRow a valid visual-row index
      * @return the row description
+     * @throws IndexOutOfBoundsException if {@code visualRow} is not in
+     *                                   {@code [0, totalVisualRows())} — for example the
+     *                                   {@code -1} that {@link #visualRowOfItem} returns
+     *                                   for a hidden item
      */
     RowInfo rowInfo(int visualRow) {
+        Objects.checkIndex(visualRow, totalVisualRows);
         if (!grouped) {
             if (variable) {
                 return new RowInfo(false, null, visualRow, itemTops[visualRow], itemHeights[visualRow]);

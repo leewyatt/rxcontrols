@@ -141,7 +141,8 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
     /**
      * Scrolls so the row holding {@code index} lands per {@code alignment}, using
      * the current row plan so it is correct even before this pass's
-     * {@link #layoutChildren()} runs (the pending-scroll path).
+     * {@link #layoutChildren()} runs (the pending-scroll path). An item hidden in a
+     * collapsed section has no row; its section's header row is the target instead.
      *
      * @param index     a valid item index
      * @param alignment where the target row should land
@@ -207,6 +208,33 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         setVerticalScrollOffset(RXMath.clamp(target, 0.0, maxScroll), ScrollOffsetWriteReason.PROGRAMMATIC_JUMP);
         requestLayout();
         return true;
+    }
+
+    /**
+     * Moves the scroll offset to a target the skin computed for a reflow it anchors
+     * itself (a section collapsed or expanded), against the current plan. The
+     * variable-height anchor pin is suppressed for the next pass even when the
+     * offset does not change: its anchor item may sit below the toggled section and
+     * would drag the view along with it. An in-flight smooth scroll is shifted by the
+     * same correction rather than stopped, like the anchor pin does.
+     *
+     * @param target the desired scroll offset, clamped to the scrollable range
+     */
+    void applyReflowScroll(double target) {
+        RXListRowPlan plan = rowPlan;
+        double viewportHeight = getHeight();
+        if (plan == null || viewportHeight <= 0.0) {
+            return;
+        }
+        double maxScroll = Math.max(0.0, plan.contentHeight() - viewportHeight);
+        double corrected = RXMath.clamp(target, 0.0, maxScroll);
+        double correction = corrected - scrollY;
+        explicitScrollPending = true;
+        if (correction != 0.0) {
+            scrollY = corrected;
+            shiftSmoothScrollBy(correction);
+        }
+        requestLayout();
     }
 
     /**

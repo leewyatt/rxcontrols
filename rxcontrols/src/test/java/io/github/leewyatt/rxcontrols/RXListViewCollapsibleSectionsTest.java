@@ -1,7 +1,11 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.skins.RXListViewSkin;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -9,6 +13,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.util.Callback;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -221,6 +226,134 @@ public class RXListViewCollapsibleSectionsTest {
         });
     }
 
+    @Test
+    public void reboundFactoryKeepsTheKeysButANewFactoryClearsThem() {
+        RXListView<Integer> view = grouped(30);
+        Callback<Integer, Object> byTens = i -> i / 10;
+        IntegerProperty dependency = new SimpleIntegerProperty();
+        view.sectionKeyFactoryProperty().bind(Bindings.createObjectBinding(() -> byTens, dependency));
+        view.setSectionExpanded(1, false);
+        dependency.set(1);
+        assertFalse(view.isSectionExpanded(1), "re-evaluating to the same factory keeps the state");
+        view.sectionKeyFactoryProperty().unbind();
+        view.setSectionKeyFactory(i -> i / 5);
+        assertTrue(view.getCollapsedSectionKeys().isEmpty());
+    }
+
+    @Test
+    public void collapsedStateSurvivesASkinReplacement() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = grouped(30);
+            view.setCollapsibleSections(true);
+            view.setSectionExpanded(1, false);
+            StackPane root = host(view);
+            pump(root);
+            view.setSkin(new RXListViewSkin<>(view));
+            pump(root);
+            assertEquals(23, view.getRowCount());
+        });
+    }
+
+    // ==================== Reflow anchoring ====================
+
+    @Test
+    public void expandingTheTopSectionKeepsItsHeaderInPlace() throws Exception {
+        for (boolean variable : new boolean[] {false, true}) {
+            onFx(() -> {
+                RXListView<Integer> view = grouped(60, 20, variable);
+                view.setCollapsibleSections(true);
+                view.setSectionExpanded(0, false);
+                StackPane root = host(view);
+                pump(root);
+                assertEquals(20, view.getVisibleRange().firstIndex(), "precondition: section 0 collapsed");
+                view.setSectionExpanded(0, true);
+                pump(root);
+                assertEquals(0, view.getVisibleSection().sectionIndex());
+                assertEquals(0, view.getVisibleRange().firstIndex(),
+                        "the expanded items appear below the header (variable=" + variable + ")");
+            });
+        }
+    }
+
+    @Test
+    public void collapsingASectionAboveKeepsTheVisibleItems() throws Exception {
+        for (boolean variable : new boolean[] {false, true}) {
+            onFx(() -> {
+                RXListView<Integer> view = grouped(60, 20, variable);
+                view.setCollapsibleSections(true);
+                StackPane root = host(view);
+                pump(root);
+                view.scrollTo(25, ScrollAlignment.START);
+                pump(root);
+                int before = view.getVisibleRange().firstIndex();
+                assertEquals(1, view.getVisibleSection().sectionIndex(), "precondition: inside section 1");
+                view.setSectionExpanded(0, false);
+                pump(root);
+                assertEquals(before, view.getVisibleRange().firstIndex(),
+                        "the content on screen does not move (variable=" + variable + ")");
+                assertEquals(1, view.getVisibleSection().sectionIndex());
+            });
+        }
+    }
+
+    @Test
+    public void collapsingThePinnedSectionAlignsItsHeaderToTheTop() throws Exception {
+        for (boolean variable : new boolean[] {false, true}) {
+            onFx(() -> {
+                RXListView<Integer> view = grouped(60, 20, variable);
+                view.setCollapsibleSections(true);
+                StackPane root = host(view);
+                pump(root);
+                view.scrollTo(35, ScrollAlignment.START);
+                pump(root);
+                RXListSectionCell sticky = stickyHeader(view);
+                assertEquals(1, sticky.getItem().sectionIndex());
+                assertTrue(hasPseudo(sticky, "pinned"), "precondition: section 1 is pinned");
+                view.setSectionExpanded(1, false);
+                pump(root);
+                assertEquals(1, view.getVisibleSection().sectionIndex(), "the view stays on section 1");
+                assertFalse(hasPseudo(stickyHeader(view), "pinned"), "its header rests at the top");
+                assertEquals(40, view.getVisibleRange().firstIndex(),
+                        "the next section follows the header (variable=" + variable + ")");
+            });
+        }
+    }
+
+    @Test
+    public void scrollToAnItemCollapsedInTheSamePulseLandsOnItsHeader() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = grouped(100);
+            view.setCollapsibleSections(true);
+            StackPane root = host(view);
+            pump(root);
+            view.scrollTo(55, ScrollAlignment.START);
+            view.setSectionExpanded(5, false);
+            pump(root);
+            assertEquals(5, view.getVisibleSection().sectionIndex());
+            assertEquals(60, view.getVisibleRange().firstIndex());
+        });
+    }
+
+    @Test
+    public void collapsedSectionTakesPartInTheStickyHandoff() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> view = grouped(100);
+            view.setCollapsibleSections(true);
+            view.setSectionExpanded(1, false);
+            StackPane root = host(view);
+            pump(root);
+            // Section 0 spans [0, 230), collapsed section 1 is its header [230, 260),
+            // section 2 starts at 260. At 240 the sticky shows section 1 and section 2's
+            // header (at y = 20) pushes it up.
+            view.scrollBy(240);
+            pump(root);
+            RXListSectionCell sticky = stickyHeader(view);
+            assertEquals(1, view.getVisibleSection().sectionIndex());
+            assertEquals(1, sticky.getItem().sectionIndex());
+            assertEquals(-10.0, sticky.getLayoutY(), 0.5);
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static ObservableList<Integer> numbers(int count) {
@@ -233,11 +366,30 @@ public class RXListViewCollapsibleSectionsTest {
 
     // Items 0..count-1 grouped by tens, 20px rows / 30px headers.
     private static RXListView<Integer> grouped(int count) {
+        return grouped(count, 10, false);
+    }
+
+    // Items 0..count-1 in sections of sectionSize, 30px headers; 20px fixed rows, or
+    // rows sized to the default cell's content in variable mode.
+    private static RXListView<Integer> grouped(int count, int sectionSize, boolean variable) {
         RXListView<Integer> view = new RXListView<>(numbers(count));
-        view.setSectionKeyFactory(i -> i / 10);
-        view.setFixedCellSize(20);
+        view.setSectionKeyFactory(i -> i / sectionSize);
+        view.setFixedCellSize(variable ? -1 : 20);
         view.setSectionHeaderHeight(30);
         return view;
+    }
+
+    private static RXListSectionCell stickyHeader(RXListView<?> view) {
+        for (Node node : view.lookupAll(".rx-list-section-header.sticky")) {
+            if (node instanceof RXListSectionCell header) {
+                return header;
+            }
+        }
+        return null;
+    }
+
+    private static boolean hasPseudo(Node node, String name) {
+        return node.getPseudoClassStates().stream().anyMatch(pc -> pc.getPseudoClassName().equals(name));
     }
 
     // Runs A, B, A keyed by the first char; the two A runs are separate sections.
