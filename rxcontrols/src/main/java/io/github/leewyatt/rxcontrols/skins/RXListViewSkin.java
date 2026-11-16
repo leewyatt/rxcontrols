@@ -142,9 +142,6 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     private int cursorSectionFirstItem = -1;
     // The keyboard's own scroll-into-view request (see scrollCursorIntoView).
     private boolean cursorScrollPending;
-    // Set when a header press toggled its section; the further presses and clicks of
-    // the same multi-click are ignored (see onHeaderPressed).
-    private boolean headerMultiClick;
 
     /**
      * Creates the skin for the given list view.
@@ -1376,15 +1373,10 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         if (control.isFocusTraversable()) {
             control.requestFocus();
         }
-        if (event.getClickCount() == 1) {
-            headerMultiClick = false;
-        } else if (headerMultiClick) {
-            return;
-        }
         repairCursor();
         RXListSectionCell header = viewport.headerAt(event.getTarget());
         if (header != null) {
-            onHeaderPressed(event, header);
+            onHeaderPressed(header);
             return;
         }
         RXListCell<T> cell = viewport.cellAt(event.getTarget());
@@ -1397,12 +1389,12 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         handlePointerSelect(event, index, isAccumulateMode());
     }
 
-    // A press on a header (in-flow or sticky) toggles its section and puts the
-    // keyboard cursor on it; the selection stays. Only the first press of a
-    // multi-click counts, so a double-click does not toggle twice. Nodes inside a
-    // custom header that consume their press never get here.
-    private void onHeaderPressed(MouseEvent event, RXListSectionCell header) {
-        if (!headersNavigable() || event.getClickCount() != 1) {
+    // Every press on a header (in-flow or sticky) toggles its section and puts the
+    // keyboard cursor on it; the selection stays. Like TitledPane and the TreeCell
+    // disclosure arrow, a double-click toggles twice. Nodes inside a custom header
+    // that consume their press never get here.
+    private void onHeaderPressed(RXListSectionCell header) {
+        if (!headersNavigable()) {
             return;
         }
         // The header's record was bound by an earlier pass; find it in the live sections.
@@ -1414,10 +1406,6 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         focusHeader(sectionIndex);
         focusModel.syncSelectionLeadState();
         toggleSection(sectionIndex);
-        // The toggle can move the content under the pointer (a collapse near the end
-        // clamps the scroll offset), so the rest of this multi-click must not land on
-        // whatever row is there now.
-        headerMultiClick = true;
     }
 
     // "Accumulate" modes show a per-item indicator (checkbox / checkmark) in
@@ -1475,9 +1463,6 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     }
 
     private void onMouseClicked(MouseEvent event) {
-        if (headerMultiClick) {
-            return;
-        }
         if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
             RXListCell<T> cell = viewport.cellAt(event.getTarget());
             if (cell != null) {

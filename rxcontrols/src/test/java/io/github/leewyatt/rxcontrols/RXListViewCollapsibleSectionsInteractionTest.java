@@ -109,14 +109,17 @@ public class RXListViewCollapsibleSectionsInteractionTest {
     }
 
     @Test
-    public void doubleClickOnAHeaderTogglesOnce() throws Exception {
+    public void everyPressOfAFastClickRunToggles() throws Exception {
         onFx(() -> {
             RXListView<Integer> view = collapsible(100);
             StackPane root = host(view);
             pump(root);
             RXListSectionCell header = header(view, 1);
             pressCount(header, 1);
+            assertFalse(view.isSectionExpanded(1));
             pressCount(header, 2);
+            assertTrue(view.isSectionExpanded(1), "the second press of a double-click toggles back");
+            pressCount(header, 3);
             assertFalse(view.isSectionExpanded(1));
         });
     }
@@ -583,32 +586,6 @@ public class RXListViewCollapsibleSectionsInteractionTest {
     // ==================== Edge cases ====================
 
     @Test
-    public void secondClickAfterAHeaderToggleDoesNotHitTheShiftedRow() throws Exception {
-        onFx(() -> {
-            RXListView<Integer> view = collapsible(100);
-            AtomicInteger actions = new AtomicInteger();
-            view.setOnAction(e -> actions.incrementAndGet());
-            StackPane root = host(view);
-            pump(root);
-            view.scrollTo(99, ScrollAlignment.END);
-            pump(root);
-            pressCount(header(view, 9), 1);
-            pump(root);
-            // Collapsing the last section clamps the offset: an item row is now where
-            // the header was. The rest of the double-click lands on it.
-            RXListCell<?> shifted = cellByIndex(view, 85);
-            assertNotNull(shifted);
-            pressCount(shifted, 2);
-            doubleClick(shifted);
-            assertTrue(view.getSelectionModel().getSelectedIndices().isEmpty(), "nothing gets selected");
-            assertEquals(0, actions.get(), "nothing gets activated");
-            assertFalse(view.isSectionExpanded(9));
-            pressCount(shifted, 1);
-            assertEquals(85, view.getSelectionModel().getSelectedIndex(), "a new click works again");
-        });
-    }
-
-    @Test
     public void stickyCustomHeaderRerendersWhenItsSectionToggles() throws Exception {
         onFx(() -> {
             RXListView<Integer> view = collapsible(100);
@@ -902,12 +879,6 @@ public class RXListViewCollapsibleSectionsInteractionTest {
     private static void pressCount(Node target, int clickCount) {
         target.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, 5, 5, 5, 5, MouseButton.PRIMARY, clickCount,
                 false, false, false, false, true, false, false, false, false, true,
-                new PickResult(target, 5, 5)));
-    }
-
-    private static void doubleClick(Node target) {
-        target.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 5, 5, 5, 5, MouseButton.PRIMARY, 2,
-                false, false, false, false, false, false, false, false, false, true,
                 new PickResult(target, 5, 5)));
     }
 
