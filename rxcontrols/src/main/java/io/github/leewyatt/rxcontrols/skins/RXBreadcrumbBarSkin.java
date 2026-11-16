@@ -812,6 +812,8 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
             setGraphic(icon);
             getStyleClass().setAll(styleClass);
             setMnemonicParsing(false);
+            // Fills the row so the whole height of the bar is a click target.
+            setMaxHeight(Double.MAX_VALUE);
             setAccessibleRole(AccessibleRole.MENU_BUTTON);
             addEventHandler(KeyEvent.KEY_PRESSED, event -> {
                 if (event.getCode() == KeyCode.DOWN || event.getCode() == KeyCode.KP_DOWN) {

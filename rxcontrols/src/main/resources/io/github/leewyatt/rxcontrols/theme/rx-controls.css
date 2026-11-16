@@ -3531,9 +3531,12 @@
 .rx-breadcrumb-bar > .item:current {
     -fx-text-fill: -rx-on-surface;
 }
-.rx-breadcrumb-bar > .branch-button,
 .rx-breadcrumb-bar > .overflow-button {
     -fx-padding: 0.25em 0.167em 0.25em 0.167em;
+}
+.rx-breadcrumb-bar > .branch-button {
+    -fx-padding: 0.25em 0.417em 0.25em 0.417em;
+    -fx-cursor: hand;
 }
 .rx-breadcrumb-bar > .item:hover,
 .rx-breadcrumb-bar > .branch-button:hover,
@@ -3543,10 +3546,13 @@
     -fx-background-color: -rx-primary-bg;
 }
 .rx-breadcrumb-bar > .branch-button > .arrow {
-    -fx-pref-width: 0.583em;
-    -fx-pref-height: 0.333em;
+    -fx-pref-width: 0.667em;
+    -fx-pref-height: 0.417em;
     -fx-background-color: -rx-on-surface-secondary;
-    -fx-shape: "M0 0 L7 0 L3.5 4 Z";
+    -fx-shape: "M0 0 L8 0 L4 5 Z";
+}
+.rx-breadcrumb-bar > .branch-button:hover > .arrow {
+    -fx-background-color: -rx-primary;
 }
 .rx-breadcrumb-bar > .branch-button:showing > .arrow {
     -fx-background-color: -rx-primary;
