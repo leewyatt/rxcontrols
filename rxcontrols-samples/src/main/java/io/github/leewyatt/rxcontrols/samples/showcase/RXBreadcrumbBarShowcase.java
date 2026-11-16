@@ -39,7 +39,8 @@ import java.util.stream.IntStream;
  * changing the mode never touches the factory. Choosing Buttons from Data Display's
  * arrow lands on "Components / Buttons" with the old suffix gone. The "Orders" path
  * has a level of records too long to list, which the branch filter keeps out of the
- * menus in either mode. The right pane drives every
+ * menus in either mode. The separator can be switched from the default CSS shape
+ * to text supplied by a separator factory. The right pane drives every
  * property, a preview width to watch the middle collapse into the overflow button,
  * font size and right-to-left orientation, and an asynchronous mode in which the
  * application holds each request and commits it later, dropping superseded ones.
@@ -206,6 +207,12 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
     }
 
     private Node buildDisplayGrid() {
+        ComboBox<String> separator = new ComboBox<>();
+        separator.getItems().setAll("Chevron (CSS shape)", "/", "\u00b7", "then");
+        separator.setValue("Chevron (CSS shape)");
+        separator.setMaxWidth(Double.MAX_VALUE);
+        separator.valueProperty().addListener((obs, old, value) ->
+                bar.setSeparatorFactory(value.startsWith("Chevron") ? null : () -> new Label(value)));
         CheckBox icons = new CheckBox("Icons");
         icons.setSelected(true);
         icons.selectedProperty().addListener((obs, old, value) -> bar.setGraphicFactory(value ? this::iconFor : null));
@@ -216,6 +223,7 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
         fontSize.valueProperty().addListener((obs, old, value) ->
                 bar.setStyle(String.format("-fx-font-size: %.0fpx;", value.doubleValue())));
         return createGrid(
+                row("Separator", separator),
                 row(icons),
                 row(rtl),
                 row("Font size", fontSize, createValueLabel(fontSize, "%.0f px")));

@@ -212,6 +212,40 @@ public class RXBreadcrumbBarTest {
         });
     }
 
+    // ==================== Separators ====================
+
+    @Test
+    public void separatorFactorySuppliesOneNodePerSeparator() throws InterruptedException {
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = show(new RXBreadcrumbBar<>("A", "B", "C"), 800);
+            assertEquals(List.of(Region.class, Region.class), separatorContentTypes(bar));
+
+            List<Node> made = new ArrayList<>();
+            bar.setSeparatorFactory(() -> {
+                Label slash = new Label("/");
+                made.add(slash);
+                return slash;
+            });
+            layout(bar, 800);
+            List<Node> shown = separatorContents(bar);
+            assertEquals(2, shown.size());
+            assertTrue(made.containsAll(shown) && shown.get(0) != shown.get(1), "one node each");
+            assertTrue(shown.get(0).getParent().isMouseTransparent());
+
+            bar.getItems().add("D");
+            layout(bar, 800);
+            assertEquals(3, separatorContents(bar).size());
+
+            bar.setSeparatorFactory(() -> null);
+            layout(bar, 800);
+            assertEquals(List.of(Region.class, Region.class, Region.class), separatorContentTypes(bar));
+
+            bar.setSeparatorFactory(null);
+            layout(bar, 800);
+            assertEquals(List.of(Region.class, Region.class, Region.class), separatorContentTypes(bar));
+        });
+    }
+
     // ==================== Branch menus ====================
 
     @Test
@@ -696,6 +730,18 @@ public class RXBreadcrumbBarTest {
         return bar.getChildrenUnmodifiable().stream()
                 .filter(n -> n.getStyleClass().contains(styleClass) && n.isVisible())
                 .count();
+    }
+
+    // The node inside each visible separator, in path order.
+    private static List<Node> separatorContents(RXBreadcrumbBar<?> bar) {
+        return bar.getChildrenUnmodifiable().stream()
+                .filter(n -> n.getStyleClass().contains("separator") && n.isVisible())
+                .map(n -> ((Parent) n).getChildrenUnmodifiable().get(0))
+                .collect(Collectors.toList());
+    }
+
+    private static List<Class<?>> separatorContentTypes(RXBreadcrumbBar<?> bar) {
+        return separatorContents(bar).stream().map(Node::getClass).collect(Collectors.toList());
     }
 
     private static List<String> texts(List<Labeled> items) {

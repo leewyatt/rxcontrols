@@ -23,6 +23,7 @@ import javafx.util.StringConverter;
 
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * A breadcrumb trail: the path from a root to the current location, with each
@@ -33,7 +34,9 @@ import java.util.function.Predicate;
  * is no separate "selected" item. Positions, not values, identify crumbs, so equal
  * or {@code null} values may repeat. Item text comes from the
  * {@link #converterProperty() converter}, an optional icon from the
- * {@link #graphicFactoryProperty() graphicFactory}.</p>
+ * {@link #graphicFactoryProperty() graphicFactory}. The separator between positions
+ * is a CSS shape unless a {@link #separatorFactoryProperty() separatorFactory}
+ * supplies text or another node.</p>
  *
  * <p><b>Navigation is a request.</b> Activating an ancestor fires an
  * {@link RXBreadcrumbEvent} carrying the complete requested path; by default the
@@ -253,6 +256,54 @@ public class RXBreadcrumbBar<T> extends Control {
      */
     public final void setGraphicFactory(Callback<T, Node> value) {
         graphicFactory.set(value);
+    }
+
+    // ==================== Separator Factory ====================
+
+    private final ObjectProperty<Supplier<Node>> separatorFactory =
+            new SimpleObjectProperty<>(this, "separatorFactory");
+
+    /**
+     * Factory for the node drawn between two path positions, for a separator that
+     * is text or any other node rather than a shape:
+     * {@code bar.setSeparatorFactory(() -> new Label("/"))}. When {@code null} (the
+     * default) the separator is a chevron shape, restyled from CSS through
+     * {@code .rx-breadcrumb-bar > .separator > .icon}; a {@code null} result falls
+     * back to that shape as well.
+     *
+     * <p>The factory is called once per separator and must return a new node on
+     * every call (a node can have only one parent). The nodes must be alike: the
+     * bar measures one separator and uses its width for all of them. Each node is
+     * placed inside the bar's {@code .separator} container, which stays the place
+     * to set spacing from CSS and does not receive mouse input; the node should
+     * not be focusable.</p>
+     *
+     * <p>Under a right-to-left orientation shapes are mirrored but text glyphs are
+     * not, so a directional character such as "›" keeps pointing right; choose the
+     * character by orientation, or use a direction-neutral one.</p>
+     *
+     * @return the separator factory property
+     */
+    public final ObjectProperty<Supplier<Node>> separatorFactoryProperty() {
+        return separatorFactory;
+    }
+
+    /**
+     * Returns the separator factory.
+     *
+     * @return the separator factory, or {@code null}
+     */
+    public final Supplier<Node> getSeparatorFactory() {
+        return separatorFactory.get();
+    }
+
+    /**
+     * Sets the separator factory.
+     *
+     * @param value the separator factory, or {@code null} for the default shape
+     */
+    public final void setSeparatorFactory(Supplier<Node> value) {
+        separatorFactory.set(value);
     }
 
     // ==================== Children Factory ====================

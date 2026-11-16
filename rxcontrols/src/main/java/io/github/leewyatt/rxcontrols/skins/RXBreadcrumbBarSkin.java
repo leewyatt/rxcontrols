@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * Default skin of {@link RXBreadcrumbBar}.
@@ -99,6 +100,11 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         });
         disposer.registerListener(control.converterProperty(), this::rebuild);
         disposer.registerListener(control.graphicFactoryProperty(), this::rebuild);
+        disposer.registerListener(control.separatorFactoryProperty(), () -> {
+            // The pooled separators were made by the previous factory.
+            separators.clear();
+            rebuild();
+        });
         disposer.registerListener(control.childrenFactoryProperty(), this::rebuild);
         disposer.registerListener(control.branchFilterProperty(), this::rebuild);
         disposer.registerListener(control.branchModeProperty(), this::rebuild);
@@ -214,10 +220,15 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
     }
 
     private StackPane createSeparator() {
-        Region icon = new Region();
-        icon.getStyleClass().add("icon");
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        StackPane separator = new StackPane(icon);
+        Supplier<Node> factory = getSkinnable().getSeparatorFactory();
+        Node content = factory == null ? null : factory.get();
+        if (content == null) {
+            Region icon = new Region();
+            icon.getStyleClass().add("icon");
+            icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+            content = icon;
+        }
+        StackPane separator = new StackPane(content);
         separator.getStyleClass().add("separator");
         separator.setMouseTransparent(true);
         separator.setFocusTraversable(false);
