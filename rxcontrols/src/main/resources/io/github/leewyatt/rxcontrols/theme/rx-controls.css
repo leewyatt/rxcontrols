@@ -4966,12 +4966,6 @@
     -fx-background-radius: 7px 7px 0 0;
 }
 
-/* A focus ring drawn as an extra background layer, so it never shifts the layout. */
-.rx-titled-pane > .header:focus-shown {
-    -fx-background-color: -rx-focus, -rx-titled-pane-header-color;
-    -fx-background-insets: 0, 2px;
-}
-
 .rx-titled-pane:indicator-trigger > .header {
     -fx-cursor: default;
     -rx-ripple-enabled: false;
@@ -5005,6 +4999,16 @@
     -fx-pref-height: 10px;
     -fx-background-color: -rx-on-surface-secondary;
     -fx-shape: "M1.41 0 L6.41 5 L1.41 10 L0 8.59 L3.59 5 L0 1.41 Z";
+}
+
+/* Keyboard focus marks the indicator, as the JavaFX TitledPane marks its arrow, rather
+   than outlining the whole header. */
+.rx-titled-pane > .header:focus-shown > .row > .indicator-button {
+    -fx-background-color: -rx-primary-bg;
+}
+
+.rx-titled-pane > .header:focus-shown > .row > .indicator-button > .indicator {
+    -fx-background-color: -rx-focus;
 }
 
 .rx-titled-pane > .body {
