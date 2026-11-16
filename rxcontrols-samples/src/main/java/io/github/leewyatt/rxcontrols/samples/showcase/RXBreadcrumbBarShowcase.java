@@ -17,7 +17,6 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
@@ -25,26 +24,26 @@ import javafx.util.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
  * Showcase application for {@link RXBreadcrumbBar}.
  *
- * <p>The preview is a miniature component catalog: the bar shows where you are,
- * and the page under it plays the application's part — a category page lists its
- * children, so reaching a component goes through the page, never through the bar
- * picking a first child. One children factory describes the catalog; the arrows
- * switch between siblings or, in {@code CHILDREN} mode, open the level below, and
- * changing the mode never touches the factory. Choosing Buttons from Data Display's
- * arrow lands on "Components / Buttons" with the old suffix gone. The "Orders" path
- * has a level of records too long to list, which the branch filter keeps out of the
- * menus in either mode. The separator can be switched from the default CSS shape
- * to text supplied by a separator factory. The right pane drives every
- * property, a preview width to watch the middle collapse into the overflow button,
- * font size and right-to-left orientation, and an asynchronous mode in which the
- * application holds each request and commits it later, dropping superseded ones.
- * For the minimal example see {@link RXBreadcrumbBarDemo}.</p>
+ * <p>The preview has three independent examples. The first is a miniature
+ * component catalog and the only one the right pane drives: the bar shows where
+ * you are, and the page under it plays the application's part — a category page
+ * lists its children, so reaching a component goes through the page, never through
+ * the bar picking a first child. One children factory describes the catalog; the
+ * arrows switch between siblings or, in {@code CHILDREN} mode, open the level
+ * below, and changing the mode never touches the factory. Its controls cover every
+ * property, a preview width, font size and right-to-left orientation, and an
+ * asynchronous mode in which the application holds each request and commits it
+ * later, dropping superseded ones. The second example is a path too long for its
+ * width, collapsed into the overflow button. The third has a level of records too
+ * numerous to list, which a branch filter leaves without an arrow. For the minimal
+ * example see {@link RXBreadcrumbBarDemo}.</p>
  */
 public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
 
@@ -55,10 +54,11 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
     private static final String FILE =
             "M0 0L0 0 M24 24L24 24 M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm7 1.5L18.5 9H13z";
     private static final Duration ASYNC_DELAY = Duration.millis(700);
+    private static final double EXAMPLE_WIDTH = 560.0;
 
     private final Map<String, List<String>> catalog = new LinkedHashMap<>();
     private final RXBreadcrumbBar<String> bar = new RXBreadcrumbBar<>();
-    private final VBox frame = new VBox(16.0);
+    private final VBox frame = new VBox(12.0);
     private final Label pageTitle = new Label();
     private final FlowPane pageLinks = new FlowPane(8.0, 8.0);
     private final Label requestLog = new Label("No request yet");
@@ -84,6 +84,16 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
     }
 
     @Override
+    protected double sceneHeight() {
+        return 760.0;
+    }
+
+    @Override
+    protected String stylesheetPath() {
+        return getClass().getResource("rx-breadcrumb-bar-showcase.css").toExternalForm();
+    }
+
+    @Override
     protected Node createPreview() {
         catalog.put(ROOT, List.of("Buttons", "Data Display", "Inputs", "Navigation"));
         catalog.put("Buttons", List.of("RXButton", "RXFillButton", "RXToggleButton"));
@@ -95,27 +105,69 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
                 .mapToObj(number -> "#" + number)
                 .collect(Collectors.toList()));
 
+        VBox preview = new VBox(16.0,
+                example("Catalog", "Driven by the controls on the right.", buildCatalog()),
+                example("Long path", "A path wider than the bar collapses its middle into the"
+                        + " overflow button; the root and the current item stay.", buildLongPath()),
+                example("Record level", "Orders holds thousands of records, so a branch filter leaves"
+                        + " the order without an arrow while Orders keeps its own.", buildRecordPath()));
+        preview.getStyleClass().add("breadcrumb-preview");
+        preview.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return preview;
+    }
+
+    private Node example(String heading, String caption, Node content) {
+        Label headingLabel = new Label(heading);
+        headingLabel.getStyleClass().add("heading");
+        Label captionLabel = new Label(caption);
+        captionLabel.getStyleClass().add("caption");
+        captionLabel.setWrapText(true);
+        captionLabel.setMaxWidth(EXAMPLE_WIDTH);
+        VBox header = new VBox(2.0, headingLabel, captionLabel);
+        header.getStyleClass().add("header");
+        VBox example = new VBox(12.0, header, content);
+        example.getStyleClass().add("example");
+        return example;
+    }
+
+    private Node buildCatalog() {
         bar.getItems().setAll(ROOT, "Data Display", "Badge");
         bar.setChildrenFactory(this::children);
-        bar.setBranchFilter(this::isListedLevel);
         bar.setGraphicFactory(this::iconFor);
         bar.setOnNavigate(this::onNavigate);
         bar.getItems().addListener((InvalidationListener) obs -> renderPage());
 
-        pageTitle.setStyle("-fx-font-size: 1.6em; -fx-font-weight: bold;");
+        pageTitle.getStyleClass().add("title");
         Label hint = new Label("The page, not the bar, links a category to its children.");
-        hint.setStyle("-fx-text-fill: -fx-mid-text-color;");
+        hint.getStyleClass().add("hint");
         VBox page = new VBox(10.0, pageTitle, hint, pageLinks);
-        page.setStyle("-fx-padding: 16; -fx-background-color: -fx-control-inner-background;"
-                + " -fx-background-radius: 6; -fx-border-color: -fx-box-border; -fx-border-radius: 6;");
-        VBox.setVgrow(page, Priority.ALWAYS);
+        page.getStyleClass().add("page");
 
+        requestLog.getStyleClass().add("request-log");
         frame.getChildren().setAll(bar, page, requestLog);
-        frame.setMaxWidth(560.0);
-        frame.setMaxHeight(Region.USE_PREF_SIZE);
+        frame.setMaxWidth(EXAMPLE_WIDTH);
         frame.setAlignment(Pos.TOP_LEFT);
         renderPage();
         return frame;
+    }
+
+    private Node buildLongPath() {
+        RXBreadcrumbBar<String> longPath = new RXBreadcrumbBar<>("Workspace", "Projects", "rxcontrols",
+                "src", "main", "java", "io", "github", "leewyatt", "rxcontrols", "RXBreadcrumbBar.java");
+        longPath.setGraphicFactory(this::iconFor);
+        longPath.setAutoNavigate(true);
+        longPath.setMaxWidth(EXAMPLE_WIDTH);
+        return longPath;
+    }
+
+    private Node buildRecordPath() {
+        RXBreadcrumbBar<String> records = new RXBreadcrumbBar<>("Workspace", RECORD_LEVEL, "#10412");
+        records.setChildrenFactory(this::children);
+        records.setBranchFilter(this::isListedLevel);
+        records.setGraphicFactory(this::iconFor);
+        records.setAutoNavigate(true);
+        records.setMaxWidth(EXAMPLE_WIDTH);
+        return records;
     }
 
     @Override
@@ -133,24 +185,10 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
         Button sampler = new Button("Components / Data Display / Badge");
         sampler.setMaxWidth(Double.MAX_VALUE);
         sampler.setOnAction(e -> bar.getItems().setAll(ROOT, "Data Display", "Badge"));
-        Button deep = new Button("Long file path");
-        deep.setMaxWidth(Double.MAX_VALUE);
-        deep.setOnAction(e -> bar.getItems().setAll("Workspace", "Projects", "rxcontrols", "src", "main",
-                "java", "io", "github", "leewyatt", "rxcontrols", "RXBreadcrumbBar.java"));
-        Button records = new Button("Workspace / Orders / #10412");
-        records.setMaxWidth(Double.MAX_VALUE);
-        records.setOnAction(e -> bar.getItems().setAll("Workspace", RECORD_LEVEL, "#10412"));
-        Button longName = new Button("Single very long title");
-        longName.setMaxWidth(Double.MAX_VALUE);
-        longName.setOnAction(e -> bar.getItems().setAll(
-                "A single path item whose title is far longer than the space the bar can give it"));
-        Button cjk = new Button("CJK path");
-        cjk.setMaxWidth(Double.MAX_VALUE);
-        cjk.setOnAction(e -> bar.getItems().setAll("首页", "组件库", "数据展示", "徽标"));
         Button empty = new Button("Empty");
         empty.setMaxWidth(Double.MAX_VALUE);
         empty.setOnAction(e -> bar.getItems().clear());
-        return createGrid(row(sampler), row(records), row(deep), row(longName), row(cjk), row(empty));
+        return createGrid(row(sampler), row(empty));
     }
 
     private Node buildBehaviorGrid() {
@@ -163,10 +201,7 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
         branchMode.getItems().setAll(BranchMode.values());
         branchMode.setMaxWidth(Double.MAX_VALUE);
         branchMode.valueProperty().bindBidirectional(bar.branchModeProperty());
-        CheckBox filter = new CheckBox("Branch filter (no menu of orders)");
-        filter.setSelected(true);
-        filter.selectedProperty().addListener((obs, old, value) ->
-                bar.setBranchFilter(value ? this::isListedLevel : null));
+        branchMode.disableProperty().bind(branchMenus.selectedProperty().not());
 
         CheckBox currentItemNavigable = new CheckBox("Current item is a link");
         currentItemNavigable.selectedProperty().bindBidirectional(bar.currentItemNavigableProperty());
@@ -180,7 +215,6 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
         return createGrid(
                 row(branchMenus),
                 row("Branch mode", branchMode),
-                row(filter),
                 row(currentItemNavigable),
                 row(autoNavigate),
                 row(async),
@@ -188,7 +222,7 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
     }
 
     private Node buildLayoutGrid() {
-        Slider width = createSlider(80.0, 760.0, frame.getMaxWidth());
+        Slider width = createSlider(80.0, EXAMPLE_WIDTH, EXAMPLE_WIDTH);
         frame.maxWidthProperty().bind(width.valueProperty());
         Slider maxVisible = createSlider(0.0, 8.0, 0.0);
         maxVisible.setMajorTickUnit(1.0);
@@ -204,12 +238,19 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
     }
 
     private Node buildDisplayGrid() {
+        // A null factory keeps the default CSS shape, a slash.
+        Map<String, Supplier<Node>> separators = new LinkedHashMap<>();
+        separators.put("Slash (default)", null);
+        separators.put("Chevron", () -> separatorShape("chevron"));
+        separators.put("Double chevron", () -> separatorShape("double-chevron"));
+        separators.put("Arrow", () -> separatorShape("arrow"));
+        separators.put("Bullet (text)", () -> new Label("\u2022"));
         ComboBox<String> separator = new ComboBox<>();
-        separator.getItems().setAll("Chevron (CSS shape)", "/", "\u00b7", "then");
-        separator.setValue("Chevron (CSS shape)");
+        separator.getItems().setAll(separators.keySet());
+        separator.getSelectionModel().selectFirst();
         separator.setMaxWidth(Double.MAX_VALUE);
         separator.valueProperty().addListener((obs, old, value) ->
-                bar.setSeparatorFactory(value.startsWith("Chevron") ? null : () -> new Label(value)));
+                bar.setSeparatorFactory(separators.get(value)));
         CheckBox icons = new CheckBox("Icons");
         icons.setSelected(true);
         icons.selectedProperty().addListener((obs, old, value) -> bar.setGraphicFactory(value ? this::iconFor : null));
@@ -272,6 +313,15 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
             });
             pageLinks.getChildren().add(link);
         }
+    }
+
+    // A shape defined in the showcase stylesheet; unlike a text glyph it is mirrored
+    // under a right-to-left orientation.
+    private static Node separatorShape(String styleClass) {
+        Region shape = new Region();
+        shape.getStyleClass().addAll("separator-shape", styleClass);
+        shape.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return shape;
     }
 
     // The empty path has no children: this catalog offers no alternative roots.
