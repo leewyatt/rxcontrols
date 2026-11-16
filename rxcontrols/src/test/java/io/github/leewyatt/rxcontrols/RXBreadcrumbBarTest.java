@@ -188,7 +188,7 @@ public class RXBreadcrumbBarTest {
             bar.setOnNavigate(events::add);
             assertInstanceOf(Label.class, visibleItems(bar).get(1));
 
-            bar.setCurrentNavigable(true);
+            bar.setCurrentItemNavigable(true);
             layout(bar, 800);
             Button current = link(bar, 1);
             assertTrue(current.getPseudoClassStates().contains(CURRENT));

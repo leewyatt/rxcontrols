@@ -155,8 +155,8 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
             }
         });
 
-        CheckBox currentNavigable = new CheckBox("Current item is a link");
-        currentNavigable.selectedProperty().bindBidirectional(bar.currentNavigableProperty());
+        CheckBox currentItemNavigable = new CheckBox("Current item is a link");
+        currentItemNavigable.selectedProperty().bindBidirectional(bar.currentItemNavigableProperty());
         CheckBox autoNavigate = new CheckBox("Auto navigate");
         autoNavigate.selectedProperty().bindBidirectional(bar.autoNavigateProperty());
         CheckBox async = new CheckBox("Commit asynchronously (700 ms)");
@@ -166,7 +166,7 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
 
         return createGrid(
                 row("Branches", branches),
-                row(currentNavigable),
+                row(currentItemNavigable),
                 row(autoNavigate),
                 row(async),
                 row(disabled));

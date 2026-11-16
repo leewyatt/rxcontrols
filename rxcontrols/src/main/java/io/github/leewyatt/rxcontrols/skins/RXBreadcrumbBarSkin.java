@@ -99,7 +99,7 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         disposer.registerListener(control.graphicFactoryProperty(), this::rebuild);
         disposer.registerListener(control.branchFactoryProperty(), this::rebuild);
         disposer.registerListener(control.branchModeProperty(), this::rebuild);
-        disposer.registerListener(control.currentNavigableProperty(), this::rebuild);
+        disposer.registerListener(control.currentItemNavigableProperty(), this::rebuild);
         disposer.registerListener(control.maxVisibleItemsProperty(), control::requestLayout);
         disposer.registerListener(control.getProperties(), this::onPropertiesChanged);
         disposer.registerListener(menu.showingProperty(), this::onMenuShowingChanged);
@@ -180,7 +180,7 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         String text = textOf(item);
 
         Labeled itemNode;
-        if (!current || control.isCurrentNavigable()) {
+        if (!current || control.isCurrentItemNavigable()) {
             List<T> target = prefix(index + 1);
             CrumbLink link = new CrumbLink(text, graphicOf(item));
             link.addEventHandler(ActionEvent.ACTION, e -> requestNavigation(target));

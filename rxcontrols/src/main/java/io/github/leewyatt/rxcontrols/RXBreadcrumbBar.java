@@ -69,7 +69,7 @@ public class RXBreadcrumbBar<T> extends Control {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-breadcrumb-bar";
     private static final BranchMode DEFAULT_BRANCH_MODE = BranchMode.SIBLINGS;
-    private static final boolean DEFAULT_CURRENT_NAVIGABLE = false;
+    private static final boolean DEFAULT_CURRENT_ITEM_NAVIGABLE = false;
     private static final boolean DEFAULT_AUTO_NAVIGATE = false;
     private static final int DEFAULT_MAX_VISIBLE_ITEMS = 0;
 
@@ -309,20 +309,20 @@ public class RXBreadcrumbBar<T> extends Control {
         branchMode.set(value);
     }
 
-    // ==================== Current Navigable ====================
+    // ==================== Current Item Navigable ====================
 
-    private final BooleanProperty currentNavigable =
-            new SimpleBooleanProperty(this, "currentNavigable", DEFAULT_CURRENT_NAVIGABLE);
+    private final BooleanProperty currentItemNavigable =
+            new SimpleBooleanProperty(this, "currentItemNavigable", DEFAULT_CURRENT_ITEM_NAVIGABLE);
 
     /**
      * Whether the current (last) item is a link too. When {@code false} (the
      * default) it is plain text and never fires a request; when {@code true},
      * activating it fires a request for the unchanged path on every activation.
      *
-     * @return the current-navigable property
+     * @return the current-item-navigable property
      */
-    public final BooleanProperty currentNavigableProperty() {
-        return currentNavigable;
+    public final BooleanProperty currentItemNavigableProperty() {
+        return currentItemNavigable;
     }
 
     /**
@@ -330,8 +330,8 @@ public class RXBreadcrumbBar<T> extends Control {
      *
      * @return {@code true} if the current item is a link
      */
-    public final boolean isCurrentNavigable() {
-        return currentNavigable.get();
+    public final boolean isCurrentItemNavigable() {
+        return currentItemNavigable.get();
     }
 
     /**
@@ -339,8 +339,8 @@ public class RXBreadcrumbBar<T> extends Control {
      *
      * @param value {@code true} to make the current item a link
      */
-    public final void setCurrentNavigable(boolean value) {
-        currentNavigable.set(value);
+    public final void setCurrentItemNavigable(boolean value) {
+        currentItemNavigable.set(value);
     }
 
     // ==================== Auto Navigate ====================
