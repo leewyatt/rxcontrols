@@ -100,6 +100,7 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         });
         disposer.registerListener(control.converterProperty(), this::rebuild);
         disposer.registerListener(control.graphicFactoryProperty(), this::rebuild);
+        disposer.registerListener(control.placeholderProperty(), this::rebuild);
         disposer.registerListener(control.separatorFactoryProperty(), () -> {
             // The pooled separators were made by the previous factory.
             separators.clear();
@@ -175,6 +176,14 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
             }
         }
         children.addAll(separators);
+        if (crumbs.isEmpty()) {
+            // Stays hidden; it is styled so that it can give an empty bar its height.
+            children.add(overflowButton);
+            Node placeholder = control.getPlaceholder();
+            if (placeholder != null) {
+                children.add(placeholder);
+            }
+        }
         getChildren().setAll(children);
         control.requestLayout();
         if (focus != null) {
@@ -576,6 +585,10 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
             overflowButton.setVisible(false);
             hideSeparators(0);
             fit = new BreadcrumbFitter.Fit(0, 0, 0.0);
+            Node placeholder = shownPlaceholder();
+            if (placeholder != null) {
+                layoutInArea(placeholder, x, y, w, h, 0.0, HPos.LEFT, VPos.CENTER);
+            }
             return;
         }
         BreadcrumbFitter.Fit previous = fit;
@@ -660,6 +673,20 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         }
     }
 
+    // The placeholder, when the empty path put it among the children.
+    private Node shownPlaceholder() {
+        Node placeholder = getSkinnable().getPlaceholder();
+        return placeholder != null && placeholder.getParent() == getSkinnable() ? placeholder : null;
+    }
+
+    // The overflow button is as tall as a row of text items, so an empty bar keeps
+    // that height and nothing below it moves when a path appears.
+    private double emptyHeight() {
+        double height = snapSizeY(overflowButton.prefHeight(-1));
+        Node placeholder = shownPlaceholder();
+        return placeholder == null ? height : Math.max(height, snapSizeY(placeholder.prefHeight(-1)));
+    }
+
     private double[] measureWidths() {
         double[] widths = new double[crumbs.size()];
         for (int i = 0; i < widths.length; i++) {
@@ -690,7 +717,8 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
     protected double computeMinWidth(double height, double topInset, double rightInset,
                                      double bottomInset, double leftInset) {
         if (crumbs.isEmpty()) {
-            return leftInset + rightInset;
+            Node placeholder = shownPlaceholder();
+            return leftInset + (placeholder == null ? 0.0 : snapSizeX(placeholder.minWidth(-1))) + rightInset;
         }
         return leftInset + BreadcrumbFitter.minWidth(measureWidths(), currentMinWidth(), separatorWidth(),
                 snapSizeX(overflowButton.prefWidth(-1)), getSkinnable().getMaxVisibleItems()) + rightInset;
@@ -701,7 +729,8 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
         if (crumbs.isEmpty()) {
-            return leftInset + rightInset;
+            Node placeholder = shownPlaceholder();
+            return leftInset + (placeholder == null ? 0.0 : snapSizeX(placeholder.prefWidth(-1))) + rightInset;
         }
         double[] widths = measureWidths();
         double separatorWidth = separatorWidth();
@@ -724,7 +753,7 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
         if (crumbs.isEmpty()) {
-            return topInset + bottomInset;
+            return topInset + emptyHeight() + bottomInset;
         }
         double height = snapSizeY(overflowButton.prefHeight(-1));
         for (Crumb crumb : crumbs) {

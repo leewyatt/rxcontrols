@@ -258,6 +258,41 @@ public class RXBreadcrumbBar<T> extends Control {
         graphicFactory.set(value);
     }
 
+    // ==================== Placeholder ====================
+
+    private final ObjectProperty<Node> placeholder = new SimpleObjectProperty<>(this, "placeholder");
+
+    /**
+     * The node shown while the path is empty, a hint such as
+     * {@code new Label("No location")}. It is display only: it is not part of the
+     * path and fires no request. When {@code null} (the default) an empty bar
+     * shows nothing. Either way an empty bar keeps the height of one row of text,
+     * so content below it does not move when a path appears.
+     *
+     * @return the placeholder property
+     */
+    public final ObjectProperty<Node> placeholderProperty() {
+        return placeholder;
+    }
+
+    /**
+     * Returns the placeholder.
+     *
+     * @return the placeholder, or {@code null}
+     */
+    public final Node getPlaceholder() {
+        return placeholder.get();
+    }
+
+    /**
+     * Sets the placeholder.
+     *
+     * @param value the node to show while the path is empty, or {@code null} for none
+     */
+    public final void setPlaceholder(Node value) {
+        placeholder.set(value);
+    }
+
     // ==================== Separator Factory ====================
 
     private final ObjectProperty<Supplier<Node>> separatorFactory =

@@ -251,6 +251,12 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
         separator.setMaxWidth(Double.MAX_VALUE);
         separator.valueProperty().addListener((obs, old, value) ->
                 bar.setSeparatorFactory(separators.get(value)));
+        Label emptyHint = new Label("No location selected");
+        emptyHint.getStyleClass().add("placeholder");
+        bar.setPlaceholder(emptyHint);
+        CheckBox placeholder = new CheckBox("Placeholder for the empty path");
+        placeholder.setSelected(true);
+        placeholder.selectedProperty().addListener((obs, old, value) -> bar.setPlaceholder(value ? emptyHint : null));
         CheckBox icons = new CheckBox("Icons");
         icons.setSelected(true);
         icons.selectedProperty().addListener((obs, old, value) -> bar.setGraphicFactory(value ? this::iconFor : null));
@@ -262,6 +268,7 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
                 bar.setStyle(String.format("-fx-font-size: %.0fpx;", value.doubleValue())));
         return createGrid(
                 row("Separator", separator),
+                row(placeholder),
                 row(icons),
                 row(rtl),
                 row("Font size", fontSize, createValueLabel(fontSize, "%.0f px")));

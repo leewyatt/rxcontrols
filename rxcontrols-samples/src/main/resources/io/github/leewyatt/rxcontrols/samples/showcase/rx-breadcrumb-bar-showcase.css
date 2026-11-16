@@ -48,3 +48,6 @@
 .breadcrumb-preview .rx-breadcrumb-bar > .separator > .label {
     -fx-text-fill: -rx-on-surface-secondary;
 }
+.breadcrumb-preview .rx-breadcrumb-bar > .placeholder {
+    -fx-text-fill: -showcase-caption-color;
+}

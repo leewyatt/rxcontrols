@@ -213,6 +213,46 @@ public class RXBreadcrumbBarTest {
         });
     }
 
+    // ==================== Empty path ====================
+
+    @Test
+    public void emptyPathKeepsTheHeightOfARowAndShowsThePlaceholder() throws InterruptedException {
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = show(new RXBreadcrumbBar<>(), 800);
+            double emptyHeight = bar.prefHeight(-1);
+            assertFalse(overflow(bar).isVisible());
+
+            bar.getItems().setAll("Home");
+            layout(bar, 800);
+            double rowHeight = bar.prefHeight(-1);
+            assertTrue(rowHeight > 0);
+            assertEquals(rowHeight, emptyHeight, 0.01, "no jump when a path appears");
+
+            bar.getItems().clear();
+            layout(bar, 800);
+            assertEquals(rowHeight, bar.prefHeight(-1), 0.01, "no jump when the path empties");
+            assertTrue(visibleItems(bar).isEmpty());
+
+            Label hint = new Label("No location");
+            bar.setPlaceholder(hint);
+            layout(bar, 800);
+            assertEquals(bar, hint.getParent());
+            assertEquals(rowHeight, bar.prefHeight(-1), 0.01);
+            assertTrue(bar.prefWidth(-1) >= hint.prefWidth(-1));
+            assertTrue(visibleItems(bar).isEmpty(), "the placeholder is not a path item");
+
+            bar.getItems().setAll("Home", "Library");
+            layout(bar, 800);
+            assertFalse(bar.getChildrenUnmodifiable().contains(hint));
+            assertEquals(List.of("Home", "Library"), texts(visibleItems(bar)));
+
+            bar.getItems().clear();
+            bar.setPlaceholder(null);
+            layout(bar, 800);
+            assertFalse(bar.getChildrenUnmodifiable().contains(hint));
+        });
+    }
+
     // ==================== Separators ====================
 
     @Test
