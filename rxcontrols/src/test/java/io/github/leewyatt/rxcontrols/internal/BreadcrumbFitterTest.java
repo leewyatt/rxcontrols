@@ -65,6 +65,25 @@ public class BreadcrumbFitterTest {
     }
 
     @Test
+    public void twoItemPathKeepsARootNarrowerThanTheOverflowButton() {
+        double[] widths = {15, 100};
+        Fit fit = BreadcrumbFitter.fit(widths, 30, SEP, OVF, 85, 0);
+        assertFalse(fit.hasHidden(), "hiding the root would only cost width");
+        assertEquals(60, fit.currentWidth(), EPS);
+        assertEquals(15 + SEP + 30, BreadcrumbFitter.minWidth(widths, 30, SEP, OVF, 0), EPS);
+        assertEquals(OVF + SEP + 30, BreadcrumbFitter.minWidth(new double[]{50, 100}, 30, SEP, OVF, 0), EPS);
+    }
+
+    @Test
+    public void exactPreferredWidthNeverCollapses() {
+        // 0.1 + 0.2 summed in different orders differs in the last bit.
+        double[] widths = {0.1, 0.2, 0.3};
+        double pref = BreadcrumbFitter.arrangedWidth(
+                BreadcrumbFitter.fit(widths, 0.1, 0.0, OVF, Double.MAX_VALUE, 0), widths, 0.0, OVF);
+        assertFalse(BreadcrumbFitter.fit(widths, 0.1, 0.0, OVF, pref, 0).hasHidden());
+    }
+
+    @Test
     public void currentShrinksAfterEverythingElseCollapsedAndStopsAtItsMinimum() {
         double[] widths = {50, 50, 200};
         Fit shrunk = BreadcrumbFitter.fit(widths, 40, SEP, OVF, 130, 0);

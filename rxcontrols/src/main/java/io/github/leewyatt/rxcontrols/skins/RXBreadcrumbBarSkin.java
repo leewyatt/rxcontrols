@@ -88,7 +88,7 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         overflowButton.setAccessibleText("Show hidden path items");
         overflowButton.addEventHandler(ActionEvent.ACTION, e -> openOverflowMenu());
         trackFocusShown(overflowButton);
-        disposer.registerEventFilter(control, MouseEvent.MOUSE_PRESSED, e -> pointerFocus = true);
+        disposer.registerEventFilter(control, MouseEvent.MOUSE_PRESSED, this::onMousePressedFilter);
         disposer.registerEventFilter(control, KeyEvent.KEY_PRESSED, this::onKeyPressedFilter);
 
         disposer.registerListener(control.itemsProperty(), (obs, oldItems, newItems) -> {
@@ -350,8 +350,13 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
 
     // ==================== Focus ====================
 
+    // The listener lives on a node this skin created; once the skin is disposed (the
+    // node may still lose focus a pulse later) it must stay silent.
     private void trackFocusShown(Button button) {
         button.focusedProperty().addListener((obs, was, focused) -> {
+            if (getSkinnable() == null) {
+                return;
+            }
             if (!focused && !isInside(focusOwner())) {
                 pointerFocus = false;
             }
@@ -361,6 +366,22 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
 
     private void updateFocusShown(Node node) {
         node.pseudoClassStateChanged(FOCUS_SHOWN_PSEUDO_CLASS, node.isFocused() && !pointerFocus);
+    }
+
+    private void onMousePressedFilter(MouseEvent event) {
+        if (event.getTarget() instanceof Node target && crumbButtonOf(target) != null) {
+            pointerFocus = true;
+        }
+    }
+
+    // The bar's own button containing the node (a press may target its text), if any.
+    private Button crumbButtonOf(Node node) {
+        RXBreadcrumbBar<T> control = getSkinnable();
+        Node current = node;
+        while (current != null && current.getParent() != control) {
+            current = current.getParent();
+        }
+        return current instanceof Button button ? button : null;
     }
 
     private void onKeyPressedFilter(KeyEvent event) {
@@ -385,13 +406,17 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
     }
 
     private Node focusOwner() {
-        Scene scene = getSkinnable().getScene();
+        RXBreadcrumbBar<T> control = getSkinnable();
+        Scene scene = control == null ? null : control.getScene();
         return scene == null ? null : scene.getFocusOwner();
     }
 
     private FocusSlot slotOf(Node node) {
         if (node == overflowButton) {
             return new FocusSlot(fit.hiddenFrom(), false, true);
+        }
+        if (crumbs.isEmpty() && node.getParent() == getSkinnable()) {
+            return foreignSlotOf(node);
         }
         for (int i = 0; i < crumbs.size(); i++) {
             Crumb crumb = crumbs.get(i);
@@ -405,8 +430,27 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         return null;
     }
 
-    // Focus moves only after layout decided visibility, and never inside the layout
-    // pass itself, so it is deferred to the next turn of the event loop.
+    // A node left by a previous skin of the same control (this skin is being built):
+    // locate it by role and position among the control's children.
+    private FocusSlot foreignSlotOf(Node node) {
+        if (node.getStyleClass().contains("overflow-button")) {
+            return new FocusSlot(0, false, true);
+        }
+        int index = -1;
+        for (Node child : getSkinnable().getChildrenUnmodifiable()) {
+            if (child.getStyleClass().contains("item")) {
+                index++;
+            }
+            if (child == node) {
+                return index < 0 ? null : new FocusSlot(index, node.getStyleClass().contains("branch-button"), false);
+            }
+        }
+        return null;
+    }
+
+    // Focus is never moved inside a layout pass; the restore runs on a later turn of
+    // the event loop. If it lands before the next layout hides its target, the layout
+    // pass notices the hidden focus owner and schedules another restore.
     private void scheduleFocusRestore(FocusSlot slot) {
         pendingFocus = slot;
         if (focusRestoreScheduled) {
@@ -432,7 +476,7 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         }
         int index = Math.min(slot.index, crumbs.size() - 1);
         List<Node> candidates = new ArrayList<>();
-        if (slot.overflow) {
+        if (slot.overflow || fit.isHidden(index)) {
             candidates.add(overflowButton);
         }
         Crumb crumb = crumbs.get(index);
@@ -586,11 +630,8 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         if (crumbs.isEmpty()) {
             return leftInset + rightInset;
         }
-        double width = currentMinWidth();
-        if (crumbs.size() > 1) {
-            width += snapSizeX(overflowButton.prefWidth(-1)) + separatorWidth();
-        }
-        return leftInset + width + rightInset;
+        return leftInset + BreadcrumbFitter.minWidth(measureWidths(), currentMinWidth(), separatorWidth(),
+                snapSizeX(overflowButton.prefWidth(-1)), getSkinnable().getMaxVisibleItems()) + rightInset;
     }
 
     /** {@inheritDoc} */

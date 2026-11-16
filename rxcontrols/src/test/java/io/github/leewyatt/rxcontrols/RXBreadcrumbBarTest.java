@@ -11,13 +11,19 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Labeled;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.StringConverter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.opentest4j.TestAbortedException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Tests for {@link RXBreadcrumbBar}: the crumb structure, the navigation request
@@ -290,6 +297,7 @@ public class RXBreadcrumbBarTest {
         runOnFx(() -> {
             RXBreadcrumbBar<String> bar = show(new RXBreadcrumbBar<>(
                     "Root", "Alpha Alpha", "Beta Beta", "Gamma Gamma", "Delta Delta", "Current"), 1200);
+            bar.setPrefWidth(Region.USE_COMPUTED_SIZE);
             double full = bar.prefWidth(-1);
             assertEquals(6, visibleItems(bar).size());
 
@@ -368,7 +376,11 @@ public class RXBreadcrumbBarTest {
             Thread.currentThread().setUncaughtExceptionHandler((t, e) -> errors.add(e));
             try {
                 RXBreadcrumbBar<String> bar = show(new RXBreadcrumbBar<>("A", "B"), 800);
-                bar.setSkin(new RXBreadcrumbBarSkin<>(bar));
+                RXBreadcrumbBarSkin<String> oldSkin = (RXBreadcrumbBarSkin<String>) bar.getSkin();
+                // A distinct class: JavaFX ignores a new skin of the same class.
+                bar.setSkin(new RXBreadcrumbBarSkin<>(bar) {
+                });
+                assertTrue(bar.getSkin() != oldSkin && oldSkin.getSkinnable() == null, "the old skin is disposed");
                 bar.getItems().setAll("X", "Y", "Z");
                 layout(bar, 800);
                 assertEquals(List.of("X", "Y", "Z"), texts(visibleItems(bar)));
@@ -378,6 +390,94 @@ public class RXBreadcrumbBarTest {
             } finally {
                 Thread.currentThread().setUncaughtExceptionHandler(previous);
             }
+        });
+    }
+
+    @Test
+    public void skinSwapKeepsFocusInsideAndClosesTheOldMenu() throws InterruptedException {
+        AtomicReference<RXBreadcrumbBar<String>> ref = new AtomicReference<>();
+        List<Throwable> errors = new ArrayList<>();
+        AtomicReference<Thread.UncaughtExceptionHandler> previous = new AtomicReference<>();
+        runOnFx(() -> {
+            previous.set(Thread.currentThread().getUncaughtExceptionHandler());
+            Thread.currentThread().setUncaughtExceptionHandler((t, e) -> errors.add(e));
+            RXBreadcrumbBar<String> bar = show(
+                    new RXBreadcrumbBar<>("Components", "Data Display", "Badge"), 800);
+            bar.setBranchFactory(RXBreadcrumbBarTest::siblings);
+            layout(bar, 800);
+            link(bar, 1).requestFocus();
+            branchButton(bar, 2).fire();
+            assertNotNull(openMenu());
+            bar.setSkin(new RXBreadcrumbBarSkin<>(bar) {
+            });
+            assertTrue(openMenus().isEmpty(), "the old skin's menu closes with it");
+            ref.set(bar);
+        });
+        Thread.sleep(300);
+        runOnFx(() -> {
+            try {
+                RXBreadcrumbBar<String> bar = ref.get();
+                Node owner = bar.getScene().getFocusOwner();
+                assertTrue(errors.isEmpty(), "no listener of the old skin may fail: " + errors);
+                assertTrue(owner != null && owner.getParent() == bar, "focus stays in the bar: " + owner);
+                assertEquals("Data Display", ((Labeled) owner).getText());
+            } finally {
+                Thread.currentThread().setUncaughtExceptionHandler(previous.get());
+            }
+        });
+    }
+
+    @Test
+    public void downKeyOpensABranchMenu() throws InterruptedException {
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = show(
+                    new RXBreadcrumbBar<>("Components", "Data Display", "Badge"), 800);
+            bar.setBranchFactory(RXBreadcrumbBarTest::siblings);
+            layout(bar, 800);
+            Button arrow = branchButton(bar, 2);
+            arrow.requestFocus();
+            arrow.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.DOWN, false, false, false, false));
+            assertNotNull(openMenu());
+            assertTrue(arrow.getPseudoClassStates().contains(PseudoClass.getPseudoClass("showing")));
+        });
+    }
+
+    @Test
+    public void focusedItemThatCollapsesHandsFocusToTheOverflowButton() throws InterruptedException {
+        AtomicReference<RXBreadcrumbBar<String>> ref = new AtomicReference<>();
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = show(new RXBreadcrumbBar<>(
+                    "Root", "Alpha Alpha", "Beta Beta", "Gamma Gamma", "Delta Delta", "Current"), 1200);
+            link(bar, 2).requestFocus();
+            layout(bar, bar.minWidth(-1));
+            assertFalse(link(bar, 2).isVisible());
+            ref.set(bar);
+        });
+        Thread.sleep(200);
+        runOnFx(() -> assertEquals(overflow(ref.get()), ref.get().getScene().getFocusOwner()));
+    }
+
+    @Test
+    public void focusRingIsHeldBackAfterAPointerPressUntilAKeyPress() throws InterruptedException {
+        runOnFx(() -> {
+            PseudoClass shown = PseudoClass.getPseudoClass("focus-shown");
+            RXBreadcrumbBar<String> bar = show(new RXBreadcrumbBar<>("Home", "Library", "Data"), 800);
+            Button home = link(bar, 0);
+            home.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, 1, 1, 1, 1, MouseButton.PRIMARY, 1,
+                    false, false, false, false, true, false, false, true, false, false, null));
+            stage.requestFocus();
+            home.requestFocus();
+            // Node.focused needs a focused window, which a test run cannot always get.
+            assumeTrue(home.isFocused(), "the test window did not receive focus");
+            assertFalse(home.getPseudoClassStates().contains(shown), "pointer focus: no ring");
+
+            // Not an arrow key: the scene would traverse focus away on one.
+            home.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.A, false, false, false, false));
+            assertTrue(home.getPseudoClassStates().contains(shown), "a key press brings the ring back");
+
+            Button library = link(bar, 1);
+            library.requestFocus();
+            assertTrue(library.getPseudoClassStates().contains(shown), "keyboard focus shows the ring");
         });
     }
 
@@ -399,7 +499,9 @@ public class RXBreadcrumbBarTest {
         return bar;
     }
 
+    // The width is also the preferred width, so the Pane root keeps it on later pulses.
     private static void layout(RXBreadcrumbBar<?> bar, double width) {
+        bar.setPrefWidth(width);
         Parent root = bar.getParent();
         root.applyCss();
         root.layout();
@@ -497,6 +599,9 @@ public class RXBreadcrumbBarTest {
         Throwable t = error.get();
         if (t instanceof AssertionError) {
             throw (AssertionError) t;
+        }
+        if (t instanceof TestAbortedException) {
+            throw (TestAbortedException) t;
         }
         if (t != null) {
             throw new AssertionError("FX task failed", t);

@@ -24,6 +24,10 @@ package io.github.leewyatt.rxcontrols.internal;
  */
 public final class BreadcrumbFitter {
 
+    // Measurements are sums of snapped sizes added in different orders; a parent that
+    // hands over exactly the preferred width must not trip a strict comparison.
+    private static final double EPSILON = 1e-6;
+
     private BreadcrumbFitter() {
     }
 
@@ -83,11 +87,16 @@ public final class BreadcrumbFitter {
             suffix[i] = suffix[i + 1] + widths[i];
         }
 
-        if (n <= cap && tailWidth(suffix, n, 0, separatorWidth) <= available) {
+        if (n <= cap && tailWidth(suffix, n, 0, separatorWidth) <= available + EPSILON) {
             return new Fit(0, 0, current);
         }
         if (n == 1) {
             return new Fit(0, 0, shrink(current, currentMinWidth, available));
+        }
+        // Two positions with a root no wider than the overflow button: collapsing the
+        // root would only cost width, so the current position shrinks instead.
+        if (n == 2 && cap >= 2 && widths[0] <= overflowWidth) {
+            return new Fit(0, 0, shrink(current, currentMinWidth, available - widths[0] - separatorWidth));
         }
 
         // Keep the root: needs a non-empty middle to hide, and room in the count for
@@ -95,7 +104,7 @@ public final class BreadcrumbFitter {
         if (n >= 3 && cap >= 2) {
             double head = widths[0] + separatorWidth + overflowWidth + separatorWidth;
             for (int k = Math.max(2, n - cap + 1); k <= n - 1; k++) {
-                if (head + tailWidth(suffix, n, k, separatorWidth) <= available) {
+                if (head + tailWidth(suffix, n, k, separatorWidth) <= available + EPSILON) {
                     return new Fit(1, k, current);
                 }
             }
@@ -103,11 +112,29 @@ public final class BreadcrumbFitter {
 
         double head = overflowWidth + separatorWidth;
         for (int k = Math.max(1, n - cap); k <= n - 1; k++) {
-            if (head + tailWidth(suffix, n, k, separatorWidth) <= available) {
+            if (head + tailWidth(suffix, n, k, separatorWidth) <= available + EPSILON) {
                 return new Fit(0, k, current);
             }
         }
         return new Fit(0, n - 1, shrink(current, currentMinWidth, available - head));
+    }
+
+    /**
+     * Returns the smallest width the arrangement can take: the current position at
+     * its minimum, preceded by whatever {@link #fit} keeps beside it at that size
+     * (the overflow button, or a root narrower than it on a two-position path).
+     *
+     * @param widths          preferred width of every path position
+     * @param currentMinWidth the minimum width of the current position
+     * @param separatorWidth  the width of one separator
+     * @param overflowWidth   the width of the overflow button
+     * @param maxVisibleItems the visible-position limit, or {@code <= 0} for none
+     * @return the minimum arranged width, {@code 0} for an empty path
+     */
+    public static double minWidth(double[] widths, double currentMinWidth, double separatorWidth,
+                                  double overflowWidth, int maxVisibleItems) {
+        Fit fit = fit(widths, currentMinWidth, separatorWidth, overflowWidth, 0.0, maxVisibleItems);
+        return arrangedWidth(fit, widths, separatorWidth, overflowWidth);
     }
 
     /**

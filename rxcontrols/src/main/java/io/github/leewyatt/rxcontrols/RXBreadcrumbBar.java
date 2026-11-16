@@ -57,7 +57,11 @@ import java.util.List;
  * its minimum width, which the bar reports as its own minimum width.</p>
  *
  * <p>Every interactive part is a regular Tab stop; separators are not focusable.
- * Not thread-safe; use on the JavaFX Application Thread.</p>
+ * The default accessibility texts are English ("breadcrumb", "current page",
+ * "&lt;item&gt; options", "Show hidden path items"); an application can replace the
+ * bar's own with {@link #setAccessibleRoleDescription(String)} and
+ * {@link #setAccessibleText(String)}. Not thread-safe; use on the JavaFX
+ * Application Thread.</p>
  *
  * @param <T> the item type
  */
