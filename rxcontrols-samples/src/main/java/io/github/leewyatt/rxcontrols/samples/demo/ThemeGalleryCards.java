@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.ImageFit;
+import io.github.leewyatt.rxcontrols.RXAccordion;
 import io.github.leewyatt.rxcontrols.RXAudioSpectrum;
 import io.github.leewyatt.rxcontrols.RXAutoCompleteField;
 import io.github.leewyatt.rxcontrols.RXAvatar;
@@ -117,6 +118,7 @@ import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineItem.Type;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
 import io.github.leewyatt.rxcontrols.RXTimelineView.Position;
+import io.github.leewyatt.rxcontrols.RXTitledPane;
 import io.github.leewyatt.rxcontrols.RXToggleButton;
 import io.github.leewyatt.rxcontrols.RXTransitionButton;
 import io.github.leewyatt.rxcontrols.RXTransitionLabel;
@@ -206,6 +208,7 @@ final class ThemeGalleryCards {
     /** Every gallery control, sorted by name. */
     static List<NamedControl> cards() {
         List<NamedControl> list = new ArrayList<>();
+        list.add(card("RXAccordion", "Collapsible panes with single or multiple expansion.", buildRXAccordion()));
         list.add(card("RXAudioSpectrum", "Canvas audio spectrum with pluggable visualizations.", buildRXAudioSpectrum()));
         list.add(card("RXAutoCompleteField", "Text field with a filtered suggestion popup.", buildRXAutoCompleteField()));
         list.add(card("RXAvatar", "Image, initials or icon in a circle or rounded square.", buildRXAvatar()));
@@ -734,6 +737,15 @@ final class ThemeGalleryCards {
         box.setPrefSize(240.0, 80.0);
         box.setMaxWidth(280.0);
         return box;
+    }
+
+    private static Node buildRXAccordion() {
+        RXTitledPane general = new RXTitledPane("General", new TextField("Workspace name"));
+        general.setHeaderTrailing(new Button("Edit"));
+        general.setExpanded(true);
+        RXTitledPane members = new RXTitledPane("Members", new Label("3 members"));
+        RXTitledPane billing = new RXTitledPane("Billing", new Label("Free plan"));
+        return new RXAccordion(general, members, billing);
     }
 
     private static Node buildRXDrawerPane() {
