@@ -4980,10 +4980,12 @@
     -fx-text-fill: -rx-on-surface;
 }
 
+/* A square box, so the hover / focus halo behind the indicator is a true circle. */
 .rx-titled-pane > .header > .row > .indicator-button {
     -fx-background-color: transparent;
-    -fx-background-radius: 999px;
-    -fx-padding: 0.25em;
+    -fx-background-radius: 50%;
+    -fx-pref-width: 1.666667em;
+    -fx-pref-height: 1.666667em;
 }
 
 .rx-titled-pane:indicator-trigger > .header > .row > .indicator-button {
