@@ -4953,7 +4953,7 @@
 
 .rx-titled-pane > .header {
     -fx-background-color: -rx-titled-pane-header-color;
-    -fx-padding: 0.75em 1em;
+    -fx-padding: 0.583333em 1em;
     -fx-cursor: hand;
     -rx-ripple-fill: -rx-state-overlay-color;
 }
@@ -4972,20 +4972,18 @@
     -fx-text-fill: -rx-on-surface;
 }
 
-/* A square box, so the hover / focus halo behind the indicator is a true circle. */
+/* Transparent fill keeps the padded box pickable as the INDICATOR trigger area. */
 .rx-titled-pane > .header > .row > .indicator-button {
     -fx-background-color: transparent;
-    -fx-background-radius: 50%;
-    -fx-pref-width: 1.666667em;
-    -fx-pref-height: 1.666667em;
+    -fx-padding: 0.25em;
 }
 
 .rx-titled-pane:indicator-trigger > .header > .row > .indicator-button {
     -fx-cursor: hand;
 }
 
-.rx-titled-pane:indicator-trigger > .header > .row > .indicator-button:hover {
-    -fx-background-color: -rx-primary-bg;
+.rx-titled-pane:indicator-trigger > .header > .row > .indicator-button:hover > .indicator {
+    -fx-background-color: -rx-on-surface;
 }
 
 .rx-titled-pane > .header > .row > .indicator-button > .indicator {
@@ -4995,12 +4993,7 @@
     -fx-shape: "M1.41 0 L6.41 5 L1.41 10 L0 8.59 L3.59 5 L0 1.41 Z";
 }
 
-/* Keyboard focus marks the indicator, as the JavaFX TitledPane marks its arrow, rather
-   than outlining the whole header. */
-.rx-titled-pane > .header:focus-shown > .row > .indicator-button {
-    -fx-background-color: -rx-primary-bg;
-}
-
+/* Keyboard focus tints the indicator, as the JavaFX TitledPane tints its arrow. */
 .rx-titled-pane > .header:focus-shown > .row > .indicator-button > .indicator {
     -fx-background-color: -rx-focus;
 }
