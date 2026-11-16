@@ -19,6 +19,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.collections.ObservableSet;
 import javafx.collections.WeakListChangeListener;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
@@ -40,6 +41,7 @@ import javafx.util.StringConverter;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -68,6 +70,15 @@ import java.util.Objects;
  * marquee (drag-rectangle) selection. There is no property to switch the keyboard
  * handling off; to disable a key (or all of them), add a consuming filter, e.g.
  * {@code listView.addEventFilter(KeyEvent.KEY_PRESSED, KeyEvent::consume)}.
+ *
+ * <p>Adjacent items can be grouped into sections with headers
+ * ({@link #sectionKeyFactoryProperty() sectionKeyFactory}), and with
+ * {@link #collapsibleSectionsProperty() collapsibleSections} each section can be
+ * collapsed to its header. The keyboard cursor then also rests on header rows: the
+ * arrow keys move through headers and shown items, {@code Space} / {@code Enter} on
+ * a header toggles it, {@code Left} collapses the header's section (on an item it
+ * moves to the item's header) and {@code Right} expands it (on an expanded section
+ * it moves to the first item); left and right swap in a right-to-left orientation.
  *
  * @param <T> the item type
  */
@@ -104,6 +115,8 @@ public class RXListView<T> extends Control {
      * Default for {@link #stickySectionHeaderProperty()}.
      */
     private static final boolean DEFAULT_STICKY_SECTION_HEADER = true;
+
+    private static final boolean DEFAULT_COLLAPSIBLE_SECTIONS = false;
 
     private static final boolean DEFAULT_SMOOTH_SCROLLING = true;
     private static final SmoothScrollMode DEFAULT_SMOOTH_SCROLL_MODE = RXSmoothScrollOptions.DEFAULT_MODE;
@@ -636,8 +649,18 @@ public class RXListView<T> extends Control {
 
     private final ObjectProperty<Callback<T, Object>> sectionKeyFactory =
             new SimpleObjectProperty<>(this, "sectionKeyFactory") {
+                // A bound factory invalidates whenever its binding does, even when it
+                // re-evaluates to the same instance; only a different factory clears.
+                private Callback<T, Object> lastFactory;
+
                 @Override
                 protected void invalidated() {
+                    Callback<T, Object> factory = get();
+                    if (factory != lastFactory) {
+                        lastFactory = factory;
+                        // The recorded keys belong to the old factory's key space.
+                        collapsedSectionKeys.clear();
+                    }
                     recomputeSections();
                 }
             };
@@ -647,7 +670,10 @@ public class RXListView<T> extends Control {
      * read-only {@link #sectionsProperty() sections} and enabling section headers.
      * When {@code null} (the default) the view is flat. The items are not
      * reordered, so two non-adjacent runs of the same key form two sections —
-     * pass a {@code SortedList} to aggregate scattered keys.
+     * pass a {@code SortedList} to aggregate scattered keys. Changing the factory
+     * clears {@link #getCollapsedSectionKeys() collapsedSectionKeys}, because the
+     * recorded keys belong to the old factory; set the factory first, then the
+     * collapsed state.
      *
      * @return the section-key-factory property
      */
@@ -678,7 +704,11 @@ public class RXListView<T> extends Control {
 
     /**
      * Factory that creates the section-header cells. When {@code null}, the view
-     * uses a default factory that renders the section key as text.
+     * uses a default factory that renders the section key as text. With
+     * {@link #collapsibleSectionsProperty() collapsibleSections} a press anywhere on
+     * a header toggles its section; interactive nodes placed in a custom header keep
+     * their own presses as long as they consume them, which the standard controls
+     * ({@code Button}, {@code CheckBox}, text inputs, ...) do.
      *
      * @return the section-header-factory property
      */
@@ -968,14 +998,134 @@ public class RXListView<T> extends Control {
         visibleSection.set(value);
     }
 
+    // ==================== Collapsible Sections ====================
+
+    private final BooleanProperty collapsibleSections =
+            new SimpleBooleanProperty(this, "collapsibleSections", DEFAULT_COLLAPSIBLE_SECTIONS);
+
+    /**
+     * Whether section headers act as expand / collapse toggles. Off by default. While
+     * on — and while the view is grouped with {@link #showSectionHeadersProperty()
+     * showSectionHeaders} {@code true} — a section whose key is in
+     * {@link #getCollapsedSectionKeys() collapsedSectionKeys} shows only its header
+     * row; its items stay in the items list and in the selection model, they just
+     * get no row. A press on a header (in-flow or sticky) toggles its section, and
+     * the keyboard cursor can rest on header rows (see the class description); a
+     * collapsing section that holds the cursor hands it to its header. Turning this
+     * off (or hiding the headers) lays every section out expanded without forgetting
+     * the recorded state, which applies again once both are back on. Not styleable:
+     * it decides which items are visible and how the keyboard moves, which a theme
+     * must not change.
+     *
+     * @return the collapsible-sections property
+     */
+    public final BooleanProperty collapsibleSectionsProperty() {
+        return collapsibleSections;
+    }
+
+    /**
+     * Returns whether section headers act as expand / collapse toggles.
+     *
+     * @return {@code true} if sections are collapsible
+     */
+    public final boolean isCollapsibleSections() {
+        return collapsibleSections.get();
+    }
+
+    /**
+     * Sets whether section headers act as expand / collapse toggles.
+     *
+     * @param value {@code true} to make sections collapsible
+     */
+    public final void setCollapsibleSections(boolean value) {
+        collapsibleSections.set(value);
+    }
+
+    private final ObservableSet<Object> collapsedSectionKeys = FXCollections.observableSet(new HashSet<>());
+
+    /**
+     * The keys of the collapsed sections — the single source of the collapsed state,
+     * kept by key so it survives filtering, sorting and item changes. A key absent
+     * from the set is expanded, so a section with a new key starts expanded; a key
+     * that leaves the items keeps its entry and is collapsed again when it returns.
+     * All sections with an equal key (by {@code equals}, including the {@code null}
+     * key) share one state, so non-adjacent runs of the same key collapse together.
+     * Keys therefore need a stable {@code equals} / {@code hashCode}, like map keys.
+     *
+     * <p>The set is modifiable (add a key to collapse, remove it to expand, save and
+     * restore it as a whole) and is recorded whether or not
+     * {@link #collapsibleSectionsProperty() collapsibleSections} is on; it only
+     * affects the layout while that is on and headers are shown. It is cleared when
+     * the {@link #sectionKeyFactoryProperty() sectionKeyFactory} changes.
+     *
+     * @return the modifiable set of collapsed section keys, never {@code null}
+     */
+    public final ObservableSet<Object> getCollapsedSectionKeys() {
+        return collapsedSectionKeys;
+    }
+
+    /**
+     * Returns whether the sections with the given key are recorded as expanded, that
+     * is, whether the key is absent from {@link #getCollapsedSectionKeys()}. This is
+     * the recorded state; the layout only collapses a section while
+     * {@link #collapsibleSectionsProperty() collapsibleSections} is on and headers
+     * are shown.
+     *
+     * @param sectionKey the section key, possibly {@code null}
+     * @return {@code true} unless the key is recorded as collapsed
+     */
+    public final boolean isSectionExpanded(Object sectionKey) {
+        return !collapsedSectionKeys.contains(sectionKey);
+    }
+
+    /**
+     * Expands or collapses the sections with the given key by removing it from or
+     * adding it to {@link #getCollapsedSectionKeys()}. Recorded even while
+     * {@link #collapsibleSectionsProperty() collapsibleSections} is off.
+     *
+     * @param sectionKey the section key, possibly {@code null}
+     * @param expanded   {@code true} to expand, {@code false} to collapse
+     */
+    public final void setSectionExpanded(Object sectionKey, boolean expanded) {
+        if (expanded) {
+            collapsedSectionKeys.remove(sectionKey);
+        } else {
+            collapsedSectionKeys.add(sectionKey);
+        }
+    }
+
+    /**
+     * Expands every section by clearing {@link #getCollapsedSectionKeys()} —
+     * including the keys of sections that are currently filtered out, so they come
+     * back expanded too.
+     */
+    public final void expandAllSections() {
+        collapsedSectionKeys.clear();
+    }
+
+    /**
+     * Collapses every current section by adding the key of each section in
+     * {@link #getSections()} to {@link #getCollapsedSectionKeys()}. Keys that are not
+     * present now cannot be known, so a section that appears later starts expanded.
+     */
+    public final void collapseAllSections() {
+        List<Object> keys = new ArrayList<>(getSections().size());
+        for (RXListSection section : getSections()) {
+            keys.add(section.key());
+        }
+        collapsedSectionKeys.addAll(keys);
+    }
+
     // ==================== Focused Index (read-only) ====================
 
     private final ReadOnlyIntegerWrapper focusedIndex = new ReadOnlyIntegerWrapper(this, "focusedIndex", -1);
 
     /**
      * The index of the item holding the keyboard focus cursor (the row the arrow
-     * keys move and {@code Enter} activates), or {@code -1} when none. The cursor
-     * is skin-driven and read-only here; it resets when the skin is replaced.
+     * keys move and {@code Enter} activates), or {@code -1} when none — including
+     * while the cursor rests on a section header, which collapsible sections allow
+     * (see {@link #collapsibleSectionsProperty()}). The cursor is skin-driven and
+     * read-only here; it resets when the skin is replaced.
      *
      * @return the read-only focused-index property
      */
@@ -1006,10 +1156,11 @@ public class RXListView<T> extends Control {
     private final ReadOnlyIntegerWrapper rowCount = new ReadOnlyIntegerWrapper(this, "rowCount", 0);
 
     /**
-     * The number of visual rows resolved by the most recent layout: the item count
-     * plus, when grouping with headers shown, one row per section header — the same
-     * metric as {@link RXTileView#rowCountProperty()}. For a flat list it equals the
-     * item count.
+     * The number of visual rows laid out by the most recent layout: one row per
+     * shown item plus, when grouping with headers shown, one row per section header
+     * — the same metric as {@link RXTileView#rowCountProperty()}. The items of a
+     * collapsed section (see {@link #collapsibleSectionsProperty()}) get no row and
+     * are not counted. For a flat list it equals the item count.
      *
      * @return the read-only row-count property
      */
@@ -1043,7 +1194,8 @@ public class RXListView<T> extends Control {
     /**
      * The item / row range currently realized in the viewport, refreshed when the
      * realized range changes. Immutable snapshots keep listeners from seeing torn
-     * reads.
+     * reads. With collapsed sections the item bounds may enclose hidden items; see
+     * {@link RXListVisibleRange} for what each field counts.
      *
      * @return the read-only visible-range property
      */
@@ -1085,6 +1237,8 @@ public class RXListView<T> extends Control {
      * Scrolls the minimum distance needed to make the item at {@code index}
      * visible ({@link ScrollAlignment#NEAREST}); does nothing if it is already
      * fully visible. Pass {@link ScrollAlignment#START} to pin the row to the top.
+     * An item hidden in a collapsed section is revealed by expanding its section
+     * first (see {@link #scrollTo(int, ScrollAlignment)}).
      *
      * @param index the item index; out-of-range values are clamped during layout
      */
@@ -1100,12 +1254,18 @@ public class RXListView<T> extends Control {
      * at a previous width) and refined as the surrounding rows are measured, so
      * {@code CENTER} / {@code END} may land approximately until then.
      *
+     * <p>When the item is hidden in a collapsed section (see
+     * {@link #collapsibleSectionsProperty()}), its section key is expanded right away
+     * so the item gets a row to scroll to. Selecting an item does not expand anything,
+     * and neither does the keyboard: it never moves onto a hidden item.
+     *
      * @param index     the item index; out-of-range values are clamped during layout
      * @param alignment where the target row should land; {@code null} is treated
      *                  as {@link ScrollAlignment#NEAREST}, matching the
      *                  single-argument overload
      */
     public final void scrollTo(int index, ScrollAlignment alignment) {
+        revealItem(index);
         pendingScroll = true;
         // Clamp negatives at entry: -1 is the relative-delta sentinel, not a target.
         pendingScrollIndex = Math.max(0, index);
@@ -1118,7 +1278,8 @@ public class RXListView<T> extends Control {
     /**
      * Scrolls the minimum distance needed to make the given item visible
      * ({@link ScrollAlignment#NEAREST}). Does nothing if the item is not in the
-     * list or already fully visible.
+     * list or already fully visible. An item hidden in a collapsed section is
+     * revealed by expanding its section first.
      *
      * @param item the item to scroll to
      */
@@ -1129,7 +1290,8 @@ public class RXListView<T> extends Control {
     /**
      * Scrolls so the given item is visible with the given alignment. Does nothing
      * if the item is not in the list (matched by {@code equals}; the first match
-     * is used).
+     * is used). An item hidden in a collapsed section is revealed by expanding its
+     * section first.
      *
      * @param item      the item to scroll to
      * @param alignment where the target row should land; {@code null} is treated
@@ -1150,7 +1312,8 @@ public class RXListView<T> extends Control {
     /**
      * Scrolls so the first section with the given key is visible
      * ({@link ScrollAlignment#START}). Does nothing if no section matches or the
-     * view is flat.
+     * view is flat. A collapsed section is not expanded — its header is the
+     * target, and it is always shown.
      *
      * @param sectionKey the section key to scroll to, matched by
      *                   {@link Objects#equals(Object, Object)}
@@ -1180,7 +1343,7 @@ public class RXListView<T> extends Control {
     /**
      * Scrolls so the section at the given index (handling duplicate keys) is
      * visible ({@link ScrollAlignment#START}). Does nothing if the index is out of
-     * range.
+     * range. A collapsed section is not expanded.
      *
      * @param sectionIndex the section index in {@link #getSections()}
      */
@@ -1201,6 +1364,31 @@ public class RXListView<T> extends Control {
         if (sectionIndex >= 0 && sectionIndex < list.size()) {
             requestSectionScroll(list.get(sectionIndex), alignment);
         }
+    }
+
+    // Expands the key of the section holding the (clamped) index when that section
+    // is laid out collapsed, so the item has a row to scroll to.
+    private void revealItem(int index) {
+        ObservableList<T> list = getItems();
+        List<RXListSection> all = getSections();
+        if (!isCollapsibleSections() || !isShowSectionHeaders() || all.isEmpty()
+                || list == null || list.isEmpty() || collapsedSectionKeys.isEmpty()) {
+            return;
+        }
+        int clamped = Math.max(0, Math.min(index, list.size() - 1));
+        int lo = 0;
+        int hi = all.size() - 1;
+        int found = 0;
+        while (lo <= hi) {
+            int mid = (lo + hi) >>> 1;
+            if (all.get(mid).firstItemIndex() <= clamped) {
+                found = mid;
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
+        }
+        setSectionExpanded(all.get(found).key(), true);
     }
 
     private void requestSectionScroll(RXListSection section, ScrollAlignment alignment) {

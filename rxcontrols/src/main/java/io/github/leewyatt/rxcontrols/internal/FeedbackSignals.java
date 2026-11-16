@@ -20,6 +20,12 @@ public final class FeedbackSignals {
      */
     public static final String HOLD_RESET = "rx-hold-reset";
 
+    /**
+     * Request from a breadcrumb bar to rebuild its crumbs: always
+     * {@code Boolean.TRUE}.
+     */
+    public static final String BREADCRUMB_REFRESH = "rx-breadcrumb-refresh";
+
     private FeedbackSignals() {
     }
 }

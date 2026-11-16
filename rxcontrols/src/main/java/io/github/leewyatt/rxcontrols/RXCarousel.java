@@ -51,6 +51,10 @@ import java.util.List;
  * <p>The transition effect is controlled by the {@link #animationProperty() animation}
  * property, which accepts any {@link PageAnimation} implementation.</p>
  *
+ * <p>While the carousel itself has keyboard focus, the Left and Right arrow keys
+ * show the previous and next page. Arrow keys pressed while a node inside a page
+ * has focus are left to that node and to focus traversal.</p>
+ *
  * <pre>{@code
  * // Simple: fixed pages
  * RXCarousel carousel = new RXCarousel();

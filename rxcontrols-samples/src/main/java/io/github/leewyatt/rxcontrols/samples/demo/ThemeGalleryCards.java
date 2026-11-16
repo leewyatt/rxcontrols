@@ -2,6 +2,8 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.ImageFit;
+import io.github.leewyatt.rxcontrols.ItemsJustify;
+import io.github.leewyatt.rxcontrols.RXAccordion;
 import io.github.leewyatt.rxcontrols.RXAudioSpectrum;
 import io.github.leewyatt.rxcontrols.RXAutoCompleteField;
 import io.github.leewyatt.rxcontrols.RXAvatar;
@@ -9,6 +11,7 @@ import io.github.leewyatt.rxcontrols.RXAvatar.ShapeType;
 import io.github.leewyatt.rxcontrols.RXBadge;
 import io.github.leewyatt.rxcontrols.RXBackdrop;
 import io.github.leewyatt.rxcontrols.RXBarSpinner;
+import io.github.leewyatt.rxcontrols.RXBreadcrumbBar;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCalendarView;
 import io.github.leewyatt.rxcontrols.RXCarousel;
@@ -117,6 +120,7 @@ import io.github.leewyatt.rxcontrols.RXTimelineItem;
 import io.github.leewyatt.rxcontrols.RXTimelineItem.Type;
 import io.github.leewyatt.rxcontrols.RXTimelineView;
 import io.github.leewyatt.rxcontrols.RXTimelineView.Position;
+import io.github.leewyatt.rxcontrols.RXTitledPane;
 import io.github.leewyatt.rxcontrols.RXToggleButton;
 import io.github.leewyatt.rxcontrols.RXTransitionButton;
 import io.github.leewyatt.rxcontrols.RXTransitionLabel;
@@ -149,6 +153,7 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
@@ -206,12 +211,14 @@ final class ThemeGalleryCards {
     /** Every gallery control, sorted by name. */
     static List<NamedControl> cards() {
         List<NamedControl> list = new ArrayList<>();
+        list.add(card("RXAccordion", "Collapsible panes with single or multiple expansion.", buildRXAccordion()));
         list.add(card("RXAudioSpectrum", "Canvas audio spectrum with pluggable visualizations.", buildRXAudioSpectrum()));
         list.add(card("RXAutoCompleteField", "Text field with a filtered suggestion popup.", buildRXAutoCompleteField()));
         list.add(card("RXAvatar", "Image, initials or icon in a circle or rounded square.", buildRXAvatar()));
         list.add(card("RXBackdrop", "Fading scrim that dims the content beneath it.", buildRXBackdrop()));
         list.add(card("RXBadge", "Count, text or dot indicator on a corner of any node.", buildRXBadge()));
         list.add(card("RXBarSpinner", "Decorative loading bars.", buildRXBarSpinner()));
+        list.add(card("RXBreadcrumbBar", "Path trail with sibling menus and overflow.", buildRXBreadcrumbBar()));
         list.add(card("RXButton", "Button with bounded ripple feedback.", buildRXButton()));
         list.add(card("RXCalendarView", "Month calendar with month and year drill-up.", buildRXCalendarView()));
         list.add(wide("RXCarousel", "Paged carousel with animated page transitions.", buildRXCarousel()));
@@ -300,6 +307,7 @@ final class ThemeGalleryCards {
         list.add(card("RXTimeView", "Scrolling hour and minute columns.", buildRXTimeView()));
         list.add(card("RXTimelineView", "Vertical timeline of events.", buildRXTimelineView()));
         list.add(wide("RXTimelineView Horizontal", "Horizontal timeline of events.", buildRXTimelineViewHorizontal()));
+        list.add(card("RXTitledPane", "Collapsible section with a trailing header slot.", buildRXTitledPane()));
         list.add(card("RXToggleButton", "Toggle button with ripple feedback.", buildRXToggleButton()));
         list.add(card("RXTransitionButton", "Button that flips to alternate content.", buildRXTransitionButton()));
         list.add(card("RXTransitionLabel", "Label that animates text changes.", buildRXTransitionLabel()));
@@ -416,6 +424,18 @@ final class ThemeGalleryCards {
         card.setStyle("-fx-background-color: -rx-surface-variant; -fx-background-radius: 8px;"
                 + " -fx-border-color: -rx-outline-variant; -fx-border-radius: 8px;");
         return new RXRibbonBadge(card, "Recommended");
+    }
+
+    private static Node buildRXBreadcrumbBar() {
+        Map<String, List<String>> children = Map.of(
+                "Components", List.of("Buttons", "Data Display", "Inputs"),
+                "Data Display", List.of("Badge", "Chip", "Avatar"));
+        RXBreadcrumbBar<String> breadcrumb = new RXBreadcrumbBar<>("Components", "Data Display", "Badge");
+        breadcrumb.setChildrenFactory(path -> path.isEmpty()
+                ? List.of()
+                : children.getOrDefault(path.get(path.size() - 1), List.of()));
+        breadcrumb.setOnNavigate(event -> breadcrumb.getItems().setAll(event.getPath()));
+        return breadcrumb;
     }
 
     private static Node buildRXBarSpinner() {
@@ -734,6 +754,15 @@ final class ThemeGalleryCards {
         box.setPrefSize(240.0, 80.0);
         box.setMaxWidth(280.0);
         return box;
+    }
+
+    private static Node buildRXAccordion() {
+        RXTitledPane general = new RXTitledPane("General", new TextField("Workspace name"));
+        general.setHeaderTrailing(new Button("Edit"));
+        general.setExpanded(true);
+        RXTitledPane members = new RXTitledPane("Members", new Label("3 members"));
+        RXTitledPane billing = new RXTitledPane("Billing", new Label("Free plan"));
+        return new RXAccordion(general, members, billing);
     }
 
     private static Node buildRXDrawerPane() {
@@ -1397,6 +1426,17 @@ final class ThemeGalleryCards {
         return timeline;
     }
 
+    private static Node buildRXTitledPane() {
+        RXSwitchButton enabled = new RXSwitchButton();
+        enabled.setSelected(true);
+
+        RXTitledPane notifications = new RXTitledPane("Notifications",
+                new VBox(8.0, new Label("Email"), new TextField("me@example.com")));
+        notifications.setHeaderTrailing(enabled);
+        notifications.setExpanded(true);
+        return notifications;
+    }
+
     private static Node buildRXToggleButton() {
         ToggleGroup group = new ToggleGroup();
         RXToggleButton list = new RXToggleButton("List");
@@ -1413,11 +1453,9 @@ final class ThemeGalleryCards {
     }
 
     private static Node buildRXTransitionButton() {
-        RXTransitionButton button = new RXTransitionButton("@  Email");
-        button.setPrefSize(240.0, 64.0);
-        button.setMaxSize(240.0, 64.0);
-        Label alternate = new Label("hello@example.com");
-        button.setAlternateContent(alternate);
+        RXTransitionButton button = new RXTransitionButton("Email",
+                SampleIcons.icon(SampleIcons.MAIL, 16.0, "-fx-text-base-color"));
+        button.setAlternateContent(new Label("hello@example.com"));
         button.setAnimation(new AnimSlide(Orientation.VERTICAL));
         return button;
     }
@@ -1695,6 +1733,8 @@ final class ThemeGalleryCards {
                 kanbanColumn("To do", "Wire up API", "Draft docs", "Design icons"),
                 kanbanColumn("Doing", "Drag and drop", "Settle animation"),
                 kanbanColumn("Done", "Column model", "Virtualized viewport")));
+        board.setMinColumnWidth(140.0);
+        board.setColumnsJustify(ItemsJustify.STRETCH);
         board.setPrefSize(600.0, 280.0);
         board.setMaxSize(Double.MAX_VALUE, 280.0);
         return board;
