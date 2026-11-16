@@ -458,6 +458,26 @@ public class RXTitledPaneTest {
     }
 
     @Test
+    public void contentRespectsItsMaxWidth() throws Exception {
+        runOnFx(() -> {
+            Region content = new Region();
+            content.setPrefSize(80, 40);
+            content.setMaxWidth(100);
+            RXTitledPane pane = new RXTitledPane("Title", content);
+            pane.setAnimated(false);
+            pane.setExpanded(true);
+            StackPane root = new StackPane(pane);
+            new Scene(root, 500, 300);
+            root.applyCss();
+            root.layout();
+            Region body = (Region) pane.lookup(".body");
+            assertTrue(body.getWidth() > 300);
+            assertEquals(100.0, content.getWidth(), 0.5);
+            assertEquals(body.snappedLeftInset(), content.getLayoutX(), 0.5);
+        });
+    }
+
+    @Test
     public void constrainedParentNeverProducesNegativeSizes() throws Exception {
         runOnFx(() -> {
             Region content = new Region();

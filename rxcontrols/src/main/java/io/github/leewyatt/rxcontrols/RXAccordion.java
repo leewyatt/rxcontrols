@@ -66,7 +66,8 @@ import java.util.Set;
  * <p>The list rejects {@code null} and duplicates; a bulk change that would violate
  * this leaves the list unchanged. Like a node joining a new parent, a pane added to
  * another accordion is removed from its previous one, so a discarded accordion never
- * keeps a pane.
+ * keeps a pane. Moving that same pane again from a listener on the previous
+ * accordion's list, while the first move is still in progress, is not supported.
  * Up / Down / Home / End move focus between the titles of the group's enabled,
  * visible panes. Panes are stacked at their preferred heights, so the accordion is as
  * tall as its content; wrap it in a {@code ScrollPane} to scroll.</p>
@@ -352,6 +353,10 @@ public class RXAccordion extends Control {
     private void collapseOthers(RXTitledPane keep) {
         int current = ++generation;
         for (RXTitledPane pane : new ArrayList<>(panes)) {
+            // A listener may have left SINGLE mode; its own expansions must then stand.
+            if (!isSingle()) {
+                return;
+            }
             if (pane != keep && pane.getAccordion() == this && pane.isExpanded()
                     && !pane.expandedProperty().isBound()) {
                 pane.setExpanded(false);

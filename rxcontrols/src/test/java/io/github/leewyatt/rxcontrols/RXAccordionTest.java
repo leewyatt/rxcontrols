@@ -289,6 +289,42 @@ public class RXAccordionTest {
         });
     }
 
+    @Test
+    public void leavingSingleModeFromAListenerKeepsTheListenersExpansion() throws Exception {
+        runOnFx(() -> {
+            RXTitledPane a = pane("A");
+            RXTitledPane b = pane("B");
+            RXTitledPane c = pane("C");
+            RXAccordion accordion = new RXAccordion(a, b, c);
+            a.setExpanded(true);
+            a.expandedProperty().addListener((obs, was, is) -> {
+                if (!is) {
+                    accordion.setExpandMode(ExpandMode.MULTIPLE);
+                    c.setExpanded(true);
+                }
+            });
+            b.setExpanded(true);
+            assertEquals(List.of(b, c), accordion.getExpandedPanes());
+        });
+    }
+
+    @Test
+    public void panesRespectTheirMaxWidth() throws Exception {
+        runOnFx(() -> {
+            RXTitledPane a = pane("A");
+            a.setMaxWidth(200);
+            RXTitledPane b = pane("B");
+            RXAccordion accordion = new RXAccordion(a, b);
+            StackPane root = new StackPane(accordion);
+            new Scene(root, 500, 300);
+            root.applyCss();
+            root.layout();
+            assertEquals(200.0, a.getWidth(), 0.5);
+            assertTrue(b.getWidth() > 400.0);
+            assertEquals(b.getLayoutX(), a.getLayoutX(), 0.5);
+        });
+    }
+
     // ==================== Keyboard & nesting ====================
 
     @Test

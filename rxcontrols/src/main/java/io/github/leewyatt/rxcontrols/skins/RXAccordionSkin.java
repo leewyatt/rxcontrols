@@ -207,6 +207,15 @@ public class RXAccordionSkin extends RXSkinBase<RXAccordion> {
         return gap > edgeTop() + edgeBottom();
     }
 
+    // Respects each pane's own width range, as VBox does; a narrower pane sits at the
+    // logical start of the card.
+    private static double paneWidth(Node pane, double inner) {
+        if (inner < 0) {
+            return inner;
+        }
+        return Math.max(pane.minWidth(-1), Math.min(inner, pane.maxWidth(-1)));
+    }
+
     private static double paneHeight(Node pane, double width) {
         double min = pane.minHeight(width);
         double pref = pane.prefHeight(width);
@@ -229,7 +238,7 @@ public class RXAccordionSkin extends RXSkinBase<RXAccordion> {
         double inner = innerWidth(width);
         double total = edgeTop() + edgeBottom();
         for (RXTitledPane pane : panes) {
-            total += snapSizeY(paneHeight(pane, inner));
+            total += snapSizeY(paneHeight(pane, paneWidth(pane, inner)));
         }
         double divider = dividerHeight();
         for (double gap : gaps(panes)) {
@@ -332,8 +341,9 @@ public class RXAccordionSkin extends RXSkinBase<RXAccordion> {
         double cursor = y + top;
         for (int i = 0; i < panes.size(); i++) {
             RXTitledPane pane = panes.get(i);
-            double height = snapSizeY(paneHeight(pane, inner));
-            pane.resizeRelocate(x + left, cursor, inner, height);
+            double width = snapSizeX(paneWidth(pane, inner));
+            double height = snapSizeY(paneHeight(pane, width));
+            pane.resizeRelocate(x + left, cursor, width, height);
             cursor += height;
             boolean last = i == panes.size() - 1;
             if (last || splits(gaps[i])) {

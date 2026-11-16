@@ -112,6 +112,7 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
     private Timeline timeline;
     private Node shownContent;
     private double contentLayoutHeight;
+    private double contentLayoutWidth;
 
     private boolean armed;
     private Node armedArea;
@@ -541,7 +542,14 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
             Node content = shownContent;
             return content == null ? -1 : content.prefWidth(-1);
         }
-        return Math.max(0.0, paneContentWidth - bodyHorizontalInsets());
+        double available = Math.max(0.0, paneContentWidth - bodyHorizontalInsets());
+        Node content = shownContent;
+        if (content == null) {
+            return available;
+        }
+        // Respect the content's own width range, as JavaFX containers do; a narrower
+        // content sits at the logical start of the body.
+        return Math.max(content.minWidth(-1), Math.min(available, content.maxWidth(-1)));
     }
 
     private double bodyNaturalHeight(double paneContentWidth) {
@@ -645,6 +653,7 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
             contentHeight = Math.max(contentMinHeight(contentWidth), available - bodyVerticalInsets());
         }
         contentLayoutHeight = snapSizeY(contentHeight);
+        contentLayoutWidth = snapSizeX(contentWidth);
 
         body.resizeRelocate(x, y + headerHeight, w, bodyHeight);
         body.layoutContent();
@@ -861,8 +870,7 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
             if (content == null || content.getParent() != this || !content.isManaged()) {
                 return;
             }
-            double width = Math.max(0.0, getWidth() - snappedLeftInset() - snappedRightInset());
-            content.resizeRelocate(snappedLeftInset(), snappedTopInset(), width, contentLayoutHeight);
+            content.resizeRelocate(snappedLeftInset(), snappedTopInset(), contentLayoutWidth, contentLayoutHeight);
         }
 
         @Override
