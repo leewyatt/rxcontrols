@@ -274,7 +274,12 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
 
     // ==================== Menus ====================
 
+    // A replacement skin that does not take over the children leaves this skin's
+    // buttons in the scene after dispose; activating one of them must stay inert.
     private void openOverflowMenu() {
+        if (getSkinnable() == null) {
+            return;
+        }
         List<RXMenuItem> entries = new ArrayList<>();
         for (int i = fit.hiddenFrom(); i < fit.hiddenTo() && i < path.size(); i++) {
             T item = path.get(i);
@@ -287,6 +292,9 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
     }
 
     private void openBranchMenu(MenuTrigger trigger, int index, List<T> branch) {
+        if (getSkinnable() == null) {
+            return;
+        }
         BranchMode mode = getSkinnable().getBranchMode();
         boolean children = mode == BranchMode.CHILDREN;
         // The prefix a chosen entry is grafted onto: SIBLINGS replaces the position,

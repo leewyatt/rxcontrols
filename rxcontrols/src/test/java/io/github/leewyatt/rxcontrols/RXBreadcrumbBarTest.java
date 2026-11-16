@@ -11,6 +11,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Labeled;
+import javafx.scene.control.SkinBase;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -365,6 +366,34 @@ public class RXBreadcrumbBarTest {
             });
             layout(bar, 800);
             assertEquals(List.of("ROOT", "NEW"), texts(visibleItems(bar)));
+        });
+    }
+
+    @Test
+    public void buttonsLeftBehindByADisposedSkinAreInert() throws InterruptedException {
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = show(
+                    new RXBreadcrumbBar<>("Components", "Data Display", "Inputs", "Buttons", "Badge"), 1200);
+            bar.setBranchFactory(prefix -> List.of("Badge", "Chip"));
+            bar.setMaxVisibleItems(2);
+            layout(bar, 1200);
+            List<RXBreadcrumbEvent<String>> events = new ArrayList<>();
+            bar.setOnNavigate(events::add);
+            Button oldLink = link(bar, 0);
+            Button oldArrow = branchButton(bar, 4);
+            Button oldOverflow = overflow(bar);
+
+            // SkinBase does not clear the children, so the old buttons stay in the scene.
+            bar.setSkin(new SkinBase<RXBreadcrumbBar<String>>(bar) {
+            });
+            assertTrue(bar.getChildrenUnmodifiable().contains(oldArrow));
+
+            oldLink.fire();
+            oldArrow.fire();
+            oldArrow.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.DOWN, false, false, false, false));
+            oldOverflow.fire();
+            assertTrue(events.isEmpty(), "no request from a disposed skin");
+            assertTrue(openMenus().isEmpty(), "no menu from a disposed skin");
         });
     }
 
