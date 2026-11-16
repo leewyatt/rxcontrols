@@ -13,6 +13,7 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.css.PseudoClass;
+import javafx.event.EventHandler;
 import javafx.event.EventTarget;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -70,6 +71,22 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
     static final String TRIGGER_KEY = "rx-titled-pane-trigger";
 
     private static final PseudoClass FOCUS_SHOWN = PseudoClass.getPseudoClass("focus-shown");
+
+    // Like the browser :focus-visible heuristic: a focus ring shows only when the last
+    // input in the scene was a key press, so the window's initial focus or a focus
+    // set from code after a click stays quiet. One stateless pair of filters per scene,
+    // so no skin is retained by the scene.
+    private static final String KEYBOARD_MODALITY_KEY = "rx-titled-pane-keyboard-modality";
+    private static final EventHandler<KeyEvent> KEY_MODALITY_FILTER = event -> {
+        if (event.getSource() instanceof Scene) {
+            ((Scene) event.getSource()).getProperties().put(KEYBOARD_MODALITY_KEY, Boolean.TRUE);
+        }
+    };
+    private static final EventHandler<MouseEvent> POINTER_MODALITY_FILTER = event -> {
+        if (event.getSource() instanceof Scene) {
+            ((Scene) event.getSource()).getProperties().put(KEYBOARD_MODALITY_KEY, Boolean.FALSE);
+        }
+    };
 
     private static final double INDICATOR_START_ANGLE = 0.0;
     private static final double INDICATOR_END_BASE_ANGLE = 90.0;
@@ -327,7 +344,7 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
 
     private void onHeaderFocusChanged() {
         if (header.isFocused()) {
-            header.setFocusShown(!mouseFocus);
+            header.setFocusShown(!mouseFocus && keyboardModality());
         } else {
             header.setFocusShown(false);
             mouseFocus = false;
@@ -348,9 +365,23 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
         }
         trackedScene = scene;
         if (scene != null) {
+            installModalityFilters(scene);
             scene.focusOwnerProperty().addListener(focusOwnerListener);
             forwardFocus();
         }
+    }
+
+    private static void installModalityFilters(Scene scene) {
+        if (!scene.getProperties().containsKey(KEYBOARD_MODALITY_KEY)) {
+            scene.getProperties().put(KEYBOARD_MODALITY_KEY, Boolean.FALSE);
+            scene.addEventFilter(KeyEvent.KEY_PRESSED, KEY_MODALITY_FILTER);
+            scene.addEventFilter(MouseEvent.MOUSE_PRESSED, POINTER_MODALITY_FILTER);
+        }
+    }
+
+    private boolean keyboardModality() {
+        Scene scene = header.getScene();
+        return scene != null && Boolean.TRUE.equals(scene.getProperties().get(KEYBOARD_MODALITY_KEY));
     }
 
     private void forwardFocus() {
