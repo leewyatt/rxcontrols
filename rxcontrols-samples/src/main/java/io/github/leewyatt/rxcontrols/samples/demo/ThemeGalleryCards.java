@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.ImageFit;
+import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.RXAccordion;
 import io.github.leewyatt.rxcontrols.RXAudioSpectrum;
 import io.github.leewyatt.rxcontrols.RXAutoCompleteField;
@@ -306,6 +307,7 @@ final class ThemeGalleryCards {
         list.add(card("RXTimeView", "Scrolling hour and minute columns.", buildRXTimeView()));
         list.add(card("RXTimelineView", "Vertical timeline of events.", buildRXTimelineView()));
         list.add(wide("RXTimelineView Horizontal", "Horizontal timeline of events.", buildRXTimelineViewHorizontal()));
+        list.add(card("RXTitledPane", "Collapsible section with a trailing header slot.", buildRXTitledPane()));
         list.add(card("RXToggleButton", "Toggle button with ripple feedback.", buildRXToggleButton()));
         list.add(card("RXTransitionButton", "Button that flips to alternate content.", buildRXTransitionButton()));
         list.add(card("RXTransitionLabel", "Label that animates text changes.", buildRXTransitionLabel()));
@@ -1424,6 +1426,17 @@ final class ThemeGalleryCards {
         return timeline;
     }
 
+    private static Node buildRXTitledPane() {
+        RXSwitchButton enabled = new RXSwitchButton();
+        enabled.setSelected(true);
+
+        RXTitledPane notifications = new RXTitledPane("Notifications",
+                new VBox(8.0, new Label("Email"), new TextField("me@example.com")));
+        notifications.setHeaderTrailing(enabled);
+        notifications.setExpanded(true);
+        return notifications;
+    }
+
     private static Node buildRXToggleButton() {
         ToggleGroup group = new ToggleGroup();
         RXToggleButton list = new RXToggleButton("List");
@@ -1440,11 +1453,9 @@ final class ThemeGalleryCards {
     }
 
     private static Node buildRXTransitionButton() {
-        RXTransitionButton button = new RXTransitionButton("@  Email");
-        button.setPrefSize(240.0, 64.0);
-        button.setMaxSize(240.0, 64.0);
-        Label alternate = new Label("hello@example.com");
-        button.setAlternateContent(alternate);
+        RXTransitionButton button = new RXTransitionButton("Email",
+                SampleIcons.icon(SampleIcons.MAIL, 16.0, "-fx-text-base-color"));
+        button.setAlternateContent(new Label("hello@example.com"));
         button.setAnimation(new AnimSlide(Orientation.VERTICAL));
         return button;
     }
@@ -1722,6 +1733,8 @@ final class ThemeGalleryCards {
                 kanbanColumn("To do", "Wire up API", "Draft docs", "Design icons"),
                 kanbanColumn("Doing", "Drag and drop", "Settle animation"),
                 kanbanColumn("Done", "Column model", "Virtualized viewport")));
+        board.setMinColumnWidth(140.0);
+        board.setColumnsJustify(ItemsJustify.STRETCH);
         board.setPrefSize(600.0, 280.0);
         board.setMaxSize(Double.MAX_VALUE, 280.0);
         return board;
