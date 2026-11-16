@@ -6,11 +6,16 @@ import io.github.leewyatt.rxcontrols.carousel.RXPageLifecycleEvent;
 import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
+import javafx.event.Event;
 import javafx.event.EventType;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
+import javafx.util.Callback;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -22,12 +27,14 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Pins the transition scheduling contract of the carousel skin: animation
- * gating, the AnimNone fallback for a null animation, and lifecycle event
- * supplementation when a running transition is interrupted.
+ * gating, the AnimNone fallback for a null animation, lifecycle event
+ * supplementation when a running transition is interrupted, and the scope of
+ * arrow-key paging.
  */
 public class RXCarouselTest {
 
@@ -164,11 +171,54 @@ public class RXCarouselTest {
         }
     }
 
+    // ==================== Keyboard Navigation ====================
+
+    @Test
+    public void arrowKeysTargetedAtCarouselTurnPages() {
+        RXCarousel carousel = createLaidOutCarousel(3);
+        carousel.setAnimationDuration(Duration.ZERO);
+
+        try {
+            Event.fireEvent(carousel, keyPressed(KeyCode.RIGHT));
+            assertEquals(1, carousel.getSelectedIndex());
+
+            Event.fireEvent(carousel, keyPressed(KeyCode.LEFT));
+            assertEquals(0, carousel.getSelectedIndex());
+        } finally {
+            carousel.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void arrowKeyFromFocusedPageNodeMovesFocusInsteadOfPaging() {
+        StackPane first = createFocusableBox();
+        StackPane second = createFocusableBox();
+        RXCarousel carousel = createLaidOutCarousel(3,
+                index -> index == 0 ? new HBox(20.0, first, second) : new Label("Page " + index));
+        carousel.setAnimationDuration(Duration.ZERO);
+
+        try {
+            first.requestFocus();
+            assertSame(first, carousel.getScene().getFocusOwner());
+
+            Event.fireEvent(first, keyPressed(KeyCode.RIGHT));
+
+            assertEquals(0, carousel.getSelectedIndex());
+            assertSame(second, carousel.getScene().getFocusOwner());
+        } finally {
+            carousel.getSkin().dispose();
+        }
+    }
+
     // ==================== Helpers ====================
 
     private static RXCarousel createLaidOutCarousel(int pageCount) {
+        return createLaidOutCarousel(pageCount, index -> new Label("Page " + index));
+    }
+
+    private static RXCarousel createLaidOutCarousel(int pageCount, Callback<Integer, Node> pageFactory) {
         RXCarousel carousel = new RXCarousel();
-        carousel.setPageFactory(index -> new Label("Page " + index));
+        carousel.setPageFactory(pageFactory);
         carousel.setPageCount(pageCount);
         StackPane root = new StackPane(carousel);
         new Scene(root, 320.0, 200.0);
@@ -176,6 +226,19 @@ public class RXCarouselTest {
         root.applyCss();
         root.layout();
         return carousel;
+    }
+
+    // A focusable node with no key handling of its own, so only the carousel
+    // and the scene's focus traversal can react to its arrow keys.
+    private static StackPane createFocusableBox() {
+        StackPane box = new StackPane();
+        box.setFocusTraversable(true);
+        box.setPrefSize(40.0, 40.0);
+        return box;
+    }
+
+    private static KeyEvent keyPressed(KeyCode code) {
+        return new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, false, false, false, false);
     }
 
     private static List<String> recordLifecycle(RXCarousel carousel) {

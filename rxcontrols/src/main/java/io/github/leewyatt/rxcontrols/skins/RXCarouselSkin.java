@@ -334,8 +334,14 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         disposer.registerEventHandler(carousel, MouseEvent.MOUSE_EXITED,
                 e -> onMouseExited(carousel));
 
-        // Keyboard navigation
+        // Keyboard navigation. Page only when the carousel itself owns focus: an
+        // arrow key bubbling up from a focused node inside a page targets that
+        // node, and consuming it here would flip the page and block the scene's
+        // arrow-key focus traversal for controls that leave the key unhandled.
         disposer.registerEventHandler(carousel, KeyEvent.KEY_PRESSED, e -> {
+            if (e.getTarget() != carousel) {
+                return;
+            }
             if (e.getCode() == KeyCode.LEFT || e.getCode() == KeyCode.KP_LEFT) {
                 carousel.previous();
                 e.consume();
