@@ -4935,16 +4935,25 @@
  * RXTitledPane / RXAccordion                                                  *
  *                                                                             *
  ******************************************************************************/
-/* Outlined card: a tinted header over a content-colored body, split by a divider. */
+/* Card colors. On a light host the body takes the content color and the header a
+   slightly darker tint; on a dark host the whole card is lifted above the container
+   color, the header more than the body, and the outline is stronger. */
+.rx-titled-pane, .rx-accordion {
+    -rx-titled-pane-surface: ladder(-rx-surface, derive(-rx-surface-variant, 3%) 45%, -fx-control-inner-background 46%);
+    -rx-titled-pane-header-color: ladder(-rx-surface, derive(-rx-surface-variant, 19%) 45%, derive(-rx-surface-variant, -3%) 46%);
+    -rx-titled-pane-outline: ladder(-rx-surface, -rx-outline 45%, -rx-outline-variant 46%);
+}
+
+/* Outlined card: a tinted header over the body, split by a divider. */
 .rx-titled-pane {
-    -fx-background-color: -rx-outline-variant, -fx-control-inner-background;
+    -fx-background-color: -rx-titled-pane-outline, -rx-titled-pane-surface;
     -fx-background-insets: 0, 1px;
     -fx-background-radius: 8px, 7px;
     -fx-padding: 1px;
 }
 
 .rx-titled-pane > .header {
-    -fx-background-color: -rx-surface-variant;
+    -fx-background-color: -rx-titled-pane-header-color;
     -fx-background-radius: 7px;
     -fx-padding: 0.75em 1em;
     -fx-cursor: hand;
@@ -4957,8 +4966,10 @@
     -fx-background-radius: 7px 7px 0 0;
 }
 
+/* A focus ring drawn as an extra background layer, so it never shifts the layout. */
 .rx-titled-pane > .header:focus-shown {
-    -fx-background-color: -rx-primary-bg;
+    -fx-background-color: -rx-focus, -rx-titled-pane-header-color;
+    -fx-background-insets: 0, 2px;
 }
 
 .rx-titled-pane:indicator-trigger > .header {
@@ -4997,7 +5008,7 @@
 }
 
 .rx-titled-pane > .body {
-    -fx-border-color: -rx-outline-variant;
+    -fx-border-color: -rx-titled-pane-outline;
     -fx-border-width: 1px 0 0 0;
     -fx-padding: 1em;
 }
@@ -5010,14 +5021,14 @@
    .segment card, with a .divider between neighbours. An expanded-spacing gap splits
    the run into separate cards. */
 .rx-accordion > .segment {
-    -fx-background-color: -rx-outline-variant, -fx-control-inner-background;
+    -fx-background-color: -rx-titled-pane-outline, -rx-titled-pane-surface;
     -fx-background-insets: 0, 1px;
     -fx-background-radius: 8px, 7px;
     -fx-padding: 1px;
 }
 
 .rx-accordion > .divider {
-    -fx-background-color: -rx-outline-variant;
+    -fx-background-color: -rx-titled-pane-outline;
     -fx-pref-height: 1px;
 }
 
