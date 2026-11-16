@@ -38,9 +38,9 @@ import java.util.stream.IntStream;
  * the bar picking a first child. One children factory describes the catalog; the
  * arrows switch between siblings or, in {@code CHILDREN} mode, open the level
  * below, and changing the mode never touches the factory. Its controls cover every
- * property, a preview width, font size and right-to-left orientation, and an
- * asynchronous mode in which the application holds each request and commits it
- * later, dropping superseded ones. The second example is a path too long for its
+ * property, a preview width, font size and right-to-left orientation, and who
+ * commits a navigation request: the application at once, the application after a
+ * delay (dropping superseded requests), the bar itself, or nobody. The second example is a path too long for its
  * width, collapsed into the overflow button. The third has a level of records too
  * numerous to list, which a branch filter leaves without an arrow. For the minimal
  * example see {@link RXBreadcrumbBarDemo}.</p>
@@ -63,7 +63,7 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
     private final FlowPane pageLinks = new FlowPane(8.0, 8.0);
     private final Label requestLog = new Label("No request yet");
 
-    private boolean asyncCommit;
+    private Commit commit = Commit.APPLICATION;
     private long requestToken;
 
     // ==================== Showcase wiring ====================
@@ -134,7 +134,6 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
         bar.getItems().setAll(ROOT, "Data Display", "Badge");
         bar.setChildrenFactory(this::children);
         bar.setGraphicFactory(this::iconFor);
-        bar.setAutoNavigate(true);
         bar.setOnNavigate(this::onNavigate);
         bar.getItems().addListener((InvalidationListener) obs -> renderPage());
 
@@ -206,10 +205,16 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
 
         CheckBox currentItemNavigable = new CheckBox("Current item is a link");
         currentItemNavigable.selectedProperty().bindBidirectional(bar.currentItemNavigableProperty());
-        CheckBox autoNavigate = new CheckBox("Auto navigate");
-        autoNavigate.selectedProperty().bindBidirectional(bar.autoNavigateProperty());
-        CheckBox async = new CheckBox("Commit asynchronously (700 ms)");
-        async.selectedProperty().addListener((obs, old, value) -> asyncCommit = value);
+        ComboBox<Commit> committedBy = new ComboBox<>();
+        committedBy.getItems().setAll(Commit.values());
+        committedBy.setValue(commit);
+        committedBy.setMaxWidth(Double.MAX_VALUE);
+        committedBy.valueProperty().addListener((obs, old, value) -> {
+            commit = value;
+            // A request still waiting for its delayed commit is dropped.
+            requestToken++;
+            bar.setAutoNavigate(value == Commit.BAR);
+        });
         CheckBox disabled = new CheckBox("Disabled");
         disabled.selectedProperty().bindBidirectional(bar.disableProperty());
 
@@ -217,8 +222,7 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
                 row(branchMenus),
                 row("Branch mode", branchMode),
                 row(currentItemNavigable),
-                row(autoNavigate),
-                row(async),
+                row("Committed by", committedBy),
                 row(disabled));
     }
 
@@ -280,25 +284,49 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
     private void onNavigate(RXBreadcrumbEvent<String> event) {
         List<String> target = event.getPath();
         long token = ++requestToken;
-        if (asyncCommit) {
-            // The application holds the request; consuming also vetoes auto navigation.
+        String text = String.join(" / ", target);
+        if (commit == Commit.APPLICATION) {
+            bar.getItems().setAll(target);
+            requestLog.setText("Committed by the application: " + text);
+            return;
+        }
+        if (commit == Commit.APPLICATION_DELAYED) {
+            // The application holds the request and commits it later.
             event.consume();
-            requestLog.setText("Pending: " + String.join(" / ", target));
+            requestLog.setText("Pending: " + text);
             PauseTransition delay = new PauseTransition(ASYNC_DELAY);
             delay.setOnFinished(e -> {
                 if (token != requestToken) {
                     return;
                 }
                 bar.getItems().setAll(target);
-                requestLog.setText("Committed: " + String.join(" / ", target));
+                requestLog.setText("Committed by the application: " + text);
             });
             delay.play();
             return;
         }
-        // Left to the bar: with auto navigation it commits, without it the request
+        // Left alone: with auto navigation the bar commits, without it the request
         // is only reported and the path stays.
-        requestLog.setText((bar.isAutoNavigate() ? "Committed by the bar: " : "Reported only: ")
-                + String.join(" / ", target));
+        requestLog.setText((commit == Commit.BAR ? "Committed by the bar: " : "Reported only: ") + text);
+    }
+
+    // Who turns a navigation request into a path change.
+    private enum Commit {
+        APPLICATION("The application (default)"),
+        APPLICATION_DELAYED("The application, after 700 ms"),
+        BAR("The bar (autoNavigate)"),
+        NOBODY("Nobody (request only)");
+
+        private final String label;
+
+        Commit(String label) {
+            this.label = label;
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
     }
 
     private void renderPage() {
