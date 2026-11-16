@@ -4942,55 +4942,64 @@
     -fx-padding: 1px;
 }
 
-.rx-titled-pane > .header > .title {
+.rx-titled-pane > .header {
     -fx-background-color: transparent;
+    -fx-background-radius: 5px;
     -fx-padding: 0.75em 1em;
     -fx-cursor: hand;
     -rx-ripple-fill: -rx-state-overlay-color;
 }
 
-.rx-titled-pane > .header > .title:focus-shown {
+/* The header radii shape the hover tint and ripple, so they follow the pane's inner
+   corners: all four while collapsed, the top two while expanded. */
+.rx-titled-pane:expanded > .header {
+    -fx-background-radius: 5px 5px 0 0;
+}
+
+.rx-titled-pane > .header:focus-shown {
     -fx-background-color: -rx-primary-bg;
 }
 
-.rx-titled-pane:indicator-trigger > .header > .title {
+.rx-titled-pane:indicator-trigger > .header {
     -fx-cursor: default;
     -rx-ripple-enabled: false;
     -rx-ripple-state-overlay-enabled: false;
 }
 
-.rx-titled-pane > .header > .title > .row {
+.rx-titled-pane > .header > .row {
     -fx-spacing: 0.666667em;
 }
 
-.rx-titled-pane > .header > .title > .row > .slot > .label {
+.rx-titled-pane > .header > .row > .slot > .label {
     -fx-text-fill: -rx-on-surface;
 }
 
-.rx-titled-pane > .header > .title > .row > .indicator-button {
+/* Transparent fill keeps the whole slot pickable, so gaps between trailing nodes are
+   inert too. */
+.rx-titled-pane > .header > .row > .trailing {
+    -fx-background-color: transparent;
+    -fx-cursor: default;
+}
+
+.rx-titled-pane > .header > .row > .indicator-button {
     -fx-background-color: transparent;
     -fx-background-radius: 999px;
     -fx-padding: 0.25em;
 }
 
-.rx-titled-pane:indicator-trigger > .header > .title > .row > .indicator-button {
+.rx-titled-pane:indicator-trigger > .header > .row > .indicator-button {
     -fx-cursor: hand;
 }
 
-.rx-titled-pane:indicator-trigger > .header > .title > .row > .indicator-button:hover {
+.rx-titled-pane:indicator-trigger > .header > .row > .indicator-button:hover {
     -fx-background-color: -rx-primary-bg;
 }
 
-.rx-titled-pane > .header > .title > .row > .indicator-button > .indicator {
+.rx-titled-pane > .header > .row > .indicator-button > .indicator {
     -fx-pref-width: 6px;
     -fx-pref-height: 10px;
     -fx-background-color: -rx-on-surface-secondary;
     -fx-shape: "M1.41 0 L6.41 5 L1.41 10 L0 8.59 L3.59 5 L0 1.41 Z";
-}
-
-.rx-titled-pane > .header > .actions {
-    -fx-spacing: 0.333333em;
-    -fx-padding: 0 0.75em 0 0.5em;
 }
 
 .rx-titled-pane > .body {
@@ -5020,4 +5029,20 @@
 .rx-accordion > .rx-titled-pane:first {
     -fx-background-color: transparent;
     -fx-padding: 0;
+}
+
+.rx-accordion > .rx-titled-pane > .header {
+    -fx-background-radius: 0;
+}
+
+.rx-accordion > .rx-titled-pane:first > .header {
+    -fx-background-radius: 5px 5px 0 0;
+}
+
+.rx-accordion > .rx-titled-pane:last:collapsed > .header {
+    -fx-background-radius: 0 0 5px 5px;
+}
+
+.rx-accordion > .rx-titled-pane:first:last:collapsed > .header {
+    -fx-background-radius: 5px;
 }
