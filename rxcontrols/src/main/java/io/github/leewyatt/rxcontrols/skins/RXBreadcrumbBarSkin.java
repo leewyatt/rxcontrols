@@ -408,7 +408,10 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
             if (getSkinnable() == null) {
                 return;
             }
-            if (!focused && !isInside(focusOwner())) {
+            // A button removed by a rebuild keeps focus until the scene's next pulse
+            // drops it with no new owner. That is not the user leaving the bar: the
+            // pending restore puts focus back, and it is still pointer focus.
+            if (!focused && !focusRestoreScheduled && !isInside(focusOwner())) {
                 pointerFocus = false;
             }
             updateFocusShown(button);
@@ -512,11 +515,16 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
             focusRestoreScheduled = false;
             FocusSlot target = pendingFocus;
             pendingFocus = null;
-            if (target != null && getSkinnable() != null) {
-                Node next = fallbackFor(target);
-                if (next != null) {
-                    next.requestFocus();
-                }
+            if (getSkinnable() == null) {
+                return;
+            }
+            Node next = target == null ? null : fallbackFor(target);
+            if (next != null) {
+                next.requestFocus();
+            }
+            // Nothing in the bar took the focus back, so it has left after all.
+            if (!isInside(focusOwner())) {
+                pointerFocus = false;
             }
         });
     }

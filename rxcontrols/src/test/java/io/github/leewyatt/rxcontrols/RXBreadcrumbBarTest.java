@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.RXBreadcrumbBar.BranchMode;
 import io.github.leewyatt.rxcontrols.event.RXBreadcrumbEvent;
 import io.github.leewyatt.rxcontrols.skins.RXBreadcrumbBarSkin;
+import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
@@ -666,6 +667,42 @@ public class RXBreadcrumbBarTest {
             Button library = link(bar, 1);
             library.requestFocus();
             assertTrue(library.getPseudoClassStates().contains(shown), "keyboard focus shows the ring");
+        });
+    }
+
+    @Test
+    public void focusMovedByAPathCommitKeepsThePointerFocusRingHidden() throws InterruptedException {
+        PseudoClass shown = PseudoClass.getPseudoClass("focus-shown");
+        AtomicReference<RXBreadcrumbBar<String>> ref = new AtomicReference<>();
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = show(
+                    new RXBreadcrumbBar<>("Components", "Data Display", "Badge"), 800);
+            Button middle = link(bar, 1);
+            middle.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, 1, 1, 1, 1, MouseButton.PRIMARY, 1,
+                    false, false, false, false, true, false, false, true, false, false, null));
+            stage.requestFocus();
+            middle.requestFocus();
+            assumeTrue(middle.isFocused(), "the test window did not receive focus");
+            // Committed from an animation callback, as a delayed application commit is:
+            // the scene then drops the removed button's focus before the bar restores it.
+            new AnimationTimer() {
+                @Override
+                public void handle(long now) {
+                    stop();
+                    bar.getItems().setAll("Components", "Data Display");
+                }
+            }.start();
+            ref.set(bar);
+        });
+        assumeTrue(ref.get() != null, "the test window did not receive focus");
+        Thread.sleep(300);
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = ref.get();
+            Node owner = bar.getScene().getFocusOwner();
+            assertEquals(link(bar, 0), owner, "focus falls back to the nearest ancestor");
+            assertFalse(owner.getPseudoClassStates().contains(shown), "still pointer focus: no ring");
+            owner.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.A, false, false, false, false));
+            assertTrue(owner.getPseudoClassStates().contains(shown), "a key press brings the ring back");
         });
     }
 
