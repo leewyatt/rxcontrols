@@ -213,6 +213,61 @@ public class RXBreadcrumbBarTest {
         });
     }
 
+    // ==================== Callbacks that change the path ====================
+
+    @Test
+    public void pathChangedFromACallbackDuringARebuildLeavesOneConsistentBar() throws InterruptedException {
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = show(new RXBreadcrumbBar<>("A", "B", "C"), 800);
+            boolean[] changed = new boolean[1];
+            bar.setChildrenFactory(path -> {
+                if (!changed[0]) {
+                    changed[0] = true;
+                    bar.getItems().setAll("X");
+                }
+                return List.of();
+            });
+            layout(bar, 800);
+            assertEquals(List.of("X"), bar.getItems());
+            assertEquals(List.of("X"), texts(visibleItems(bar)));
+            assertEquals(1, visibleCount(bar, "item"));
+            assertEquals(0, visibleCount(bar, "separator"));
+        });
+    }
+
+    @Test
+    public void failingCallbackKeepsThePreviousCrumbs() throws InterruptedException {
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = show(new RXBreadcrumbBar<>("A", "B"), 800);
+            bar.setConverter(new StringConverter<>() {
+                @Override
+                public String toString(String item) {
+                    if ("bad".equals(item)) {
+                        throw new IllegalStateException("converter failure");
+                    }
+                    return item;
+                }
+
+                @Override
+                public String fromString(String text) {
+                    return text;
+                }
+            });
+            layout(bar, 800);
+            try {
+                bar.getItems().setAll("A", "bad", "C");
+            } catch (IllegalStateException expected) {
+                // Listener failures reach the caller or the thread's handler, by platform.
+            }
+            layout(bar, 800);
+            assertEquals(List.of("A", "B"), texts(visibleItems(bar)), "the last good build stays");
+
+            bar.getItems().setAll("A", "C");
+            layout(bar, 800);
+            assertEquals(List.of("A", "C"), texts(visibleItems(bar)), "and the bar recovers");
+        });
+    }
+
     // ==================== Empty path ====================
 
     @Test
@@ -734,7 +789,6 @@ public class RXBreadcrumbBarTest {
             }.start();
             ref.set(bar);
         });
-        assumeTrue(ref.get() != null, "the test window did not receive focus");
         Thread.sleep(300);
         runOnFx(() -> {
             RXBreadcrumbBar<String> bar = ref.get();
@@ -743,6 +797,36 @@ public class RXBreadcrumbBarTest {
             assertFalse(owner.getPseudoClassStates().contains(shown), "still pointer focus: no ring");
             owner.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.A, false, false, false, false));
             assertTrue(owner.getPseudoClassStates().contains(shown), "a key press brings the ring back");
+        });
+    }
+
+    @Test
+    public void delayedCommitHandsFocusStraightToTheFallbackItem() throws InterruptedException {
+        AtomicReference<RXBreadcrumbBar<String>> ref = new AtomicReference<>();
+        List<Node> owners = new ArrayList<>();
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = show(
+                    new RXBreadcrumbBar<>("Components", "Data Display", "Badge"), 800);
+            // First in the scene's traversal order: where a dropped focus would land.
+            Button outside = new Button("Outside");
+            outside.setLayoutY(60);
+            ((Pane) bar.getParent()).getChildren().add(0, outside);
+            link(bar, 1).requestFocus();
+            assertEquals(link(bar, 1), bar.getScene().getFocusOwner());
+            bar.getScene().focusOwnerProperty().addListener((obs, old, owner) -> owners.add(owner));
+            new AnimationTimer() {
+                @Override
+                public void handle(long now) {
+                    stop();
+                    bar.getItems().setAll("Components", "Data Display");
+                }
+            }.start();
+            ref.set(bar);
+        });
+        Thread.sleep(300);
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = ref.get();
+            assertEquals(List.of(link(bar, 0)), owners, "focus goes to the ancestor and nowhere else");
         });
     }
 

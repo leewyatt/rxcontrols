@@ -75,6 +75,8 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
     private MenuTrigger suppressReopen;
     private FocusSlot pendingFocus;
     private boolean focusRestoreScheduled;
+    private boolean rebuilding;
+    private boolean rebuildRequested;
     // True while focus inside the bar came from a pointer press: the focus ring is held
     // back until the next non-modifier key press or until focus leaves the bar.
     private boolean pointerFocus;
@@ -146,21 +148,49 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
 
     // ==================== Crumbs ====================
 
+    // The application's callbacks run while the crumbs are built and may change the
+    // path or a property. Such a change does not start a second build inside the
+    // first: it is noted, and the build is repeated once the current one is done.
     private void rebuild() {
+        if (rebuilding) {
+            rebuildRequested = true;
+            return;
+        }
+        rebuilding = true;
+        try {
+            do {
+                rebuildRequested = false;
+                buildCrumbs();
+            } while (rebuildRequested);
+        } finally {
+            rebuilding = false;
+        }
+    }
+
+    private void buildCrumbs() {
         RXBreadcrumbBar<T> control = getSkinnable();
         FocusSlot focus = captureFocus();
         if (menu.isShowing()) {
             menu.hide();
         }
         ObservableList<T> items = control.getItems();
+        List<T> previousPath = path;
         path = items == null ? Collections.emptyList() : new ArrayList<>(items);
+        List<Crumb> built = new ArrayList<>();
+        try {
+            for (int i = 0; i < path.size(); i++) {
+                built.add(createCrumb(i));
+            }
+            while (separators.size() < path.size()) {
+                separators.add(createSeparator());
+            }
+        } catch (RuntimeException e) {
+            // A failing callback leaves the last complete build in place.
+            path = previousPath;
+            throw e;
+        }
         crumbs.clear();
-        for (int i = 0; i < path.size(); i++) {
-            crumbs.add(createCrumb(i));
-        }
-        while (separators.size() < path.size()) {
-            separators.add(createSeparator());
-        }
+        crumbs.addAll(built);
 
         List<Node> children = new ArrayList<>();
         for (int i = 0; i < crumbs.size(); i++) {
@@ -187,7 +217,12 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         getChildren().setAll(children);
         control.requestLayout();
         if (focus != null) {
-            scheduleFocusRestore(focus);
+            // Handed over at once: a removed focus owner left for the scene's next
+            // pulse would first be replaced by the scene's first focusable node.
+            Node next = fallbackFor(focus);
+            if (next != null) {
+                next.requestFocus();
+            }
         }
     }
 
@@ -417,9 +452,9 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
             if (getSkinnable() == null) {
                 return;
             }
-            // A button removed by a rebuild keeps focus until the scene's next pulse
-            // drops it with no new owner. That is not the user leaving the bar: the
-            // pending restore puts focus back, and it is still pointer focus.
+            // A button that layout has just hidden loses focus to no owner while its
+            // restore is still pending. That is not the user leaving the bar: the
+            // restore puts focus back, and it is still pointer focus.
             if (!focused && !focusRestoreScheduled && !isInside(focusOwner())) {
                 pointerFocus = false;
             }
