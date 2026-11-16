@@ -151,7 +151,7 @@ public class RXAccordionTest {
     // ==================== List validation & membership ====================
 
     @Test
-    public void listRejectsNullDuplicatesAndForeignPanesAtomically() throws Exception {
+    public void listRejectsNullAndDuplicatesAtomically() throws Exception {
         runOnFx(() -> {
             RXTitledPane a = pane("A");
             RXTitledPane b = pane("B");
@@ -161,12 +161,39 @@ public class RXAccordionTest {
             assertThrows(IllegalArgumentException.class, () -> accordion.getPanes().addAll(b, b));
             assertEquals(List.of(a), accordion.getPanes());
 
-            RXAccordion other = new RXAccordion();
-            assertThrows(IllegalArgumentException.class, () -> other.getPanes().addAll(b, a));
-            assertTrue(other.getPanes().isEmpty());
-
             accordion.getPanes().setAll(b, a);
             assertEquals(List.of(b, a), accordion.getPanes());
+        });
+    }
+
+    @Test
+    public void joiningAnotherAccordionLeavesTheOldOne() throws Exception {
+        runOnFx(() -> {
+            RXTitledPane a = pane("A");
+            RXTitledPane b = pane("B");
+            RXAccordion discarded = new RXAccordion(a, b);
+            StackPane root = new StackPane(discarded);
+            new Scene(root, 300, 300);
+            root.applyCss();
+            root.layout();
+
+            RXAccordion rebuilt = new RXAccordion(a, b);
+            assertTrue(discarded.getPanes().isEmpty());
+            assertTrue(discarded.getChildrenUnmodifiable().isEmpty());
+            assertSame(rebuilt, a.getAccordion());
+            a.setExpanded(true);
+            b.setExpanded(true);
+            assertEquals(List.of(b), rebuilt.getExpandedPanes());
+            assertTrue(discarded.getExpandedPanes().isEmpty());
+        });
+    }
+
+    @Test
+    public void groupIsNotAFocusStop() throws Exception {
+        runOnFx(() -> {
+            RXAccordion accordion = new RXAccordion(pane("A"));
+            assertFalse(accordion.isFocusTraversable());
+            assertFalse(accordion.getPanes().get(0).isFocusTraversable());
         });
     }
 

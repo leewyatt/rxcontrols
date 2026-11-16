@@ -8,6 +8,7 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
+import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
@@ -94,6 +95,9 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
     private boolean keyDown;
     private boolean mouseFocus;
 
+    private final InvalidationListener focusOwnerListener = obs -> forwardFocus();
+    private Scene trackedScene;
+
     private final ChangeListener<Node> contentListener = (obs, oldValue, newValue) -> onContentChanged(oldValue, newValue);
 
     // ==================== Constructor ====================
@@ -111,6 +115,8 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
         indicator.setMouseTransparent(true);
         indicatorButton.getStyleClass().add("indicator-button");
         indicatorButton.getChildren().add(indicator);
+        // Min pinned too: the row would otherwise squeeze the indicator before the title text.
+        indicatorButton.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         indicatorButton.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
         titleSlot.getStyleClass().add("slot");
@@ -133,7 +139,7 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
 
         progress.set(control.isExpanded() ? 1.0 : 0.0);
 
-        getChildren().setAll(body, header);
+        getChildren().setAll(header, body);
 
         disposer.registerBinding(label.textProperty(), control.textProperty());
         Bindings.bindContent(actionsBox.getChildren(), control.getActions());
@@ -148,8 +154,7 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
         updateActionsVisibility();
         updateBodyVisibility();
 
-        control.contentProperty().addListener(contentListener);
-        disposer.registerDisposeTask(() -> control.contentProperty().removeListener(contentListener));
+        disposer.registerListener(control.contentProperty(), contentListener);
         disposer.registerListener(control.headerProperty(), this::updateTitle);
         disposer.registerListener(control.graphicProperty(), this::updateTitle);
         disposer.registerListener(control.indicatorPositionProperty(), this::updateIndicator);
@@ -157,7 +162,14 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
         disposer.registerListener(control.expandedProperty(), this::onExpandedChanged);
         disposer.registerListener(control.animatedProperty(), this::onAnimatedChanged);
         disposer.registerListener(progress, this::onProgressChanged);
-        disposer.registerListener(control.focusedProperty(), this::forwardFocus);
+        disposer.registerListener(control.sceneProperty(), this::trackSceneFocusOwner);
+        trackSceneFocusOwner();
+        disposer.registerDisposeTask(() -> {
+            if (trackedScene != null) {
+                trackedScene.focusOwnerProperty().removeListener(focusOwnerListener);
+                trackedScene = null;
+            }
+        });
         disposer.registerListener(title.focusedProperty(), this::onTitleFocusChanged);
 
         disposer.registerEventHandler(title, MouseEvent.MOUSE_PRESSED, this::onTitlePressed);
@@ -304,8 +316,26 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
         }
     }
 
+    // Follows the scene focus owner rather than the pane's focused property: the latter
+    // only turns true while the window itself has focus.
+    private void trackSceneFocusOwner() {
+        Scene scene = getSkinnable().getScene();
+        if (scene == trackedScene) {
+            return;
+        }
+        if (trackedScene != null) {
+            trackedScene.focusOwnerProperty().removeListener(focusOwnerListener);
+        }
+        trackedScene = scene;
+        if (scene != null) {
+            scene.focusOwnerProperty().addListener(focusOwnerListener);
+            forwardFocus();
+        }
+    }
+
     private void forwardFocus() {
-        if (getSkinnable().isFocused()) {
+        Scene scene = trackedScene;
+        if (scene != null && scene.getFocusOwner() == getSkinnable()) {
             title.requestFocus();
         }
     }

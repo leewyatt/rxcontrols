@@ -153,14 +153,8 @@ public class RXAccordionSkin extends RXSkinBase<RXAccordion> {
     @Override
     protected double computeMinHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
-        double w = contentWidth(width, leftInset, rightInset);
-        List<Node> managed = managedPanes();
-        double total = 0.0;
-        for (Node pane : managed) {
-            total += snapSizeY(pane.minHeight(w));
-        }
-        total += spacingOrZero() * Math.max(0, managed.size() - 1);
-        return topInset + total + bottomInset;
+        // Panes are always stacked at their preferred heights, so the group cannot shrink.
+        return computePrefHeight(width, topInset, rightInset, bottomInset, leftInset);
     }
 
     /**

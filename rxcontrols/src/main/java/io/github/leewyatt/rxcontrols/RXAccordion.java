@@ -63,8 +63,10 @@ import java.util.Set;
  *       newer expansion made from such a listener wins over the older one.</li>
  * </ul>
  *
- * <p>The list rejects {@code null}, duplicates, and panes that already belong to
- * another accordion; a bulk change that would violate this leaves the list unchanged.
+ * <p>The list rejects {@code null} and duplicates; a bulk change that would violate
+ * this leaves the list unchanged. Like a node joining a new parent, a pane added to
+ * another accordion is removed from its previous one, so a discarded accordion never
+ * keeps a pane.
  * Up / Down / Home / End move focus between the titles of the group's enabled,
  * visible panes. Panes are stacked at their preferred heights, so the accordion is as
  * tall as its content; wrap it in a {@code ScrollPane} to scroll.</p>
@@ -103,8 +105,11 @@ public class RXAccordion extends Control {
     /**
      * Creates an empty accordion.
      */
+    @SuppressWarnings("unchecked")
     public RXAccordion() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
+        // Focus stops are the pane titles; the group itself is not one.
+        ((StyleableProperty<Boolean>) (StyleableProperty<?>) focusTraversableProperty()).applyStyle(null, Boolean.FALSE);
         panes.addListener((ListChangeListener<RXTitledPane>) this::onPanesChanged);
     }
 
@@ -151,8 +156,7 @@ public class RXAccordion extends Control {
      *
      * @return the modifiable pane list
      * @throws NullPointerException     on insertion of {@code null}
-     * @throws IllegalArgumentException on insertion of a duplicate or of a pane that
-     *                                  belongs to another accordion
+     * @throws IllegalArgumentException on insertion of a duplicate
      */
     public final ObservableList<RXTitledPane> getPanes() {
         return panes;
@@ -388,6 +392,11 @@ public class RXAccordion extends Control {
         Set<RXTitledPane> newcomers = Collections.newSetFromMap(new IdentityHashMap<>());
         for (RXTitledPane pane : added) {
             if (pane.getAccordion() != this) {
+                RXAccordion previous = pane.getAccordion();
+                if (previous != null) {
+                    // Like a scene-graph parent, joining a group leaves the old one.
+                    previous.getPanes().remove(pane);
+                }
                 pane.setAccordion(this);
                 pane.expandedProperty().addListener(expandedListener);
                 newcomers.add(pane);
@@ -479,10 +488,6 @@ public class RXAccordion extends Control {
 
         private void checkInsertable(RXTitledPane pane) {
             Objects.requireNonNull(pane, "pane");
-            RXAccordion owner = pane.getAccordion();
-            if (owner != null && owner != RXAccordion.this) {
-                throw new IllegalArgumentException("Pane already belongs to another RXAccordion: " + pane);
-            }
         }
     }
 

@@ -93,6 +93,19 @@ public class RXTitledPaneTest {
     }
 
     @Test
+    public void onlyTheTitleIsAFocusStopAndPrecedesTheBody() throws Exception {
+        runOnFx(() -> {
+            RXTitledPane pane = new RXTitledPane("Title", new TextField());
+            show(pane);
+            assertFalse(pane.isFocusTraversable());
+            assertTrue(title(pane).isFocusTraversable());
+            List<Node> children = pane.getChildrenUnmodifiable();
+            assertTrue(children.indexOf(pane.lookup(".header")) < children.indexOf(pane.lookup(".body")),
+                    "header must precede body so forward Tab reaches the body after the title");
+        });
+    }
+
+    @Test
     public void actionsRejectNull() throws Exception {
         runOnFx(() -> {
             RXTitledPane pane = new RXTitledPane();

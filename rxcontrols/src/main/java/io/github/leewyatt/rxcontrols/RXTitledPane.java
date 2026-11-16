@@ -132,8 +132,12 @@ public class RXTitledPane extends Control {
      * @param text    the title text, or {@code null}
      * @param content the body content, or {@code null}
      */
+    @SuppressWarnings("unchecked")
     public RXTitledPane(@NamedArg("text") String text, @NamedArg("content") Node content) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
+        // The title inside the skin is the focus stop; the pane itself only forwards
+        // requestFocus() to it, so it must not be a traversal stop of its own.
+        ((StyleableProperty<Boolean>) (StyleableProperty<?>) focusTraversableProperty()).applyStyle(null, Boolean.FALSE);
         setText(text);
         setContent(content);
         updateExpandedPseudoClass();
