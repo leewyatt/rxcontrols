@@ -14,7 +14,7 @@
  * scope further down re-declares every role for the AtlantaFX bridge.         *
  *                                                                             *
  ******************************************************************************/
-.rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-badge, .rx-bar-spinner, .rx-box, .rx-breadcrumb-bar, .rx-button,
+.rx-accordion, .rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-badge, .rx-bar-spinner, .rx-box, .rx-breadcrumb-bar, .rx-button,
 .rx-calendar-view, .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-content-pane, .rx-copy-button, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-date-picker, .rx-date-range-picker, .rx-date-range-view, .rx-date-time-picker, .rx-date-time-range-picker, .rx-date-time-view, .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
@@ -31,7 +31,7 @@
 .rx-slider, .rx-range-slider,
 .rx-skeleton, .rx-skeleton-pane, .rx-state-pane, .rx-switch-button, .rx-text-field, .rx-text-view,
 .rx-kanban-view, .rx-list-view, .rx-menu-button, .rx-menu-list,
-.rx-tab-pane, .rx-tile-pane, .rx-tile-view, .rx-time-picker, .rx-time-range-picker, .rx-time-view, .rx-timeline-view, .rx-toggle-button, .rx-transition-button,
+.rx-tab-pane, .rx-tile-pane, .rx-tile-view, .rx-titled-pane, .rx-time-picker, .rx-time-range-picker, .rx-time-view, .rx-timeline-view, .rx-toggle-button, .rx-transition-button,
 .rx-transition-label, .rx-transition-pane, .rx-wave-progress-indicator, .rx-week-picker, .rx-week-range-picker,
 .rx-week-range-view, .rx-week-view, .rx-year-picker, .rx-year-range-picker, .rx-year-range-view,
 .rx-year-view {
@@ -84,6 +84,8 @@
    JavaFX 17-23 (JDK-8336097) and overrides colors the application set in code. The
    per-control .rx-theme-atlantafx rules stay here for the same reason, and so that
    application stylesheets override them in any loading order. */
+.rx-theme-atlantafx .rx-accordion,
+.rx-theme-atlantafx.rx-accordion,
 .rx-theme-atlantafx .rx-audio-spectrum,
 .rx-theme-atlantafx.rx-audio-spectrum,
 .rx-theme-atlantafx .rx-auto-complete-field,
@@ -278,6 +280,8 @@
 .rx-theme-atlantafx.rx-tile-pane,
 .rx-theme-atlantafx .rx-tile-view,
 .rx-theme-atlantafx.rx-tile-view,
+.rx-theme-atlantafx .rx-titled-pane,
+.rx-theme-atlantafx.rx-titled-pane,
 .rx-theme-atlantafx .rx-time-picker,
 .rx-theme-atlantafx.rx-time-picker,
 .rx-theme-atlantafx .rx-time-range-picker,
@@ -3403,6 +3407,44 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 6, 0, 0, 2);
 }
 
+.rx-list-section-header > .disclosure {
+    -fx-padding: 0 0.5em 0 0;
+}
+
+.rx-list-section-header > .disclosure > .arrow {
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-pref-width: 0.666667em; /* 8 */
+    -fx-pref-height: 0.416667em; /* 5 */
+    -fx-shape: "M 0 0 L 8 0 L 4 5 Z";
+}
+
+.rx-list-section-header:collapsed > .disclosure > .arrow {
+    -fx-rotate: -90;
+}
+
+/* Derived from the header's own surface, so a retinted token and every AtlantaFX
+   palette keep a visible step (some flatten their neutral overlays to the surface). */
+.rx-list-section-header:expanded:hover,
+.rx-list-section-header:collapsed:hover {
+    -fx-background-color: ladder(-rx-surface-variant, derive(-rx-surface-variant, 12%) 49%, derive(-rx-surface-variant, -6%) 50%);
+}
+
+/* The keyboard cursor can rest on a header row; like a cell it only shows while the
+   list holds focus. */
+.rx-list-view:focused > .viewport > .content > .rx-list-section-header:focused,
+.rx-list-view:focused > .viewport > .rx-list-section-header.sticky:focused {
+    -fx-background-color: -rx-surface-variant, -fx-cell-focus-inner-border, -rx-surface-variant;
+    -fx-background-insets: 0, 1, 2;
+}
+
+/* AtlantaFX lists draw no focus ring, and the selection does not follow the cursor
+   onto a header: a tint a step stronger than hover marks it instead. */
+.rx-theme-atlantafx .rx-list-view:focused > .viewport > .content > .rx-list-section-header:focused,
+.rx-theme-atlantafx .rx-list-view:focused > .viewport > .rx-list-section-header.sticky:focused {
+    -fx-background-color: ladder(-rx-surface-variant, derive(-rx-surface-variant, 24%) 49%, derive(-rx-surface-variant, -12%) 50%);
+    -fx-background-insets: 0;
+}
+
 /*******************************************************************************
  *                                                                             *
  * RXMenuList                                                                  *
@@ -5009,4 +5051,101 @@
     -fx-padding: 0.083333em 0 0.666667em 0;
     -fx-font-weight: bold;
     -fx-text-fill: -rx-on-surface;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXTitledPane / RXAccordion                                                  *
+ *                                                                             *
+ ******************************************************************************/
+/* Card colors. On a light host the body takes the content color and the header a
+   slightly darker tint; on a dark host the whole card is lifted above the container
+   color, the header more than the body, and the outline is stronger. */
+.rx-titled-pane, .rx-accordion {
+    -rx-titled-pane-surface: ladder(-rx-surface, derive(-rx-surface-variant, 3%) 45%, -fx-control-inner-background 46%);
+    -rx-titled-pane-header-color: ladder(-rx-surface, derive(-rx-surface-variant, 19%) 45%, derive(-rx-surface-variant, -3%) 46%);
+    -rx-titled-pane-outline: ladder(-rx-surface, -rx-outline 45%, -rx-outline-variant 46%);
+}
+
+/* Outlined square card: a tinted header over the body, split by a divider. */
+.rx-titled-pane {
+    -fx-background-color: -rx-titled-pane-outline, -rx-titled-pane-surface;
+    -fx-background-insets: 0, 1px;
+    -fx-padding: 1px;
+}
+
+.rx-titled-pane > .header {
+    -fx-background-color: -rx-titled-pane-header-color;
+    -fx-padding: 0.583333em 1em;
+    -fx-cursor: hand;
+    -rx-ripple-fill: -rx-state-overlay-color;
+}
+
+.rx-titled-pane:indicator-trigger > .header {
+    -fx-cursor: default;
+    -rx-ripple-enabled: false;
+    -rx-ripple-state-overlay-enabled: false;
+}
+
+.rx-titled-pane > .header > .row {
+    -fx-spacing: 0.666667em;
+}
+
+.rx-titled-pane > .header > .row > .slot > .label {
+    -fx-text-fill: -rx-on-surface;
+}
+
+/* Transparent fill keeps the padded box pickable as the INDICATOR trigger area. */
+.rx-titled-pane > .header > .row > .indicator-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0.25em;
+}
+
+.rx-titled-pane:indicator-trigger > .header > .row > .indicator-button {
+    -fx-cursor: hand;
+}
+
+.rx-titled-pane:indicator-trigger > .header > .row > .indicator-button:hover > .indicator {
+    -fx-background-color: -rx-on-surface;
+}
+
+.rx-titled-pane > .header > .row > .indicator-button > .indicator {
+    -fx-pref-width: 6px;
+    -fx-pref-height: 10px;
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-shape: "M1.41 0 L6.41 5 L1.41 10 L0 8.59 L3.59 5 L0 1.41 Z";
+}
+
+/* Keyboard focus tints the indicator, as the JavaFX TitledPane tints its arrow. */
+.rx-titled-pane > .header:focus-shown > .row > .indicator-button > .indicator {
+    -fx-background-color: -rx-focus;
+}
+
+.rx-titled-pane > .body {
+    -fx-border-color: -rx-titled-pane-outline;
+    -fx-border-width: 1px 0 0 0;
+    -fx-padding: 1em;
+}
+
+.rx-titled-pane:disabled > .header {
+    -fx-opacity: 0.4;
+}
+
+/* The accordion draws no frame of its own: each run of joined panes sits on one
+   .segment card, with a .divider between neighbours. An expanded-spacing gap splits
+   the run into separate cards. */
+.rx-accordion > .segment {
+    -fx-background-color: -rx-titled-pane-outline, -rx-titled-pane-surface;
+    -fx-background-insets: 0, 1px;
+    -fx-padding: 1px;
+}
+
+.rx-accordion > .divider {
+    -fx-background-color: -rx-titled-pane-outline;
+    -fx-pref-height: 1px;
+}
+
+.rx-accordion > .rx-titled-pane {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
 }
