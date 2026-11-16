@@ -1,0 +1,16 @@
+.status-chip {
+    -fx-padding: 2px 8px;
+    -fx-background-color: -rx-primary-bg;
+    -fx-background-radius: 999px;
+    -fx-text-fill: -rx-primary;
+    -fx-font-size: 11px;
+}
+
+.header-title {
+    -fx-font-weight: bold;
+}
+
+.header-caption {
+    -fx-font-size: 11px;
+    -fx-text-fill: -showcase-caption-color;
+}
