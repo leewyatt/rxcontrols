@@ -213,6 +213,21 @@ public class RXAccordionTest {
     }
 
     @Test
+    public void badIndexLeavesThePaneInItsGroup() throws Exception {
+        runOnFx(() -> {
+            RXTitledPane p = pane("P");
+            RXAccordion source = new RXAccordion(p);
+            RXAccordion target = new RXAccordion();
+            assertThrows(IndexOutOfBoundsException.class, () -> target.getPanes().add(1, p));
+            assertThrows(IndexOutOfBoundsException.class, () -> target.getPanes().set(0, p));
+            assertThrows(IndexOutOfBoundsException.class, () -> target.getPanes().addAll(1, List.of(p)));
+            assertEquals(List.of(p), source.getPanes());
+            assertSame(source, p.getAccordion());
+            assertTrue(target.getPanes().isEmpty());
+        });
+    }
+
+    @Test
     public void groupIsNotAFocusStop() throws Exception {
         runOnFx(() -> {
             RXAccordion accordion = new RXAccordion(pane("A"));

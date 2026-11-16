@@ -160,7 +160,9 @@ public class RXAccordion extends Control {
      * @throws NullPointerException     on insertion of {@code null}
      * @throws IllegalArgumentException on insertion of a duplicate
      * @throws IllegalStateException    when a listener moves an inserted pane to another
-     *                                  accordion while it leaves its previous one
+     *                                  accordion while it leaves its previous one; in a
+     *                                  bulk insertion the panes before it have already
+     *                                  left their previous accordions
      */
     public final ObservableList<RXTitledPane> getPanes() {
         return panes;
@@ -457,6 +459,7 @@ public class RXAccordion extends Control {
 
         @Override
         protected void doAdd(int index, RXTitledPane element) {
+            checkInsertionIndex(index);
             checkInsertable(element);
             if (backing.contains(element)) {
                 throw new IllegalArgumentException("Duplicate pane: " + element);
@@ -467,6 +470,7 @@ public class RXAccordion extends Control {
 
         @Override
         protected RXTitledPane doSet(int index, RXTitledPane element) {
+            Objects.checkIndex(index, backing.size());
             checkInsertable(element);
             int existing = backing.indexOf(element);
             if (existing >= 0 && existing != index) {
@@ -489,6 +493,7 @@ public class RXAccordion extends Control {
 
         @Override
         public boolean addAll(int index, Collection<? extends RXTitledPane> elements) {
+            checkInsertionIndex(index);
             checkBulk(elements, true);
             return super.addAll(index, elements);
         }
@@ -515,6 +520,13 @@ public class RXAccordion extends Control {
 
         private void checkInsertable(RXTitledPane pane) {
             Objects.requireNonNull(pane, "pane");
+        }
+
+        // Checked before a pane leaves its previous group, so a bad index changes nothing.
+        private void checkInsertionIndex(int index) {
+            if (index < 0 || index > backing.size()) {
+                throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + backing.size());
+            }
         }
 
         /**
