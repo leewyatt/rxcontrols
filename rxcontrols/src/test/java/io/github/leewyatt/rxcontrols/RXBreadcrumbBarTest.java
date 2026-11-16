@@ -454,7 +454,20 @@ public class RXBreadcrumbBarTest {
             ref.set(bar);
         });
         Thread.sleep(200);
-        runOnFx(() -> assertEquals(overflow(ref.get()), ref.get().getScene().getFocusOwner()));
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = ref.get();
+            assertEquals(overflow(bar), bar.getScene().getFocusOwner());
+            // A width that keeps the root, so the overflow hides [1, k).
+            bar.setPrefWidth(Region.USE_COMPUTED_SIZE);
+            layout(bar, bar.prefWidth(-1) * 0.6);
+            assertTrue(link(bar, 0).isVisible() && !link(bar, 1).isVisible());
+            overflow(bar).requestFocus();
+            layout(bar, 1200);
+        });
+        Thread.sleep(200);
+        runOnFx(() -> assertEquals("Alpha Alpha",
+                ((Labeled) ref.get().getScene().getFocusOwner()).getText(),
+                "a vanished overflow button hands focus to the first item it hid"));
     }
 
     @Test

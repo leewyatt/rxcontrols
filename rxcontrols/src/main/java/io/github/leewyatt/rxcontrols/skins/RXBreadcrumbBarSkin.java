@@ -560,7 +560,10 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         closeMenuIfStale(previous);
         Node owner = focusOwner();
         if (owner != null && owner.getParent() == getSkinnable() && !owner.isVisible()) {
-            FocusSlot slot = slotOf(owner);
+            // A vanished overflow button hands focus to the first item it used to hide.
+            FocusSlot slot = owner == overflowButton
+                    ? new FocusSlot(previous.hiddenFrom(), false, true)
+                    : slotOf(owner);
             if (slot != null) {
                 scheduleFocusRestore(slot);
             }
