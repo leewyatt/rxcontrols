@@ -4935,16 +4935,17 @@
  * RXTitledPane / RXAccordion                                                  *
  *                                                                             *
  ******************************************************************************/
+/* Outlined card: a tinted header over a content-colored body, split by a divider. */
 .rx-titled-pane {
-    -fx-background-color: -rx-outline-variant, -rx-surface;
+    -fx-background-color: -rx-outline-variant, -fx-control-inner-background;
     -fx-background-insets: 0, 1px;
-    -fx-background-radius: 6px, 5px;
+    -fx-background-radius: 8px, 7px;
     -fx-padding: 1px;
 }
 
 .rx-titled-pane > .header {
-    -fx-background-color: transparent;
-    -fx-background-radius: 5px;
+    -fx-background-color: -rx-surface-variant;
+    -fx-background-radius: 7px;
     -fx-padding: 0.75em 1em;
     -fx-cursor: hand;
     -rx-ripple-fill: -rx-state-overlay-color;
@@ -4953,7 +4954,7 @@
 /* The header radii shape the hover tint and ripple, so they follow the pane's inner
    corners: all four while collapsed, the top two while expanded. */
 .rx-titled-pane:expanded > .header {
-    -fx-background-radius: 5px 5px 0 0;
+    -fx-background-radius: 7px 7px 0 0;
 }
 
 .rx-titled-pane > .header:focus-shown {
@@ -4996,7 +4997,9 @@
 }
 
 .rx-titled-pane > .body {
-    -fx-padding: 0 1em 1em 1em;
+    -fx-border-color: -rx-outline-variant;
+    -fx-border-width: 1px 0 0 0;
+    -fx-padding: 1em;
 }
 
 .rx-titled-pane:disabled > .header {
@@ -5007,9 +5010,9 @@
    .segment card, with a .divider between neighbours. An expanded-spacing gap splits
    the run into separate cards. */
 .rx-accordion > .segment {
-    -fx-background-color: -rx-outline-variant, -rx-surface;
+    -fx-background-color: -rx-outline-variant, -fx-control-inner-background;
     -fx-background-insets: 0, 1px;
-    -fx-background-radius: 6px, 5px;
+    -fx-background-radius: 8px, 7px;
     -fx-padding: 1px;
 }
 
@@ -5032,17 +5035,17 @@
 
 .rx-accordion > .rx-titled-pane:first > .header,
 .rx-accordion > .rx-titled-pane:gap-before > .header {
-    -fx-background-radius: 5px 5px 0 0;
+    -fx-background-radius: 7px 7px 0 0;
 }
 
 .rx-accordion > .rx-titled-pane:last:collapsed > .header,
 .rx-accordion > .rx-titled-pane:gap-after:collapsed > .header {
-    -fx-background-radius: 0 0 5px 5px;
+    -fx-background-radius: 0 0 7px 7px;
 }
 
 .rx-accordion > .rx-titled-pane:first:last:collapsed > .header,
 .rx-accordion > .rx-titled-pane:first:gap-after:collapsed > .header,
 .rx-accordion > .rx-titled-pane:gap-before:last:collapsed > .header,
 .rx-accordion > .rx-titled-pane:gap-before:gap-after:collapsed > .header {
-    -fx-background-radius: 5px;
+    -fx-background-radius: 7px;
 }
