@@ -3565,13 +3565,13 @@
     -fx-shape: "M2 0 A2 2 0 1 1 2 4 A2 2 0 1 1 2 0 Z M8 0 A2 2 0 1 1 8 4 A2 2 0 1 1 8 0 Z M14 0 A2 2 0 1 1 14 4 A2 2 0 1 1 14 0 Z";
 }
 .rx-breadcrumb-bar > .separator {
-    -fx-padding: 0 0.25em 0 0.25em;
+    -fx-padding: 0 0.333em 0 0.333em;
 }
 .rx-breadcrumb-bar > .separator > .icon {
     -fx-pref-width: 0.333em;
-    -fx-pref-height: 0.583em;
-    -fx-background-color: -rx-outline;
-    -fx-shape: "M0 0 L1.4 0 L5 4.5 L1.4 9 L0 9 L3.6 4.5 Z";
+    -fx-pref-height: 0.75em;
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-shape: "M3.3 0 L4.5 0 L1.2 10 L0 10 Z";
 }
 .rx-breadcrumb-bar > .item:focus-shown,
 .rx-breadcrumb-bar > .branch-button:focus-shown,
