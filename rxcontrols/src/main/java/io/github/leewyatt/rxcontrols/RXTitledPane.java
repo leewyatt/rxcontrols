@@ -79,6 +79,8 @@ public class RXTitledPane extends Control {
     private static final PseudoClass INDICATOR_TRIGGER_PSEUDO_CLASS = PseudoClass.getPseudoClass("indicator-trigger");
     private static final PseudoClass FIRST_PSEUDO_CLASS = PseudoClass.getPseudoClass("first");
     private static final PseudoClass LAST_PSEUDO_CLASS = PseudoClass.getPseudoClass("last");
+    private static final PseudoClass GAP_BEFORE_PSEUDO_CLASS = PseudoClass.getPseudoClass("gap-before");
+    private static final PseudoClass GAP_AFTER_PSEUDO_CLASS = PseudoClass.getPseudoClass("gap-after");
 
     // ==================== Constants ====================
 
@@ -744,13 +746,15 @@ public class RXTitledPane extends Control {
     void setAccordion(RXAccordion value) {
         accordion = value;
         if (value == null) {
-            setPositionInAccordion(false, false);
+            setPositionInAccordion(false, false, false, false);
         }
     }
 
-    void setPositionInAccordion(boolean first, boolean last) {
+    void setPositionInAccordion(boolean first, boolean last, boolean gapBefore, boolean gapAfter) {
         pseudoClassStateChanged(FIRST_PSEUDO_CLASS, first);
         pseudoClassStateChanged(LAST_PSEUDO_CLASS, last);
+        pseudoClassStateChanged(GAP_BEFORE_PSEUDO_CLASS, gapBefore);
+        pseudoClassStateChanged(GAP_AFTER_PSEUDO_CLASS, gapAfter);
     }
 
     // ==================== PseudoClass ====================

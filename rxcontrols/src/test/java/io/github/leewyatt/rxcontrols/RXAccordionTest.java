@@ -38,6 +38,8 @@ public class RXAccordionTest {
 
     private static final PseudoClass FIRST = PseudoClass.getPseudoClass("first");
     private static final PseudoClass LAST = PseudoClass.getPseudoClass("last");
+    private static final PseudoClass GAP_BEFORE = PseudoClass.getPseudoClass("gap-before");
+    private static final PseudoClass GAP_AFTER = PseudoClass.getPseudoClass("gap-after");
 
     @BeforeAll
     public static void startToolkit() throws InterruptedException {
@@ -345,27 +347,58 @@ public class RXAccordionTest {
     // ==================== Layout ====================
 
     @Test
-    public void panesStackAtPreferredHeightsWithSpacing() throws Exception {
+    public void expandedSpacingOpensGapsOnlyAroundExpandedPanes() throws Exception {
         runOnFx(() -> {
             RXTitledPane a = pane("A");
             Region body = new Region();
             body.setPrefHeight(100);
             RXTitledPane b = new RXTitledPane("B", body);
             b.setAnimated(false);
-            RXAccordion accordion = new RXAccordion(a, b);
-            accordion.setStyle("-rx-spacing: 8;");
+            RXTitledPane c = pane("C");
+            RXAccordion accordion = new RXAccordion(a, b, c);
+            accordion.setStyle("-rx-expanded-spacing: 16;");
             StackPane root = new StackPane(accordion);
             new Scene(root, 400, 600);
             root.applyCss();
             root.layout();
-            assertEquals(8.0, accordion.getSpacing(), 0.01);
-            double collapsed = accordion.prefHeight(400);
+            assertEquals(16.0, accordion.getExpandedSpacing(), 0.01);
+
+            // Collapsed: one card, neighbours one divider apart, no gap pseudo-classes.
+            assertEquals(1, visible(accordion, "segment"));
+            assertEquals(2, visible(accordion, "divider"));
+            double divider = 1.0;
+            assertEquals(a.getBoundsInParent().getMaxY() + divider, b.getLayoutY(), 0.5);
+            assertFalse(b.getPseudoClassStates().contains(GAP_BEFORE));
+
             b.setExpanded(true);
             root.layout();
-            assertTrue(accordion.prefHeight(400) > collapsed + 99);
+            // Expanded B is its own card: three cards, no dividers, a gap on both sides.
+            assertEquals(3, visible(accordion, "segment"));
+            assertEquals(0, visible(accordion, "divider"));
+            assertEquals(a.getBoundsInParent().getMaxY() + divider + 16.0, b.getLayoutY(), 0.5);
+            assertEquals(b.getBoundsInParent().getMaxY() + divider + 16.0, c.getLayoutY(), 0.5);
+            assertTrue(b.getPseudoClassStates().contains(GAP_BEFORE));
+            assertTrue(b.getPseudoClassStates().contains(GAP_AFTER));
+            assertTrue(a.getPseudoClassStates().contains(GAP_AFTER));
+            assertTrue(c.getPseudoClassStates().contains(GAP_BEFORE));
+            assertFalse(a.getPseudoClassStates().contains(GAP_BEFORE), "no gap at the group's ends");
             assertEquals(accordion.prefHeight(400), accordion.getHeight(), 0.5);
-            assertEquals(a.getLayoutY() + a.getHeight() + 8.0, b.getLayoutY(), 0.5);
+
+            accordion.setExpandedSpacing(0);
+            root.layout();
+            assertEquals(1, visible(accordion, "segment"));
+            assertFalse(b.getPseudoClassStates().contains(GAP_BEFORE));
         });
+    }
+
+    private static int visible(RXAccordion accordion, String styleClass) {
+        int count = 0;
+        for (Node child : accordion.getChildrenUnmodifiable()) {
+            if (child.getStyleClass().contains(styleClass) && child.isVisible()) {
+                count++;
+            }
+        }
+        return count;
     }
 
     // ==================== Helpers ====================

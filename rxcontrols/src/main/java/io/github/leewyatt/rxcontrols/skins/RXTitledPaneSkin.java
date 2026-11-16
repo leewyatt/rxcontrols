@@ -182,6 +182,16 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
         header.requestFocus();
     }
 
+    /**
+     * Returns how far the body is revealed, from 0 (collapsed) to 1 (expanded); it
+     * follows the animation rather than the logical expanded state.
+     *
+     * @return the reveal progress
+     */
+    double revealProgress() {
+        return progress.get();
+    }
+
     // ==================== Header ====================
 
     private void updateTitle() {

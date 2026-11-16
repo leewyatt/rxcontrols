@@ -83,7 +83,7 @@ public class RXAccordion extends Control {
      */
     public static final ExpandMode DEFAULT_EXPAND_MODE = ExpandMode.SINGLE;
 
-    private static final double DEFAULT_SPACING = 0.0;
+    private static final double DEFAULT_EXPANDED_SPACING = 0.0;
 
     // ==================== Internal State ====================
 
@@ -222,17 +222,18 @@ public class RXAccordion extends Control {
         expandMode.set(value);
     }
 
-    // ==================== Spacing ====================
+    // ==================== Expanded Spacing ====================
 
-    private final DoubleProperty spacing = new StyleableDoubleProperty(DEFAULT_SPACING) {
+    private final DoubleProperty expandedSpacing = new StyleableDoubleProperty(DEFAULT_EXPANDED_SPACING) {
         @Override
         protected void invalidated() {
+            updatePanePositions();
             requestLayout();
         }
 
         @Override
         public CssMetaData<? extends Styleable, Number> getCssMetaData() {
-            return StyleableProperties.SPACING;
+            return StyleableProperties.EXPANDED_SPACING;
         }
 
         @Override
@@ -242,35 +243,42 @@ public class RXAccordion extends Control {
 
         @Override
         public String getName() {
-            return "spacing";
+            return "expandedSpacing";
         }
     };
 
     /**
-     * Vertical gap between panes. Negative or non-finite values are treated as zero.
+     * Gap opened above and below an expanded pane, so that it stands out as a separate
+     * card (as in the Material Design accordion); collapsed neighbours stay joined by
+     * a divider, and no gap is added at the ends of the group. The gap grows and
+     * shrinks with the expand / collapse animation. Defaults to {@code 0}, which keeps
+     * every pane joined in one card. Negative or non-finite values are treated as zero.
      *
-     * @return the spacing property
+     * <p>A pane that has a gap above or below it gets the {@code :gap-before} /
+     * {@code :gap-after} pseudo-class, following the logical expanded state.</p>
+     *
+     * @return the expanded spacing property
      */
-    public final DoubleProperty spacingProperty() {
-        return spacing;
+    public final DoubleProperty expandedSpacingProperty() {
+        return expandedSpacing;
     }
 
     /**
-     * Returns the vertical gap between panes.
+     * Returns the gap opened around an expanded pane.
      *
-     * @return the spacing
+     * @return the expanded spacing
      */
-    public final double getSpacing() {
-        return spacing.get();
+    public final double getExpandedSpacing() {
+        return expandedSpacing.get();
     }
 
     /**
-     * Sets the vertical gap between panes.
+     * Sets the gap opened around an expanded pane.
      *
-     * @param value the spacing
+     * @param value the expanded spacing
      */
-    public final void setSpacing(double value) {
-        spacing.set(value);
+    public final void setExpandedSpacing(double value) {
+        expandedSpacing.set(value);
     }
 
     // ==================== Expand / Collapse All ====================
@@ -373,6 +381,19 @@ public class RXAccordion extends Control {
         if (!current.equals(expandedPanesModel)) {
             expandedPanesModel.setAll(current);
         }
+        updatePanePositions();
+    }
+
+    private void updatePanePositions() {
+        double spacing = getExpandedSpacing();
+        boolean spaced = Double.isFinite(spacing) && spacing > 0;
+        int last = panes.size() - 1;
+        for (int i = 0; i <= last; i++) {
+            RXTitledPane pane = panes.get(i);
+            boolean gapBefore = spaced && i > 0 && (pane.isExpanded() || panes.get(i - 1).isExpanded());
+            boolean gapAfter = spaced && i < last && (pane.isExpanded() || panes.get(i + 1).isExpanded());
+            pane.setPositionInAccordion(i == 0, i == last, gapBefore, gapAfter);
+        }
     }
 
     private void onPanesChanged(ListChangeListener.Change<? extends RXTitledPane> change) {
@@ -402,9 +423,6 @@ public class RXAccordion extends Control {
                 pane.expandedProperty().addListener(expandedListener);
                 newcomers.add(pane);
             }
-        }
-        for (int i = 0; i < panes.size(); i++) {
-            panes.get(i).setPositionInAccordion(i == 0, i == panes.size() - 1);
         }
         coordinate(() -> {
             if (isSingle()) {
@@ -496,17 +514,17 @@ public class RXAccordion extends Control {
 
     private static class StyleableProperties {
 
-        private static final CssMetaData<RXAccordion, Number> SPACING =
-                new CssMetaData<>("-rx-spacing", SizeConverter.getInstance(), DEFAULT_SPACING) {
+        private static final CssMetaData<RXAccordion, Number> EXPANDED_SPACING =
+                new CssMetaData<>("-rx-expanded-spacing", SizeConverter.getInstance(), DEFAULT_EXPANDED_SPACING) {
                     @Override
                     public boolean isSettable(RXAccordion node) {
-                        return !node.spacing.isBound();
+                        return !node.expandedSpacing.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<Number> getStyleableProperty(RXAccordion node) {
-                        return (StyleableProperty<Number>) node.spacingProperty();
+                        return (StyleableProperty<Number>) node.expandedSpacingProperty();
                     }
                 };
 
@@ -515,7 +533,7 @@ public class RXAccordion extends Control {
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Control.getClassCssMetaData());
-            styleables.add(SPACING);
+            styleables.add(EXPANDED_SPACING);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }
