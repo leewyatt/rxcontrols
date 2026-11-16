@@ -10,6 +10,7 @@ import io.github.leewyatt.rxcontrols.RXTitledPane.ToggleTrigger;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
+import javafx.event.Event;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -23,6 +24,7 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
@@ -38,7 +40,7 @@ import java.util.stream.Collectors;
  * Showcase application for {@link RXTitledPane} and {@link RXAccordion}.
  *
  * <p>The preview stacks a standalone pane whose header-trailing node holds a switch,
- * a field, a menu and a badge, above an accordion of panes that exercise lazy creation (with a
+ * a field, a menu, a badge that toggles the pane and a badge that consumes its press, above an accordion of panes that exercise lazy creation (with a
  * factory call counter), dynamic body growth, a long body inside the outer
  * {@code ScrollPane}, and form state that must survive collapsing. The panel drives
  * the expand mode, toggle trigger, indicator position, animation, spacing, preview
@@ -100,16 +102,21 @@ public class RXAccordionShowcase extends RXShowcaseApplication {
         filter.setPrefColumnCount(8);
         MenuButton more = new MenuButton("More");
         more.getItems().addAll(new MenuItem("Rename"), new MenuItem("Duplicate"), new MenuItem("Delete"));
-        RXBadge badge = new RXBadge();
-        badge.setCount(3);
-        badge.setContent(new Label("Alerts"));
+        // A plain node does not consume its press, so clicking it toggles like the rest
+        // of the header; consuming the press opts a node out.
+        RXBadge toggling = new RXBadge(new Label("Toggles"));
+        toggling.setCount(3);
+        RXBadge inert = new RXBadge(new Label("Inert"));
+        inert.setCount(5);
+        inert.addEventHandler(MouseEvent.MOUSE_PRESSED, Event::consume);
 
-        Label body = new Label("A standalone pane. The switch, field, menu and badge live in the "
-                + "header-trailing node: using them never toggles the pane, while clicking the rest "
-                + "of the header does.");
+        Label body = new Label("A standalone pane. The switch, field and menu in the header-trailing "
+                + "node consume their own presses and never toggle the pane. The \"Toggles\" badge "
+                + "does not consume, so clicking it toggles like the rest of the header; the "
+                + "\"Inert\" badge consumes its press and opts out.");
         body.setWrapText(true);
         RXTitledPane pane = new RXTitledPane("Standalone pane with trailing controls", body);
-        HBox trailing = new HBox(6.0, badge, filter, enabled, more);
+        HBox trailing = new HBox(10.0, toggling, inert, filter, enabled, more);
         trailing.setAlignment(Pos.CENTER_RIGHT);
         pane.setHeaderTrailing(trailing);
         pane.setExpanded(true);
@@ -205,8 +212,8 @@ public class RXAccordionShowcase extends RXShowcaseApplication {
         expanded.setWrapText(true);
         expanded.textProperty().bind(Bindings.createStringBinding(() -> "expanded: "
                 + accordion.getExpandedPanes().stream()
-                        .map(p -> p.getText() == null ? p.getAccessibleText() : p.getText())
-                        .collect(Collectors.joining(", ")), accordion.getExpandedPanes()));
+                .map(p -> p.getText() == null ? p.getAccessibleText() : p.getText())
+                .collect(Collectors.joining(", ")), accordion.getExpandedPanes()));
 
         Slider spacing = createSlider(0.0, 24.0, 0.0);
         spacing.valueProperty().addListener((obs, old, value) -> accordion.setSpacing(value.doubleValue()));
