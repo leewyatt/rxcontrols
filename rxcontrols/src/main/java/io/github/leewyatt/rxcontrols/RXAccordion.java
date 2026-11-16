@@ -66,8 +66,9 @@ import java.util.Set;
  * <p>The list rejects {@code null} and duplicates; a bulk change that would violate
  * this leaves the list unchanged. Like a node joining a new parent, a pane added to
  * another accordion is removed from its previous one, so a discarded accordion never
- * keeps a pane. Moving that same pane again from a listener on the previous
- * accordion's list, while the first move is still in progress, is not supported.
+ * keeps a pane. If a listener on the previous accordion's list hands the pane to yet
+ * another accordion while it leaves, the insertion fails with an
+ * {@link IllegalStateException} and this list stays unchanged.
  * Up / Down / Home / End move focus between the titles of the group's enabled,
  * visible panes. Panes are stacked at their preferred heights, so the accordion is as
  * tall as its content; wrap it in a {@code ScrollPane} to scroll.</p>
@@ -158,6 +159,8 @@ public class RXAccordion extends Control {
      * @return the modifiable pane list
      * @throws NullPointerException     on insertion of {@code null}
      * @throws IllegalArgumentException on insertion of a duplicate
+     * @throws IllegalStateException    when a listener moves an inserted pane to another
+     *                                  accordion while it leaves its previous one
      */
     public final ObservableList<RXTitledPane> getPanes() {
         return panes;
@@ -419,11 +422,6 @@ public class RXAccordion extends Control {
         Set<RXTitledPane> newcomers = Collections.newSetFromMap(new IdentityHashMap<>());
         for (RXTitledPane pane : added) {
             if (pane.getAccordion() != this) {
-                RXAccordion previous = pane.getAccordion();
-                if (previous != null) {
-                    // Like a scene-graph parent, joining a group leaves the old one.
-                    previous.getPanes().remove(pane);
-                }
                 pane.setAccordion(this);
                 pane.expandedProperty().addListener(expandedListener);
                 newcomers.add(pane);
@@ -463,6 +461,7 @@ public class RXAccordion extends Control {
             if (backing.contains(element)) {
                 throw new IllegalArgumentException("Duplicate pane: " + element);
             }
+            leavePreviousGroup(element);
             backing.add(index, element);
         }
 
@@ -473,6 +472,7 @@ public class RXAccordion extends Control {
             if (existing >= 0 && existing != index) {
                 throw new IllegalArgumentException("Duplicate pane: " + element);
             }
+            leavePreviousGroup(element);
             return backing.set(index, element);
         }
 
@@ -508,10 +508,31 @@ public class RXAccordion extends Control {
                     throw new IllegalArgumentException("Duplicate pane: " + pane);
                 }
             }
+            for (RXTitledPane pane : elements) {
+                leavePreviousGroup(pane);
+            }
         }
 
         private void checkInsertable(RXTitledPane pane) {
             Objects.requireNonNull(pane, "pane");
+        }
+
+        /**
+         * Like a node joining a new parent, a pane leaves its previous accordion before
+         * this list changes. A listener on the previous list may hand the pane to yet
+         * another accordion while it leaves; the insertion is then refused, so this list
+         * stays unchanged and the pane keeps a single owner.
+         */
+        private void leavePreviousGroup(RXTitledPane pane) {
+            RXAccordion previous = pane.getAccordion();
+            if (previous == null || previous == RXAccordion.this) {
+                return;
+            }
+            previous.getPanes().remove(pane);
+            if (pane.getAccordion() != null) {
+                throw new IllegalStateException(
+                        "Pane was moved to another RXAccordion while leaving its previous one: " + pane);
+            }
         }
     }
 

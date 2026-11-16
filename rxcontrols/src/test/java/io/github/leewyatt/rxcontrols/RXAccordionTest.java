@@ -191,6 +191,28 @@ public class RXAccordionTest {
     }
 
     @Test
+    public void reentrantMoveDuringMigrationIsRefusedWithoutDoubleOwnership() throws Exception {
+        runOnFx(() -> {
+            RXTitledPane p = pane("P");
+            RXAccordion source = new RXAccordion(p);
+            RXAccordion third = new RXAccordion();
+            source.getPanes().addListener((ListChangeListener<RXTitledPane>) c -> {
+                while (c.next()) {
+                    if (c.wasRemoved() && c.getRemoved().contains(p)) {
+                        third.getPanes().add(p);
+                    }
+                }
+            });
+            RXAccordion target = new RXAccordion();
+            assertThrows(IllegalStateException.class, () -> target.getPanes().add(p));
+            assertTrue(target.getPanes().isEmpty());
+            assertTrue(source.getPanes().isEmpty());
+            assertEquals(List.of(p), third.getPanes());
+            assertSame(third, p.getAccordion());
+        });
+    }
+
+    @Test
     public void groupIsNotAFocusStop() throws Exception {
         runOnFx(() -> {
             RXAccordion accordion = new RXAccordion(pane("A"));
