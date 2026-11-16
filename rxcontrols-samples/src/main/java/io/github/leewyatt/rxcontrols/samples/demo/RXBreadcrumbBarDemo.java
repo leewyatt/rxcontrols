@@ -1,8 +1,8 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXBreadcrumbBar;
+import io.github.leewyatt.rxcontrols.RXBreadcrumbBar.BranchMode;
 import javafx.application.Application;
-import javafx.beans.InvalidationListener;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -10,41 +10,58 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.util.List;
-import java.util.Map;
 
 /**
- * Minimal {@link RXBreadcrumbBar} demo: a three-level path the application
- * controls. Clicking an ancestor reports a request and the handler commits it;
- * the children factory only says what lies below a path, and from it the arrow
- * next to each level lists that level's siblings, so switching from
- * "Data Display" to "Buttons" lands on "Components / Buttons". The full property
- * panel lives in
+ * Minimal {@link RXBreadcrumbBar} demo: the same three-level path shown three ways.
+ * The first bar lists the siblings of each level in its arrow menu, the second
+ * lists the level below, and the third has no arrow menus at all. Clicking an
+ * ancestor or choosing a menu entry navigates. The full property panel lives in
  * {@link io.github.leewyatt.rxcontrols.samples.showcase.RXBreadcrumbBarShowcase}.
  */
 public class RXBreadcrumbBarDemo extends Application {
 
-    private static final Map<String, List<String>> CHILDREN = Map.of(
-            "Components", List.of("Buttons", "Data Display", "Inputs"),
-            "Data Display", List.of("Badge", "Chip", "Avatar"));
-
     @Override
     public void start(Stage primaryStage) {
-        RXBreadcrumbBar<String> breadcrumb = new RXBreadcrumbBar<>("Components", "Data Display", "Badge");
-        breadcrumb.setChildrenFactory(path -> path.isEmpty()
-                ? List.of()
-                : CHILDREN.getOrDefault(path.get(path.size() - 1), List.of()));
+        RXBreadcrumbBar<String> siblings = createBreadcrumb();
+        siblings.setChildrenFactory(RXBreadcrumbBarDemo::childrenOf);
+        siblings.setBranchMode(BranchMode.SIBLINGS);
 
-        Label location = new Label();
-        breadcrumb.setOnNavigate(event -> breadcrumb.getItems().setAll(event.getPath()));
-        breadcrumb.getItems().addListener((InvalidationListener) obs ->
-                location.setText("Showing: " + breadcrumb.getItems()));
-        location.setText("Showing: " + breadcrumb.getItems());
+        RXBreadcrumbBar<String> children = createBreadcrumb();
+        children.setChildrenFactory(RXBreadcrumbBarDemo::childrenOf);
+        children.setBranchMode(BranchMode.CHILDREN);
 
-        VBox root = new VBox(24.0, breadcrumb, location);
+        RXBreadcrumbBar<String> plain = createBreadcrumb();
+
+        VBox root = new VBox(8.0,
+                new Label("Arrows list siblings"), siblings,
+                new Label("Arrows list children"), children,
+                new Label("No arrows"), plain);
         root.setPadding(new Insets(24.0));
-        primaryStage.setScene(new Scene(root, 560.0, 200.0));
+        primaryStage.setScene(new Scene(root, 560.0, 260.0));
         primaryStage.setTitle("RXBreadcrumbBar Demo");
         primaryStage.show();
+    }
+
+    private static RXBreadcrumbBar<String> createBreadcrumb() {
+        RXBreadcrumbBar<String> breadcrumb = new RXBreadcrumbBar<>("Components", "Data Display", "Badge");
+        // Clicks and menu choices change the path without an onNavigate handler.
+        breadcrumb.setAutoNavigate(true);
+        return breadcrumb;
+    }
+
+    // What lies directly below a path; the bar derives sibling menus from it too.
+    private static List<String> childrenOf(List<String> path) {
+        if (path.isEmpty()) {
+            return List.of();
+        }
+        String parent = path.get(path.size() - 1);
+        return switch (parent) {
+            case "Components" -> List.of("Buttons", "Data Display", "Inputs");
+            case "Buttons" -> List.of("RXButton", "RXFillButton");
+            case "Data Display" -> List.of("Badge", "Chip", "Avatar");
+            case "Inputs" -> List.of("RXTextField", "RXSlider");
+            default -> List.of();
+        };
     }
 
     /**
