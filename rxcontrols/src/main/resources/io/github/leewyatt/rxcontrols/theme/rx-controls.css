@@ -4974,13 +4974,6 @@
     -fx-text-fill: -rx-on-surface;
 }
 
-/* Transparent fill keeps the whole slot pickable, so gaps between trailing nodes are
-   inert too. */
-.rx-titled-pane > .header > .row > .trailing {
-    -fx-background-color: transparent;
-    -fx-cursor: default;
-}
-
 .rx-titled-pane > .header > .row > .indicator-button {
     -fx-background-color: transparent;
     -fx-background-radius: 999px;
