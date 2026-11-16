@@ -48,9 +48,11 @@ import java.util.List;
  * {@code .indicator-button > .indicator}, the {@code .slot} holding the default
  * {@code .label} or the custom header node, and the {@code .trailing} slot holding the
  * header-trailing node; with an end indicator the order is slot, trailing,
- * indicator. The trailing slot is inert: a press inside it never toggles the pane
- * and never starts a ripple. {@code .body} is a skin-owned clipping viewport around
- * the content.</p>
+ * indicator. One rule covers the whole row: a primary press that no descendant
+ * consumed starts the ripple and arms a toggle, which fires when the button is
+ * released inside the header; a consumed press (every JavaFX control consumes its
+ * own) does neither. {@code .body} is a skin-owned clipping viewport around the
+ * content.</p>
  *
  * <p>The body is revealed, not squeezed: the content is laid out at its natural
  * height for the current width and the viewport height follows the transition
@@ -165,9 +167,6 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
         });
         disposer.registerListener(header.focusedProperty(), this::onHeaderFocusChanged);
 
-        // The trailing slot is inert: consuming the press keeps it from reaching the
-        // header, which would otherwise start a ripple and arm a toggle.
-        disposer.registerEventHandler(trailingSlot, MouseEvent.MOUSE_PRESSED, MouseEvent::consume);
         disposer.registerEventHandler(header, MouseEvent.MOUSE_PRESSED, this::onHeaderPressed);
         disposer.registerEventHandler(header, MouseEvent.MOUSE_RELEASED, this::onHeaderReleased);
         disposer.registerEventHandler(header, KeyEvent.KEY_PRESSED, this::onHeaderKeyPressed);
@@ -279,7 +278,7 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
         Node area = armedArea;
         armed = false;
         armedArea = null;
-        if (contains(area, event) && !(trailingSlot.getParent() != null && contains(trailingSlot, event))) {
+        if (contains(area, event)) {
             toggle();
         }
     }

@@ -40,8 +40,7 @@ import java.util.function.Supplier;
  * and {@link #graphicProperty() graphic}, or a caller-supplied
  * {@link #headerProperty() header} node, which then replaces the default title. A
  * {@link #headerTrailingProperty() headerTrailing} node at the header's trailing edge
- * holds header controls (buttons, menus, switches, fields); interacting with it never
- * toggles the pane.</p>
+ * holds header controls (buttons, menus, switches, fields).</p>
  *
  * <pre>{@code
  * RXTitledPane pane = new RXTitledPane("Report", reportView);
@@ -51,8 +50,8 @@ import java.util.function.Supplier;
  *
  * <p>{@link #expandedProperty() expanded} is the single logical state: it changes at
  * once, while the skin animates the body toward it. A click anywhere on the header
- * outside the trailing node toggles the pane unless a node inside the title consumed
- * the press (every JavaFX control does);
+ * toggles the pane and plays the header ripple, unless a node in the header consumed
+ * the press (every JavaFX control does, so header controls never toggle the pane);
  * {@link #toggleTriggerProperty() toggleTrigger} can restrict pointer toggling to the
  * expand indicator. The whole header row is the hover / ripple surface and the
  * keyboard focus stop: Space or Enter toggles it (Enter is taken from a default
@@ -84,7 +83,7 @@ public class RXTitledPane extends Control {
     // ==================== Constants ====================
 
     /**
-     * Default pointer trigger: the whole header, except the trailing node, toggles the pane.
+     * Default pointer trigger: an unconsumed click anywhere on the header toggles the pane.
      */
     public static final ToggleTrigger DEFAULT_TOGGLE_TRIGGER = ToggleTrigger.HEADER;
 
@@ -248,8 +247,8 @@ public class RXTitledPane extends Control {
      *
      * <p>The node lives inside the toggle area: a press it consumes (every JavaFX
      * control does) does not toggle the pane, any other press does. Interactive nodes
-     * belong in {@link #headerTrailingProperty() headerTrailing}, where a press never
-     * starts the header ripple. Give a graphic-only header an accessible name through {@link #accessibleTextProperty() accessibleText} or
+     * usually belong in {@link #headerTrailingProperty() headerTrailing}. Give a
+     * graphic-only header an accessible name through {@link #accessibleTextProperty() accessibleText} or
      * {@link #textProperty() text}.</p>
      *
      * @return the header property
@@ -283,11 +282,15 @@ public class RXTitledPane extends Control {
     /**
      * A node at the header's trailing edge (the right in left-to-right, mirrored under
      * RTL), for header controls such as buttons, menus, switches, fields or badges;
-     * wrap several in a container such as an {@code HBox}. The trailing slot is inert:
-     * no pointer or keyboard interaction inside it toggles the pane or starts the
-     * header ripple. It keeps its preferred width and shrinks toward its minimum width
-     * only after the title has been truncated to its minimum. An
-     * {@link IndicatorPosition#END END} indicator sits after it. May be {@code null}.
+     * wrap several in a container such as an {@code HBox}. It follows the same rule as
+     * the rest of the header: a press it consumes does not toggle the pane or start the
+     * header ripple, any other press does. JavaFX controls consume their own presses,
+     * so they never toggle the pane; a plain node such as a label or a badge toggles it
+     * unless it consumes the press, for example with
+     * {@code node.addEventHandler(MouseEvent.MOUSE_PRESSED, Event::consume)}. It keeps
+     * its preferred width and shrinks toward its minimum width only after the title has
+     * been truncated to its minimum. An {@link IndicatorPosition#END END} indicator sits
+     * after it. May be {@code null}.
      *
      * @return the header-trailing property
      */
@@ -865,7 +868,7 @@ public class RXTitledPane extends Control {
     public enum ToggleTrigger {
 
         /**
-         * The whole header except the trailing node, including the indicator, toggles the pane.
+         * An unconsumed click anywhere on the header, including the indicator, toggles the pane.
          */
         HEADER,
 

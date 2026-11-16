@@ -8,6 +8,7 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.css.CssMetaData;
 import javafx.scene.Parent;
+import javafx.event.Event;
 import javafx.event.EventType;
 import javafx.geometry.Bounds;
 import javafx.geometry.Point2D;
@@ -177,35 +178,43 @@ public class RXTitledPaneTest {
     }
 
     @Test
-    public void headerTrailingNeverTogglesEvenWhenItDoesNotConsume() throws Exception {
+    public void headerTrailingFollowsTheConsumptionRule() throws Exception {
         runOnFx(() -> {
             Label passive = new Label("badge");
+            Label transparent = new Label("see-through");
+            transparent.setMouseTransparent(true);
+            Label consuming = new Label("inert");
+            consuming.addEventHandler(MouseEvent.MOUSE_PRESSED, Event::consume);
             Button button = new Button("Act");
             AtomicInteger fired = new AtomicInteger();
             button.setOnAction(e -> fired.incrementAndGet());
-            HBox trailing = new HBox(8, passive, button);
+            HBox trailing = new HBox(8, passive, transparent, consuming, button);
             RXTitledPane pane = new RXTitledPane("Title", new Label("Body"));
             pane.setAnimated(false);
             pane.setHeaderTrailing(trailing);
             show(pane);
+            Node header = title(pane);
 
-            click(passive, passive);
-            click(trailing, trailing);
             click(button, button);
-            assertFalse(pane.isExpanded());
+            assertFalse(pane.isExpanded(), "a control consumes its press");
             assertEquals(1, fired.get());
-
             button.requestFocus();
             button.fireEvent(key(KeyEvent.KEY_PRESSED, KeyCode.SPACE));
             button.fireEvent(key(KeyEvent.KEY_RELEASED, KeyCode.SPACE));
             assertFalse(pane.isExpanded());
             assertEquals(2, fired.get());
 
-            Node label = pane.lookup(".slot > .label");
-            press(label, label);
-            Point2D over = center(passive);
-            release(label, over.getX(), over.getY());
-            assertFalse(pane.isExpanded(), "releasing over the trailing node is a drag-out");
+            click(consuming, consuming);
+            assertFalse(pane.isExpanded(), "a consumed press opts out");
+
+            click(passive, passive);
+            assertTrue(pane.isExpanded(), "an unconsumed press toggles");
+
+            // A mouse-transparent node is skipped by picking; the press lands on the header.
+            press(header, transparent);
+            Point2D over = center(transparent);
+            release(header, over.getX(), over.getY());
+            assertFalse(pane.isExpanded());
 
             pane.setHeaderTrailing(null);
             pane.applyCss();
