@@ -302,7 +302,7 @@ public class RXBreadcrumbBar<T> extends Control {
      * Factory for the node drawn between two path positions, for a separator that
      * is text or any other node rather than a shape:
      * {@code bar.setSeparatorFactory(() -> new Label("/"))}. When {@code null} (the
-     * default) the separator is a chevron shape, restyled from CSS through
+     * default) the separator is a slash shape, restyled from CSS through
      * {@code .rx-breadcrumb-bar > .separator > .icon}; a {@code null} result falls
      * back to that shape as well.
      *
@@ -315,7 +315,9 @@ public class RXBreadcrumbBar<T> extends Control {
      *
      * <p>Under a right-to-left orientation shapes are mirrored but text glyphs are
      * not, so a directional character such as "›" keeps pointing right; choose the
-     * character by orientation, or use a direction-neutral one.</p>
+     * character by orientation, or use a direction-neutral one. A separator made
+     * of text is ordinary text to assistive technology and may be announced between
+     * the items.</p>
      *
      * @return the separator factory property
      */
