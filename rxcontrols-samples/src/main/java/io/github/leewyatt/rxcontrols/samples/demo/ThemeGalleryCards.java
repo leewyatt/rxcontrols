@@ -426,9 +426,9 @@ final class ThemeGalleryCards {
                 "Components", List.of("Buttons", "Data Display", "Inputs"),
                 "Data Display", List.of("Badge", "Chip", "Avatar"));
         RXBreadcrumbBar<String> breadcrumb = new RXBreadcrumbBar<>("Components", "Data Display", "Badge");
-        breadcrumb.setBranchFactory(prefix -> prefix.size() < 2
+        breadcrumb.setChildrenFactory(path -> path.isEmpty()
                 ? List.of()
-                : children.getOrDefault(prefix.get(prefix.size() - 2), List.of()));
+                : children.getOrDefault(path.get(path.size() - 1), List.of()));
         breadcrumb.setOnNavigate(event -> breadcrumb.getItems().setAll(event.getPath()));
         return breadcrumb;
     }

@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 /**
  * Default skin of {@link RXBreadcrumbBar}.
@@ -43,7 +44,8 @@ import java.util.Objects;
  * rebuilt only when the path or a rendering input changes; layout measures them,
  * asks {@link BreadcrumbFitter} which run to collapse, and only toggles visibility
  * and positions. One {@link RXPopupMenu} serves the overflow and every branch menu;
- * its entries are created when it opens.</p>
+ * its entries are created when it opens, which is also when a branch menu asks the
+ * children factory for them.</p>
  *
  * @param <T> the item type
  */
@@ -97,7 +99,8 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         });
         disposer.registerListener(control.converterProperty(), this::rebuild);
         disposer.registerListener(control.graphicFactoryProperty(), this::rebuild);
-        disposer.registerListener(control.branchFactoryProperty(), this::rebuild);
+        disposer.registerListener(control.childrenFactoryProperty(), this::rebuild);
+        disposer.registerListener(control.branchFilterProperty(), this::rebuild);
         disposer.registerListener(control.branchModeProperty(), this::rebuild);
         disposer.registerListener(control.currentItemNavigableProperty(), this::rebuild);
         disposer.registerListener(control.maxVisibleItemsProperty(), control::requestLayout);
@@ -198,13 +201,12 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
             itemNode.setAccessibleRoleDescription("current page");
         }
 
-        List<T> entries = branchEntries(index);
         MenuTrigger arrow = null;
-        if (!entries.isEmpty()) {
+        if (hasBranch(index)) {
             MenuTrigger trigger = new MenuTrigger("branch-button", "arrow");
             trigger.setAccessibleText(text + " options");
             trigger.pseudoClassStateChanged(CURRENT_PSEUDO_CLASS, current);
-            trigger.addEventHandler(ActionEvent.ACTION, e -> openBranchMenu(trigger, index, entries));
+            trigger.addEventHandler(ActionEvent.ACTION, e -> openBranchMenu(trigger, index));
             trackFocusShown(trigger);
             arrow = trigger;
         }
@@ -222,13 +224,38 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         return separator;
     }
 
-    private List<T> branchEntries(int index) {
-        Callback<List<T>, List<T>> factory = getSkinnable().getBranchFactory();
+    // The path whose children are the branch menu of a position: the position's own
+    // path in CHILDREN mode, its parent's (empty for the root) in SIBLINGS mode. A
+    // chosen entry is appended to it either way.
+    private List<T> branchParent(int index) {
+        boolean children = getSkinnable().getBranchMode() == BranchMode.CHILDREN;
+        return prefix(children ? index + 1 : index);
+    }
+
+    private boolean hasBranch(int index) {
+        RXBreadcrumbBar<T> control = getSkinnable();
+        if (control.getChildrenFactory() == null) {
+            return false;
+        }
+        List<T> parent = branchParent(index);
+        Predicate<List<T>> filter = control.getBranchFilter();
+        if (filter != null) {
+            return filter.test(Collections.unmodifiableList(parent));
+        }
+        // The path itself shows that an inner parent has a child. That leaves one
+        // position to ask about: the last one in CHILDREN mode, and in SIBLINGS mode
+        // the root, which usually has no alternatives.
+        boolean proven = !parent.isEmpty() && parent.size() < path.size();
+        return proven || !childrenOf(parent).isEmpty();
+    }
+
+    private List<T> childrenOf(List<T> parent) {
+        Callback<List<T>, List<T>> factory = getSkinnable().getChildrenFactory();
         if (factory == null) {
             return Collections.emptyList();
         }
-        List<T> entries = factory.call(Collections.unmodifiableList(prefix(index + 1)));
-        return entries == null ? Collections.emptyList() : new ArrayList<>(entries);
+        List<T> children = factory.call(Collections.unmodifiableList(parent));
+        return children == null ? Collections.emptyList() : new ArrayList<>(children);
     }
 
     private List<T> prefix(int length) {
@@ -277,7 +304,7 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
     // A replacement skin that does not take over the children leaves this skin's
     // buttons in the scene after dispose; activating one of them must stay inert.
     private void openOverflowMenu() {
-        if (getSkinnable() == null) {
+        if (getSkinnable() == null || !beginMenu(overflowButton)) {
             return;
         }
         List<RXMenuItem> entries = new ArrayList<>();
@@ -291,22 +318,24 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         showMenu(overflowButton, entries);
     }
 
-    private void openBranchMenu(MenuTrigger trigger, int index, List<T> branch) {
-        if (getSkinnable() == null) {
+    private void openBranchMenu(MenuTrigger trigger, int index) {
+        if (getSkinnable() == null || !beginMenu(trigger)) {
             return;
         }
-        BranchMode mode = getSkinnable().getBranchMode();
-        boolean children = mode == BranchMode.CHILDREN;
-        // The prefix a chosen entry is grafted onto: SIBLINGS replaces the position,
-        // CHILDREN appends below it; either way everything after is dropped.
-        int keep = children ? index + 1 : index;
-        int markedIndex = children ? index + 1 : index;
-        T onPath = markedIndex < path.size() ? path.get(markedIndex) : null;
+        List<T> parent = branchParent(index);
+        List<T> branch = childrenOf(parent);
+        // The children may be gone by the time the arrow is used.
+        if (branch.isEmpty()) {
+            return;
+        }
+        // The path element the menu offers alternatives for, if the path has one.
+        int markedIndex = parent.size();
         boolean hasOnPath = markedIndex < path.size();
+        T onPath = hasOnPath ? path.get(markedIndex) : null;
 
         List<RXMenuItem> entries = new ArrayList<>();
         for (T value : branch) {
-            List<T> target = prefix(keep);
+            List<T> target = new ArrayList<>(parent);
             target.add(value);
             RXMenuItem entry = new RXMenuItem(textOf(value), graphicOf(value));
             if (hasOnPath && Objects.equals(value, onPath)) {
@@ -318,18 +347,21 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         showMenu(trigger, entries);
     }
 
-    private void showMenu(MenuTrigger trigger, List<RXMenuItem> entries) {
+    // Closes whatever menu is showing and reports whether the trigger should go on
+    // to open its own: not when the activation was the toggle that closed it, and
+    // not when the press that auto-hid its menu is now being released.
+    private boolean beginMenu(MenuTrigger trigger) {
         if (menu.isShowing()) {
             boolean sameTrigger = menuTrigger == trigger;
             menu.hide();
             if (sameTrigger) {
-                return;
+                return false;
             }
         }
-        // The press that auto-hid this trigger's menu must not reopen it on release.
-        if (suppressReopen == trigger) {
-            return;
-        }
+        return suppressReopen != trigger;
+    }
+
+    private void showMenu(MenuTrigger trigger, List<RXMenuItem> entries) {
         menu.getItems().setAll(entries);
         menuTrigger = trigger;
         menu.show(trigger);

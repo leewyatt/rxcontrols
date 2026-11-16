@@ -15,7 +15,8 @@ import java.util.Map;
 /**
  * Minimal {@link RXBreadcrumbBar} demo: a three-level path the application
  * controls. Clicking an ancestor reports a request and the handler commits it;
- * the arrow next to each level lists its siblings, so switching from
+ * the children factory only says what lies below a path, and from it the arrow
+ * next to each level lists that level's siblings, so switching from
  * "Data Display" to "Buttons" lands on "Components / Buttons". The full property
  * panel lives in
  * {@link io.github.leewyatt.rxcontrols.samples.showcase.RXBreadcrumbBarShowcase}.
@@ -29,9 +30,9 @@ public class RXBreadcrumbBarDemo extends Application {
     @Override
     public void start(Stage primaryStage) {
         RXBreadcrumbBar<String> breadcrumb = new RXBreadcrumbBar<>("Components", "Data Display", "Badge");
-        breadcrumb.setBranchFactory(prefix -> prefix.size() < 2
+        breadcrumb.setChildrenFactory(path -> path.isEmpty()
                 ? List.of()
-                : CHILDREN.getOrDefault(prefix.get(prefix.size() - 2), List.of()));
+                : CHILDREN.getOrDefault(path.get(path.size() - 1), List.of()));
 
         Label location = new Label();
         breadcrumb.setOnNavigate(event -> breadcrumb.getItems().setAll(event.getPath()));

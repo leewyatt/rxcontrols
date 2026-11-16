@@ -22,6 +22,7 @@ import javafx.util.Callback;
 import javafx.util.StringConverter;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * A breadcrumb trail: the path from a root to the current location, with each
@@ -42,12 +43,28 @@ import java.util.List;
  * {@link #autoNavigateProperty() autoNavigate} to have unanswered requests committed
  * automatically. Programmatic path changes never fire requests.</p>
  *
- * <p><b>Branch menus.</b> With a {@link #branchFactoryProperty() branchFactory}, a
- * position whose factory result is non-empty gets a separate arrow button that opens
- * a menu of alternatives ({@link BranchMode#SIBLINGS}) or of the next level down
- * ({@link BranchMode#CHILDREN}). The arrow is distinct from the item text: opening
- * the menu never navigates, choosing an entry fires a request. The current item
- * keeps its arrow even when its text is not navigable.</p>
+ * <p><b>Branch menus.</b> A {@link #childrenFactoryProperty() childrenFactory}
+ * answers one question about the hierarchy — what lies directly below a path — and
+ * the bar derives the rest: a position gets a separate arrow button that opens a
+ * menu of its alternatives ({@link BranchMode#SIBLINGS}, the children of its parent)
+ * or of the next level down ({@link BranchMode#CHILDREN}). The same factory serves
+ * both modes. The arrow is distinct from the item text: opening the menu never
+ * navigates, choosing an entry fires a request. The current item keeps its arrow
+ * even when its text is not navigable. A
+ * {@link #branchFilterProperty() branchFilter} keeps levels that should not be
+ * listed (thousands of records, say) out of the menus.</p>
+ *
+ * <p>Flat data looks its children up by the last path element:</p>
+ * <pre>{@code
+ * bar.setChildrenFactory(path -> path.isEmpty() ? List.of() : catalog.get(path.get(path.size() - 1)));
+ * }</pre>
+ *
+ * <p>A tree needs no adapter when the nodes themselves are the items — the path is
+ * the ancestor chain of the current node:</p>
+ * <pre>{@code
+ * RXBreadcrumbBar<TreeItem<String>> bar = new RXBreadcrumbBar<>();
+ * bar.setChildrenFactory(path -> path.isEmpty() ? List.of(root) : path.get(path.size() - 1).getChildren());
+ * }</pre>
  *
  * <p><b>Fitting.</b> When the path does not fit its width (or exceeds
  * {@link #maxVisibleItemsProperty() maxVisibleItems}), a contiguous run of middle
@@ -74,18 +91,18 @@ public class RXBreadcrumbBar<T> extends Control {
     private static final int DEFAULT_MAX_VISIBLE_ITEMS = 0;
 
     /**
-     * What a branch menu lists, and therefore where a chosen entry lands in the
-     * requested path.
+     * What a branch menu lists, and therefore which path the children factory is
+     * asked about and where a chosen entry lands in the requested path.
      */
     public enum BranchMode {
         /**
-         * Alternatives for the position: a chosen entry replaces it and everything
-         * after it is dropped.
+         * Alternatives for the position, the children of its parent: a chosen entry
+         * replaces it and everything after it is dropped.
          */
         SIBLINGS,
         /**
-         * The level below the position: a chosen entry is appended after it and
-         * everything that followed is dropped.
+         * The level below the position, its own children: a chosen entry is appended
+         * after it and everything that followed is dropped.
          */
         CHILDREN
     }
@@ -125,10 +142,11 @@ public class RXBreadcrumbBar<T> extends Control {
     }
 
     /**
-     * Rebuilds every crumb, re-reading item text, graphics and branch entries. Call
-     * it after mutating an item in place (renaming a mutable value) or when the data
-     * behind the {@link #branchFactoryProperty() branchFactory} changed; replacing an
-     * element of {@link #getItems()} rebuilds on its own.
+     * Rebuilds every crumb, re-reading item text and graphics and deciding again
+     * which positions have a branch arrow. Call it after mutating an item in place
+     * (renaming a mutable value) or when the hierarchy changed in a way that adds or
+     * removes an arrow; replacing an element of {@link #getItems()} rebuilds on its
+     * own, and menu entries are always read fresh when a menu opens.
      */
     public void refresh() {
         getProperties().put(FeedbackSignals.BREADCRUMB_REFRESH, Boolean.TRUE);
@@ -237,42 +255,101 @@ public class RXBreadcrumbBar<T> extends Control {
         graphicFactory.set(value);
     }
 
-    // ==================== Branch Factory ====================
+    // ==================== Children Factory ====================
 
-    private final ObjectProperty<Callback<List<T>, List<T>>> branchFactory =
-            new SimpleObjectProperty<>(this, "branchFactory");
+    private final ObjectProperty<Callback<List<T>, List<T>>> childrenFactory =
+            new SimpleObjectProperty<>(this, "childrenFactory");
 
     /**
-     * Supplies the branch menu of each position. The factory receives the
-     * unmodifiable path prefix ending at that position and returns the menu
-     * entries — alternatives for that position or its children, per
-     * {@link #branchModeProperty() branchMode}. A {@code null} or empty result
-     * means the position has no branch button. The factory is called when the
-     * crumbs are rebuilt (path, factory, mode, converter or graphic factory change,
-     * or {@link #refresh()}), never during layout or when a menu opens.
+     * Supplies the level directly below a path, which is all the bar needs to know
+     * about the hierarchy. The factory receives an unmodifiable path, root first,
+     * and returns its children; {@code null} is treated as no children. Which path
+     * a position asks about follows the {@link #branchModeProperty() branchMode}:
+     * its own path in {@link BranchMode#CHILDREN}, its parent's path in
+     * {@link BranchMode#SIBLINGS}. A chosen entry is always appended to the path
+     * that was asked about.
      *
-     * @return the branch factory property
+     * <p><b>The empty path.</b> In {@code SIBLINGS} mode the root position asks
+     * about the empty path, whose children are the alternative roots (drives,
+     * workspaces). A factory must therefore accept an empty list in either mode;
+     * return an empty list from it when the root has no alternatives.</p>
+     *
+     * <p><b>When it is called.</b> Menu entries are read when a branch menu opens,
+     * so they are always current; a result that is empty by then opens no menu.
+     * Whether a position shows an arrow is settled earlier, when the crumbs are
+     * rebuilt (path or a rendering property changes, or {@link #refresh()}):
+     * a position that provably has entries — every position but the last in
+     * {@code CHILDREN} mode, every position but the root in {@code SIBLINGS}
+     * mode — gets one without a call, and the one remaining position is asked
+     * once. With a {@link #branchFilterProperty() branchFilter} the filter decides
+     * instead and the factory is not called during a rebuild at all. It is never
+     * called during layout.</p>
+     *
+     * @return the children factory property
      */
-    public final ObjectProperty<Callback<List<T>, List<T>>> branchFactoryProperty() {
-        return branchFactory;
+    public final ObjectProperty<Callback<List<T>, List<T>>> childrenFactoryProperty() {
+        return childrenFactory;
     }
 
     /**
-     * Returns the branch factory.
+     * Returns the children factory.
      *
-     * @return the branch factory, or {@code null}
+     * @return the children factory, or {@code null}
      */
-    public final Callback<List<T>, List<T>> getBranchFactory() {
-        return branchFactory.get();
+    public final Callback<List<T>, List<T>> getChildrenFactory() {
+        return childrenFactory.get();
     }
 
     /**
-     * Sets the branch factory.
+     * Sets the children factory.
      *
-     * @param value the branch factory, or {@code null} for no branch menus
+     * @param value the children factory, or {@code null} for no branch menus
      */
-    public final void setBranchFactory(Callback<List<T>, List<T>> value) {
-        branchFactory.set(value);
+    public final void setChildrenFactory(Callback<List<T>, List<T>> value) {
+        childrenFactory.set(value);
+    }
+
+    // ==================== Branch Filter ====================
+
+    private final ObjectProperty<Predicate<List<T>>> branchFilter =
+            new SimpleObjectProperty<>(this, "branchFilter");
+
+    /**
+     * Decides which levels are offered as a branch menu. The filter receives the
+     * same unmodifiable path the {@link #childrenFactoryProperty() childrenFactory}
+     * would be asked about and returns whether that path's children should be
+     * listed; a position whose path is rejected has no arrow. Because it is asked
+     * about a path rather than a position, one filter is correct in both branch
+     * modes: rejecting {@code [Home, Orders]} hides the arrow of an order in
+     * {@code SIBLINGS} mode and the arrow of "Orders" in {@code CHILDREN} mode.
+     *
+     * <p>When set, the filter alone decides which positions have an arrow, so it
+     * should also reject paths that have no children. When {@code null} (the
+     * default) the bar decides as described for the children factory. The filter
+     * has no effect without a children factory.</p>
+     *
+     * @return the branch filter property
+     */
+    public final ObjectProperty<Predicate<List<T>>> branchFilterProperty() {
+        return branchFilter;
+    }
+
+    /**
+     * Returns the branch filter.
+     *
+     * @return the branch filter, or {@code null}
+     */
+    public final Predicate<List<T>> getBranchFilter() {
+        return branchFilter.get();
+    }
+
+    /**
+     * Sets the branch filter.
+     *
+     * @param value the branch filter, or {@code null} to let the bar decide
+     */
+    public final void setBranchFilter(Predicate<List<T>> value) {
+        branchFilter.set(value);
     }
 
     // ==================== Branch Mode ====================

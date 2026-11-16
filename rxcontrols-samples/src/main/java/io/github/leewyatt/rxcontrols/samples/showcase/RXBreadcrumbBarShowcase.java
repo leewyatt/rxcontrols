@@ -25,6 +25,8 @@ import javafx.util.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Showcase application for {@link RXBreadcrumbBar}.
@@ -32,9 +34,12 @@ import java.util.Map;
  * <p>The preview is a miniature component catalog: the bar shows where you are,
  * and the page under it plays the application's part — a category page lists its
  * children, so reaching a component goes through the page, never through the bar
- * picking a first child. The arrows switch between siblings (or open the level
- * below in {@code CHILDREN} mode); choosing Buttons from Data Display's arrow lands
- * on "Components / Buttons" with the old suffix gone. The right pane drives every
+ * picking a first child. One children factory describes the catalog; the arrows
+ * switch between siblings or, in {@code CHILDREN} mode, open the level below, and
+ * changing the mode never touches the factory. Choosing Buttons from Data Display's
+ * arrow lands on "Components / Buttons" with the old suffix gone. The "Orders" path
+ * has a level of records too long to list, which the branch filter keeps out of the
+ * menus in either mode. The right pane drives every
  * property, a preview width to watch the middle collapse into the overflow button,
  * font size and right-to-left orientation, and an asynchronous mode in which the
  * application holds each request and commits it later, dropping superseded ones.
@@ -43,6 +48,7 @@ import java.util.Map;
 public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
 
     private static final String ROOT = "Components";
+    private static final String RECORD_LEVEL = "Orders";
     private static final String FOLDER =
             "M0 0L0 0 M24 24L24 24 M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8z";
     private static final String FILE =
@@ -83,9 +89,14 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
         catalog.put("Data Display", List.of("Badge", "Chip", "Avatar", "Ribbon Badge"));
         catalog.put("Inputs", List.of("RXTextField", "RXPasswordField", "RXSlider"));
         catalog.put("Navigation", List.of("Breadcrumb Bar", "Tab Pane", "Sidebar"));
+        catalog.put("Workspace", List.of(RECORD_LEVEL, "Customers", "Reports"));
+        catalog.put(RECORD_LEVEL, IntStream.rangeClosed(10401, 10424)
+                .mapToObj(number -> "#" + number)
+                .collect(Collectors.toList()));
 
         bar.getItems().setAll(ROOT, "Data Display", "Badge");
-        bar.setBranchFactory(this::siblings);
+        bar.setChildrenFactory(this::children);
+        bar.setBranchFilter(this::isListedLevel);
         bar.setGraphicFactory(this::iconFor);
         bar.setOnNavigate(this::onNavigate);
         bar.getItems().addListener((InvalidationListener) obs -> renderPage());
@@ -125,6 +136,9 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
         deep.setMaxWidth(Double.MAX_VALUE);
         deep.setOnAction(e -> bar.getItems().setAll("Workspace", "Projects", "rxcontrols", "src", "main",
                 "java", "io", "github", "leewyatt", "rxcontrols", "RXBreadcrumbBar.java"));
+        Button records = new Button("Workspace / Orders / #10412");
+        records.setMaxWidth(Double.MAX_VALUE);
+        records.setOnAction(e -> bar.getItems().setAll("Workspace", RECORD_LEVEL, "#10412"));
         Button longName = new Button("Single very long title");
         longName.setMaxWidth(Double.MAX_VALUE);
         longName.setOnAction(e -> bar.getItems().setAll(
@@ -135,7 +149,7 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
         Button empty = new Button("Empty");
         empty.setMaxWidth(Double.MAX_VALUE);
         empty.setOnAction(e -> bar.getItems().clear());
-        return createGrid(row(sampler), row(deep), row(longName), row(cjk), row(empty));
+        return createGrid(row(sampler), row(records), row(deep), row(longName), row(cjk), row(empty));
     }
 
     private Node buildBehaviorGrid() {
@@ -144,16 +158,18 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
         branches.setValue("Siblings");
         branches.setMaxWidth(Double.MAX_VALUE);
         branches.valueProperty().addListener((obs, old, value) -> {
+            // The mode only changes which path the one factory is asked about.
             if ("None".equals(value)) {
-                bar.setBranchFactory(null);
-            } else if ("Children".equals(value)) {
-                bar.setBranchMode(BranchMode.CHILDREN);
-                bar.setBranchFactory(prefix -> catalog.get(prefix.get(prefix.size() - 1)));
+                bar.setChildrenFactory(null);
             } else {
-                bar.setBranchMode(BranchMode.SIBLINGS);
-                bar.setBranchFactory(this::siblings);
+                bar.setBranchMode("Children".equals(value) ? BranchMode.CHILDREN : BranchMode.SIBLINGS);
+                bar.setChildrenFactory(this::children);
             }
         });
+        CheckBox filter = new CheckBox("Branch filter (no menu of orders)");
+        filter.setSelected(true);
+        filter.selectedProperty().addListener((obs, old, value) ->
+                bar.setBranchFilter(value ? this::isListedLevel : null));
 
         CheckBox currentItemNavigable = new CheckBox("Current item is a link");
         currentItemNavigable.selectedProperty().bindBidirectional(bar.currentItemNavigableProperty());
@@ -166,6 +182,7 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
 
         return createGrid(
                 row("Branches", branches),
+                row(filter),
                 row(currentItemNavigable),
                 row(autoNavigate),
                 row(async),
@@ -252,11 +269,17 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
         }
     }
 
-    private List<String> siblings(List<String> prefix) {
-        if (prefix.size() < 2) {
+    // The empty path has no children: this catalog offers no alternative roots.
+    private List<String> children(List<String> path) {
+        if (path.isEmpty()) {
             return List.of();
         }
-        return catalog.getOrDefault(prefix.get(prefix.size() - 2), List.of());
+        return catalog.getOrDefault(path.get(path.size() - 1), List.of());
+    }
+
+    // A level is offered as a menu when it has entries and is not the list of orders.
+    private boolean isListedLevel(List<String> path) {
+        return !children(path).isEmpty() && !RECORD_LEVEL.equals(path.get(path.size() - 1));
     }
 
     // Categories and folders get a folder, components and files a page.

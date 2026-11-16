@@ -44,8 +44,9 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 /**
  * Tests for {@link RXBreadcrumbBar}: the crumb structure, the navigation request
  * contract (controlled by default, auto navigation vetoed by consumption or by a
- * handler's own path change), branch menus in both modes including the category
- * switch that drops the old suffix, positional identity of repeated values, width
+ * handler's own path change), branch menus in both modes from one children factory
+ * (entries read when a menu opens, arrows decided by the path or the branch filter)
+ * including the category switch that drops the old suffix, positional identity of repeated values, width
  * fitting, stale-menu protection, refresh and skin replacement.
  */
 public class RXBreadcrumbBarTest {
@@ -218,7 +219,7 @@ public class RXBreadcrumbBarTest {
         runOnFx(() -> {
             RXBreadcrumbBar<String> bar = show(
                     new RXBreadcrumbBar<>("Components", "Data Display", "Badge"), 800);
-            bar.setBranchFactory(RXBreadcrumbBarTest::siblings);
+            bar.setChildrenFactory(RXBreadcrumbBarTest::children);
             bar.setAutoNavigate(true);
             layout(bar, 800);
             List<List<String>> requests = new ArrayList<>();
@@ -241,7 +242,7 @@ public class RXBreadcrumbBarTest {
         runOnFx(() -> {
             RXBreadcrumbBar<String> bar = show(
                     new RXBreadcrumbBar<>("Components", "Data Display", "Badge"), 800);
-            bar.setBranchFactory(RXBreadcrumbBarTest::siblings);
+            bar.setChildrenFactory(RXBreadcrumbBarTest::children);
             layout(bar, 800);
             List<List<String>> requests = new ArrayList<>();
             bar.setOnNavigate(e -> requests.add(e.getPath()));
@@ -262,7 +263,7 @@ public class RXBreadcrumbBarTest {
         runOnFx(() -> {
             RXBreadcrumbBar<String> bar = show(new RXBreadcrumbBar<>("Components", "Buttons"), 800);
             bar.setBranchMode(BranchMode.CHILDREN);
-            bar.setBranchFactory(prefix -> CATALOG.get(prefix.get(prefix.size() - 1)));
+            bar.setChildrenFactory(RXBreadcrumbBarTest::children);
             layout(bar, 800);
             List<List<String>> requests = new ArrayList<>();
             bar.setOnNavigate(e -> requests.add(e.getPath()));
@@ -275,12 +276,123 @@ public class RXBreadcrumbBarTest {
     }
 
     @Test
+    public void oneFactoryServesBothModes() throws InterruptedException {
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = show(
+                    new RXBreadcrumbBar<>("Components", "Data Display", "Badge"), 800);
+            bar.setChildrenFactory(RXBreadcrumbBarTest::children);
+            layout(bar, 800);
+            List<List<String>> requests = new ArrayList<>();
+            bar.setOnNavigate(e -> requests.add(e.getPath()));
+
+            // SIBLINGS: no alternative roots, the other two positions list their level.
+            assertEquals(List.of(false, true, true), branchButtons(bar));
+            branchButton(bar, 1).fire();
+            RXMenuList siblings = openMenu();
+            assertEquals(List.of("Buttons", "Data Display", "Inputs"), menuTexts(siblings));
+            siblings.activate(entry(siblings, "Inputs"));
+
+            bar.setBranchMode(BranchMode.CHILDREN);
+            layout(bar, 800);
+            // CHILDREN: the leaf has nothing below it.
+            assertEquals(List.of(true, true, false), branchButtons(bar));
+            branchButton(bar, 1).fire();
+            RXMenuList children = openMenu();
+            assertEquals(List.of("Badge", "Chip", "Avatar"), menuTexts(children));
+            assertTrue(entry(children, "Badge").getStyleClass().contains("breadcrumb-current"));
+            children.activate(entry(children, "Chip"));
+
+            assertEquals(List.of(
+                    List.of("Components", "Inputs"),
+                    List.of("Components", "Data Display", "Chip")), requests);
+        });
+    }
+
+    @Test
+    public void rootAsksAboutTheEmptyPathInSiblingsMode() throws InterruptedException {
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = show(new RXBreadcrumbBar<>("C:", "Users"), 800);
+            List<List<String>> asked = new ArrayList<>();
+            bar.setChildrenFactory(path -> {
+                asked.add(List.copyOf(path));
+                return path.isEmpty() ? List.of("C:", "D:") : List.of("Users", "Windows");
+            });
+            layout(bar, 800);
+            assertEquals(List.of(List.of()), asked, "a rebuild asks only about the root's parent");
+            List<List<String>> requests = new ArrayList<>();
+            bar.setOnNavigate(e -> requests.add(e.getPath()));
+
+            branchButton(bar, 0).fire();
+            RXMenuList menu = openMenu();
+            assertEquals(List.of("C:", "D:"), menuTexts(menu));
+            menu.activate(entry(menu, "D:"));
+            assertEquals(List.of(List.of("D:")), requests);
+        });
+    }
+
+    @Test
+    public void menuEntriesAreReadWhenTheMenuOpens() throws InterruptedException {
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = show(new RXBreadcrumbBar<>("Components", "Buttons"), 800);
+            List<String> level = new ArrayList<>(List.of("Buttons", "Inputs"));
+            List<List<String>> asked = new ArrayList<>();
+            bar.setChildrenFactory(path -> {
+                asked.add(List.copyOf(path));
+                return path.isEmpty() ? List.of() : level;
+            });
+            layout(bar, 800);
+            asked.clear();
+
+            level.add("Navigation");
+            branchButton(bar, 1).fire();
+            assertEquals(List.of(List.of("Components")), asked);
+            assertEquals(List.of("Buttons", "Inputs", "Navigation"), menuTexts(openMenu()));
+        });
+    }
+
+    @Test
+    public void emptyResultAtOpenShowsNoMenu() throws InterruptedException {
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = show(new RXBreadcrumbBar<>("Components", "Buttons"), 800);
+            bar.setChildrenFactory(path -> List.of());
+            layout(bar, 800);
+            branchButton(bar, 1).fire();
+            assertTrue(openMenus().isEmpty());
+        });
+    }
+
+    @Test
+    public void branchFilterDecidesArrowsByPathInBothModes() throws InterruptedException {
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = show(new RXBreadcrumbBar<>("Home", "Orders", "#12345"), 800);
+            List<List<String>> asked = new ArrayList<>();
+            // The sections under Home are worth a menu; the orders themselves are not.
+            bar.setBranchFilter(path -> path.equals(List.of("Home")));
+            bar.setChildrenFactory(path -> {
+                asked.add(List.copyOf(path));
+                return List.of("Orders", "Customers");
+            });
+            layout(bar, 800);
+            assertEquals(List.of(false, true, false), branchButtons(bar));
+
+            bar.setBranchMode(BranchMode.CHILDREN);
+            layout(bar, 800);
+            assertEquals(List.of(true, false, false), branchButtons(bar));
+            assertTrue(asked.isEmpty(), "with a filter a rebuild never calls the factory");
+
+            bar.setBranchFilter(null);
+            layout(bar, 800);
+            assertEquals(List.of(true, true, true), branchButtons(bar));
+        });
+    }
+
+    @Test
     public void pathChangeWhileAMenuIsOpenClosesIt() throws InterruptedException {
         AtomicReference<RXBreadcrumbBar<String>> ref = new AtomicReference<>();
         runOnFx(() -> {
             RXBreadcrumbBar<String> bar = show(
                     new RXBreadcrumbBar<>("Components", "Data Display", "Badge"), 800);
-            bar.setBranchFactory(RXBreadcrumbBarTest::siblings);
+            bar.setChildrenFactory(RXBreadcrumbBarTest::children);
             layout(bar, 800);
             branchButton(bar, 2).fire();
             assertNotNull(openMenu());
@@ -374,7 +486,7 @@ public class RXBreadcrumbBarTest {
         runOnFx(() -> {
             RXBreadcrumbBar<String> bar = show(
                     new RXBreadcrumbBar<>("Components", "Data Display", "Inputs", "Buttons", "Badge"), 1200);
-            bar.setBranchFactory(prefix -> List.of("Badge", "Chip"));
+            bar.setChildrenFactory(prefix -> List.of("Badge", "Chip"));
             bar.setMaxVisibleItems(2);
             layout(bar, 1200);
             List<RXBreadcrumbEvent<String>> events = new ArrayList<>();
@@ -432,7 +544,7 @@ public class RXBreadcrumbBarTest {
             Thread.currentThread().setUncaughtExceptionHandler((t, e) -> errors.add(e));
             RXBreadcrumbBar<String> bar = show(
                     new RXBreadcrumbBar<>("Components", "Data Display", "Badge"), 800);
-            bar.setBranchFactory(RXBreadcrumbBarTest::siblings);
+            bar.setChildrenFactory(RXBreadcrumbBarTest::children);
             layout(bar, 800);
             link(bar, 1).requestFocus();
             branchButton(bar, 2).fire();
@@ -461,7 +573,7 @@ public class RXBreadcrumbBarTest {
         runOnFx(() -> {
             RXBreadcrumbBar<String> bar = show(
                     new RXBreadcrumbBar<>("Components", "Data Display", "Badge"), 800);
-            bar.setBranchFactory(RXBreadcrumbBarTest::siblings);
+            bar.setChildrenFactory(RXBreadcrumbBarTest::children);
             layout(bar, 800);
             Button arrow = branchButton(bar, 2);
             arrow.requestFocus();
@@ -525,11 +637,33 @@ public class RXBreadcrumbBarTest {
 
     // ==================== Helpers ====================
 
-    private static List<String> siblings(List<String> prefix) {
-        if (prefix.size() < 2) {
+    private static List<String> children(List<String> path) {
+        if (path.isEmpty()) {
             return List.of();
         }
-        return CATALOG.getOrDefault(prefix.get(prefix.size() - 2), List.of());
+        return CATALOG.getOrDefault(path.get(path.size() - 1), List.of());
+    }
+
+    // Whether each path position has a branch button, in path order.
+    private static List<Boolean> branchButtons(RXBreadcrumbBar<?> bar) {
+        List<Boolean> result = new ArrayList<>();
+        for (int i = 0; i < bar.getItems().size(); i++) {
+            result.add(hasBranchButton(bar, i));
+        }
+        return result;
+    }
+
+    private static boolean hasBranchButton(RXBreadcrumbBar<?> bar, int index) {
+        List<Node> children = bar.getChildrenUnmodifiable();
+        int seen = -1;
+        for (Node child : children) {
+            if (child.getStyleClass().contains("item")) {
+                seen++;
+            } else if (seen == index && child.getStyleClass().contains("branch-button")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private <T> RXBreadcrumbBar<T> show(RXBreadcrumbBar<T> bar, double width) {
