@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
+import io.github.leewyatt.rxcontrols.skins.RXTileViewSkin;
 import javafx.animation.PauseTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -3539,6 +3540,21 @@ public class RXTileViewSkinTest {
             pump(root);
             assertFalse(anyCellTranslated(view, 36),
                     "toggling sticky snaps any in-flight glide (like recreateHeaders / dispose)");
+        });
+    }
+
+    @Test
+    public void replacedSkinTakesItsNodesAlong() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(50);
+            StackPane root = host(view, 400, 300);
+            pump(root);
+            // Another skin class: JavaFX ignores setSkin with a skin of the same class.
+            view.setSkin(new RXTileViewSkin<>(view) {
+            });
+            pump(root);
+            assertEquals(2, view.getChildrenUnmodifiable().size(), "only the new viewport and placeholder");
+            assertEquals(1, view.lookupAll(".viewport").size());
         });
     }
 

@@ -1299,6 +1299,10 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         finishMarquee();
         viewport.dispose();
         placeholderRegion.getChildren().clear();
+        // JFX does not remove a replaced SkinBase skin's nodes, and a replacement skin
+        // has already added its own: remove exactly ours, or the old viewport stays in
+        // the control and keeps laying out (and re-creating cells) under the new one.
+        getChildren().removeAll(viewport, placeholderRegion);
     }
 
     // The render scale column edges snap to: the window's, 1 before the view is in a

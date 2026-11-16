@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.skins.RXMasonryViewSkin;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -1292,6 +1293,21 @@ public class RXMasonryViewSkinTest {
             view.setMaxColumns(4);
             assertEquals(base + 110.0, view.prefWidth(-1.0), 0.5,
                     "maxColumns still caps the forced count in the pref math");
+        });
+    }
+
+    @Test
+    public void replacedSkinTakesItsNodesAlong() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = gallery(30);
+            StackPane root = host(view, 400, 300);
+            pump(root);
+            // Another skin class: JavaFX ignores setSkin with a skin of the same class.
+            view.setSkin(new RXMasonryViewSkin<>(view) {
+            });
+            pump(root);
+            assertEquals(2, view.getChildrenUnmodifiable().size(), "only the new viewport and placeholder");
+            assertEquals(1, view.lookupAll(".viewport").size());
         });
     }
 
