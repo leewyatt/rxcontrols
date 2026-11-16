@@ -93,7 +93,7 @@ public class RXTitledPaneTest {
     }
 
     @Test
-    public void onlyTheTitleIsAFocusStopAndPrecedesTheBody() throws Exception {
+    public void onlyTheHeaderIsAFocusStopAndPrecedesTheBody() throws Exception {
         runOnFx(() -> {
             RXTitledPane pane = new RXTitledPane("Title", new TextField());
             show(pane);
@@ -102,19 +102,6 @@ public class RXTitledPaneTest {
             List<Node> children = pane.getChildrenUnmodifiable();
             assertTrue(children.indexOf(pane.lookup(".header")) < children.indexOf(pane.lookup(".body")),
                     "header must precede body so forward Tab reaches the body after the title");
-        });
-    }
-
-    @Test
-    public void actionsRejectNull() throws Exception {
-        runOnFx(() -> {
-            RXTitledPane pane = new RXTitledPane();
-            try {
-                pane.getActions().add(null);
-            } catch (NullPointerException expected) {
-                return;
-            }
-            throw new AssertionError("null action accepted");
         });
     }
 
@@ -190,18 +177,20 @@ public class RXTitledPaneTest {
     }
 
     @Test
-    public void actionsNeverToggleEvenWhenTheyDoNotConsume() throws Exception {
+    public void headerTrailingNeverTogglesEvenWhenItDoesNotConsume() throws Exception {
         runOnFx(() -> {
             Label passive = new Label("badge");
             Button button = new Button("Act");
             AtomicInteger fired = new AtomicInteger();
             button.setOnAction(e -> fired.incrementAndGet());
+            HBox trailing = new HBox(8, passive, button);
             RXTitledPane pane = new RXTitledPane("Title", new Label("Body"));
             pane.setAnimated(false);
-            pane.getActions().addAll(passive, button);
+            pane.setHeaderTrailing(trailing);
             show(pane);
 
             click(passive, passive);
+            click(trailing, trailing);
             click(button, button);
             assertFalse(pane.isExpanded());
             assertEquals(1, fired.get());
@@ -211,6 +200,33 @@ public class RXTitledPaneTest {
             button.fireEvent(key(KeyEvent.KEY_RELEASED, KeyCode.SPACE));
             assertFalse(pane.isExpanded());
             assertEquals(2, fired.get());
+
+            Node label = pane.lookup(".slot > .label");
+            press(label, label);
+            Point2D over = center(passive);
+            release(label, over.getX(), over.getY());
+            assertFalse(pane.isExpanded(), "releasing over the trailing node is a drag-out");
+
+            pane.setHeaderTrailing(null);
+            pane.applyCss();
+            assertNull(trailing.getParent());
+        });
+    }
+
+    @Test
+    public void endIndicatorFollowsTheTrailingNode() throws Exception {
+        runOnFx(() -> {
+            RXTitledPane pane = new RXTitledPane("Title", new Label("Body"));
+            pane.setHeaderTrailing(new Button("A"));
+            pane.setIndicatorPosition(IndicatorPosition.END);
+            show(pane);
+            Parent row = (Parent) pane.lookup(".row");
+            List<Node> parts = row.getChildrenUnmodifiable();
+            assertEquals(3, parts.size());
+            assertTrue(parts.get(0).getStyleClass().contains("slot"));
+            assertTrue(parts.get(1).getStyleClass().contains("trailing"));
+            assertTrue(parts.get(2).getStyleClass().contains("indicator-button"));
+            assertTrue(parts.get(2).getBoundsInParent().getMinX() >= parts.get(1).getBoundsInParent().getMaxX());
         });
     }
 
@@ -241,7 +257,7 @@ public class RXTitledPaneTest {
     // ==================== Keyboard ====================
 
     @Test
-    public void spaceAndEnterToggleOnlyWhenTargetIsTheTitle() throws Exception {
+    public void spaceAndEnterToggleOnlyWhenTargetIsTheHeader() throws Exception {
         runOnFx(() -> {
             TextField field = new TextField();
             RXTitledPane pane = new RXTitledPane("Title", new Label("Body"));
@@ -441,7 +457,7 @@ public class RXTitledPaneTest {
     // ==================== Focus ====================
 
     @Test
-    public void collapsingWithFocusInBodyReturnsFocusToTitle() throws Exception {
+    public void collapsingWithFocusInBodyReturnsFocusToHeader() throws Exception {
         AtomicReference<Stage> stageRef = new AtomicReference<>();
         try {
             runOnFx(() -> {
@@ -523,7 +539,7 @@ public class RXTitledPaneTest {
             Label content = new Label("Body");
             Button action = new Button("A");
             RXTitledPane pane = new RXTitledPane("Title", content);
-            pane.getActions().add(action);
+            pane.setHeaderTrailing(action);
             pane.setAnimated(false);
             show(pane);
             Node oldTitle = title(pane);
@@ -537,7 +553,7 @@ public class RXTitledPaneTest {
             assertFalse(oldTitle.hasProperties() && oldTitle.getProperties().containsKey("rx-titled-pane-trigger"));
 
             pane.setExpanded(true);
-            pane.getActions().add(new Button("B"));
+            pane.setHeaderTrailing(new Button("B"));
             pane.setContent(new Label("Other"));
             assertTrue(pane.lookup(".body").isVisible());
         });
@@ -578,7 +594,7 @@ public class RXTitledPaneTest {
     }
 
     private static Node title(RXTitledPane pane) {
-        return pane.lookup(".title");
+        return pane.lookup(".header");
     }
 
     private static RXTitledPane ancestorPane(Node node) {

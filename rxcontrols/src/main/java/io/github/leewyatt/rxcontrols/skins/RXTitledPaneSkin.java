@@ -9,13 +9,13 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.InvalidationListener;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.css.PseudoClass;
 import javafx.event.EventTarget;
 import javafx.geometry.HPos;
+import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
@@ -31,21 +31,26 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Default skin of {@link RXTitledPane}.
  *
- * <p>Structure: {@code .header} holds the {@code .title} toggle area (an
- * {@link RXRipplePane} that is also the keyboard focus stop) and the {@code .actions}
- * box as siblings, so actions are structurally outside the toggle area. The title
- * holds a {@code .row} with the {@code .indicator-button > .indicator} and either the
- * default {@code .label} or the custom header node. {@code .body} is a skin-owned
- * clipping viewport around the content.</p>
+ * <p>Structure: {@code .header} is a single {@link RXRipplePane} spanning the whole
+ * header row; it is the hover / ripple surface, the keyboard focus stop and the
+ * accessible {@link AccessibleRole#TITLED_PANE} node. Its {@code .row} lays out the
+ * {@code .indicator-button > .indicator}, the {@code .slot} holding the default
+ * {@code .label} or the custom header node, and the {@code .trailing} slot holding the
+ * header-trailing node; with an end indicator the order is slot, trailing,
+ * indicator. The trailing slot is inert: a press inside it never toggles the pane
+ * and never starts a ripple. {@code .body} is a skin-owned clipping viewport around
+ * the content.</p>
  *
  * <p>The body is revealed, not squeezed: the content is laid out at its natural
  * height for the current width and the viewport height follows the transition
@@ -56,7 +61,7 @@ import javafx.util.Duration;
 public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
 
     /**
-     * Key under which the title toggle node stores its pane in
+     * Key under which the header focus node stores its pane in
      * {@link Node#getProperties()}; read by the accordion skin to recognise header
      * keyboard events.
      */
@@ -72,13 +77,12 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
     // ==================== Nodes ====================
 
     private final HeaderRegion header = new HeaderRegion();
-    private final TitleRegion title = new TitleRegion();
-    private final HBox row = new HBox();
+    private final HeaderRow row = new HeaderRow();
     private final StackPane titleSlot = new StackPane();
+    private final StackPane trailingSlot = new StackPane();
     private final StackPane indicatorButton = new StackPane();
     private final Region indicator = new Region();
     private final Label label = new Label();
-    private final HBox actionsBox = new HBox();
     private final BodyRegion body = new BodyRegion();
     private final Rectangle bodyClip = new Rectangle();
 
@@ -115,26 +119,20 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
         indicator.setMouseTransparent(true);
         indicatorButton.getStyleClass().add("indicator-button");
         indicatorButton.getChildren().add(indicator);
-        // Min pinned too: the row would otherwise squeeze the indicator before the title text.
         indicatorButton.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         indicatorButton.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
         titleSlot.getStyleClass().add("slot");
         titleSlot.setAlignment(Pos.CENTER_LEFT);
-        titleSlot.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(titleSlot, Priority.ALWAYS);
+
+        trailingSlot.getStyleClass().add("trailing");
+        trailingSlot.setAlignment(Pos.CENTER_RIGHT);
 
         row.getStyleClass().add("row");
-        row.setAlignment(Pos.CENTER_LEFT);
-        title.setContent(row);
-        title.setAlignment(Pos.CENTER_LEFT);
-        title.getProperties().put(TRIGGER_KEY, control);
+        header.setContent(row);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.getProperties().put(TRIGGER_KEY, control);
 
-        actionsBox.getStyleClass().add("actions");
-        actionsBox.setAlignment(Pos.CENTER_RIGHT);
-        actionsBox.setFillHeight(false);
-
-        header.setParts(title, actionsBox);
         body.setClip(bodyClip);
 
         progress.set(control.isExpanded() ? 1.0 : 0.0);
@@ -142,23 +140,18 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
         getChildren().setAll(header, body);
 
         disposer.registerBinding(label.textProperty(), control.textProperty());
-        Bindings.bindContent(actionsBox.getChildren(), control.getActions());
-        disposer.registerDisposeTask(() -> {
-            Bindings.unbindContent(actionsBox.getChildren(), control.getActions());
-            actionsBox.getChildren().clear();
-        });
 
         onContentChanged(null, control.getContent());
         updateTitle();
-        updateIndicator();
-        updateActionsVisibility();
+        updateTrailing();
+        updateRow();
         updateBodyVisibility();
 
         disposer.registerListener(control.contentProperty(), contentListener);
         disposer.registerListener(control.headerProperty(), this::updateTitle);
         disposer.registerListener(control.graphicProperty(), this::updateTitle);
-        disposer.registerListener(control.indicatorPositionProperty(), this::updateIndicator);
-        disposer.registerListener(control.getActions(), this::updateActionsVisibility);
+        disposer.registerListener(control.headerTrailingProperty(), this::updateTrailing);
+        disposer.registerListener(control.indicatorPositionProperty(), this::updateRow);
         disposer.registerListener(control.expandedProperty(), this::onExpandedChanged);
         disposer.registerListener(control.animatedProperty(), this::onAnimatedChanged);
         disposer.registerListener(progress, this::onProgressChanged);
@@ -170,24 +163,27 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
                 trackedScene = null;
             }
         });
-        disposer.registerListener(title.focusedProperty(), this::onTitleFocusChanged);
+        disposer.registerListener(header.focusedProperty(), this::onHeaderFocusChanged);
 
-        disposer.registerEventHandler(title, MouseEvent.MOUSE_PRESSED, this::onTitlePressed);
-        disposer.registerEventHandler(title, MouseEvent.MOUSE_RELEASED, this::onTitleReleased);
-        disposer.registerEventHandler(title, KeyEvent.KEY_PRESSED, this::onTitleKeyPressed);
-        disposer.registerEventHandler(title, KeyEvent.KEY_RELEASED, this::onTitleKeyReleased);
+        // The trailing slot is inert: consuming the press keeps it from reaching the
+        // header, which would otherwise start a ripple and arm a toggle.
+        disposer.registerEventHandler(trailingSlot, MouseEvent.MOUSE_PRESSED, MouseEvent::consume);
+        disposer.registerEventHandler(header, MouseEvent.MOUSE_PRESSED, this::onHeaderPressed);
+        disposer.registerEventHandler(header, MouseEvent.MOUSE_RELEASED, this::onHeaderReleased);
+        disposer.registerEventHandler(header, KeyEvent.KEY_PRESSED, this::onHeaderKeyPressed);
+        disposer.registerEventHandler(header, KeyEvent.KEY_RELEASED, this::onHeaderKeyReleased);
     }
 
     // ==================== Package API ====================
 
     /**
-     * Moves keyboard focus to the title toggle area.
+     * Moves keyboard focus to the header.
      */
     void focusTrigger() {
-        title.requestFocus();
+        header.requestFocus();
     }
 
-    // ==================== Title ====================
+    // ==================== Header ====================
 
     private void updateTitle() {
         RXTitledPane control = getSkinnable();
@@ -201,15 +197,30 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
         }
     }
 
-    private void updateIndicator() {
-        IndicatorPosition position = indicatorPositionOrDefault();
-        if (position == IndicatorPosition.NONE) {
-            row.getChildren().setAll(titleSlot);
-        } else if (position == IndicatorPosition.END) {
-            row.getChildren().setAll(titleSlot, indicatorButton);
+    private void updateTrailing() {
+        Node trailing = getSkinnable().getHeaderTrailing();
+        if (trailing == null) {
+            trailingSlot.getChildren().clear();
         } else {
-            row.getChildren().setAll(indicatorButton, titleSlot);
+            trailingSlot.getChildren().setAll(trailing);
         }
+        updateRow();
+    }
+
+    private void updateRow() {
+        IndicatorPosition position = indicatorPositionOrDefault();
+        List<Node> parts = new ArrayList<>();
+        if (position == IndicatorPosition.START) {
+            parts.add(indicatorButton);
+        }
+        parts.add(titleSlot);
+        if (!trailingSlot.getChildren().isEmpty()) {
+            parts.add(trailingSlot);
+        }
+        if (position == IndicatorPosition.END) {
+            parts.add(indicatorButton);
+        }
+        row.setParts(parts);
         updateIndicatorRotation();
     }
 
@@ -220,12 +231,6 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
         } else {
             indicator.setRotate(INDICATOR_START_ANGLE + INDICATOR_START_SWEEP * p);
         }
-    }
-
-    private void updateActionsVisibility() {
-        boolean shown = !getSkinnable().getActions().isEmpty();
-        actionsBox.setVisible(shown);
-        actionsBox.setManaged(shown);
     }
 
     private IndicatorPosition indicatorPositionOrDefault() {
@@ -247,43 +252,49 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
         }
     }
 
-    private void onTitlePressed(MouseEvent event) {
+    private void onHeaderPressed(MouseEvent event) {
+        armed = false;
+        armedArea = null;
         if (event.getButton() != MouseButton.PRIMARY) {
             return;
         }
         mouseFocus = true;
-        if (title.isFocused()) {
-            title.setFocusShown(false);
+        if (header.isFocused()) {
+            header.setFocusShown(false);
         } else {
-            title.requestFocus();
+            header.requestFocus();
         }
         if (indicatorOnlyTrigger()) {
             armedArea = isWithin(event.getTarget(), indicatorButton) ? indicatorButton : null;
         } else {
-            armedArea = title;
+            armedArea = header;
         }
         armed = armedArea != null;
     }
 
-    private void onTitleReleased(MouseEvent event) {
+    private void onHeaderReleased(MouseEvent event) {
         if (event.getButton() != MouseButton.PRIMARY || !armed) {
             return;
         }
         Node area = armedArea;
         armed = false;
         armedArea = null;
-        Point2D local = area.sceneToLocal(event.getSceneX(), event.getSceneY());
-        if (local != null && area.contains(local)) {
+        if (contains(area, event) && !(trailingSlot.getParent() != null && contains(trailingSlot, event))) {
             toggle();
         }
     }
 
-    private void onTitleKeyPressed(KeyEvent event) {
-        if (event.getTarget() != title) {
+    private static boolean contains(Node node, MouseEvent event) {
+        Point2D local = node.sceneToLocal(event.getSceneX(), event.getSceneY());
+        return local != null && node.contains(local);
+    }
+
+    private void onHeaderKeyPressed(KeyEvent event) {
+        if (event.getTarget() != header) {
             return;
         }
         mouseFocus = false;
-        title.setFocusShown(true);
+        header.setFocusShown(true);
         KeyCode code = event.getCode();
         if (code == KeyCode.SPACE || code == KeyCode.ENTER) {
             if (!keyDown) {
@@ -294,8 +305,8 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
         }
     }
 
-    private void onTitleKeyReleased(KeyEvent event) {
-        if (event.getTarget() != title) {
+    private void onHeaderKeyReleased(KeyEvent event) {
+        if (event.getTarget() != header) {
             return;
         }
         KeyCode code = event.getCode();
@@ -305,11 +316,11 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
         }
     }
 
-    private void onTitleFocusChanged() {
-        if (title.isFocused()) {
-            title.setFocusShown(!mouseFocus);
+    private void onHeaderFocusChanged() {
+        if (header.isFocused()) {
+            header.setFocusShown(!mouseFocus);
         } else {
-            title.setFocusShown(false);
+            header.setFocusShown(false);
             mouseFocus = false;
             keyDown = false;
             armed = false;
@@ -336,7 +347,7 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
     private void forwardFocus() {
         Scene scene = trackedScene;
         if (scene != null && scene.getFocusOwner() == getSkinnable()) {
-            title.requestFocus();
+            header.requestFocus();
         }
     }
 
@@ -374,7 +385,7 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
     private void onExpandedChanged() {
         RXTitledPane control = getSkinnable();
         boolean expanded = control.isExpanded();
-        title.notifyAccessibleAttributeChanged(AccessibleAttribute.EXPANDED);
+        header.notifyAccessibleAttributeChanged(AccessibleAttribute.EXPANDED);
         if (!expanded && containsFocusOwner(body)) {
             focusTrigger();
         }
@@ -616,9 +627,10 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
     @Override
     protected void disposeSkin() {
         stopTimeline();
-        title.getProperties().remove(TRIGGER_KEY);
+        header.getProperties().remove(TRIGGER_KEY);
         label.setGraphic(null);
         titleSlot.getChildren().clear();
+        trailingSlot.getChildren().clear();
         body.setContentNode(null);
         shownContent = null;
     }
@@ -626,98 +638,13 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
     // ==================== Header region ====================
 
     /**
-     * Lays out the title area and the action box. Actions keep their preferred width
-     * and only shrink toward their minimum after the title has reached its minimum;
-     * below that the title gets whatever is left, down to zero.
+     * The whole header row: hover / ripple surface, keyboard focus stop and the node
+     * that carries the {@link AccessibleRole#TITLED_PANE} semantics.
      */
-    private final class HeaderRegion extends Region {
+    private final class HeaderRegion extends RXRipplePane {
 
         HeaderRegion() {
             getStyleClass().add("header");
-        }
-
-        void setParts(Node titlePart, Node actionsPart) {
-            getChildren().setAll(titlePart, actionsPart);
-        }
-
-        private double actionsWidth(double available) {
-            if (!actionsBox.isManaged()) {
-                return 0.0;
-            }
-            double pref = snapSizeX(actionsBox.prefWidth(-1));
-            double min = snapSizeX(actionsBox.minWidth(-1));
-            double titleMin = snapSizeX(title.minWidth(-1));
-            return Math.max(min, Math.min(pref, available - titleMin));
-        }
-
-        @Override
-        protected double computePrefWidth(double height) {
-            double actions = actionsBox.isManaged() ? snapSizeX(actionsBox.prefWidth(-1)) : 0.0;
-            return snappedLeftInset() + snapSizeX(title.prefWidth(-1)) + actions + snappedRightInset();
-        }
-
-        @Override
-        protected double computeMinWidth(double height) {
-            double actions = actionsBox.isManaged() ? snapSizeX(actionsBox.minWidth(-1)) : 0.0;
-            return snappedLeftInset() + snapSizeX(title.minWidth(-1)) + actions + snappedRightInset();
-        }
-
-        @Override
-        protected double computePrefHeight(double width) {
-            double titleHeight;
-            double actionsHeight = 0.0;
-            if (width < 0) {
-                titleHeight = title.prefHeight(-1);
-                if (actionsBox.isManaged()) {
-                    actionsHeight = actionsBox.prefHeight(-1);
-                }
-            } else {
-                double available = Math.max(0.0, width - snappedLeftInset() - snappedRightInset());
-                double actions = actionsWidth(available);
-                titleHeight = title.prefHeight(Math.max(0.0, available - actions));
-                if (actionsBox.isManaged()) {
-                    actionsHeight = actionsBox.prefHeight(actions);
-                }
-            }
-            return snappedTopInset() + snapSizeY(Math.max(titleHeight, actionsHeight)) + snappedBottomInset();
-        }
-
-        @Override
-        protected double computeMinHeight(double width) {
-            return computePrefHeight(width);
-        }
-
-        @Override
-        public Orientation getContentBias() {
-            return Orientation.HORIZONTAL;
-        }
-
-        @Override
-        protected void layoutChildren() {
-            double left = snappedLeftInset();
-            double top = snappedTopInset();
-            double width = Math.max(0.0, getWidth() - left - snappedRightInset());
-            double height = Math.max(0.0, getHeight() - top - snappedBottomInset());
-            double actions = actionsWidth(width);
-            double titleWidth = Math.max(0.0, width - actions);
-            title.resizeRelocate(left, top, titleWidth, height);
-            if (actionsBox.isManaged()) {
-                layoutInArea(actionsBox, left + titleWidth, top, actions, height, 0,
-                        HPos.RIGHT, VPos.CENTER);
-            }
-        }
-    }
-
-    // ==================== Title region ====================
-
-    /**
-     * The toggle area and keyboard focus stop of the pane; it carries the
-     * {@link AccessibleRole#TITLED_PANE} semantics.
-     */
-    private final class TitleRegion extends RXRipplePane {
-
-        TitleRegion() {
-            getStyleClass().add("title");
             setFocusTraversable(true);
             setAccessibleRole(AccessibleRole.TITLED_PANE);
         }
@@ -759,6 +686,112 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
                     break;
                 default:
                     super.executeAccessibleAction(action, parameters);
+            }
+        }
+    }
+
+    // ==================== Header row ====================
+
+    /**
+     * Lays out indicator, title slot and trailing slot with the row's spacing. The
+     * indicator keeps its preferred size; the trailing slot keeps its preferred width
+     * and shrinks toward its minimum only after the title slot has reached its
+     * minimum; below that the title gets whatever is left, down to zero.
+     */
+    private final class HeaderRow extends HBox {
+
+        void setParts(List<Node> parts) {
+            getChildren().setAll(parts);
+        }
+
+        private double gaps() {
+            int count = 0;
+            for (Node child : getChildren()) {
+                if (child.isManaged()) {
+                    count++;
+                }
+            }
+            return snapSpaceX(getSpacing()) * Math.max(0, count - 1);
+        }
+
+        private double indicatorWidth() {
+            return indicatorButton.getParent() == this ? snapSizeX(indicatorButton.prefWidth(-1)) : 0.0;
+        }
+
+        private double trailingWidth(double available) {
+            if (trailingSlot.getParent() != this) {
+                return 0.0;
+            }
+            double pref = snapSizeX(trailingSlot.prefWidth(-1));
+            double min = snapSizeX(trailingSlot.minWidth(-1));
+            double titleMin = snapSizeX(titleSlot.minWidth(-1));
+            return Math.max(min, Math.min(pref, available - titleMin));
+        }
+
+        private double flexibleWidth(double width) {
+            return Math.max(0.0, width - snappedLeftInset() - snappedRightInset() - gaps() - indicatorWidth());
+        }
+
+        @Override
+        protected double computeMinWidth(double height) {
+            double trailing = trailingSlot.getParent() == this ? snapSizeX(trailingSlot.minWidth(-1)) : 0.0;
+            return snappedLeftInset() + indicatorWidth() + snapSizeX(titleSlot.minWidth(-1)) + trailing
+                    + gaps() + snappedRightInset();
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            if (width < 0) {
+                return super.computePrefHeight(width);
+            }
+            double flexible = flexibleWidth(width);
+            double trailing = trailingWidth(flexible);
+            double height = titleSlot.prefHeight(Math.max(0.0, flexible - trailing));
+            if (trailingSlot.getParent() == this) {
+                height = Math.max(height, trailingSlot.prefHeight(trailing));
+            }
+            if (indicatorButton.getParent() == this) {
+                height = Math.max(height, indicatorButton.prefHeight(-1));
+            }
+            return snappedTopInset() + snapSizeY(height) + snappedBottomInset();
+        }
+
+        @Override
+        public Orientation getContentBias() {
+            return Orientation.HORIZONTAL;
+        }
+
+        @Override
+        protected void layoutChildren() {
+            double top = snappedTopInset();
+            double height = Math.max(0.0, getHeight() - top - snappedBottomInset());
+            double flexible = flexibleWidth(getWidth());
+            double trailing = trailingWidth(flexible);
+            double title = Math.max(0.0, flexible - trailing);
+            double spacing = snapSpaceX(getSpacing());
+            double x = snappedLeftInset();
+            for (Node child : getChildren()) {
+                if (!child.isManaged()) {
+                    continue;
+                }
+                double width;
+                boolean fill;
+                HPos align;
+                if (child == indicatorButton) {
+                    width = indicatorWidth();
+                    fill = false;
+                    align = HPos.CENTER;
+                } else if (child == trailingSlot) {
+                    width = trailing;
+                    fill = true;
+                    align = HPos.RIGHT;
+                } else {
+                    width = title;
+                    fill = true;
+                    align = HPos.LEFT;
+                }
+                layoutInArea(child, x, top, width, height, 0, Insets.EMPTY, fill, false, align, VPos.CENTER);
+                x += width + spacing;
             }
         }
     }

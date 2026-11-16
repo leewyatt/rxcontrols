@@ -404,7 +404,7 @@ public class RXAccordion extends Control {
             }
         }
         for (int i = 0; i < panes.size(); i++) {
-            panes.get(i).setFirstInAccordion(i == 0);
+            panes.get(i).setPositionInAccordion(i == 0, i == panes.size() - 1);
         }
         coordinate(() -> {
             if (isSingle()) {

@@ -12,7 +12,6 @@ import javafx.beans.property.ObjectPropertyBase;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import javafx.collections.ObservableList;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.css.Styleable;
@@ -40,22 +39,24 @@ import java.util.function.Supplier;
  * <p>The header shows either a default title built from {@link #textProperty() text}
  * and {@link #graphicProperty() graphic}, or a caller-supplied
  * {@link #headerProperty() header} node, which then replaces the default title. A
- * separate {@link #getActions() actions} area at the logical end of the header holds
- * arbitrary nodes (buttons, menus, switches, fields); it is a sibling of the toggle
- * area, so interacting with an action never toggles the pane.</p>
+ * {@link #headerTrailingProperty() headerTrailing} node at the header's trailing edge
+ * holds header controls (buttons, menus, switches, fields); interacting with it never
+ * toggles the pane.</p>
  *
  * <pre>{@code
  * RXTitledPane pane = new RXTitledPane("Report", reportView);
- * pane.getActions().addAll(refreshButton, moreMenu);
+ * pane.setHeaderTrailing(new HBox(8, refreshButton, moreMenu));
  * pane.setExpanded(true);
  * }</pre>
  *
  * <p>{@link #expandedProperty() expanded} is the single logical state: it changes at
- * once, while the skin animates the body toward it. A press on the title area
- * toggles the pane unless a node inside the title consumed the press (every JavaFX
- * control does); {@link #toggleTriggerProperty() toggleTrigger} can restrict pointer
- * toggling to the expand indicator. The title is the keyboard focus stop: Space or
- * Enter toggles it.</p>
+ * once, while the skin animates the body toward it. A click anywhere on the header
+ * outside the trailing node toggles the pane unless a node inside the title consumed
+ * the press (every JavaFX control does);
+ * {@link #toggleTriggerProperty() toggleTrigger} can restrict pointer toggling to the
+ * expand indicator. The whole header row is the hover / ripple surface and the
+ * keyboard focus stop: Space or Enter toggles it (Enter is taken from a default
+ * button while the header has focus).</p>
  *
  * <p>The body can be given directly through {@link #contentProperty() content}, or
  * created lazily: while {@code content} is {@code null}, expanding the pane calls the
@@ -78,11 +79,12 @@ public class RXTitledPane extends Control {
     private static final PseudoClass COLLAPSED_PSEUDO_CLASS = PseudoClass.getPseudoClass("collapsed");
     private static final PseudoClass INDICATOR_TRIGGER_PSEUDO_CLASS = PseudoClass.getPseudoClass("indicator-trigger");
     private static final PseudoClass FIRST_PSEUDO_CLASS = PseudoClass.getPseudoClass("first");
+    private static final PseudoClass LAST_PSEUDO_CLASS = PseudoClass.getPseudoClass("last");
 
     // ==================== Constants ====================
 
     /**
-     * Default pointer trigger: the whole title area toggles the pane.
+     * Default pointer trigger: the whole header, except the trailing node, toggles the pane.
      */
     public static final ToggleTrigger DEFAULT_TOGGLE_TRIGGER = ToggleTrigger.HEADER;
 
@@ -101,8 +103,6 @@ public class RXTitledPane extends Control {
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
 
     // ==================== Internal State ====================
-
-    private final ObservableList<Node> actions = new NonNullObservableList<>("action");
 
     private RXAccordion accordion;
 
@@ -248,8 +248,8 @@ public class RXTitledPane extends Control {
      *
      * <p>The node lives inside the toggle area: a press it consumes (every JavaFX
      * control does) does not toggle the pane, any other press does. Interactive nodes
-     * belong in {@link #getActions() actions}. Give a graphic-only header an accessible
-     * name through {@link #accessibleTextProperty() accessibleText} or
+     * belong in {@link #headerTrailingProperty() headerTrailing}, where a press never
+     * starts the header ripple. Give a graphic-only header an accessible name through {@link #accessibleTextProperty() accessibleText} or
      * {@link #textProperty() text}.</p>
      *
      * @return the header property
@@ -276,20 +276,41 @@ public class RXTitledPane extends Control {
         header.set(value);
     }
 
-    // ==================== Actions ====================
+    // ==================== Header Trailing ====================
+
+    private final ObjectProperty<Node> headerTrailing = new SimpleObjectProperty<>(this, "headerTrailing");
 
     /**
-     * Nodes shown in the action area at the logical end of the header, in list order.
-     * The area is outside the toggle area: no pointer or keyboard interaction with an
-     * action toggles the pane. Actions keep their preferred width and shrink toward
-     * their minimum width only after the title has been truncated to its minimum.
-     * {@code null} elements are rejected; as with any parent, a node can be shown in
-     * one place only.
+     * A node at the header's trailing edge (the right in left-to-right, mirrored under
+     * RTL), for header controls such as buttons, menus, switches, fields or badges;
+     * wrap several in a container such as an {@code HBox}. The trailing slot is inert:
+     * no pointer or keyboard interaction inside it toggles the pane or starts the
+     * header ripple. It keeps its preferred width and shrinks toward its minimum width
+     * only after the title has been truncated to its minimum. An
+     * {@link IndicatorPosition#END END} indicator sits after it. May be {@code null}.
      *
-     * @return the modifiable list of action nodes
+     * @return the header-trailing property
      */
-    public final ObservableList<Node> getActions() {
-        return actions;
+    public final ObjectProperty<Node> headerTrailingProperty() {
+        return headerTrailing;
+    }
+
+    /**
+     * Returns the header-trailing node.
+     *
+     * @return the header-trailing node, or {@code null}
+     */
+    public final Node getHeaderTrailing() {
+        return headerTrailing.get();
+    }
+
+    /**
+     * Sets the header-trailing node.
+     *
+     * @param value the header-trailing node, or {@code null}
+     */
+    public final void setHeaderTrailing(Node value) {
+        headerTrailing.set(value);
     }
 
     // ==================== Content ====================
@@ -478,8 +499,8 @@ public class RXTitledPane extends Control {
     /**
      * Which part of the header toggles the pane on a pointer click. With
      * {@link ToggleTrigger#INDICATOR INDICATOR} only the expand indicator does; when
-     * the indicator is hidden ({@link IndicatorPosition#NONE NONE}) the whole title
-     * area toggles instead, so there is always a pointer entry. The keyboard toggles in
+     * the indicator is hidden ({@link IndicatorPosition#NONE NONE}) the whole header
+     * toggles instead, so there is always a pointer entry. The keyboard toggles in
      * both modes. {@code null} is treated as {@link #DEFAULT_TOGGLE_TRIGGER}.
      *
      * @return the toggle trigger property
@@ -532,9 +553,9 @@ public class RXTitledPane extends Control {
             };
 
     /**
-     * Where the expand indicator sits in the title area: at the logical start, at the
-     * logical end (just before the actions), or not shown. Start and end follow the
-     * node orientation. {@code null} is treated as {@link #DEFAULT_INDICATOR_POSITION}.
+     * Where the expand indicator sits in the header: at the logical start, at the
+     * logical end (after the {@link #headerTrailingProperty() headerTrailing} node), or
+     * not shown. Start and end follow the node orientation. {@code null} is treated as {@link #DEFAULT_INDICATOR_POSITION}.
      *
      * @return the indicator position property
      */
@@ -720,12 +741,13 @@ public class RXTitledPane extends Control {
     void setAccordion(RXAccordion value) {
         accordion = value;
         if (value == null) {
-            pseudoClassStateChanged(FIRST_PSEUDO_CLASS, false);
+            setPositionInAccordion(false, false);
         }
     }
 
-    void setFirstInAccordion(boolean value) {
-        pseudoClassStateChanged(FIRST_PSEUDO_CLASS, value);
+    void setPositionInAccordion(boolean first, boolean last) {
+        pseudoClassStateChanged(FIRST_PSEUDO_CLASS, first);
+        pseudoClassStateChanged(LAST_PSEUDO_CLASS, last);
     }
 
     // ==================== PseudoClass ====================
@@ -843,7 +865,7 @@ public class RXTitledPane extends Control {
     public enum ToggleTrigger {
 
         /**
-         * The whole title area, including the indicator, toggles the pane.
+         * The whole header except the trailing node, including the indicator, toggles the pane.
          */
         HEADER,
 
@@ -854,7 +876,7 @@ public class RXTitledPane extends Control {
     }
 
     /**
-     * Position of the expand indicator in an {@link RXTitledPane} title area.
+     * Position of the expand indicator in an {@link RXTitledPane} header.
      */
     public enum IndicatorPosition {
 
@@ -864,7 +886,7 @@ public class RXTitledPane extends Control {
         START,
 
         /**
-         * At the logical end of the title, just before the actions.
+         * At the logical end of the header, after the header-trailing node.
          */
         END,
 

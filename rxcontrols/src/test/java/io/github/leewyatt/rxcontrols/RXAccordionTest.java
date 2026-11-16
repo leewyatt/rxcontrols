@@ -8,7 +8,6 @@ import javafx.collections.ListChangeListener;
 import javafx.css.PseudoClass;
 import javafx.event.EventType;
 import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
@@ -38,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class RXAccordionTest {
 
     private static final PseudoClass FIRST = PseudoClass.getPseudoClass("first");
+    private static final PseudoClass LAST = PseudoClass.getPseudoClass("last");
 
     @BeforeAll
     public static void startToolkit() throws InterruptedException {
@@ -225,9 +225,12 @@ public class RXAccordionTest {
             RXAccordion accordion = new RXAccordion(a, b);
             assertTrue(a.getPseudoClassStates().contains(FIRST));
             assertFalse(b.getPseudoClassStates().contains(FIRST));
+            assertTrue(b.getPseudoClassStates().contains(LAST));
             accordion.getPanes().setAll(b, a);
             assertTrue(b.getPseudoClassStates().contains(FIRST));
             assertFalse(a.getPseudoClassStates().contains(FIRST));
+            assertTrue(a.getPseudoClassStates().contains(LAST));
+            assertFalse(b.getPseudoClassStates().contains(LAST));
         });
     }
 
@@ -287,7 +290,7 @@ public class RXAccordionTest {
     // ==================== Keyboard & nesting ====================
 
     @Test
-    public void arrowKeysMoveFocusBetweenOwnTitlesOnly() throws Exception {
+    public void arrowKeysMoveFocusBetweenOwnHeadersOnly() throws Exception {
         AtomicReference<Stage> stageRef = new AtomicReference<>();
         try {
             runOnFx(() -> {
@@ -373,18 +376,14 @@ public class RXAccordionTest {
         return pane;
     }
 
-    // Walks the pane's own header: a plain lookup would find a nested pane's title first.
+    // Takes the pane's own header: a plain lookup would find a nested pane's header first.
     private static Node title(RXTitledPane pane) {
         for (Node child : pane.getChildrenUnmodifiable()) {
             if (child.getStyleClass().contains("header")) {
-                for (Node part : ((Parent) child).getChildrenUnmodifiable()) {
-                    if (part.getStyleClass().contains("title")) {
-                        return part;
-                    }
-                }
+                return child;
             }
         }
-        throw new AssertionError("no title in " + pane);
+        throw new AssertionError("no header in " + pane);
     }
 
     private static void key(Node target, KeyCode code) {
