@@ -5003,39 +5003,46 @@
     -fx-opacity: 0.4;
 }
 
-.rx-accordion {
+/* The accordion draws no frame of its own: each run of joined panes sits on one
+   .segment card, with a .divider between neighbours. An expanded-spacing gap splits
+   the run into separate cards. */
+.rx-accordion > .segment {
     -fx-background-color: -rx-outline-variant, -rx-surface;
     -fx-background-insets: 0, 1px;
     -fx-background-radius: 6px, 5px;
     -fx-padding: 1px;
 }
 
-/* Inside an accordion each pane draws only a top divider; the first one draws none,
-   so the accordion's own outline closes the group. */
-.rx-accordion > .rx-titled-pane {
-    -fx-background-color: -rx-outline-variant, -rx-surface;
-    -fx-background-insets: 0, 1px 0 0 0;
-    -fx-background-radius: 0;
-    -fx-padding: 1px 0 0 0;
+.rx-accordion > .divider {
+    -fx-background-color: -rx-outline-variant;
+    -fx-pref-height: 1px;
 }
 
-.rx-accordion > .rx-titled-pane:first {
+.rx-accordion > .rx-titled-pane {
     -fx-background-color: transparent;
     -fx-padding: 0;
 }
 
+/* Header radii shape the hover tint and ripple; they round only the corners that sit
+   on a card corner: the top at the start of a card, the bottom at its end while the
+   pane is collapsed. */
 .rx-accordion > .rx-titled-pane > .header {
     -fx-background-radius: 0;
 }
 
-.rx-accordion > .rx-titled-pane:first > .header {
+.rx-accordion > .rx-titled-pane:first > .header,
+.rx-accordion > .rx-titled-pane:gap-before > .header {
     -fx-background-radius: 5px 5px 0 0;
 }
 
-.rx-accordion > .rx-titled-pane:last:collapsed > .header {
+.rx-accordion > .rx-titled-pane:last:collapsed > .header,
+.rx-accordion > .rx-titled-pane:gap-after:collapsed > .header {
     -fx-background-radius: 0 0 5px 5px;
 }
 
-.rx-accordion > .rx-titled-pane:first:last:collapsed > .header {
+.rx-accordion > .rx-titled-pane:first:last:collapsed > .header,
+.rx-accordion > .rx-titled-pane:first:gap-after:collapsed > .header,
+.rx-accordion > .rx-titled-pane:gap-before:last:collapsed > .header,
+.rx-accordion > .rx-titled-pane:gap-before:gap-after:collapsed > .header {
     -fx-background-radius: 5px;
 }
