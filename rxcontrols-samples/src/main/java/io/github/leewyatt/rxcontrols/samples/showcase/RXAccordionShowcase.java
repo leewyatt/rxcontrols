@@ -37,8 +37,8 @@ import java.util.stream.Collectors;
 /**
  * Showcase application for {@link RXTitledPane} and {@link RXAccordion}.
  *
- * <p>The preview stacks a standalone pane whose action area holds a switch, a field,
- * a menu and a badge, above an accordion of panes that exercise lazy creation (with a
+ * <p>The preview stacks a standalone pane whose header-trailing node holds a switch,
+ * a field, a menu and a badge, above an accordion of panes that exercise lazy creation (with a
  * factory call counter), dynamic body growth, a long body inside the outer
  * {@code ScrollPane}, and form state that must survive collapsing. The panel drives
  * the expand mode, toggle trigger, indicator position, animation, spacing, preview
@@ -60,7 +60,7 @@ public class RXAccordionShowcase extends RXShowcaseApplication {
 
     @Override
     protected String subtitle() {
-        return "Single / multiple expansion, header actions, lazy bodies and a reveal animation.";
+        return "Single / multiple expansion, header-trailing controls, lazy bodies and a reveal animation.";
     }
 
     @Override
@@ -104,11 +104,14 @@ public class RXAccordionShowcase extends RXShowcaseApplication {
         badge.setCount(3);
         badge.setContent(new Label("Alerts"));
 
-        Label body = new Label("A standalone pane. The switch, field, menu and badge live in the action "
-                + "area: using them never toggles the pane, while clicking the title does.");
+        Label body = new Label("A standalone pane. The switch, field, menu and badge live in the "
+                + "header-trailing node: using them never toggles the pane, while clicking the rest "
+                + "of the header does.");
         body.setWrapText(true);
-        RXTitledPane pane = new RXTitledPane("Standalone pane with actions", body);
-        pane.getActions().addAll(badge, filter, enabled, more);
+        RXTitledPane pane = new RXTitledPane("Standalone pane with trailing controls", body);
+        HBox trailing = new HBox(6.0, badge, filter, enabled, more);
+        trailing.setAlignment(Pos.CENTER_RIGHT);
+        pane.setHeaderTrailing(trailing);
         pane.setExpanded(true);
         return pane;
     }

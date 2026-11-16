@@ -741,7 +741,7 @@ final class ThemeGalleryCards {
 
     private static Node buildRXAccordion() {
         RXTitledPane general = new RXTitledPane("General", new TextField("Workspace name"));
-        general.getActions().add(new Button("Edit"));
+        general.setHeaderTrailing(new Button("Edit"));
         general.setExpanded(true);
         RXTitledPane members = new RXTitledPane("Members", new Label("3 members"));
         RXTitledPane billing = new RXTitledPane("Billing", new Label("Free plan"));

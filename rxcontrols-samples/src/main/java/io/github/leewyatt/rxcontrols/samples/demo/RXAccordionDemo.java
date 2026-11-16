@@ -15,7 +15,7 @@ import javafx.stage.Stage;
 
 /**
  * Demonstrates the two everyday uses: a standalone {@link RXTitledPane} with a switch
- * in its action area, and a single-expansion {@link RXAccordion} of FAQ entries whose
+ * in its header-trailing slot, and a single-expansion {@link RXAccordion} of FAQ entries whose
  * answers are created the first time they are opened.
  */
 public class RXAccordionDemo extends Application {
@@ -25,7 +25,7 @@ public class RXAccordionDemo extends Application {
         RXSwitchButton notifications = new RXSwitchButton();
         notifications.setSelected(true);
         RXTitledPane settings = new RXTitledPane("Notifications", notificationForm());
-        settings.getActions().add(notifications);
+        settings.setHeaderTrailing(notifications);
         settings.setExpanded(true);
 
         RXAccordion faq = new RXAccordion(
