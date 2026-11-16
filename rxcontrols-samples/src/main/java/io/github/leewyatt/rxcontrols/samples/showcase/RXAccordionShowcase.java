@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
  * a field, a menu, a badge that toggles the pane and a badge that consumes its press, above an accordion of panes that exercise lazy creation (with a
  * factory call counter), dynamic body growth, a long body inside the outer
  * {@code ScrollPane}, and form state that must survive collapsing. The panel drives
- * the expand mode, toggle trigger, indicator position, animation, spacing, preview
+ * the expand mode, toggle trigger, indicator position, animation, expanded spacing, preview
  * width (narrow header behaviour) and RTL orientation.</p>
  */
 public class RXAccordionShowcase extends RXShowcaseApplication {
@@ -215,13 +215,14 @@ public class RXAccordionShowcase extends RXShowcaseApplication {
                 .map(p -> p.getText() == null ? p.getAccessibleText() : p.getText())
                 .collect(Collectors.joining(", ")), accordion.getExpandedPanes()));
 
-        Slider spacing = createSlider(0.0, 24.0, 0.0);
-        spacing.valueProperty().addListener((obs, old, value) -> accordion.setSpacing(value.doubleValue()));
+        Slider spacing = createSlider(0.0, 32.0, 16.0);
+        accordion.setExpandedSpacing(16.0);
+        spacing.valueProperty().addListener((obs, old, value) -> accordion.setExpandedSpacing(value.doubleValue()));
 
         return createGrid(
                 row("Mode", mode),
                 row(new HBox(8.0, expandAll, collapseAll)),
-                row("Spacing", spacing, createValueLabel(spacing, "%.0f")),
+                row("Expanded gap", spacing, createValueLabel(spacing, "%.0f")),
                 row(expanded),
                 row(factoryCallsLabel));
     }
