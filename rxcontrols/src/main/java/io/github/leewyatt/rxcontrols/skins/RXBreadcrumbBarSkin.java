@@ -58,6 +58,9 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
     // every node, and two writers would overwrite each other.
     private static final PseudoClass FOCUS_SHOWN_PSEUDO_CLASS = PseudoClass.getPseudoClass("focus-shown");
     private static final String CURRENT_ENTRY_STYLE_CLASS = "breadcrumb-current";
+    // A change made by a callback settles in one extra pass; more than a few means
+    // the callback changes the bar every time it runs.
+    private static final int MAX_REBUILD_PASSES = 10;
 
     private final RXPopupMenu menu = new RXPopupMenu();
     private final MenuTrigger overflowButton = new MenuTrigger("overflow-button", "icon");
@@ -150,7 +153,9 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
 
     // The application's callbacks run while the crumbs are built and may change the
     // path or a property. Such a change does not start a second build inside the
-    // first: it is noted, and the build is repeated once the current one is done.
+    // first: it is noted, and the build is repeated once the current one is done. A
+    // callback that changes the bar on every call would repeat it forever, so the
+    // repeats are bounded and the last complete build stays.
     private void rebuild() {
         if (rebuilding) {
             rebuildRequested = true;
@@ -158,12 +163,18 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         }
         rebuilding = true;
         try {
+            int passes = 0;
             do {
+                if (++passes > MAX_REBUILD_PASSES) {
+                    throw new IllegalStateException(
+                            "A breadcrumb callback keeps changing the bar while it is rebuilt");
+                }
                 rebuildRequested = false;
                 buildCrumbs();
             } while (rebuildRequested);
         } finally {
             rebuilding = false;
+            rebuildRequested = false;
         }
     }
 

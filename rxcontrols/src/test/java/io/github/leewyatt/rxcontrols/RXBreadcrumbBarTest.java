@@ -236,6 +236,44 @@ public class RXBreadcrumbBarTest {
     }
 
     @Test
+    public void callbackThatAlwaysChangesTheBarIsStoppedWithAnError() throws InterruptedException {
+        runOnFx(() -> {
+            RXBreadcrumbBar<String> bar = show(new RXBreadcrumbBar<>("A", "B"), 800);
+            List<Throwable> errors = new ArrayList<>();
+            Thread.UncaughtExceptionHandler previous = Thread.currentThread().getUncaughtExceptionHandler();
+            Thread.currentThread().setUncaughtExceptionHandler((t, e) -> errors.add(e));
+            int[] calls = new int[1];
+            try {
+                bar.setConverter(new StringConverter<>() {
+                    @Override
+                    public String toString(String item) {
+                        calls[0]++;
+                        bar.refresh();
+                        return item;
+                    }
+
+                    @Override
+                    public String fromString(String text) {
+                        return text;
+                    }
+                });
+            } catch (IllegalStateException direct) {
+                errors.add(direct);
+            } finally {
+                Thread.currentThread().setUncaughtExceptionHandler(previous);
+            }
+            assertTrue(calls[0] < 100, "the rebuild stops: " + calls[0] + " calls");
+            assertEquals(1, errors.size());
+            assertInstanceOf(IllegalStateException.class, errors.get(0));
+
+            bar.setConverter(null);
+            bar.getItems().setAll("A", "C");
+            layout(bar, 800);
+            assertEquals(List.of("A", "C"), texts(visibleItems(bar)), "and the bar recovers");
+        });
+    }
+
+    @Test
     public void failingCallbackKeepsThePreviousCrumbs() throws InterruptedException {
         runOnFx(() -> {
             RXBreadcrumbBar<String> bar = show(new RXBreadcrumbBar<>("A", "B"), 800);
