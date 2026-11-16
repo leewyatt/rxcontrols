@@ -134,6 +134,7 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
         bar.getItems().setAll(ROOT, "Data Display", "Badge");
         bar.setChildrenFactory(this::children);
         bar.setGraphicFactory(this::iconFor);
+        bar.setAutoNavigate(true);
         bar.setOnNavigate(this::onNavigate);
         bar.getItems().addListener((InvalidationListener) obs -> renderPage());
 
@@ -294,10 +295,10 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
             delay.play();
             return;
         }
-        requestLog.setText("Requested: " + String.join(" / ", target));
-        if (!bar.isAutoNavigate()) {
-            bar.getItems().setAll(target);
-        }
+        // Left to the bar: with auto navigation it commits, without it the request
+        // is only reported and the path stays.
+        requestLog.setText((bar.isAutoNavigate() ? "Committed by the bar: " : "Reported only: ")
+                + String.join(" / ", target));
     }
 
     private void renderPage() {
