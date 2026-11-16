@@ -3401,6 +3401,44 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 6, 0, 0, 2);
 }
 
+.rx-list-section-header > .disclosure {
+    -fx-padding: 0 0.5em 0 0;
+}
+
+.rx-list-section-header > .disclosure > .arrow {
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-pref-width: 0.666667em; /* 8 */
+    -fx-pref-height: 0.416667em; /* 5 */
+    -fx-shape: "M 0 0 L 8 0 L 4 5 Z";
+}
+
+.rx-list-section-header:collapsed > .disclosure > .arrow {
+    -fx-rotate: -90;
+}
+
+/* Derived from the header's own surface, so a retinted token and every AtlantaFX
+   palette keep a visible step (some flatten their neutral overlays to the surface). */
+.rx-list-section-header:expanded:hover,
+.rx-list-section-header:collapsed:hover {
+    -fx-background-color: ladder(-rx-surface-variant, derive(-rx-surface-variant, 12%) 49%, derive(-rx-surface-variant, -6%) 50%);
+}
+
+/* The keyboard cursor can rest on a header row; like a cell it only shows while the
+   list holds focus. */
+.rx-list-view:focused > .viewport > .content > .rx-list-section-header:focused,
+.rx-list-view:focused > .viewport > .rx-list-section-header.sticky:focused {
+    -fx-background-color: -rx-surface-variant, -fx-cell-focus-inner-border, -rx-surface-variant;
+    -fx-background-insets: 0, 1, 2;
+}
+
+/* AtlantaFX lists draw no focus ring, and the selection does not follow the cursor
+   onto a header: a tint a step stronger than hover marks it instead. */
+.rx-theme-atlantafx .rx-list-view:focused > .viewport > .content > .rx-list-section-header:focused,
+.rx-theme-atlantafx .rx-list-view:focused > .viewport > .rx-list-section-header.sticky:focused {
+    -fx-background-color: ladder(-rx-surface-variant, derive(-rx-surface-variant, 24%) 49%, derive(-rx-surface-variant, -12%) 50%);
+    -fx-background-insets: 0;
+}
+
 /*******************************************************************************
  *                                                                             *
  * RXMenuList                                                                  *
