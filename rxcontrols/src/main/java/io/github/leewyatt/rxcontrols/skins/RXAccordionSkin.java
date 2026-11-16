@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXAccordion;
 import io.github.leewyatt.rxcontrols.RXTitledPane;
-import javafx.beans.binding.Bindings;
 import javafx.event.EventTarget;
 import javafx.scene.Node;
 import javafx.scene.control.Skin;
@@ -30,9 +29,10 @@ public class RXAccordionSkin extends RXSkinBase<RXAccordion> {
      */
     public RXAccordionSkin(RXAccordion control) {
         super(control);
-        Bindings.bindContent(getChildren(), control.getPanes());
-        disposer.registerDisposeTask(() -> Bindings.unbindContent(getChildren(), control.getPanes()));
-        disposer.registerListener(control.getPanes(), control::requestLayout);
+        // Rebuilt from the list rather than bound by index: a pane the application moves
+        // to another parent leaves the children without a matching list change.
+        getChildren().setAll(control.getPanes());
+        disposer.registerListener(control.getPanes(), () -> getChildren().setAll(control.getPanes()));
         disposer.registerEventHandler(control, KeyEvent.KEY_PRESSED, this::onKeyPressed);
     }
 

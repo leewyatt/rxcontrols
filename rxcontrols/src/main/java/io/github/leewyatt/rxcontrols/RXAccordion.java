@@ -298,7 +298,7 @@ public class RXAccordion extends Control {
     private void setAllExpanded(boolean value) {
         int current = ++generation;
         for (RXTitledPane pane : new ArrayList<>(panes)) {
-            if (pane.isExpanded() != value && !pane.expandedProperty().isBound()) {
+            if (pane.getAccordion() == this && pane.isExpanded() != value && !pane.expandedProperty().isBound()) {
                 pane.setExpanded(value);
                 if (current != generation) {
                     return;
@@ -344,7 +344,8 @@ public class RXAccordion extends Control {
     private void collapseOthers(RXTitledPane keep) {
         int current = ++generation;
         for (RXTitledPane pane : new ArrayList<>(panes)) {
-            if (pane != keep && pane.isExpanded() && !pane.expandedProperty().isBound()) {
+            if (pane != keep && pane.getAccordion() == this && pane.isExpanded()
+                    && !pane.expandedProperty().isBound()) {
                 pane.setExpanded(false);
                 if (current != generation) {
                     return;
