@@ -154,19 +154,15 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
     }
 
     private Node buildBehaviorGrid() {
-        ComboBox<String> branches = new ComboBox<>();
-        branches.getItems().setAll("Siblings", "Children", "None");
-        branches.setValue("Siblings");
-        branches.setMaxWidth(Double.MAX_VALUE);
-        branches.valueProperty().addListener((obs, old, value) -> {
-            // The mode only changes which path the one factory is asked about.
-            if ("None".equals(value)) {
-                bar.setChildrenFactory(null);
-            } else {
-                bar.setBranchMode("Children".equals(value) ? BranchMode.CHILDREN : BranchMode.SIBLINGS);
-                bar.setChildrenFactory(this::children);
-            }
-        });
+        CheckBox branchMenus = new CheckBox("Branch menus (children factory)");
+        branchMenus.setSelected(true);
+        branchMenus.selectedProperty().addListener((obs, old, value) ->
+                bar.setChildrenFactory(value ? this::children : null));
+        // The mode only changes which path the factory is asked about.
+        ComboBox<BranchMode> branchMode = new ComboBox<>();
+        branchMode.getItems().setAll(BranchMode.values());
+        branchMode.setMaxWidth(Double.MAX_VALUE);
+        branchMode.valueProperty().bindBidirectional(bar.branchModeProperty());
         CheckBox filter = new CheckBox("Branch filter (no menu of orders)");
         filter.setSelected(true);
         filter.selectedProperty().addListener((obs, old, value) ->
@@ -182,7 +178,8 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
         disabled.selectedProperty().bindBidirectional(bar.disableProperty());
 
         return createGrid(
-                row("Branches", branches),
+                row(branchMenus),
+                row("Branch mode", branchMode),
                 row(filter),
                 row(currentItemNavigable),
                 row(autoNavigate),
