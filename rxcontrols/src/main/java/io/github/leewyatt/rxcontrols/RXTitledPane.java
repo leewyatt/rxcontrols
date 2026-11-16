@@ -720,13 +720,13 @@ public class RXTitledPane extends Control {
 
     private void createContentIfNeeded() {
         Supplier<Node> factory = getContentFactory();
-        if (creatingContent || factory == null || !isExpanded() || getContent() != null) {
+        if (creatingContent || factory == null || !isExpanded() || getContent() != null || content.isBound()) {
             return;
         }
         creatingContent = true;
         try {
             Node created = factory.get();
-            if (created != null && getContent() == null && !content.isBound()) {
+            if (created != null && getContent() == null) {
                 setContent(created);
             }
         } catch (RuntimeException ex) {

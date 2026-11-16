@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.skins.RXTitledPaneSkin;
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.scene.Parent;
 import javafx.event.Event;
@@ -386,6 +387,24 @@ public class RXTitledPaneTest {
 
             pane.setExpanded(false);
             pane.setContent(null);
+            assertNull(pane.getContent());
+        });
+    }
+
+    @Test
+    public void boundContentNeverRunsTheFactory() throws Exception {
+        runOnFx(() -> {
+            AtomicInteger calls = new AtomicInteger();
+            RXTitledPane pane = new RXTitledPane("Title");
+            pane.contentProperty().bind(new SimpleObjectProperty<Node>());
+            pane.setContentFactory(() -> {
+                calls.incrementAndGet();
+                return new Label("lazy");
+            });
+            pane.setExpanded(true);
+            pane.setExpanded(false);
+            pane.setExpanded(true);
+            assertEquals(0, calls.get());
             assertNull(pane.getContent());
         });
     }
