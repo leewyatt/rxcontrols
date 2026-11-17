@@ -119,7 +119,7 @@ public class RXSidebarItemTest {
         assertThrows(IllegalArgumentException.class, () -> sidebar.getTopItems().addAll(free, free));
 
         RXSidebarItem root = RXSidebarItem.group("Root", null, RXSidebarItem.group("Mid", null));
-        RXSidebarItem mid = root.getItems().get(0);
+        RXSidebarItem mid = (RXSidebarItem) root.getItems().get(0);
         assertThrows(IllegalArgumentException.class, () -> mid.getItems().add(root));
         assertThrows(IllegalArgumentException.class, () -> root.getItems().add(root));
     }
@@ -145,6 +145,27 @@ public class RXSidebarItemTest {
     }
 
     /**
+     * Captions and separators are owned like items: one list at a time, with
+     * parent and sidebar following.
+     */
+    @Test
+    public void captionsAndSeparatorsAreOwnedLikeItems() {
+        RXSidebar sidebar = new RXSidebar();
+        RXSidebarHeader header = new RXSidebarHeader("Section");
+        RXSidebarSeparator separator = new RXSidebarSeparator();
+        RXSidebarItem group = RXSidebarItem.group("Group", null, header, separator);
+        sidebar.getItems().add(group);
+
+        assertSame(group, header.getParent());
+        assertSame(sidebar, separator.getSidebar());
+        assertThrows(IllegalArgumentException.class, () -> sidebar.getTopItems().add(header));
+
+        group.getItems().clear();
+        assertNull(header.getParent());
+        assertNull(separator.getSidebar());
+    }
+
+    /**
      * Sorting, setting an item onto itself and setAll of the same items keep
      * the items owned and the selection in place.
      */
@@ -156,11 +177,12 @@ public class RXSidebarItemTest {
         sidebar.getItems().addAll(b, a);
         sidebar.selectItem(b);
 
-        FXCollections.sort(sidebar.getItems(), Comparator.comparing(RXSidebarItem::getText));
+        Comparator<RXSidebarItemBase> byText = Comparator.comparing(item -> ((RXSidebarItem) item).getText());
+        FXCollections.sort(sidebar.getItems(), byText);
         assertEquals(List.of(a, b), sidebar.getItems());
-        sidebar.getItems().sort(Comparator.comparing(RXSidebarItem::getText).reversed());
+        sidebar.getItems().sort(byText.reversed());
         assertEquals(List.of(b, a), sidebar.getItems());
-        sidebar.getItems().sort(Comparator.comparing(RXSidebarItem::getText));
+        sidebar.getItems().sort(byText);
         sidebar.getItems().set(1, b);
         sidebar.getItems().setAll(b, a);
         sidebar.getItems().setAll(sidebar.getItems());

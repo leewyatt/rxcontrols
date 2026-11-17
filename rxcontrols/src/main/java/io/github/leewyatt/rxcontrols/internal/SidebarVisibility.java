@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.internal;
 
 import io.github.leewyatt.rxcontrols.RXSidebarHeader;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
+import io.github.leewyatt.rxcontrols.RXSidebarItemBase;
 import io.github.leewyatt.rxcontrols.RXSidebarSeparator;
 
 import java.util.Collections;
@@ -66,21 +67,21 @@ public final class SidebarVisibility {
      * @param filter the filter, or {@code null} for none
      * @return the shown items, compared by identity
      */
-    public static Set<RXSidebarItem> shownItems(List<? extends List<RXSidebarItem>> lists,
+    public static Set<RXSidebarItemBase> shownItems(List<? extends List<RXSidebarItemBase>> lists,
                                                 Predicate<RXSidebarItem> filter) {
-        Set<RXSidebarItem> shown = Collections.newSetFromMap(new IdentityHashMap<>());
-        for (List<RXSidebarItem> list : lists) {
+        Set<RXSidebarItemBase> shown = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (List<RXSidebarItemBase> list : lists) {
             collect(list, filter, false, shown);
         }
         return shown;
     }
 
     // Returns whether anything in the list is shown.
-    private static boolean collect(List<RXSidebarItem> items, Predicate<RXSidebarItem> filter,
-                                   boolean ancestorMatched, Set<RXSidebarItem> shown) {
+    private static boolean collect(List<RXSidebarItemBase> items, Predicate<RXSidebarItem> filter,
+                                   boolean ancestorMatched, Set<RXSidebarItemBase> shown) {
         boolean any = false;
-        RXSidebarItem pendingCaption = null;
-        for (RXSidebarItem item : items) {
+        RXSidebarItemBase pendingCaption = null;
+        for (RXSidebarItemBase item : items) {
             if (!item.isVisible()) {
                 continue;
             }
@@ -98,8 +99,9 @@ public final class SidebarVisibility {
                 }
                 continue;
             }
-            boolean matched = filter == null || ancestorMatched || filter.test(item);
-            boolean below = collect(item.getItems(), filter, filter != null && matched, shown);
+            RXSidebarItem ordinary = (RXSidebarItem) item;
+            boolean matched = filter == null || ancestorMatched || filter.test(ordinary);
+            boolean below = collect(ordinary.getItems(), filter, filter != null && matched, shown);
             if (matched || below) {
                 shown.add(item);
                 any = true;

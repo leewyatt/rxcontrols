@@ -84,21 +84,21 @@ public final class SidebarTestSupport {
         root.layout();
     }
 
-    /** The row built for the item, found by its text among the rows with the given style class. */
-    public static Region node(RXSidebar sidebar, String styleClass, RXSidebarItem item) {
+    /** The row showing the given text, among the rows with the given style class. */
+    public static Region node(RXSidebar sidebar, String styleClass, String text) {
         for (Node node : sidebar.lookupAll("." + styleClass)) {
             for (Node child : ((Parent) node).getChildrenUnmodifiable()) {
                 if (child instanceof Label label && label.getStyleClass().contains("label")
-                        && String.valueOf(item.getText()).equals(String.valueOf(label.getText()))) {
+                        && String.valueOf(text).equals(String.valueOf(label.getText()))) {
                     return (Region) node;
                 }
             }
         }
-        throw new AssertionError("no ." + styleClass + " row for \"" + item.getText() + "\"");
+        throw new AssertionError("no ." + styleClass + " row for \"" + text + "\"");
     }
 
     public static Region row(RXSidebar sidebar, RXSidebarItem item) {
-        return node(sidebar, "item", item);
+        return node(sidebar, "item", item.getText());
     }
 
     public static Label label(Region row) {

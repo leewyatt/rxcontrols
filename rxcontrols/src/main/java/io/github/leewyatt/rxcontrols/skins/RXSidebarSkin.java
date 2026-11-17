@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.RXSidebar.FlyoutTrigger;
 import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import io.github.leewyatt.rxcontrols.RXSidebarHeader;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
+import io.github.leewyatt.rxcontrols.RXSidebarItemBase;
 import io.github.leewyatt.rxcontrols.RXSidebarSeparator;
 import io.github.leewyatt.rxcontrols.internal.SidebarVisibility;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
@@ -108,7 +109,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     private final StackPane placeholderSlot = new StackPane();
     // What the items' visible flags and the filter leave on display. Rebuilt
     // when the filter, the tree or a visible flag changes, not on every refresh.
-    private Set<RXSidebarItem> shownItems = Set.of();
+    private Set<RXSidebarItemBase> shownItems = Set.of();
     // Whether shownItems was computed under a filter. Kept with it rather than
     // read off the control, so the two cannot disagree.
     private boolean filtering;
@@ -117,7 +118,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     // Set on the container only while the width is in transition; see wipeExtra().
     private final Rectangle wipeClip = new Rectangle();
 
-    private final Map<RXSidebarItem, ItemView> views = new IdentityHashMap<>();
+    private final Map<RXSidebarItemBase, ItemView<?>> views = new IdentityHashMap<>();
 
     // The open flyouts, shallowest first: each one is owned by a row of the one
     // before it, the first by a top-level row.
@@ -281,7 +282,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         RXSidebar control = getSkinnable();
         boolean empty = filtering && control.getPlaceholder() != null && !compactRows;
         if (empty) {
-            for (RXSidebarItem item : control.getItems()) {
+            for (RXSidebarItemBase item : control.getItems()) {
                 if (isShown(item)) {
                     empty = false;
                     break;
@@ -324,9 +325,9 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         syncList(control.getItems(), mainBox.getChildren(), 0);
         syncList(control.getBottomItems(), bottomBox.getChildren(), 0);
 
-        Iterator<ItemView> iterator = views.values().iterator();
+        Iterator<ItemView<?>> iterator = views.values().iterator();
         while (iterator.hasNext()) {
-            ItemView view = iterator.next();
+            ItemView<?> view = iterator.next();
             if (view.item.getSidebar() != control) {
                 view.dispose();
                 iterator.remove();
@@ -348,14 +349,14 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         }
     }
 
-    private void syncList(List<RXSidebarItem> items, ObservableList<Node> target, int depth) {
+    private void syncList(List<RXSidebarItemBase> items, ObservableList<Node> target, int depth) {
         List<Node> nodes = new ArrayList<>();
-        for (RXSidebarItem item : items) {
-            ItemView view = views.get(item);
+        for (RXSidebarItemBase item : items) {
+            ItemView<?> view = views.get(item);
             if (view == null) {
                 view = createView(item);
                 views.put(item, view);
-                selectionArrived |= item.isSelected();
+                selectionArrived |= item instanceof RXSidebarItem candidate && candidate.isSelected();
             }
             view.depth = depth;
             view.syncChildren();
@@ -364,14 +365,14 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         reconcile(target, nodes);
     }
 
-    private ItemView createView(RXSidebarItem item) {
-        if (item instanceof RXSidebarSeparator) {
-            return new SeparatorView(item);
+    private ItemView<?> createView(RXSidebarItemBase item) {
+        if (item instanceof RXSidebarSeparator separator) {
+            return new SeparatorView(separator);
         }
-        if (item instanceof RXSidebarHeader) {
-            return new CaptionView(item);
+        if (item instanceof RXSidebarHeader header) {
+            return new CaptionView(header);
         }
-        return new RowView(item);
+        return new RowView((RXSidebarItem) item);
     }
 
     // Edits target into desired with the fewest removals: a node that keeps its
@@ -406,7 +407,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             }
         }
         closeStaleFlyouts();
-        for (ItemView view : views.values()) {
+        for (ItemView<?> view : views.values()) {
             view.refresh(selectionPath);
         }
         showPlaceholderIfEmpty();
@@ -428,12 +429,12 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     }
 
     private void requestRowLayout() {
-        for (ItemView view : views.values()) {
+        for (ItemView<?> view : views.values()) {
             view.requestLayout();
         }
     }
 
-    private boolean isShown(RXSidebarItem item) {
+    private boolean isShown(RXSidebarItemBase item) {
         return shownItems.contains(item);
     }
 
@@ -596,7 +597,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         return value == null ? RXSidebar.DEFAULT_FLYOUT_TRIGGER : value;
     }
 
-    private boolean isInFlyout(RXSidebarItem item) {
+    private boolean isInFlyout(RXSidebarItemBase item) {
         return views.get(item.getParent()) instanceof RowView parent && parent.flyout != null;
     }
 
@@ -612,7 +613,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         if (!compactRows || (view.depth != 0 && hostOf(view) == null)) {
             return false;
         }
-        for (RXSidebarItem child : view.item.getItems()) {
+        for (RXSidebarItemBase child : view.item.getItems()) {
             if (isShown(child)) {
                 return true;
             }
@@ -900,7 +901,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         // The rows of this level a key can land on.
         List<RowView> ring() {
             List<RowView> ring = new ArrayList<>();
-            for (RXSidebarItem item : owner.item.getItems()) {
+            for (RXSidebarItemBase item : owner.item.getItems()) {
                 if (views.get(item) instanceof RowView view && isShown(item) && !view.row.isDisabled()) {
                     ring.add(view);
                 }
@@ -1094,14 +1095,14 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         return ring;
     }
 
-    private void addFocusable(List<RowView> ring, List<RXSidebarItem> items, int depth) {
-        for (RXSidebarItem item : items) {
+    private void addFocusable(List<RowView> ring, List<RXSidebarItemBase> items, int depth) {
+        for (RXSidebarItemBase item : items) {
             if (!(views.get(item) instanceof RowView view) || !isShown(item) || view.row.isDisabled()) {
                 continue;
             }
             ring.add(view);
-            if (isGroup(item) && isOpen(item)) {
-                addFocusable(ring, item.getItems(), depth + 1);
+            if (isGroup(view.item) && isOpen(view.item)) {
+                addFocusable(ring, view.item.getItems(), depth + 1);
             }
         }
     }
@@ -1143,7 +1144,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             RXSidebarItem selected = getSkinnable().getSelectedItem();
             stop = (views.get(selected) instanceof RowView view && ring.contains(view)) ? view : ring.get(0);
         }
-        for (ItemView view : views.values()) {
+        for (ItemView<?> view : views.values()) {
             if (view instanceof RowView rowView) {
                 rowView.row.setFocusTraversable(rowView == stop);
             }
@@ -1236,7 +1237,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             trackedScene.focusOwnerProperty().removeListener(focusOwnerListener);
             trackedScene = null;
         }
-        for (ItemView view : views.values()) {
+        for (ItemView<?> view : views.values()) {
             view.dispose();
         }
         views.clear();
@@ -1259,13 +1260,13 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
      * them current. The listeners are per item, so they live in the view's own
      * disposer and go when the item leaves the tree.
      */
-    private abstract class ItemView {
+    private abstract class ItemView<T extends RXSidebarItemBase> {
 
-        final RXSidebarItem item;
+        final T item;
         final SkinDisposer itemDisposer = new SkinDisposer();
         int depth;
 
-        ItemView(RXSidebarItem item) {
+        ItemView(T item) {
             this.item = item;
             itemDisposer.registerListener(item.visibleProperty(), (obs, old, value) -> refreshShown());
         }
@@ -1300,11 +1301,11 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         }
     }
 
-    private final class SeparatorView extends ItemView {
+    private final class SeparatorView extends ItemView<RXSidebarSeparator> {
 
         private final Region line = new Region();
 
-        SeparatorView(RXSidebarItem item) {
+        SeparatorView(RXSidebarSeparator item) {
             super(item);
             bindIdentity(line, "separator");
             VBox.setMargin(line, ROW_MARGIN);
@@ -1325,14 +1326,14 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         }
     }
 
-    private final class CaptionView extends ItemView {
+    private final class CaptionView extends ItemView<RXSidebarHeader> {
 
         private final Row caption = new Row(null);
         // Stands in for the caption while the sidebar rests in MINI, where there
         // is no room for its text.
         private final Region line = new Region();
 
-        CaptionView(RXSidebarItem item) {
+        CaptionView(RXSidebarHeader item) {
             super(item);
             bindIdentity(caption, "caption");
             caption.setMouseTransparent(true);
@@ -1364,7 +1365,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         }
     }
 
-    private final class RowView extends ItemView {
+    private final class RowView extends ItemView<RXSidebarItem> {
 
         private final Row row = new Row(this);
         // Created the first time the item has child items.

@@ -253,7 +253,7 @@ public class RXSidebarSkinTest {
             sidebar.getItems().addAll(header, new RXSidebarSeparator(), RXSidebarItem.of("Item"));
             host(sidebar);
 
-            Region caption = SidebarTestSupport.node(sidebar, "caption", header);
+            Region caption = SidebarTestSupport.node(sidebar, "caption", header.getText());
             assertTrue(caption.isManaged());
             assertEquals(1, sidebar.lookupAll(".separator").stream().filter(Node::isManaged).count());
 
@@ -440,8 +440,8 @@ public class RXSidebarSkinTest {
 
             sidebar.setFilter(RXSidebar.textFilter("navi"));
             assertEquals(List.of("Controls", "RXSidebar"), shownTexts(sidebar));
-            assertFalse(SidebarTestSupport.node(sidebar, "caption", first).isVisible());
-            assertTrue(SidebarTestSupport.node(sidebar, "caption", second).isVisible());
+            assertFalse(SidebarTestSupport.node(sidebar, "caption", first.getText()).isVisible());
+            assertTrue(SidebarTestSupport.node(sidebar, "caption", second.getText()).isVisible());
             assertFalse(sidebar.lookup(".divider").isVisible());
 
             sidebar.setFilter(RXSidebar.textFilter("controls"));
@@ -553,7 +553,7 @@ public class RXSidebarSkinTest {
             host(sidebar);
 
             sidebar.setFilter(RXSidebar.textFilter("child"));
-            assertTrue(SidebarTestSupport.node(sidebar, "caption", caption).isVisible());
+            assertTrue(SidebarTestSupport.node(sidebar, "caption", caption.getText()).isVisible());
             child.setVisible(false);
             assertEquals(List.of(), shownTexts(sidebar));
             assertSame(sidebar.getScene(), placeholder.getScene());

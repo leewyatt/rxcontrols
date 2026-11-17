@@ -4,8 +4,6 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
-import javafx.beans.property.ReadOnlyObjectProperty;
-import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -18,11 +16,9 @@ import javafx.scene.Node;
 import javafx.scene.control.Tooltip;
 
 /**
- * An entry of an {@link RXSidebar}. This is a property bean, not a {@link Node}:
- * the sidebar's skin renders each item into its own row.
- *
- * <p>An instance of this class is an ordinary entry, and what it does when
- * activated follows from its state:</p>
+ * An item of an {@link RXSidebar}: a page, an action or a group. This is a
+ * property bean, not a {@link Node}: the sidebar's skin renders each item into
+ * its own row. What an item does when activated follows from its state:
  * <ul>
  *   <li><b>Page</b> — no child items, {@link #selectableProperty() selectable}
  *   (the default). Activating it selects it and then fires
@@ -34,20 +30,12 @@ import javafx.scene.control.Tooltip;
  *   {@code onAction}, whatever {@code selectable} says.</li>
  * </ul>
  *
- * <p>Two special kinds extend this class: {@link RXSidebarHeader} (a section
- * caption) and {@link RXSidebarSeparator} (a divider). Neither can be focused or
- * activated.</p>
- *
- * <p>An item belongs to at most one list at a time: adding an item that is
- * already in a sidebar or under another item is rejected with an
- * {@link IllegalArgumentException}. Remove it from where it is first. To
- * reorder a list, sort it or pass the new order to {@code setAll}; writing an
- * item to a second index with {@code set} is rejected like any other second
- * membership. Identity
- * equality is intentional ({@code equals} / {@code hashCode} are not
- * overridden).</p>
+ * <p>The lists of a sidebar also take {@link RXSidebarHeader} (a section
+ * caption) and {@link RXSidebarSeparator} (a divider); see
+ * {@link RXSidebarItemBase} for what all three share and for the rules an added
+ * entry must meet.</p>
  */
-public class RXSidebarItem {
+public class RXSidebarItem extends RXSidebarItemBase {
 
     // ==================== Constructors ====================
 
@@ -120,12 +108,12 @@ public class RXSidebarItem {
      *
      * @param text     the item text, or {@code null}
      * @param graphic  the leading graphic, or {@code null}
-     * @param children the child items
+     * @param children the child items, captions and separators
      * @return the new item
      * @throws IllegalArgumentException if a child is {@code null}, appears twice,
      *                                  or already belongs to a list
      */
-    public static RXSidebarItem group(String text, Node graphic, RXSidebarItem... children) {
+    public static RXSidebarItem group(String text, Node graphic, RXSidebarItemBase... children) {
         RXSidebarItem item = new RXSidebarItem(text, graphic);
         item.getItems().addAll(children);
         return item;
@@ -300,35 +288,6 @@ public class RXSidebarItem {
         disable.set(value);
     }
 
-    // ==================== Visible ====================
-
-    private final BooleanProperty visible = new SimpleBooleanProperty(this, "visible", true);
-
-    /**
-     * Whether the item is shown. Hiding a group hides all of its descendants.
-     * This is independent of the sidebar's filter: a hidden item is never shown
-     * and never matched.
-     *
-     * @return the visible property
-     */
-    public final BooleanProperty visibleProperty() {
-        return visible;
-    }
-
-    /**
-     * @return whether the item is shown
-     */
-    public final boolean isVisible() {
-        return visible.get();
-    }
-
-    /**
-     * @param value whether the item is shown
-     */
-    public final void setVisible(boolean value) {
-        visible.set(value);
-    }
-
     // ==================== Selectable ====================
 
     private final BooleanProperty selectable = new SimpleBooleanProperty(this, "selectable", true) {
@@ -422,74 +381,10 @@ public class RXSidebarItem {
         onAction.set(value);
     }
 
-    // ==================== User Data ====================
+    // ==================== Keywords / Items ====================
 
-    private final ObjectProperty<Object> userData = new SimpleObjectProperty<>(this, "userData");
-
-    /**
-     * An application value attached to the item, such as the route it stands
-     * for.
-     *
-     * @return the user-data property
-     */
-    public final ObjectProperty<Object> userDataProperty() {
-        return userData;
-    }
-
-    /**
-     * @return the user data, or {@code null}
-     */
-    public final Object getUserData() {
-        return userData.get();
-    }
-
-    /**
-     * @param value the user data, or {@code null}
-     */
-    public final void setUserData(Object value) {
-        userData.set(value);
-    }
-
-    // ==================== Id ====================
-
-    private final StringProperty id = new SimpleStringProperty(this, "id");
-
-    /**
-     * The id copied to the row, so a stylesheet can address it with
-     * {@code #id}.
-     *
-     * @return the id property
-     */
-    public final StringProperty idProperty() {
-        return id;
-    }
-
-    /**
-     * @return the id, or {@code null}
-     */
-    public final String getId() {
-        return id.get();
-    }
-
-    /**
-     * @param value the id, or {@code null}
-     */
-    public final void setId(String value) {
-        id.set(value);
-    }
-
-    // ==================== Style Class / Keywords / Items ====================
-
-    private final ObservableList<String> styleClass = FXCollections.observableArrayList();
     private final ObservableList<String> keywords = FXCollections.observableArrayList();
     private final SidebarItemList items = new SidebarItemList(this);
-
-    /**
-     * @return the style classes copied to the row
-     */
-    public final ObservableList<String> getStyleClass() {
-        return styleClass;
-    }
 
     /**
      * Aliases matched by {@link RXSidebar#textFilter(String)} in addition to the
@@ -502,11 +397,12 @@ public class RXSidebarItem {
     }
 
     /**
-     * The child items. A non-empty list makes this item a group.
+     * The child items: items, captions and separators. A non-empty list makes
+     * this item a group.
      *
      * @return the live list of child items
      */
-    public final ObservableList<RXSidebarItem> getItems() {
+    public final ObservableList<RXSidebarItemBase> getItems() {
         return items;
     }
 
@@ -534,96 +430,25 @@ public class RXSidebarItem {
         selected.set(value);
     }
 
-    // ==================== Parent ====================
+    // ==================== Selection support ====================
 
-    private final ReadOnlyObjectWrapper<RXSidebarItem> parent = new ReadOnlyObjectWrapper<>(this, "parent");
-
-    /**
-     * The group this item is a child of; {@code null} for a top-level item and
-     * for an item that is in no list.
-     *
-     * @return the read-only parent property
-     */
-    public final ReadOnlyObjectProperty<RXSidebarItem> parentProperty() {
-        return parent.getReadOnlyProperty();
-    }
-
-    /**
-     * @return the parent item, or {@code null}
-     */
-    public final RXSidebarItem getParent() {
-        return parent.get();
-    }
-
-    // ==================== Sidebar ====================
-
-    private final ReadOnlyObjectWrapper<RXSidebar> sidebar = new ReadOnlyObjectWrapper<>(this, "sidebar");
-
-    /**
-     * The sidebar whose tree this item is in, at any depth; {@code null}
-     * otherwise.
-     *
-     * @return the read-only sidebar property
-     */
-    public final ReadOnlyObjectProperty<RXSidebar> sidebarProperty() {
-        return sidebar.getReadOnlyProperty();
-    }
-
-    /**
-     * @return the sidebar, or {@code null}
-     */
-    public final RXSidebar getSidebar() {
-        return sidebar.get();
-    }
-
-    // ==================== Ownership (maintained by SidebarItemList) ====================
-
-    // The list holding this item; written synchronously by that list. parent and
-    // sidebar are derived from it once a list change has finished.
-    private SidebarItemList owningList;
-
-    final SidebarItemList getOwningList() {
-        return owningList;
-    }
-
-    final void setOwningList(SidebarItemList list) {
-        owningList = list;
-    }
-
-    // Derives parent and sidebar from the owning list, for this item and its
-    // whole subtree.
-    final void syncOwnership() {
-        parent.set(owningList == null ? null : owningList.getOwnerItem());
-        syncSidebar(owningList == null ? null : owningList.resolveSidebar());
-    }
-
-    private void syncSidebar(RXSidebar value) {
-        sidebar.set(value);
-        for (RXSidebarItem child : items) {
+    @Override
+    void syncSidebar(RXSidebar value) {
+        super.syncSidebar(value);
+        for (RXSidebarItemBase child : items) {
             child.syncSidebar(value);
         }
     }
 
     /**
      * @return whether this item can be the selection: a selectable item without
-     * child items that is neither a caption nor a separator
+     * child items
      */
-    boolean canBeSelected() {
-        if (!isSelectable() || !items.isEmpty()) {
-            return false;
-        }
-        // Items under a caption or a separator are never rendered.
-        for (SidebarItemList list = owningList; list != null && list.getOwnerItem() != null;
-                list = list.getOwnerItem().owningList) {
-            RXSidebarItem owner = list.getOwnerItem();
-            if (owner instanceof RXSidebarHeader || owner instanceof RXSidebarSeparator) {
-                return false;
-            }
-        }
-        return true;
+    final boolean canBeSelected() {
+        return isSelectable() && items.isEmpty();
     }
 
-    final void notifySelectabilityChanged() {
+    private void notifySelectabilityChanged() {
         RXSidebar owner = getSidebar();
         if (owner != null) {
             owner.revalidateSelection();

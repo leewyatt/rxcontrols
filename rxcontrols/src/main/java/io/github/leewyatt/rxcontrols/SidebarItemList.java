@@ -27,11 +27,11 @@ import java.util.List;
  * added; judging by where the item ends up keeps such a change from looking
  * like the item left the tree.</p>
  */
-final class SidebarItemList extends ModifiableObservableListBase<RXSidebarItem> {
+final class SidebarItemList extends ModifiableObservableListBase<RXSidebarItemBase> {
 
-    private final List<RXSidebarItem> backing = new ArrayList<>();
+    private final List<RXSidebarItemBase> backing = new ArrayList<>();
     // The items the change in progress has added or removed.
-    private final List<RXSidebarItem> touched = new ArrayList<>();
+    private final List<RXSidebarItemBase> touched = new ArrayList<>();
     private final RXSidebar sidebar;
     private final RXSidebarItem ownerItem;
 
@@ -63,7 +63,7 @@ final class SidebarItemList extends ModifiableObservableListBase<RXSidebarItem> 
     // ==================== Storage ====================
 
     @Override
-    public RXSidebarItem get(int index) {
+    public RXSidebarItemBase get(int index) {
         return backing.get(index);
     }
 
@@ -73,7 +73,7 @@ final class SidebarItemList extends ModifiableObservableListBase<RXSidebarItem> 
     }
 
     @Override
-    protected void doAdd(int index, RXSidebarItem element) {
+    protected void doAdd(int index, RXSidebarItemBase element) {
         requireAddable(element);
         backing.add(index, element);
         element.setOwningList(this);
@@ -81,8 +81,8 @@ final class SidebarItemList extends ModifiableObservableListBase<RXSidebarItem> 
     }
 
     @Override
-    protected RXSidebarItem doSet(int index, RXSidebarItem element) {
-        RXSidebarItem old = backing.get(index);
+    protected RXSidebarItemBase doSet(int index, RXSidebarItemBase element) {
+        RXSidebarItemBase old = backing.get(index);
         if (old == element) {
             return old;
         }
@@ -96,8 +96,8 @@ final class SidebarItemList extends ModifiableObservableListBase<RXSidebarItem> 
     }
 
     @Override
-    protected RXSidebarItem doRemove(int index) {
-        RXSidebarItem removed = backing.remove(index);
+    protected RXSidebarItemBase doRemove(int index) {
+        RXSidebarItemBase removed = backing.remove(index);
         removed.setOwningList(null);
         touched.add(removed);
         return removed;
@@ -106,24 +106,24 @@ final class SidebarItemList extends ModifiableObservableListBase<RXSidebarItem> 
     // ==================== Bulk entry points ====================
 
     @Override
-    public boolean addAll(Collection<? extends RXSidebarItem> elements) {
-        List<RXSidebarItem> snapshot = new ArrayList<>(elements);
+    public boolean addAll(Collection<? extends RXSidebarItemBase> elements) {
+        List<RXSidebarItemBase> snapshot = new ArrayList<>(elements);
         requireAllAddable(snapshot, false);
         return super.addAll(snapshot);
     }
 
     @Override
-    public boolean addAll(int index, Collection<? extends RXSidebarItem> elements) {
-        List<RXSidebarItem> snapshot = new ArrayList<>(elements);
+    public boolean addAll(int index, Collection<? extends RXSidebarItemBase> elements) {
+        List<RXSidebarItemBase> snapshot = new ArrayList<>(elements);
         requireAllAddable(snapshot, false);
         return super.addAll(index, snapshot);
     }
 
     @Override
-    public boolean setAll(Collection<? extends RXSidebarItem> elements) {
+    public boolean setAll(Collection<? extends RXSidebarItemBase> elements) {
         // Snapshot first: setAll is clear-then-addAll, so passing this list itself
         // would have the clear empty the argument.
-        List<RXSidebarItem> snapshot = new ArrayList<>(elements);
+        List<RXSidebarItemBase> snapshot = new ArrayList<>(elements);
         // This list is about to be replaced wholesale, so its own current items
         // are not a conflict.
         requireAllAddable(snapshot, true);
@@ -131,19 +131,19 @@ final class SidebarItemList extends ModifiableObservableListBase<RXSidebarItem> 
     }
 
     @Override
-    public void sort(Comparator<? super RXSidebarItem> comparator) {
+    public void sort(Comparator<? super RXSidebarItemBase> comparator) {
         // The inherited sort writes the items back one position at a time, so
         // each write would find its item still held at another index.
-        List<RXSidebarItem> sorted = new ArrayList<>(backing);
+        List<RXSidebarItemBase> sorted = new ArrayList<>(backing);
         sorted.sort(comparator);
         setAll(sorted);
     }
 
     // ==================== Validation ====================
 
-    private void requireAllAddable(List<RXSidebarItem> elements, boolean replacingContents) {
+    private void requireAllAddable(List<RXSidebarItemBase> elements, boolean replacingContents) {
         for (int i = 0; i < elements.size(); i++) {
-            RXSidebarItem element = elements.get(i);
+            RXSidebarItemBase element = elements.get(i);
             for (int j = 0; j < i; j++) {
                 if (elements.get(j) == element) {
                     throw new IllegalArgumentException(describe(element)
@@ -157,7 +157,7 @@ final class SidebarItemList extends ModifiableObservableListBase<RXSidebarItem> 
         }
     }
 
-    private void requireAddable(RXSidebarItem element) {
+    private void requireAddable(RXSidebarItemBase element) {
         if (element == null) {
             throw new IllegalArgumentException("a sidebar item must not be null");
         }
@@ -178,20 +178,26 @@ final class SidebarItemList extends ModifiableObservableListBase<RXSidebarItem> 
         return list == null ? null : list.getOwnerItem();
     }
 
-    private static String describe(RXSidebarItem element) {
+    private static String describe(RXSidebarItemBase element) {
         if (element == null) {
             return "null";
         }
         String name = element.getClass().getSimpleName();
-        return element.getText() == null ? name : name + " \"" + element.getText() + "\"";
+        String text = null;
+        if (element instanceof RXSidebarItem item) {
+            text = item.getText();
+        } else if (element instanceof RXSidebarHeader header) {
+            text = header.getText();
+        }
+        return text == null ? name : name + " \"" + text + "\"";
     }
 
     // ==================== Ownership ====================
 
     private void settleOwnership() {
-        List<RXSidebarItem> settling = new ArrayList<>(touched);
+        List<RXSidebarItemBase> settling = new ArrayList<>(touched);
         touched.clear();
-        for (RXSidebarItem item : settling) {
+        for (RXSidebarItemBase item : settling) {
             item.syncOwnership();
         }
         RXSidebar owner = resolveSidebar();

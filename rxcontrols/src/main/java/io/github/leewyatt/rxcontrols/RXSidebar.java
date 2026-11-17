@@ -122,9 +122,9 @@ public class RXSidebar extends Control {
     private static final PseudoClass EXPANDED_PSEUDO_CLASS = PseudoClass.getPseudoClass("expanded");
     private static final PseudoClass MINI_PSEUDO_CLASS = PseudoClass.getPseudoClass("mini");
 
-    private final ObservableList<RXSidebarItem> topItems = new SidebarItemList(this);
-    private final ObservableList<RXSidebarItem> items = new SidebarItemList(this);
-    private final ObservableList<RXSidebarItem> bottomItems = new SidebarItemList(this);
+    private final ObservableList<RXSidebarItemBase> topItems = new SidebarItemList(this);
+    private final ObservableList<RXSidebarItemBase> items = new SidebarItemList(this);
+    private final ObservableList<RXSidebarItemBase> bottomItems = new SidebarItemList(this);
 
     // ==================== Constructor ====================
 
@@ -172,23 +172,23 @@ public class RXSidebar extends Control {
     // ==================== Item Lists ====================
 
     /**
-     * @return the live list of pinned-top items; see {@link RXSidebarItem} for the rules an added item must meet
+     * @return the live list of pinned-top items; see {@link RXSidebarItemBase} for the rules an added entry must meet
      */
-    public final ObservableList<RXSidebarItem> getTopItems() {
+    public final ObservableList<RXSidebarItemBase> getTopItems() {
         return topItems;
     }
 
     /**
-     * @return the live list of main (scrollable) items; see {@link RXSidebarItem} for the rules an added item must meet
+     * @return the live list of main (scrollable) items; see {@link RXSidebarItemBase} for the rules an added entry must meet
      */
-    public final ObservableList<RXSidebarItem> getItems() {
+    public final ObservableList<RXSidebarItemBase> getItems() {
         return items;
     }
 
     /**
-     * @return the live list of pinned-bottom items; see {@link RXSidebarItem} for the rules an added item must meet
+     * @return the live list of pinned-bottom items; see {@link RXSidebarItemBase} for the rules an added entry must meet
      */
-    public final ObservableList<RXSidebarItem> getBottomItems() {
+    public final ObservableList<RXSidebarItemBase> getBottomItems() {
         return bottomItems;
     }
 
@@ -278,8 +278,8 @@ public class RXSidebar extends Control {
      *
      * @param item the item to select, or {@code null} to clear the selection
      * @throws IllegalArgumentException if the item cannot be selected: a group,
-     *                                  an action, a caption or a separator, or
-     *                                  an item that is in another sidebar
+     *                                  an action, or an item that is in another
+     *                                  sidebar
      */
     public final void selectItem(RXSidebarItem item) {
         if (item != null && !item.canBeSelected()) {

@@ -89,24 +89,20 @@ public class RXSidebarTest {
     }
 
     /**
-     * Only a page can be selected; a group, an action, a caption and a
-     * separator are refused.
+     * Only a page of this sidebar can be selected; a group, an action and an
+     * item of another sidebar are refused.
      */
     @Test
     public void selectItemRejectsWhatIsNotAPage() {
         RXSidebar sidebar = new RXSidebar();
         RXSidebarItem group = RXSidebarItem.group("Group", null, RXSidebarItem.of("Child"));
         RXSidebarItem action = RXSidebarItem.action("Action", null, null);
-        RXSidebarHeader header = new RXSidebarHeader("Header");
-        RXSidebarSeparator separator = new RXSidebarSeparator();
-        sidebar.getItems().addAll(group, action, header, separator);
+        sidebar.getItems().addAll(group, action);
 
-        RXSidebarItem underCaption = RXSidebarItem.of("Under caption");
-        header.getItems().add(underCaption);
         RXSidebarItem elsewhere = RXSidebarItem.of("Elsewhere");
         new RXSidebar().getItems().add(elsewhere);
 
-        for (RXSidebarItem item : List.of(group, action, header, separator, underCaption, elsewhere)) {
+        for (RXSidebarItem item : List.of(group, action, elsewhere)) {
             assertThrows(IllegalArgumentException.class, () -> sidebar.selectItem(item));
         }
         assertNull(sidebar.getSelectedItem());
