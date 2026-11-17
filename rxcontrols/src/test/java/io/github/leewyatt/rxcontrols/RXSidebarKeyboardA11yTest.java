@@ -1,6 +1,8 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.geometry.NodeOrientation;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Scene;
@@ -182,6 +184,137 @@ public class RXSidebarKeyboardA11yTest {
             assertEquals("Top", focusedText(scene));
             press(scene, KeyCode.END);
             assertEquals("Bottom", focusedText(scene));
+        });
+    }
+
+    /**
+     * Right opens a closed group and then moves into it; Left moves to the
+     * parent and then closes it. On a leaf Right does nothing.
+     */
+    @Test
+    public void leftAndRightWalkTheTree() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarItem child = RXSidebarItem.of("Child");
+            RXSidebarItem group = RXSidebarItem.group("Group", null, child);
+            sidebar.getItems().addAll(group, RXSidebarItem.of("After"));
+            Scene scene = host(sidebar);
+
+            row(sidebar, group).requestFocus();
+            press(scene, KeyCode.RIGHT);
+            assertTrue(group.isExpanded());
+            assertEquals("Group", focusedText(scene));
+            press(scene, KeyCode.RIGHT);
+            assertEquals("Child", focusedText(scene));
+            press(scene, KeyCode.RIGHT);
+            assertEquals("Child", focusedText(scene));
+
+            press(scene, KeyCode.LEFT);
+            assertEquals("Group", focusedText(scene));
+            assertTrue(group.isExpanded());
+            press(scene, KeyCode.LEFT);
+            assertFalse(group.isExpanded());
+            press(scene, KeyCode.LEFT);
+            assertEquals("Group", focusedText(scene));
+        });
+    }
+
+    /**
+     * Right leaves a bound group and a top-level group in MINI as they are.
+     */
+    @Test
+    public void rightDoesNotOpenWhatItMayNotWrite() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarItem bound = RXSidebarItem.group("Bound", null, RXSidebarItem.of("A"));
+            bound.expandedProperty().bind(new SimpleBooleanProperty(false));
+            RXSidebarItem free = RXSidebarItem.group("Free", null, RXSidebarItem.of("B"));
+            sidebar.getItems().addAll(bound, free);
+            Scene scene = host(sidebar);
+
+            row(sidebar, bound).requestFocus();
+            press(scene, KeyCode.RIGHT);
+            assertFalse(bound.isExpanded());
+
+            sidebar.setMode(SidebarMode.MINI);
+            row(sidebar, free).requestFocus();
+            press(scene, KeyCode.RIGHT);
+            assertFalse(free.isExpanded());
+        });
+    }
+
+    /**
+     * Under a right-to-left orientation Left and Right swap.
+     */
+    @Test
+    public void leftAndRightSwapInRightToLeft() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            sidebar.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
+            RXSidebarItem group = RXSidebarItem.group("Group", null, RXSidebarItem.of("Child"));
+            sidebar.getItems().add(group);
+            Scene scene = host(sidebar);
+
+            row(sidebar, group).requestFocus();
+            press(scene, KeyCode.LEFT);
+            assertTrue(group.isExpanded());
+            press(scene, KeyCode.RIGHT);
+            assertFalse(group.isExpanded());
+        });
+    }
+
+    /**
+     * Folding a subtree away from under the focus — by collapsing the group or
+     * by switching to MINI — moves focus to the group's row.
+     */
+    @Test
+    public void collapsingOverTheFocusMovesItToTheGroup() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarItem leaf = RXSidebarItem.of("Leaf");
+            RXSidebarItem inner = RXSidebarItem.group("Inner", null, leaf);
+            RXSidebarItem outer = RXSidebarItem.group("Outer", null, inner);
+            outer.setExpanded(true);
+            inner.setExpanded(true);
+            sidebar.getItems().add(outer);
+            Scene scene = host(sidebar);
+
+            row(sidebar, leaf).requestFocus();
+            inner.setExpanded(false);
+            assertEquals("Inner", focusedText(scene));
+
+            inner.setExpanded(true);
+            row(sidebar, leaf).requestFocus();
+            sidebar.setMode(SidebarMode.MINI);
+            assertEquals("Outer", focusedText(scene));
+        });
+    }
+
+    /**
+     * Every group above the selection carries :child-selected, open or not.
+     */
+    @Test
+    public void groupsAboveTheSelectionAreMarked() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarItem leaf = RXSidebarItem.of("Leaf");
+            RXSidebarItem inner = RXSidebarItem.group("Inner", null, leaf);
+            RXSidebarItem outer = RXSidebarItem.group("Outer", null, inner);
+            RXSidebarItem other = RXSidebarItem.of("Other");
+            sidebar.getItems().addAll(outer, other);
+            host(sidebar);
+
+            sidebar.selectItem(leaf);
+            assertTrue(hasPseudoClass(row(sidebar, outer), "child-selected"));
+            assertTrue(hasPseudoClass(row(sidebar, inner), "child-selected"));
+            assertFalse(hasPseudoClass(row(sidebar, leaf), "child-selected"));
+
+            outer.setExpanded(false);
+            assertTrue(hasPseudoClass(row(sidebar, outer), "child-selected"));
+            assertTrue(hasPseudoClass(row(sidebar, outer), "collapsed"));
+
+            sidebar.selectItem(other);
+            assertFalse(hasPseudoClass(row(sidebar, outer), "child-selected"));
         });
     }
 

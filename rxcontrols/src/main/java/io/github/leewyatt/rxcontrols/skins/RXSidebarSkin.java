@@ -18,8 +18,10 @@ import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Bounds;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
+import javafx.geometry.NodeOrientation;
 import javafx.geometry.VPos;
 import javafx.scene.AccessibleAction;
 import javafx.scene.AccessibleAttribute;
@@ -30,6 +32,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.ScrollPane.ScrollBarPolicy;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -116,6 +119,22 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     // stale reference). Stopped explicitly in disposeSkin().
     private Timeline animation;
 
+    // Whether the refresh in progress may animate groups opening and closing.
+    // Set only for changes the user watches happen: a group toggling and a
+    // mode change.
+    private boolean animateGroups;
+    private int runningGroupAnimations;
+
+    // The row to keep in view, checked after each layout pass until every
+    // running transition has settled: the row keeps moving while the groups
+    // above it unfold.
+    private RowView revealTarget;
+    // Set when a sync builds the row of the selected item: at construction, and
+    // when an item selected ahead of time is added.
+    private boolean selectionArrived;
+    private Scene revealScene;
+    private final Runnable revealListener = this::revealAfterLayout;
+
     // 0 = MINI, 1 = EXPANDED. Must equal (DEFAULT_MODE == EXPANDED ? 1 : 0).
     private final DoubleProperty expansionFraction =
             new SimpleDoubleProperty(this, "expansionFraction", 1.0) {
@@ -168,7 +187,10 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         disposer.registerListener(control.miniWidthProperty(), this::requestRowLayout);
         disposer.registerListener(control.expandedWidthProperty(), this::requestRowLayout);
         disposer.registerListener(control.indentProperty(), this::requestRowLayout);
-        disposer.registerListener(control.selectedItemProperty(), (obs, old, item) -> refreshAll());
+        disposer.registerListener(control.selectedItemProperty(), (obs, old, item) -> {
+            refreshAll();
+            reveal(item);
+        });
         disposer.registerListener(control.sceneProperty(), this::trackFocusOwner);
 
         // A capturing FILTER on root, not a bubbling handler: a ScrollPane consumes
@@ -194,6 +216,9 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             trackedScene.focusOwnerProperty().addListener(focusOwnerListener);
         }
         refreshTabStop();
+        // The scene left behind no longer lays this control out.
+        stopRevealing();
+        reveal(getSkinnable().getSelectedItem());
     }
 
     // ==================== Header / Footer slots ====================
@@ -236,6 +261,19 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             }
         }
         refreshAll();
+        if (selectionArrived) {
+            selectionArrived = false;
+            reveal(control.getSelectedItem());
+        }
+    }
+
+    private void refreshAnimated() {
+        animateGroups = true;
+        try {
+            refreshAll();
+        } finally {
+            animateGroups = false;
+        }
     }
 
     private void syncList(List<RXSidebarItem> items, ObservableList<Node> target, int depth) {
@@ -245,6 +283,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             if (view == null) {
                 view = createView(item);
                 views.put(item, view);
+                selectionArrived |= item.isSelected();
             }
             view.depth = depth;
             view.syncChildren();
@@ -349,9 +388,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             return;
         }
         if (isGroup(item)) {
-            if (committedMode() == SidebarMode.EXPANDED && !item.expandedProperty().isBound()) {
-                item.setExpanded(!item.isExpanded());
-            }
+            setExpandedByUser(view, !item.isExpanded());
             return;
         }
         if (item.isSelectable()) {
@@ -360,6 +397,81 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         EventHandler<ActionEvent> handler = item.getOnAction();
         if (handler != null) {
             handler.handle(new ActionEvent(item, null));
+        }
+    }
+
+    // A top-level group has nothing to unfold into in MINI, and a bound
+    // property is not the sidebar's to write.
+    private void setExpandedByUser(RowView view, boolean expanded) {
+        if (view.depth == 0 && committedMode() == SidebarMode.MINI) {
+            return;
+        }
+        if (!view.item.expandedProperty().isBound()) {
+            view.item.setExpanded(expanded);
+        }
+    }
+
+    // ==================== Reveal ====================
+
+    // Scrolls the item's row into view once layout has caught up. Only rows of
+    // the scrolling list can be brought into view.
+    private void reveal(RXSidebarItem item) {
+        Scene scene = getSkinnable().getScene();
+        if (!(views.get(item) instanceof RowView view) || scene == null) {
+            revealTarget = null;
+            return;
+        }
+        if (revealScene != scene) {
+            stopRevealing();
+            revealScene = scene;
+            scene.addPostLayoutPulseListener(revealListener);
+        }
+        revealTarget = view;
+    }
+
+    private void revealAfterLayout() {
+        RowView view = revealTarget;
+        if (view != null && isOnDisplayIn(view.row, mainBox)) {
+            scrollIntoView(view.row);
+        }
+        if (animation == null && runningGroupAnimations == 0) {
+            stopRevealing();
+        }
+    }
+
+    private void stopRevealing() {
+        if (revealScene != null) {
+            revealScene.removePostLayoutPulseListener(revealListener);
+            revealScene = null;
+        }
+        revealTarget = null;
+    }
+
+    private static boolean isOnDisplayIn(Node node, Node container) {
+        for (Node current = node; current != null; current = current.getParent()) {
+            if (current == container) {
+                return true;
+            }
+            if (!current.isVisible()) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    // The minimal scroll: only when the row sits above or below the viewport.
+    private void scrollIntoView(Node row) {
+        double viewportHeight = mainScroll.getViewportBounds().getHeight();
+        double scrollable = mainBox.getHeight() - viewportHeight;
+        if (viewportHeight <= 0.0 || scrollable <= 0.0) {
+            return;
+        }
+        Bounds bounds = mainBox.sceneToLocal(row.localToScene(row.getBoundsInLocal()));
+        double offset = mainScroll.getVvalue() * scrollable;
+        if (bounds.getMinY() < offset) {
+            mainScroll.setVvalue(Math.max(0.0, bounds.getMinY() / scrollable));
+        } else if (bounds.getMaxY() > offset + viewportHeight) {
+            mainScroll.setVvalue(Math.min(1.0, (bounds.getMaxY() - viewportHeight) / scrollable));
         }
     }
 
@@ -373,10 +485,17 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             settleMode();
             return;
         }
-        compactRows = false;
-        refreshAll();
         double targetFraction = (target == SidebarMode.EXPANDED) ? 1.0 : 0.0;
-        Timeline timeline = new Timeline(new KeyFrame(getSkinnable().getAnimationDuration(),
+        // A transition reversed midway only has the rest of the way to go, the
+        // same as the groups that fold along with it.
+        double distance = Math.abs(targetFraction - expansionFraction.get());
+        if (distance == 0.0) {
+            settleMode();
+            return;
+        }
+        compactRows = false;
+        refreshAnimated();
+        Timeline timeline = new Timeline(new KeyFrame(getSkinnable().getAnimationDuration().multiply(distance),
                 new KeyValue(expansionFraction, targetFraction, interpolatorOrDefault())));
         timeline.setOnFinished(event -> {
             if (animation == timeline) {
@@ -451,6 +570,19 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
                 ring.get(size - 1).row.requestFocus();
                 event.consume();
             }
+            case LEFT, RIGHT -> {
+                // A focusable node inside the row keeps these for itself.
+                if (focusOwner() != focused.row) {
+                    return;
+                }
+                boolean rtl = getSkinnable().getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT;
+                if ((event.getCode() == KeyCode.RIGHT) != rtl) {
+                    stepInto(focused, ring);
+                } else {
+                    stepOut(focused);
+                }
+                event.consume();
+            }
             case ENTER, SPACE -> {
                 // Only when the row itself holds focus: a focusable node inside
                 // the row keeps its own activation keys.
@@ -462,6 +594,32 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             default -> {
                 // Tab and everything else go to the scene.
             }
+        }
+    }
+
+    // Towards the leaves: opens a closed group, moves into an open one.
+    private void stepInto(RowView view, List<RowView> ring) {
+        if (!isGroup(view.item)) {
+            return;
+        }
+        if (!isOpen(view.item, view.depth)) {
+            setExpandedByUser(view, true);
+            return;
+        }
+        int next = ring.indexOf(view) + 1;
+        if (next < ring.size() && ring.get(next).item.getParent() == view.item) {
+            ring.get(next).row.requestFocus();
+        }
+    }
+
+    // Towards the root: closes an open group, otherwise moves to the parent.
+    private void stepOut(RowView view) {
+        if (isGroup(view.item) && isOpen(view.item, view.depth)) {
+            setExpandedByUser(view, false);
+            return;
+        }
+        if (views.get(view.item.getParent()) instanceof RowView parent) {
+            parent.row.requestFocus();
         }
     }
 
@@ -611,6 +769,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         // The rebuilt-per-transition Timeline would be a stale reference in the
         // disposer; stop it explicitly by reading the live field.
         stopAnimation();
+        stopRevealing();
         // Paired with trackFocusOwner: the scene is a moving target, so the disposer
         // could not hold it.
         if (trackedScene != null) {
@@ -767,7 +926,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             itemDisposer.registerListener(item.getItems(), RXSidebarSkin.this::syncTree);
 
             watch(item.selectableProperty());
-            watch(item.expandedProperty());
+            itemDisposer.registerListener(item.expandedProperty(), (obs, old, value) -> refreshAnimated());
             watch(item.tooltipProperty());
             watch(item.selectedProperty());
             watch(item.disableProperty());
@@ -814,7 +973,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
                 return;
             }
             if (pane == null) {
-                pane = new ChildrenPane();
+                pane = new ChildrenPane(row);
                 itemDisposer.registerBinding(pane.disableProperty(), item.disableProperty());
             }
             syncList(item.getItems(), pane.box.getChildren(), depth + 1);
@@ -835,7 +994,12 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             boolean open = group && shown && isOpen(item, depth);
             setShown(row, shown);
             if (pane != null) {
-                pane.setOpen(open);
+                // Closing over the focused row would leave focus on a row that
+                // is no longer on display.
+                if (!open && pane.open && shown && isInside(focusOwner(), pane)) {
+                    row.requestFocus();
+                }
+                pane.setOpen(open, animateGroups);
             }
 
             row.setAccessibleRole(!group && item.isSelectable()
@@ -892,7 +1056,19 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             }
             row.setGraphic(null);
             row.setTrailing(null);
+            if (pane != null) {
+                pane.stop();
+            }
         }
+    }
+
+    private static boolean isInside(Node node, Node container) {
+        for (Node current = node; current != null; current = current.getParent()) {
+            if (current == container) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void setShown(Node node, boolean shown) {
@@ -1093,19 +1269,72 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
         private final VBox box = new VBox();
         private final Rectangle clip = new Rectangle();
-        private double progress;
+        // 0 = closed, 1 = open.
+        private final DoubleProperty progress = new SimpleDoubleProperty(this, "progress") {
+            @Override
+            protected void invalidated() {
+                requestLayout();
+            }
+        };
+        private boolean open;
+        // Rebuilt per transition and stopped through the live field.
+        private Timeline timeline;
 
-        ChildrenPane() {
+        private final Node groupRow;
+
+        ChildrenPane(Node groupRow) {
+            this.groupRow = groupRow;
             getStyleClass().add("children");
             getChildren().add(box);
             setClip(clip);
             setShown(this, false);
         }
 
-        void setOpen(boolean open) {
-            progress = open ? 1.0 : 0.0;
+        // Idempotent: asking for the state already headed for leaves a running
+        // transition alone.
+        void setOpen(boolean value, boolean animate) {
+            if (value == open) {
+                return;
+            }
+            open = value;
+            stop();
+            double target = value ? 1.0 : 0.0;
+            double distance = Math.abs(target - progress.get());
+            setShown(this, true);
+            if (!animate || !animationsActive() || distance == 0.0) {
+                progress.set(target);
+                settle();
+                return;
+            }
+            Timeline next = new Timeline(new KeyFrame(getSkinnable().getAnimationDuration().multiply(distance),
+                    new KeyValue(progress, target, interpolatorOrDefault())));
+            next.setOnFinished(event -> {
+                if (timeline == next) {
+                    timeline = null;
+                    runningGroupAnimations--;
+                    settle();
+                }
+            });
+            timeline = next;
+            runningGroupAnimations++;
+            next.play();
+        }
+
+        private void settle() {
+            // Focus can enter the rows while they are still folding away.
+            if (!open && isInside(focusOwner(), this)) {
+                groupRow.requestFocus();
+            }
             setShown(this, open);
-            requestLayout();
+        }
+
+        void stop() {
+            if (timeline != null) {
+                Timeline running = timeline;
+                timeline = null;
+                runningGroupAnimations--;
+                running.stop();
+            }
         }
 
         private double naturalHeight(double width) {
@@ -1115,7 +1344,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
         @Override
         protected double computePrefHeight(double width) {
-            return snapSizeY(naturalHeight(width) * progress);
+            return snapSizeY(naturalHeight(width) * progress.get());
         }
 
         @Override

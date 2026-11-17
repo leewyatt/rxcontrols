@@ -87,15 +87,15 @@ public class RXSidebar extends Control {
      */
     public static final double DEFAULT_MINI_WIDTH = 64.0;
     /**
-     * Default whether mode transitions animate.
+     * Default whether mode transitions and group expansion animate.
      */
     private static final boolean DEFAULT_ANIMATED = true;
     /**
-     * Default mode-transition duration.
+     * Default duration of a mode transition and of a full group expansion.
      */
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
     /**
-     * Default mode-transition interpolator, also the null fallback.
+     * Default interpolator of the transitions, also the null fallback.
      */
     public static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
     /**
@@ -454,6 +454,9 @@ public class RXSidebar extends Control {
     };
 
     /**
+     * Whether a mode change animates the width and expanding or collapsing a
+     * group animates its height. Styleable as {@code -rx-animated}.
+     *
      * @return the animated property
      */
     public final BooleanProperty animatedProperty() {
@@ -461,14 +464,14 @@ public class RXSidebar extends Control {
     }
 
     /**
-     * @return whether mode transitions animate
+     * @return whether the transitions animate
      */
     public final boolean isAnimated() {
         return animated.get();
     }
 
     /**
-     * @param value whether mode transitions animate
+     * @param value whether the transitions animate
      */
     public final void setAnimated(boolean value) {
         animated.set(value);

@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import io.github.leewyatt.rxcontrols.skins.RXSidebarSkin;
+import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.beans.property.DoubleProperty;
 import javafx.scene.Node;
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -279,6 +281,110 @@ public class RXSidebarAnimationTest {
         });
         assertTrue(atExpanded.await(3, TimeUnit.SECONDS), "animated expand reaches expanded");
         runOnFx(() -> assertTrue(labelRef.get().isVisible()));
+    }
+
+    /**
+     * Expanding a group grows its child rows' viewport from zero to their
+     * natural height; collapsing keeps it in the layout until it has shrunk.
+     */
+    @Test
+    public void groupHeightAnimatesOpenAndClosed() throws Exception {
+        AtomicReference<RXSidebarItem> groupRef = new AtomicReference<>();
+        AtomicReference<Region> paneRef = new AtomicReference<>();
+        CountDownLatch opened = new CountDownLatch(1);
+        CountDownLatch closed = new CountDownLatch(1);
+        runOnFx(() -> {
+            RXSidebar sidebar = laidOut(new RXSidebar(), Duration.millis(80.0));
+            RXSidebarItem group = RXSidebarItem.group("Group", null, RXSidebarItem.of("Child"));
+            sidebar.getItems().add(group);
+            SidebarTestSupport.layout(sidebar.getScene()); // the new rows measure 0 until styled
+            Region pane = (Region) sidebar.lookup(".children");
+            assertFalse(pane.isManaged());
+
+            pane.managedProperty().addListener((o, ov, managed) -> {
+                if (!managed) {
+                    closed.countDown();
+                }
+            });
+            group.setExpanded(true);
+            assertTrue(pane.isManaged());
+            assertEquals(0.0, pane.prefHeight(-1), EPSILON); // in flight, not snapped
+            new AnimationTimer() {
+                @Override
+                public void handle(long now) {
+                    if (pane.prefHeight(-1) >= 15.0) {
+                        stop();
+                        opened.countDown();
+                    }
+                }
+            }.start();
+            groupRef.set(group);
+            paneRef.set(pane);
+        });
+        assertTrue(opened.await(3, TimeUnit.SECONDS), "the viewport grows to the child row's height");
+        runOnFx(() -> {
+            groupRef.get().setExpanded(false);
+            assertTrue(paneRef.get().isManaged()); // still shrinking
+        });
+        assertTrue(closed.await(3, TimeUnit.SECONDS), "the viewport leaves the layout once closed");
+    }
+
+    /**
+     * Focus that is in, or moves into, the rows of a group while it folds away
+     * ends up on the group's row.
+     */
+    @Test
+    public void focusLeavesAGroupThatFoldsAway() throws Exception {
+        AtomicReference<Scene> sceneRef = new AtomicReference<>();
+        AtomicReference<Region> groupRowRef = new AtomicReference<>();
+        CountDownLatch closed = new CountDownLatch(1);
+        runOnFx(() -> {
+            RXSidebar sidebar = laidOut(new RXSidebar(), Duration.millis(80.0));
+            RXSidebarItem first = RXSidebarItem.of("First");
+            RXSidebarItem second = RXSidebarItem.of("Second");
+            RXSidebarItem group = RXSidebarItem.group("Group", null, first, second);
+            group.setExpanded(true);
+            sidebar.getItems().add(group);
+            SidebarTestSupport.layout(sidebar.getScene());
+            Region groupRow = SidebarTestSupport.row(sidebar, group);
+            Region pane = (Region) sidebar.lookup(".children");
+            pane.managedProperty().addListener((o, ov, managed) -> {
+                if (!managed) {
+                    closed.countDown();
+                }
+            });
+
+            SidebarTestSupport.row(sidebar, first).requestFocus();
+            group.setExpanded(false);
+            assertSame(groupRow, sidebar.getScene().getFocusOwner());
+            assertTrue(pane.isManaged());
+
+            SidebarTestSupport.row(sidebar, second).requestFocus(); // still on display
+            sceneRef.set(sidebar.getScene());
+            groupRowRef.set(groupRow);
+        });
+        assertTrue(closed.await(3, TimeUnit.SECONDS), "the group finishes folding away");
+        runOnFx(() -> assertSame(groupRowRef.get(), sceneRef.get().getFocusOwner()));
+    }
+
+    /**
+     * With animation off a group opens and closes at once.
+     */
+    @Test
+    public void groupSnapsWhenNotAnimated() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = laidOut(new RXSidebar(), Duration.millis(80.0));
+            sidebar.setAnimated(false);
+            RXSidebarItem group = RXSidebarItem.group("Group", null, RXSidebarItem.of("Child"));
+            sidebar.getItems().add(group);
+            SidebarTestSupport.layout(sidebar.getScene()); // the new rows measure 0 until styled
+            Region pane = (Region) sidebar.lookup(".children");
+
+            group.setExpanded(true);
+            assertTrue(pane.prefHeight(-1) >= 15.0);
+            group.setExpanded(false);
+            assertFalse(pane.isManaged());
+        });
     }
 
     // ==================== Helpers ====================
