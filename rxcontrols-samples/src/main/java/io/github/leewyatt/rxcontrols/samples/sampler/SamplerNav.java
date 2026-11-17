@@ -1,17 +1,13 @@
 package io.github.leewyatt.rxcontrols.samples.sampler;
 
-import io.github.leewyatt.rxcontrols.RXListCell;
-import io.github.leewyatt.rxcontrols.RXListSection;
-import io.github.leewyatt.rxcontrols.RXListSectionCell;
-import io.github.leewyatt.rxcontrols.RXListView;
+import io.github.leewyatt.rxcontrols.RXSidebar;
+import io.github.leewyatt.rxcontrols.RXSidebarItem;
+import io.github.leewyatt.rxcontrols.RXSidebarItemBase;
 import io.github.leewyatt.rxcontrols.RXTextField;
-import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
-import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
@@ -23,56 +19,50 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 /**
- * The navigation column: the brand, a search field and the grouped entry list. The
- * {@link #currentProperty() current} entry is the page on display; picking a row sets
- * it, and setting it from elsewhere selects and reveals the row.
+ * The navigation sidebar: the brand, the collapse toggle and a search field in its header,
+ * a group per category holding that category's pages, and the page count in its footer.
+ * Collapsed, it is a rail of the category glyphs, each opening its pages. The
+ * {@link #currentProperty() current} entry is the page on display; picking a page sets it,
+ * and setting it from elsewhere selects and reveals the page.
  */
-final class SamplerNav extends VBox {
+final class SamplerNav extends RXSidebar {
 
-    private final FilteredList<SamplerEntry> shown;
-    private final RXListView<SamplerEntry> list;
+    private final List<SamplerEntry> entries;
+    private final Map<SamplerEntry, RXSidebarItem> pages = new HashMap<>();
     private final RXTextField search = new RXTextField();
     private final Label countLabel = new Label();
+    private final Button collapse = new Button();
+    private final HBox brand = new HBox(10.0);
+    private final VBox header = new VBox(14.0);
+    private final HBox footer = buildFooter();
     private final ObjectProperty<SamplerEntry> current = new SimpleObjectProperty<>(this, "current");
-    private final int total;
-    private boolean syncing;
 
     SamplerNav(List<SamplerEntry> entries) {
+        this.entries = entries;
         getStyleClass().add("sampler-nav");
-        setPrefWidth(272.0);
-        setMinWidth(Region.USE_PREF_SIZE);
-        total = entries.size();
-        shown = new FilteredList<>(FXCollections.observableArrayList(entries));
+        setExpandedWidth(272.0);
+        getItems().setAll(buildItems());
+        buildHeader();
+        setHeader(header);
+        setFooter(footer);
+        setPlaceholder(new Label("No component matches"));
 
-        list = new RXListView<>(shown);
-        list.setFixedCellSize(30.0);
-        list.setSectionHeaderHeight(34.0);
-        list.setSectionKeyFactory(SamplerEntry::category);
-        list.setSectionHeaderFactory(view -> new SectionCell());
-        list.setStickySectionHeader(true);
-        list.setCollapsibleSections(true);
-        list.setCellFactory(view -> new EntryCell());
-        list.setPlaceholder(new Label("No component matches"));
-        VBox.setVgrow(list, Priority.ALWAYS);
-
-        list.getSelectionModel().selectedItemProperty().addListener((obs, old, picked) -> {
-            if (!syncing && picked != null) {
-                current.set(picked);
+        selectedItemProperty().addListener((obs, old, item) -> {
+            if (item != null && item.getUserData() instanceof SamplerEntry entry) {
+                current.set(entry);
             }
         });
-        current.addListener((obs, old, entry) -> reveal(entry));
-        // A filter that hides the current row drops its selection; clearing the filter
-        // brings the row back, and with it the selection.
-        shown.addListener((ListChangeListener<SamplerEntry>) change -> reveal(current.get()));
-
-        getChildren().setAll(buildBrand(), buildSearch(), list, buildFooter());
-        updateCount();
+        current.addListener((obs, old, entry) -> selectItem(pages.get(entry)));
+        modeProperty().addListener((obs, old, mode) -> onModeChanged(mode == Mode.MINI));
+        updateCount("");
     }
 
     ObjectProperty<SamplerEntry> currentProperty() {
@@ -80,13 +70,41 @@ final class SamplerNav extends VBox {
     }
 
     void focusSearch() {
+        setMode(Mode.EXPANDED);
         search.requestFocus();
         search.selectAll();
     }
 
     // ==================== Parts ====================
 
-    private HBox buildBrand() {
+    private List<RXSidebarItemBase> buildItems() {
+        List<RXSidebarItemBase> roots = new ArrayList<>();
+        Map<SamplerCategory, RXSidebarItem> groups = new EnumMap<>(SamplerCategory.class);
+        for (SamplerEntry entry : entries) {
+            RXSidebarItem page = RXSidebarItem.of(entry.name());
+            page.setUserData(entry);
+            pages.put(entry, page);
+            if (entry.isHome()) {
+                // The home page is all there is to its category, so it needs no group.
+                page.setGraphic(glyph(entry.category()));
+                roots.add(page);
+                continue;
+            }
+            RXSidebarItem group = groups.get(entry.category());
+            if (group == null) {
+                group = RXSidebarItem.group(entry.category().title(), glyph(entry.category()));
+                groups.put(entry.category(), group);
+                roots.add(group);
+            }
+            group.getItems().add(page);
+        }
+        for (RXSidebarItem group : groups.values()) {
+            group.setTrailing(new Label(String.valueOf(group.getItems().size())));
+        }
+        return roots;
+    }
+
+    private void buildHeader() {
         Label logo = new Label("RX");
         logo.getStyleClass().add("brand-logo");
         logo.setPrefSize(32.0, 32.0);
@@ -95,13 +113,26 @@ final class SamplerNav extends VBox {
         name.getStyleClass().add("brand-name");
         Label caption = new Label("Component sampler");
         caption.getStyleClass().add("brand-caption");
-        HBox brand = new HBox(10.0, logo, new VBox(name, caption));
+        VBox brandText = new VBox(name, caption);
+        hideInRail(brandText);
+        Region brandSpacer = new Region();
+        HBox.setHgrow(brandSpacer, Priority.ALWAYS);
+        hideInRail(brandSpacer);
+
+        Region chevron = new Region();
+        chevron.getStyleClass().addAll("glyph", "chevron-left-glyph");
+        chevron.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        chevron.setMouseTransparent(true);
+        collapse.getStyleClass().add("collapse-button");
+        collapse.setGraphic(chevron);
+        collapse.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+        collapse.setAccessibleText("Collapse or expand the sidebar");
+        collapse.setOnAction(event -> setMode(getMode() == Mode.MINI ? Mode.EXPANDED : Mode.MINI));
+
+        brand.getChildren().setAll(logo, brandText, brandSpacer, collapse);
         brand.getStyleClass().add("brand");
         brand.setAlignment(Pos.CENTER_LEFT);
-        return brand;
-    }
 
-    private HBox buildSearch() {
         Region glyph = new Region();
         glyph.getStyleClass().add("search-glyph");
         glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
@@ -129,54 +160,60 @@ final class SamplerNav extends VBox {
                 event.consume();
             }
         });
-        HBox.setHgrow(search, Priority.ALWAYS);
-
-        HBox box = new HBox(search);
-        box.getStyleClass().add("search-box");
-        return box;
+        hideInRail(search);
+        header.getChildren().setAll(brand, search);
+        // Only the toggle is narrower than the header: in the rail it sits under the logo.
+        header.setAlignment(Pos.TOP_CENTER);
     }
 
     private HBox buildFooter() {
         Label platform = new Label("JavaFX 17+");
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox footer = new HBox(countLabel, spacer, platform);
-        footer.getStyleClass().add("nav-footer");
-        return footer;
+        return new HBox(countLabel, spacer, platform);
+    }
+
+    private void hideInRail(Node node) {
+        node.visibleProperty().bind(modeProperty().isNotEqualTo(Mode.MINI));
+        node.managedProperty().bind(node.visibleProperty());
     }
 
     // ==================== Behavior ====================
 
-    private void applyFilter(String text) {
-        String query = text == null ? "" : text.trim().toLowerCase(Locale.ROOT);
-        shown.setPredicate(entry -> entry.matches(query));
-        if (!query.isEmpty()) {
-            // A match inside a collapsed section would stay hidden.
-            list.expandAllSections();
+    // The rail is too narrow for the toggle beside the logo, for the footer, and for a
+    // field to show or clear a query.
+    private void onModeChanged(boolean rail) {
+        boolean focused = collapse.isFocused();
+        brand.getChildren().remove(collapse);
+        header.getChildren().remove(collapse);
+        if (rail) {
+            header.getChildren().add(collapse);
+            search.clear();
+        } else {
+            brand.getChildren().add(collapse);
         }
-        updateCount();
+        setFooter(rail ? null : footer);
+        if (focused) {
+            collapse.requestFocus();
+        }
     }
 
-    private void updateCount() {
-        int count = shown.size();
+    // A group is not asked for a match of its own: a query naming a category matches
+    // every page of it.
+    private void applyFilter(String text) {
+        String query = text == null ? "" : text.trim().toLowerCase(Locale.ROOT);
+        setFilter(query.isEmpty() ? null
+                : item -> item.getUserData() instanceof SamplerEntry entry && entry.matches(query));
+        updateCount(query);
+    }
+
+    private void updateCount(String query) {
+        int total = entries.size();
+        long count = entries.stream().filter(entry -> entry.matches(query)).count();
         countLabel.setText(count == total ? total + " pages" : count + " of " + total + " pages");
     }
 
-    private void reveal(SamplerEntry entry) {
-        if (entry == null || list.getSelectionModel().getSelectedItem() == entry || !shown.contains(entry)) {
-            return;
-        }
-        list.setSectionExpanded(entry.category(), true);
-        syncing = true;
-        try {
-            list.getSelectionModel().select(entry);
-        } finally {
-            syncing = false;
-        }
-        list.scrollTo(entry, ScrollAlignment.NEAREST);
-    }
-
-    // ==================== Cells ====================
+    // ==================== Glyphs ====================
 
     static SVGPath glyphShape(SamplerCategory category) {
         SVGPath path = new SVGPath();
@@ -184,55 +221,10 @@ final class SamplerNav extends VBox {
         return path;
     }
 
-    private static final class EntryCell extends RXListCell<SamplerEntry> {
-
-        EntryCell() {
-            getStyleClass().add("nav-cell");
-        }
-
-        @Override
-        protected void updateItem(SamplerEntry item, boolean empty) {
-            super.updateItem(item, empty);
-            setGraphic(null);
-            setText(empty || item == null ? null : item.name());
-        }
-    }
-
-    // Sub-nodes are fields: updateItem runs on every re-bind, not once per row.
-    private static final class SectionCell extends RXListSectionCell {
-
-        // A Region does not watch the content of its shape, so each glyph gets its own
-        // path, created the first time this cell shows that category.
-        private final Map<SamplerCategory, SVGPath> shapes = new EnumMap<>(SamplerCategory.class);
-        private final Region glyph = new Region();
-        private final Label title = new Label();
-        private final Label count = new Label();
-        private final HBox content;
-
-        SectionCell() {
-            getStyleClass().add("nav-section");
-            glyph.getStyleClass().add("glyph");
-            glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-            title.getStyleClass().add("title");
-            count.getStyleClass().add("count");
-            Region spacer = new Region();
-            HBox.setHgrow(spacer, Priority.ALWAYS);
-            content = new HBox(8.0, glyph, title, spacer, count);
-            content.setAlignment(Pos.CENTER_LEFT);
-            setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
-        }
-
-        @Override
-        protected void updateItem(RXListSection item, boolean empty) {
-            super.updateItem(item, empty);
-            if (empty || item == null || !(item.key() instanceof SamplerCategory category)) {
-                setGraphic(null);
-                return;
-            }
-            glyph.setShape(shapes.computeIfAbsent(category, SamplerNav::glyphShape));
-            title.setText(category.title().toUpperCase(Locale.ROOT));
-            count.setText(String.valueOf(item.itemCount()));
-            setGraphic(content);
-        }
+    private static Region glyph(SamplerCategory category) {
+        Region glyph = new Region();
+        glyph.getStyleClass().add("graphic");
+        glyph.setShape(glyphShape(category));
+        return glyph;
     }
 }

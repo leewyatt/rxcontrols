@@ -36,8 +36,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * The component sampler: a searchable, grouped list of every component on the left and
- * the selected component's page on the right, with the playground of its showcase, a
+ * The component sampler: a searchable sidebar of every component, grouped by category, and
+ * the selected component's page beside it, with the playground of its showcase, a
  * generated CSS reference and a launcher for its demo. Only the page on display and a
  * few recently visited ones are kept, so the scene stays small however many components
  * the library has. {@link RXThemeGallery} remains the one-screen overview for development.

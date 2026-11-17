@@ -41,13 +41,17 @@
  *                                                                             *
  ******************************************************************************/
 .sampler-nav {
-    -fx-background-color: -fx-background;
     -fx-border-color: -fx-text-box-border;
     -fx-border-width: 0 1px 0 0;
 }
 
-.sampler-nav > .brand {
-    -fx-padding: 18px 18px 14px 18px;
+.sampler-nav > .container > .header {
+    -fx-padding: 18px 14px 10px 14px;
+}
+
+/* Puts the middle of the logo on the middle of the rail, where the glyphs are. */
+.sampler-nav > .container > .header .brand {
+    -fx-padding: 0 2px;
 }
 
 .brand-logo {
@@ -70,15 +74,11 @@
     -fx-text-fill: -showcase-caption-color;
 }
 
-.sampler-nav > .search-box {
-    -fx-padding: 0 14px 10px 14px;
-}
-
-.search-box .rx-text-field > .leading-wrapper {
+.sampler-nav > .container > .header .rx-text-field > .leading-wrapper {
     -fx-padding: 0 0 0 10px;
 }
 
-.search-box .rx-text-field > .trailing-wrapper {
+.sampler-nav > .container > .header .rx-text-field > .trailing-wrapper {
     -fx-padding: 0 6px 0 0;
 }
 
@@ -89,7 +89,7 @@
     -fx-shape: "M9 1A7 7 0 1 1 8.99 1Z M9 3.5A4.5 4.5 0 1 0 9.01 3.5Z M13.6 15.4L15.4 13.6L21 19.2L19.2 21Z";
 }
 
-.search-box .clear-button {
+.sampler-nav > .container > .header .clear-button {
     -fx-background-color: transparent;
     -fx-padding: 3px;
     -fx-cursor: hand;
@@ -102,81 +102,50 @@
     -fx-shape: "M1 2.4L2.4 1L6 4.6L9.6 1L11 2.4L7.4 6L11 9.6L9.6 11L6 7.4L2.4 11L1 9.6L4.6 6Z";
 }
 
-.sampler-nav .rx-list-view,
-.sampler-nav .rx-list-view:focused {
-    -fx-background-color: transparent;
-    -fx-background-insets: 0;
-    -fx-padding: 0 8px 8px 8px;
+.sampler-nav .item > .graphic {
+    -fx-background-color: -showcase-caption-color;
 }
 
-.sampler-nav .rx-list-view > .viewport {
-    -fx-background-color: transparent;
+.sampler-nav .item:selected > .graphic,
+.sampler-nav .item:child-selected > .graphic {
+    -fx-background-color: -sampler-accent-text;
 }
 
-.sampler-nav .nav-cell,
-.sampler-nav .rx-list-view:focused > .viewport > .content > .nav-cell:focused {
-    -fx-background-color: transparent;
-    -fx-background-insets: 0;
-    -fx-background-radius: 7px;
-    -fx-padding: 0 8px 0 44px;
-    -fx-text-fill: -fx-text-base-color;
-}
-
-.sampler-nav .nav-cell:hover {
-    -fx-background-color: -fx-control-inner-background;
-}
-
-.sampler-nav .nav-cell:selected,
-.sampler-nav .rx-list-view:focused > .viewport > .content > .nav-cell:selected,
-.sampler-nav .rx-list-view:focused > .viewport > .content > .nav-cell:selected:focused {
-    -fx-background-color: -sampler-accent-soft;
-    -fx-background-insets: 0;
-    -fx-background-radius: 7px;
-    -fx-text-fill: -sampler-accent-text;
-    -fx-font-weight: bold;
-}
-
-.sampler-nav .nav-section {
-    -fx-background-color: -fx-background;
-    -fx-padding: 0 8px;
-    -fx-effect: null;
-}
-
-.sampler-nav .nav-section:hover {
-    -fx-background-color: -fx-control-inner-background;
-    -fx-cursor: hand;
-}
-
-.sampler-nav .rx-list-view .nav-section.sticky:pinned {
-    -fx-effect: null;
-    -fx-border-color: -fx-text-box-border;
-    -fx-border-width: 0 0 1px 0;
-}
-
-.nav-section .glyph {
-    -fx-pref-width: 13px;
-    -fx-pref-height: 13px;
-}
-
-.nav-section .title,
-.nav-section .count {
+.sampler-nav .item > .trailing > .label {
     -fx-font-size: 11px;
-    -fx-text-fill: -showcase-caption-color;
 }
 
-.nav-section .title {
-    -fx-font-weight: bold;
-}
-
-.sampler-nav > .nav-footer {
+.sampler-nav > .container > .footer {
     -fx-padding: 10px 18px;
     -fx-border-color: -fx-text-box-border;
     -fx-border-width: 1px 0 0 0;
 }
 
-.nav-footer .label {
+.sampler-nav > .container > .footer .label {
     -fx-font-size: 11.5px;
     -fx-text-fill: -showcase-caption-color;
+}
+
+.sampler-nav > .container > .header .collapse-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 6px;
+    -fx-border-color: transparent;
+    -fx-border-radius: 6px;
+    -fx-padding: 8px 10px;
+    -fx-cursor: hand;
+}
+
+.sampler-nav > .container > .header .collapse-button:hover {
+    -fx-background-color: -fx-hover-base;
+}
+
+.sampler-nav > .container > .header .collapse-button:focused {
+    -fx-border-color: -fx-focus-color;
+}
+
+.sampler-nav:mini > .container > .header .collapse-button > .glyph {
+    -fx-rotate: 180;
 }
 
 /*******************************************************************************

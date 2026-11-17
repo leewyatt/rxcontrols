@@ -1,11 +1,14 @@
 package io.github.leewyatt.rxcontrols.samples.sampler;
 
+import io.github.leewyatt.rxcontrols.RXSidebar;
+import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSlider;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
@@ -25,6 +28,9 @@ import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -66,6 +72,39 @@ public class SamplerSmokeTest {
         assertTrue(week.matches("weekrangeview"));
         assertTrue(week.matches("date"));
         assertFalse(week.matches("monthpicker"));
+    }
+
+    /** The current entry selects its page and opens its group; picking a page sets the current entry. */
+    @Test
+    public void navSelectionAndCurrentEntryFollowEachOther() throws Exception {
+        runOnFx(() -> {
+            List<SamplerEntry> entries = SamplerCatalog.entries();
+            SamplerNav nav = new SamplerNav(entries);
+            SamplerEntry last = entries.get(entries.size() - 1);
+            nav.currentProperty().set(last);
+            RXSidebarItem selected = nav.getSelectedItem();
+            assertSame(last, selected.getUserData());
+            assertTrue(selected.getParent().isExpanded());
+
+            nav.selectItem((RXSidebarItem) nav.getItems().get(0));
+            assertSame(entries.get(0), nav.currentProperty().get());
+        });
+    }
+
+    /** Collapsing to the rail clears the search, and with it the filter. */
+    @Test
+    public void collapsingNavClearsSearch() throws Exception {
+        runOnFx(() -> {
+            SamplerNav nav = new SamplerNav(SamplerCatalog.entries());
+            mount(nav);
+            TextField search = (TextField) nav.lookup(".rx-text-field");
+            search.setText("week");
+            assertNotNull(nav.getFilter());
+
+            nav.setMode(RXSidebar.Mode.MINI);
+            assertEquals("", search.getText());
+            assertNull(nav.getFilter());
+        });
     }
 
     /** Every page, every variant's playground and every CSS reference build without error. */
