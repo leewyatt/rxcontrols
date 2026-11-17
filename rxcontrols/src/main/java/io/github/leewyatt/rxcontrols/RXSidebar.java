@@ -831,7 +831,9 @@ public class RXSidebar extends Control {
     /**
      * The fill of the item ripple. Initial value is
      * {@link RXRipplePane#DEFAULT_RIPPLE_FILL}; setting {@code null} renders no
-     * ripple. Styleable as {@code -rx-ripple-fill}.
+     * ripple, and leaves a pressed row without feedback: the pressed fill
+     * comes with {@link #rippleEnabledProperty() rippleEnabled} off, not with
+     * an empty ripple. Styleable as {@code -rx-ripple-fill}.
      *
      * @return the ripple-fill property
      */

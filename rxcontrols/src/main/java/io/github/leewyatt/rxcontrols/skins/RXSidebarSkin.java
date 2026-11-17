@@ -535,7 +535,11 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     private void activateByKey(RowView view) {
         if (!activationKeyDown) {
             activationKeyDown = true;
-            view.row.playCenterRipple();
+            // A pointer holding the row has its ripple already, and a second
+            // press would only release that one early.
+            if (!view.armed) {
+                view.row.playCenterRipple();
+            }
             activate(view, true);
         }
     }
@@ -1488,6 +1492,12 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
                 if (!focused && row.getScene() == trackedScene) {
                     activationKeyDown = false;
                 }
+            });
+            // A row moved to or from a flyout while the button is down never
+            // sees the release.
+            itemDisposer.registerListener(row.sceneProperty(), (obs, old, scene) -> {
+                armed = false;
+                row.pseudoClassStateChanged(ARMED_PSEUDO_CLASS, false);
             });
             itemDisposer.registerEventHandler(row, MouseEvent.MOUSE_PRESSED, this::onMousePressed);
             itemDisposer.registerEventHandler(row, MouseEvent.MOUSE_RELEASED, this::onMouseReleased);

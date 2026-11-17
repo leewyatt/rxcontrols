@@ -54,11 +54,6 @@ public class RXSidebarSkinTest {
 
     private static final double EPSILON = 0.01;
 
-    private static long ripples(Region row) {
-        RippleLayer layer = (RippleLayer) row.getChildrenUnmodifiable().get(0);
-        return layer.getChildrenUnmodifiable().stream().filter(Circle.class::isInstance).count();
-    }
-
     @BeforeAll
     public static void startToolkit() throws InterruptedException {
         SidebarTestSupport.startToolkit();
@@ -651,7 +646,7 @@ public class RXSidebarSkinTest {
 
             assertSame(graphic, itemRow.getChildrenUnmodifiable().get(1));
             assertEquals(0, ripples(itemRow));
-            SidebarTestSupport.click(itemRow);
+            pressPrimary(itemRow);
             assertEquals(1, ripples(itemRow));
             assertFalse(SidebarTestSupport.hasPseudoClass(itemRow, "armed"));
 
@@ -698,6 +693,27 @@ public class RXSidebarSkinTest {
     }
 
     /**
+     * A pressed row that leaves its scene before the release drops the pressed
+     * state.
+     */
+    @Test
+    public void aPressedRowThatLeavesItsSceneIsNoLongerPressed() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            sidebar.setRippleEnabled(false);
+            RXSidebarItem item = RXSidebarItem.action("Item", null, event -> { });
+            sidebar.getItems().add(item);
+            Scene scene = host(sidebar);
+            Region itemRow = row(sidebar, item);
+
+            pressPrimary(itemRow);
+            assertTrue(SidebarTestSupport.hasPseudoClass(itemRow, "armed"));
+            ((Pane) scene.getRoot()).getChildren().remove(sidebar);
+            assertFalse(SidebarTestSupport.hasPseudoClass(itemRow, "armed"));
+        });
+    }
+
+    /**
      * With the ripple off, a row under the pressed pointer shows the pressed
      * fill, not the fill of the focus the press gives it.
      */
@@ -720,8 +736,7 @@ public class RXSidebarSkinTest {
                 Paint focusFill = focusedRow.getBackground().getFills().get(0).getFill();
 
                 Region pressedRow = row(sidebar, pressed);
-                pressedRow.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, 5, 5, 5, 5, MouseButton.PRIMARY, 1,
-                        false, false, false, false, true, false, false, true, false, true, null));
+                pressPrimary(pressedRow);
                 layout(stage.getScene());
                 assertNotEquals(focusFill, pressedRow.getBackground().getFills().get(0).getFill());
             } finally {
@@ -755,6 +770,16 @@ public class RXSidebarSkinTest {
     }
 
     // ==================== Helpers ====================
+
+    private static long ripples(Region row) {
+        RippleLayer layer = (RippleLayer) row.getChildrenUnmodifiable().get(0);
+        return layer.getChildrenUnmodifiable().stream().filter(Circle.class::isInstance).count();
+    }
+
+    private static void pressPrimary(Region row) {
+        row.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, 5, 5, 5, 5, MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, true, false, true, null));
+    }
 
     // The texts of the rows on display, in scene-graph order.
     private static List<String> shownTexts(RXSidebar sidebar) {
