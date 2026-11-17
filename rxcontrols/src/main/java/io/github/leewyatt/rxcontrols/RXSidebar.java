@@ -305,6 +305,11 @@ public class RXSidebar extends Control {
             RXSidebarItem previous = flaggedItem;
             flaggedItem = null;
             previous.setSelected(false);
+            // A listener on the flag may have selected something else, and that
+            // call has already settled the flags.
+            if (getSelectedItem() != current) {
+                return;
+            }
         }
         if (current != null && current.getSidebar() == this) {
             flag(current);
@@ -314,6 +319,10 @@ public class RXSidebar extends Control {
     private void flag(RXSidebarItem item) {
         flaggedItem = item;
         item.setSelected(true);
+        if (flaggedItem != item) {
+            // A listener on the flag moved the selection on.
+            return;
+        }
         for (RXSidebarItem group = item.getParent(); group != null; group = group.getParent()) {
             if (!group.expandedProperty().isBound()) {
                 group.setExpanded(true);

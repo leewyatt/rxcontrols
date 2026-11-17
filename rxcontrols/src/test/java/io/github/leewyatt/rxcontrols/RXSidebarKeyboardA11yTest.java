@@ -103,6 +103,32 @@ public class RXSidebarKeyboardA11yTest {
     }
 
     /**
+     * A key held down activates the row once; pressing it again after its
+     * release activates the row again.
+     */
+    @Test
+    public void aHeldKeyActivatesOnce() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            int[] fired = new int[1];
+            RXSidebarItem action = RXSidebarItem.action("Action", null, event -> fired[0]++);
+            sidebar.getItems().add(action);
+            host(sidebar);
+            Region actionRow = row(sidebar, action);
+
+            actionRow.requestFocus();
+            SidebarTestSupport.hold(actionRow, KeyCode.ENTER);
+            SidebarTestSupport.hold(actionRow, KeyCode.ENTER);
+            SidebarTestSupport.hold(actionRow, KeyCode.ENTER);
+            assertEquals(1, fired[0]);
+
+            SidebarTestSupport.release(actionRow, KeyCode.ENTER);
+            SidebarTestSupport.hold(actionRow, KeyCode.ENTER);
+            assertEquals(2, fired[0]);
+        });
+    }
+
+    /**
      * A disabled item, and every item under a disabled group, cannot be
      * activated.
      */

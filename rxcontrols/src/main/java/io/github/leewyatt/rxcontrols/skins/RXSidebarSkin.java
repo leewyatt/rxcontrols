@@ -128,6 +128,12 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     // The top-level group the open timer is running for.
     private RowView hoveredGroup;
 
+    // True from the press of Enter or Space that activated a row until that key
+    // is released: the presses the platform repeats while a key is held are not
+    // further activations.
+    private boolean activationKeyDown;
+    private final EventHandler<KeyEvent> keyReleasedFilter = this::onKeyReleased;
+
     // True while the sidebar rests in MINI: top-level rows show their graphic
     // only. False from the moment a transition starts, so text is wiped and
     // revealed by the moving edge rather than popping.
@@ -137,9 +143,12 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     // focus move — including a plain requestFocus() from the application, which no
     // roving or click path observes. Node.focused cannot serve here: it is false
     // whenever the window is not focused.
-    private final ChangeListener<Node> focusOwnerListener = (obs, old, node) -> refreshTabStop();
+    private final ChangeListener<Node> focusOwnerListener = (obs, old, node) -> {
+        activationKeyDown = false;
+        refreshTabStop();
+    };
 
-    // The scene focusOwnerListener is attached to. Re-attached whenever the control
+    // The scene focusOwnerListener and keyReleasedFilter are attached to. Re-attached whenever the control
     // changes scene, so it cannot go through the disposer (which captures its target
     // at registration); released in disposeSkin instead.
     private Scene trackedScene;
@@ -254,10 +263,15 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     private void trackFocusOwner() {
         if (trackedScene != null) {
             trackedScene.focusOwnerProperty().removeListener(focusOwnerListener);
+            trackedScene.removeEventFilter(KeyEvent.KEY_RELEASED, keyReleasedFilter);
         }
         trackedScene = getSkinnable().getScene();
+        activationKeyDown = false;
         if (trackedScene != null) {
             trackedScene.focusOwnerProperty().addListener(focusOwnerListener);
+            // On the scene, not on the sidebar: the release has to be seen
+            // wherever focus is once the activation has run.
+            trackedScene.addEventFilter(KeyEvent.KEY_RELEASED, keyReleasedFilter);
         }
         refreshTabStop();
         closeFlyoutsFrom(0);
@@ -508,6 +522,20 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         }
     }
 
+    // One activation per press of the key, however long it is held.
+    private void activateByKey(RowView view) {
+        if (!activationKeyDown) {
+            activationKeyDown = true;
+            activate(view, true);
+        }
+    }
+
+    private void onKeyReleased(KeyEvent event) {
+        if (event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.SPACE) {
+            activationKeyDown = false;
+        }
+    }
+
     // A group has nothing to unfold into in MINI, a filter holds every group
     // open, and a bound property is not the sidebar's to write.
     private void setExpandedByUser(RowView view, boolean expanded) {
@@ -672,13 +700,13 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     }
 
     // A flyout goes when its group can no longer own one: out of the tree,
-    // hidden, filtered out, disabled, no longer a group, or the sidebar no
-    // longer resting in MINI.
+    // hidden, filtered out, disabled, no longer a group, left with no child
+    // item to show, or the sidebar no longer resting in MINI.
     private void closeStaleFlyouts() {
         for (int i = 0; i < flyouts.size(); i++) {
             RowView owner = flyouts.get(i).owner;
             if (views.get(owner.item) != owner || !compactRows || !isGroup(owner.item)
-                    || !isShown(owner.item) || owner.row.isDisabled()) {
+                    || !isShown(owner.item) || owner.row.isDisabled() || !opensFlyout(owner)) {
                 for (int j = flyouts.size() - 1; j >= i; j--) {
                     flyouts.remove(j).close();
                 }
@@ -800,7 +828,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             }
             case ENTER, SPACE -> {
                 if (focused != null && flyout.focusOwner() == focused.row) {
-                    activate(focused, true);
+                    activateByKey(focused);
                     event.consume();
                 }
             }
@@ -839,6 +867,9 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         private final Label title = new Label();
         private final RXPopupSupport popup = new RXPopupSupport(panel);
         private final EventHandler<KeyEvent> keyFilter = event -> onFlyoutKeyPressed(this, event);
+        private final EventHandler<KeyEvent> unclaimedKeyHandler = this::onUnclaimedKeyPressed;
+        // The popup's scene while unclaimedKeyHandler is attached to it.
+        private Scene scene;
         private final EventHandler<MouseEvent> enteredHandler = event -> onFlyoutEntered();
         private final EventHandler<MouseEvent> exitedHandler = event -> onFlyoutExited();
         private boolean closed;
@@ -870,6 +901,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
         void show() {
             panel.addEventFilter(KeyEvent.KEY_PRESSED, keyFilter);
+            panel.addEventFilter(KeyEvent.KEY_RELEASED, keyReleasedFilter);
             panel.addEventHandler(MouseEvent.MOUSE_ENTERED, enteredHandler);
             panel.addEventHandler(MouseEvent.MOUSE_EXITED, exitedHandler);
             boolean rtl = owner.row.getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT;
@@ -877,6 +909,22 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             popup.setWidthMode(RXPopupWidthMode.PREF_CONTENT);
             popup.setOnHidden(this::onHidden);
             popup.show(owner.row);
+            // Showing fails without a showing window, and closes the flyout.
+            if (!closed) {
+                scene = panel.getScene();
+                scene.addEventHandler(KeyEvent.KEY_PRESSED, unclaimedKeyHandler);
+            }
+        }
+
+        // A flyout opened with the pointer holds no focus, so the key filter of
+        // its panel never runs and Escape arrives at the popup's scene. Left
+        // unconsumed it would close the chain and then go on to the window
+        // behind, where it may cancel a dialog.
+        private void onUnclaimedKeyPressed(KeyEvent event) {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                closeFlyoutsFrom(0);
+                event.consume();
+            }
         }
 
         // The platform closed the popup: a press outside, Escape, or the popup
@@ -904,6 +952,11 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             }
             title.textProperty().unbind();
             panel.removeEventFilter(KeyEvent.KEY_PRESSED, keyFilter);
+            panel.removeEventFilter(KeyEvent.KEY_RELEASED, keyReleasedFilter);
+            if (scene != null) {
+                scene.removeEventHandler(KeyEvent.KEY_PRESSED, unclaimedKeyHandler);
+                scene = null;
+            }
             panel.removeEventHandler(MouseEvent.MOUSE_ENTERED, enteredHandler);
             panel.removeEventHandler(MouseEvent.MOUSE_EXITED, exitedHandler);
             popup.dispose();
@@ -1054,7 +1107,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
                 // Only when the row itself holds focus: a focusable node inside
                 // the row keeps its own activation keys.
                 if (focusOwner() == focused.row) {
-                    activate(focused, true);
+                    activateByKey(focused);
                     event.consume();
                 }
             }
@@ -1246,6 +1299,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         // could not hold it.
         if (trackedScene != null) {
             trackedScene.focusOwnerProperty().removeListener(focusOwnerListener);
+            trackedScene.removeEventFilter(KeyEvent.KEY_RELEASED, keyReleasedFilter);
             trackedScene = null;
         }
         for (ItemView<?> view : views.values()) {
@@ -1415,6 +1469,14 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             itemDisposer.registerListener(item.accessibleTextProperty(), (obs, old, value) ->
                     row.notifyAccessibleAttributeChanged(AccessibleAttribute.TEXT));
 
+            // The window going inactive takes focus from the row without a
+            // change of focus owner, and the release of a held key is then
+            // delivered elsewhere.
+            itemDisposer.registerListener(row.focusedProperty(), (obs, old, focused) -> {
+                if (!focused && row.getScene() == trackedScene) {
+                    activationKeyDown = false;
+                }
+            });
             itemDisposer.registerEventHandler(row, MouseEvent.MOUSE_PRESSED, this::onMousePressed);
             itemDisposer.registerEventHandler(row, MouseEvent.MOUSE_RELEASED, this::onMouseReleased);
             itemDisposer.registerEventHandler(row, MouseEvent.MOUSE_ENTERED, event -> onRowEntered(this));

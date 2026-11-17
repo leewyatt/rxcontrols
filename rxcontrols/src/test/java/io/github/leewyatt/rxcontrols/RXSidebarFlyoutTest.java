@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.RXSidebar.FlyoutTrigger;
 import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import javafx.application.Platform;
+import javafx.event.Event;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
@@ -15,6 +16,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static io.github.leewyatt.rxcontrols.SidebarTestSupport.hasPseudoClass;
+import static io.github.leewyatt.rxcontrols.SidebarTestSupport.hold;
+import static io.github.leewyatt.rxcontrols.SidebarTestSupport.press;
+import static io.github.leewyatt.rxcontrols.SidebarTestSupport.release;
 import static io.github.leewyatt.rxcontrols.SidebarTestSupport.row;
 import static io.github.leewyatt.rxcontrols.SidebarTestSupport.runOnFx;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -255,6 +259,68 @@ public class RXSidebarFlyoutTest {
         });
     }
 
+    /**
+     * Hiding the last child item a group has on display closes its flyout.
+     */
+    @Test
+    public void aGroupLeftWithNothingToShowClosesItsFlyout() throws Exception {
+        runOnFx(() -> {
+            show();
+            openOuter();
+            page.setVisible(false);
+            assertNotSame(sidebar.getScene(), innerRow.getScene());
+
+            inner.setVisible(false);
+            assertSame(sidebar.getScene(), innerRow.getScene());
+            assertFalse(hasPseudoClass(outerRow, "showing"));
+        });
+    }
+
+    /**
+     * A held Enter opens the flyout and stops there: the repeated presses do
+     * not activate the row that took focus.
+     */
+    @Test
+    public void aHeldKeyDoesNotActivateTheRowItFocused() throws Exception {
+        runOnFx(() -> {
+            show();
+            outerRow.requestFocus();
+            hold(outerRow, KeyCode.ENTER);
+            assertSame(pageRow, pageRow.getScene().getFocusOwner());
+
+            hold(pageRow, KeyCode.ENTER);
+            assertNull(sidebar.getSelectedItem());
+            assertNotSame(sidebar.getScene(), pageRow.getScene());
+
+            release(pageRow, KeyCode.ENTER);
+            hold(pageRow, KeyCode.ENTER);
+            assertSame(page, sidebar.getSelectedItem());
+        });
+    }
+
+    /**
+     * Escape closes a flyout opened with the pointer, which holds no focus,
+     * and is consumed there.
+     */
+    @Test
+    public void escapeStopsAtAFlyoutOpenedWithThePointer() throws Exception {
+        runOnFx(() -> {
+            show();
+            sidebar.setFlyoutTrigger(FlyoutTrigger.CLICK);
+            SidebarTestSupport.click(outerRow);
+            Scene flyoutScene = pageRow.getScene();
+            assertNotSame(sidebar.getScene(), flyoutScene);
+            assertNull(flyoutScene.getFocusOwner());
+            boolean[] passedOn = new boolean[1];
+            flyoutScene.getWindow().addEventHandler(KeyEvent.KEY_PRESSED, event -> passedOn[0] = true);
+
+            Event.fireEvent(flyoutScene, new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ESCAPE,
+                    false, false, false, false));
+            assertSame(sidebar.getScene(), pageRow.getScene());
+            assertFalse(passedOn[0]);
+        });
+    }
+
     // ==================== Helpers ====================
 
     private void show() {
@@ -280,10 +346,6 @@ public class RXSidebarFlyoutTest {
         outerRow.requestFocus();
         press(outerRow, KeyCode.ENTER);
         assertNotSame(sidebar.getScene(), pageRow.getScene());
-    }
-
-    private static void press(Node target, KeyCode code) {
-        target.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, false, false, false, false));
     }
 
     private static Node findRow(Scene scene, String text) {

@@ -109,10 +109,25 @@ public final class SidebarTestSupport {
         return node.getPseudoClassStates().stream().anyMatch(state -> state.getPseudoClassName().equals(name));
     }
 
-    /** Fires KEY_PRESSED at the scene's focus owner. */
+    /** Presses and releases the key at the scene's focus owner. */
     public static void press(Scene scene, KeyCode code) {
-        scene.getFocusOwner().fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code,
-                false, false, false, false));
+        press(scene.getFocusOwner(), code);
+    }
+
+    /** Presses and releases the key at the node. */
+    public static void press(Node target, KeyCode code) {
+        hold(target, code);
+        release(target, code);
+    }
+
+    /** Fires KEY_PRESSED at the node, as a first press or as one repeated while the key is held. */
+    public static void hold(Node target, KeyCode code) {
+        target.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, false, false, false, false));
+    }
+
+    /** Fires KEY_RELEASED at the node. */
+    public static void release(Node target, KeyCode code) {
+        target.fireEvent(new KeyEvent(KeyEvent.KEY_RELEASED, "", "", code, false, false, false, false));
     }
 
     /** Presses and releases the primary button at the centre of the node. */

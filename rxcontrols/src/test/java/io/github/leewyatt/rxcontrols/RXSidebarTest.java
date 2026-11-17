@@ -239,6 +239,29 @@ public class RXSidebarTest {
     }
 
     /**
+     * A listener on an item's selected flag that selects the item again leaves
+     * it the only one flagged.
+     */
+    @Test
+    public void aListenerOnTheFlagMayTakeTheSelectionBack() {
+        RXSidebar sidebar = new RXSidebar();
+        RXSidebarItem kept = RXSidebarItem.of("Kept");
+        RXSidebarItem refused = RXSidebarItem.of("Refused");
+        sidebar.getItems().addAll(kept, refused);
+        sidebar.selectItem(kept);
+        kept.selectedProperty().addListener((obs, was, selected) -> {
+            if (!selected) {
+                sidebar.selectItem(kept);
+            }
+        });
+
+        sidebar.selectItem(refused);
+        assertSame(kept, sidebar.getSelectedItem());
+        assertTrue(kept.isSelected());
+        assertFalse(refused.isSelected());
+    }
+
+    /**
      * The styleable properties are published as CSS metadata.
      */
     @Test
