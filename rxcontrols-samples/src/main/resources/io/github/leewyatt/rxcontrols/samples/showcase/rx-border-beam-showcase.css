@@ -1,0 +1,26 @@
+.sample-card {
+    -fx-padding: 20px;
+    -fx-background-color: -fx-background;
+    -fx-border-color: -fx-text-box-border;
+}
+
+.sample-card > .card-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.rx-border-beam.solid {
+    -rx-beam-fill: #fa541c;
+}
+
+.rx-border-beam.sunset {
+    -rx-beam-fill: linear-gradient(to right, #ff4d4f, #ffc53d);
+}
+
+.rx-border-beam.aurora {
+    -rx-beam-fill: linear-gradient(to right, #13c2c2, #52c41a, #fadb14);
+}
+
+.rx-border-beam.nebula {
+    -rx-beam-fill: linear-gradient(to right, #eb2f96, #722ed1, #2f54eb);
+}

@@ -11,6 +11,7 @@ import io.github.leewyatt.rxcontrols.RXAvatar.ShapeType;
 import io.github.leewyatt.rxcontrols.RXBadge;
 import io.github.leewyatt.rxcontrols.RXBackdrop;
 import io.github.leewyatt.rxcontrols.RXBarSpinner;
+import io.github.leewyatt.rxcontrols.RXBorderBeam;
 import io.github.leewyatt.rxcontrols.RXBreadcrumbBar;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCalendarView;
@@ -216,6 +217,7 @@ final class ThemeGalleryCards {
         list.add(card("RXBackdrop", "Fading scrim that dims the content beneath it.", buildRXBackdrop()));
         list.add(card("RXBadge", "Count, text or dot indicator on a corner of any node.", buildRXBadge()));
         list.add(card("RXBarSpinner", "Decorative loading bars.", buildRXBarSpinner()));
+        list.add(card("RXBorderBeam", "Fading highlight running round a border.", buildRXBorderBeam()));
         list.add(card("RXBreadcrumbBar", "Path trail with sibling menus and overflow.", buildRXBreadcrumbBar()));
         list.add(card("RXButton", "Button with bounded ripple feedback.", buildRXButton()));
         list.add(card("RXCalendarView", "Month calendar with month and year drill-up.", buildRXCalendarView()));
@@ -422,6 +424,20 @@ final class ThemeGalleryCards {
         card.setStyle("-fx-background-color: -rx-surface-variant; -fx-background-radius: 8px;"
                 + " -fx-border-color: -rx-outline-variant; -fx-border-radius: 8px;");
         return new RXRibbonBadge(card, "Recommended");
+    }
+
+    private static Node buildRXBorderBeam() {
+        Label title = new Label("Workspace");
+        Label body = new Label("Three tasks need review");
+        VBox card = new VBox(6.0, title, body);
+        card.setPadding(new Insets(16.0));
+        card.setPrefWidth(180.0);
+        card.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        card.setStyle("-fx-background-color: -rx-surface-variant; -fx-background-radius: 8px;"
+                + " -fx-border-color: -rx-outline-variant; -fx-border-radius: 8px;");
+        RXBorderBeam beam = new RXBorderBeam(card);
+        beam.setBeamSize(70.0);
+        return beam;
     }
 
     private static Node buildRXBreadcrumbBar() {
