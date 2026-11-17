@@ -14,7 +14,7 @@
  * scope further down re-declares every role for the AtlantaFX bridge.         *
  *                                                                             *
  ******************************************************************************/
-.rx-accordion, .rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-badge, .rx-bar-spinner, .rx-box, .rx-breadcrumb-bar, .rx-button,
+.rx-accordion, .rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-badge, .rx-bar-spinner, .rx-border-beam, .rx-box, .rx-breadcrumb-bar, .rx-button,
 .rx-calendar-view, .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
 .rx-clip-path-image-view, .rx-col, .rx-content-pane, .rx-copy-button, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-date-picker, .rx-date-range-picker, .rx-date-range-view, .rx-date-time-picker, .rx-date-time-range-picker, .rx-date-time-view, .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
@@ -98,6 +98,8 @@
 .rx-theme-atlantafx.rx-badge,
 .rx-theme-atlantafx .rx-bar-spinner,
 .rx-theme-atlantafx.rx-bar-spinner,
+.rx-theme-atlantafx .rx-border-beam,
+.rx-theme-atlantafx.rx-border-beam,
 .rx-theme-atlantafx .rx-box,
 .rx-theme-atlantafx.rx-box,
 .rx-theme-atlantafx .rx-breadcrumb-bar,
@@ -856,6 +858,19 @@
 
 .rx-ribbon-badge:start > .fold {
     -fx-shape: "M0 0 H4 V3 Z";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXBorderBeam                                                                *
+ *                                                                             *
+ ******************************************************************************/
+.rx-border-beam {
+    -rx-beam-fill: linear-gradient(to right, -rx-primary, -rx-primary-hover);
+}
+
+.rx-border-beam > .beams > .beam {
+    -fx-opacity: 0.95;
 }
 
 /*******************************************************************************
