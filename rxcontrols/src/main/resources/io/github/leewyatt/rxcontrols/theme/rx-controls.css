@@ -2812,6 +2812,7 @@
 
 .rx-sidebar {
     -fx-background-color: -fx-base;
+    -rx-ripple-fill: -rx-state-overlay-color;
 }
 
 /* Under the AtlantaFX bridge -fx-base is the page background, so the rail would merge
@@ -2866,7 +2867,8 @@
 }
 
 /* Same specificity, so the order decides: a pressed item holds focus too, and a
-   selected one keeps its accent fill under both. */
+   selected one keeps its accent fill under both. :armed is set only while the
+   ripple is off; with it on, the ripple is the press feedback. */
 .rx-sidebar .item:focused {
     -fx-background-color: -fx-hover-base;
 }

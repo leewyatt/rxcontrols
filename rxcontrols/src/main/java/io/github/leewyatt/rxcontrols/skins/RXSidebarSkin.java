@@ -11,6 +11,7 @@ import io.github.leewyatt.rxcontrols.RXSidebarSeparator;
 import io.github.leewyatt.rxcontrols.internal.SidebarVisibility;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
+import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -18,6 +19,7 @@ import javafx.animation.KeyValue;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -133,6 +135,9 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     // further activations.
     private boolean activationKeyDown;
     private final EventHandler<KeyEvent> keyReleasedFilter = this::onKeyReleased;
+    // The hover fill of a row is the stylesheet's, so the ripple layer adds
+    // no tint of its own.
+    private final ObservableValue<Boolean> noStateOverlay = new SimpleBooleanProperty(false);
 
     // True while the sidebar rests in MINI: top-level rows show their graphic
     // only. False from the moment a transition starts, so text is wiped and
@@ -530,6 +535,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     private void activateByKey(RowView view) {
         if (!activationKeyDown) {
             activationKeyDown = true;
+            view.row.playCenterRipple();
             activate(view, true);
         }
     }
@@ -1449,6 +1455,8 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         // the item has no tooltip of its own. Created on first use.
         private Tooltip lentTooltip;
         private Tooltip installedTooltip;
+        // The primary button went down on the row and has not come up yet.
+        private boolean armed;
 
         RowView(RXSidebarItem item) {
             super(item);
@@ -1494,7 +1502,13 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             // Focus first, so the pointer and the roving point never disagree;
             // the focus-owner listener moves the tab stop.
             row.requestFocus();
-            row.pseudoClassStateChanged(ARMED_PSEUDO_CLASS, true);
+            armed = true;
+            // One press feedback at a time: the ripple, or the pressed fill.
+            if (getSkinnable().isRippleEnabled()) {
+                row.ripple.press(event.getX(), event.getY(), false);
+            } else {
+                row.pseudoClassStateChanged(ARMED_PSEUDO_CLASS, true);
+            }
             // As a control would: an enclosing ScrollPane takes focus on any
             // press that reaches it.
             event.consume();
@@ -1504,9 +1518,11 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             if (event.getButton() != MouseButton.PRIMARY) {
                 return;
             }
-            boolean armed = row.getPseudoClassStates().contains(ARMED_PSEUDO_CLASS);
+            boolean wasArmed = armed;
+            armed = false;
             row.pseudoClassStateChanged(ARMED_PSEUDO_CLASS, false);
-            if (armed && row.contains(event.getX(), event.getY())) {
+            row.ripple.release();
+            if (wasArmed && row.contains(event.getX(), event.getY())) {
                 activate(this, false);
             }
             event.consume();
@@ -1611,6 +1627,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             }
             row.setGraphic(null);
             row.setTrailing(null);
+            row.disposeRipple();
             if (pane != null) {
                 pane.stop();
             }
@@ -1648,6 +1665,8 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         private final Label label = new Label();
         private final StackPane trailingSlot = new StackPane();
         private final StackPane disclosure = new StackPane();
+        // Under the content. A caption has none.
+        private final RippleDecoration ripple;
         private Node graphic;
         private int depth;
         private boolean compact;
@@ -1668,6 +1687,27 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             setShown(trailingSlot, false);
             setShown(disclosure, false);
             getChildren().addAll(label, trailingSlot, disclosure);
+            if (view == null) {
+                ripple = null;
+            } else {
+                RXSidebar control = getSkinnable();
+                ripple = new RippleDecoration(this, control.rippleEnabledProperty(), noStateOverlay,
+                        control.rippleFillProperty(), control::getRippleOpacity, null, null);
+                getChildren().add(0, ripple.getLayer());
+            }
+        }
+
+        // Keyboard activation has no pointer position to start from.
+        void playCenterRipple() {
+            if (getSkinnable().isRippleEnabled() && !isDisabled()) {
+                ripple.press(0.0, 0.0, true);
+                ripple.release();
+            }
+        }
+
+        void disposeRipple() {
+            ripple.dispose();
+            getChildren().remove(ripple.getLayer());
         }
 
         void setGraphic(Node node) {
@@ -1676,7 +1716,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             }
             graphic = node;
             if (node != null) {
-                getChildren().add(0, node);
+                getChildren().add(getChildren().indexOf(label), node);
             }
         }
 
@@ -1755,6 +1795,11 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
         @Override
         protected void layoutChildren() {
+            if (ripple != null) {
+                // The layer is unmanaged; this sizes it and clips it to the
+                // row's rounded background.
+                ripple.layout(getWidth(), getHeight());
+            }
             double top = snappedTopInset();
             double height = Math.max(0.0, getHeight() - top - snappedBottomInset());
             double left = contentLeft();

@@ -57,6 +57,9 @@ public class RXSidebarTest {
         assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, sidebar.getMiniWidth());
         assertEquals(RXSidebar.DEFAULT_INDENT, sidebar.getIndent());
         assertTrue(sidebar.isAnimated());
+        assertTrue(sidebar.isRippleEnabled());
+        assertEquals(RXRipplePane.DEFAULT_RIPPLE_FILL, sidebar.getRippleFill());
+        assertEquals(RXRipplePane.DEFAULT_RIPPLE_OPACITY, sidebar.getRippleOpacity());
         assertNull(sidebar.getSelectedItem());
         assertNull(sidebar.getHeader());
         assertNull(sidebar.getFooter());
@@ -310,6 +313,7 @@ public class RXSidebarTest {
     public void cssMetadataExposesStyleables() {
         List<String> names = RXSidebar.getClassCssMetaData().stream()
                 .map(CssMetaData<? extends Styleable, ?>::getProperty).toList();
-        assertTrue(names.containsAll(List.of("-rx-animated", "-rx-animation-duration", "-rx-indent")));
+        assertTrue(names.containsAll(List.of("-rx-animated", "-rx-animation-duration", "-rx-indent",
+                "-rx-ripple-enabled", "-rx-ripple-fill", "-rx-ripple-opacity")));
     }
 }

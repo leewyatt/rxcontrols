@@ -23,10 +23,12 @@ import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.DurationConverter;
+import javafx.css.converter.PaintConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.scene.Node;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
+import javafx.scene.paint.Paint;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -761,6 +763,140 @@ public class RXSidebar extends Control {
         indent.set(value);
     }
 
+    // ==================== Ripple Enabled ====================
+
+    private final BooleanProperty rippleEnabled = new StyleableBooleanProperty(RXRipplePane.DEFAULT_RIPPLE_ENABLED) {
+        @Override
+        public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
+            return StyleableProperties.RIPPLE_ENABLED;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXSidebar.this;
+        }
+
+        @Override
+        public String getName() {
+            return "rippleEnabled";
+        }
+    };
+
+    /**
+     * Whether pressing an item, or activating it with the keyboard, plays a
+     * ripple on its row. While it is off a pressed row shows the
+     * {@code :armed} fill of the stylesheet instead. Initial value is
+     * {@link RXRipplePane#DEFAULT_RIPPLE_ENABLED}. Styleable as
+     * {@code -rx-ripple-enabled}.
+     *
+     * @return the ripple-enabled property
+     */
+    public final BooleanProperty rippleEnabledProperty() {
+        return rippleEnabled;
+    }
+
+    /**
+     * @return {@code true} if items play a ripple
+     */
+    public final boolean isRippleEnabled() {
+        return rippleEnabled.get();
+    }
+
+    /**
+     * @param value {@code true} to play a ripple on items
+     */
+    public final void setRippleEnabled(boolean value) {
+        rippleEnabled.set(value);
+    }
+
+    // ==================== Ripple Fill ====================
+
+    private final ObjectProperty<Paint> rippleFill = new StyleableObjectProperty<>(RXRipplePane.DEFAULT_RIPPLE_FILL) {
+        @Override
+        public CssMetaData<? extends Styleable, Paint> getCssMetaData() {
+            return StyleableProperties.RIPPLE_FILL;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXSidebar.this;
+        }
+
+        @Override
+        public String getName() {
+            return "rippleFill";
+        }
+    };
+
+    /**
+     * The fill of the item ripple. Initial value is
+     * {@link RXRipplePane#DEFAULT_RIPPLE_FILL}; setting {@code null} renders no
+     * ripple. Styleable as {@code -rx-ripple-fill}.
+     *
+     * @return the ripple-fill property
+     */
+    public final ObjectProperty<Paint> rippleFillProperty() {
+        return rippleFill;
+    }
+
+    /**
+     * @return the ripple fill, possibly {@code null}
+     */
+    public final Paint getRippleFill() {
+        return rippleFill.get();
+    }
+
+    /**
+     * @param value the ripple fill, or {@code null} for none
+     */
+    public final void setRippleFill(Paint value) {
+        rippleFill.set(value);
+    }
+
+    // ==================== Ripple Opacity ====================
+
+    private final DoubleProperty rippleOpacity = new StyleableDoubleProperty(RXRipplePane.DEFAULT_RIPPLE_OPACITY) {
+        @Override
+        public CssMetaData<? extends Styleable, Number> getCssMetaData() {
+            return StyleableProperties.RIPPLE_OPACITY;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXSidebar.this;
+        }
+
+        @Override
+        public String getName() {
+            return "rippleOpacity";
+        }
+    };
+
+    /**
+     * The opacity the item ripple peaks at. Initial value is
+     * {@link RXRipplePane#DEFAULT_RIPPLE_OPACITY}. Styleable as
+     * {@code -rx-ripple-opacity}.
+     *
+     * @return the ripple-opacity property
+     */
+    public final DoubleProperty rippleOpacityProperty() {
+        return rippleOpacity;
+    }
+
+    /**
+     * @return the peak ripple opacity
+     */
+    public final double getRippleOpacity() {
+        return rippleOpacity.get();
+    }
+
+    /**
+     * @param value the peak ripple opacity
+     */
+    public final void setRippleOpacity(double value) {
+        rippleOpacity.set(value);
+    }
+
     // ==================== PseudoClass ====================
 
     private void updateModePseudoClass() {
@@ -815,6 +951,48 @@ public class RXSidebar extends Control {
                         return (StyleableProperty<Number>) node.indentProperty();
                     }
                 };
+        private static final CssMetaData<RXSidebar, Boolean> RIPPLE_ENABLED =
+                new CssMetaData<>("-rx-ripple-enabled",
+                        BooleanConverter.getInstance(), RXRipplePane.DEFAULT_RIPPLE_ENABLED) {
+                    @Override
+                    public boolean isSettable(RXSidebar node) {
+                        return !node.rippleEnabled.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Boolean> getStyleableProperty(RXSidebar node) {
+                        return (StyleableProperty<Boolean>) node.rippleEnabledProperty();
+                    }
+                };
+        private static final CssMetaData<RXSidebar, Paint> RIPPLE_FILL =
+                new CssMetaData<>("-rx-ripple-fill",
+                        PaintConverter.getInstance(), RXRipplePane.DEFAULT_RIPPLE_FILL) {
+                    @Override
+                    public boolean isSettable(RXSidebar node) {
+                        return !node.rippleFill.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Paint> getStyleableProperty(RXSidebar node) {
+                        return (StyleableProperty<Paint>) node.rippleFillProperty();
+                    }
+                };
+        private static final CssMetaData<RXSidebar, Number> RIPPLE_OPACITY =
+                new CssMetaData<>("-rx-ripple-opacity",
+                        SizeConverter.getInstance(), RXRipplePane.DEFAULT_RIPPLE_OPACITY) {
+                    @Override
+                    public boolean isSettable(RXSidebar node) {
+                        return !node.rippleOpacity.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXSidebar node) {
+                        return (StyleableProperty<Number>) node.rippleOpacityProperty();
+                    }
+                };
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -823,6 +1001,9 @@ public class RXSidebar extends Control {
             styleables.add(ANIMATED);
             styleables.add(ANIMATION_DURATION);
             styleables.add(INDENT);
+            styleables.add(RIPPLE_ENABLED);
+            styleables.add(RIPPLE_FILL);
+            styleables.add(RIPPLE_OPACITY);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

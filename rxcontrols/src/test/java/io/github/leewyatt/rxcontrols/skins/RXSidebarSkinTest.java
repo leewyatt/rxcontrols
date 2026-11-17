@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.RXSidebarCaption;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSidebarSeparator;
 import io.github.leewyatt.rxcontrols.SidebarTestSupport;
+import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import javafx.application.Platform;
 import javafx.geometry.Bounds;
 import javafx.scene.Node;
@@ -20,6 +21,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Paint;
+import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -45,11 +47,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * for the item tree, the locked width, the zero-jump icon column and the
  * per-level indent, the header / footer slots, what happens to the caller's
  * graphic nodes on skin replacement and dispose, which rows a filter leaves
- * on display, the placeholder, and the room the pinned bands take.
+ * on display, the placeholder, the room the pinned bands take, and the press
+ * feedback of a row.
  */
 public class RXSidebarSkinTest {
 
     private static final double EPSILON = 0.01;
+
+    private static long ripples(Region row) {
+        RippleLayer layer = (RippleLayer) row.getChildrenUnmodifiable().get(0);
+        return layer.getChildrenUnmodifiable().stream().filter(Circle.class::isInstance).count();
+    }
 
     @BeforeAll
     public static void startToolkit() throws InterruptedException {
@@ -628,13 +636,76 @@ public class RXSidebarSkinTest {
     }
 
     /**
-     * A row under the pressed pointer shows the pressed fill, not the fill of
-     * the focus the press gives it.
+     * A press plays one ripple from under the content of the row and leaves
+     * the pressed fill off; a caption has no ripple layer.
      */
     @Test
-    public void aPressedRowShowsThePressedFill() throws Exception {
+    public void aPressedRowPlaysARipple() throws Exception {
         runOnFx(() -> {
             RXSidebar sidebar = new RXSidebar();
+            Region graphic = new Region();
+            RXSidebarItem item = RXSidebarItem.action("Item", graphic, event -> { });
+            sidebar.getItems().addAll(new RXSidebarCaption("Caption"), item);
+            host(sidebar);
+            Region itemRow = row(sidebar, item);
+
+            assertSame(graphic, itemRow.getChildrenUnmodifiable().get(1));
+            assertEquals(0, ripples(itemRow));
+            SidebarTestSupport.click(itemRow);
+            assertEquals(1, ripples(itemRow));
+            assertFalse(SidebarTestSupport.hasPseudoClass(itemRow, "armed"));
+
+            Region caption = SidebarTestSupport.node(sidebar, "caption", "Caption");
+            assertFalse(caption.getChildrenUnmodifiable().get(0) instanceof RippleLayer);
+        });
+    }
+
+    /**
+     * Activating a row with the keyboard plays one ripple.
+     */
+    @Test
+    public void keyboardActivationPlaysARipple() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarItem item = RXSidebarItem.action("Item", null, event -> { });
+            sidebar.getItems().add(item);
+            Scene scene = host(sidebar);
+            Region itemRow = row(sidebar, item);
+            itemRow.requestFocus();
+
+            SidebarTestSupport.press(scene, KeyCode.ENTER);
+            assertEquals(1, ripples(itemRow));
+        });
+    }
+
+    /**
+     * With the ripple off a press plays none, by pointer or by keyboard.
+     */
+    @Test
+    public void aSidebarWithTheRippleOffPlaysNone() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            sidebar.setRippleEnabled(false);
+            RXSidebarItem item = RXSidebarItem.action("Item", null, event -> { });
+            sidebar.getItems().add(item);
+            Scene scene = host(sidebar);
+            Region itemRow = row(sidebar, item);
+
+            SidebarTestSupport.click(itemRow);
+            SidebarTestSupport.press(scene, KeyCode.ENTER);
+            assertEquals(0, ripples(itemRow));
+        });
+    }
+
+    /**
+     * With the ripple off, a row under the pressed pointer shows the pressed
+     * fill, not the fill of the focus the press gives it.
+     */
+    @Test
+    public void withTheRippleOffAPressedRowShowsThePressedFill() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            sidebar.setRippleEnabled(false);
             RXSidebarItem pressed = RXSidebarItem.action("Pressed", null, event -> { });
             RXSidebarItem focused = RXSidebarItem.action("Focused", null, event -> { });
             sidebar.getItems().addAll(pressed, focused);
