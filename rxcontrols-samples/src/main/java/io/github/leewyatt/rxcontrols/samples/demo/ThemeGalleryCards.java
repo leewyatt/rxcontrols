@@ -11,6 +11,7 @@ import io.github.leewyatt.rxcontrols.RXAvatar.ShapeType;
 import io.github.leewyatt.rxcontrols.RXBadge;
 import io.github.leewyatt.rxcontrols.RXBackdrop;
 import io.github.leewyatt.rxcontrols.RXBarSpinner;
+import io.github.leewyatt.rxcontrols.RXBorderBeam;
 import io.github.leewyatt.rxcontrols.RXBreadcrumbBar;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCalendarView;
@@ -94,9 +95,7 @@ import io.github.leewyatt.rxcontrols.RXSegmentedProgressBar;
 import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
 import io.github.leewyatt.rxcontrols.RXSelectionBox;
 import io.github.leewyatt.rxcontrols.RXSidebar;
-import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
-import io.github.leewyatt.rxcontrols.RXSidebarActionItem;
-import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
+import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSkeleton;
 import io.github.leewyatt.rxcontrols.RXSkeletonPane;
 import io.github.leewyatt.rxcontrols.RXSlider;
@@ -218,6 +217,7 @@ final class ThemeGalleryCards {
         list.add(card("RXBackdrop", "Fading scrim that dims the content beneath it.", buildRXBackdrop()));
         list.add(card("RXBadge", "Count, text or dot indicator on a corner of any node.", buildRXBadge()));
         list.add(card("RXBarSpinner", "Decorative loading bars.", buildRXBarSpinner()));
+        list.add(card("RXBorderBeam", "Fading highlight running round a border.", buildRXBorderBeam()));
         list.add(card("RXBreadcrumbBar", "Path trail with sibling menus and overflow.", buildRXBreadcrumbBar()));
         list.add(card("RXButton", "Button with bounded ripple feedback.", buildRXButton()));
         list.add(card("RXCalendarView", "Month calendar with month and year drill-up.", buildRXCalendarView()));
@@ -424,6 +424,20 @@ final class ThemeGalleryCards {
         card.setStyle("-fx-background-color: -rx-surface-variant; -fx-background-radius: 8px;"
                 + " -fx-border-color: -rx-outline-variant; -fx-border-radius: 8px;");
         return new RXRibbonBadge(card, "Recommended");
+    }
+
+    private static Node buildRXBorderBeam() {
+        Label title = new Label("Workspace");
+        Label body = new Label("Three tasks need review");
+        VBox card = new VBox(6.0, title, body);
+        card.setPadding(new Insets(16.0));
+        card.setPrefWidth(180.0);
+        card.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        card.setStyle("-fx-background-color: -rx-surface-variant; -fx-background-radius: 8px;"
+                + " -fx-border-color: -rx-outline-variant; -fx-border-radius: 8px;");
+        RXBorderBeam beam = new RXBorderBeam(card);
+        beam.setBeamSize(70.0);
+        return beam;
     }
 
     private static Node buildRXBreadcrumbBar() {
@@ -1202,26 +1216,26 @@ final class ThemeGalleryCards {
     }
 
     private static Node buildRXSidebar() {
-        RXSidebar expanded = createSidebar(SidebarMode.EXPANDED);
-        RXSidebar mini = createSidebar(SidebarMode.MINI);
+        RXSidebar expanded = createSidebar(RXSidebar.Mode.EXPANDED);
+        RXSidebar mini = createSidebar(RXSidebar.Mode.MINI);
         HBox box = new HBox(24.0, expanded, mini);
         box.setAlignment(Pos.CENTER);
         box.setPrefHeight(460.0);
         return box;
     }
 
-    private static RXSidebar createSidebar(SidebarMode mode) {
+    private static RXSidebar createSidebar(RXSidebar.Mode mode) {
         RXSidebar sidebar = new RXSidebar();
-        Label header = new Label(mode == SidebarMode.MINI ? "RX" : "RX App");
+        Label header = new Label(mode == RXSidebar.Mode.MINI ? "RX" : "RX App");
         header.setStyle("-fx-font-weight: bold; -fx-padding: 4 8;");
         sidebar.setHeader(header);
-        RXSidebarNavItem dashboard = new RXSidebarNavItem("Dashboard", new Circle(8, Color.web("#5b8def")));
-        RXSidebarNavItem inbox = new RXSidebarNavItem("Inbox", new Circle(8, Color.web("#3ec79b")));
-        RXSidebarNavItem files = new RXSidebarNavItem("Files", new Circle(8, Color.web("#f2a73b")));
-        sidebar.getTopItems().add(new RXSidebarNavItem("Favorites", new Circle(8, Color.web("#e25c5c"))));
+        RXSidebarItem dashboard = RXSidebarItem.of("Dashboard", new Circle(8, Color.web("#5b8def")));
+        RXSidebarItem inbox = RXSidebarItem.of("Inbox", new Circle(8, Color.web("#3ec79b")));
+        RXSidebarItem files = RXSidebarItem.of("Files", new Circle(8, Color.web("#f2a73b")));
+        sidebar.getTopItems().add(RXSidebarItem.of("Favorites", new Circle(8, Color.web("#e25c5c"))));
         sidebar.getItems().addAll(dashboard, inbox, files);
-        RXSidebarActionItem settings = new RXSidebarActionItem("Settings", new Circle(8, Color.web("#9b8cff")));
-        sidebar.getBottomItems().addAll(settings, new RXSidebarNavItem("Help", new Circle(8, Color.web("#8a8f99"))));
+        RXSidebarItem settings = RXSidebarItem.action("Settings", new Circle(8, Color.web("#9b8cff")), null);
+        sidebar.getBottomItems().addAll(settings, RXSidebarItem.of("Help", new Circle(8, Color.web("#8a8f99"))));
         sidebar.setFooter(new Label("v1.0"));
         sidebar.selectItem(dashboard);
         sidebar.setExpandedWidth(220.0);

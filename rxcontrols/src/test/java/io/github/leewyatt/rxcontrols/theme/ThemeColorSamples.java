@@ -20,7 +20,7 @@ import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.RXSegmentedProgressBar;
 import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
 import io.github.leewyatt.rxcontrols.RXSidebar;
-import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
+import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSlider;
 import io.github.leewyatt.rxcontrols.RXSnackbarHost;
 import io.github.leewyatt.rxcontrols.RXSnackbarRequest;
@@ -116,9 +116,9 @@ final class ThemeColorSamples {
 
         RXFillButton fillButton = new RXFillButton("fill");
         RXSidebar sidebar = new RXSidebar();
-        RXSidebarNavItem selectedNavItem = new RXSidebarNavItem("selected");
-        sidebar.getItems().addAll(selectedNavItem, new RXSidebarNavItem("other"));
-        selectedNavItem.setSelected(true);
+        RXSidebarItem selectedSidebarItem = RXSidebarItem.of("selected");
+        sidebar.getItems().addAll(selectedSidebarItem, RXSidebarItem.of("other"));
+        sidebar.selectItem(selectedSidebarItem);
         RXTimelineItem plainItem = new RXTimelineItem("plain");
         RXTimelineItem primaryItem = new RXTimelineItem("primary");
         primaryItem.setType(RXTimelineItem.Type.PRIMARY);
@@ -217,8 +217,9 @@ final class ThemeColorSamples {
 
         samples.put("fill-button.filling-armed.text", fillingArmedText);
         samples.put("sidebar.background", background(sidebar));
-        samples.put("sidebar.selected", background(selectedNavItem));
-        samples.put("sidebar.selected.text", text(selectedNavItem));
+        Node selectedSidebarRow = sidebar.lookup(".item:selected");
+        samples.put("sidebar.selected", background(selectedSidebarRow));
+        samples.put("sidebar.selected.text", text(selectedSidebarRow.lookup(".label")));
         samples.put("timeline.dot", background(plainTimeline.lookup(".dot")));
         samples.put("timeline.primary-dot", background(primaryTimeline.lookup(".dot")));
         samples.put("timeline.hollow-dot.border", hollowBorder(hollowTimeline.lookup(".dot")));

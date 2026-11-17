@@ -6,7 +6,7 @@ import io.github.leewyatt.rxcontrols.RXFillButton;
 import io.github.leewyatt.rxcontrols.RXHighlightTextView;
 import io.github.leewyatt.rxcontrols.RXRadioButton;
 import io.github.leewyatt.rxcontrols.RXSidebar;
-import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
+import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSkeleton;
 import io.github.leewyatt.rxcontrols.RXSwitchButton;
 import io.github.leewyatt.rxcontrols.RXTextView;
@@ -448,14 +448,15 @@ public class RXDefaultStyleTest {
         AtomicReference<Color> selectedFill = new AtomicReference<>();
         AtomicReference<Paint> textFill = new AtomicReference<>();
         runOnFx(() -> {
-            RXSidebarNavItem selected = new RXSidebarNavItem("Inbox", new Region());
+            RXSidebarItem selected = RXSidebarItem.of("Inbox", new Region());
             RXSidebar sidebar = new RXSidebar();
-            sidebar.getItems().addAll(selected, new RXSidebarNavItem("Files", new Region()));
+            sidebar.getItems().addAll(selected, RXSidebarItem.of("Files", new Region()));
             sidebar.selectItem(selected);
             applyCss(scene(new StackPane(sidebar), true));
+            Region row = (Region) sidebar.lookup(".item:selected");
             rail.set(background(sidebar));
-            selectedFill.set(background(selected));
-            textFill.set(selected.getTextFill());
+            selectedFill.set(background(row));
+            textFill.set(((Label) row.lookup(".label")).getTextFill());
         });
 
         assertNotNull(selectedFill.get(), "selected sidebar item has no background fill");
