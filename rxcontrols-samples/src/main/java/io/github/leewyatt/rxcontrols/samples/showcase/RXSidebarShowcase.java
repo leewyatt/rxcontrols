@@ -371,6 +371,16 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         };
     }
 
+    @Override
+    protected double controlPaneWidth() {
+        return 360;
+    }
+
+    @Override
+    protected double sceneWidth() {
+        return 1080;
+    }
+
     /**
      * Launches the showcase.
      *
