@@ -5,7 +5,7 @@ import javafx.scene.Node;
 import javafx.scene.layout.StackPane;
 
 /**
- * The pane a badge skin keeps its control's content in. It fills the control,
+ * The pane the skin of a wrapper control keeps its control's content in. It fills the control,
  * and reports where the content landed inside it so a decoration can follow the
  * content itself.
  */
