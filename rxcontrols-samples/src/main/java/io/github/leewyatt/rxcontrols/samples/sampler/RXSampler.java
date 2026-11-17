@@ -196,10 +196,14 @@ public class RXSampler extends Application {
         return children;
     }
 
-    // A category stands for its first page.
+    // A category has no page of its own: another category stands for its first page,
+    // and the category of the page on display leads nowhere.
     private SamplerEntry entryAt(Object crumb) {
         if (crumb instanceof SamplerEntry entry) {
             return entry;
+        }
+        if (current != null && current.category() == crumb) {
+            return null;
         }
         for (SamplerEntry entry : entries) {
             if (entry.category() == crumb) {
