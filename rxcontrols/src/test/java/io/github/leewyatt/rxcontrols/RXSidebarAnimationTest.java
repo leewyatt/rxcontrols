@@ -4,8 +4,8 @@ import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import io.github.leewyatt.rxcontrols.skins.RXSidebarSkin;
 import javafx.application.Platform;
 import javafx.beans.property.DoubleProperty;
+import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.ContentDisplay;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.util.Duration;
@@ -18,9 +18,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -240,36 +240,33 @@ public class RXSidebarAnimationTest {
     }
 
     /**
-     * Content display converges across animated transitions: during the tween every
-     * item is ContentDisplay.LEFT (text wipes/reveals via CLIP), and finalizeMini
-     * settles MINI to GRAPHIC_ONLY; a finished-then-restarted expand settles to LEFT.
+     * The text stays on display while the width is in transition and is hidden
+     * only once the sidebar rests in MINI.
      */
     @Test
-    public void contentDisplayConvergesAcrossAnimatedTransitions() throws Exception {
+    public void textIsHiddenOnlyOnceSettledInMini() throws Exception {
         AtomicReference<RXSidebar> sidebarRef = new AtomicReference<>();
-        AtomicReference<RXSidebarNavItem> itemRef = new AtomicReference<>();
+        AtomicReference<Node> labelRef = new AtomicReference<>();
         AtomicReference<DoubleProperty> fractionRef = new AtomicReference<>();
         CountDownLatch atMini = new CountDownLatch(1);
         runOnFx(() -> {
             RXSidebar sidebar = laidOut(new RXSidebar(), Duration.millis(60.0));
             DoubleProperty fraction = fractionOf(sidebar);
-            RXSidebarNavItem item = (RXSidebarNavItem) sidebar.getItems().get(0);
+            Node label = sidebar.lookup(".item > .label");
             fraction.addListener((o, ov, nv) -> {
                 if (nv.doubleValue() == 0.0) {
                     atMini.countDown();
                 }
             });
             sidebar.setMode(SidebarMode.MINI);
-            assertSame(ContentDisplay.LEFT, item.getContentDisplay()); // LEFT during the tween
+            assertTrue(label.isVisible());
             sidebarRef.set(sidebar);
-            itemRef.set(item);
+            labelRef.set(label);
             fractionRef.set(fraction);
         });
         assertTrue(atMini.await(3, TimeUnit.SECONDS), "animated collapse reaches mini");
-        // finalizeMini settled the steady state to GRAPHIC_ONLY.
-        runOnFx(() -> assertSame(ContentDisplay.GRAPHIC_ONLY, itemRef.get().getContentDisplay()));
+        runOnFx(() -> assertFalse(labelRef.get().isVisible()));
 
-        // A finished-then-restarted animated expand converges back to LEFT.
         CountDownLatch atExpanded = new CountDownLatch(1);
         runOnFx(() -> {
             fractionRef.get().addListener((o, ov, nv) -> {
@@ -278,10 +275,10 @@ public class RXSidebarAnimationTest {
                 }
             });
             sidebarRef.get().setMode(SidebarMode.EXPANDED);
-            assertSame(ContentDisplay.LEFT, itemRef.get().getContentDisplay()); // LEFT during expand tween
+            assertTrue(labelRef.get().isVisible());
         });
         assertTrue(atExpanded.await(3, TimeUnit.SECONDS), "animated expand reaches expanded");
-        runOnFx(() -> assertSame(ContentDisplay.LEFT, itemRef.get().getContentDisplay()));
+        runOnFx(() -> assertTrue(labelRef.get().isVisible()));
     }
 
     // ==================== Helpers ====================
@@ -303,7 +300,7 @@ public class RXSidebarAnimationTest {
         Region icon = new Region();
         icon.getStyleClass().add("graphic");
         icon.setPrefSize(24.0, 24.0);
-        sidebar.getItems().add(new RXSidebarNavItem("Item", icon));
+        sidebar.getItems().add(RXSidebarItem.of("Item", icon));
         Pane host = new Pane(sidebar);
         new Scene(host, 400, 600);
         host.applyCss();

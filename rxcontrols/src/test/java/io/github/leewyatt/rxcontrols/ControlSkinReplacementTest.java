@@ -51,9 +51,7 @@ public class ControlSkinReplacementTest {
     // Controls without a public no-argument constructor. A new one fails the
     // test until it is added here.
     private static final Map<Class<?>, Supplier<Control>> FACTORIES = Map.of(
-            RXCascaderCell.class, () -> new RXCascaderCell<>(new RXCascaderView<>()),
-            RXSidebarActionItem.class, () -> new RXSidebarActionItem("Item"),
-            RXSidebarNavItem.class, () -> new RXSidebarNavItem("Item"));
+            RXCascaderCell.class, () -> new RXCascaderCell<>(new RXCascaderView<>()));
 
     /**
      * Starts the JavaFX toolkit before loading Control subclasses.

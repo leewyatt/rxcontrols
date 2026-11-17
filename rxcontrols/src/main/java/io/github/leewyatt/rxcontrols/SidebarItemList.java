@@ -1,36 +1,66 @@
 package io.github.leewyatt.rxcontrols;
 
+import javafx.beans.InvalidationListener;
 import javafx.collections.ModifiableObservableListBase;
-import javafx.scene.control.Labeled;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 
 /**
- * One of a sidebar's three item lists. Rejects an item that is already held by any
- * of the three, and rejects {@code null}, so a caller finds out at the call site.
+ * A list of sidebar items: one of a sidebar's three top-level lists, or the
+ * child list of an item. It enforces that an item has a single owner and that
+ * the tree has no cycle, and it maintains each item's {@code parent} and
+ * {@code sidebar}.
  *
- * <p>A second membership cannot mean a second row: an item is a {@link
- * javafx.scene.Node Node}, and a node has one parent. What it actually does is move
- * the single row to the other band while the model keeps claiming both places, and
- * strip the item of its selection wiring on the way. That is not a state worth
- * representing, so it is refused — as JavaFX itself refuses the same impossibility
- * in {@code Parent.getChildren()} and {@code ToggleGroup.getToggles()}.</p>
+ * <p>An item that already belongs to a list is rejected rather than moved, as
+ * are {@code null}, the same item twice in one call, and an item that is the
+ * owner of this list or one of its ancestors. Every rejection is an
+ * {@link IllegalArgumentException}. The bulk entry points validate the whole
+ * argument first, so a rejected call leaves the list unchanged.</p>
  *
- * <p>Every mutation funnels through {@link #doAdd} / {@link #doSet}; the bulk entry
- * points additionally pre-validate the whole argument, so a rejected bulk call
- * leaves the list unchanged rather than partially mutated.</p>
+ * <p>Which list holds an item is recorded as the mutation happens, but
+ * {@code parent}, {@code sidebar} and the sidebar's selection are only updated
+ * once the change has finished. A sort, a {@code set} of an item onto itself and
+ * a {@code setAll} of the same items all report an item as both removed and
+ * added; judging by where the item ends up keeps such a change from looking
+ * like the item left the tree.</p>
  */
 final class SidebarItemList extends ModifiableObservableListBase<RXSidebarItem> {
 
     private final List<RXSidebarItem> backing = new ArrayList<>();
+    // The items the change in progress has added or removed.
+    private final List<RXSidebarItem> touched = new ArrayList<>();
     private final RXSidebar sidebar;
+    private final RXSidebarItem ownerItem;
 
     SidebarItemList(RXSidebar sidebar) {
-        this.sidebar = sidebar;
+        this(sidebar, null);
     }
+
+    SidebarItemList(RXSidebarItem ownerItem) {
+        this(null, ownerItem);
+    }
+
+    private SidebarItemList(RXSidebar sidebar, RXSidebarItem ownerItem) {
+        this.sidebar = sidebar;
+        this.ownerItem = ownerItem;
+        // An invalidation listener, and the first one: those are notified in
+        // registration order and ahead of every change listener, so whoever
+        // else observes this list sees settled ownership.
+        addListener((InvalidationListener) observable -> settleOwnership());
+    }
+
+    RXSidebarItem getOwnerItem() {
+        return ownerItem;
+    }
+
+    RXSidebar resolveSidebar() {
+        return ownerItem == null ? sidebar : ownerItem.getSidebar();
+    }
+
+    // ==================== Storage ====================
 
     @Override
     public RXSidebarItem get(int index) {
@@ -44,121 +74,129 @@ final class SidebarItemList extends ModifiableObservableListBase<RXSidebarItem> 
 
     @Override
     protected void doAdd(int index, RXSidebarItem element) {
-        backing.add(index, requireAbsent(element));
+        requireAddable(element);
+        backing.add(index, element);
+        element.setOwningList(this);
+        touched.add(element);
     }
 
     @Override
     protected RXSidebarItem doSet(int index, RXSidebarItem element) {
-        if (backing.get(index) == element) {
-            return backing.set(index, element); // replacing an item with itself
+        RXSidebarItem old = backing.get(index);
+        if (old == element) {
+            return old;
         }
-        return backing.set(index, requireAbsent(element));
+        requireAddable(element);
+        backing.set(index, element);
+        old.setOwningList(null);
+        element.setOwningList(this);
+        touched.add(old);
+        touched.add(element);
+        return old;
     }
 
     @Override
     protected RXSidebarItem doRemove(int index) {
-        return backing.remove(index);
+        RXSidebarItem removed = backing.remove(index);
+        removed.setOwningList(null);
+        touched.add(removed);
+        return removed;
     }
+
+    // ==================== Bulk entry points ====================
 
     @Override
     public boolean addAll(Collection<? extends RXSidebarItem> elements) {
-        requireAllAddable(elements);
-        return super.addAll(elements);
+        List<RXSidebarItem> snapshot = new ArrayList<>(elements);
+        requireAllAddable(snapshot, false);
+        return super.addAll(snapshot);
     }
 
     @Override
     public boolean addAll(int index, Collection<? extends RXSidebarItem> elements) {
-        requireAllAddable(elements);
-        return super.addAll(index, elements);
+        List<RXSidebarItem> snapshot = new ArrayList<>(elements);
+        requireAllAddable(snapshot, false);
+        return super.addAll(index, snapshot);
     }
 
     @Override
     public boolean setAll(Collection<? extends RXSidebarItem> elements) {
-        // Snapshot first: setAll is clear()-then-addAll, so passing this list itself
-        // (or a live sublist of it) would have clear() empty the argument mid-flight.
-        // The copy also lets a rejected call leave the list untouched.
+        // Snapshot first: setAll is clear-then-addAll, so passing this list itself
+        // would have the clear empty the argument.
         List<RXSidebarItem> snapshot = new ArrayList<>(elements);
-        // This list is about to be replaced wholesale, so its own current contents
-        // are not a conflict — only the other two bands and duplicates within the
-        // argument are.
-        requireNoDuplicates(snapshot);
-        for (RXSidebarItem element : snapshot) {
-            Objects.requireNonNull(element, "sidebar item must not be null");
-            requireNotInOtherBands(element);
-        }
+        // This list is about to be replaced wholesale, so its own current items
+        // are not a conflict.
+        requireAllAddable(snapshot, true);
         return super.setAll(snapshot);
     }
 
-    private void requireAllAddable(Collection<? extends RXSidebarItem> elements) {
-        requireNoDuplicates(elements);
-        for (RXSidebarItem element : elements) {
-            requireAbsent(element);
-        }
+    @Override
+    public void sort(Comparator<? super RXSidebarItem> comparator) {
+        // The inherited sort writes the items back one position at a time, so
+        // each write would find its item still held at another index.
+        List<RXSidebarItem> sorted = new ArrayList<>(backing);
+        sorted.sort(comparator);
+        setAll(sorted);
     }
 
-    private void requireNoDuplicates(Collection<? extends RXSidebarItem> elements) {
-        List<RXSidebarItem> seen = new ArrayList<>(elements.size());
-        for (RXSidebarItem element : elements) {
-            for (RXSidebarItem other : seen) {
-                if (other == element) {
-                    throw new IllegalArgumentException(
-                            describe(element) + " appears twice in the same call;"
-                                    + " a sidebar item can only be in the sidebar once");
+    // ==================== Validation ====================
+
+    private void requireAllAddable(List<RXSidebarItem> elements, boolean replacingContents) {
+        for (int i = 0; i < elements.size(); i++) {
+            RXSidebarItem element = elements.get(i);
+            for (int j = 0; j < i; j++) {
+                if (elements.get(j) == element) {
+                    throw new IllegalArgumentException(describe(element)
+                            + " appears twice in the same call; a sidebar item can only be in one place");
                 }
             }
-            seen.add(element);
+            if (replacingContents && element != null && element.getOwningList() == this) {
+                continue;
+            }
+            requireAddable(element);
         }
     }
 
-    private RXSidebarItem requireAbsent(RXSidebarItem element) {
-        Objects.requireNonNull(element, "sidebar item must not be null");
-        if (containsIdentical(this, element)) {
-            throw new IllegalArgumentException(
-                    describe(element) + " is already in this list;"
-                            + " a sidebar item can only be in the sidebar once");
+    private void requireAddable(RXSidebarItem element) {
+        if (element == null) {
+            throw new IllegalArgumentException("a sidebar item must not be null");
         }
-        requireNotInOtherBands(element);
-        return element;
-    }
-
-    private void requireNotInOtherBands(RXSidebarItem element) {
-        if (isOtherBand(sidebar.getTopItems()) && containsIdentical(sidebar.getTopItems(), element)) {
-            throw new IllegalArgumentException(alreadyHeld(element, "topItems"));
+        if (element.getOwningList() != null) {
+            throw new IllegalArgumentException(describe(element)
+                    + " already belongs to a list; remove it from there first");
         }
-        if (isOtherBand(sidebar.getItems()) && containsIdentical(sidebar.getItems(), element)) {
-            throw new IllegalArgumentException(alreadyHeld(element, "items"));
-        }
-        if (isOtherBand(sidebar.getBottomItems()) && containsIdentical(sidebar.getBottomItems(), element)) {
-            throw new IllegalArgumentException(alreadyHeld(element, "bottomItems"));
-        }
-    }
-
-    private boolean isOtherBand(List<RXSidebarItem> band) {
-        return band != this;
-    }
-
-    // Identity, not equals: two distinct items may compare equal, and it is the node
-    // that cannot be in two places.
-    private static boolean containsIdentical(List<RXSidebarItem> band, RXSidebarItem element) {
-        for (RXSidebarItem candidate : band) {
-            if (candidate == element) {
-                return true;
+        for (RXSidebarItem ancestor = ownerItem; ancestor != null; ancestor = ownerOf(ancestor)) {
+            if (ancestor == element) {
+                throw new IllegalArgumentException(describe(element)
+                        + " cannot be added to its own subtree");
             }
         }
-        return false;
     }
 
-    private static String alreadyHeld(RXSidebarItem element, String band) {
-        return describe(element) + " is already in the sidebar's " + band
-                + "; a sidebar item can only be in the sidebar once";
+    private static RXSidebarItem ownerOf(RXSidebarItem item) {
+        SidebarItemList list = item.getOwningList();
+        return list == null ? null : list.getOwnerItem();
     }
 
     private static String describe(RXSidebarItem element) {
         if (element == null) {
             return "null";
         }
-        String text = (element.asNode() instanceof Labeled labeled) ? labeled.getText() : null;
-        return text == null ? element.getClass().getSimpleName()
-                : element.getClass().getSimpleName() + " \"" + text + "\"";
+        String name = element.getClass().getSimpleName();
+        return element.getText() == null ? name : name + " \"" + element.getText() + "\"";
+    }
+
+    // ==================== Ownership ====================
+
+    private void settleOwnership() {
+        List<RXSidebarItem> settling = new ArrayList<>(touched);
+        touched.clear();
+        for (RXSidebarItem item : settling) {
+            item.syncOwnership();
+        }
+        RXSidebar owner = resolveSidebar();
+        if (owner != null) {
+            owner.revalidateSelection();
+        }
     }
 }

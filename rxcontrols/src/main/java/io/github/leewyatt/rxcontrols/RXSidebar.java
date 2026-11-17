@@ -12,20 +12,20 @@ import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.css.Styleable;
 import javafx.css.StyleableBooleanProperty;
+import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.DurationConverter;
+import javafx.css.converter.SizeConverter;
 import javafx.scene.Node;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
-import javafx.scene.control.ToggleGroup;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -33,14 +33,21 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * A permanent, in-layout application navigation sidebar that switches between
- * {@link SidebarMode#EXPANDED} (icon + text) and {@link SidebarMode#MINI}
- * (icon only). It hosts navigation and action items, tracks one
+ * A permanent, in-layout navigation sidebar holding a tree of
+ * {@link RXSidebarItem items}. It switches between
+ * {@link SidebarMode#EXPANDED} (icon + text, groups unfold in place) and
+ * {@link SidebarMode#MINI} (a single column of top-level icons), tracks one
  * {@link #selectedItemProperty() selectedItem}, and animates its width on mode
- * change. It is NOT a drawer: it never opens, closes, overlays, or pushes.
+ * change. It is not a drawer: it never opens, closes, overlays, or pushes.
  *
- * <p>In {@code MINI} mode only item graphics are shown (labels are hidden), so
- * give each item a graphic to keep it visible when collapsed.</p>
+ * <p>Items live in three lists: {@link #getTopItems() topItems} and
+ * {@link #getBottomItems() bottomItems} are pinned, {@link #getItems() items}
+ * scrolls between them. The pinned lists are laid out at their natural height,
+ * so groups belong in {@code items}: a group unfolding in a pinned list takes
+ * its height from the scrolling area.</p>
+ *
+ * <p>In {@code MINI} mode a top-level row shows only its graphic, so give each
+ * top-level item one.</p>
  */
 public class RXSidebar extends Control {
 
@@ -91,11 +98,14 @@ public class RXSidebar extends Control {
      * Default mode-transition interpolator, also the null fallback.
      */
     public static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
+    /**
+     * Default indent added per nesting level.
+     */
+    public static final double DEFAULT_INDENT = 24.0;
 
     private static final PseudoClass EXPANDED_PSEUDO_CLASS = PseudoClass.getPseudoClass("expanded");
     private static final PseudoClass MINI_PSEUDO_CLASS = PseudoClass.getPseudoClass("mini");
 
-    // Reject rather than silently corrupt: see SidebarItemList.
     private final ObservableList<RXSidebarItem> topItems = new SidebarItemList(this);
     private final ObservableList<RXSidebarItem> items = new SidebarItemList(this);
     private final ObservableList<RXSidebarItem> bottomItems = new SidebarItemList(this);
@@ -117,7 +127,6 @@ public class RXSidebar extends Control {
         ((StyleableProperty<Boolean>) (WritableValue<Boolean>) focusTraversableProperty())
                 .applyStyle(null, Boolean.FALSE);
         updateModePseudoClass();
-        initSelection();
     }
 
     @Override
@@ -147,21 +156,21 @@ public class RXSidebar extends Control {
     // ==================== Item Lists ====================
 
     /**
-     * @return the live list of pinned-top items
+     * @return the live list of pinned-top items; see {@link RXSidebarItem} for the rules an added item must meet
      */
     public final ObservableList<RXSidebarItem> getTopItems() {
         return topItems;
     }
 
     /**
-     * @return the live list of main (scrollable) items
+     * @return the live list of main (scrollable) items; see {@link RXSidebarItem} for the rules an added item must meet
      */
     public final ObservableList<RXSidebarItem> getItems() {
         return items;
     }
 
     /**
-     * @return the live list of pinned-bottom items
+     * @return the live list of pinned-bottom items; see {@link RXSidebarItem} for the rules an added item must meet
      */
     public final ObservableList<RXSidebarItem> getBottomItems() {
         return bottomItems;
@@ -204,48 +213,66 @@ public class RXSidebar extends Control {
 
     // ==================== Selected Item ====================
 
-    private final ReadOnlyObjectWrapper<RXSidebarNavItem> selectedItem =
+    private final ReadOnlyObjectWrapper<RXSidebarItem> selectedItem =
             new ReadOnlyObjectWrapper<>(this, "selectedItem") {
                 @Override
                 protected void invalidated() {
-                    onSelectedItemInvalidated(); // mirror to the group
+                    onSelectedItemInvalidated();
                 }
             };
 
+    // The item whose selected flag this sidebar has set. Differs from
+    // selectedItem while the selection is an item that is not in the tree yet.
+    private RXSidebarItem flaggedItem;
+
     /**
-     * The selected navigation item, or {@code null} when nothing is selected.
-     * Selection is mutually exclusive across all three item lists. Action items
-     * never participate, so they can never appear here.
+     * The selected item, or {@code null} when nothing is selected. Only a page
+     * — a selectable item without child items — can be the selection, and at
+     * most one across all three lists.
      *
-     * <p>Read-only by design: the sidebar owns this state, because a user click
-     * must be able to write it. Drive it with {@link #selectItem(RXSidebarNavItem)}
-     * and {@link #clearSelection()}, and observe it with a listener.</p>
+     * <p>Read-only: the sidebar owns this state, because a user click must be
+     * able to write it. Drive it with {@link #selectItem(RXSidebarItem)} and
+     * {@link #clearSelection()}, and observe it with a listener. Activation
+     * cannot be vetoed; to keep the user on the current page, select it again
+     * from the listener.</p>
+     *
+     * <p>The selection is cleared when the selected item leaves the tree, stops
+     * being selectable, or is given child items.</p>
      *
      * @return the read-only selected-item property
      */
-    public final ReadOnlyObjectProperty<RXSidebarNavItem> selectedItemProperty() {
+    public final ReadOnlyObjectProperty<RXSidebarItem> selectedItemProperty() {
         return selectedItem.getReadOnlyProperty();
     }
 
     /**
-     * @return the selected navigation item, or {@code null}
+     * @return the selected item, or {@code null}
      */
-    public final RXSidebarNavItem getSelectedItem() {
+    public final RXSidebarItem getSelectedItem() {
         return selectedItem.get();
     }
 
     /**
-     * Selects the given navigation item, clearing any previous selection. Use
-     * this to drive the rail from outside (a route change, a button elsewhere,
-     * restoring state at startup).
+     * Selects the given page, expands the groups it is nested in (those whose
+     * {@code expanded} is not bound), and scrolls it into view.
      *
-     * <p>An item that is not in any of the three lists yet is still accepted:
-     * it becomes the selection, and the rail adopts it once it is added. This
+     * <p>An item that is not in the tree yet is accepted: it becomes the
+     * selection, and its {@code selected} flag is set once it is added. This
      * supports selecting before populating.</p>
      *
      * @param item the item to select, or {@code null} to clear the selection
+     * @throws IllegalArgumentException if the item cannot be selected: a group,
+     *                                  an action, a caption or a separator, or
+     *                                  an item that is in another sidebar
      */
-    public final void selectItem(RXSidebarNavItem item) {
+    public final void selectItem(RXSidebarItem item) {
+        if (item != null && !item.canBeSelected()) {
+            throw new IllegalArgumentException(
+                    "only a selectable item without child items can be selected");
+        }
+        if (item != null && item.getSidebar() != null && item.getSidebar() != this) {
+            throw new IllegalArgumentException("the item is in another sidebar");
+        }
         selectedItem.set(item);
     }
 
@@ -254,6 +281,47 @@ public class RXSidebar extends Control {
      */
     public final void clearSelection() {
         selectedItem.set(null);
+    }
+
+    private void onSelectedItemInvalidated() {
+        RXSidebarItem current = getSelectedItem();
+        if (flaggedItem != null && flaggedItem != current) {
+            RXSidebarItem previous = flaggedItem;
+            flaggedItem = null;
+            previous.setSelected(false);
+        }
+        if (current != null && current.getSidebar() == this) {
+            flag(current);
+        }
+    }
+
+    private void flag(RXSidebarItem item) {
+        flaggedItem = item;
+        item.setSelected(true);
+        for (RXSidebarItem group = item.getParent(); group != null; group = group.getParent()) {
+            if (!group.expandedProperty().isBound()) {
+                group.setExpanded(true);
+            }
+        }
+    }
+
+    // Called after the tree changed and after an item's ability to be selected
+    // changed: drops a selection that left the tree or can no longer be
+    // selected, and adopts one that was selected before it was added.
+    final void revalidateSelection() {
+        RXSidebarItem current = getSelectedItem();
+        if (current == null) {
+            return;
+        }
+        if (current.getSidebar() == this) {
+            if (!current.canBeSelected()) {
+                selectedItem.set(null);
+            } else if (flaggedItem != current) {
+                flag(current);
+            }
+        } else if (flaggedItem == current) {
+            selectedItem.set(null);
+        }
     }
 
     // ==================== Expanded Width ====================
@@ -473,108 +541,53 @@ public class RXSidebar extends Control {
         animationInterpolator.set(value);
     }
 
-    // ==================== Selection (control-owned; survives skin replacement) ====================
+    // ==================== Indent ====================
 
-    // Private, never exposed. selectedItem is the only public face of the selection.
-    private final ToggleGroup navGroup = new ToggleGroup();
-    // Guards the two-way mirror selectedItem <-> navGroup against re-entrant ping-pong.
-    private boolean syncingSelection = false;
-    // The outgoing selection. Deselecting it is this control's job, not the
-    // group's: ToggleGroup only ever deselects its own members, and an item
-    // selected before it was added to a list is not one. A stale selected flag
-    // left on such an item would later make the group adopt it on add and
-    // silently hijack whatever is selected by then.
-    private RXSidebarNavItem previousSelection;
-
-    // Called from the constructor.
-    private void initSelection() {
-        ListChangeListener<RXSidebarItem> membership = this::onItemListChanged;
-        topItems.addListener(membership);
-        items.addListener(membership);
-        bottomItems.addListener(membership);
-
-        // group -> selectedItem (user click path: ToggleButton flips selected, group updates).
-        // Only reads the guard, never holds it: selectedItem.set notifies application
-        // listeners before it returns, and one of those may legitimately re-select
-        // (route normalization). Holding the guard across that would make the mirror
-        // mistake the application's write for its own echo and skip it.
-        navGroup.selectedToggleProperty().addListener((obs, old, toggle) -> {
-            if (syncingSelection) {
-                return;
-            }
-            selectedItem.set(toggle instanceof RXSidebarNavItem nav ? nav : null);
-        });
-        // selectedItem -> group is mirrored in selectedItem's invalidated() (onSelectedItemInvalidated).
-    }
-
-    // nav items auto-join the group on add and leave on remove; action items never join.
-    //
-    // Keyed off where the item ends up, not off the raw removed/added lists: a
-    // reorder, or a set() that replaces an item with itself, reports the same item
-    // as both removed and added, and pulling such an item out of the group — even
-    // for an instant — makes ToggleGroup clear a selection that never actually left
-    // the sidebar. So a removed nav only leaves the group once it is gone from all
-    // three lists.
-    private void onItemListChanged(ListChangeListener.Change<? extends RXSidebarItem> c) {
-        while (c.next()) {
-            for (RXSidebarItem removed : c.getRemoved()) {
-                if (removed instanceof RXSidebarNavItem nav && !contains(nav)) {
-                    nav.setToggleGroup(null);
-                }
-            }
-            for (RXSidebarItem added : c.getAddedSubList()) {
-                if (added instanceof RXSidebarNavItem nav && nav.getToggleGroup() != navGroup) {
-                    nav.setToggleGroup(navGroup);
-                }
-            }
+    private final DoubleProperty indent = new StyleableDoubleProperty(DEFAULT_INDENT) {
+        @Override
+        protected void invalidated() {
+            requestLayout();
         }
-    }
 
-    private boolean contains(RXSidebarItem item) {
-        return containsIdentical(topItems, item)
-                || containsIdentical(items, item)
-                || containsIdentical(bottomItems, item);
-    }
-
-    private static boolean containsIdentical(List<RXSidebarItem> list, RXSidebarItem item) {
-        for (RXSidebarItem candidate : list) {
-            if (candidate == item) {
-                return true;
-            }
+        @Override
+        public CssMetaData<? extends Styleable, Number> getCssMetaData() {
+            return StyleableProperties.INDENT;
         }
-        return false;
+
+        @Override
+        public Object getBean() {
+            return RXSidebar.this;
+        }
+
+        @Override
+        public String getName() {
+            return "indent";
+        }
+    };
+
+    /**
+     * The distance each nesting level is indented by. A negative or non-finite
+     * value is treated as {@link #DEFAULT_INDENT}. Styleable as
+     * {@code -rx-indent}.
+     *
+     * @return the indent property
+     */
+    public final DoubleProperty indentProperty() {
+        return indent;
     }
 
-    // Invoked from selectedItem.invalidated(). Mirrors selectedItem -> group and
-    // keeps the invariant "exactly the selected item carries selected == true".
-    // Idempotent, so it costs nothing on the click path where the group has
-    // already done the same work.
-    private void onSelectedItemInvalidated() {
-        RXSidebarNavItem previous = previousSelection;
-        RXSidebarNavItem current = getSelectedItem();
-        previousSelection = current;
+    /**
+     * @return the indent per nesting level
+     */
+    public final double getIndent() {
+        return indent.get();
+    }
 
-        // The guard means "this control is writing to the group; ignore the echo".
-        // It is released before the property notifies application listeners, so a
-        // listener that re-selects is handled as a fresh write, not as an echo.
-        syncingSelection = true;
-        try {
-            if (previous != null && previous != current) {
-                // Deselecting a group member makes ToggleGroup clear its
-                // selectedToggle, which echoes back through our listener.
-                previous.setSelected(false);
-            }
-            if (current != null) {
-                // A member is adopted by the group, which also deselects any other
-                // member; a pending item just carries the flag until it is added,
-                // and the group adopts it then.
-                current.setSelected(true);
-            } else {
-                navGroup.selectToggle(null);
-            }
-        } finally {
-            syncingSelection = false;
-        }
+    /**
+     * @param value the indent per nesting level
+     */
+    public final void setIndent(double value) {
+        indent.set(value);
     }
 
     // ==================== PseudoClass ====================
@@ -618,6 +631,19 @@ public class RXSidebar extends Control {
                         return (StyleableProperty<Duration>) node.animationDurationProperty();
                     }
                 };
+        private static final CssMetaData<RXSidebar, Number> INDENT =
+                new CssMetaData<>("-rx-indent", SizeConverter.getInstance(), DEFAULT_INDENT) {
+                    @Override
+                    public boolean isSettable(RXSidebar node) {
+                        return !node.indent.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXSidebar node) {
+                        return (StyleableProperty<Number>) node.indentProperty();
+                    }
+                };
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -625,6 +651,7 @@ public class RXSidebar extends Control {
                     new ArrayList<>(Control.getClassCssMetaData());
             styleables.add(ANIMATED);
             styleables.add(ANIMATION_DURATION);
+            styleables.add(INDENT);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }

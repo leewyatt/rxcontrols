@@ -2831,21 +2831,18 @@
     -fx-background-color: transparent;
 }
 
-/* Items inherit the Modena .button / .toggle-button chrome; flatten it to a row. The
-   skin writes only the left padding (the icon column, following miniWidth) and the
-   content display (icon-only in MINI); an author padding wins but then owns the column. */
+/* The left edge of a row's content (icon column inset plus one indent per level) is
+   laid out by the skin, so this padding is only the top / right / bottom inset. */
 .rx-sidebar .item {
     -fx-background-color: transparent;
-    -rx-ripple-enabled: false;
-    -rx-ripple-state-overlay-enabled: false;
     -fx-background-radius: 6;
-    -fx-alignment: center-left;
-    -fx-content-display: left;
-    -fx-text-overrun: clip;
-    -fx-graphic-text-gap: 12;
+    -fx-padding: 0 12 0 0;
     -fx-min-height: 40;
     -fx-pref-height: 40;
-    -fx-max-width: infinity;
+}
+
+.rx-sidebar .item > .label {
+    -fx-text-fill: -rx-on-surface;
 }
 
 .rx-sidebar .item:hover {
@@ -2862,20 +2859,59 @@
     -fx-background-color: -fx-hover-base;
 }
 
-/* The text color is set alongside the tint: a theme's own toggle-button:selected
-   text color is meant for a solid accent fill and is unreadable on this one. */
 .rx-sidebar .item:selected {
     -fx-background-color: -rx-primary-bg;
-    -fx-text-fill: -rx-on-surface;
 }
 
-/* Opt-in icon class: the rail sizes it to the MINI column. max is pinned in CSS too,
-   since the icon belongs to the caller and MINI's icon-only display would stretch it. */
+.rx-sidebar .item:child-selected > .label {
+    -fx-text-fill: -rx-primary;
+}
+
+/* The bridge's -rx-primary is a fill color; its text counterpart is the accent foreground. */
+.rx-theme-atlantafx .rx-sidebar .item:child-selected > .label {
+    -fx-text-fill: -color-accent-fg;
+}
+
+.rx-sidebar .item:disabled {
+    -fx-opacity: 0.4;
+}
+
+/* Opt-in icon class: sized to the icon column. max is pinned in CSS too, since the
+   icon belongs to the caller. */
 .rx-sidebar .item > .graphic {
     -fx-pref-width: 24;
     -fx-pref-height: 24;
     -fx-max-width: 24;
     -fx-max-height: 24;
+}
+
+.rx-sidebar .item > .trailing > .label {
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.rx-sidebar .item > .disclosure > .arrow {
+    -fx-pref-width: 10;
+    -fx-pref-height: 6;
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-shape: "M0 1.2 L1.2 0 L5 3.8 L8.8 0 L10 1.2 L5 6.2 Z";
+}
+
+.rx-sidebar .item:expanded > .disclosure > .arrow {
+    -fx-rotate: 180;
+}
+
+.rx-sidebar .caption {
+    -fx-padding: 8 12 4 0;
+}
+
+.rx-sidebar .caption > .label {
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-font-size: 0.9em;
+}
+
+.rx-sidebar .separator {
+    -fx-pref-height: 1;
+    -fx-background-color: -rx-outline-variant;
 }
 
 /*******************************************************************************

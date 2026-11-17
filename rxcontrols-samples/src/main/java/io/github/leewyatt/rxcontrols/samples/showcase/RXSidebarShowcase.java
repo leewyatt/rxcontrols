@@ -2,8 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
-import io.github.leewyatt.rxcontrols.RXSidebarActionItem;
-import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
+import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSnackbars;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.animation.Interpolator;
@@ -80,21 +79,21 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         sidebar.setHeader(header);
 
         // Pinned-top band (stays put while the main band scrolls).
-        sidebar.getTopItems().add(new RXSidebarNavItem("Favorites", icon("favorites")));
+        sidebar.getTopItems().add(RXSidebarItem.of("Favorites", icon("favorites")));
 
-        RXSidebarNavItem dashboard = new RXSidebarNavItem("Dashboard", icon("dashboard"));
-        RXSidebarNavItem inbox = new RXSidebarNavItem("Inbox", icon("inbox"));
-        RXSidebarNavItem files = new RXSidebarNavItem("Files", icon("files"));
-        RXSidebarNavItem reports = new RXSidebarNavItem("Reports", icon("reports"));
+        RXSidebarItem dashboard = RXSidebarItem.of("Dashboard", icon("dashboard"));
+        RXSidebarItem inbox = RXSidebarItem.of("Inbox", icon("inbox"));
+        RXSidebarItem files = RXSidebarItem.of("Files", icon("files"));
+        RXSidebarItem reports = RXSidebarItem.of("Reports", icon("reports"));
         sidebar.getItems().addAll(dashboard, inbox, files, reports);
 
-        RXSidebarActionItem settings = new RXSidebarActionItem("Settings", icon("settings"));
         // An action item fires its command without touching the selection. The
         // feedback is a snackbar confined to the content area: the facade routes
         // to the nearest enclosing installed host, so an owner inside the content
         // area lands in its host rather than over the whole scene.
-        settings.setOnAction(event -> RXSnackbars.info(content, "Settings fired — selection unchanged."));
-        RXSidebarNavItem help = new RXSidebarNavItem("Help", icon("help"));
+        RXSidebarItem settings = RXSidebarItem.action("Settings", icon("settings"),
+                event -> RXSnackbars.info(content, "Settings fired — selection unchanged."));
+        RXSidebarItem help = RXSidebarItem.of("Help", icon("help"));
         sidebar.getBottomItems().addAll(settings, help);
 
         Label footer = new Label("v1.0");
@@ -106,7 +105,7 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         selectedLabel = new Label();
         selectedLabel.getStyleClass().add("selected-title");
         selectedLabel.textProperty().bind(Bindings.createStringBinding(() -> {
-            RXSidebarNavItem selected = sidebar.getSelectedItem();
+            RXSidebarItem selected = sidebar.getSelectedItem();
             return selected == null ? "Nothing selected" : selected.getText();
         }, sidebar.selectedItemProperty()));
 
@@ -194,7 +193,7 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         Label readout = new Label();
         readout.getStyleClass().add("readout-label");
         readout.textProperty().bind(Bindings.createStringBinding(() -> {
-            RXSidebarNavItem selected = sidebar.getSelectedItem();
+            RXSidebarItem selected = sidebar.getSelectedItem();
             return "selectedItem: " + (selected == null ? "null" : selected.getText());
         }, sidebar.selectedItemProperty()));
 
