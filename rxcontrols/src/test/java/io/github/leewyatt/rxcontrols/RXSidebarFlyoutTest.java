@@ -88,7 +88,7 @@ public class RXSidebarFlyoutTest {
             // The sidebar's row rules and color tokens reach into the flyout.
             assertEquals(34.0, pageRow.getHeight(), 0.5);
             Region panel = (Region) pageRow.getScene().getRoot().lookup(".rx-sidebar-flyout");
-            assertEquals(1, panel.getBackground().getFills().size());
+            assertEquals(2, panel.getBackground().getFills().size()); // outline and surface
 
             press(pageRow, KeyCode.ESCAPE);
             assertSame(sidebar.getScene(), pageRow.getScene());

@@ -2925,11 +2925,14 @@
     -fx-background-color: -fx-hover-base;
 }
 
+/* The outline layer is what sets the flyout off in a dark theme, where a
+   shadow does not show against the page. */
 .rx-sidebar-flyout {
-    -fx-background-color: -rx-surface;
-    -fx-background-radius: 8;
+    -fx-background-color: -rx-outline-variant, -rx-surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
     -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 4);
-    -fx-padding: 4;
+    -fx-padding: 5;
 }
 
 /* On the content rather than the flyout: the popup is placed by the flyout's
@@ -2938,9 +2941,15 @@
     -fx-min-width: 160;
 }
 
+/* Smaller than a row and ruled off from the rows below, so it does not read
+   as the first item; color alone does not set it apart in a dark theme. */
 .rx-sidebar-flyout > .title {
     -fx-text-fill: -rx-on-surface-secondary;
-    -fx-padding: 6 12 6 12;
+    -fx-font-size: 0.85em;
+    -fx-padding: 4 12 5 12;
+    -fx-border-color: transparent transparent -rx-outline-variant transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-border-insets: 0 0 4 0;
 }
 
 .rx-sidebar-flyout > .content,
