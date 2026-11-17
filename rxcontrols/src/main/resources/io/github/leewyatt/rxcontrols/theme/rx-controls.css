@@ -2812,6 +2812,7 @@
 
 .rx-sidebar {
     -fx-background-color: -fx-base;
+    -rx-ripple-fill: -rx-state-overlay-color;
 }
 
 /* Under the AtlantaFX bridge -fx-base is the page background, so the rail would merge
@@ -2823,32 +2824,52 @@
     -fx-pressed-base: ladder(-rx-surface-variant, derive(-rx-surface-variant, 25%) 49%, derive(-rx-surface-variant, -10%) 50%);
 }
 
+.rx-sidebar > .container > .top {
+    -fx-padding: 0 0 10 0;
+}
+
+.rx-sidebar > .container > .bottom {
+    -fx-padding: 10 0 0 0;
+}
+
 .rx-sidebar > .container > .content {
     -fx-background-color: transparent;
+    -fx-padding: 0;
 }
 
 .rx-sidebar > .container > .content > .viewport {
     -fx-background-color: transparent;
 }
 
-/* Items inherit the Modena .button / .toggle-button chrome; flatten it to a row. The
-   skin writes only the left padding (the icon column, following miniWidth) and the
-   content display (icon-only in MINI); an author padding wins but then owns the column. */
+.rx-sidebar > .container > .content .placeholder {
+    -fx-padding: 24 12 24 12;
+}
+
+.rx-sidebar > .container > .content .placeholder > .label {
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+/* The left edge of a row's content (icon column inset plus one indent per level) is
+   laid out by the skin, so this padding is only the top / right / bottom inset. A row
+   is as tall as its content plus this padding. */
 .rx-sidebar .item {
     -fx-background-color: transparent;
-    -rx-ripple-enabled: false;
-    -rx-ripple-state-overlay-enabled: false;
     -fx-background-radius: 6;
-    -fx-alignment: center-left;
-    -fx-content-display: left;
-    -fx-text-overrun: clip;
-    -fx-graphic-text-gap: 12;
-    -fx-min-height: 40;
-    -fx-pref-height: 40;
-    -fx-max-width: infinity;
+    -fx-padding: 0.667em 12 0.667em 0;
+}
+
+.rx-sidebar .item > .label {
+    -fx-text-fill: -rx-on-surface;
 }
 
 .rx-sidebar .item:hover {
+    -fx-background-color: -fx-hover-base;
+}
+
+/* Same specificity, so the order decides: a pressed item holds focus too, and a
+   selected one keeps its accent fill under both. :armed is set only while the
+   ripple is off; with it on, the ripple is the press feedback. */
+.rx-sidebar .item:focused {
     -fx-background-color: -fx-hover-base;
 }
 
@@ -2856,26 +2877,114 @@
     -fx-background-color: -fx-pressed-base;
 }
 
-/* Same specificity, so :selected comes after :focused: a selected item that also
-   holds focus keeps its accent fill. */
-.rx-sidebar .item:focused {
+.rx-sidebar .item:selected {
+    -fx-background-color: -rx-primary-bg;
+}
+
+.rx-sidebar .item:child-selected > .label {
+    -fx-text-fill: -rx-primary;
+}
+
+/* The bridge's -rx-primary is a fill color; its text counterpart is the accent foreground. */
+.rx-theme-atlantafx .rx-sidebar .item:child-selected > .label {
+    -fx-text-fill: -color-accent-fg;
+}
+
+.rx-sidebar .item:disabled {
+    -fx-opacity: 0.4;
+}
+
+/* Opt-in icon class. max is pinned in CSS too, since the icon belongs to the caller. */
+.rx-sidebar .item > .graphic {
+    -fx-pref-width: 16;
+    -fx-pref-height: 16;
+    -fx-max-width: 16;
+    -fx-max-height: 16;
+}
+
+.rx-sidebar .item > .trailing > .label {
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.rx-sidebar .item > .disclosure > .arrow {
+    -fx-pref-width: 10;
+    -fx-pref-height: 6;
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-shape: "M0 1.2 L1.2 0 L5 3.8 L8.8 0 L10 1.2 L5 6.2 Z";
+}
+
+.rx-sidebar .item:expanded > .disclosure > .arrow {
+    -fx-rotate: 180;
+}
+
+/* Child paths, so the rule stops at the sidebar's own rows: the rows in a flyout
+   also descend from the container, through the row their popup hangs off. */
+.rx-sidebar:mini > .container > .section > .item:child-selected,
+.rx-sidebar:mini > .container > .content > .viewport > * > .section > .item:child-selected {
+    -fx-background-color: -rx-primary-bg;
+}
+
+.rx-sidebar .item:showing {
     -fx-background-color: -fx-hover-base;
 }
 
-/* The text color is set alongside the tint: a theme's own toggle-button:selected
-   text color is meant for a solid accent fill and is unreadable on this one. */
-.rx-sidebar .item:selected {
-    -fx-background-color: -rx-primary-bg;
-    -fx-text-fill: -rx-on-surface;
+/* The outline layer is what sets the flyout off in a dark theme, where a
+   shadow does not show against the page. */
+.rx-sidebar-flyout {
+    -fx-background-color: -rx-outline-variant, -rx-surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8, 7;
+    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 4);
+    -fx-padding: 5;
 }
 
-/* Opt-in icon class: the rail sizes it to the MINI column. max is pinned in CSS too,
-   since the icon belongs to the caller and MINI's icon-only display would stretch it. */
-.rx-sidebar .item > .graphic {
-    -fx-pref-width: 24;
-    -fx-pref-height: 24;
-    -fx-max-width: 24;
-    -fx-max-height: 24;
+/* On the content rather than the flyout: the popup is placed by the flyout's
+   preferred width, which only a child's minimum feeds into. */
+.rx-sidebar-flyout > .content {
+    -fx-min-width: 160;
+}
+
+/* Smaller than a row and ruled off from the rows below, so it does not read
+   as the first item; color alone does not set it apart in a dark theme. */
+.rx-sidebar-flyout > .title {
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-font-size: 0.85em;
+    -fx-padding: 4 12 5 12;
+    -fx-border-color: transparent transparent -rx-outline-variant transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-border-insets: 0 0 4 0;
+}
+
+.rx-sidebar-flyout > .content,
+.rx-sidebar-flyout > .content > .viewport {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.rx-sidebar-flyout .item {
+    -fx-padding: 0.667em 12 0.667em 12;
+}
+
+.rx-sidebar-flyout .item > .disclosure > .arrow {
+    -fx-rotate: -90;
+}
+
+.rx-sidebar .caption {
+    -fx-padding: 8 12 4 0;
+}
+
+.rx-sidebar-flyout .caption {
+    -fx-padding: 8 12 4 12;
+}
+
+.rx-sidebar .caption > .label {
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-font-size: 0.9em;
+}
+
+.rx-sidebar .separator {
+    -fx-pref-height: 1;
+    -fx-background-color: -rx-outline-variant;
 }
 
 /*******************************************************************************

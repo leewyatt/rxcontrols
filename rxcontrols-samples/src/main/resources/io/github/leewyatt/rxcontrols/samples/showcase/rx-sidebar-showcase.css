@@ -1,5 +1,5 @@
-/* Showcase-only styling for RXSidebar: the app frame, the demo content area,
-   and the shape-backed item / brand icons. The sidebar's own chrome comes from
+/* Showcase-only styling for RXSidebar: the app frame, the demo page, and the
+   shape-backed item / header icons. The sidebar's own chrome comes from
    the library user-agent stylesheet (rx-controls.css). */
 
 .app-frame {
@@ -9,24 +9,46 @@
 }
 
 .content-area {
-    -fx-padding: 24;
+    -fx-padding: 24 24 24 24;
+    -fx-spacing: 6;
     -fx-background-color: -fx-background;
 }
 
-.content-area > .selected-title {
-    -fx-font-size: 26px;
+.content-area > .page-path {
+    -fx-text-fill: -showcase-caption-color;
+    -fx-font-size: 12px;
+}
+
+.content-area > .page-title {
+    -fx-font-size: 24px;
     -fx-font-weight: bold;
     -fx-text-fill: -fx-text-base-color;
 }
 
-.content-area > .status-label {
-    -fx-text-fill: derive(-fx-text-base-color, 35%);
-    -fx-max-width: 320;
+.content-area > .page-description {
+    -fx-text-fill: -showcase-caption-color;
+    -fx-font-size: 13px;
 }
 
-/* Dividers between the header / footer slots and the item body. Kept in the
-   showcase: the skin keeps both slots in the layout even when empty, so a
-   library default would draw a stray line on a sidebar without a header. */
+.content-area > .tips-card {
+    -fx-padding: 14 16 14 16;
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.content-area > .tips-card > .tips-title {
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-accent;
+}
+
+.content-area > .tips-card > .tip > .dot {
+    -fx-pref-width: 4;
+    -fx-pref-height: 4;
+    -fx-background-radius: 50%;
+    -fx-background-color: -showcase-caption-color;
+}
+
 .rx-sidebar > .container > .header {
     -fx-border-color: transparent transparent -rx-outline-variant transparent;
     -fx-border-width: 0 0 1px 0;
@@ -35,24 +57,17 @@
 .rx-sidebar > .container > .footer {
     -fx-border-color: -rx-outline-variant transparent transparent transparent;
     -fx-border-width: 1px 0 0 0;
+    -fx-padding: 12 12 12 12;
 }
 
-/* Header collapse toggle. Its left edge is nudged to sit under the item icon
-   column at the DEFAULT mini width (header padding 12 + button padding 8 = 20 =
-   (64 - 24) / 2). The rail centres the column on miniWidth, so at other mini
-   widths this fixed 20 no longer lines up — the column inset is the skin's own
-   geometry and a header has no handle on it. Fine for a fixed-width demo. */
-.rx-sidebar > .container > .header > .brand {
-    -fx-padding: 6 0 6 12;
-}
-
-/* Scoped to the sidebar header, and named to avoid modena's own .menu-button
-   (which would drag MenuButton chrome onto this plain Button, and which an
-   unscoped rule here would in turn pull onto any real MenuButton in the scene). */
 .rx-sidebar > .container > .header .collapse-button {
     -fx-background-color: transparent;
+    -fx-background-insets: 0;
     -fx-background-radius: 6;
-    -fx-padding: 8;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-effect: null;
+    -fx-padding: 10 12 10 13;
     -fx-cursor: hand;
 }
 
@@ -64,27 +79,70 @@
     -fx-background-color: -fx-pressed-base;
 }
 
-.rx-sidebar > .container > .header .collapse-button > .graphic {
-    -fx-pref-width: 24;
-    -fx-pref-height: 24;
-    -fx-background-color: derive(-fx-text-base-color, 15%);
-    -fx-shape: "M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"; /* chevron-left = collapse */
+.rx-sidebar > .container > .header .collapse-button > .chevron {
+    -fx-pref-width: 7;
+    -fx-pref-height: 12;
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-shape: "M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z";
 }
 
-/* MINI: flip the chevron to point right (= expand). */
-.rx-sidebar:mini > .container > .header .collapse-button > .graphic {
+.rx-sidebar:mini > .container > .header .collapse-button > .chevron {
     -fx-rotate: 180;
 }
 
-.rx-sidebar .footer .version {
-    -fx-text-fill: derive(-fx-text-base-color, 40%);
+.rx-sidebar > .container > .header .search .slot-icon {
+    -fx-padding: 0 4 0 10;
+}
+
+.rx-sidebar > .container > .header .search .slot-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-effect: null;
+    -fx-padding: 0 10 0 8;
+    -fx-cursor: hand;
+}
+
+.rx-sidebar > .container > .header .search .glyph {
+    -fx-background-color: -rx-on-surface-secondary;
+}
+
+.rx-sidebar > .container > .header .search .slot-button:hover .glyph {
+    -fx-background-color: -rx-on-surface;
+}
+
+.rx-sidebar > .container > .header .search .search-glyph {
+    -fx-pref-width: 14;
+    -fx-pref-height: 14;
+    -fx-shape: "M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.012 1.012 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z";
+}
+
+.rx-sidebar > .container > .header .search .clear-glyph {
+    -fx-pref-width: 9;
+    -fx-pref-height: 9;
+    -fx-shape: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z";
+}
+
+.rx-sidebar > .container > .header .search {
+    -fx-pref-height: 32;
+}
+
+.rx-sidebar > .container > .footer .footer-text {
+    -fx-text-fill: -rx-on-surface-secondary;
     -fx-font-size: 11px;
 }
 
-/* Item icon fills: the size (24x24) comes from rx-controls.css; here we add the
-   per-item shape and a shared colour. */
+.rx-sidebar .item .count {
+    -fx-padding: 0 7 0 7;
+    -fx-background-radius: 999;
+    -fx-background-color: -rx-outline-variant;
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-font-size: 11px;
+}
+
 .rx-sidebar .item > .graphic {
-    -fx-background-color: derive(-fx-text-base-color, 25%);
+    -fx-background-color: -rx-on-surface-secondary;
 }
 
 .rx-sidebar .item:selected > .graphic {
@@ -111,8 +169,12 @@
     -fx-shape: "M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z";
 }
 
-.rx-sidebar .item > .graphic.settings {
-    -fx-shape: "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z";
+.rx-sidebar .item > .graphic.archive {
+    -fx-shape: "M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z";
+}
+
+.rx-sidebar .item > .graphic.about {
+    -fx-shape: "M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z";
 }
 
 .rx-sidebar .item > .graphic.help {

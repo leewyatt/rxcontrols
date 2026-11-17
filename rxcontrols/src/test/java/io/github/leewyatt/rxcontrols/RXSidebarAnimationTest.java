@@ -1,11 +1,11 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
+import io.github.leewyatt.rxcontrols.RXSidebar.Mode;
 import io.github.leewyatt.rxcontrols.skins.RXSidebarSkin;
-import javafx.application.Platform;
+import javafx.animation.AnimationTimer;
 import javafx.beans.property.DoubleProperty;
+import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.ContentDisplay;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.util.Duration;
@@ -17,17 +17,20 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static io.github.leewyatt.rxcontrols.SidebarTestSupport.runOnFx;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for the width-animation: the single {@code expansionFraction}
- * Timeline animates the rail width to its target, instant snap when animation is
- * disabled or the duration is illegal, mid-flight reversal converges, rapid
- * toggles are stable, and dispose stops the Timeline.
+ * Tests for the animations of {@link RXSidebar}: the width transition between
+ * the modes (reaching its target, snapping when animation is off or the
+ * duration is illegal, reversal midway, rapid toggles, dispose), the height
+ * animation of a group, when row text is hidden and shown around a
+ * transition, and what happens to focus inside a group that folds away.
  */
 public class RXSidebarAnimationTest {
 
@@ -36,15 +39,7 @@ public class RXSidebarAnimationTest {
 
     @BeforeAll
     public static void startToolkit() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        try {
-            Platform.startup(latch::countDown);
-        } catch (IllegalStateException ex) {
-            latch.countDown();
-        }
-        if (!latch.await(5, TimeUnit.SECONDS)) {
-            throw new AssertionError("JavaFX toolkit did not start");
-        }
+        SidebarTestSupport.startToolkit();
     }
 
     // The animated quantity is the skin's expansionFraction (0 = MINI, 1 = EXPANDED);
@@ -73,7 +68,7 @@ public class RXSidebarAnimationTest {
                     arrived.countDown();
                 }
             });
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
             assertEquals(1.0, fraction.get(), EPSILON); // in flight, not snapped
             ref.set(fraction);
         });
@@ -93,7 +88,7 @@ public class RXSidebarAnimationTest {
             RXSidebar sidebar = laidOut(new RXSidebar(), Duration.millis(60.0));
             DoubleProperty fraction = fractionOf(sidebar);
             sidebar.setAnimated(false);
-            sidebar.setMode(SidebarMode.MINI);   // instant to mini
+            sidebar.setMode(Mode.MINI);   // instant to mini
             assertEquals(0.0, fraction.get(), EPSILON);
             sidebar.setAnimated(true);
             fraction.addListener((o, ov, nv) -> {
@@ -101,7 +96,7 @@ public class RXSidebarAnimationTest {
                     arrived.countDown();
                 }
             });
-            sidebar.setMode(SidebarMode.EXPANDED); // animate to expanded
+            sidebar.setMode(Mode.EXPANDED); // animate to expanded
             ref.set(fraction);
         });
         assertTrue(arrived.await(3, TimeUnit.SECONDS), "fraction animates to 1 (expanded)");
@@ -131,10 +126,10 @@ public class RXSidebarAnimationTest {
             });
             sidebarRef.set(sidebar);
             fractionRef.set(fraction);
-            sidebar.setMode(SidebarMode.MINI); // start collapsing
+            sidebar.setMode(Mode.MINI); // start collapsing
         });
         assertTrue(midway.await(3, TimeUnit.SECONDS), "collapse animation is under way");
-        runOnFx(() -> sidebarRef.get().setMode(SidebarMode.EXPANDED)); // reverse mid-flight
+        runOnFx(() -> sidebarRef.get().setMode(Mode.EXPANDED)); // reverse mid-flight
         assertTrue(backToExpanded.await(3, TimeUnit.SECONDS), "reversal converges back to expanded");
         runOnFx(() -> assertEquals(1.0, fractionRef.get().get(), EPSILON));
     }
@@ -151,8 +146,8 @@ public class RXSidebarAnimationTest {
             RXSidebar sidebar = laidOut(new RXSidebar(), Duration.millis(80.0));
             DoubleProperty fraction = fractionOf(sidebar);
             for (int i = 0; i < 20; i++) {
-                sidebar.setMode(SidebarMode.EXPANDED);
-                sidebar.setMode(SidebarMode.MINI);
+                sidebar.setMode(Mode.EXPANDED);
+                sidebar.setMode(Mode.MINI);
             }
             // Latest committed mode is MINI; the surviving Timeline converges there.
             fraction.addListener((o, ov, nv) -> {
@@ -174,7 +169,7 @@ public class RXSidebarAnimationTest {
         runOnFx(() -> {
             RXSidebar sidebar = laidOut(new RXSidebar(), Duration.millis(200.0));
             sidebar.setAnimated(false);
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
             assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, sidebar.prefWidth(-1), WIDTH_TOLERANCE);
         });
     }
@@ -186,15 +181,15 @@ public class RXSidebarAnimationTest {
     public void illegalDurationSnapsInstantly() throws Exception {
         runOnFx(() -> {
             RXSidebar zero = laidOut(new RXSidebar(), Duration.ZERO);
-            zero.setMode(SidebarMode.MINI);
+            zero.setMode(Mode.MINI);
             assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, zero.prefWidth(-1), WIDTH_TOLERANCE);
 
             RXSidebar nullDuration = laidOut(new RXSidebar(), null);
-            nullDuration.setMode(SidebarMode.MINI);
+            nullDuration.setMode(Mode.MINI);
             assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, nullDuration.prefWidth(-1), WIDTH_TOLERANCE);
 
             RXSidebar negative = laidOut(new RXSidebar(), Duration.millis(-10.0));
-            negative.setMode(SidebarMode.MINI);
+            negative.setMode(Mode.MINI);
             assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, negative.prefWidth(-1), WIDTH_TOLERANCE);
         });
     }
@@ -212,7 +207,7 @@ public class RXSidebarAnimationTest {
             host.layout();
 
             host.getChildren().remove(sidebar); // detach: getScene() == null
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
             assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, sidebar.prefWidth(-1), WIDTH_TOLERANCE);
         });
     }
@@ -225,7 +220,7 @@ public class RXSidebarAnimationTest {
         runOnFx(() -> {
             RXSidebar sidebar = laidOut(new RXSidebar(), Duration.millis(500.0));
             RXSidebarSkin skin = (RXSidebarSkin) sidebar.getSkin();
-            sidebar.setMode(SidebarMode.MINI); // starts the Timeline (scene attached, animated)
+            sidebar.setMode(Mode.MINI); // starts the Timeline (scene attached, animated)
 
             try {
                 Field animation = RXSidebarSkin.class.getDeclaredField("animation");
@@ -240,36 +235,33 @@ public class RXSidebarAnimationTest {
     }
 
     /**
-     * Content display converges across animated transitions: during the tween every
-     * item is ContentDisplay.LEFT (text wipes/reveals via CLIP), and finalizeMini
-     * settles MINI to GRAPHIC_ONLY; a finished-then-restarted expand settles to LEFT.
+     * The text stays on display while the width is in transition and is hidden
+     * only once the sidebar rests in MINI.
      */
     @Test
-    public void contentDisplayConvergesAcrossAnimatedTransitions() throws Exception {
+    public void textIsHiddenOnlyOnceSettledInMini() throws Exception {
         AtomicReference<RXSidebar> sidebarRef = new AtomicReference<>();
-        AtomicReference<RXSidebarNavItem> itemRef = new AtomicReference<>();
+        AtomicReference<Node> labelRef = new AtomicReference<>();
         AtomicReference<DoubleProperty> fractionRef = new AtomicReference<>();
         CountDownLatch atMini = new CountDownLatch(1);
         runOnFx(() -> {
             RXSidebar sidebar = laidOut(new RXSidebar(), Duration.millis(60.0));
             DoubleProperty fraction = fractionOf(sidebar);
-            RXSidebarNavItem item = (RXSidebarNavItem) sidebar.getItems().get(0);
+            Node label = sidebar.lookup(".item > .label");
             fraction.addListener((o, ov, nv) -> {
                 if (nv.doubleValue() == 0.0) {
                     atMini.countDown();
                 }
             });
-            sidebar.setMode(SidebarMode.MINI);
-            assertSame(ContentDisplay.LEFT, item.getContentDisplay()); // LEFT during the tween
+            sidebar.setMode(Mode.MINI);
+            assertTrue(label.isVisible());
             sidebarRef.set(sidebar);
-            itemRef.set(item);
+            labelRef.set(label);
             fractionRef.set(fraction);
         });
         assertTrue(atMini.await(3, TimeUnit.SECONDS), "animated collapse reaches mini");
-        // finalizeMini settled the steady state to GRAPHIC_ONLY.
-        runOnFx(() -> assertSame(ContentDisplay.GRAPHIC_ONLY, itemRef.get().getContentDisplay()));
+        runOnFx(() -> assertFalse(labelRef.get().isVisible()));
 
-        // A finished-then-restarted animated expand converges back to LEFT.
         CountDownLatch atExpanded = new CountDownLatch(1);
         runOnFx(() -> {
             fractionRef.get().addListener((o, ov, nv) -> {
@@ -277,11 +269,115 @@ public class RXSidebarAnimationTest {
                     atExpanded.countDown();
                 }
             });
-            sidebarRef.get().setMode(SidebarMode.EXPANDED);
-            assertSame(ContentDisplay.LEFT, itemRef.get().getContentDisplay()); // LEFT during expand tween
+            sidebarRef.get().setMode(Mode.EXPANDED);
+            assertTrue(labelRef.get().isVisible());
         });
         assertTrue(atExpanded.await(3, TimeUnit.SECONDS), "animated expand reaches expanded");
-        runOnFx(() -> assertSame(ContentDisplay.LEFT, itemRef.get().getContentDisplay()));
+        runOnFx(() -> assertTrue(labelRef.get().isVisible()));
+    }
+
+    /**
+     * Expanding a group grows its child rows' viewport from zero to their
+     * natural height; collapsing keeps it in the layout until it has shrunk.
+     */
+    @Test
+    public void groupHeightAnimatesOpenAndClosed() throws Exception {
+        AtomicReference<RXSidebarItem> groupRef = new AtomicReference<>();
+        AtomicReference<Region> paneRef = new AtomicReference<>();
+        CountDownLatch opened = new CountDownLatch(1);
+        CountDownLatch closed = new CountDownLatch(1);
+        runOnFx(() -> {
+            RXSidebar sidebar = laidOut(new RXSidebar(), Duration.millis(80.0));
+            RXSidebarItem group = RXSidebarItem.group("Group", null, RXSidebarItem.of("Child"));
+            sidebar.getItems().add(group);
+            SidebarTestSupport.layout(sidebar.getScene()); // the new rows measure 0 until styled
+            Region pane = (Region) sidebar.lookup(".children");
+            assertFalse(pane.isManaged());
+
+            pane.managedProperty().addListener((o, ov, managed) -> {
+                if (!managed) {
+                    closed.countDown();
+                }
+            });
+            group.setExpanded(true);
+            assertTrue(pane.isManaged());
+            assertEquals(0.0, pane.prefHeight(-1), EPSILON); // in flight, not snapped
+            new AnimationTimer() {
+                @Override
+                public void handle(long now) {
+                    if (pane.prefHeight(-1) >= 15.0) {
+                        stop();
+                        opened.countDown();
+                    }
+                }
+            }.start();
+            groupRef.set(group);
+            paneRef.set(pane);
+        });
+        assertTrue(opened.await(3, TimeUnit.SECONDS), "the viewport grows to the child row's height");
+        runOnFx(() -> {
+            groupRef.get().setExpanded(false);
+            assertTrue(paneRef.get().isManaged()); // still shrinking
+        });
+        assertTrue(closed.await(3, TimeUnit.SECONDS), "the viewport leaves the layout once closed");
+    }
+
+    /**
+     * Focus that is in, or moves into, the rows of a group while it folds away
+     * ends up on the group's row.
+     */
+    @Test
+    public void focusLeavesAGroupThatFoldsAway() throws Exception {
+        AtomicReference<Scene> sceneRef = new AtomicReference<>();
+        AtomicReference<Region> groupRowRef = new AtomicReference<>();
+        CountDownLatch closed = new CountDownLatch(1);
+        runOnFx(() -> {
+            RXSidebar sidebar = laidOut(new RXSidebar(), Duration.millis(80.0));
+            RXSidebarItem first = RXSidebarItem.of("First");
+            RXSidebarItem second = RXSidebarItem.of("Second");
+            RXSidebarItem group = RXSidebarItem.group("Group", null, first, second);
+            group.setExpanded(true);
+            sidebar.getItems().add(group);
+            SidebarTestSupport.layout(sidebar.getScene());
+            Region groupRow = SidebarTestSupport.row(sidebar, group);
+            Region pane = (Region) sidebar.lookup(".children");
+            pane.managedProperty().addListener((o, ov, managed) -> {
+                if (!managed) {
+                    closed.countDown();
+                }
+            });
+
+            SidebarTestSupport.row(sidebar, first).requestFocus();
+            group.setExpanded(false);
+            assertSame(groupRow, sidebar.getScene().getFocusOwner());
+            assertTrue(pane.isManaged());
+
+            SidebarTestSupport.row(sidebar, second).requestFocus(); // still on display
+            sceneRef.set(sidebar.getScene());
+            groupRowRef.set(groupRow);
+        });
+        assertTrue(closed.await(3, TimeUnit.SECONDS), "the group finishes folding away");
+        runOnFx(() -> assertSame(groupRowRef.get(), sceneRef.get().getFocusOwner()));
+    }
+
+    /**
+     * With animation off a group opens and closes at once.
+     */
+    @Test
+    public void groupSnapsWhenNotAnimated() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = laidOut(new RXSidebar(), Duration.millis(80.0));
+            sidebar.setAnimated(false);
+            RXSidebarItem group = RXSidebarItem.group("Group", null, RXSidebarItem.of("Child"));
+            sidebar.getItems().add(group);
+            SidebarTestSupport.layout(sidebar.getScene()); // the new rows measure 0 until styled
+            Region pane = (Region) sidebar.lookup(".children");
+
+            group.setExpanded(true);
+            assertTrue(pane.prefHeight(-1) >= 15.0);
+            group.setExpanded(false);
+            assertFalse(pane.isManaged());
+        });
     }
 
     // ==================== Helpers ====================
@@ -303,39 +399,11 @@ public class RXSidebarAnimationTest {
         Region icon = new Region();
         icon.getStyleClass().add("graphic");
         icon.setPrefSize(24.0, 24.0);
-        sidebar.getItems().add(new RXSidebarNavItem("Item", icon));
+        sidebar.getItems().add(RXSidebarItem.of("Item", icon));
         Pane host = new Pane(sidebar);
         new Scene(host, 400, 600);
         host.applyCss();
         host.layout();
         return sidebar;
-    }
-
-    private static void runOnFx(Runnable action) throws Exception {
-        if (Platform.isFxApplicationThread()) {
-            action.run();
-            return;
-        }
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicReference<Throwable> failure = new AtomicReference<>();
-        Platform.runLater(() -> {
-            try {
-                action.run();
-            } catch (Throwable ex) {
-                failure.set(ex);
-            } finally {
-                latch.countDown();
-            }
-        });
-        if (!latch.await(10, TimeUnit.SECONDS)) {
-            throw new AssertionError("FX action timed out");
-        }
-        Throwable ex = failure.get();
-        if (ex instanceof Exception) {
-            throw (Exception) ex;
-        }
-        if (ex != null) {
-            throw new AssertionError(ex);
-        }
     }
 }

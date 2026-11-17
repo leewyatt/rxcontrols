@@ -94,9 +94,7 @@ import io.github.leewyatt.rxcontrols.RXSegmentedProgressBar;
 import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
 import io.github.leewyatt.rxcontrols.RXSelectionBox;
 import io.github.leewyatt.rxcontrols.RXSidebar;
-import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
-import io.github.leewyatt.rxcontrols.RXSidebarActionItem;
-import io.github.leewyatt.rxcontrols.RXSidebarNavItem;
+import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSkeleton;
 import io.github.leewyatt.rxcontrols.RXSkeletonPane;
 import io.github.leewyatt.rxcontrols.RXSlider;
@@ -1202,26 +1200,26 @@ final class ThemeGalleryCards {
     }
 
     private static Node buildRXSidebar() {
-        RXSidebar expanded = createSidebar(SidebarMode.EXPANDED);
-        RXSidebar mini = createSidebar(SidebarMode.MINI);
+        RXSidebar expanded = createSidebar(RXSidebar.Mode.EXPANDED);
+        RXSidebar mini = createSidebar(RXSidebar.Mode.MINI);
         HBox box = new HBox(24.0, expanded, mini);
         box.setAlignment(Pos.CENTER);
         box.setPrefHeight(460.0);
         return box;
     }
 
-    private static RXSidebar createSidebar(SidebarMode mode) {
+    private static RXSidebar createSidebar(RXSidebar.Mode mode) {
         RXSidebar sidebar = new RXSidebar();
-        Label header = new Label(mode == SidebarMode.MINI ? "RX" : "RX App");
+        Label header = new Label(mode == RXSidebar.Mode.MINI ? "RX" : "RX App");
         header.setStyle("-fx-font-weight: bold; -fx-padding: 4 8;");
         sidebar.setHeader(header);
-        RXSidebarNavItem dashboard = new RXSidebarNavItem("Dashboard", new Circle(8, Color.web("#5b8def")));
-        RXSidebarNavItem inbox = new RXSidebarNavItem("Inbox", new Circle(8, Color.web("#3ec79b")));
-        RXSidebarNavItem files = new RXSidebarNavItem("Files", new Circle(8, Color.web("#f2a73b")));
-        sidebar.getTopItems().add(new RXSidebarNavItem("Favorites", new Circle(8, Color.web("#e25c5c"))));
+        RXSidebarItem dashboard = RXSidebarItem.of("Dashboard", new Circle(8, Color.web("#5b8def")));
+        RXSidebarItem inbox = RXSidebarItem.of("Inbox", new Circle(8, Color.web("#3ec79b")));
+        RXSidebarItem files = RXSidebarItem.of("Files", new Circle(8, Color.web("#f2a73b")));
+        sidebar.getTopItems().add(RXSidebarItem.of("Favorites", new Circle(8, Color.web("#e25c5c"))));
         sidebar.getItems().addAll(dashboard, inbox, files);
-        RXSidebarActionItem settings = new RXSidebarActionItem("Settings", new Circle(8, Color.web("#9b8cff")));
-        sidebar.getBottomItems().addAll(settings, new RXSidebarNavItem("Help", new Circle(8, Color.web("#8a8f99"))));
+        RXSidebarItem settings = RXSidebarItem.action("Settings", new Circle(8, Color.web("#9b8cff")), null);
+        sidebar.getBottomItems().addAll(settings, RXSidebarItem.of("Help", new Circle(8, Color.web("#8a8f99"))));
         sidebar.setFooter(new Label("v1.0"));
         sidebar.selectItem(dashboard);
         sidebar.setExpandedWidth(220.0);
