@@ -14,6 +14,8 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -48,11 +50,15 @@ public final class SidebarTestSupport {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<Throwable> failure = new AtomicReference<>();
         Platform.runLater(() -> {
+            ListenerFailures listenerFailures = new ListenerFailures();
+            listenerFailures.watch();
             try {
                 action.run();
+                listenerFailures.verify();
             } catch (Throwable ex) {
                 failure.set(ex);
             } finally {
+                listenerFailures.release();
                 latch.countDown();
             }
         });
@@ -60,11 +66,45 @@ public final class SidebarTestSupport {
             throw new AssertionError("FX action timed out");
         }
         Throwable ex = failure.get();
-        if (ex instanceof Exception) {
-            throw (Exception) ex;
+        if (ex instanceof Exception exception) {
+            throw exception;
         }
-        if (ex != null) {
-            throw new AssertionError(ex);
+        if (ex instanceof Error error) {
+            throw error;
+        }
+    }
+
+    /**
+     * Catches what listeners throw on the calling thread. JavaFX hands such an
+     * exception to the thread's uncaught-exception handler instead of the
+     * caller, so without this a failing listener goes unnoticed by a test.
+     */
+    public static final class ListenerFailures {
+
+        private final List<Throwable> failures = new ArrayList<>();
+        private Thread thread;
+        private Thread.UncaughtExceptionHandler previous;
+
+        /** Starts collecting on the calling thread. */
+        public void watch() {
+            thread = Thread.currentThread();
+            previous = thread.getUncaughtExceptionHandler();
+            thread.setUncaughtExceptionHandler((source, failure) -> failures.add(failure));
+        }
+
+        /** Fails when a listener has thrown since {@link #watch()}. */
+        public void verify() {
+            if (!failures.isEmpty()) {
+                throw new AssertionError("a listener threw", failures.get(0));
+            }
+        }
+
+        /** Stops collecting and restores the thread's handler. */
+        public void release() {
+            if (thread != null) {
+                thread.setUncaughtExceptionHandler(previous);
+                thread = null;
+            }
         }
     }
 

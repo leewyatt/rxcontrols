@@ -43,8 +43,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for {@code RXSidebarSkin}: the container tree and the rows it builds
  * for the item tree, the locked width, the zero-jump icon column and the
- * per-level indent, the header / footer slots, and what happens to the
- * caller's graphic nodes on skin replacement and dispose.
+ * per-level indent, the header / footer slots, what happens to the caller's
+ * graphic nodes on skin replacement and dispose, which rows a filter leaves
+ * on display, the placeholder, and the room the pinned bands take.
  */
 public class RXSidebarSkinTest {
 
@@ -363,6 +364,7 @@ public class RXSidebarSkinTest {
             sidebar.getItems().add(item);
             host(sidebar);
             RXSidebarSkin skin = (RXSidebarSkin) sidebar.getSkin();
+            Region released = row(sidebar, item);
 
             sidebar.setSkin(null);
             assertNull(icon.getParent());
@@ -370,8 +372,11 @@ public class RXSidebarSkinTest {
             assertTrue(sidebar.getChildrenUnmodifiable().isEmpty());
             assertDoesNotThrow(skin::dispose);
 
-            assertDoesNotThrow(() -> item.setText("Renamed"));
-            assertDoesNotThrow(() -> sidebar.getItems().add(RXSidebarItem.of("More")));
+            // The disposed skin no longer follows the model.
+            item.setText("Renamed");
+            assertEquals("Item", label(released).getText());
+            sidebar.getItems().add(RXSidebarItem.of("More"));
+            assertTrue(sidebar.getChildrenUnmodifiable().isEmpty());
         });
     }
 

@@ -2,7 +2,9 @@ package io.github.leewyatt.rxcontrols;
 
 import javafx.collections.FXCollections;
 import javafx.scene.layout.Region;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Comparator;
@@ -22,9 +24,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class RXSidebarItemTest {
 
+    private final SidebarTestSupport.ListenerFailures listenerFailures = new SidebarTestSupport.ListenerFailures();
+
     @BeforeAll
     public static void startToolkit() throws InterruptedException {
         SidebarTestSupport.startToolkit();
+    }
+
+    @BeforeEach
+    public void watchListeners() {
+        listenerFailures.watch();
+    }
+
+    @AfterEach
+    public void verifyListeners() {
+        listenerFailures.release();
+        listenerFailures.verify();
     }
 
     /**
@@ -142,6 +157,51 @@ public class RXSidebarItemTest {
                 () -> sidebar.getItems().setAll(fresh, RXSidebarItem.of("X"), fresh));
         assertEquals(List.of(held), sidebar.getItems());
         assertSame(sidebar, held.getSidebar());
+    }
+
+    /**
+     * An item replaced through set or left out by setAll loses its owner; the
+     * items the call keeps do not.
+     */
+    @Test
+    public void replacedItemsLoseTheirOwner() {
+        RXSidebar sidebar = new RXSidebar();
+        RXSidebarItem a = RXSidebarItem.of("A");
+        RXSidebarItem b = RXSidebarItem.of("B");
+        RXSidebarItem c = RXSidebarItem.of("C");
+        sidebar.getItems().addAll(a, b);
+
+        sidebar.getItems().set(0, c);
+        assertNull(a.getSidebar());
+        assertSame(sidebar, c.getSidebar());
+
+        sidebar.getItems().setAll(a, b);
+        assertNull(c.getSidebar());
+        assertSame(sidebar, a.getSidebar());
+        assertSame(sidebar, b.getSidebar());
+    }
+
+    /**
+     * set, setAll and an indexed addAll reject an item that is owned
+     * elsewhere and leave both lists as they were.
+     */
+    @Test
+    public void replacingRejectsWhatIsOwnedElsewhere() {
+        RXSidebar sidebar = new RXSidebar();
+        RXSidebarItem a = RXSidebarItem.of("A");
+        RXSidebarItem b = RXSidebarItem.of("B");
+        RXSidebarItem pinned = RXSidebarItem.of("Pinned");
+        sidebar.getItems().addAll(a, b);
+        sidebar.getTopItems().add(pinned);
+
+        assertThrows(IllegalArgumentException.class, () -> sidebar.getItems().set(0, b));
+        assertThrows(IllegalArgumentException.class, () -> sidebar.getItems().setAll(a, pinned));
+        assertThrows(IllegalArgumentException.class,
+                () -> sidebar.getItems().addAll(1, List.of(RXSidebarItem.of("New"), pinned)));
+        assertEquals(List.of(a, b), sidebar.getItems());
+        assertEquals(List.of(pinned), sidebar.getTopItems());
+        assertSame(sidebar, a.getSidebar());
+        assertSame(sidebar, pinned.getSidebar());
     }
 
     /**

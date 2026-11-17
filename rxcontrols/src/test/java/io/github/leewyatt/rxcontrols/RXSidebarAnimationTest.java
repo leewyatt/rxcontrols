@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import io.github.leewyatt.rxcontrols.skins.RXSidebarSkin;
 import javafx.animation.AnimationTimer;
-import javafx.application.Platform;
 import javafx.beans.property.DoubleProperty;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -18,6 +17,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static io.github.leewyatt.rxcontrols.SidebarTestSupport.runOnFx;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -26,10 +26,11 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for the width-animation: the single {@code expansionFraction}
- * Timeline animates the rail width to its target, instant snap when animation is
- * disabled or the duration is illegal, mid-flight reversal converges, rapid
- * toggles are stable, and dispose stops the Timeline.
+ * Tests for the animations of {@link RXSidebar}: the width transition between
+ * the modes (reaching its target, snapping when animation is off or the
+ * duration is illegal, reversal midway, rapid toggles, dispose), the height
+ * animation of a group, when row text is hidden and shown around a
+ * transition, and what happens to focus inside a group that folds away.
  */
 public class RXSidebarAnimationTest {
 
@@ -38,15 +39,7 @@ public class RXSidebarAnimationTest {
 
     @BeforeAll
     public static void startToolkit() throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
-        try {
-            Platform.startup(latch::countDown);
-        } catch (IllegalStateException ex) {
-            latch.countDown();
-        }
-        if (!latch.await(5, TimeUnit.SECONDS)) {
-            throw new AssertionError("JavaFX toolkit did not start");
-        }
+        SidebarTestSupport.startToolkit();
     }
 
     // The animated quantity is the skin's expansionFraction (0 = MINI, 1 = EXPANDED);
@@ -412,33 +405,5 @@ public class RXSidebarAnimationTest {
         host.applyCss();
         host.layout();
         return sidebar;
-    }
-
-    private static void runOnFx(Runnable action) throws Exception {
-        if (Platform.isFxApplicationThread()) {
-            action.run();
-            return;
-        }
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicReference<Throwable> failure = new AtomicReference<>();
-        Platform.runLater(() -> {
-            try {
-                action.run();
-            } catch (Throwable ex) {
-                failure.set(ex);
-            } finally {
-                latch.countDown();
-            }
-        });
-        if (!latch.await(10, TimeUnit.SECONDS)) {
-            throw new AssertionError("FX action timed out");
-        }
-        Throwable ex = failure.get();
-        if (ex instanceof Exception) {
-            throw (Exception) ex;
-        }
-        if (ex != null) {
-            throw new AssertionError(ex);
-        }
     }
 }

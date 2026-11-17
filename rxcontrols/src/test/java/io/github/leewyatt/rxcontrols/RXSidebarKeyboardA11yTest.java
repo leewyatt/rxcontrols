@@ -12,6 +12,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -190,6 +191,55 @@ public class RXSidebarKeyboardA11yTest {
     }
 
     /**
+     * A focusable node inside a row keeps Left, Right, Enter and Space for
+     * itself.
+     */
+    @Test
+    public void aNodeInsideARowKeepsItsKeys() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarItem group = RXSidebarItem.group("Group", null, RXSidebarItem.of("Child"));
+            Button inside = new Button("More");
+            group.setTrailing(inside);
+            sidebar.getItems().add(group);
+            Scene scene = host(sidebar);
+
+            inside.requestFocus();
+            assertSame(inside, scene.getFocusOwner());
+            press(scene, KeyCode.RIGHT);
+            press(scene, KeyCode.ENTER);
+            press(scene, KeyCode.SPACE);
+            assertFalse(group.isExpanded());
+
+            group.setExpanded(true);
+            press(scene, KeyCode.LEFT);
+            assertTrue(group.isExpanded());
+            assertSame(inside, scene.getFocusOwner());
+        });
+    }
+
+    /**
+     * A sidebar moved to another scene keeps its Tab stop on the row that
+     * holds focus there.
+     */
+    @Test
+    public void theTabStopFollowsFocusInANewScene() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarItem a = RXSidebarItem.of("A");
+            RXSidebarItem b = RXSidebarItem.of("B");
+            sidebar.getItems().addAll(a, b);
+            Scene first = host(sidebar);
+            ((Pane) first.getRoot()).getChildren().clear();
+
+            Scene second = host(sidebar);
+            row(sidebar, b).requestFocus();
+            assertSame(row(sidebar, b), second.getFocusOwner());
+            assertEquals("B", tabStop(sidebar, a, b));
+        });
+    }
+
+    /**
      * A disabled item, and every item under a disabled group, cannot be
      * activated.
      */
@@ -307,7 +357,9 @@ public class RXSidebarKeyboardA11yTest {
     }
 
     /**
-     * Right leaves a bound group and a top-level group in MINI as they are.
+     * Right leaves a bound group as it is; in MINI it writes no group's
+     * expanded state, and a flyout that cannot be shown leaves the rows where
+     * they are.
      */
     @Test
     public void rightDoesNotOpenWhatItMayNotWrite() throws Exception {
@@ -323,8 +375,15 @@ public class RXSidebarKeyboardA11yTest {
             press(scene, KeyCode.RIGHT);
             assertFalse(bound.isExpanded());
 
+            // The scene has no window, so the flyout cannot be shown.
             sidebar.setMode(SidebarMode.MINI);
             row(sidebar, free).requestFocus();
+            press(scene, KeyCode.RIGHT);
+            assertFalse(hasPseudoClass(row(sidebar, free), "showing"));
+            assertSame(scene, SidebarTestSupport.node(sidebar, "item", "B").getScene());
+
+            // With nothing to show in a flyout the group is still not unfolded.
+            free.getItems().get(0).setVisible(false);
             press(scene, KeyCode.RIGHT);
             assertFalse(free.isExpanded());
         });

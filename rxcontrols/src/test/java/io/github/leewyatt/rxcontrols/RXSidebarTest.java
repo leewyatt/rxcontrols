@@ -4,7 +4,9 @@ import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -26,9 +28,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class RXSidebarTest {
 
+    private final SidebarTestSupport.ListenerFailures listenerFailures = new SidebarTestSupport.ListenerFailures();
+
     @BeforeAll
     public static void startToolkit() throws InterruptedException {
         SidebarTestSupport.startToolkit();
+    }
+
+    @BeforeEach
+    public void watchListeners() {
+        listenerFailures.watch();
+    }
+
+    @AfterEach
+    public void verifyListeners() {
+        listenerFailures.release();
+        listenerFailures.verify();
     }
 
     /**
@@ -259,6 +274,33 @@ public class RXSidebarTest {
         assertSame(kept, sidebar.getSelectedItem());
         assertTrue(kept.isSelected());
         assertFalse(refused.isSelected());
+    }
+
+    /**
+     * Replacing the selected item, or removing it in bulk, clears the
+     * selection.
+     */
+    @Test
+    public void replacingOrBulkRemovingTheSelectedItemClearsTheSelection() {
+        RXSidebar sidebar = new RXSidebar();
+        RXSidebarItem kept = RXSidebarItem.of("Kept");
+        List<Runnable> removals = List.of(
+                () -> sidebar.getItems().set(1, RXSidebarItem.of("Replacement")),
+                () -> sidebar.getItems().setAll(kept),
+                () -> sidebar.getItems().clear(),
+                () -> sidebar.getItems().removeAll(List.of(sidebar.getSelectedItem())),
+                () -> sidebar.getItems().retainAll(List.of(kept)),
+                () -> sidebar.getItems().removeIf(item -> item != kept));
+        for (Runnable removal : removals) {
+            RXSidebarItem selected = RXSidebarItem.of("Selected");
+            sidebar.getItems().setAll(kept, selected);
+            sidebar.selectItem(selected);
+
+            removal.run();
+            assertNull(sidebar.getSelectedItem());
+            assertFalse(selected.isSelected());
+            assertNull(selected.getSidebar());
+        }
     }
 
     /**

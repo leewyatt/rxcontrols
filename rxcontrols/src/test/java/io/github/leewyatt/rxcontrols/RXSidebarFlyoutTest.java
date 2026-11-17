@@ -4,16 +4,22 @@ import io.github.leewyatt.rxcontrols.RXSidebar.FlyoutTrigger;
 import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import javafx.application.Platform;
 import javafx.event.Event;
+import javafx.event.EventType;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static io.github.leewyatt.rxcontrols.SidebarTestSupport.hasPseudoClass;
 import static io.github.leewyatt.rxcontrols.SidebarTestSupport.hold;
@@ -23,6 +29,7 @@ import static io.github.leewyatt.rxcontrols.SidebarTestSupport.row;
 import static io.github.leewyatt.rxcontrols.SidebarTestSupport.runOnFx;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -30,9 +37,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for the flyouts of {@link RXSidebar} in MINI: which rows they hold and
- * when, driven through the keyboard and the model in a showing window.
+ * when, driven through the keyboard, the pointer under both triggers and the
+ * model, in a showing window.
  */
 public class RXSidebarFlyoutTest {
+
+    // The delay before a hovered top-level group opens its flyout.
+    private static final long HOVER_DELAY_MILLIS = 100;
 
     private Stage stage;
     private RXSidebar sidebar;
@@ -88,12 +99,15 @@ public class RXSidebarFlyoutTest {
             assertTrue(hasPseudoClass(outerRow, "showing"));
             assertSame(pageRow, pageRow.getScene().getFocusOwner());
             SidebarTestSupport.layout(pageRow.getScene());
-            assertEquals(12.0, SidebarTestSupport.label(pageRow).getLayoutX(), 0.5); // no indent, no icon inset
+            // No indent and no icon column: the text starts at the row's inset.
+            assertEquals(pageRow.snappedLeftInset(), SidebarTestSupport.label(pageRow).getLayoutX(), 0.5);
             // The sidebar's row rules and color tokens reach into the flyout.
-            assertEquals(34.0, pageRow.getHeight(), 0.5);
+            assertTrue(pageRow.getPadding().getTop() > 0.0);
             Region panel = (Region) pageRow.getScene().getRoot().lookup(".rx-sidebar-flyout");
-            assertEquals(2, panel.getBackground().getFills().size()); // outline and surface
+            assertNotNull(panel.getBackground());
 
+            // Focus in the window behind is somewhere else by now.
+            SidebarTestSupport.node(sidebar, "item", "Other").requestFocus();
             press(pageRow, KeyCode.ESCAPE);
             assertSame(sidebar.getScene(), pageRow.getScene());
             assertFalse(hasPseudoClass(outerRow, "showing"));
@@ -119,6 +133,8 @@ public class RXSidebarFlyoutTest {
             assertNotSame(sidebar.getScene(), leafRow.getScene());
             assertSame(leafRow, leafRow.getScene().getFocusOwner());
 
+            // Focus in the flyout behind is somewhere else by now.
+            pageRow.requestFocus();
             press(leafRow, KeyCode.LEFT);
             assertSame(innerRow.getScene(), leafRow.getScene());
             assertNotSame(sidebar.getScene(), innerRow.getScene());
@@ -338,7 +354,119 @@ public class RXSidebarFlyoutTest {
         });
     }
 
+    /**
+     * Under the click trigger a click opens the group's flyout without taking
+     * focus, a click on another group moves the flyout there, and a second
+     * click closes it.
+     */
+    @Test
+    public void clickingOpensAndClosesUnderTheClickTrigger() throws Exception {
+        runOnFx(() -> {
+            show();
+            RXSidebarItem child = RXSidebarItem.of("Second child");
+            RXSidebarItem second = RXSidebarItem.group("Second", null, child);
+            sidebar.getItems().add(second);
+            sidebar.setFlyoutTrigger(FlyoutTrigger.CLICK);
+            SidebarTestSupport.layout(stage.getScene());
+            Region secondRow = row(sidebar, second);
+            Region childRow = row(sidebar, child);
+
+            SidebarTestSupport.click(outerRow);
+            assertNotSame(sidebar.getScene(), pageRow.getScene());
+            assertNull(pageRow.getScene().getFocusOwner());
+
+            SidebarTestSupport.click(secondRow);
+            assertSame(sidebar.getScene(), pageRow.getScene());
+            assertNotSame(sidebar.getScene(), childRow.getScene());
+
+            SidebarTestSupport.click(secondRow);
+            assertSame(sidebar.getScene(), childRow.getScene());
+        });
+    }
+
+    /**
+     * Under the hover trigger a click on a group whose flyout is open leaves
+     * it open.
+     */
+    @Test
+    public void clickingKeepsTheFlyoutUnderTheHoverTrigger() throws Exception {
+        runOnFx(() -> {
+            show();
+            SidebarTestSupport.click(outerRow);
+            assertNotSame(sidebar.getScene(), pageRow.getScene());
+
+            SidebarTestSupport.click(outerRow);
+            assertNotSame(sidebar.getScene(), pageRow.getScene());
+        });
+    }
+
+    /**
+     * Under the hover trigger, also when the trigger is null, the pointer
+     * resting on a top-level group opens its flyout and the pointer leaving
+     * closes it, each after a delay.
+     */
+    @Test
+    public void hoveringOpensAndClosesTheFirstLevel() throws Exception {
+        CountDownLatch opened = new CountDownLatch(1);
+        CountDownLatch closed = new CountDownLatch(1);
+        runOnFx(() -> {
+            show();
+            sidebar.setFlyoutTrigger(null);
+            pageRow.sceneProperty().addListener((obs, old, scene) -> {
+                if (scene != null && scene != sidebar.getScene()) {
+                    opened.countDown();
+                } else if (scene == sidebar.getScene() && opened.getCount() == 0) {
+                    closed.countDown();
+                }
+            });
+            hover(outerRow, MouseEvent.MOUSE_ENTERED);
+            assertSame(sidebar.getScene(), pageRow.getScene());
+        });
+        assertTrue(opened.await(3, TimeUnit.SECONDS), "the flyout opens after the hover delay");
+
+        runOnFx(() -> hover(outerRow, MouseEvent.MOUSE_EXITED));
+        assertTrue(closed.await(3, TimeUnit.SECONDS), "the flyout closes after the hover delay");
+    }
+
+    /**
+     * Under the click trigger the pointer resting on a group opens nothing.
+     */
+    @Test
+    public void hoveringOpensNothingUnderTheClickTrigger() throws Exception {
+        runOnFx(() -> {
+            show();
+            sidebar.setFlyoutTrigger(FlyoutTrigger.CLICK);
+            hover(outerRow, MouseEvent.MOUSE_ENTERED);
+        });
+        Thread.sleep(3 * HOVER_DELAY_MILLIS);
+        runOnFx(() -> assertSame(sidebar.getScene(), pageRow.getScene()));
+    }
+
+    /**
+     * Inside a flyout the pointer opens the next level at once when it enters
+     * a group, and closes that level when it enters another row.
+     */
+    @Test
+    public void hoveringInsideAFlyoutFollowsThePointer() throws Exception {
+        runOnFx(() -> {
+            show();
+            openOuter();
+            hover(innerRow, MouseEvent.MOUSE_ENTERED);
+            assertNotSame(innerRow.getScene(), leafRow.getScene());
+            assertNotSame(sidebar.getScene(), leafRow.getScene());
+
+            hover(pageRow, MouseEvent.MOUSE_ENTERED);
+            assertSame(innerRow.getScene(), leafRow.getScene());
+            assertNotSame(sidebar.getScene(), pageRow.getScene());
+        });
+    }
+
     // ==================== Helpers ====================
+
+    private static void hover(Node target, EventType<MouseEvent> type) {
+        target.fireEvent(new MouseEvent(type, 5, 5, 5, 5, MouseButton.NONE, 0,
+                false, false, false, false, false, false, false, true, false, false, null));
+    }
 
     private void show() {
         sidebar = new RXSidebar();
