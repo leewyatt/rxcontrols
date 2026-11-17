@@ -26,7 +26,7 @@ import java.util.List;
  * Showcase application for {@link RXBorderBeam}.
  *
  * <p>Exercises every public knob on one live beam round a card: on and off,
- * showing only under the pointer, the number of beams, their size, the line
+ * showing only under the pointer, the direction, the number of beams, their size, the line
  * width, the outset, the lap time and the fill (set from a style sheet), then
  * the corners, which either follow the card's own radius or are set
  * explicitly, the card's size, padding on the wrapper and a right-to-left
@@ -162,9 +162,13 @@ public class RXBorderBeamShowcase extends RXShowcaseApplication {
                 () -> Duration.seconds(duration.getValue()), duration.valueProperty()));
         Label durationValue = createValueLabel(duration, "%.1f s");
 
+        CheckBox reverse = new CheckBox("Reverse (counterclockwise)");
+        beam.reverseProperty().bind(reverse.selectedProperty());
+
         return createGrid(
                 row(active),
                 row(onHover),
+                row(reverse),
                 row("Fill class", fillBox),
                 row("Beam count", count, countValue),
                 row("Beam size", size, sizeValue),

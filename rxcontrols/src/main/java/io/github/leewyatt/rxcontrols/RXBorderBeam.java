@@ -14,10 +14,12 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
+import javafx.css.StyleableBooleanProperty;
 import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableIntegerProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
+import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.DurationConverter;
 import javafx.css.converter.InsetsConverter;
 import javafx.css.converter.PaintConverter;
@@ -67,8 +69,9 @@ import java.util.List;
  * <p><b>The beam.</b> Each beam is a square of side
  * {@link #beamSizeProperty() beamSize}, painted with a gradient that fades
  * out toward its trailing edge and seen only where it crosses the band. The
- * square travels clockwise (counterclockwise in a right-to-left node
- * orientation) on a rounded track whose corner radius is the beam size, so it
+ * square travels clockwise, or counterclockwise with
+ * {@link #reverseProperty() reverse} on (a right-to-left node orientation
+ * mirrors either), on a rounded track whose corner radius is the beam size, so it
  * swings round a corner gradually and shows on both edges while it does. The
  * length of the visible streak is therefore close to, but not exactly, the
  * beam size, and a beam size approaching twice the shorter side of the content
@@ -105,8 +108,8 @@ import java.util.List;
  * {@code .rx-border-beam > .beams > .beam} and the pane holding the content
  * {@code .rx-border-beam > .content-slot}. The properties are
  * {@code -rx-beam-fill}, {@code -rx-beam-size}, {@code -rx-beam-count},
- * {@code -rx-line-width}, {@code -rx-outset}, {@code -rx-cycle-duration} and
- * {@code -rx-corner-radius}.</p>
+ * {@code -rx-line-width}, {@code -rx-outset}, {@code -rx-cycle-duration},
+ * {@code -rx-reverse} and {@code -rx-corner-radius}.</p>
  */
 @DefaultProperty("content")
 public class RXBorderBeam extends Control {
@@ -567,6 +570,54 @@ public class RXBorderBeam extends Control {
         cycleDuration.set(value);
     }
 
+    // ==================== Reverse ====================
+
+    private final BooleanProperty reverse = new StyleableBooleanProperty() {
+        @Override
+        public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
+            return StyleableProperties.REVERSE;
+        }
+
+        @Override
+        public Object getBean() {
+            return RXBorderBeam.this;
+        }
+
+        @Override
+        public String getName() {
+            return "reverse";
+        }
+    };
+
+    /**
+     * Whether the beams travel counterclockwise instead of clockwise, still
+     * led by their bright edge. Switching while they move turns each beam
+     * round where it is. Initial value is {@code false}.
+     *
+     * @return the reverse property
+     */
+    public final BooleanProperty reverseProperty() {
+        return reverse;
+    }
+
+    /**
+     * Returns whether the beams travel counterclockwise.
+     *
+     * @return {@code true} if the beams travel counterclockwise
+     */
+    public final boolean isReverse() {
+        return reverse.get();
+    }
+
+    /**
+     * Sets whether the beams travel counterclockwise.
+     *
+     * @param value {@code true} for counterclockwise
+     */
+    public final void setReverse(boolean value) {
+        reverse.set(value);
+    }
+
     // ==================== Corner Radius ====================
 
     private final ObjectProperty<CornerRadii> cornerRadius =
@@ -708,6 +759,20 @@ public class RXBorderBeam extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXBorderBeam, Boolean> REVERSE =
+                new CssMetaData<>("-rx-reverse", BooleanConverter.getInstance(), false) {
+                    @Override
+                    public boolean isSettable(RXBorderBeam control) {
+                        return !control.reverse.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Boolean> getStyleableProperty(RXBorderBeam control) {
+                        return (StyleableProperty<Boolean>) control.reverseProperty();
+                    }
+                };
+
         private static final CssMetaData<RXBorderBeam, Insets> CORNER_RADIUS =
                 new CssMetaData<>("-rx-corner-radius", InsetsConverter.getInstance(), null) {
                     @Override
@@ -732,6 +797,7 @@ public class RXBorderBeam extends Control {
             styleables.add(LINE_WIDTH);
             styleables.add(OUTSET);
             styleables.add(CYCLE_DURATION);
+            styleables.add(REVERSE);
             styleables.add(CORNER_RADIUS);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }

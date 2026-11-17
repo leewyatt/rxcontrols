@@ -66,6 +66,8 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
     private final Timeline timeline;
     private final DoubleProperty phase = new SimpleDoubleProperty();
     private final ReadOnlyBooleanProperty treeShowing;
+    private boolean reversed;
+    private double phaseShift;
 
     private final InvalidationListener contentLookListener = observable -> onContentLookChanged();
     private Region observedContent;
@@ -128,9 +130,11 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
         disposer.registerListener(control.beamSizeProperty(), this::updateBeamSize);
         disposer.registerListener(control.beamCountProperty(), this::updateBeams);
         disposer.registerListener(control.cycleDurationProperty(), this::updateRate);
+        disposer.registerListener(control.reverseProperty(), this::updateDirection);
         disposer.registerListener(treeShowing, this::updateRunning);
         disposer.registerListener(phase, this::placeBeams);
 
+        reversed = control.isReverse();
         updateRate();
         updateBeams();
         updateContent();
@@ -207,6 +211,19 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
         placeBeams();
     }
 
+    // The beams turn round where they are: the shift makes up for the phase
+    // counting the other way from now on.
+    private void updateDirection() {
+        boolean reverse = getSkinnable().isReverse();
+        if (reverse != reversed) {
+            double position = phase.get();
+            phaseShift += reversed ? -2.0 * position : 2.0 * position;
+            phaseShift -= Math.floor(phaseShift);
+            reversed = reverse;
+            placeBeams();
+        }
+    }
+
     private void updateRate() {
         // A timeline asked for many laps in one frame steps through every one
         // of them, and stalls the application once there are millions.
@@ -235,14 +252,15 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
         double size = beamSizeOrDefault();
         double anchorX = ANCHOR_X * size;
         double anchorY = ANCHOR_Y * size;
-        double start = phase.get();
+        double start = (reversed ? -phase.get() : phase.get()) + phaseShift;
         int count = beams.size();
         for (int i = 0; i < count; i++) {
             Beam beam = beams.get(i);
             BorderBeamGeometry.pointOnTrack(boxWidth, boxHeight, trackRadius, start + (double) i / count, point);
             beam.node.setTranslateX(point[0] - anchorX);
             beam.node.setTranslateY(point[1] - anchorY);
-            beam.rotate.setAngle(point[2]);
+            // Backward along the same track, turned round so the bright edge leads.
+            beam.rotate.setAngle(reversed ? point[2] + 180.0 : point[2]);
         }
     }
 

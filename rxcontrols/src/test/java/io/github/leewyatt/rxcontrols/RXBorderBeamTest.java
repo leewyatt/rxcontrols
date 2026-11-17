@@ -92,6 +92,7 @@ public class RXBorderBeamTest {
             assertEquals(0.0, beam.getOutset(), EPSILON);
             assertEquals(RXBorderBeam.DEFAULT_CYCLE_DURATION, beam.getCycleDuration());
             assertNull(beam.getCornerRadius());
+            assertFalse(beam.isReverse());
             assertFalse(beam.isFocusTraversable());
             assertTrue(beam.getStyleClass().contains("rx-border-beam"));
         });
@@ -104,7 +105,7 @@ public class RXBorderBeamTest {
                 .map(CssMetaData::getProperty)
                 .collect(Collectors.toSet());
         assertTrue(names.containsAll(Set.of("-rx-beam-fill", "-rx-beam-size", "-rx-beam-count",
-                "-rx-line-width", "-rx-outset", "-rx-cycle-duration", "-rx-corner-radius")));
+                "-rx-line-width", "-rx-outset", "-rx-cycle-duration", "-rx-reverse", "-rx-corner-radius")));
     }
 
     /** Verifies a style sheet sets every styleable property. */
@@ -115,7 +116,7 @@ public class RXBorderBeamTest {
             Pane root = new Pane(beam);
             root.getStylesheets().add("data:text/css,.rx-border-beam{-rx-beam-fill:red;-rx-beam-size:40;"
                     + "-rx-beam-count:3;-rx-line-width:2;-rx-outset:5;-rx-cycle-duration:2s;"
-                    + "-rx-corner-radius:4 8 12 16;}");
+                    + "-rx-reverse:true;-rx-corner-radius:4 8 12 16;}");
             new Scene(root);
             root.applyCss();
 
@@ -125,6 +126,7 @@ public class RXBorderBeamTest {
             assertEquals(2.0, beam.getLineWidth(), EPSILON);
             assertEquals(5.0, beam.getOutset(), EPSILON);
             assertEquals(Duration.seconds(2.0), beam.getCycleDuration());
+            assertTrue(beam.isReverse());
             assertEquals(new CornerRadii(4.0, 8.0, 12.0, 16.0, false), beam.getCornerRadius());
         });
     }
@@ -458,6 +460,76 @@ public class RXBorderBeamTest {
         });
     }
 
+    /** Verifies reversing turns every beam round where it is. */
+    @Test
+    public void reversedBeamsFaceTheOtherWay() throws Exception {
+        runOnFx(() -> {
+            RXBorderBeam beam = new RXBorderBeam(content());
+            beam.setBeamSize(20.0);
+            beam.setBeamCount(4);
+            laidOut(beam);
+            List<Rectangle> nodes = beams(beam);
+            double[][] forward = new double[4][];
+            for (int i = 0; i < 4; i++) {
+                forward[i] = anchorAndAngle(nodes.get(i));
+            }
+
+            beam.setReverse(true);
+            for (int i = 0; i < 4; i++) {
+                double[] expected = forward[i];
+                double[] actual = anchorAndAngle(nodes.get(i));
+                assertEquals(expected[0], actual[0], EPSILON);
+                assertEquals(expected[1], actual[1], EPSILON);
+                assertEquals((expected[2] + 180.0) % 360.0, actual[2] % 360.0, EPSILON);
+            }
+
+            beam.setReverse(false);
+            assertEquals(forward[1][2], anchorAndAngle(nodes.get(1))[2], EPSILON);
+        });
+    }
+
+    /** Verifies a reversed beam moves backward along the top edge from the start of the track. */
+    @Test
+    public void reversedBeamMovesCounterclockwise() throws Exception {
+        double[] turnedAt = new double[1];
+        AtomicReference<RXBorderBeam> ref = new AtomicReference<>();
+        AtomicReference<Stage> stageRef = new AtomicReference<>();
+        runOnFx(() -> {
+            RXBorderBeam beam = new RXBorderBeam(content());
+            beam.setBeamSize(30.0);
+            beam.setReverse(true);
+            beam.setCycleDuration(Duration.seconds(20.0));
+            ref.set(beam);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(new StackPane(beam), 300.0, 200.0));
+            stage.show();
+            stageRef.set(stage);
+        });
+        try {
+            Thread.sleep(500);
+            runOnFx(() -> {
+                // From the start of the track at x = 30 it goes left and turns down the left edge.
+                double[] placed = anchorAndAngle(beams(ref.get()).get(0));
+                assertTrue(placed[0] < 30.0 - EPSILON);
+                double facing = placed[2] % 360.0;
+                assertTrue(facing > 90.0 && facing < 180.0);
+
+                // Reversed again mid-lap, it turns round without moving.
+                ref.get().setReverse(false);
+                double[] turned = anchorAndAngle(beams(ref.get()).get(0));
+                assertEquals(placed[0], turned[0], 1.0e-6);
+                assertEquals(placed[1], turned[1], 1.0e-6);
+                assertEquals((facing + 180.0) % 360.0, turned[2] % 360.0, 1.0e-6);
+                turnedAt[0] = turned[0];
+            });
+            Thread.sleep(300);
+            // Clockwise again: back toward the top edge.
+            runOnFx(() -> assertTrue(anchorAndAngle(beams(ref.get()).get(0))[0] > turnedAt[0]));
+        } finally {
+            runOnFx(() -> stageRef.get().hide());
+        }
+    }
+
     /** Verifies a color fills the leading 70% and fades out over the rest. */
     @Test
     public void colorFillFadesOutAtTheTail() throws Exception {
@@ -719,6 +791,13 @@ public class RXBorderBeamTest {
             }
         }
         return nodes;
+    }
+
+    // The point of a beam on the track, and the direction the beam faces.
+    private static double[] anchorAndAngle(Rectangle node) {
+        Rotate rotate = (Rotate) node.getTransforms().get(0);
+        return new double[]{node.getTranslateX() + rotate.getPivotX(),
+                node.getTranslateY() + rotate.getPivotY(), rotate.getAngle()};
     }
 
     private static double angle(RXBorderBeam beam) {
