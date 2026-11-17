@@ -6,14 +6,21 @@ import io.github.leewyatt.rxcontrols.RXSidebarHeader;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSidebarSeparator;
 import io.github.leewyatt.rxcontrols.SidebarTestSupport;
+import javafx.application.Platform;
+import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Paint;
+import javafx.stage.Stage;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -28,6 +35,7 @@ import static io.github.leewyatt.rxcontrols.SidebarTestSupport.runOnFx;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,6 +53,8 @@ public class RXSidebarSkinTest {
     @BeforeAll
     public static void startToolkit() throws InterruptedException {
         SidebarTestSupport.startToolkit();
+        // One test hides its window; the toolkit must outlive it.
+        Platform.setImplicitExit(false);
     }
 
     /**
@@ -587,6 +597,60 @@ public class RXSidebarSkinTest {
 
             assertEquals(60.0, header.getHeight(), 0.5);
             assertEquals(30.0, footer.getHeight(), 0.5);
+        });
+    }
+
+    /**
+     * Rows of the scrolling list line up with the rows of the pinned bands.
+     */
+    @Test
+    public void scrollingRowsLineUpWithPinnedRows() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarItem pinned = RXSidebarItem.of("Pinned");
+            RXSidebarItem scrolling = RXSidebarItem.of("Scrolling");
+            sidebar.getTopItems().add(pinned);
+            sidebar.getItems().add(scrolling);
+            host(sidebar);
+
+            Region pinnedRow = row(sidebar, pinned);
+            Region scrollingRow = row(sidebar, scrolling);
+            Bounds pinnedBounds = pinnedRow.localToScene(pinnedRow.getLayoutBounds());
+            Bounds scrollingBounds = scrollingRow.localToScene(scrollingRow.getLayoutBounds());
+            assertEquals(pinnedBounds.getMinX(), scrollingBounds.getMinX(), EPSILON);
+            assertEquals(pinnedBounds.getWidth(), scrollingBounds.getWidth(), EPSILON);
+        });
+    }
+
+    /**
+     * A row under the pressed pointer shows the pressed fill, not the fill of
+     * the focus the press gives it.
+     */
+    @Test
+    public void aPressedRowShowsThePressedFill() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarItem pressed = RXSidebarItem.action("Pressed", null, event -> { });
+            RXSidebarItem focused = RXSidebarItem.action("Focused", null, event -> { });
+            sidebar.getItems().addAll(pressed, focused);
+            sidebar.setAnimated(false);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(new Pane(sidebar), 400, 300));
+            stage.show();
+            try {
+                Region focusedRow = row(sidebar, focused);
+                focusedRow.requestFocus();
+                layout(stage.getScene());
+                Paint focusFill = focusedRow.getBackground().getFills().get(0).getFill();
+
+                Region pressedRow = row(sidebar, pressed);
+                pressedRow.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, 5, 5, 5, 5, MouseButton.PRIMARY, 1,
+                        false, false, false, false, true, false, false, true, false, true, null));
+                layout(stage.getScene());
+                assertNotEquals(focusFill, pressedRow.getBackground().getFills().get(0).getFill());
+            } finally {
+                stage.hide();
+            }
         });
     }
 

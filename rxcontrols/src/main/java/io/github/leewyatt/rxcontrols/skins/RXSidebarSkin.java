@@ -514,6 +514,10 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         }
         if (item.isSelectable()) {
             getSkinnable().selectItem(item);
+            if (getSkinnable().getSelectedItem() != item) {
+                // A listener on the selection turned it down.
+                return;
+            }
         }
         closeFlyoutsFrom(0);
         EventHandler<ActionEvent> handler = item.getOnAction();
@@ -1132,7 +1136,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         }
         int next = ring.indexOf(view) + 1;
         if (next < ring.size() && ring.get(next).item.getParent() == view.item) {
-            ring.get(next).row.requestFocus();
+            focusByKey(ring.get(next));
         }
     }
 
@@ -1143,7 +1147,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             return;
         }
         if (views.get(view.item.getParent()) instanceof RowView parent) {
-            parent.row.requestFocus();
+            focusByKey(parent);
         }
     }
 
@@ -1546,7 +1550,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
                 // Closing over the focused row would leave focus on a row that
                 // is no longer on display.
                 if (!open && pane.open && shown && isInside(focusOwner(), pane)) {
-                    row.requestFocus();
+                    focusByKey(this);
                 }
                 pane.setOpen(open, animateGroups);
             }
@@ -1881,6 +1885,9 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             // Focus can enter the rows while they are still folding away.
             if (!open && isInside(focusOwner(), this)) {
                 groupRow.requestFocus();
+                if (isOnDisplayIn(groupRow, mainBox)) {
+                    scrollIntoView(groupRow);
+                }
             }
             setShown(this, open);
         }

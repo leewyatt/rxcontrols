@@ -2,11 +2,13 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.geometry.Bounds;
 import javafx.geometry.NodeOrientation;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -125,6 +127,65 @@ public class RXSidebarKeyboardA11yTest {
             SidebarTestSupport.release(actionRow, KeyCode.ENTER);
             SidebarTestSupport.hold(actionRow, KeyCode.ENTER);
             assertEquals(2, fired[0]);
+        });
+    }
+
+    /**
+     * A page whose selection a listener turns down does not fire its action.
+     */
+    @Test
+    public void aSelectionTurnedDownDoesNotFireTheAction() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            int[] fired = new int[1];
+            RXSidebarItem current = RXSidebarItem.of("Current");
+            RXSidebarItem refused = RXSidebarItem.of("Refused");
+            refused.setOnAction(event -> fired[0]++);
+            sidebar.getItems().addAll(current, refused);
+            sidebar.selectItem(current);
+            sidebar.selectedItemProperty().addListener((obs, old, selected) -> {
+                if (selected == refused) {
+                    sidebar.selectItem(current);
+                }
+            });
+            Scene scene = host(sidebar);
+
+            row(sidebar, refused).requestFocus();
+            press(scene, KeyCode.ENTER);
+            assertSame(current, sidebar.getSelectedItem());
+            assertEquals(0, fired[0]);
+        });
+    }
+
+    /**
+     * Left moves focus to the group's row and scrolls it into view.
+     */
+    @Test
+    public void leftBringsTheGroupRowIntoView() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarItem group = RXSidebarItem.group("Group", null);
+            for (int i = 0; i < 30; i++) {
+                group.getItems().add(RXSidebarItem.of("Child " + i));
+            }
+            group.setExpanded(true);
+            sidebar.getItems().add(group);
+            sidebar.setPrefHeight(240.0);
+            Scene scene = host(sidebar);
+            ScrollPane scroll = (ScrollPane) sidebar.lookup(".content");
+            scroll.setVvalue(1.0);
+            SidebarTestSupport.layout(scene);
+            Region groupRow = row(sidebar, group);
+            assertTrue(groupRow.localToScene(groupRow.getLayoutBounds()).getMaxY() < 0.0);
+
+            row(sidebar, (RXSidebarItem) group.getItems().get(29)).requestFocus();
+            press(scene, KeyCode.LEFT);
+            SidebarTestSupport.layout(scene);
+            assertSame(groupRow, scene.getFocusOwner());
+            Bounds viewport = scroll.localToScene(scroll.getLayoutBounds());
+            Bounds rowBounds = groupRow.localToScene(groupRow.getLayoutBounds());
+            assertTrue(rowBounds.getMinY() >= viewport.getMinY() - 0.5);
+            assertTrue(rowBounds.getMaxY() <= viewport.getMaxY() + 0.5);
         });
     }
 

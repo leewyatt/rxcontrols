@@ -248,9 +248,10 @@ public class RXSidebar extends Control {
      *
      * <p>Read-only: the sidebar owns this state, because a user click must be
      * able to write it. Drive it with {@link #selectItem(RXSidebarItem)} and
-     * {@link #clearSelection()}, and observe it with a listener. Activation
-     * cannot be vetoed; to keep the user on the current page, select it again
-     * from the listener.</p>
+     * {@link #clearSelection()}, and observe it with a listener. To keep the
+     * user on the current page, select it again from the listener: the item
+     * that was turned down then does not fire its
+     * {@link RXSidebarItem#onActionProperty() onAction}.</p>
      *
      * <p>The selection is cleared when the selected item leaves the tree, stops
      * being selectable, or is given child items.</p>

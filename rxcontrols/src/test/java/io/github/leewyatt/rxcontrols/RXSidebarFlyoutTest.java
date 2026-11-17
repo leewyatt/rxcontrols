@@ -321,6 +321,23 @@ public class RXSidebarFlyoutTest {
         });
     }
 
+    /**
+     * A section caption in a flyout starts where the text of its rows starts.
+     */
+    @Test
+    public void aCaptionInAFlyoutLinesUpWithTheRows() throws Exception {
+        runOnFx(() -> {
+            show();
+            outer.getItems().add(0, new RXSidebarHeader("Section"));
+            openOuter();
+            Scene flyoutScene = pageRow.getScene();
+            SidebarTestSupport.layout(flyoutScene);
+            Node caption = flyoutScene.getRoot().lookup(".caption > .label");
+            assertEquals(SidebarTestSupport.label(pageRow).localToScene(0.0, 0.0).getX(),
+                    caption.localToScene(0.0, 0.0).getX(), 0.5);
+        });
+    }
+
     // ==================== Helpers ====================
 
     private void show() {

@@ -2833,6 +2833,7 @@
 
 .rx-sidebar > .container > .content {
     -fx-background-color: transparent;
+    -fx-padding: 0;
 }
 
 .rx-sidebar > .container > .content > .viewport {
@@ -2864,14 +2865,14 @@
     -fx-background-color: -fx-hover-base;
 }
 
-.rx-sidebar .item:armed {
-    -fx-background-color: -fx-pressed-base;
-}
-
-/* Same specificity, so :selected comes after :focused: a selected item that also
-   holds focus keeps its accent fill. */
+/* Same specificity, so the order decides: a pressed item holds focus too, and a
+   selected one keeps its accent fill under both. */
 .rx-sidebar .item:focused {
     -fx-background-color: -fx-hover-base;
+}
+
+.rx-sidebar .item:armed {
+    -fx-background-color: -fx-pressed-base;
 }
 
 .rx-sidebar .item:selected {
@@ -2968,6 +2969,10 @@
 
 .rx-sidebar .caption {
     -fx-padding: 8 12 4 0;
+}
+
+.rx-sidebar-flyout .caption {
+    -fx-padding: 8 12 4 12;
 }
 
 .rx-sidebar .caption > .label {
