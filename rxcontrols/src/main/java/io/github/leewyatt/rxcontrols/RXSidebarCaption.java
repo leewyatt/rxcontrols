@@ -5,15 +5,15 @@ import javafx.beans.property.StringProperty;
 
 /**
  * A section caption between the items of an {@link RXSidebar}. It cannot be
- * focused, activated or selected. In {@link RXSidebar.SidebarMode#MINI}, where
+ * focused, activated or selected. In {@link RXSidebar.Mode#MINI}, where
  * there is no room for text, it is drawn as a divider line.
  */
-public final class RXSidebarHeader extends RXSidebarItemBase {
+public final class RXSidebarCaption extends RXSidebarItemBase {
 
     /**
      * Creates a caption without text.
      */
-    public RXSidebarHeader() {
+    public RXSidebarCaption() {
     }
 
     /**
@@ -21,7 +21,7 @@ public final class RXSidebarHeader extends RXSidebarItemBase {
      *
      * @param text the caption text, or {@code null}
      */
-    public RXSidebarHeader(String text) {
+    public RXSidebarCaption(String text) {
         setText(text);
     }
 

@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.test;
 
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebar.FlyoutTrigger;
-import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
+import io.github.leewyatt.rxcontrols.RXSidebar.Mode;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
@@ -38,7 +38,7 @@ public class RXSidebarEscapeVerification extends Application {
     @Override
     public void start(Stage primaryStage) {
         RXSidebar sidebar = new RXSidebar();
-        sidebar.setMode(SidebarMode.MINI);
+        sidebar.setMode(Mode.MINI);
         sidebar.getItems().addAll(
                 RXSidebarItem.of("Home", icon("M0 7L8 0l8 7v9H0z")),
                 RXSidebarItem.group("Files", icon("M0 2h6l2 2h8v10H0z"),

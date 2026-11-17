@@ -13,7 +13,7 @@ import javafx.collections.ObservableList;
 
 /**
  * What the lists of an {@link RXSidebar} hold: an {@link RXSidebarItem}, an
- * {@link RXSidebarHeader} or an {@link RXSidebarSeparator}. This class carries
+ * {@link RXSidebarCaption} or an {@link RXSidebarSeparator}. This class carries
  * what the three share — visibility, the id and style classes copied to the
  * rendered node, user data, and the position in the tree. These are property
  * beans, not nodes; the sidebar's skin renders them.

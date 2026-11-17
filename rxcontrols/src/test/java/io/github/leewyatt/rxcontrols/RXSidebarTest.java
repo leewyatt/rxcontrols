@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
+import io.github.leewyatt.rxcontrols.RXSidebar.Mode;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
@@ -52,7 +52,7 @@ public class RXSidebarTest {
     @Test
     public void propertyDefaults() {
         RXSidebar sidebar = new RXSidebar();
-        assertSame(SidebarMode.EXPANDED, sidebar.getMode());
+        assertSame(Mode.EXPANDED, sidebar.getMode());
         assertEquals(RXSidebar.DEFAULT_EXPANDED_WIDTH, sidebar.getExpandedWidth());
         assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, sidebar.getMiniWidth());
         assertEquals(RXSidebar.DEFAULT_INDENT, sidebar.getIndent());
@@ -71,7 +71,7 @@ public class RXSidebarTest {
     public void modePseudoClasses() {
         RXSidebar sidebar = new RXSidebar();
         assertTrue(hasPseudoClass(sidebar, "expanded"));
-        sidebar.setMode(SidebarMode.MINI);
+        sidebar.setMode(Mode.MINI);
         assertTrue(hasPseudoClass(sidebar, "mini"));
         assertFalse(hasPseudoClass(sidebar, "expanded"));
         sidebar.setMode(null);

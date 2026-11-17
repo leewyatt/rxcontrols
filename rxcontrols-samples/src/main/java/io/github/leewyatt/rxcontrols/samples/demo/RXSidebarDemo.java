@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXSidebar;
-import io.github.leewyatt.rxcontrols.RXSidebarHeader;
+import io.github.leewyatt.rxcontrols.RXSidebarCaption;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import javafx.application.Application;
@@ -40,7 +40,7 @@ public class RXSidebarDemo extends Application {
         RXSidebarItem input = RXSidebarItem.group("Data entry", icon("M0 3h16v10H0zM2 5v6h1V5z"),
                 RXSidebarItem.of("Text field"), RXSidebarItem.of("Slider"), pickers);
 
-        sidebar.getItems().addAll(overview, new RXSidebarHeader("Components"), navigation, input);
+        sidebar.getItems().addAll(overview, new RXSidebarCaption("Components"), navigation, input);
         sidebar.selectItem(sidebarPage);
 
         RXTextField search = new RXTextField();

@@ -37,8 +37,8 @@ import java.util.function.Predicate;
 /**
  * A permanent, in-layout navigation sidebar holding a tree of
  * {@link RXSidebarItem items}. It switches between
- * {@link SidebarMode#EXPANDED} (icon + text, groups unfold in place) and
- * {@link SidebarMode#MINI} (a single column of top-level icons), tracks one
+ * {@link Mode#EXPANDED} (icon + text, groups unfold in place) and
+ * {@link Mode#MINI} (a single column of top-level icons), tracks one
  * {@link #selectedItemProperty() selectedItem}, and animates its width on mode
  * change. It is not a drawer: it never opens, closes, overlays, or pushes.
  *
@@ -59,7 +59,7 @@ public class RXSidebar extends Control {
      * Width state of an {@link RXSidebar}. The sidebar is always present; only its
      * width and label visibility change.
      */
-    public enum SidebarMode {
+    public enum Mode {
 
         /**
          * Icon + text, full {@code expandedWidth}.
@@ -76,7 +76,7 @@ public class RXSidebar extends Control {
 
     /**
      * What opens the flyout of a group while the sidebar rests in
-     * {@link SidebarMode#MINI}.
+     * {@link Mode#MINI}.
      */
     public enum FlyoutTrigger {
         /**
@@ -95,7 +95,7 @@ public class RXSidebar extends Control {
     /**
      * Default mode (expanded).
      */
-    public static final SidebarMode DEFAULT_MODE = SidebarMode.EXPANDED;
+    public static final Mode DEFAULT_MODE = Mode.EXPANDED;
     /**
      * Default expanded width.
      */
@@ -200,7 +200,7 @@ public class RXSidebar extends Control {
 
     // ==================== Mode ====================
 
-    private final ObjectProperty<SidebarMode> mode =
+    private final ObjectProperty<Mode> mode =
             new SimpleObjectProperty<>(this, "mode", DEFAULT_MODE) {
                 @Override
                 protected void invalidated() {
@@ -209,27 +209,27 @@ public class RXSidebar extends Control {
             };
 
     /**
-     * The display mode ({@link SidebarMode#EXPANDED} or {@link SidebarMode#MINI}).
+     * The display mode ({@link Mode#EXPANDED} or {@link Mode#MINI}).
      * A {@code null} value is not rejected; it resolves to {@link #DEFAULT_MODE}
      * at the use site. Bindable for external responsive logic.
      *
      * @return the mode property
      */
-    public final ObjectProperty<SidebarMode> modeProperty() {
+    public final ObjectProperty<Mode> modeProperty() {
         return mode;
     }
 
     /**
      * @return the mode, possibly {@code null}
      */
-    public final SidebarMode getMode() {
+    public final Mode getMode() {
         return mode.get();
     }
 
     /**
      * @param value the mode, or {@code null} to fall back to the default
      */
-    public final void setMode(SidebarMode value) {
+    public final void setMode(Mode value) {
         mode.set(value);
     }
 
@@ -371,7 +371,7 @@ public class RXSidebar extends Control {
             };
 
     /**
-     * The width in {@link SidebarMode#EXPANDED}, {@value #DEFAULT_EXPANDED_WIDTH}
+     * The width in {@link Mode#EXPANDED}, {@value #DEFAULT_EXPANDED_WIDTH}
      * by default. A value that is not finite or is smaller than the mini width
      * is not used: the sidebar then takes the default, or the mini width when
      * that is larger.
@@ -407,7 +407,7 @@ public class RXSidebar extends Control {
             };
 
     /**
-     * The width in {@link SidebarMode#MINI}, {@value #DEFAULT_MINI_WIDTH} by
+     * The width in {@link Mode#MINI}, {@value #DEFAULT_MINI_WIDTH} by
      * default. A negative or non-finite value is not used: the sidebar then
      * takes the default.
      *
@@ -485,7 +485,7 @@ public class RXSidebar extends Control {
             new SimpleObjectProperty<>(this, "flyoutTrigger", DEFAULT_FLYOUT_TRIGGER);
 
     /**
-     * What opens a group's flyout in {@link SidebarMode#MINI}, where the child
+     * What opens a group's flyout in {@link Mode#MINI}, where the child
      * items of a group are reached through flyouts that open level by level
      * beside the sidebar. {@code null} is treated as
      * {@link #DEFAULT_FLYOUT_TRIGGER}.
@@ -575,7 +575,7 @@ public class RXSidebar extends Control {
     /**
      * The node shown in the scrolling area when the filter leaves nothing of
      * {@link #getItems() items} on display. It is not shown while the sidebar
-     * rests in {@link SidebarMode#MINI}, which is too narrow for it.
+     * rests in {@link Mode#MINI}, which is too narrow for it.
      *
      * @return the placeholder property
      */
@@ -764,12 +764,12 @@ public class RXSidebar extends Control {
     // ==================== PseudoClass ====================
 
     private void updateModePseudoClass() {
-        SidebarMode current = getMode();
+        Mode current = getMode();
         if (current == null) {
             current = DEFAULT_MODE;
         }
-        pseudoClassStateChanged(EXPANDED_PSEUDO_CLASS, current == SidebarMode.EXPANDED);
-        pseudoClassStateChanged(MINI_PSEUDO_CLASS, current == SidebarMode.MINI);
+        pseudoClassStateChanged(EXPANDED_PSEUDO_CLASS, current == Mode.EXPANDED);
+        pseudoClassStateChanged(MINI_PSEUDO_CLASS, current == Mode.MINI);
     }
 
     // ==================== CSS ====================

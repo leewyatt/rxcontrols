@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
+import io.github.leewyatt.rxcontrols.RXSidebar.Mode;
 import io.github.leewyatt.rxcontrols.skins.RXSidebarSkin;
 import javafx.animation.AnimationTimer;
 import javafx.beans.property.DoubleProperty;
@@ -68,7 +68,7 @@ public class RXSidebarAnimationTest {
                     arrived.countDown();
                 }
             });
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
             assertEquals(1.0, fraction.get(), EPSILON); // in flight, not snapped
             ref.set(fraction);
         });
@@ -88,7 +88,7 @@ public class RXSidebarAnimationTest {
             RXSidebar sidebar = laidOut(new RXSidebar(), Duration.millis(60.0));
             DoubleProperty fraction = fractionOf(sidebar);
             sidebar.setAnimated(false);
-            sidebar.setMode(SidebarMode.MINI);   // instant to mini
+            sidebar.setMode(Mode.MINI);   // instant to mini
             assertEquals(0.0, fraction.get(), EPSILON);
             sidebar.setAnimated(true);
             fraction.addListener((o, ov, nv) -> {
@@ -96,7 +96,7 @@ public class RXSidebarAnimationTest {
                     arrived.countDown();
                 }
             });
-            sidebar.setMode(SidebarMode.EXPANDED); // animate to expanded
+            sidebar.setMode(Mode.EXPANDED); // animate to expanded
             ref.set(fraction);
         });
         assertTrue(arrived.await(3, TimeUnit.SECONDS), "fraction animates to 1 (expanded)");
@@ -126,10 +126,10 @@ public class RXSidebarAnimationTest {
             });
             sidebarRef.set(sidebar);
             fractionRef.set(fraction);
-            sidebar.setMode(SidebarMode.MINI); // start collapsing
+            sidebar.setMode(Mode.MINI); // start collapsing
         });
         assertTrue(midway.await(3, TimeUnit.SECONDS), "collapse animation is under way");
-        runOnFx(() -> sidebarRef.get().setMode(SidebarMode.EXPANDED)); // reverse mid-flight
+        runOnFx(() -> sidebarRef.get().setMode(Mode.EXPANDED)); // reverse mid-flight
         assertTrue(backToExpanded.await(3, TimeUnit.SECONDS), "reversal converges back to expanded");
         runOnFx(() -> assertEquals(1.0, fractionRef.get().get(), EPSILON));
     }
@@ -146,8 +146,8 @@ public class RXSidebarAnimationTest {
             RXSidebar sidebar = laidOut(new RXSidebar(), Duration.millis(80.0));
             DoubleProperty fraction = fractionOf(sidebar);
             for (int i = 0; i < 20; i++) {
-                sidebar.setMode(SidebarMode.EXPANDED);
-                sidebar.setMode(SidebarMode.MINI);
+                sidebar.setMode(Mode.EXPANDED);
+                sidebar.setMode(Mode.MINI);
             }
             // Latest committed mode is MINI; the surviving Timeline converges there.
             fraction.addListener((o, ov, nv) -> {
@@ -169,7 +169,7 @@ public class RXSidebarAnimationTest {
         runOnFx(() -> {
             RXSidebar sidebar = laidOut(new RXSidebar(), Duration.millis(200.0));
             sidebar.setAnimated(false);
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
             assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, sidebar.prefWidth(-1), WIDTH_TOLERANCE);
         });
     }
@@ -181,15 +181,15 @@ public class RXSidebarAnimationTest {
     public void illegalDurationSnapsInstantly() throws Exception {
         runOnFx(() -> {
             RXSidebar zero = laidOut(new RXSidebar(), Duration.ZERO);
-            zero.setMode(SidebarMode.MINI);
+            zero.setMode(Mode.MINI);
             assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, zero.prefWidth(-1), WIDTH_TOLERANCE);
 
             RXSidebar nullDuration = laidOut(new RXSidebar(), null);
-            nullDuration.setMode(SidebarMode.MINI);
+            nullDuration.setMode(Mode.MINI);
             assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, nullDuration.prefWidth(-1), WIDTH_TOLERANCE);
 
             RXSidebar negative = laidOut(new RXSidebar(), Duration.millis(-10.0));
-            negative.setMode(SidebarMode.MINI);
+            negative.setMode(Mode.MINI);
             assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, negative.prefWidth(-1), WIDTH_TOLERANCE);
         });
     }
@@ -207,7 +207,7 @@ public class RXSidebarAnimationTest {
             host.layout();
 
             host.getChildren().remove(sidebar); // detach: getScene() == null
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
             assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, sidebar.prefWidth(-1), WIDTH_TOLERANCE);
         });
     }
@@ -220,7 +220,7 @@ public class RXSidebarAnimationTest {
         runOnFx(() -> {
             RXSidebar sidebar = laidOut(new RXSidebar(), Duration.millis(500.0));
             RXSidebarSkin skin = (RXSidebarSkin) sidebar.getSkin();
-            sidebar.setMode(SidebarMode.MINI); // starts the Timeline (scene attached, animated)
+            sidebar.setMode(Mode.MINI); // starts the Timeline (scene attached, animated)
 
             try {
                 Field animation = RXSidebarSkin.class.getDeclaredField("animation");
@@ -253,7 +253,7 @@ public class RXSidebarAnimationTest {
                     atMini.countDown();
                 }
             });
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
             assertTrue(label.isVisible());
             sidebarRef.set(sidebar);
             labelRef.set(label);
@@ -269,7 +269,7 @@ public class RXSidebarAnimationTest {
                     atExpanded.countDown();
                 }
             });
-            sidebarRef.get().setMode(SidebarMode.EXPANDED);
+            sidebarRef.get().setMode(Mode.EXPANDED);
             assertTrue(labelRef.get().isVisible());
         });
         assertTrue(atExpanded.await(3, TimeUnit.SECONDS), "animated expand reaches expanded");

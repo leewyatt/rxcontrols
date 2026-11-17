@@ -1,8 +1,8 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXSidebar;
-import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
-import io.github.leewyatt.rxcontrols.RXSidebarHeader;
+import io.github.leewyatt.rxcontrols.RXSidebar.Mode;
+import io.github.leewyatt.rxcontrols.RXSidebarCaption;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSidebarSeparator;
 import io.github.leewyatt.rxcontrols.SidebarTestSupport;
@@ -112,10 +112,10 @@ public class RXSidebarSkinTest {
             assertTrue(pane.isManaged());
             assertTrue(pane.getLayoutBounds().getHeight() >= row(sidebar, child).getHeight());
 
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
             assertFalse(pane.isManaged(), "MINI folds a top-level group away");
             assertTrue(group.isExpanded(), "without touching its expanded state");
-            sidebar.setMode(SidebarMode.EXPANDED);
+            sidebar.setMode(Mode.EXPANDED);
             assertTrue(pane.isManaged());
         });
     }
@@ -151,7 +151,7 @@ public class RXSidebarSkinTest {
             assertEquals(sidebar.prefWidth(-1), sidebar.minWidth(-1), EPSILON);
             assertEquals(sidebar.prefWidth(-1), sidebar.maxWidth(-1), EPSILON);
 
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
             assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, sidebar.prefWidth(-1), EPSILON);
             assertEquals(sidebar.prefWidth(-1), sidebar.minWidth(-1), EPSILON);
             assertEquals(sidebar.prefWidth(-1), sidebar.maxWidth(-1), EPSILON);
@@ -168,12 +168,12 @@ public class RXSidebarSkinTest {
             Scene scene = host(sidebar);
 
             sidebar.setMiniWidth(-50.0);
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
             assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, sidebar.prefWidth(-1), EPSILON);
 
             sidebar.setMiniWidth(64.0);
             sidebar.setExpandedWidth(Double.NaN);
-            sidebar.setMode(SidebarMode.EXPANDED);
+            sidebar.setMode(Mode.EXPANDED);
             assertEquals(RXSidebar.DEFAULT_EXPANDED_WIDTH, sidebar.prefWidth(-1), EPSILON);
 
             sidebar.setExpandedWidth(40.0);
@@ -181,13 +181,13 @@ public class RXSidebarSkinTest {
 
             sidebar.setExpandedWidth(RXSidebar.DEFAULT_EXPANDED_WIDTH);
             sidebar.setMiniWidth(Double.POSITIVE_INFINITY);
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
             assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, sidebar.prefWidth(-1), EPSILON);
 
             sidebar.setMiniWidth(RXSidebar.DEFAULT_MINI_WIDTH);
             sidebar.setExpandedWidth(Double.POSITIVE_INFINITY);
             assertEquals(RXSidebar.DEFAULT_MINI_WIDTH, sidebar.prefWidth(-1), EPSILON);
-            sidebar.setMode(SidebarMode.EXPANDED);
+            sidebar.setMode(Mode.EXPANDED);
             assertEquals(RXSidebar.DEFAULT_EXPANDED_WIDTH, sidebar.prefWidth(-1), EPSILON);
 
             layout(scene);
@@ -212,7 +212,7 @@ public class RXSidebarSkinTest {
             assertEquals(RXSidebar.DEFAULT_MINI_WIDTH / 2.0, expandedX + icon.getWidth() / 2.0, 1.0);
             assertTrue(label(row(sidebar, item)).isVisible());
 
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
             layout(scene);
             assertEquals(expandedX, icon.localToScene(0.0, 0.0).getX(), EPSILON);
             assertFalse(label(row(sidebar, item)).isVisible());
@@ -260,7 +260,7 @@ public class RXSidebarSkinTest {
     public void captionsBecomeLinesInMini() throws Exception {
         runOnFx(() -> {
             RXSidebar sidebar = new RXSidebar();
-            RXSidebarHeader header = new RXSidebarHeader("Section");
+            RXSidebarCaption header = new RXSidebarCaption("Section");
             sidebar.getItems().addAll(header, new RXSidebarSeparator(), RXSidebarItem.of("Item"));
             host(sidebar);
 
@@ -268,7 +268,7 @@ public class RXSidebarSkinTest {
             assertTrue(caption.isManaged());
             assertEquals(1, sidebar.lookupAll(".separator").stream().filter(Node::isManaged).count());
 
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
             assertFalse(caption.isManaged());
             assertEquals(2, sidebar.lookupAll(".separator").stream().filter(Node::isManaged).count());
         });
@@ -445,8 +445,8 @@ public class RXSidebarSkinTest {
             RXSidebarItem page = RXSidebarItem.of("RXSidebar");
             page.getKeywords().add("Navigation");
             RXSidebarItem group = RXSidebarItem.group("Controls", null, page, RXSidebarItem.of("Badge"));
-            RXSidebarHeader first = new RXSidebarHeader("First");
-            RXSidebarHeader second = new RXSidebarHeader("Second");
+            RXSidebarCaption first = new RXSidebarCaption("First");
+            RXSidebarCaption second = new RXSidebarCaption("Second");
             RXSidebarSeparator separator = new RXSidebarSeparator();
             separator.getStyleClass().add("divider");
             sidebar.getItems().addAll(first, RXSidebarItem.of("Home"), separator, second, group);
@@ -561,7 +561,7 @@ public class RXSidebarSkinTest {
             RXSidebar sidebar = new RXSidebar();
             Label placeholder = new Label("No results");
             sidebar.setPlaceholder(placeholder);
-            RXSidebarHeader caption = new RXSidebarHeader("Caption");
+            RXSidebarCaption caption = new RXSidebarCaption("Caption");
             RXSidebarItem child = RXSidebarItem.of("Child");
             RXSidebarItem group = RXSidebarItem.group("Group", null, child);
             sidebar.getItems().addAll(caption, group);
@@ -573,7 +573,7 @@ public class RXSidebarSkinTest {
             assertEquals(List.of(), shownTexts(sidebar));
             assertSame(sidebar.getScene(), placeholder.getScene());
 
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
             assertNull(placeholder.getScene());
             child.setVisible(true);
             assertEquals(List.of("Group"), shownTexts(sidebar));

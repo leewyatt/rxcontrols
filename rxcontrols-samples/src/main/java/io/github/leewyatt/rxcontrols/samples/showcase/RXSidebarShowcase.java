@@ -3,8 +3,8 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.RXDialogs;
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebar.FlyoutTrigger;
-import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
-import io.github.leewyatt.rxcontrols.RXSidebarHeader;
+import io.github.leewyatt.rxcontrols.RXSidebar.Mode;
+import io.github.leewyatt.rxcontrols.RXSidebarCaption;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSidebarSeparator;
 import io.github.leewyatt.rxcontrols.RXTextField;
@@ -85,7 +85,7 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         collapseButton.getStyleClass().add("collapse-button");
         collapseButton.setGraphic(glyph("chevron"));
         collapseButton.setOnAction(event -> sidebar.setMode(
-                sidebar.getMode() == SidebarMode.MINI ? SidebarMode.EXPANDED : SidebarMode.MINI));
+                sidebar.getMode() == Mode.MINI ? Mode.EXPANDED : Mode.MINI));
 
         // The rail centres its icons on half the mini width; the inset keeps
         // the button on that line at any mini width.
@@ -103,7 +103,7 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         searchIcon.getStyleClass().add("slot-icon");
         search.setLeading(searchIcon);
         search.setTrailing(clearButton());
-        search.visibleProperty().bind(sidebar.modeProperty().isNotEqualTo(SidebarMode.MINI));
+        search.visibleProperty().bind(sidebar.modeProperty().isNotEqualTo(Mode.MINI));
         search.managedProperty().bind(search.visibleProperty());
         search.getStyleClass().add("search");
         search.textProperty().addListener((obs, old, text) -> sidebar.setFilter(RXSidebar.textFilter(text)));
@@ -144,7 +144,7 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
                 "Set apart from the groups above by a separator, and carries a tooltip of its own.");
         archive.setTooltip(new Tooltip("Items you no longer need day to day"));
         sidebar.getItems().addAll(dashboard, inbox,
-                new RXSidebarHeader("Workspace"), files, reports,
+                new RXSidebarCaption("Workspace"), files, reports,
                 new RXSidebarSeparator(), archive);
 
         // An action item fires its command without touching the selection.
@@ -202,8 +202,8 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
     }
 
     private Node modeGrid() {
-        ComboBox<SidebarMode> mode = new ComboBox<>(FXCollections.observableArrayList(
-                SidebarMode.EXPANDED, SidebarMode.MINI));
+        ComboBox<Mode> mode = new ComboBox<>(FXCollections.observableArrayList(
+                Mode.EXPANDED, Mode.MINI));
         mode.setValue(sidebar.getMode());
         // Two-way: combo drives mode, and mode reflects back so the header collapse
         // toggle keeps the combo in sync. Enum singletons + no-fire-on-same-value

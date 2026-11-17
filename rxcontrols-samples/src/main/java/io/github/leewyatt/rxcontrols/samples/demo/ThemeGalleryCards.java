@@ -94,7 +94,6 @@ import io.github.leewyatt.rxcontrols.RXSegmentedProgressBar;
 import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
 import io.github.leewyatt.rxcontrols.RXSelectionBox;
 import io.github.leewyatt.rxcontrols.RXSidebar;
-import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSkeleton;
 import io.github.leewyatt.rxcontrols.RXSkeletonPane;
@@ -1201,17 +1200,17 @@ final class ThemeGalleryCards {
     }
 
     private static Node buildRXSidebar() {
-        RXSidebar expanded = createSidebar(SidebarMode.EXPANDED);
-        RXSidebar mini = createSidebar(SidebarMode.MINI);
+        RXSidebar expanded = createSidebar(RXSidebar.Mode.EXPANDED);
+        RXSidebar mini = createSidebar(RXSidebar.Mode.MINI);
         HBox box = new HBox(24.0, expanded, mini);
         box.setAlignment(Pos.CENTER);
         box.setPrefHeight(460.0);
         return box;
     }
 
-    private static RXSidebar createSidebar(SidebarMode mode) {
+    private static RXSidebar createSidebar(RXSidebar.Mode mode) {
         RXSidebar sidebar = new RXSidebar();
-        Label header = new Label(mode == SidebarMode.MINI ? "RX" : "RX App");
+        Label header = new Label(mode == RXSidebar.Mode.MINI ? "RX" : "RX App");
         header.setStyle("-fx-font-weight: bold; -fx-padding: 4 8;");
         sidebar.setHeader(header);
         RXSidebarItem dashboard = RXSidebarItem.of("Dashboard", new Circle(8, Color.web("#5b8def")));

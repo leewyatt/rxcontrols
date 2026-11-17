@@ -211,7 +211,7 @@ public class RXSidebarItemTest {
     @Test
     public void captionsAndSeparatorsAreOwnedLikeItems() {
         RXSidebar sidebar = new RXSidebar();
-        RXSidebarHeader header = new RXSidebarHeader("Section");
+        RXSidebarCaption header = new RXSidebarCaption("Section");
         RXSidebarSeparator separator = new RXSidebarSeparator();
         RXSidebarItem group = RXSidebarItem.group("Group", null, header, separator);
         sidebar.getItems().add(group);

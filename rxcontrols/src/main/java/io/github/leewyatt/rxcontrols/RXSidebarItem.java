@@ -30,7 +30,7 @@ import javafx.scene.control.Tooltip;
  *   {@code onAction}, whatever {@code selectable} says.</li>
  * </ul>
  *
- * <p>The lists of a sidebar also take {@link RXSidebarHeader} (a section
+ * <p>The lists of a sidebar also take {@link RXSidebarCaption} (a section
  * caption) and {@link RXSidebarSeparator} (a divider); see
  * {@link RXSidebarItemBase} for what all three share and for the rules an added
  * entry must meet.</p>
@@ -152,7 +152,7 @@ public class RXSidebarItem extends RXSidebarItemBase {
 
     /**
      * The leading graphic, typically an icon. It is the only content a top-level
-     * row shows in {@link RXSidebar.SidebarMode#MINI}, so give top-level items
+     * row shows in {@link RXSidebar.Mode#MINI}, so give top-level items
      * one.
      *
      * @return the graphic property
@@ -181,7 +181,7 @@ public class RXSidebarItem extends RXSidebarItemBase {
 
     /**
      * Content shown at the end of the row, such as a count or a badge. Hidden on
-     * a top-level row in {@link RXSidebar.SidebarMode#MINI}.
+     * a top-level row in {@link RXSidebar.Mode#MINI}.
      *
      * @return the trailing property
      */
@@ -210,7 +210,7 @@ public class RXSidebarItem extends RXSidebarItemBase {
     /**
      * The tooltip of the row. While this is {@code null}, a top-level item
      * without child items shows its text as a tooltip in
-     * {@link RXSidebar.SidebarMode#MINI}, where the text itself is hidden.
+     * {@link RXSidebar.Mode#MINI}, where the text itself is hidden.
      *
      * @return the tooltip property
      */
@@ -328,7 +328,7 @@ public class RXSidebarItem extends RXSidebarItemBase {
 
     /**
      * Whether the group shows its child items in
-     * {@link RXSidebar.SidebarMode#EXPANDED}. Only meaningful while the item has
+     * {@link RXSidebar.Mode#EXPANDED}. Only meaningful while the item has
      * child items. The sidebar writes this when the user toggles the group and
      * when a descendant becomes the selection; it leaves a bound property alone.
      *

@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.RXSidebar.FlyoutTrigger;
-import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
+import io.github.leewyatt.rxcontrols.RXSidebar.Mode;
 import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.event.EventType;
@@ -173,9 +173,9 @@ public class RXSidebarFlyoutTest {
             show();
 
             openOuter();
-            sidebar.setMode(SidebarMode.EXPANDED);
+            sidebar.setMode(Mode.EXPANDED);
             assertSame(sidebar.getScene(), pageRow.getScene());
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
 
             openOuter();
             outer.setDisable(true);
@@ -344,7 +344,7 @@ public class RXSidebarFlyoutTest {
     public void aCaptionInAFlyoutLinesUpWithTheRows() throws Exception {
         runOnFx(() -> {
             show();
-            outer.getItems().add(0, new RXSidebarHeader("Section"));
+            outer.getItems().add(0, new RXSidebarCaption("Section"));
             openOuter();
             Scene flyoutScene = pageRow.getScene();
             SidebarTestSupport.layout(flyoutScene);
@@ -476,7 +476,7 @@ public class RXSidebarFlyoutTest {
         page = RXSidebarItem.of("Page");
         outer = RXSidebarItem.group("Outer", null, page, inner);
         sidebar.getItems().addAll(outer, RXSidebarItem.of("Other"));
-        sidebar.setMode(SidebarMode.MINI);
+        sidebar.setMode(Mode.MINI);
         stage = new Stage();
         stage.setScene(new Scene(new Pane(sidebar), 400, 300));
         stage.show();

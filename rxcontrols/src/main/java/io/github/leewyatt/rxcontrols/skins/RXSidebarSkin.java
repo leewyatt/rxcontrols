@@ -3,8 +3,8 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXPlacement;
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebar.FlyoutTrigger;
-import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
-import io.github.leewyatt.rxcontrols.RXSidebarHeader;
+import io.github.leewyatt.rxcontrols.RXSidebar.Mode;
+import io.github.leewyatt.rxcontrols.RXSidebarCaption;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSidebarItemBase;
 import io.github.leewyatt.rxcontrols.RXSidebarSeparator;
@@ -64,8 +64,8 @@ import java.util.function.Predicate;
  * pinned-top, scrollable main, pinned-bottom, footer), renders every
  * {@link RXSidebarItem} of the tree into a row it owns, locks the sidebar width
  * via the {@code compute*Width} methods, and keeps each top-level graphic in a
- * fixed left column so icons never move between {@link SidebarMode#EXPANDED}
- * and {@link SidebarMode#MINI}.
+ * fixed left column so icons never move between {@link Mode#EXPANDED}
+ * and {@link Mode#MINI}.
  *
  * <p>The rows belong to this skin; only an item's {@code graphic} and
  * {@code trailing} nodes are the caller's. A row takes them in when it is built
@@ -251,7 +251,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         // would never see them.
         disposer.registerEventFilter(root, KeyEvent.KEY_PRESSED, this::onKeyPressed);
 
-        boolean expanded = committedMode() == SidebarMode.EXPANDED;
+        boolean expanded = committedMode() == Mode.EXPANDED;
         expansionFraction.set(expanded ? 1.0 : 0.0);
         compactRows = !expanded;
         syncTree();
@@ -390,7 +390,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         if (item instanceof RXSidebarSeparator separator) {
             return new SeparatorView(separator);
         }
-        if (item instanceof RXSidebarHeader header) {
+        if (item instanceof RXSidebarCaption header) {
             return new CaptionView(header);
         }
         return new RowView((RXSidebarItem) item);
@@ -472,7 +472,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     // without its expanded state being touched, so it unfolds again by itself
     // on the way back. A filter holds every group open.
     private boolean isOpen(RXSidebarItem item) {
-        if (committedMode() == SidebarMode.MINI) {
+        if (committedMode() == Mode.MINI) {
             return false;
         }
         return filtering || item.isExpanded();
@@ -543,7 +543,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     // A group has nothing to unfold into in MINI, a filter holds every group
     // open, and a bound property is not the sidebar's to write.
     private void setExpandedByUser(RowView view, boolean expanded) {
-        if (committedMode() == SidebarMode.MINI) {
+        if (committedMode() == Mode.MINI) {
             return;
         }
         if (filtering) {
@@ -995,16 +995,16 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     // ==================== Mode transition (single Timeline) ====================
 
     private void onModeChanged() {
-        SidebarMode target = committedMode();
+        Mode target = committedMode();
         cancelFlyoutTimers();
         closeFlyoutsFrom(0);
         stopAnimation();
         if (!animationsActive()) {
-            expansionFraction.set(target == SidebarMode.EXPANDED ? 1.0 : 0.0);
+            expansionFraction.set(target == Mode.EXPANDED ? 1.0 : 0.0);
             settleMode();
             return;
         }
-        double targetFraction = (target == SidebarMode.EXPANDED) ? 1.0 : 0.0;
+        double targetFraction = (target == Mode.EXPANDED) ? 1.0 : 0.0;
         // A transition reversed midway only has the rest of the way to go, the
         // same as the groups that fold along with it.
         double distance = Math.abs(targetFraction - expansionFraction.get());
@@ -1028,7 +1028,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     }
 
     private void settleMode() {
-        compactRows = committedMode() == SidebarMode.MINI;
+        compactRows = committedMode() == Mode.MINI;
         refreshAll();
         requestRowLayout();
     }
@@ -1057,8 +1057,8 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         return value == null ? RXSidebar.DEFAULT_ANIMATION_INTERPOLATOR : value;
     }
 
-    private SidebarMode committedMode() {
-        SidebarMode mode = getSkinnable().getMode();
+    private Mode committedMode() {
+        Mode mode = getSkinnable().getMode();
         return mode == null ? RXSidebar.DEFAULT_MODE : mode;
     }
 
@@ -1395,14 +1395,14 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         }
     }
 
-    private final class CaptionView extends ItemView<RXSidebarHeader> {
+    private final class CaptionView extends ItemView<RXSidebarCaption> {
 
         private final Row caption = new Row(null);
         // Stands in for the caption in MINI, where there is no room for its
         // text.
         private final Region line = new Region();
 
-        CaptionView(RXSidebarHeader item) {
+        CaptionView(RXSidebarCaption item) {
             super(item);
             bindIdentity(caption, "caption");
             caption.setMouseTransparent(true);
@@ -1424,7 +1424,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             // Follows the mode the sidebar is heading for, not the settled one:
             // swapping at the end of the collapse would shift every row below
             // by the height difference after the motion has stopped.
-            boolean asLine = committedMode() == SidebarMode.MINI && depth == 0;
+            boolean asLine = committedMode() == Mode.MINI && depth == 0;
             setShown(caption, shown && !asLine);
             setShown(line, shown && asLine);
             caption.depth = depth;

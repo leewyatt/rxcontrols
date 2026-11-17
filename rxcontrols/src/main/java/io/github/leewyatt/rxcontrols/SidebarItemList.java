@@ -186,7 +186,7 @@ final class SidebarItemList extends ModifiableObservableListBase<RXSidebarItemBa
         String text = null;
         if (element instanceof RXSidebarItem item) {
             text = item.getText();
-        } else if (element instanceof RXSidebarHeader header) {
+        } else if (element instanceof RXSidebarCaption header) {
             text = header.getText();
         }
         return text == null ? name : name + " \"" + text + "\"";

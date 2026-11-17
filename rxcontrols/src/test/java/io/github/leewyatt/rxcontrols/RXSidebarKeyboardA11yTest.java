@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
+import io.github.leewyatt.rxcontrols.RXSidebar.Mode;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Bounds;
 import javafx.geometry.NodeOrientation;
@@ -301,7 +301,7 @@ public class RXSidebarKeyboardA11yTest {
             hidden.setVisible(false);
             RXSidebarItem bottom = RXSidebarItem.of("Bottom");
             sidebar.getTopItems().add(top);
-            sidebar.getItems().addAll(new RXSidebarHeader("Caption"), open, new RXSidebarSeparator(),
+            sidebar.getItems().addAll(new RXSidebarCaption("Caption"), open, new RXSidebarSeparator(),
                     closed, disabled, hidden);
             sidebar.getBottomItems().add(bottom);
             Scene scene = host(sidebar);
@@ -376,7 +376,7 @@ public class RXSidebarKeyboardA11yTest {
             assertFalse(bound.isExpanded());
 
             // The scene has no window, so the flyout cannot be shown.
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
             row(sidebar, free).requestFocus();
             press(scene, KeyCode.RIGHT);
             assertFalse(hasPseudoClass(row(sidebar, free), "showing"));
@@ -431,7 +431,7 @@ public class RXSidebarKeyboardA11yTest {
 
             inner.setExpanded(true);
             row(sidebar, leaf).requestFocus();
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
             assertEquals("Outer", focusedText(scene));
         });
     }
@@ -580,7 +580,7 @@ public class RXSidebarKeyboardA11yTest {
             assertNull(help(sidebar, plain));
             assertEquals("Mine", help(sidebar, own));
 
-            sidebar.setMode(SidebarMode.MINI);
+            sidebar.setMode(Mode.MINI);
             assertEquals("Plain", help(sidebar, plain));
             assertEquals("Mine", help(sidebar, own));
             assertNull(help(sidebar, group));
@@ -590,7 +590,7 @@ public class RXSidebarKeyboardA11yTest {
             own.setTooltip(null);
             assertEquals("Own", help(sidebar, own));
 
-            sidebar.setMode(SidebarMode.EXPANDED);
+            sidebar.setMode(Mode.EXPANDED);
             assertNull(help(sidebar, plain));
         });
     }

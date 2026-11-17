@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal;
 
-import io.github.leewyatt.rxcontrols.RXSidebarHeader;
+import io.github.leewyatt.rxcontrols.RXSidebarCaption;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSidebarItemBase;
 import io.github.leewyatt.rxcontrols.RXSidebarSeparator;
@@ -47,7 +47,7 @@ public class SidebarVisibilityTest {
         RXSidebarItem hiddenChild = RXSidebarItem.of("HiddenChild");
         RXSidebarItem hiddenGroup = RXSidebarItem.group("HiddenGroup", null, hiddenChild);
         hiddenGroup.setVisible(false);
-        List<RXSidebarItemBase> list = List.of(new RXSidebarHeader("Caption"), new RXSidebarSeparator(),
+        List<RXSidebarItemBase> list = List.of(new RXSidebarCaption("Caption"), new RXSidebarSeparator(),
                 RXSidebarItem.of("Page"), hiddenGroup);
 
         assertEquals(List.of("Caption", "null", "Page"), shown(list, null));
@@ -81,7 +81,7 @@ public class SidebarVisibilityTest {
         RXSidebarItem hidden = RXSidebarItem.of("Hidden");
         hidden.setVisible(false);
         RXSidebarItem inner = RXSidebarItem.group("Inner", null,
-                new RXSidebarHeader("Inside"), leaf, new RXSidebarHeader("Empty"), hidden);
+                new RXSidebarCaption("Inside"), leaf, new RXSidebarCaption("Empty"), hidden);
         RXSidebarItem outer = RXSidebarItem.group("Outer", null, inner, RXSidebarItem.of("Sibling"));
         List<RXSidebarItemBase> main = List.of(outer);
         List<RXSidebarItemBase> bottom = List.of(RXSidebarItem.of("Leaflet"));
@@ -106,7 +106,7 @@ public class SidebarVisibilityTest {
         RXSidebarItem hidden = RXSidebarItem.of("Hidden");
         hidden.setVisible(false);
         RXSidebarItem group = RXSidebarItem.group("Group", null, hidden);
-        List<RXSidebarItemBase> list = List.of(new RXSidebarHeader("Caption"), new RXSidebarSeparator(), group);
+        List<RXSidebarItemBase> list = List.of(new RXSidebarCaption("Caption"), new RXSidebarSeparator(), group);
         List<String> asked = new ArrayList<>();
 
         assertEquals(List.of(), shown(list, item -> {
@@ -123,8 +123,8 @@ public class SidebarVisibilityTest {
     @Test
     public void captionsFollowTheirSectionAndSeparatorsHide() {
         List<RXSidebarItemBase> list = List.of(
-                new RXSidebarHeader("First"), RXSidebarItem.of("Alpha"), new RXSidebarSeparator(),
-                new RXSidebarHeader("Second"), RXSidebarItem.of("Beta"));
+                new RXSidebarCaption("First"), RXSidebarItem.of("Alpha"), new RXSidebarSeparator(),
+                new RXSidebarCaption("Second"), RXSidebarItem.of("Beta"));
 
         assertEquals(List.of("Second", "Beta"), shown(list, SidebarVisibility.textFilter("beta")));
     }
@@ -149,7 +149,7 @@ public class SidebarVisibilityTest {
             String text = null;
             if (entry instanceof RXSidebarItem item) {
                 text = item.getText();
-            } else if (entry instanceof RXSidebarHeader header) {
+            } else if (entry instanceof RXSidebarCaption header) {
                 text = header.getText();
             }
             if (shown.contains(entry)) {

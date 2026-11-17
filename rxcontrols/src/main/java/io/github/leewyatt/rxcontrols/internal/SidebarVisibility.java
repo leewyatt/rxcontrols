@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal;
 
-import io.github.leewyatt.rxcontrols.RXSidebarHeader;
+import io.github.leewyatt.rxcontrols.RXSidebarCaption;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSidebarItemBase;
 import io.github.leewyatt.rxcontrols.RXSidebarSeparator;
@@ -91,7 +91,7 @@ public final class SidebarVisibility {
                 }
                 continue;
             }
-            if (item instanceof RXSidebarHeader) {
+            if (item instanceof RXSidebarCaption) {
                 if (filter == null) {
                     shown.add(item);
                 } else {
