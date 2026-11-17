@@ -15,7 +15,7 @@
 }
 
 .content-area > .page-path {
-    -fx-text-fill: derive(-fx-text-base-color, 45%);
+    -fx-text-fill: -showcase-caption-color;
     -fx-font-size: 12px;
 }
 
@@ -26,7 +26,7 @@
 }
 
 .content-area > .page-description {
-    -fx-text-fill: derive(-fx-text-base-color, 30%);
+    -fx-text-fill: -showcase-caption-color;
     -fx-font-size: 13px;
 }
 
@@ -42,18 +42,13 @@
     -fx-text-fill: -fx-accent;
 }
 
-.content-area > .tips-card > .tip > .label {
-    -fx-text-fill: derive(-fx-text-base-color, 25%);
-}
-
 .content-area > .tips-card > .tip > .dot {
     -fx-pref-width: 4;
     -fx-pref-height: 4;
     -fx-background-radius: 50%;
-    -fx-background-color: derive(-fx-text-base-color, 45%);
+    -fx-background-color: -showcase-caption-color;
 }
 
-/* Dividers between the header / footer slots and the item body. */
 .rx-sidebar > .container > .header {
     -fx-border-color: transparent transparent -rx-outline-variant transparent;
     -fx-border-width: 0 0 1px 0;
@@ -62,21 +57,16 @@
 .rx-sidebar > .container > .footer {
     -fx-border-color: -rx-outline-variant transparent transparent transparent;
     -fx-border-width: 1px 0 0 0;
+    -fx-padding: 12 12 12 12;
 }
 
-/* Header collapse toggle: a 32px button centred on the icon column at the
-   DEFAULT mini width (16 + 32 / 2 = 64 / 2). The rail centres the column on
-   miniWidth, so at other mini widths this fixed inset no longer lines up. */
-.rx-sidebar > .container > .header .brand {
-    -fx-padding: 8 0 8 16;
-}
-
-/* Scoped to the sidebar header, and named to avoid modena's own .menu-button
-   (which would drag MenuButton chrome onto this plain Button, and which an
-   unscoped rule here would in turn pull onto any real MenuButton in the scene). */
 .rx-sidebar > .container > .header .collapse-button {
     -fx-background-color: transparent;
+    -fx-background-insets: 0;
     -fx-background-radius: 6;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-effect: null;
     -fx-padding: 10 12 10 13;
     -fx-cursor: hand;
 }
@@ -89,20 +79,17 @@
     -fx-background-color: -fx-pressed-base;
 }
 
-.rx-sidebar > .container > .header .collapse-button > .graphic {
+.rx-sidebar > .container > .header .collapse-button > .chevron {
     -fx-pref-width: 7;
     -fx-pref-height: 12;
-    -fx-background-color: derive(-fx-text-base-color, 15%);
-    -fx-shape: "M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"; /* chevron-left = collapse */
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-shape: "M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z";
 }
 
-/* MINI: flip the chevron to point right (= expand). */
-.rx-sidebar:mini > .container > .header .collapse-button > .graphic {
+.rx-sidebar:mini > .container > .header .collapse-button > .chevron {
     -fx-rotate: 180;
 }
 
-/* Search field slots: the icon and the clear button carry their own
-   horizontal padding, so neither sits against the field's border. */
 .rx-sidebar > .container > .header .search .slot-icon {
     -fx-padding: 0 4 0 10;
 }
@@ -141,12 +128,8 @@
     -fx-pref-height: 32;
 }
 
-.rx-sidebar > .container > .footer {
-    -fx-padding: 12 12 12 12;
-}
-
 .rx-sidebar > .container > .footer .footer-text {
-    -fx-text-fill: derive(-fx-text-base-color, 40%);
+    -fx-text-fill: -rx-on-surface-secondary;
     -fx-font-size: 11px;
 }
 
@@ -158,9 +141,8 @@
     -fx-font-size: 11px;
 }
 
-/* Item icon fills: the per-item shape and a shared colour. */
 .rx-sidebar .item > .graphic {
-    -fx-background-color: derive(-fx-text-base-color, 25%);
+    -fx-background-color: -rx-on-surface-secondary;
 }
 
 .rx-sidebar .item:selected > .graphic {

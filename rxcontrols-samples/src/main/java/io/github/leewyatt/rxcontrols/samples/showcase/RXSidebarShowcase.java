@@ -13,6 +13,7 @@ import javafx.animation.Interpolator;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
+import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -21,6 +22,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
@@ -39,13 +41,15 @@ import java.util.function.Consumer;
  * separator, an action item and a footer across the three lists. The page
  * beside it follows the selection. The control panel drives the main
  * configurable properties: mode (EXPANDED / MINI), the flyout trigger used in
- * MINI, expanded / mini width, indent, the filter, animation toggle / duration
- * / easing, an item's disable / visible flags, plus a live read-out of the
- * selected item with select and clear actions.</p>
+ * MINI, the sidebar's disable flag and orientation, expanded / mini width,
+ * indent, the filter, animation toggle / duration / easing, a live read-out of
+ * the selected item with select and clear actions, and an item's disable /
+ * visible flags and child list.</p>
  */
 public class RXSidebarShowcase extends RXShowcaseApplication {
 
     private RXSidebar sidebar;
+    private final BorderPane frame = new BorderPane();
     private final VBox content = new VBox();
     private final Label pagePath = new Label();
     private final Label pageTitle = new Label();
@@ -79,13 +83,18 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         // no built-in collapse button by design — the trigger lives in the header.
         Button collapseButton = new Button();
         collapseButton.getStyleClass().add("collapse-button");
-        collapseButton.setGraphic(icon("chevron"));
+        collapseButton.setGraphic(glyph("chevron"));
         collapseButton.setOnAction(event -> sidebar.setMode(
                 sidebar.getMode() == SidebarMode.MINI ? SidebarMode.EXPANDED : SidebarMode.MINI));
 
+        // The rail centres its icons on half the mini width; the inset keeps
+        // the button on that line at any mini width.
         HBox brand = new HBox(collapseButton);
         brand.setAlignment(Pos.CENTER_LEFT);
-        brand.getStyleClass().add("brand");
+        brand.paddingProperty().bind(Bindings.createObjectBinding(
+                () -> new Insets(8.0, 0.0, 8.0,
+                        Math.max(0.0, (sidebar.getMiniWidth() - collapseButton.getWidth()) / 2.0)),
+                sidebar.miniWidthProperty(), collapseButton.widthProperty()));
 
         // The rail has no room for the field, so it leaves the header in MINI;
         // the query stays in force and remains editable from the Filter panel.
@@ -131,10 +140,12 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
                 page("Sales", null, "A page of the Reports group."),
                 page("Traffic", null, "A page of the Reports group."));
         files.setExpanded(true);
+        RXSidebarItem archive = page("Archive", "archive",
+                "Set apart from the groups above by a separator, and carries a tooltip of its own.");
+        archive.setTooltip(new Tooltip("Items you no longer need day to day"));
         sidebar.getItems().addAll(dashboard, inbox,
                 new RXSidebarHeader("Workspace"), files, reports,
-                new RXSidebarSeparator(),
-                page("Archive", "archive", "Set apart from the groups above by a separator."));
+                new RXSidebarSeparator(), archive);
 
         // An action item fires its command without touching the selection.
         RXSidebarItem help = page("Help", "help",
@@ -172,7 +183,6 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         sidebar.selectedItemProperty().addListener((obs, old, item) -> showPage(item));
         sidebar.selectItem(dashboard);
 
-        BorderPane frame = new BorderPane();
         frame.getStyleClass().add("app-frame");
         frame.setLeft(sidebar);
         frame.setCenter(content);
@@ -187,7 +197,8 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
                 section("Dimensions", dimensionsGrid()),
                 section("Filter", filterGrid()),
                 section("Animation", animationGrid()),
-                section("Selection", selectionBox()));
+                section("Selection", selectionBox()),
+                section("Items", itemsBox()));
     }
 
     private Node modeGrid() {
@@ -209,7 +220,13 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         trigger.setValue(sidebar.getFlyoutTrigger());
         trigger.valueProperty().addListener((obs, old, value) -> sidebar.setFlyoutTrigger(value));
         trigger.setMaxWidth(Double.MAX_VALUE);
-        return createGrid(row("Mode", mode), row("Flyout trigger", trigger));
+
+        CheckBox disabled = checkBox("Disabled", sidebar.isDisable(), sidebar::setDisable);
+        // On the frame, as an application would: the sidebar moves to the
+        // other side along with mirroring its rows and flyouts.
+        CheckBox rightToLeft = checkBox("Right to left", false, mirrored -> frame.setNodeOrientation(
+                mirrored ? NodeOrientation.RIGHT_TO_LEFT : NodeOrientation.INHERIT));
+        return createGrid(row("Mode", mode), row("Flyout trigger", trigger), row(disabled), row(rightToLeft));
     }
 
     // The same text as the header's search field, which is out of reach in MINI.
@@ -261,7 +278,6 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
 
     private Node selectionBox() {
         Label readout = new Label();
-        readout.getStyleClass().add("readout-label");
         readout.textProperty().bind(Bindings.createStringBinding(() -> {
             RXSidebarItem selected = sidebar.getSelectedItem();
             return "selectedItem: " + (selected == null ? "null" : selected.getText());
@@ -277,10 +293,28 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         clear.setMaxWidth(Double.MAX_VALUE);
         clear.setOnAction(event -> sidebar.clearSelection());
 
+        return createGrid(row(readout), row(selectNested), row(clear));
+    }
+
+    // The tree is live: rows, and an open flyout, follow the child list.
+    private Node itemsBox() {
         CheckBox disableReports = checkBox("Disable Reports", false, reports::setDisable);
         CheckBox hideReports = checkBox("Hide Reports", false, hidden -> reports.setVisible(!hidden));
 
-        return createGrid(row(readout), row(selectNested), row(clear), row(disableReports), row(hideReports));
+        int initialPages = reports.getItems().size();
+        Button addPage = new Button("Add a page to Reports");
+        addPage.setMaxWidth(Double.MAX_VALUE);
+        addPage.setOnAction(event -> {
+            int number = reports.getItems().size() - initialPages + 1;
+            reports.getItems().add(page("Report " + number, null, "Added to the Reports group at run time."));
+        });
+
+        Button removePage = new Button("Remove the last page of Reports");
+        removePage.setMaxWidth(Double.MAX_VALUE);
+        removePage.disableProperty().bind(Bindings.isEmpty(reports.getItems()));
+        removePage.setOnAction(event -> reports.getItems().remove(reports.getItems().size() - 1));
+
+        return createGrid(row(disableReports), row(hideReports), row(addPage), row(removePage));
     }
 
     // ==================== Helpers ====================
