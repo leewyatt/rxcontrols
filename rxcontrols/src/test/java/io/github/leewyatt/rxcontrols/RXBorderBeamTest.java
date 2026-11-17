@@ -496,9 +496,10 @@ public class RXBorderBeamTest {
         AtomicReference<Stage> stageRef = new AtomicReference<>();
         runOnFx(() -> {
             RXBorderBeam beam = new RXBorderBeam(content());
-            beam.setBeamSize(30.0);
+            // A long corner and a slow lap: the beam stays on the first corner for seconds.
+            beam.setBeamSize(100.0);
             beam.setReverse(true);
-            beam.setCycleDuration(Duration.seconds(20.0));
+            beam.setCycleDuration(Duration.seconds(40.0));
             ref.set(beam);
             Stage stage = new Stage();
             stage.setScene(new Scene(new StackPane(beam), 300.0, 200.0));
@@ -508,9 +509,9 @@ public class RXBorderBeamTest {
         try {
             Thread.sleep(500);
             runOnFx(() -> {
-                // From the start of the track at x = 30 it goes left and turns down the left edge.
+                // From the start of the track at x = 100 it goes left and turns down the left edge.
                 double[] placed = anchorAndAngle(beams(ref.get()).get(0));
-                assertTrue(placed[0] < 30.0 - EPSILON);
+                assertTrue(placed[0] < 100.0 - EPSILON);
                 double facing = placed[2] % 360.0;
                 assertTrue(facing > 90.0 && facing < 180.0);
 
@@ -523,8 +524,18 @@ public class RXBorderBeamTest {
                 turnedAt[0] = turned[0];
             });
             Thread.sleep(300);
-            // Clockwise again: back toward the top edge.
-            runOnFx(() -> assertTrue(anchorAndAngle(beams(ref.get()).get(0))[0] > turnedAt[0]));
+            runOnFx(() -> {
+                // Clockwise again: back toward the top edge.
+                double[] placed = anchorAndAngle(beams(ref.get()).get(0));
+                assertTrue(placed[0] > turnedAt[0]);
+
+                // Reversed once more mid-lap, it turns round without moving.
+                ref.get().setReverse(true);
+                double[] turned = anchorAndAngle(beams(ref.get()).get(0));
+                assertEquals(placed[0], turned[0], 1.0e-6);
+                assertEquals(placed[1], turned[1], 1.0e-6);
+                assertEquals((placed[2] + 180.0) % 360.0, turned[2] % 360.0, 1.0e-6);
+            });
         } finally {
             runOnFx(() -> stageRef.get().hide());
         }
@@ -674,9 +685,9 @@ public class RXBorderBeamTest {
         }
     }
 
-    /** Verifies the control's bounds stay the same while a beam with an outset moves. */
+    /** Verifies the control's bounds cover the outset, whether the beams show or not. */
     @Test
-    public void boundsDoNotFollowTheBeams() throws Exception {
+    public void boundsCoverTheOutset() throws Exception {
         runOnFx(() -> {
             RXBorderBeam beam = new RXBorderBeam(content());
             beam.setOutset(10.0);
@@ -685,6 +696,18 @@ public class RXBorderBeamTest {
             assertEquals(CONTENT_WIDTH + 20.0, beam.getBoundsInParent().getWidth(), EPSILON);
             assertEquals(CONTENT_HEIGHT + 20.0, beam.getBoundsInParent().getHeight(), EPSILON);
             assertEquals(-10.0, beam.getBoundsInParent().getMinX(), EPSILON);
+
+            beam.setActive(false);
+            assertEquals(CONTENT_WIDTH + 20.0, beam.getBoundsInParent().getWidth(), EPSILON);
+            beam.setActive(true);
+            beam.setBeamCount(0);
+            assertEquals(CONTENT_WIDTH + 20.0, beam.getBoundsInParent().getWidth(), EPSILON);
+
+            // Without content there is no band to cover: the control's own size is all that is left.
+            beam.setContent(null);
+            beam.layout();
+            assertEquals(beam.getWidth(), beam.getBoundsInParent().getWidth(), EPSILON);
+            assertEquals(0.0, beam.getBoundsInParent().getMinX(), EPSILON);
         });
     }
 
@@ -786,9 +809,7 @@ public class RXBorderBeamTest {
     private static List<Rectangle> beams(RXBorderBeam beam) {
         List<Rectangle> nodes = new ArrayList<>();
         for (Node node : layer(beam).getChildren()) {
-            if (node.getStyleClass().contains("beam")) {
-                nodes.add((Rectangle) node);
-            }
+            nodes.add((Rectangle) node);
         }
         return nodes;
     }

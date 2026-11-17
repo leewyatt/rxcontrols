@@ -59,8 +59,9 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
     private final Pane beamLayer;
     private final Path ring;
     private final List<Beam> beams = new ArrayList<>();
-    // Paints nothing. Without it the bounds of the layer, and with a positive
-    // outset those of the control, would follow the beams round on every frame.
+    // Paints nothing, and covers the box the band lies on. Without it the
+    // bounds of a control with a positive outset would follow the beams round
+    // on every frame, and shrink whenever they are hidden.
     private final Rectangle extent = new Rectangle();
 
     private final Timeline timeline;
@@ -110,9 +111,10 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
         beamLayer.setClip(ring);
         extent.setFill(Color.TRANSPARENT);
         extent.setManaged(false);
-        beamLayer.getChildren().add(extent);
+        extent.setMouseTransparent(true);
+        extent.setVisible(false);
 
-        getChildren().addAll(contentSlot, beamLayer);
+        getChildren().addAll(extent, contentSlot, beamLayer);
 
         // One second per lap; the rate stretches it to the cycle duration, so a
         // new duration takes effect without moving the beams.
@@ -178,8 +180,7 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
         int count = Math.max(0, getSkinnable().getBeamCount());
         if (count != beams.size()) {
             beams.clear();
-            List<Node> nodes = new ArrayList<>(count + 1);
-            nodes.add(extent);
+            List<Node> nodes = new ArrayList<>(count);
             for (int i = 0; i < count; i++) {
                 Beam beam = new Beam();
                 beams.add(beam);
@@ -320,6 +321,7 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
         if (content == null) {
             boxWidth = 0.0;
             boxHeight = 0.0;
+            extent.setVisible(false);
             updateRunning();
             return;
         }
@@ -357,6 +359,8 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
                 ringLineWidth = lineWidth;
                 System.arraycopy(radii, 0, ringRadii, 0, radii.length);
             }
+            extent.setX(boxX);
+            extent.setY(boxY);
             extent.setWidth(boxWidth);
             extent.setHeight(boxHeight);
             beamLayer.setLayoutX(boxX);
@@ -364,6 +368,7 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
             trackRadius = BorderBeamGeometry.trackRadius(boxWidth, boxHeight, beamSizeOrDefault());
             placeBeams();
         }
+        extent.setVisible(boxWidth > 0.0 && boxHeight > 0.0);
         updateRunning();
     }
 
@@ -464,7 +469,7 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
         contentSlot.setContent(null);
         // A replacement skin is constructed before this one is disposed and has
         // already added its nodes: remove only our own.
-        getChildren().removeAll(contentSlot, beamLayer);
+        getChildren().removeAll(extent, contentSlot, beamLayer);
     }
 
     // ==================== Beam Node ====================

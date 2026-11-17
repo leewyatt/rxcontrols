@@ -89,7 +89,8 @@ import java.util.List;
  * content plus the control's own padding. The beam takes no layout space; with
  * a positive outset it is drawn outside the control's bounds, where a clipping
  * ancestor such as a scroll pane cuts it off, and a {@code Group} parent sees
- * the control larger by the outset. The beam never receives mouse
+ * the control larger by the outset whether the beams show or not. The beam
+ * never receives mouse
  * events and the control takes no focus; the content keeps its own clip,
  * effect and transforms.</p>
  *
