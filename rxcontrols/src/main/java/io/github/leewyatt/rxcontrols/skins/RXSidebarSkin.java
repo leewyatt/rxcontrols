@@ -185,11 +185,11 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
         root.getStyleClass().add("container");
         headerSlot.getStyleClass().add("header");
-        topBox.getStyleClass().add("section");
+        topBox.getStyleClass().addAll("section", "top");
         mainScroll.getStyleClass().add("content");
         mainBox.getStyleClass().add("section");
         placeholderSlot.getStyleClass().add("placeholder");
-        bottomBox.getStyleClass().add("section");
+        bottomBox.getStyleClass().addAll("section", "bottom");
         footerSlot.getStyleClass().add("footer");
 
         mainScroll.setContent(mainBox);
@@ -198,6 +198,11 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         mainScroll.setVbarPolicy(ScrollBarPolicy.AS_NEEDED);
         mainScroll.setFocusTraversable(false);
         VBox.setVgrow(mainScroll, Priority.ALWAYS);
+        // A VBox short of room shrinks every child towards its minimum. Only
+        // the scrolling list may give way; the bands around it keep their height.
+        for (Region fixed : List.of(headerSlot, topBox, bottomBox, footerSlot)) {
+            fixed.setMinHeight(Region.USE_PREF_SIZE);
+        }
 
         root.getChildren().addAll(headerSlot, topBox, mainScroll, bottomBox, footerSlot);
         // setAll (not add): a replacing skin's constructor takes ownership of the
@@ -280,19 +285,21 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     // none of it on display. The settled rail is too narrow to hold it.
     private void showPlaceholderIfEmpty() {
         RXSidebar control = getSkinnable();
-        boolean empty = filtering && control.getPlaceholder() != null && !compactRows;
-        if (empty) {
-            for (RXSidebarItemBase item : control.getItems()) {
-                if (isShown(item)) {
-                    empty = false;
-                    break;
-                }
-            }
-        }
+        boolean empty = filtering && control.getPlaceholder() != null && !compactRows
+                && !hasShown(control.getItems());
         Node content = empty ? placeholderSlot : mainBox;
         if (mainScroll.getContent() != content) {
             mainScroll.setContent(content);
         }
+    }
+
+    private boolean hasShown(List<RXSidebarItemBase> items) {
+        for (RXSidebarItemBase item : items) {
+            if (isShown(item)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void swapSlot(StackPane slot, Node content) {
@@ -410,6 +417,10 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         for (ItemView<?> view : views.values()) {
             view.refresh(selectionPath);
         }
+        // A pinned band with nothing on display takes no room, so the gap
+        // its style sheet padding puts next to the list goes with it.
+        setShown(topBox, hasShown(getSkinnable().getTopItems()));
+        setShown(bottomBox, hasShown(getSkinnable().getBottomItems()));
         showPlaceholderIfEmpty();
         refreshTabStop();
     }

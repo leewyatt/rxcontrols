@@ -66,7 +66,7 @@ public class RXSidebarSkinTest {
             host(sidebar);
 
             VBox container = (VBox) sidebar.getChildrenUnmodifiable().get(0);
-            assertEquals(List.of("header", "section", "content", "section", "footer"),
+            assertEquals(List.of("header", "top", "content", "bottom", "footer"),
                     container.getChildren().stream().map(node -> node.getStyleClass().get(
                             node.getStyleClass().size() - 1)).toList());
             assertEquals(List.of("Top"), texts(container.getChildren().get(1)));
@@ -562,6 +562,55 @@ public class RXSidebarSkinTest {
             assertNull(placeholder.getScene());
             child.setVisible(true);
             assertEquals(List.of("Group"), shownTexts(sidebar));
+        });
+    }
+
+    /**
+     * A list too long for the sidebar scrolls; the header and footer keep their
+     * preferred height.
+     */
+    @Test
+    public void aLongListDoesNotSqueezeTheHeaderAndFooter() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            Region header = new Region();
+            header.setPrefHeight(60.0);
+            Region footer = new Region();
+            footer.setPrefHeight(30.0);
+            sidebar.setHeader(header);
+            sidebar.setFooter(footer);
+            for (int i = 0; i < 40; i++) {
+                sidebar.getItems().add(RXSidebarItem.of("Item " + i));
+            }
+            sidebar.setPrefHeight(300.0);
+            host(sidebar);
+
+            assertEquals(60.0, header.getHeight(), 0.5);
+            assertEquals(30.0, footer.getHeight(), 0.5);
+        });
+    }
+
+    /**
+     * A pinned band takes room only while one of its items is on display.
+     */
+    @Test
+    public void aPinnedBandWithNothingShownTakesNoRoom() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarItem pinned = RXSidebarItem.of("Pinned");
+            sidebar.getTopItems().add(pinned);
+            sidebar.getItems().add(RXSidebarItem.of("Page"));
+            host(sidebar);
+
+            Node top = sidebar.lookup(".top");
+            assertTrue(top.isManaged());
+            assertFalse(sidebar.lookup(".bottom").isManaged());
+
+            sidebar.setFilter(RXSidebar.textFilter("page"));
+            assertFalse(top.isManaged());
+            sidebar.setFilter(null);
+            pinned.setVisible(false);
+            assertFalse(top.isManaged());
         });
     }
 
