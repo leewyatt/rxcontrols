@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.sampler;
 
+import io.github.leewyatt.rxcontrols.RXBreadcrumbBar;
 import io.github.leewyatt.rxcontrols.RXTransitionPane;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
@@ -25,7 +26,9 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import javafx.util.StringConverter;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,8 +56,8 @@ public class RXSampler extends Application {
     };
 
     private final RXTransitionPane host = new RXTransitionPane();
-    private final Label crumbCategory = new Label();
-    private final Label crumbName = new Label();
+    // The path is the category followed by the entry, so the item type is their common one.
+    private final RXBreadcrumbBar<Object> crumbs = new RXBreadcrumbBar<>();
     private final Button previous = new Button();
     private final Button next = new Button();
     private final Label position = new Label();
@@ -100,11 +103,22 @@ public class RXSampler extends Application {
     // ==================== Chrome ====================
 
     private HBox buildTopBar() {
-        crumbCategory.getStyleClass().add("crumb-category");
-        crumbName.getStyleClass().add("crumb-name");
-        Region separator = glyph("chevron-right-glyph");
-        HBox crumbs = new HBox(6.0, crumbCategory, separator, crumbName);
-        crumbs.setAlignment(Pos.CENTER_LEFT);
+        crumbs.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(Object item) {
+                if (item instanceof SamplerCategory category) {
+                    return category.title();
+                }
+                return item instanceof SamplerEntry entry ? entry.name() : "";
+            }
+
+            @Override
+            public Object fromString(String text) {
+                throw new UnsupportedOperationException();
+            }
+        });
+        crumbs.setChildrenFactory(this::crumbChildren);
+        crumbs.setOnNavigate(event -> show(entryAt(event.getItem())));
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         ComboBox<ThemeChoice> themePicker = new ComboBox<>();
@@ -160,13 +174,39 @@ public class RXSampler extends Application {
         Node page = pages.computeIfAbsent(entry, this::createPage);
         host.transitionTo(page, to >= from ? TransitionDirection.FORWARD : TransitionDirection.BACKWARD);
 
-        crumbCategory.setText(entry.category().title());
-        crumbName.setText(entry.name());
+        crumbs.getItems().setAll(entry.category(), entry);
         SamplerEntry before = entries.get((to - 1 + entries.size()) % entries.size());
         SamplerEntry after = entries.get((to + 1) % entries.size());
         previous.setText(before.name());
         next.setText(after.name());
         position.setText((to + 1) + " / " + entries.size());
+    }
+
+    private List<Object> crumbChildren(List<Object> path) {
+        if (path.isEmpty()) {
+            return List.of((Object[]) SamplerCategory.values());
+        }
+        Object parent = path.get(path.size() - 1);
+        List<Object> children = new ArrayList<>();
+        for (SamplerEntry entry : entries) {
+            if (entry.category() == parent) {
+                children.add(entry);
+            }
+        }
+        return children;
+    }
+
+    // A category stands for its first page.
+    private SamplerEntry entryAt(Object crumb) {
+        if (crumb instanceof SamplerEntry entry) {
+            return entry;
+        }
+        for (SamplerEntry entry : entries) {
+            if (entry.category() == crumb) {
+                return entry;
+            }
+        }
+        return null;
     }
 
     private void step(int delta) {

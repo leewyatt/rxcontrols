@@ -35,8 +35,6 @@ import java.util.Map;
  */
 final class SamplerNav extends VBox {
 
-    private static final String RX_PREFIX = "RX";
-
     private final FilteredList<SamplerEntry> shown;
     private final RXListView<SamplerEntry> list;
     private final RXTextField search = new RXTextField();
@@ -58,6 +56,7 @@ final class SamplerNav extends VBox {
         list.setSectionKeyFactory(SamplerEntry::category);
         list.setSectionHeaderFactory(view -> new SectionCell());
         list.setStickySectionHeader(true);
+        list.setCollapsibleSections(true);
         list.setCellFactory(view -> new EntryCell());
         list.setPlaceholder(new Label("No component matches"));
         VBox.setVgrow(list, Priority.ALWAYS);
@@ -88,7 +87,7 @@ final class SamplerNav extends VBox {
     // ==================== Parts ====================
 
     private HBox buildBrand() {
-        Label logo = new Label(RX_PREFIX);
+        Label logo = new Label("RX");
         logo.getStyleClass().add("brand-logo");
         logo.setPrefSize(32.0, 32.0);
         logo.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
@@ -151,6 +150,10 @@ final class SamplerNav extends VBox {
     private void applyFilter(String text) {
         String query = text == null ? "" : text.trim().toLowerCase(Locale.ROOT);
         shown.setPredicate(entry -> entry.matches(query));
+        if (!query.isEmpty()) {
+            // A match inside a collapsed section would stay hidden.
+            list.expandAllSections();
+        }
         updateCount();
     }
 
@@ -163,6 +166,7 @@ final class SamplerNav extends VBox {
         if (entry == null || list.getSelectionModel().getSelectedItem() == entry || !shown.contains(entry)) {
             return;
         }
+        list.setSectionExpanded(entry.category(), true);
         syncing = true;
         try {
             list.getSelectionModel().select(entry);
@@ -180,37 +184,21 @@ final class SamplerNav extends VBox {
         return path;
     }
 
-    // Sub-nodes are fields: updateItem runs on every re-bind, not once per row.
     private static final class EntryCell extends RXListCell<SamplerEntry> {
-
-        private final Label prefix = new Label();
-        private final Label rest = new Label();
-        private final HBox content = new HBox(prefix, rest);
 
         EntryCell() {
             getStyleClass().add("nav-cell");
-            prefix.getStyleClass().add("prefix");
-            rest.getStyleClass().add("name");
-            content.setAlignment(Pos.CENTER_LEFT);
-            setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
         }
 
         @Override
         protected void updateItem(SamplerEntry item, boolean empty) {
             super.updateItem(item, empty);
-            if (empty || item == null) {
-                setText(null);
-                setGraphic(null);
-                return;
-            }
-            String name = item.name();
-            boolean rx = name.startsWith(RX_PREFIX);
-            prefix.setText(rx ? RX_PREFIX : "");
-            rest.setText(rx ? name.substring(RX_PREFIX.length()) : name);
-            setGraphic(content);
+            setGraphic(null);
+            setText(empty || item == null ? null : item.name());
         }
     }
 
+    // Sub-nodes are fields: updateItem runs on every re-bind, not once per row.
     private static final class SectionCell extends RXListSectionCell {
 
         // A Region does not watch the content of its shape, so each glyph gets its own

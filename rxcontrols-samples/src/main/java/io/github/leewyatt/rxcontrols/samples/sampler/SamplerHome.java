@@ -1,7 +1,9 @@
 package io.github.leewyatt.rxcontrols.samples.sampler;
 
 import io.github.leewyatt.rxcontrols.ItemsJustify;
+import io.github.leewyatt.rxcontrols.RXChip;
 import io.github.leewyatt.rxcontrols.layout.RXTilePane;
+import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -10,6 +12,7 @@ import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -111,20 +114,34 @@ final class SamplerHome extends ScrollPane {
         StackPane badge = new StackPane(glyph);
         badge.getStyleClass().add("glyph-badge");
         badge.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        badge.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
         Label name = new Label(category.title());
         name.getStyleClass().add("card-title");
-        Label count = new Label(list.size() + (list.size() == 1 ? " page" : " pages"));
-        count.getStyleClass().add("card-count");
+        // The card is the button; the chip only displays the count.
+        RXChip count = new RXChip(list.size() + (list.size() == 1 ? " page" : " pages"));
+        count.setMouseTransparent(true);
+        count.setFocusTraversable(false);
+        count.setMinWidth(Region.USE_PREF_SIZE);
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox heading = new HBox(8.0, name, spacer, count);
+        heading.setAlignment(Pos.CENTER_LEFT);
         Label sample = new Label(list.stream().limit(SAMPLE_NAMES).map(SamplerEntry::name)
                 .collect(Collectors.joining(" · ")));
         sample.getStyleClass().add("card-sample");
-        VBox text = new VBox(2.0, name, count, sample);
+        VBox text = new VBox(4.0, heading, sample);
         text.setMinWidth(0.0);
 
+        HBox.setHgrow(text, Priority.ALWAYS);
         HBox graphic = new HBox(14.0, badge, text);
         graphic.setAlignment(Pos.TOP_LEFT);
         Button card = new Button();
+        // A button lays its graphic out at the preferred width; the tile pane decides
+        // the card's width, so following it lets the count sit at the trailing edge.
+        graphic.prefWidthProperty().bind(Bindings.createDoubleBinding(
+                () -> card.getWidth() - card.getInsets().getLeft() - card.getInsets().getRight(),
+                card.widthProperty(), card.insetsProperty()));
         card.getStyleClass().add("category-card");
         card.setGraphic(graphic);
         card.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
