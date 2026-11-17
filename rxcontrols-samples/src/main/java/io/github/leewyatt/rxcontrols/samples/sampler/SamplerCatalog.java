@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXBackdrop;
 import io.github.leewyatt.rxcontrols.RXBadge;
 import io.github.leewyatt.rxcontrols.RXBarSpinner;
+import io.github.leewyatt.rxcontrols.RXBorderBeam;
 import io.github.leewyatt.rxcontrols.RXBreadcrumbBar;
 import io.github.leewyatt.rxcontrols.RXBursts;
 import io.github.leewyatt.rxcontrols.RXButton;
@@ -120,6 +121,7 @@ import io.github.leewyatt.rxcontrols.samples.demo.RXBackdropDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXBadgeDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXBarSpinnerDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXBoxDemo;
+import io.github.leewyatt.rxcontrols.samples.demo.RXBorderBeamDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXBreadcrumbBarDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXBurstsDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXCalendarViewDemo;
@@ -180,6 +182,7 @@ import io.github.leewyatt.rxcontrols.samples.demo.RXSeekBarDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXSegmentedControlDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXSegmentedProgressBarDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXSegmentedStepIndicatorDemo;
+import io.github.leewyatt.rxcontrols.samples.demo.RXSidebarDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXSkeletonDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXSliderDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXSmoothScrollerDemo;
@@ -217,6 +220,7 @@ import io.github.leewyatt.rxcontrols.samples.showcase.RXBackdropShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXBadgeShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXBarSpinnerShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXBoxShowcase;
+import io.github.leewyatt.rxcontrols.samples.showcase.RXBorderBeamShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXBreadcrumbBarShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXBurstsShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXButtonShowcase;
@@ -478,7 +482,7 @@ final class SamplerCatalog {
         list.add(single(c, RXBackdrop.class, RXBackdropShowcase::new, RXBackdropDemo.class));
 
         c = SamplerCategory.NAVIGATION;
-        list.add(single(c, RXSidebar.class, RXSidebarShowcase::new, null));
+        list.add(single(c, RXSidebar.class, RXSidebarShowcase::new, RXSidebarDemo.class));
         list.add(single(c, RXTabPane.class, RXTabPaneShowcase::new, RXTabPaneDemo.class));
         list.add(single(c, RXBreadcrumbBar.class, RXBreadcrumbBarShowcase::new, RXBreadcrumbBarDemo.class));
         list.add(single(c, RXAccordion.class, RXAccordionShowcase::new, RXAccordionDemo.class));
@@ -511,6 +515,7 @@ final class SamplerCatalog {
 
         c = SamplerCategory.MOTION;
         list.add(single(c, RXBursts.class, RXBurstsShowcase::new, RXBurstsDemo.class));
+        list.add(single(c, RXBorderBeam.class, RXBorderBeamShowcase::new, RXBorderBeamDemo.class));
         list.add(single(c, RXRipplePane.class, RXRipplePaneShowcase::new, null));
         list.add(single(c, RXSmoothScroller.class, RXSmoothScrollerShowcase::new, RXSmoothScrollerDemo.class));
         return List.copyOf(list);
