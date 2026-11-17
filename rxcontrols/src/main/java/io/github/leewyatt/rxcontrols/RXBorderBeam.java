@@ -45,22 +45,22 @@ import java.util.List;
  * validation indicator.</p>
  *
  * <p><b>Geometry.</b> The beam runs in a band, {@link #lineWidthProperty()
- * lineWidth} wide, whose outer edge lies on the edge of the content and which
- * extends inward from there, over the content's own border.
+ * lineWidth} wide, whose outer edge lies on the layout bounds of the content
+ * and which extends inward from there, over the content's own border.
  * {@link #outsetProperty() outset} moves that edge outward, or inward when
  * negative, with the corners staying concentric. The corners are those of
  * {@link #cornerRadiusProperty() cornerRadius}; while that is {@code null}
  * they follow a content that is a {@code Region}:</p>
  * <ul>
- *   <li>with a border, the radii and insets of its first stroke;</li>
- *   <li>otherwise, with a background, the radii and insets of its first fill
- *       that has no negative inset, or of its first fill when all have;</li>
+ *   <li>with a border, the radii of its first stroke;</li>
+ *   <li>otherwise, with a background, the radii of its first fill;</li>
  *   <li>otherwise, and for content that is not a {@code Region}, square
- *       corners on the content's layout bounds.</li>
+ *       corners.</li>
  * </ul>
- * <p>A region's {@code shape} is not followed, nor is a stroke drawn outside
- * or centered on the edge: set the radii, and an outset, explicitly in those
- * cases.</p>
+ * <p>Nothing else of what the content paints is followed: not the insets of a
+ * fill or stroke, not a stroke drawn outside or centered on the edge, not a
+ * region's {@code shape}, and not a transform of the content. Set the radii
+ * and an outset explicitly in those cases.</p>
  *
  * <p><b>The beam.</b> Each beam is a square of side
  * {@link #beamSizeProperty() beamSize}, painted with a gradient that fades
@@ -83,7 +83,8 @@ import java.util.List;
  * preferred and maximum sizes, content bias and baseline are those of the
  * content plus the control's own padding. The beam takes no layout space; with
  * a positive outset it is drawn outside the control's bounds, where a clipping
- * ancestor such as a scroll pane cuts it off. The beam never receives mouse
+ * ancestor such as a scroll pane cuts it off, and the bounds the control
+ * reports to a {@code Group} parent then move with the beam. The beam never receives mouse
  * events and the control takes no focus; the content keeps its own clip,
  * effect and transforms.</p>
  *
@@ -586,9 +587,8 @@ public class RXBorderBeam extends Control {
      * The corner radii of the band's outer edge, before the outset is applied.
      * Every corner may differ, be elliptical or be a percentage of the box;
      * radii too large for the box shrink together, as they do on a region.
-     * With these set, the band lies on the content's layout bounds whatever
-     * the content paints. The default {@code null} follows the content, as the
-     * class description lays out. From CSS, {@code -rx-corner-radius} accepts
+     * The default {@code null} follows the content, as the class description
+     * lays out. From CSS, {@code -rx-corner-radius} accepts
      * 1 to 4 sizes in top-left, top-right, bottom-right, bottom-left order; a
      * negative size selects following the content.
      *

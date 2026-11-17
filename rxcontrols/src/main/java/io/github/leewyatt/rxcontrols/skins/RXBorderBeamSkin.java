@@ -11,12 +11,9 @@ import javafx.beans.InvalidationListener;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
-import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.Border;
-import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
@@ -35,6 +32,7 @@ import javafx.util.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Default skin for {@link RXBorderBeam}.
@@ -65,8 +63,9 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
     private final DoubleProperty phase = new SimpleDoubleProperty();
     private final ReadOnlyBooleanProperty treeShowing;
 
-    private final InvalidationListener contentLookListener = observable -> getSkinnable().requestLayout();
+    private final InvalidationListener contentLookListener = observable -> onContentLookChanged();
     private Region observedContent;
+    private CornerRadii contentCorners;
 
     private double boxWidth;
     private double boxHeight;
@@ -137,6 +136,15 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
         contentSlot.setContent(content);
         observeContentLook(content instanceof Region ? (Region) content : null);
         getSkinnable().requestLayout();
+    }
+
+    // A control restyles itself on every hover, press and focus change, mostly
+    // without touching its corners: only a change of those needs a layout.
+    private void onContentLookChanged() {
+        if (getSkinnable().getCornerRadius() == null
+                && !Objects.equals(contentCorners, cornersOf(observedContent))) {
+            getSkinnable().requestLayout();
+        }
     }
 
     // The corners follow the content's border and background.
@@ -262,8 +270,9 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
 
     private Duration cycleDurationOrDefault() {
         Duration duration = getSkinnable().getCycleDuration();
+        // A duration too short to give a finite rate counts as not positive.
         boolean usable = duration != null && !duration.isUnknown() && !duration.isIndefinite()
-                && duration.greaterThan(Duration.ZERO);
+                && duration.greaterThan(Duration.ZERO) && Double.isFinite(1.0 / duration.toSeconds());
         return usable ? duration : RXBorderBeam.DEFAULT_CYCLE_DURATION;
     }
 
@@ -294,24 +303,9 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
         double height = contentSlot.contentHeight();
 
         CornerRadii corners = control.getCornerRadius();
-        if (corners == null && content instanceof Region) {
-            Region region = (Region) content;
-            Insets insets = Insets.EMPTY;
-            BorderStroke stroke = firstStroke(region.getBorder());
-            BackgroundFill fill = stroke == null ? outlineFill(region.getBackground()) : null;
-            if (stroke != null) {
-                corners = stroke.getRadii();
-                insets = stroke.getInsets();
-            } else if (fill != null) {
-                corners = fill.getRadii();
-                insets = fill.getInsets();
-            }
-            if (insets != null) {
-                boxX += insets.getLeft();
-                boxY += insets.getTop();
-                width -= insets.getLeft() + insets.getRight();
-                height -= insets.getTop() + insets.getBottom();
-            }
+        if (corners == null) {
+            contentCorners = cornersOf(observedContent);
+            corners = contentCorners;
         }
         BorderBeamGeometry.resolveRadii(corners, Math.max(0.0, width), Math.max(0.0, height), radii);
 
@@ -344,24 +338,22 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
         updateRunning();
     }
 
-    private static BorderStroke firstStroke(Border border) {
-        return border == null || border.getStrokes().isEmpty() ? null : border.getStrokes().get(0);
-    }
-
-    // A fill with a negative inset is a decoration round the outline, such as
-    // a focus ring, not the outline itself.
-    private static BackgroundFill outlineFill(Background background) {
-        if (background == null || background.getFills().isEmpty()) {
+    // Only the radii are taken, never the insets: the layers a control paints
+    // come and go with its state, and a band that followed their insets would
+    // shift whenever the control gained focus.
+    private static CornerRadii cornersOf(Region region) {
+        if (region == null) {
             return null;
         }
-        for (BackgroundFill fill : background.getFills()) {
-            Insets insets = fill.getInsets();
-            if (insets == null || (insets.getTop() >= 0.0 && insets.getRight() >= 0.0
-                    && insets.getBottom() >= 0.0 && insets.getLeft() >= 0.0)) {
-                return fill;
-            }
+        Border border = region.getBorder();
+        if (border != null && !border.getStrokes().isEmpty()) {
+            return border.getStrokes().get(0).getRadii();
         }
-        return background.getFills().get(0);
+        Background background = region.getBackground();
+        if (background != null && !background.getFills().isEmpty()) {
+            return background.getFills().get(0).getRadii();
+        }
+        return null;
     }
 
     private static double innerSize(double size, double firstInset, double secondInset) {

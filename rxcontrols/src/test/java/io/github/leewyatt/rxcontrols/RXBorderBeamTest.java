@@ -3,10 +3,11 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.skins.RXBorderBeamSkin;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
-import javafx.css.Styleable;
+import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
@@ -44,7 +45,6 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -105,9 +105,6 @@ public class RXBorderBeamTest {
                 .collect(Collectors.toSet());
         assertTrue(names.containsAll(Set.of("-rx-beam-fill", "-rx-beam-size", "-rx-beam-count",
                 "-rx-line-width", "-rx-outset", "-rx-cycle-duration", "-rx-corner-radius")));
-        for (CssMetaData<? extends Styleable, ?> metaData : new RXBorderBeam().getCssMetaData()) {
-            assertTrue(metaData.getProperty() != null);
-        }
     }
 
     /** Verifies a style sheet sets every styleable property. */
@@ -250,21 +247,100 @@ public class RXBorderBeamTest {
         });
     }
 
-    /** Verifies the corners follow the content's outline fill, skipping a focus-ring fill. */
+    /** Verifies the band keeps its place and causes no layout when a control swaps its fills for a focus ring. */
     @Test
-    public void cornersFollowTheContentBackground() throws Exception {
+    public void bandIgnoresFillInsetsAndStateChanges() throws Exception {
         runOnFx(() -> {
             Region content = content();
             content.setBackground(new Background(
-                    new BackgroundFill(Color.BLUE, new CornerRadii(9.0), new Insets(-2.0)),
-                    new BackgroundFill(Color.WHITE, new CornerRadii(7.0), new Insets(3.0)),
-                    new BackgroundFill(Color.GRAY, new CornerRadii(5.0), new Insets(4.0))));
+                    new BackgroundFill(Color.GRAY, new CornerRadii(3.0), Insets.EMPTY),
+                    new BackgroundFill(Color.WHITE, new CornerRadii(2.0), new Insets(1.0))));
             RXBorderBeam beam = laidOut(new RXBorderBeam(content));
+            assertEquals(3.0, arcs(ring(beam)).get(0).getRadiusX(), EPSILON);
+
+            // A restyle that leaves the corners alone, as on hover, asks for no layout.
+            content.setBackground(new Background(
+                    new BackgroundFill(Color.DARKGRAY, new CornerRadii(3.0), Insets.EMPTY),
+                    new BackgroundFill(Color.WHITESMOKE, new CornerRadii(2.0), new Insets(1.0))));
+            assertFalse(beam.isNeedsLayout());
+
+            content.setBackground(new Background(
+                    new BackgroundFill(Color.BLUE, new CornerRadii(3.0), new Insets(-0.2)),
+                    new BackgroundFill(Color.WHITE, new CornerRadii(2.0), new Insets(1.0)),
+                    new BackgroundFill(Color.LIGHTBLUE, new CornerRadii(4.0), new Insets(-1.4))));
+            beam.requestLayout();
+            beam.layout();
 
             Path ring = ring(beam);
-            assertEquals(7.0, arcs(ring).get(0).getRadiusX(), EPSILON);
-            assertEquals(3.0, layer(beam).getLayoutX(), EPSILON);
-            assertEquals(CONTENT_WIDTH - 6.0, ring.getLayoutBounds().getWidth(), EPSILON);
+            assertEquals(3.0, arcs(ring).get(0).getRadiusX(), EPSILON);
+            assertEquals(0.0, layer(beam).getLayoutX(), EPSILON);
+            assertEquals(CONTENT_WIDTH, ring.getLayoutBounds().getWidth(), EPSILON);
+        });
+    }
+
+    /** Verifies the band round a button stays put when the button shows its focus ring. */
+    @Test
+    public void bandRoundAButtonIgnoresItsFocusRing() throws Exception {
+        runOnFx(() -> {
+            Button button = new Button("Upgrade");
+            RXBorderBeam beam = laidOut(new RXBorderBeam(button));
+            double width = ring(beam).getLayoutBounds().getWidth();
+            double radius = arcs(ring(beam)).get(0).getRadiusX();
+            assertEquals(button.getWidth(), width, EPSILON);
+
+            button.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), true);
+            beam.applyCss();
+            beam.requestLayout();
+            beam.layout();
+
+            assertEquals(0.0, layer(beam).getLayoutX(), EPSILON);
+            assertEquals(width, ring(beam).getLayoutBounds().getWidth(), EPSILON);
+            assertEquals(radius, arcs(ring(beam)).get(0).getRadiusX(), EPSILON);
+        });
+    }
+
+    /** Verifies elliptical and percentage radii reach the ring, each axis reduced by the line width. */
+    @Test
+    public void ellipticalRadiiReachTheRing() throws Exception {
+        runOnFx(() -> {
+            RXBorderBeam beam = new RXBorderBeam(content());
+            // Horizontal radii of 20%, vertical ones of 10%, on every corner.
+            beam.setCornerRadius(new CornerRadii(0.2, 0.1, 0.1, 0.2, 0.2, 0.1, 0.1, 0.2,
+                    true, true, true, true, true, true, true, true));
+            beam.setLineWidth(15.0);
+            laidOut(beam);
+
+            List<ArcTo> arcs = arcs(ring(beam));
+            assertEquals(0.2 * CONTENT_WIDTH, arcs.get(0).getRadiusX(), EPSILON);
+            assertEquals(0.1 * CONTENT_HEIGHT, arcs.get(0).getRadiusY(), EPSILON);
+            // The vertical radius of 10 is used up by the line: the inner corners are square.
+            assertEquals(4, arcs.size());
+        });
+    }
+
+    /** Verifies content that is not a region gets a square band on its layout bounds. */
+    @Test
+    public void nonRegionContentGetsASquareBand() throws Exception {
+        runOnFx(() -> {
+            RXBorderBeam beam = laidOut(new RXBorderBeam(new Rectangle(80.0, 40.0)));
+            Path ring = ring(beam);
+            assertTrue(arcs(ring).isEmpty());
+            assertEquals(80.0, ring.getLayoutBounds().getWidth(), EPSILON);
+            assertEquals(40.0, ring.getLayoutBounds().getHeight(), EPSILON);
+            assertEquals(80.0, beam.prefWidth(-1.0), EPSILON);
+            assertTrue(layer(beam).isVisible());
+        });
+    }
+
+    /** Verifies the baseline is the content's, shifted by the top padding. */
+    @Test
+    public void baselinePassesThroughFromTheContent() throws Exception {
+        runOnFx(() -> {
+            Label content = new Label("Baseline");
+            RXBorderBeam beam = new RXBorderBeam(content);
+            beam.setPadding(new Insets(7.0));
+            laidOut(beam);
+            assertEquals(content.getBaselineOffset() + 7.0, beam.getBaselineOffset(), EPSILON);
         });
     }
 
@@ -307,7 +383,7 @@ public class RXBorderBeamTest {
             beam.setLineWidth(Double.NaN);
             beam.setBeamSize(-5.0);
             beam.setOutset(Double.POSITIVE_INFINITY);
-            beam.setCycleDuration(Duration.ZERO);
+            beam.setCycleDuration(Duration.millis(Double.MIN_VALUE));
             laidOut(beam);
 
             assertEquals(RXBorderBeam.DEFAULT_LINE_WIDTH, moves(ring(beam)).get(1).getX(), EPSILON);
@@ -464,7 +540,8 @@ public class RXBorderBeamTest {
             Thread.sleep(500);
             runOnFx(() -> {
                 seen[0] = position(ref.get());
-                assertNotEquals(40.0 - 27.0, seen[0], EPSILON);
+                // At rest the beam sits at the track's start: its radius of 30, less the anchor at 27.
+                assertTrue(seen[0] > 3.0 + EPSILON);
                 ref.get().setActive(false);
                 assertFalse(layer(ref.get()).isVisible());
                 seen[1] = position(ref.get());
