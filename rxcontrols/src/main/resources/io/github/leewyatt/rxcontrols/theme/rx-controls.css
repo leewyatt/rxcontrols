@@ -2831,6 +2831,14 @@
     -fx-background-color: transparent;
 }
 
+.rx-sidebar > .container > .content .placeholder {
+    -fx-padding: 24 12 24 12;
+}
+
+.rx-sidebar > .container > .content .placeholder > .label {
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
 /* The left edge of a row's content (icon column inset plus one indent per level) is
    laid out by the skin, so this padding is only the top / right / bottom inset. */
 .rx-sidebar .item {

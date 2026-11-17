@@ -11,6 +11,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import org.junit.jupiter.api.BeforeAll;
@@ -416,7 +417,170 @@ public class RXSidebarSkinTest {
         });
     }
 
+    // ==================== Filter ====================
+
+    /**
+     * A filter leaves the matches, what is above and below them, and the
+     * captions of sections with a shown item; separators hide.
+     */
+    @Test
+    public void aFilterNarrowsTheRows() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarItem page = RXSidebarItem.of("RXSidebar");
+            page.getKeywords().add("Navigation");
+            RXSidebarItem group = RXSidebarItem.group("Controls", null, page, RXSidebarItem.of("Badge"));
+            RXSidebarHeader first = new RXSidebarHeader("First");
+            RXSidebarHeader second = new RXSidebarHeader("Second");
+            RXSidebarSeparator separator = new RXSidebarSeparator();
+            separator.getStyleClass().add("divider");
+            sidebar.getItems().addAll(first, RXSidebarItem.of("Home"), separator, second, group);
+            sidebar.getBottomItems().add(RXSidebarItem.of("Settings"));
+            host(sidebar);
+
+            sidebar.setFilter(RXSidebar.textFilter("navi"));
+            assertEquals(List.of("Controls", "RXSidebar"), shownTexts(sidebar));
+            assertFalse(SidebarTestSupport.node(sidebar, "caption", first).isVisible());
+            assertTrue(SidebarTestSupport.node(sidebar, "caption", second).isVisible());
+            assertFalse(sidebar.lookup(".divider").isVisible());
+
+            sidebar.setFilter(RXSidebar.textFilter("controls"));
+            assertEquals(List.of("Controls", "RXSidebar", "Badge"), shownTexts(sidebar));
+
+            sidebar.setFilter(RXSidebar.textFilter(" "));
+            assertEquals(List.of("Home", "Controls", "Settings"), shownTexts(sidebar));
+            assertTrue(sidebar.lookup(".divider").isVisible());
+        });
+    }
+
+    /**
+     * While filtering, groups are held open without their expanded state being
+     * read or written, and the user cannot fold them.
+     */
+    @Test
+    public void aFilterHoldsGroupsOpen() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarItem child = RXSidebarItem.of("Child");
+            RXSidebarItem group = RXSidebarItem.group("Group", null, child);
+            sidebar.getItems().add(group);
+            Scene scene = host(sidebar);
+
+            sidebar.setFilter(item -> item == child);
+            assertFalse(group.isExpanded());
+            assertTrue(SidebarTestSupport.hasPseudoClass(row(sidebar, group), "expanded"));
+            assertEquals(List.of("Group", "Child"), shownTexts(sidebar));
+
+            SidebarTestSupport.click(row(sidebar, group));
+            row(sidebar, group).requestFocus();
+            SidebarTestSupport.press(scene, KeyCode.LEFT);
+            assertFalse(group.isExpanded());
+            assertEquals(List.of("Group", "Child"), shownTexts(sidebar));
+
+            row(sidebar, child).requestFocus();
+            sidebar.setFilter(null);
+            assertEquals(List.of("Group"), shownTexts(sidebar));
+            assertSame(row(sidebar, group), scene.getFocusOwner());
+        });
+    }
+
+    /**
+     * The filter is asked when it or the tree changes; a filtered-out selection
+     * stays selected.
+     */
+    @Test
+    public void filteringFollowsTheTreeAndKeepsTheSelection() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            RXSidebarItem alpha = RXSidebarItem.of("Alpha");
+            sidebar.getItems().addAll(alpha, RXSidebarItem.of("Beta"));
+            host(sidebar);
+            sidebar.selectItem(alpha);
+
+            sidebar.setFilter(RXSidebar.textFilter("b"));
+            assertEquals(List.of("Beta"), shownTexts(sidebar));
+            assertSame(alpha, sidebar.getSelectedItem());
+
+            sidebar.getItems().addAll(RXSidebarItem.of("Bravo"), RXSidebarItem.of("Charlie"));
+            assertEquals(List.of("Beta", "Bravo"), shownTexts(sidebar));
+        });
+    }
+
+    /**
+     * The placeholder replaces the scrolling list only while a filter leaves
+     * none of it on display.
+     */
+    @Test
+    public void placeholderShowsWhenTheFilterLeavesNothing() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            Label placeholder = new Label("No results");
+            sidebar.setPlaceholder(placeholder);
+            sidebar.getItems().add(RXSidebarItem.of("Alpha"));
+            sidebar.getBottomItems().add(RXSidebarItem.of("Zulu"));
+            host(sidebar);
+            assertNull(placeholder.getScene());
+
+            sidebar.setFilter(RXSidebar.textFilter("z"));
+            layout(sidebar.getScene());
+            assertSame(sidebar.getScene(), placeholder.getScene());
+            assertEquals(List.of("Zulu"), shownTexts(sidebar));
+
+            sidebar.setFilter(RXSidebar.textFilter("a"));
+            assertNull(placeholder.getScene());
+            assertEquals(List.of("Alpha"), shownTexts(sidebar));
+
+            sidebar.setFilter(RXSidebar.textFilter("z"));
+            sidebar.setSkin(null);
+            assertNull(placeholder.getParent());
+        });
+    }
+
+    /**
+     * A visible flag changing under a filter is taken into account, and the
+     * placeholder stays away while the sidebar rests in MINI.
+     */
+    @Test
+    public void filteringFollowsVisibilityAndMode() throws Exception {
+        runOnFx(() -> {
+            RXSidebar sidebar = new RXSidebar();
+            Label placeholder = new Label("No results");
+            sidebar.setPlaceholder(placeholder);
+            RXSidebarHeader caption = new RXSidebarHeader("Caption");
+            RXSidebarItem child = RXSidebarItem.of("Child");
+            RXSidebarItem group = RXSidebarItem.group("Group", null, child);
+            sidebar.getItems().addAll(caption, group);
+            host(sidebar);
+
+            sidebar.setFilter(RXSidebar.textFilter("child"));
+            assertTrue(SidebarTestSupport.node(sidebar, "caption", caption).isVisible());
+            child.setVisible(false);
+            assertEquals(List.of(), shownTexts(sidebar));
+            assertSame(sidebar.getScene(), placeholder.getScene());
+
+            sidebar.setMode(SidebarMode.MINI);
+            assertNull(placeholder.getScene());
+            child.setVisible(true);
+            assertEquals(List.of("Group"), shownTexts(sidebar));
+        });
+    }
+
     // ==================== Helpers ====================
+
+    // The texts of the rows on display, in scene-graph order.
+    private static List<String> shownTexts(RXSidebar sidebar) {
+        List<String> texts = new ArrayList<>();
+        for (Node node : sidebar.lookupAll(".item")) {
+            boolean shown = node.getScene() != null;
+            for (Node current = node; shown && current != sidebar; current = current.getParent()) {
+                shown = current.isVisible();
+            }
+            if (shown) {
+                texts.add(label((Region) node).getText());
+            }
+        }
+        return texts;
+    }
 
     private static Region icon() {
         Region icon = new Region();

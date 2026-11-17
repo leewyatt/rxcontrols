@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
+import io.github.leewyatt.rxcontrols.internal.SidebarVisibility;
 import io.github.leewyatt.rxcontrols.skins.RXSidebarSkin;
 
 import javafx.animation.Interpolator;
@@ -31,6 +32,7 @@ import javafx.util.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * A permanent, in-layout navigation sidebar holding a tree of
@@ -432,6 +434,92 @@ public class RXSidebar extends Control {
      */
     public final void setFooter(Node value) {
         footer.set(value);
+    }
+
+    // ==================== Filter ====================
+
+    private final ObjectProperty<Predicate<RXSidebarItem>> filter = new SimpleObjectProperty<>(this, "filter");
+
+    /**
+     * Narrows the three lists to the items that match. An item is shown when
+     * it matches, when an item below it matches, or when an item above it
+     * matches, so a matching group shows all of its child items. Captions and
+     * separators are not asked: a caption is shown while an item between it and
+     * the next caption is, and separators are hidden. An item whose
+     * {@code visible} is false is never shown and never asked.
+     *
+     * <p>While a filter is set every group with shown child items is rendered
+     * open whatever its {@code expanded} says, and the user cannot expand or
+     * collapse groups. Writes to {@code expanded} still land on the property
+     * and show once the filter is cleared. The selection is not affected by
+     * filtering.</p>
+     *
+     * <p>The filter is evaluated when this property, the structure of the tree
+     * or an item's {@code visible} changes. After changing an item's text or
+     * keywords, set a new predicate; setting the same instance again changes
+     * nothing. The predicate must not throw and must not modify the tree.
+     * {@code null}, the default, shows everything.</p>
+     *
+     * @return the filter property
+     * @see #textFilter(String)
+     */
+    public final ObjectProperty<Predicate<RXSidebarItem>> filterProperty() {
+        return filter;
+    }
+
+    /**
+     * @return the filter, or {@code null}
+     */
+    public final Predicate<RXSidebarItem> getFilter() {
+        return filter.get();
+    }
+
+    /**
+     * @param value the filter, or {@code null} to show everything
+     */
+    public final void setFilter(Predicate<RXSidebarItem> value) {
+        filter.set(value);
+    }
+
+    /**
+     * Builds the stock filter: an item matches when its text or one of its
+     * keywords contains the query, ignoring case and the white space around
+     * the query.
+     *
+     * @param query the search text
+     * @return the filter, or {@code null} when the query is {@code null} or blank
+     */
+    public static Predicate<RXSidebarItem> textFilter(String query) {
+        return SidebarVisibility.textFilter(query);
+    }
+
+    // ==================== Placeholder ====================
+
+    private final ObjectProperty<Node> placeholder = new SimpleObjectProperty<>(this, "placeholder");
+
+    /**
+     * The node shown in the scrolling area when the filter leaves nothing of
+     * {@link #getItems() items} on display. It is not shown while the sidebar
+     * rests in {@link SidebarMode#MINI}, which is too narrow for it.
+     *
+     * @return the placeholder property
+     */
+    public final ObjectProperty<Node> placeholderProperty() {
+        return placeholder;
+    }
+
+    /**
+     * @return the placeholder node, or {@code null}
+     */
+    public final Node getPlaceholder() {
+        return placeholder.get();
+    }
+
+    /**
+     * @param value the placeholder node, or {@code null}
+     */
+    public final void setPlaceholder(Node value) {
+        placeholder.set(value);
     }
 
     // ==================== Animated ====================

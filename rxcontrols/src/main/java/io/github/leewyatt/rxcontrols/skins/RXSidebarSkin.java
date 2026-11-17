@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import io.github.leewyatt.rxcontrols.RXSidebarHeader;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSidebarSeparator;
+import io.github.leewyatt.rxcontrols.internal.SidebarVisibility;
 
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -50,6 +51,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Skin for {@link RXSidebar}. Builds the five-region container (header,
@@ -92,6 +94,14 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     private final VBox topBox = new VBox();
     private final ScrollPane mainScroll = new ScrollPane();
     private final VBox mainBox = new VBox();
+    // Takes the place of mainBox in the scroll pane while it is on display.
+    private final StackPane placeholderSlot = new StackPane();
+    // What the items' visible flags and the filter leave on display. Rebuilt
+    // when the filter, the tree or a visible flag changes, not on every refresh.
+    private Set<RXSidebarItem> shownItems = Set.of();
+    // Whether shownItems was computed under a filter. Kept with it rather than
+    // read off the control, so the two cannot disagree.
+    private boolean filtering;
     private final VBox bottomBox = new VBox();
     private final StackPane footerSlot = new StackPane();
     // Set on the container only while the width is in transition; see wipeExtra().
@@ -159,6 +169,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         topBox.getStyleClass().add("section");
         mainScroll.getStyleClass().add("content");
         mainBox.getStyleClass().add("section");
+        placeholderSlot.getStyleClass().add("placeholder");
         bottomBox.getStyleClass().add("section");
         footerSlot.getStyleClass().add("footer");
 
@@ -178,6 +189,9 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         updateFooter();
         disposer.registerListener(control.headerProperty(), this::updateHeader);
         disposer.registerListener(control.footerProperty(), this::updateFooter);
+        updatePlaceholder();
+        disposer.registerListener(control.placeholderProperty(), this::updatePlaceholder);
+        disposer.registerListener(control.filterProperty(), this::onFilterChanged);
 
         disposer.registerListener(control.getTopItems(), this::syncTree);
         disposer.registerListener(control.getItems(), this::syncTree);
@@ -231,6 +245,30 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         swapSlot(footerSlot, getSkinnable().getFooter());
     }
 
+    private void updatePlaceholder() {
+        swapSlot(placeholderSlot, getSkinnable().getPlaceholder());
+        showPlaceholderIfEmpty();
+    }
+
+    // The placeholder stands in for the scrolling list when the filter leaves
+    // none of it on display. The settled rail is too narrow to hold it.
+    private void showPlaceholderIfEmpty() {
+        RXSidebar control = getSkinnable();
+        boolean empty = filtering && control.getPlaceholder() != null && !compactRows;
+        if (empty) {
+            for (RXSidebarItem item : control.getItems()) {
+                if (isShown(item)) {
+                    empty = false;
+                    break;
+                }
+            }
+        }
+        Node content = empty ? placeholderSlot : mainBox;
+        if (mainScroll.getContent() != content) {
+            mainScroll.setContent(content);
+        }
+    }
+
     private static void swapSlot(StackPane slot, Node content) {
         if (content == null) {
             slot.getChildren().clear();
@@ -260,7 +298,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
                 iterator.remove();
             }
         }
-        refreshAll();
+        refreshShown();
         if (selectionArrived) {
             selectionArrived = false;
             reveal(control.getSelectedItem());
@@ -336,7 +374,22 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         for (ItemView view : views.values()) {
             view.refresh(selectionPath);
         }
+        showPlaceholderIfEmpty();
         refreshTabStop();
+    }
+
+    private void refreshShown() {
+        RXSidebar control = getSkinnable();
+        Predicate<RXSidebarItem> filter = control.getFilter();
+        shownItems = SidebarVisibility.shownItems(
+                List.of(control.getTopItems(), control.getItems(), control.getBottomItems()), filter);
+        filtering = filter != null;
+        refreshAll();
+    }
+
+    private void onFilterChanged() {
+        refreshShown();
+        reveal(getSkinnable().getSelectedItem());
     }
 
     private void requestRowLayout() {
@@ -346,7 +399,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     }
 
     private boolean isShown(RXSidebarItem item) {
-        return item.isVisible();
+        return shownItems.contains(item);
     }
 
     private static boolean isGroup(RXSidebarItem item) {
@@ -355,12 +408,12 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
     // Whether a group's child items are on display. A top-level group folds
     // away in MINI without its expanded state being touched, so it unfolds
-    // again by itself on the way back.
+    // again by itself on the way back. A filter holds every group open.
     private boolean isOpen(RXSidebarItem item, int depth) {
         if (depth == 0 && committedMode() == SidebarMode.MINI) {
             return false;
         }
-        return item.isExpanded();
+        return filtering || item.isExpanded();
     }
 
     private double iconInset() {
@@ -400,10 +453,13 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         }
     }
 
-    // A top-level group has nothing to unfold into in MINI, and a bound
-    // property is not the sidebar's to write.
+    // A top-level group has nothing to unfold into in MINI, a filter holds
+    // every group open, and a bound property is not the sidebar's to write.
     private void setExpandedByUser(RowView view, boolean expanded) {
         if (view.depth == 0 && committedMode() == SidebarMode.MINI) {
+            return;
+        }
+        if (filtering) {
             return;
         }
         if (!view.item.expandedProperty().isBound()) {
@@ -784,6 +840,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         // let go of the caller's nodes.
         headerSlot.getChildren().clear();
         footerSlot.getChildren().clear();
+        placeholderSlot.getChildren().clear();
         root.setClip(null);
         // Pair the constructor's getChildren().setAll(root): remove our root so a
         // setSkin(null) (no replacing skin to clear it) leaves no stale node
@@ -806,7 +863,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
         ItemView(RXSidebarItem item) {
             this.item = item;
-            watch(item.visibleProperty());
+            itemDisposer.registerListener(item.visibleProperty(), (obs, old, value) -> refreshShown());
         }
 
         // A change listener, not an invalidation listener: nothing guarantees
