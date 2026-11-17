@@ -1329,8 +1329,8 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     private final class CaptionView extends ItemView<RXSidebarHeader> {
 
         private final Row caption = new Row(null);
-        // Stands in for the caption while the sidebar rests in MINI, where there
-        // is no room for its text.
+        // Stands in for the caption in MINI, where there is no room for its
+        // text.
         private final Region line = new Region();
 
         CaptionView(RXSidebarHeader item) {
@@ -1352,7 +1352,10 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         @Override
         void refresh(Set<RXSidebarItem> selectionPath) {
             boolean shown = isShown(item);
-            boolean asLine = compactRows && depth == 0;
+            // Follows the mode the sidebar is heading for, not the settled one:
+            // swapping at the end of the collapse would shift every row below
+            // by the height difference after the motion has stopped.
+            boolean asLine = committedMode() == SidebarMode.MINI && depth == 0;
             setShown(caption, shown && !asLine);
             setShown(line, shown && asLine);
             caption.depth = depth;
