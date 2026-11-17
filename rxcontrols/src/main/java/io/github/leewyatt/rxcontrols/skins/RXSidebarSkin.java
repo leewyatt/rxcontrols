@@ -79,9 +79,9 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     private static final double ITEM_GAP = 4.0;
     // The width of the icon column. It is a nominal size rather than a measured
     // one: graphics of different sizes are centred in it so every row's text
-    // starts at the same x, and it is what miniWidth centres on. The stylesheet
-    // sizes an opted-in ".graphic" to match; the two must be changed together.
-    private static final double ICON_SIZE = 24.0;
+    // starts at the same x, and it is what miniWidth centres on. Wider than the
+    // stylesheet's default ".graphic", which leaves the icon some air.
+    private static final double ICON_COLUMN_WIDTH = 24.0;
     private static final double GRAPHIC_TEXT_GAP = 12.0;
     private static final double TRAILING_GAP = 8.0;
     private static final Insets ROW_MARGIN = new Insets(ITEM_GAP / 2.0, 0.0, ITEM_GAP / 2.0, 0.0);
@@ -465,7 +465,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     }
 
     private double iconInset() {
-        return Math.max(0.0, (resolvedMiniWidth() - ICON_SIZE) / 2.0);
+        return Math.max(0.0, (resolvedMiniWidth() - ICON_COLUMN_WIDTH) / 2.0);
     }
 
     private double indentOrDefault() {
@@ -1648,7 +1648,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             if (graphic == null || !graphic.isManaged()) {
                 return 0.0;
             }
-            return Math.max(ICON_SIZE, snapSizeX(graphic.prefWidth(-1)));
+            return Math.max(ICON_COLUMN_WIDTH, snapSizeX(graphic.prefWidth(-1)));
         }
 
         @Override

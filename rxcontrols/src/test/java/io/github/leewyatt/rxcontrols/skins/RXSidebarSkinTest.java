@@ -198,7 +198,7 @@ public class RXSidebarSkinTest {
             Scene scene = host(sidebar);
 
             double expandedX = icon.localToScene(0.0, 0.0).getX();
-            assertEquals((RXSidebar.DEFAULT_MINI_WIDTH - 24.0) / 2.0, expandedX, 1.0);
+            assertEquals(RXSidebar.DEFAULT_MINI_WIDTH / 2.0, expandedX + icon.getWidth() / 2.0, 1.0);
             assertTrue(label(row(sidebar, item)).isVisible());
 
             sidebar.setMode(SidebarMode.MINI);
@@ -208,7 +208,7 @@ public class RXSidebarSkinTest {
 
             sidebar.setMiniWidth(96.0);
             layout(scene);
-            assertEquals((96.0 - 24.0) / 2.0, icon.localToScene(0.0, 0.0).getX(), 1.0);
+            assertEquals(96.0 / 2.0, icon.localToScene(icon.getWidth() / 2.0, 0.0).getX(), 1.0);
         });
     }
 

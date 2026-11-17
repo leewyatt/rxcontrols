@@ -150,19 +150,6 @@
     -fx-font-size: 11px;
 }
 
-/* Rows and icons a step smaller than the library default (40 / 24). */
-.rx-sidebar .item {
-    -fx-min-height: 34;
-    -fx-pref-height: 34;
-}
-
-.rx-sidebar .item > .graphic {
-    -fx-pref-width: 16;
-    -fx-pref-height: 16;
-    -fx-max-width: 16;
-    -fx-max-height: 16;
-}
-
 .rx-sidebar .item .count {
     -fx-padding: 0 7 0 7;
     -fx-background-radius: 999;

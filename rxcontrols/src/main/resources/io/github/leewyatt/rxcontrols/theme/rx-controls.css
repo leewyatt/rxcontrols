@@ -2848,13 +2848,12 @@
 }
 
 /* The left edge of a row's content (icon column inset plus one indent per level) is
-   laid out by the skin, so this padding is only the top / right / bottom inset. */
+   laid out by the skin, so this padding is only the top / right / bottom inset. A row
+   is as tall as its content plus this padding. */
 .rx-sidebar .item {
     -fx-background-color: transparent;
     -fx-background-radius: 6;
-    -fx-padding: 0 12 0 0;
-    -fx-min-height: 40;
-    -fx-pref-height: 40;
+    -fx-padding: 0.667em 12 0.667em 0;
 }
 
 .rx-sidebar .item > .label {
@@ -2892,13 +2891,12 @@
     -fx-opacity: 0.4;
 }
 
-/* Opt-in icon class: sized to the icon column. max is pinned in CSS too, since the
-   icon belongs to the caller. */
+/* Opt-in icon class. max is pinned in CSS too, since the icon belongs to the caller. */
 .rx-sidebar .item > .graphic {
-    -fx-pref-width: 24;
-    -fx-pref-height: 24;
-    -fx-max-width: 24;
-    -fx-max-height: 24;
+    -fx-pref-width: 16;
+    -fx-pref-height: 16;
+    -fx-max-width: 16;
+    -fx-max-height: 16;
 }
 
 .rx-sidebar .item > .trailing > .label {
@@ -2952,7 +2950,7 @@
 }
 
 .rx-sidebar-flyout .item {
-    -fx-padding: 0 12 0 12;
+    -fx-padding: 0.667em 12 0.667em 12;
 }
 
 .rx-sidebar-flyout .item > .disclosure > .arrow {

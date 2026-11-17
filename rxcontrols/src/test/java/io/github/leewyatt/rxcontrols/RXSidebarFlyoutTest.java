@@ -86,7 +86,7 @@ public class RXSidebarFlyoutTest {
             SidebarTestSupport.layout(pageRow.getScene());
             assertEquals(12.0, SidebarTestSupport.label(pageRow).getLayoutX(), 0.5); // no indent, no icon inset
             // The sidebar's row rules and color tokens reach into the flyout.
-            assertEquals(40.0, pageRow.getHeight(), 0.5);
+            assertEquals(34.0, pageRow.getHeight(), 0.5);
             Region panel = (Region) pageRow.getScene().getRoot().lookup(".rx-sidebar-flyout");
             assertEquals(1, panel.getBackground().getFills().size());
 
