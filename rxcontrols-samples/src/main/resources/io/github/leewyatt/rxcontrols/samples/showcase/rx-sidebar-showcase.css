@@ -24,9 +24,7 @@
     -fx-max-width: 320;
 }
 
-/* Dividers between the header / footer slots and the item body. Kept in the
-   showcase: the skin keeps both slots in the layout even when empty, so a
-   library default would draw a stray line on a sidebar without a header. */
+/* Dividers between the header / footer slots and the item body. */
 .rx-sidebar > .container > .header {
     -fx-border-color: transparent transparent -rx-outline-variant transparent;
     -fx-border-width: 0 0 1px 0;
@@ -42,7 +40,7 @@
    (64 - 24) / 2). The rail centres the column on miniWidth, so at other mini
    widths this fixed 20 no longer lines up — the column inset is the skin's own
    geometry and a header has no handle on it. Fine for a fixed-width demo. */
-.rx-sidebar > .container > .header > .brand {
+.rx-sidebar > .container > .header .brand {
     -fx-padding: 6 0 6 12;
 }
 
@@ -76,7 +74,7 @@
     -fx-rotate: 180;
 }
 
-.rx-sidebar .footer .version {
+.rx-sidebar > .container > .footer .version {
     -fx-text-fill: derive(-fx-text-base-color, 40%);
     -fx-font-size: 11px;
 }
@@ -109,6 +107,10 @@
 
 .rx-sidebar .item > .graphic.reports {
     -fx-shape: "M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z";
+}
+
+.rx-sidebar .item > .graphic.archive {
+    -fx-shape: "M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z";
 }
 
 .rx-sidebar .item > .graphic.settings {
