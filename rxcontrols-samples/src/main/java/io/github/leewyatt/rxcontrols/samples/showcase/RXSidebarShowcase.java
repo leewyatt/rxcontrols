@@ -1,12 +1,12 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
+import io.github.leewyatt.rxcontrols.RXDialogs;
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebar.FlyoutTrigger;
 import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import io.github.leewyatt.rxcontrols.RXSidebarHeader;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSidebarSeparator;
-import io.github.leewyatt.rxcontrols.RXSnackbars;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.animation.Interpolator;
@@ -24,6 +24,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -35,21 +36,20 @@ import java.util.function.Consumer;
  *
  * <p>Hosts a permanent navigation sidebar inside an app-like frame: a header
  * with a collapse toggle and a search field, pages, nested groups, a caption, a
- * separator, an action item and a footer across the three lists. The control
- * panel drives the main configurable properties: mode (EXPANDED / MINI), the flyout
- * trigger used in MINI, expanded / mini width, indent, the filter, animation
- * toggle / duration / easing, an item's disable / visible flags, plus a live
- * read-out of the selected item with select and clear actions. It demonstrates the in-layout rail, groups that
- * unfold in place and open flyouts in MINI, searching by text and keywords,
- * mutually exclusive selection, and action items that fire without changing
- * the selection.</p>
+ * separator, an action item and a footer across the three lists. The page
+ * beside it follows the selection. The control panel drives the main
+ * configurable properties: mode (EXPANDED / MINI), the flyout trigger used in
+ * MINI, expanded / mini width, indent, the filter, animation toggle / duration
+ * / easing, an item's disable / visible flags, plus a live read-out of the
+ * selected item with select and clear actions.</p>
  */
 public class RXSidebarShowcase extends RXShowcaseApplication {
 
     private RXSidebar sidebar;
-    private Label selectedLabel;
-    private Label statusLabel;
-    private VBox content = new VBox();
+    private final VBox content = new VBox();
+    private final Label pagePath = new Label();
+    private final Label pageTitle = new Label();
+    private final Label pageDescription = new Label();
     private final RXTextField search = new RXTextField();
     private RXSidebarItem images;
     private RXSidebarItem reports;
@@ -86,74 +86,91 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         HBox brand = new HBox(collapseButton);
         brand.setAlignment(Pos.CENTER_LEFT);
         brand.getStyleClass().add("brand");
+
         // The rail has no room for the field, so it leaves the header in MINI;
         // the query stays in force and remains editable from the Filter panel.
         search.setPromptText("Search");
+        StackPane searchIcon = new StackPane(glyph("search-glyph"));
+        searchIcon.getStyleClass().add("slot-icon");
+        search.setLeading(searchIcon);
+        search.setTrailing(clearButton());
         search.visibleProperty().bind(sidebar.modeProperty().isNotEqualTo(SidebarMode.MINI));
         search.managedProperty().bind(search.visibleProperty());
         search.getStyleClass().add("search");
         search.textProperty().addListener((obs, old, text) -> sidebar.setFilter(RXSidebar.textFilter(text)));
-        VBox.setMargin(search, new Insets(0.0, 12.0, 10.0, 12.0));
+        VBox.setMargin(search, new Insets(0.0, 12.0, 12.0, 12.0));
         VBox header = new VBox(brand, search);
         header.setMaxWidth(Double.MAX_VALUE);
         sidebar.setHeader(header);
         sidebar.setPlaceholder(new Label("No matches"));
 
         // Pinned-top band (stays put while the main band scrolls).
-        sidebar.getTopItems().add(RXSidebarItem.of("Favorites", icon("favorites")));
+        sidebar.getTopItems().add(page("Favorites", "favorites",
+                "Pinned to the top band: it stays put while the list below scrolls."));
 
-        RXSidebarItem dashboard = RXSidebarItem.of("Dashboard", icon("dashboard"));
-        RXSidebarItem inbox = RXSidebarItem.of("Inbox", icon("inbox"));
-        inbox.setTrailing(new Label("12"));
+        RXSidebarItem dashboard = page("Dashboard", "dashboard",
+                "A page. Activating it makes it the sidebar's one selected item.");
+        RXSidebarItem inbox = page("Inbox", "inbox",
+                "Carries a trailing count, and the keywords “Mail” and “Messages” for the search.");
+        Label count = new Label("12");
+        count.getStyleClass().add("count");
+        inbox.setTrailing(count);
         inbox.getKeywords().addAll("Mail", "Messages");
 
         // Groups unfold in place in EXPANDED and open flyouts, level by level,
         // in MINI. A group is never the selection; its pages are.
-        images = RXSidebarItem.of("Images");
-        RXSidebarItem media = RXSidebarItem.group("Media", null, images, RXSidebarItem.of("Videos"));
+        images = page("Images", null,
+                "Two groups deep. Selecting it from code unfolds Files and Media and scrolls it into view.");
+        RXSidebarItem media = RXSidebarItem.group("Media", null, images,
+                page("Videos", null, "Two groups deep, next to Images."));
         RXSidebarItem files = RXSidebarItem.group("Files", icon("files"),
-                RXSidebarItem.of("Documents"), media, RXSidebarItem.of("Shared with me"));
+                page("Documents", null, "A page of the Files group."),
+                media,
+                page("Shared with me", null, "A page of the Files group."));
         reports = RXSidebarItem.group("Reports", icon("reports"),
-                RXSidebarItem.of("Sales"), RXSidebarItem.of("Traffic"));
+                page("Sales", null, "A page of the Reports group."),
+                page("Traffic", null, "A page of the Reports group."));
         files.setExpanded(true);
         sidebar.getItems().addAll(dashboard, inbox,
                 new RXSidebarHeader("Workspace"), files, reports,
-                new RXSidebarSeparator(), RXSidebarItem.of("Archive", icon("archive")));
+                new RXSidebarSeparator(),
+                page("Archive", "archive", "Set apart from the groups above by a separator."));
 
-        // An action item fires its command without touching the selection. The
-        // feedback is a snackbar confined to the content area: the facade routes
-        // to the nearest enclosing installed host, so an owner inside the content
-        // area lands in its host rather than over the whole scene.
-        RXSidebarItem settings = RXSidebarItem.action("Settings", icon("settings"),
-                event -> RXSnackbars.info(content, "Settings fired — selection unchanged."));
-        RXSidebarItem help = RXSidebarItem.of("Help", icon("help"));
-        sidebar.getBottomItems().addAll(settings, help);
+        // An action item fires its command without touching the selection.
+        RXSidebarItem help = page("Help", "help",
+                "Pinned to the bottom band, above the footer.");
+        RXSidebarItem about = RXSidebarItem.action("About", icon("about"), event -> RXDialogs.information(content,
+                "About RXSidebar",
+                "RXSidebar is the side navigation of RXControls.\n\n"
+                        + "Pages, actions and nested groups in three bands, with search\n"
+                        + "and a MINI rail whose groups open as flyouts.\n\n"
+                        + "About is an action item: it opened this dialog and left\n"
+                        + "the selection alone."));
+        sidebar.getBottomItems().addAll(help, about);
 
-        Label footer = new Label("v1.0");
-        footer.getStyleClass().add("version");
+        Label footer = new Label("Footer");
+        footer.getStyleClass().add("footer-text");
         sidebar.setFooter(footer);
 
-        sidebar.selectItem(dashboard);
+        pagePath.getStyleClass().add("page-path");
+        pageTitle.getStyleClass().add("page-title");
+        pageDescription.getStyleClass().add("page-description");
+        pageDescription.setWrapText(true);
 
-        selectedLabel = new Label();
-        selectedLabel.getStyleClass().add("selected-title");
-        selectedLabel.textProperty().bind(Bindings.createStringBinding(() -> {
-            RXSidebarItem selected = sidebar.getSelectedItem();
-            return selected == null ? "Nothing selected" : selected.getText();
-        }, sidebar.selectedItemProperty()));
+        Label tipsTitle = new Label("Try it");
+        tipsTitle.getStyleClass().add("tips-title");
+        VBox tips = new VBox(8.0, tipsTitle,
+                tip("Click a group to unfold it; in MINI it opens a flyout."),
+                tip("Search for “mail”: keywords match too."),
+                tip("About is an action: the selection stays put."),
+                tip("Arrow keys walk the rows and fold groups."));
+        tips.getStyleClass().add("tips-card");
+        VBox.setMargin(tips, new Insets(20.0, 0.0, 0.0, 0.0));
 
-        statusLabel = new Label("Click a page to select it; groups unfold, and the Settings action fires"
-                + " without changing the selection. Search matches text and keywords — try \"mail\".");
-        statusLabel.getStyleClass().add("status-label");
-        statusLabel.setWrapText(true);
-
-        content.getChildren().addAll(selectedLabel, statusLabel);
-        content.setSpacing(12.0);
-        content.setAlignment(Pos.CENTER);
+        content.getChildren().addAll(pagePath, pageTitle, pageDescription, tips);
         content.getStyleClass().add("content-area");
-        // The host is an unmanaged overlay covering the content area only (not
-        // the sidebar); empty host area stays click-through.
-        RXSnackbars.installInto(content).setPosition(Pos.CENTER);
+        sidebar.selectedItemProperty().addListener((obs, old, item) -> showPage(item));
+        sidebar.selectItem(dashboard);
 
         BorderPane frame = new BorderPane();
         frame.getStyleClass().add("app-frame");
@@ -267,6 +284,68 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
     }
 
     // ==================== Helpers ====================
+
+    // A page whose description, kept as user data, is shown when it is selected.
+    private static RXSidebarItem page(String text, String iconName, String description) {
+        RXSidebarItem item = RXSidebarItem.of(text, iconName == null ? null : icon(iconName));
+        item.setUserData(description);
+        return item;
+    }
+
+    private void showPage(RXSidebarItem item) {
+        if (item == null) {
+            pagePath.setText("");
+            pageTitle.setText("Nothing selected");
+            pageDescription.setText("Pick a page from the sidebar.");
+        } else {
+            StringBuilder path = new StringBuilder();
+            for (RXSidebarItem group = item.getParent(); group != null; group = group.getParent()) {
+                path.insert(0, group.getText() + "  /  ");
+            }
+            pagePath.setText(path.toString());
+            pageTitle.setText(item.getText());
+            pageDescription.setText(String.valueOf(item.getUserData()));
+        }
+        boolean nested = !pagePath.getText().isEmpty();
+        pagePath.setVisible(nested);
+        pagePath.setManaged(nested);
+    }
+
+    private static Node tip(String text) {
+        Region dot = new Region();
+        dot.getStyleClass().add("dot");
+        dot.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        dot.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        Label label = new Label(text);
+        label.setWrapText(true);
+        HBox row = new HBox(10.0, dot, label);
+        row.getStyleClass().add("tip");
+        HBox.setMargin(dot, new Insets(7.0, 0.0, 0.0, 0.0));
+        return row;
+    }
+
+    // Shown only while there is text to clear; it stays laid out, so the
+    // field's text area does not shift as it appears.
+    private Node clearButton() {
+        Button clear = new Button();
+        clear.getStyleClass().add("slot-button");
+        clear.setGraphic(glyph("clear-glyph"));
+        clear.setFocusTraversable(false);
+        clear.visibleProperty().bind(search.textProperty().isNotEmpty());
+        clear.setOnAction(event -> {
+            search.clear();
+            search.requestFocus();
+        });
+        return clear;
+    }
+
+    private static Region glyph(String name) {
+        Region region = new Region();
+        region.getStyleClass().addAll("glyph", name);
+        region.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        region.setMouseTransparent(true);
+        return region;
+    }
 
     private static Region icon(String name) {
         Region region = new Region();
