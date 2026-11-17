@@ -68,7 +68,7 @@ public final class SidebarVisibility {
      * @return the shown items, compared by identity
      */
     public static Set<RXSidebarItemBase> shownItems(List<? extends List<RXSidebarItemBase>> lists,
-                                                Predicate<RXSidebarItem> filter) {
+                                                Predicate<? super RXSidebarItem> filter) {
         Set<RXSidebarItemBase> shown = Collections.newSetFromMap(new IdentityHashMap<>());
         for (List<RXSidebarItemBase> list : lists) {
             collect(list, filter, false, shown);
@@ -77,7 +77,7 @@ public final class SidebarVisibility {
     }
 
     // Returns whether anything in the list is shown.
-    private static boolean collect(List<RXSidebarItemBase> items, Predicate<RXSidebarItem> filter,
+    private static boolean collect(List<RXSidebarItemBase> items, Predicate<? super RXSidebarItem> filter,
                                    boolean ancestorMatched, Set<RXSidebarItemBase> shown) {
         boolean any = false;
         RXSidebarItemBase pendingCaption = null;

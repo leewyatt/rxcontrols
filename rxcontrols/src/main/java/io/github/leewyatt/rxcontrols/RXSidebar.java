@@ -67,7 +67,9 @@ public class RXSidebar extends Control {
         EXPANDED,
 
         /**
-         * Icon only, narrow {@code miniWidth}; labels hidden, exposed via tooltip.
+         * Icon only, narrow {@code miniWidth}. The text of a top-level item
+         * without child items is shown as its tooltip; a group opens a flyout
+         * holding its child items.
          */
         MINI
     }
@@ -103,6 +105,10 @@ public class RXSidebar extends Control {
      */
     public static final double DEFAULT_MINI_WIDTH = 64.0;
     /**
+     * Default flyout trigger, also the {@code null} fallback.
+     */
+    public static final FlyoutTrigger DEFAULT_FLYOUT_TRIGGER = FlyoutTrigger.HOVER;
+    /**
      * Default whether mode transitions and group expansion animate.
      */
     private static final boolean DEFAULT_ANIMATED = true;
@@ -122,10 +128,6 @@ public class RXSidebar extends Control {
     private static final PseudoClass EXPANDED_PSEUDO_CLASS = PseudoClass.getPseudoClass("expanded");
     private static final PseudoClass MINI_PSEUDO_CLASS = PseudoClass.getPseudoClass("mini");
 
-    private final ObservableList<RXSidebarItemBase> topItems = new SidebarItemList(this);
-    private final ObservableList<RXSidebarItemBase> items = new SidebarItemList(this);
-    private final ObservableList<RXSidebarItemBase> bottomItems = new SidebarItemList(this);
-
     // ==================== Constructor ====================
 
     /**
@@ -133,11 +135,8 @@ public class RXSidebar extends Control {
      */
     public RXSidebar() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        // The rail is a single Tab stop and that stop is one of its items, never
-        // the rail itself. Seeding via applyStyle with a null StyleOrigin (rather
-        // than setFocusTraversable) leaves -fx-focus-traversable able to override
-        // it; a plain setter would look like a user write and lock CSS out. Same
-        // opt-out ScrollPane performs.
+        // Seeds the initial value of getInitialFocusTraversable; a plain setter
+        // would count as a user write and lock CSS out.
         // The WritableValue cast is not decoration: it pins the type argument so
         // the StyleableProperty cast is provably checked rather than unchecked.
         ((StyleableProperty<Boolean>) (WritableValue<Boolean>) focusTraversableProperty())
@@ -164,12 +163,19 @@ public class RXSidebar extends Control {
         return Boolean.FALSE;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getUserAgentStylesheet() {
         return RXResources.USER_AGENT_STYLESHEET;
     }
 
     // ==================== Item Lists ====================
+
+    private final ObservableList<RXSidebarItemBase> topItems = new SidebarItemList(this);
+    private final ObservableList<RXSidebarItemBase> items = new SidebarItemList(this);
+    private final ObservableList<RXSidebarItemBase> bottomItems = new SidebarItemList(this);
 
     /**
      * @return the live list of pinned-top items; see {@link RXSidebarItemBase} for the rules an added entry must meet
@@ -254,7 +260,10 @@ public class RXSidebar extends Control {
      * {@link RXSidebarItem#onActionProperty() onAction}.</p>
      *
      * <p>The selection is cleared when the selected item leaves the tree, stops
-     * being selectable, or is given child items.</p>
+     * being selectable, or is given child items. An item selected before it is
+     * in the tree is not watched until it is added to this sidebar: it is
+     * checked at that point, and until then it stays the selection whatever
+     * becomes of it, including being added to another sidebar.</p>
      *
      * @return the read-only selected-item property
      */
@@ -271,7 +280,8 @@ public class RXSidebar extends Control {
 
     /**
      * Selects the given page, expands the groups it is nested in (those whose
-     * {@code expanded} is not bound), and scrolls it into view.
+     * {@code expanded} is not bound), and scrolls it into view. Selecting the
+     * item that is already selected does nothing.
      *
      * <p>An item that is not in the tree yet is accepted: it becomes the
      * selection, and its {@code selected} flag is set once it is added. This
@@ -361,7 +371,12 @@ public class RXSidebar extends Control {
             };
 
     /**
-     * @return the expanded-width property (clamped/defaulted by the skin)
+     * The width in {@link SidebarMode#EXPANDED}, {@value #DEFAULT_EXPANDED_WIDTH}
+     * by default. A value that is not finite or is smaller than the mini width
+     * is not used: the sidebar then takes the default, or the mini width when
+     * that is larger.
+     *
+     * @return the expanded-width property
      */
     public final DoubleProperty expandedWidthProperty() {
         return expandedWidth;
@@ -392,7 +407,11 @@ public class RXSidebar extends Control {
             };
 
     /**
-     * @return the mini-width property (clamped/defaulted by the skin)
+     * The width in {@link SidebarMode#MINI}, {@value #DEFAULT_MINI_WIDTH} by
+     * default. A negative or non-finite value is not used: the sidebar then
+     * takes the default.
+     *
+     * @return the mini-width property
      */
     public final DoubleProperty miniWidthProperty() {
         return miniWidth;
@@ -462,11 +481,6 @@ public class RXSidebar extends Control {
 
     // ==================== Flyout Trigger ====================
 
-    /**
-     * Default flyout trigger, also the {@code null} fallback.
-     */
-    public static final FlyoutTrigger DEFAULT_FLYOUT_TRIGGER = FlyoutTrigger.HOVER;
-
     private final ObjectProperty<FlyoutTrigger> flyoutTrigger =
             new SimpleObjectProperty<>(this, "flyoutTrigger", DEFAULT_FLYOUT_TRIGGER);
 
@@ -483,7 +497,7 @@ public class RXSidebar extends Control {
     }
 
     /**
-     * @return the flyout trigger
+     * @return the flyout trigger, possibly {@code null}
      */
     public final FlyoutTrigger getFlyoutTrigger() {
         return flyoutTrigger.get();
@@ -498,7 +512,8 @@ public class RXSidebar extends Control {
 
     // ==================== Filter ====================
 
-    private final ObjectProperty<Predicate<RXSidebarItem>> filter = new SimpleObjectProperty<>(this, "filter");
+    private final ObjectProperty<Predicate<? super RXSidebarItem>> filter =
+            new SimpleObjectProperty<>(this, "filter");
 
     /**
      * Narrows the three lists to the items that match. An item is shown when
@@ -523,21 +538,21 @@ public class RXSidebar extends Control {
      * @return the filter property
      * @see #textFilter(String)
      */
-    public final ObjectProperty<Predicate<RXSidebarItem>> filterProperty() {
+    public final ObjectProperty<Predicate<? super RXSidebarItem>> filterProperty() {
         return filter;
     }
 
     /**
      * @return the filter, or {@code null}
      */
-    public final Predicate<RXSidebarItem> getFilter() {
+    public final Predicate<? super RXSidebarItem> getFilter() {
         return filter.get();
     }
 
     /**
      * @param value the filter, or {@code null} to show everything
      */
-    public final void setFilter(Predicate<RXSidebarItem> value) {
+    public final void setFilter(Predicate<? super RXSidebarItem> value) {
         filter.set(value);
     }
 
@@ -603,7 +618,8 @@ public class RXSidebar extends Control {
 
     /**
      * Whether a mode change animates the width and expanding or collapsing a
-     * group animates its height. Styleable as {@code -rx-animated}.
+     * group animates its height; {@code true} by default. Styleable as
+     * {@code -rx-animated}.
      *
      * @return the animated property
      */
@@ -646,7 +662,11 @@ public class RXSidebar extends Control {
             };
 
     /**
-     * @return the animation-duration property; null/non-positive disables animation
+     * The duration of a mode change and of a group expanding or collapsing in
+     * full, 200 ms by default. {@code null} or a non-positive duration disables
+     * the animation. Styleable as {@code -rx-animation-duration}.
+     *
+     * @return the animation-duration property
      */
     public final ObjectProperty<Duration> animationDurationProperty() {
         return animationDuration;

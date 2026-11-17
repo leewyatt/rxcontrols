@@ -441,7 +441,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
     private void refreshShown() {
         RXSidebar control = getSkinnable();
-        Predicate<RXSidebarItem> filter = control.getFilter();
+        Predicate<? super RXSidebarItem> filter = control.getFilter();
         shownItems = SidebarVisibility.shownItems(
                 List.of(control.getTopItems(), control.getItems(), control.getBottomItems()), filter);
         filtering = filter != null;
