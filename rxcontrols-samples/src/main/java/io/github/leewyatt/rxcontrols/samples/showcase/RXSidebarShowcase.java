@@ -197,6 +197,7 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
                 section("Dimensions", dimensionsGrid()),
                 section("Filter", filterGrid()),
                 section("Animation", animationGrid()),
+                section("Ripple", rippleGrid()),
                 section("Selection", selectionBox()),
                 section("Items", itemsBox()));
     }
@@ -274,6 +275,18 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
                 row(animated),
                 row("Duration", duration, createValueLabel(duration, "%.0f ms")),
                 row("Easing", easing));
+    }
+
+    private Node rippleGrid() {
+        CheckBox enabled = checkBox("Enabled", sidebar.isRippleEnabled(), sidebar::setRippleEnabled);
+
+        Slider opacity = createSlider(0.0, 0.5, sidebar.getRippleOpacity());
+        opacity.valueProperty().addListener(
+                (obs, old, value) -> sidebar.setRippleOpacity(value.doubleValue()));
+
+        return createGrid(
+                row(enabled),
+                row("Opacity", opacity, createValueLabel(opacity, "%.2f")));
     }
 
     private Node selectionBox() {
