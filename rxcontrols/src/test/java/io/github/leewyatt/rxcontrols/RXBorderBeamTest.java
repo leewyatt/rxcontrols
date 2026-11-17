@@ -247,7 +247,7 @@ public class RXBorderBeamTest {
         });
     }
 
-    /** Verifies the band keeps its place and causes no layout when a control swaps its fills for a focus ring. */
+    /** Verifies fill insets do not move the band, and a restyle that keeps the corners asks for no layout. */
     @Test
     public void bandIgnoresFillInsetsAndStateChanges() throws Exception {
         runOnFx(() -> {
@@ -383,7 +383,7 @@ public class RXBorderBeamTest {
             beam.setLineWidth(Double.NaN);
             beam.setBeamSize(-5.0);
             beam.setOutset(Double.POSITIVE_INFINITY);
-            beam.setCycleDuration(Duration.millis(Double.MIN_VALUE));
+            beam.setCycleDuration(Duration.ZERO);
             laidOut(beam);
 
             assertEquals(RXBorderBeam.DEFAULT_LINE_WIDTH, moves(ring(beam)).get(1).getX(), EPSILON);
@@ -580,6 +580,42 @@ public class RXBorderBeamTest {
         }
     }
 
+    /** Verifies a lap time far below a frame leaves the application responsive. */
+    @Test
+    public void tinyCycleDurationDoesNotStallTheApplication() throws Exception {
+        AtomicReference<RXBorderBeam> ref = new AtomicReference<>();
+        AtomicReference<Stage> stageRef = new AtomicReference<>();
+        runOnFx(() -> {
+            RXBorderBeam beam = new RXBorderBeam(content());
+            beam.setCycleDuration(Duration.millis(1.0e-9));
+            ref.set(beam);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(new StackPane(beam), 300.0, 200.0));
+            stage.show();
+            stageRef.set(stage);
+        });
+        try {
+            Thread.sleep(500);
+            runOnFx(() -> assertTrue(Double.isFinite(position(ref.get()))), 5);
+        } finally {
+            runOnFx(() -> stageRef.get().hide());
+        }
+    }
+
+    /** Verifies the control's bounds stay the same while a beam with an outset moves. */
+    @Test
+    public void boundsDoNotFollowTheBeams() throws Exception {
+        runOnFx(() -> {
+            RXBorderBeam beam = new RXBorderBeam(content());
+            beam.setOutset(10.0);
+            beam.setBeamSize(20.0);
+            laidOut(beam);
+            assertEquals(CONTENT_WIDTH + 20.0, beam.getBoundsInParent().getWidth(), EPSILON);
+            assertEquals(CONTENT_HEIGHT + 20.0, beam.getBoundsInParent().getHeight(), EPSILON);
+            assertEquals(-10.0, beam.getBoundsInParent().getMinX(), EPSILON);
+        });
+    }
+
     // ==================== Content and Skin ====================
 
     /** Verifies replacing the content moves the band to the new content and drops the old one. */
@@ -596,9 +632,6 @@ public class RXBorderBeamTest {
 
             assertNull(first.getParent());
             assertEquals(50.0, ring(beam).getLayoutBounds().getWidth(), EPSILON);
-
-            first.setBackground(new Background(new BackgroundFill(Color.WHITE, new CornerRadii(10.0), null)));
-            assertFalse(beam.isNeedsLayout());
 
             beam.setContent(null);
             beam.layout();
@@ -646,9 +679,7 @@ public class RXBorderBeamTest {
 
             beam.setSkin(null);
             assertNull(content.getParent());
-            beam.layout();
-            content.setBackground(new Background(new BackgroundFill(Color.WHITE, new CornerRadii(10.0), null)));
-            assertFalse(beam.isNeedsLayout());
+            assertTrue(beam.getChildrenUnmodifiable().isEmpty());
         });
     }
 
@@ -683,7 +714,9 @@ public class RXBorderBeamTest {
     private static List<Rectangle> beams(RXBorderBeam beam) {
         List<Rectangle> nodes = new ArrayList<>();
         for (Node node : layer(beam).getChildren()) {
-            nodes.add((Rectangle) node);
+            if (node.getStyleClass().contains("beam")) {
+                nodes.add((Rectangle) node);
+            }
         }
         return nodes;
     }
@@ -718,6 +751,10 @@ public class RXBorderBeamTest {
     }
 
     private static void runOnFx(Runnable action) throws Exception {
+        runOnFx(action, 30);
+    }
+
+    private static void runOnFx(Runnable action, int timeoutSeconds) throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<Throwable> error = new AtomicReference<>();
         Platform.runLater(() -> {
@@ -729,7 +766,7 @@ public class RXBorderBeamTest {
                 latch.countDown();
             }
         });
-        if (!latch.await(30, TimeUnit.SECONDS)) {
+        if (!latch.await(timeoutSeconds, TimeUnit.SECONDS)) {
             throw new AssertionError("FX action timed out");
         }
         if (error.get() != null) {

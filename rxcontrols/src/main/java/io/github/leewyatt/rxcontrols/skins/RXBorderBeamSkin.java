@@ -53,11 +53,15 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
     // to the leading edge and centered across.
     private static final double ANCHOR_X = 0.9;
     private static final double ANCHOR_Y = 0.5;
+    private static final double MIN_CYCLE_SECONDS = 0.001;
 
     private final ContentSlot contentSlot;
     private final Pane beamLayer;
     private final Path ring;
     private final List<Beam> beams = new ArrayList<>();
+    // Paints nothing. Without it the bounds of the layer, and with a positive
+    // outset those of the control, would follow the beams round on every frame.
+    private final Rectangle extent = new Rectangle();
 
     private final Timeline timeline;
     private final DoubleProperty phase = new SimpleDoubleProperty();
@@ -102,6 +106,9 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
         beamLayer.setMouseTransparent(true);
         beamLayer.setVisible(false);
         beamLayer.setClip(ring);
+        extent.setFill(Color.TRANSPARENT);
+        extent.setManaged(false);
+        beamLayer.getChildren().add(extent);
 
         getChildren().addAll(contentSlot, beamLayer);
 
@@ -138,8 +145,8 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
         getSkinnable().requestLayout();
     }
 
-    // A control restyles itself on every hover, press and focus change, mostly
-    // without touching its corners: only a change of those needs a layout.
+    // A control restyles itself on every hover and press, mostly without
+    // touching its corners: only a change of those needs a layout.
     private void onContentLookChanged() {
         if (getSkinnable().getCornerRadius() == null
                 && !Objects.equals(contentCorners, cornersOf(observedContent))) {
@@ -167,7 +174,8 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
         int count = Math.max(0, getSkinnable().getBeamCount());
         if (count != beams.size()) {
             beams.clear();
-            List<Node> nodes = new ArrayList<>(count);
+            List<Node> nodes = new ArrayList<>(count + 1);
+            nodes.add(extent);
             for (int i = 0; i < count; i++) {
                 Beam beam = new Beam();
                 beams.add(beam);
@@ -200,7 +208,9 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
     }
 
     private void updateRate() {
-        timeline.setRate(1.0 / cycleDurationOrDefault().toSeconds());
+        // A timeline asked for many laps in one frame steps through every one
+        // of them, and stalls the application once there are millions.
+        timeline.setRate(1.0 / Math.max(MIN_CYCLE_SECONDS, cycleDurationOrDefault().toSeconds()));
     }
 
     private void updateRunning() {
@@ -270,9 +280,8 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
 
     private Duration cycleDurationOrDefault() {
         Duration duration = getSkinnable().getCycleDuration();
-        // A duration too short to give a finite rate counts as not positive.
         boolean usable = duration != null && !duration.isUnknown() && !duration.isIndefinite()
-                && duration.greaterThan(Duration.ZERO) && Double.isFinite(1.0 / duration.toSeconds());
+                && duration.greaterThan(Duration.ZERO);
         return usable ? duration : RXBorderBeam.DEFAULT_CYCLE_DURATION;
     }
 
@@ -330,6 +339,8 @@ public class RXBorderBeamSkin extends RXSkinBase<RXBorderBeam> {
                 ringLineWidth = lineWidth;
                 System.arraycopy(radii, 0, ringRadii, 0, radii.length);
             }
+            extent.setWidth(boxWidth);
+            extent.setHeight(boxHeight);
             beamLayer.setLayoutX(boxX);
             beamLayer.setLayoutY(boxY);
             trackRadius = BorderBeamGeometry.trackRadius(boxWidth, boxHeight, beamSizeOrDefault());

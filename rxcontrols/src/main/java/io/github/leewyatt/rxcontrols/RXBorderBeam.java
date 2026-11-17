@@ -52,15 +52,17 @@ import java.util.List;
  * {@link #cornerRadiusProperty() cornerRadius}; while that is {@code null}
  * they follow a content that is a {@code Region}:</p>
  * <ul>
- *   <li>with a border, the radii of its first stroke;</li>
- *   <li>otherwise, with a background, the radii of its first fill;</li>
+ *   <li>with a border that has strokes, the radii of its first stroke;</li>
+ *   <li>otherwise, with a background that has fills, the radii of its first
+ *       fill;</li>
  *   <li>otherwise, and for content that is not a {@code Region}, square
  *       corners.</li>
  * </ul>
  * <p>Nothing else of what the content paints is followed: not the insets of a
  * fill or stroke, not a stroke drawn outside or centered on the edge, not a
  * region's {@code shape}, and not a transform of the content. Set the radii
- * and an outset explicitly in those cases.</p>
+ * and an outset explicitly in those cases, and for a control whose first fill
+ * or stroke changes its radii with the control's state.</p>
  *
  * <p><b>The beam.</b> Each beam is a square of side
  * {@link #beamSizeProperty() beamSize}, painted with a gradient that fades
@@ -83,8 +85,8 @@ import java.util.List;
  * preferred and maximum sizes, content bias and baseline are those of the
  * content plus the control's own padding. The beam takes no layout space; with
  * a positive outset it is drawn outside the control's bounds, where a clipping
- * ancestor such as a scroll pane cuts it off, and the bounds the control
- * reports to a {@code Group} parent then move with the beam. The beam never receives mouse
+ * ancestor such as a scroll pane cuts it off, and a {@code Group} parent sees
+ * the control larger by the outset. The beam never receives mouse
  * events and the control takes no focus; the content keeps its own clip,
  * effect and transforms.</p>
  *
@@ -538,7 +540,8 @@ public class RXBorderBeam extends Control {
      * The time a beam takes for one lap, at a constant speed along its track.
      * Changing it while the beams move keeps them where they are. Initial
      * value is {@link #DEFAULT_CYCLE_DURATION}, which also stands in for a
-     * duration that is {@code null}, not positive, indefinite or unknown.
+     * duration that is {@code null}, not positive, indefinite or unknown. A
+     * lap never takes less than a millisecond.
      *
      * @return the cycle duration property
      */
