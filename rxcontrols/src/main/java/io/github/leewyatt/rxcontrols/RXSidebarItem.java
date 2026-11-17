@@ -104,7 +104,11 @@ public class RXSidebarItem extends RXSidebarItemBase {
     }
 
     /**
-     * Creates a group holding the given child items.
+     * Creates a group holding the given child items. The item is a group only
+     * while it has child items: once the last one is removed it is an ordinary
+     * item again, and a page that can be selected unless
+     * {@link #selectableProperty() selectable} is false. Set that, or hide the
+     * item, for a group that may be left empty.
      *
      * @param text     the item text, or {@code null}
      * @param graphic  the leading graphic, or {@code null}
@@ -398,7 +402,8 @@ public class RXSidebarItem extends RXSidebarItemBase {
 
     /**
      * The child items: items, captions and separators. A non-empty list makes
-     * this item a group.
+     * this item a group; with the list emptied it is a page or an action
+     * again, as {@link #selectableProperty() selectable} says.
      *
      * @return the live list of child items
      */
