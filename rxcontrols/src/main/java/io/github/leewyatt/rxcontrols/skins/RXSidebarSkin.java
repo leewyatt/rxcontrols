@@ -1,15 +1,20 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.RXPlacement;
 import io.github.leewyatt.rxcontrols.RXSidebar;
+import io.github.leewyatt.rxcontrols.RXSidebar.FlyoutTrigger;
 import io.github.leewyatt.rxcontrols.RXSidebar.SidebarMode;
 import io.github.leewyatt.rxcontrols.RXSidebarHeader;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSidebarSeparator;
 import io.github.leewyatt.rxcontrols.internal.SidebarVisibility;
+import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
+import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
 
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
+import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
@@ -86,6 +91,11 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     private static final PseudoClass COLLAPSED_PSEUDO_CLASS = PseudoClass.getPseudoClass("collapsed");
     private static final PseudoClass SELECTABLE_PSEUDO_CLASS = PseudoClass.getPseudoClass("selectable");
     private static final PseudoClass ARMED_PSEUDO_CLASS = PseudoClass.getPseudoClass("armed");
+    private static final PseudoClass SHOWING_PSEUDO_CLASS = PseudoClass.getPseudoClass("showing");
+    // How long the pointer rests on a group before its flyout opens, and how
+    // long it may be off the group and its flyouts before they close. The
+    // second is what lets the pointer cross from the group to the flyout.
+    private static final Duration FLYOUT_HOVER_DELAY = Duration.millis(100.0);
 
     // ==================== Container tree ====================
 
@@ -108,6 +118,14 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     private final Rectangle wipeClip = new Rectangle();
 
     private final Map<RXSidebarItem, ItemView> views = new IdentityHashMap<>();
+
+    // The open flyouts, shallowest first: each one is owned by a row of the one
+    // before it, the first by a top-level row.
+    private final List<Flyout> flyouts = new ArrayList<>();
+    private final PauseTransition flyoutOpenTimer = new PauseTransition(FLYOUT_HOVER_DELAY);
+    private final PauseTransition flyoutCloseTimer = new PauseTransition(FLYOUT_HOVER_DELAY);
+    // The top-level group the open timer is running for.
+    private RowView hoveredGroup;
 
     // True while the sidebar rests in MINI: top-level rows show their graphic
     // only. False from the moment a transition starts, so text is wiped and
@@ -192,6 +210,12 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         updatePlaceholder();
         disposer.registerListener(control.placeholderProperty(), this::updatePlaceholder);
         disposer.registerListener(control.filterProperty(), this::onFilterChanged);
+        disposer.registerListener(control.flyoutTriggerProperty(), this::cancelFlyoutTimers);
+        // Rows in a flyout are in another scene and do not inherit the state.
+        disposer.registerListener(control.disabledProperty(), (obs, old, disabled) -> closeFlyoutsFrom(0));
+        flyoutOpenTimer.setOnFinished(event -> openHoveredGroup());
+        flyoutCloseTimer.setOnFinished(event -> closeFlyoutsFrom(0));
+        disposer.registerDisposeTask(this::cancelFlyoutTimers);
 
         disposer.registerListener(control.getTopItems(), this::syncTree);
         disposer.registerListener(control.getItems(), this::syncTree);
@@ -230,6 +254,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             trackedScene.focusOwnerProperty().addListener(focusOwnerListener);
         }
         refreshTabStop();
+        closeFlyoutsFrom(0);
         // The scene left behind no longer lays this control out.
         stopRevealing();
         reveal(getSkinnable().getSelectedItem());
@@ -286,6 +311,15 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
     // their nodes untouched, so focus and CSS state survive.
     private void syncTree() {
         RXSidebar control = getSkinnable();
+        // First, while no row has moved yet: taking a row that owns a popup
+        // out of its scene hides the popup from inside the list change.
+        for (int i = 0; i < flyouts.size(); i++) {
+            RXSidebarItem owner = flyouts.get(i).owner.item;
+            if (owner.getSidebar() != control || !isGroup(owner)) {
+                closeFlyoutsFrom(i);
+                break;
+            }
+        }
         syncList(control.getTopItems(), topBox.getChildren(), 0);
         syncList(control.getItems(), mainBox.getChildren(), 0);
         syncList(control.getBottomItems(), bottomBox.getChildren(), 0);
@@ -371,6 +405,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
                 selectionPath.add(group);
             }
         }
+        closeStaleFlyouts();
         for (ItemView view : views.values()) {
             view.refresh(selectionPath);
         }
@@ -406,11 +441,12 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         return !item.getItems().isEmpty();
     }
 
-    // Whether a group's child items are on display. A top-level group folds
-    // away in MINI without its expanded state being touched, so it unfolds
-    // again by itself on the way back. A filter holds every group open.
-    private boolean isOpen(RXSidebarItem item, int depth) {
-        if (depth == 0 && committedMode() == SidebarMode.MINI) {
+    // Whether a group's child items are on display below its row. Every
+    // group folds away in MINI, where child items are reached through flyouts,
+    // without its expanded state being touched, so it unfolds again by itself
+    // on the way back. A filter holds every group open.
+    private boolean isOpen(RXSidebarItem item) {
+        if (committedMode() == SidebarMode.MINI) {
             return false;
         }
         return filtering || item.isExpanded();
@@ -435,28 +471,35 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
     // ==================== Activation ====================
 
-    private void activate(RowView view) {
+    private void activate(RowView view, boolean byKeyboard) {
         RXSidebarItem item = view.item;
         if (view.row.isDisabled()) {
             return;
         }
         if (isGroup(item)) {
-            setExpandedByUser(view, !item.isExpanded());
+            if (!opensFlyout(view)) {
+                setExpandedByUser(view, !item.isExpanded());
+            } else if (!byKeyboard && view.flyout != null && flyoutTriggerOrDefault() == FlyoutTrigger.CLICK) {
+                closeFlyoutsFrom(flyouts.indexOf(view.flyout));
+            } else {
+                openFlyout(view, byKeyboard);
+            }
             return;
         }
         if (item.isSelectable()) {
             getSkinnable().selectItem(item);
         }
+        closeFlyoutsFrom(0);
         EventHandler<ActionEvent> handler = item.getOnAction();
         if (handler != null) {
             handler.handle(new ActionEvent(item, null));
         }
     }
 
-    // A top-level group has nothing to unfold into in MINI, a filter holds
-    // every group open, and a bound property is not the sidebar's to write.
+    // A group has nothing to unfold into in MINI, a filter holds every group
+    // open, and a bound property is not the sidebar's to write.
     private void setExpandedByUser(RowView view, boolean expanded) {
-        if (view.depth == 0 && committedMode() == SidebarMode.MINI) {
+        if (committedMode() == SidebarMode.MINI) {
             return;
         }
         if (filtering) {
@@ -517,17 +560,366 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
     // The minimal scroll: only when the row sits above or below the viewport.
     private void scrollIntoView(Node row) {
-        double viewportHeight = mainScroll.getViewportBounds().getHeight();
-        double scrollable = mainBox.getHeight() - viewportHeight;
+        scrollIntoView(mainScroll, mainBox, row);
+    }
+
+    private static void scrollIntoView(ScrollPane scroll, Region content, Node row) {
+        double viewportHeight = scroll.getViewportBounds().getHeight();
+        double scrollable = content.getHeight() - viewportHeight;
         if (viewportHeight <= 0.0 || scrollable <= 0.0) {
             return;
         }
-        Bounds bounds = mainBox.sceneToLocal(row.localToScene(row.getBoundsInLocal()));
-        double offset = mainScroll.getVvalue() * scrollable;
+        Bounds bounds = content.sceneToLocal(row.localToScene(row.getBoundsInLocal()));
+        double offset = scroll.getVvalue() * scrollable;
         if (bounds.getMinY() < offset) {
-            mainScroll.setVvalue(Math.max(0.0, bounds.getMinY() / scrollable));
+            scroll.setVvalue(Math.max(0.0, bounds.getMinY() / scrollable));
         } else if (bounds.getMaxY() > offset + viewportHeight) {
-            mainScroll.setVvalue(Math.min(1.0, (bounds.getMaxY() - viewportHeight) / scrollable));
+            scroll.setVvalue(Math.min(1.0, (bounds.getMaxY() - viewportHeight) / scrollable));
+        }
+    }
+
+    // Moves keyboard focus to the row and keeps it in view.
+    private void focusByKey(RowView view) {
+        view.row.requestFocus();
+        Flyout host = hostOf(view);
+        if (host != null) {
+            scrollIntoView(host.scroll, host.box, view.row);
+        } else if (isOnDisplayIn(view.row, mainBox)) {
+            scrollIntoView(view.row);
+        }
+    }
+
+    // ==================== Flyouts ====================
+
+    private FlyoutTrigger flyoutTriggerOrDefault() {
+        FlyoutTrigger value = getSkinnable().getFlyoutTrigger();
+        return value == null ? RXSidebar.DEFAULT_FLYOUT_TRIGGER : value;
+    }
+
+    private boolean isInFlyout(RXSidebarItem item) {
+        return views.get(item.getParent()) instanceof RowView parent && parent.flyout != null;
+    }
+
+    // The flyout the row is on display in, or null for a row of the sidebar.
+    private Flyout hostOf(RowView view) {
+        return views.get(view.item.getParent()) instanceof RowView parent ? parent.flyout : null;
+    }
+
+    // Whether activating the group opens a flyout rather than unfolding it in
+    // place: a top-level group while the sidebar rests in MINI, and any group
+    // on display in a flyout.
+    private boolean opensFlyout(RowView view) {
+        if (!compactRows || (view.depth != 0 && hostOf(view) == null)) {
+            return false;
+        }
+        for (RXSidebarItem child : view.item.getItems()) {
+            if (isShown(child)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void openFlyout(RowView owner, boolean focusFirst) {
+        cancelFlyoutTimers();
+        if (owner.flyout == null) {
+            Flyout host = hostOf(owner);
+            closeFlyoutsFrom(host == null ? 0 : flyouts.indexOf(host) + 1);
+            Flyout flyout = new Flyout(owner);
+            flyouts.add(flyout);
+            flyout.takeRows();
+            // The rows take their in-flyout form before the popup measures them.
+            refreshAll();
+            flyout.show();
+        }
+        // Showing fails without a showing window; the flyout has then already
+        // been closed again.
+        if (focusFirst && owner.flyout != null) {
+            List<RowView> ring = owner.flyout.ring();
+            if (!ring.isEmpty()) {
+                ring.get(0).row.requestFocus();
+            }
+        }
+    }
+
+    // Closes the flyout at the index and every one after it, deepest first:
+    // the rows go back into the sidebar before their flyout goes away.
+    private void closeFlyoutsFrom(int index) {
+        if (index < 0 || index >= flyouts.size()) {
+            return;
+        }
+        if (index == 0) {
+            // The open timer is left alone: it may be running for the group
+            // the pointer has moved on to.
+            flyoutCloseTimer.stop();
+        }
+        for (int i = flyouts.size() - 1; i >= index; i--) {
+            flyouts.remove(i).close();
+        }
+        refreshAll();
+    }
+
+    // A flyout goes when its group can no longer own one: out of the tree,
+    // hidden, filtered out, disabled, no longer a group, or the sidebar no
+    // longer resting in MINI.
+    private void closeStaleFlyouts() {
+        for (int i = 0; i < flyouts.size(); i++) {
+            RowView owner = flyouts.get(i).owner;
+            if (views.get(owner.item) != owner || !compactRows || !isGroup(owner.item)
+                    || !isShown(owner.item) || owner.row.isDisabled()) {
+                for (int j = flyouts.size() - 1; j >= i; j--) {
+                    flyouts.remove(j).close();
+                }
+                if (flyouts.isEmpty()) {
+                    flyoutCloseTimer.stop();
+                }
+                return;
+            }
+        }
+    }
+
+    private void cancelFlyoutTimers() {
+        flyoutOpenTimer.stop();
+        flyoutCloseTimer.stop();
+        hoveredGroup = null;
+    }
+
+    private void openHoveredGroup() {
+        RowView group = hoveredGroup;
+        hoveredGroup = null;
+        if (group != null && views.get(group.item) == group && opensFlyout(group)
+                && isShown(group.item) && !group.row.isDisabled() && group.row.isHover()) {
+            openFlyout(group, false);
+        }
+    }
+
+    // The first level opens and closes after a delay, which is what lets the
+    // pointer travel from the group to its flyout. Deeper levels follow the
+    // pointer at once and are never closed by it leaving.
+    private void onRowEntered(RowView view) {
+        if (!compactRows || flyoutTriggerOrDefault() != FlyoutTrigger.HOVER) {
+            return;
+        }
+        Flyout host = hostOf(view);
+        if (host != null) {
+            if (opensFlyout(view) && !view.row.isDisabled()) {
+                openFlyout(view, false);
+            } else {
+                closeFlyoutsFrom(flyouts.indexOf(host) + 1);
+            }
+            return;
+        }
+        if (view.depth != 0) {
+            return;
+        }
+        if (view.flyout != null) {
+            cancelFlyoutTimers();
+        } else if (opensFlyout(view) && !view.row.isDisabled()) {
+            hoveredGroup = view;
+            flyoutOpenTimer.playFromStart();
+        }
+    }
+
+    private void onRowExited(RowView view) {
+        if (hoveredGroup == view) {
+            flyoutOpenTimer.stop();
+            hoveredGroup = null;
+        }
+        if (view.flyout != null && view.depth == 0) {
+            onFlyoutExited();
+        }
+    }
+
+    private void onFlyoutEntered() {
+        flyoutCloseTimer.stop();
+    }
+
+    private void onFlyoutExited() {
+        if (!flyouts.isEmpty() && flyoutTriggerOrDefault() == FlyoutTrigger.HOVER) {
+            flyoutCloseTimer.playFromStart();
+        }
+    }
+
+    // Navigation keys never leave the flyout they are pressed in.
+    private void onFlyoutKeyPressed(Flyout flyout, KeyEvent event) {
+        List<RowView> ring = flyout.ring();
+        RowView focused = flyout.focusedView(ring);
+        int size = ring.size();
+        switch (event.getCode()) {
+            case UP -> {
+                if (size > 0) {
+                    focusByKey(ring.get(focused == null ? size - 1 : Math.floorMod(ring.indexOf(focused) - 1, size)));
+                }
+                event.consume();
+            }
+            case DOWN -> {
+                if (size > 0) {
+                    focusByKey(ring.get(focused == null ? 0 : Math.floorMod(ring.indexOf(focused) + 1, size)));
+                }
+                event.consume();
+            }
+            case HOME -> {
+                if (size > 0) {
+                    focusByKey(ring.get(0));
+                }
+                event.consume();
+            }
+            case END -> {
+                if (size > 0) {
+                    focusByKey(ring.get(size - 1));
+                }
+                event.consume();
+            }
+            case LEFT, RIGHT -> {
+                // A focusable node inside the row keeps these for itself.
+                if (focused != null && flyout.focusOwner() != focused.row) {
+                    return;
+                }
+                boolean rtl = getSkinnable().getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT;
+                if ((event.getCode() == KeyCode.RIGHT) != rtl) {
+                    if (focused != null && opensFlyout(focused)) {
+                        openFlyout(focused, true);
+                    }
+                } else {
+                    closeFlyoutsFrom(flyouts.indexOf(flyout));
+                    flyout.owner.row.requestFocus();
+                }
+                event.consume();
+            }
+            case ENTER, SPACE -> {
+                if (focused != null && flyout.focusOwner() == focused.row) {
+                    activate(focused, true);
+                    event.consume();
+                }
+            }
+            case ESCAPE -> {
+                RowView top = flyouts.get(0).owner;
+                closeFlyoutsFrom(0);
+                top.row.requestFocus();
+                event.consume();
+            }
+            case TAB -> {
+                // The traversal continues from the group's row in the sidebar,
+                // where the key is delivered again.
+                RowView top = flyouts.get(0).owner;
+                closeFlyoutsFrom(0);
+                top.row.requestFocus();
+                top.row.fireEvent(event.copyFor(top.row, top.row));
+                event.consume();
+            }
+            default -> {
+                // Everything else is left to the focused node.
+            }
+        }
+    }
+
+    /**
+     * One level of the flyout chain: a popup beside the group's row that holds
+     * the rows of the group's child items for as long as it is open. The rows
+     * are the same nodes the sidebar shows them with, moved here and back.
+     */
+    private final class Flyout {
+
+        private final RowView owner;
+        private final VBox panel = new VBox();
+        private final VBox box = new VBox();
+        private final ScrollPane scroll = new ScrollPane(box);
+        private final Label title = new Label();
+        private final RXPopupSupport popup = new RXPopupSupport(panel);
+        private final EventHandler<KeyEvent> keyFilter = event -> onFlyoutKeyPressed(this, event);
+        private final EventHandler<MouseEvent> enteredHandler = event -> onFlyoutEntered();
+        private final EventHandler<MouseEvent> exitedHandler = event -> onFlyoutExited();
+        private boolean closed;
+
+        Flyout(RowView owner) {
+            this.owner = owner;
+            panel.getStyleClass().add("rx-sidebar-flyout");
+            if (owner.depth == 0) {
+                // The group's row shows no text in MINI, so the flyout names it.
+                title.getStyleClass().add("title");
+                title.textProperty().bind(owner.item.textProperty());
+                title.setMaxWidth(Double.MAX_VALUE);
+                panel.getChildren().add(title);
+            }
+            box.getStyleClass().add("section");
+            scroll.getStyleClass().add("content");
+            scroll.setFitToWidth(true);
+            scroll.setHbarPolicy(ScrollBarPolicy.NEVER);
+            scroll.setFocusTraversable(false);
+            panel.getChildren().add(scroll);
+        }
+
+        void takeRows() {
+            List<Node> nodes = new ArrayList<>(owner.pane.box.getChildren());
+            owner.pane.box.getChildren().clear();
+            box.getChildren().setAll(nodes);
+            owner.flyout = this;
+        }
+
+        void show() {
+            panel.addEventFilter(KeyEvent.KEY_PRESSED, keyFilter);
+            panel.addEventHandler(MouseEvent.MOUSE_ENTERED, enteredHandler);
+            panel.addEventHandler(MouseEvent.MOUSE_EXITED, exitedHandler);
+            boolean rtl = owner.row.getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT;
+            popup.setPlacement(rtl ? RXPlacement.LEFT_START : RXPlacement.RIGHT_START);
+            popup.setWidthMode(RXPopupWidthMode.PREF_CONTENT);
+            popup.setOnHidden(this::onHidden);
+            popup.show(owner.row);
+        }
+
+        // The platform closed the popup: a press outside, Escape, or the popup
+        // it hangs off going away.
+        private void onHidden() {
+            if (!closed) {
+                closeFlyoutsFrom(flyouts.indexOf(this));
+            }
+        }
+
+        // Rows first, popup second, so the rows are never left in a popup that
+        // is gone.
+        void close() {
+            if (closed) {
+                return;
+            }
+            closed = true;
+            List<Node> nodes = new ArrayList<>(box.getChildren());
+            box.getChildren().clear();
+            if (owner.flyout == this) {
+                owner.flyout = null;
+                if (owner.pane != null) {
+                    owner.pane.box.getChildren().setAll(nodes);
+                }
+            }
+            title.textProperty().unbind();
+            panel.removeEventFilter(KeyEvent.KEY_PRESSED, keyFilter);
+            panel.removeEventHandler(MouseEvent.MOUSE_ENTERED, enteredHandler);
+            panel.removeEventHandler(MouseEvent.MOUSE_EXITED, exitedHandler);
+            popup.dispose();
+        }
+
+        // The rows of this level a key can land on.
+        List<RowView> ring() {
+            List<RowView> ring = new ArrayList<>();
+            for (RXSidebarItem item : owner.item.getItems()) {
+                if (views.get(item) instanceof RowView view && isShown(item) && !view.row.isDisabled()) {
+                    ring.add(view);
+                }
+            }
+            return ring;
+        }
+
+        Node focusOwner() {
+            Scene scene = panel.getScene();
+            return scene == null ? null : scene.getFocusOwner();
+        }
+
+        RowView focusedView(List<RowView> ring) {
+            for (Node node = focusOwner(); node != null; node = node.getParent()) {
+                if (node instanceof Row row && row.view != null && ring.contains(row.view)) {
+                    return row.view;
+                }
+            }
+            return null;
         }
     }
 
@@ -535,6 +927,8 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
     private void onModeChanged() {
         SidebarMode target = committedMode();
+        cancelFlyoutTimers();
+        closeFlyoutsFrom(0);
         stopAnimation();
         if (!animationsActive()) {
             expansionFraction.set(target == SidebarMode.EXPANDED ? 1.0 : 0.0);
@@ -610,20 +1004,25 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         int current = ring.indexOf(focused);
         int size = ring.size();
         switch (event.getCode()) {
+            case UP, DOWN, HOME, END -> closeFlyoutsFrom(0);
+            default -> {
+            }
+        }
+        switch (event.getCode()) {
             case UP -> {
-                ring.get(Math.floorMod(current - 1, size)).row.requestFocus();
+                focusByKey(ring.get(Math.floorMod(current - 1, size)));
                 event.consume();
             }
             case DOWN -> {
-                ring.get(Math.floorMod(current + 1, size)).row.requestFocus();
+                focusByKey(ring.get(Math.floorMod(current + 1, size)));
                 event.consume();
             }
             case HOME -> {
-                ring.get(0).row.requestFocus();
+                focusByKey(ring.get(0));
                 event.consume();
             }
             case END -> {
-                ring.get(size - 1).row.requestFocus();
+                focusByKey(ring.get(size - 1));
                 event.consume();
             }
             case LEFT, RIGHT -> {
@@ -643,7 +1042,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
                 // Only when the row itself holds focus: a focusable node inside
                 // the row keeps its own activation keys.
                 if (focusOwner() == focused.row) {
-                    activate(focused);
+                    activate(focused, true);
                     event.consume();
                 }
             }
@@ -658,7 +1057,11 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         if (!isGroup(view.item)) {
             return;
         }
-        if (!isOpen(view.item, view.depth)) {
+        if (opensFlyout(view)) {
+            openFlyout(view, true);
+            return;
+        }
+        if (!isOpen(view.item)) {
             setExpandedByUser(view, true);
             return;
         }
@@ -670,7 +1073,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
     // Towards the root: closes an open group, otherwise moves to the parent.
     private void stepOut(RowView view) {
-        if (isGroup(view.item) && isOpen(view.item, view.depth)) {
+        if (isGroup(view.item) && isOpen(view.item)) {
             setExpandedByUser(view, false);
             return;
         }
@@ -697,7 +1100,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
                 continue;
             }
             ring.add(view);
-            if (isGroup(item) && isOpen(item, depth)) {
+            if (isGroup(item) && isOpen(item)) {
                 addFocusable(ring, item.getItems(), depth + 1);
             }
         }
@@ -822,6 +1225,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
     @Override
     protected void disposeSkin() {
+        closeFlyoutsFrom(0);
         // The rebuilt-per-transition Timeline would be a stale reference in the
         // disposer; stop it explicitly by reading the live field.
         stopAnimation();
@@ -951,6 +1355,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             setShown(caption, shown && !asLine);
             setShown(line, shown && asLine);
             caption.depth = depth;
+            caption.inFlyout = isInFlyout(item);
         }
 
         @Override
@@ -964,6 +1369,9 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         private final Row row = new Row(this);
         // Created the first time the item has child items.
         private ChildrenPane pane;
+        // Set while the rows of the child items are on display in a flyout
+        // instead of in the pane.
+        private Flyout flyout;
         // Shows the text of a top-level row while the sidebar rests in MINI and
         // the item has no tooltip of its own. Created on first use.
         private Tooltip lentTooltip;
@@ -994,6 +1402,8 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
 
             itemDisposer.registerEventHandler(row, MouseEvent.MOUSE_PRESSED, this::onMousePressed);
             itemDisposer.registerEventHandler(row, MouseEvent.MOUSE_RELEASED, this::onMouseReleased);
+            itemDisposer.registerEventHandler(row, MouseEvent.MOUSE_ENTERED, event -> onRowEntered(this));
+            itemDisposer.registerEventHandler(row, MouseEvent.MOUSE_EXITED, event -> onRowExited(this));
         }
 
         private void onMousePressed(MouseEvent event) {
@@ -1016,7 +1426,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             boolean armed = row.getPseudoClassStates().contains(ARMED_PSEUDO_CLASS);
             row.pseudoClassStateChanged(ARMED_PSEUDO_CLASS, false);
             if (armed && row.contains(event.getX(), event.getY())) {
-                activate(this);
+                activate(this, false);
             }
             event.consume();
         }
@@ -1025,7 +1435,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         void syncChildren() {
             if (!isGroup(item)) {
                 if (pane != null) {
-                    pane.box.getChildren().clear();
+                    childNodes().clear();
                 }
                 return;
             }
@@ -1033,7 +1443,12 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
                 pane = new ChildrenPane(row);
                 itemDisposer.registerBinding(pane.disableProperty(), item.disableProperty());
             }
-            syncList(item.getItems(), pane.box.getChildren(), depth + 1);
+            syncList(item.getItems(), childNodes(), depth + 1);
+        }
+
+        // Where the rows of the child items currently are.
+        private ObservableList<Node> childNodes() {
+            return flyout != null ? flyout.box.getChildren() : pane.box.getChildren();
         }
 
         @Override
@@ -1048,7 +1463,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         void refresh(Set<RXSidebarItem> selectionPath) {
             boolean shown = isShown(item);
             boolean group = isGroup(item);
-            boolean open = group && shown && isOpen(item, depth);
+            boolean open = group && shown && isOpen(item);
             setShown(row, shown);
             if (pane != null) {
                 // Closing over the focused row would leave focus on a row that
@@ -1062,8 +1477,10 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             row.setAccessibleRole(!group && item.isSelectable()
                     ? AccessibleRole.RADIO_BUTTON : AccessibleRole.BUTTON);
             row.depth = depth;
+            row.inFlyout = isInFlyout(item);
             row.setGroup(group);
             row.setCompact(compactRows && depth == 0);
+            row.pseudoClassStateChanged(SHOWING_PSEUDO_CLASS, flyout != null);
             row.pseudoClassStateChanged(EXPANDED_PSEUDO_CLASS, group && open);
             row.pseudoClassStateChanged(COLLAPSED_PSEUDO_CLASS, group && !open);
             row.pseudoClassStateChanged(SELECTABLE_PSEUDO_CLASS, !group && item.isSelectable());
@@ -1153,6 +1570,9 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         private Node graphic;
         private int depth;
         private boolean compact;
+        // A row in a flyout starts at the edge: no icon column inset and no
+        // indent by depth.
+        private boolean inFlyout;
 
         Row(RowView view) {
             this.view = view;
@@ -1203,6 +1623,9 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         }
 
         private double contentLeft() {
+            if (inFlyout) {
+                return snappedLeftInset();
+            }
             return snappedLeftInset() + snapPositionX(iconInset() + depth * indentOrDefault());
         }
 
@@ -1262,7 +1685,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             if (compact) {
                 return;
             }
-            double right = getWidth() + wipeExtra() - snappedRightInset();
+            double right = getWidth() + (inFlyout ? 0.0 : wipeExtra()) - snappedRightInset();
             if (disclosure.isManaged()) {
                 double width = snapSizeX(disclosure.prefWidth(-1));
                 right -= width;
@@ -1293,7 +1716,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
                     return item.isSelected();
                 }
                 case EXPANDED -> {
-                    return isGroup(item) && isOpen(item, depth);
+                    return isGroup(item) && (isOpen(item) || view.flyout != null);
                 }
                 case HELP -> {
                     Tooltip tooltip = view.installedTooltip;
@@ -1308,7 +1731,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
         @Override
         public void executeAccessibleAction(AccessibleAction action, Object... parameters) {
             if (view != null && action == AccessibleAction.FIRE) {
-                activate(view);
+                activate(view, true);
             } else {
                 super.executeAccessibleAction(action, parameters);
             }

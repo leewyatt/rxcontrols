@@ -72,6 +72,20 @@ public class RXSidebar extends Control {
         MINI
     }
 
+    /**
+     * What opens the flyout of a group while the sidebar rests in
+     * {@link SidebarMode#MINI}.
+     */
+    public enum FlyoutTrigger {
+        /**
+         * Resting the pointer on the group opens its flyout; leaving the group
+         * and its flyouts closes them. Clicking and the keyboard open it too.
+         */
+        HOVER,
+        /** Only clicking the group or activating it from the keyboard opens its flyout. */
+        CLICK
+    }
+
     // ==================== Constants ====================
 
     private static final String DEFAULT_STYLE_CLASS = "rx-sidebar";
@@ -434,6 +448,42 @@ public class RXSidebar extends Control {
      */
     public final void setFooter(Node value) {
         footer.set(value);
+    }
+
+    // ==================== Flyout Trigger ====================
+
+    /**
+     * Default flyout trigger, also the {@code null} fallback.
+     */
+    public static final FlyoutTrigger DEFAULT_FLYOUT_TRIGGER = FlyoutTrigger.HOVER;
+
+    private final ObjectProperty<FlyoutTrigger> flyoutTrigger =
+            new SimpleObjectProperty<>(this, "flyoutTrigger", DEFAULT_FLYOUT_TRIGGER);
+
+    /**
+     * What opens a group's flyout in {@link SidebarMode#MINI}, where the child
+     * items of a group are reached through flyouts that open level by level
+     * beside the sidebar. {@code null} is treated as
+     * {@link #DEFAULT_FLYOUT_TRIGGER}.
+     *
+     * @return the flyout trigger property
+     */
+    public final ObjectProperty<FlyoutTrigger> flyoutTriggerProperty() {
+        return flyoutTrigger;
+    }
+
+    /**
+     * @return the flyout trigger
+     */
+    public final FlyoutTrigger getFlyoutTrigger() {
+        return flyoutTrigger.get();
+    }
+
+    /**
+     * @param value the flyout trigger
+     */
+    public final void setFlyoutTrigger(FlyoutTrigger value) {
+        flyoutTrigger.set(value);
     }
 
     // ==================== Filter ====================

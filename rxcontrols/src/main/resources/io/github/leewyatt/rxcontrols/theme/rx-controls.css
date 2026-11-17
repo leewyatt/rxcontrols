@@ -2908,6 +2908,49 @@
     -fx-rotate: 180;
 }
 
+/* Child paths, so the rule stops at the sidebar's own rows: the rows in a flyout
+   also descend from the container, through the row their popup hangs off. */
+.rx-sidebar:mini > .container > .section > .item:child-selected,
+.rx-sidebar:mini > .container > .content > .viewport > * > .section > .item:child-selected {
+    -fx-background-color: -rx-primary-bg;
+}
+
+.rx-sidebar .item:showing {
+    -fx-background-color: -fx-hover-base;
+}
+
+.rx-sidebar-flyout {
+    -fx-background-color: -rx-surface;
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 4);
+    -fx-padding: 4;
+}
+
+/* On the content rather than the flyout: the popup is placed by the flyout's
+   preferred width, which only a child's minimum feeds into. */
+.rx-sidebar-flyout > .content {
+    -fx-min-width: 160;
+}
+
+.rx-sidebar-flyout > .title {
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-padding: 6 12 6 12;
+}
+
+.rx-sidebar-flyout > .content,
+.rx-sidebar-flyout > .content > .viewport {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.rx-sidebar-flyout .item {
+    -fx-padding: 0 12 0 12;
+}
+
+.rx-sidebar-flyout .item > .disclosure > .arrow {
+    -fx-rotate: -90;
+}
+
 .rx-sidebar .caption {
     -fx-padding: 8 12 4 0;
 }
