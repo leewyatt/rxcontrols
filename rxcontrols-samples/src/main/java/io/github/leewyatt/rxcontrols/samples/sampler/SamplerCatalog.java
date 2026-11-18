@@ -221,8 +221,10 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXAvatarSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBackdropSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBadgeSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBarSpinnerSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBorderBeamSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBoxSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBreadcrumbBarSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBurstsSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCarouselSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCascaderSamples;
@@ -263,6 +265,7 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRadioButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRangeSliderSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXReactionButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRibbonBadgeSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRipplePaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRowSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSeekBarSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSegmentedControlSamples;
@@ -272,6 +275,7 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSelectionBoxSamples
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSidebarSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSkeletonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSliderSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSmoothScrollerSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSnackbarHostSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSpeedDialSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXStatePaneSamples;
@@ -663,10 +667,14 @@ final class SamplerCatalog {
                 .withSamples(RXMasonryPaneSamples::create));
 
         c = SamplerCategory.MOTION;
-        list.add(single(c, RXBursts.class, RXBurstsShowcase::new, RXBurstsDemo.class));
-        list.add(single(c, RXBorderBeam.class, RXBorderBeamShowcase::new, RXBorderBeamDemo.class));
-        list.add(single(c, RXRipplePane.class, RXRipplePaneShowcase::new, null));
-        list.add(single(c, RXSmoothScroller.class, RXSmoothScrollerShowcase::new, RXSmoothScrollerDemo.class));
+        list.add(single(c, RXBursts.class, RXBurstsShowcase::new, RXBurstsDemo.class)
+                .withSamples(RXBurstsSamples::create));
+        list.add(single(c, RXBorderBeam.class, RXBorderBeamShowcase::new, RXBorderBeamDemo.class)
+                .withSamples(RXBorderBeamSamples::create));
+        list.add(single(c, RXRipplePane.class, RXRipplePaneShowcase::new, null)
+                .withSamples(RXRipplePaneSamples::create));
+        list.add(single(c, RXSmoothScroller.class, RXSmoothScrollerShowcase::new, RXSmoothScrollerDemo.class)
+                .withSamples(RXSmoothScrollerSamples::create));
         return List.copyOf(list);
     }
 
