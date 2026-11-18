@@ -175,6 +175,10 @@
     -fx-text-fill: -showcase-caption-color;
 }
 
+.top-bar > .transition-picker {
+    -fx-pref-width: 190px;
+}
+
 .top-bar .rx-breadcrumb-bar > .item:current {
     -fx-font-weight: bold;
 }

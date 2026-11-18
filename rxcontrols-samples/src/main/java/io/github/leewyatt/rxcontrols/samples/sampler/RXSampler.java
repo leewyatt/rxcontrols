@@ -1,10 +1,13 @@
 package io.github.leewyatt.rxcontrols.samples.sampler;
 
 import io.github.leewyatt.rxcontrols.RXBreadcrumbBar;
+import io.github.leewyatt.rxcontrols.RXSelectionBox;
 import io.github.leewyatt.rxcontrols.RXTransitionPane;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
+import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.samples.demo.RXThemeGallery;
+import io.github.leewyatt.rxcontrols.samples.support.PageAnimationPresets;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes.ThemeChoice;
@@ -32,6 +35,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,6 +50,10 @@ public class RXSampler extends Application {
 
     private static final Logger LOG = Logger.getLogger(RXSampler.class.getName());
     private static final int PAGE_CACHE_SIZE = 4;
+    private static final String DEFAULT_TRANSITION = "Fade";
+    // A plain fade reads best quick; the patterned effects need time to be seen.
+    private static final Duration FADE_DURATION = Duration.millis(180.0);
+    private static final Duration EFFECT_DURATION = Duration.millis(520.0);
 
     private final List<SamplerEntry> entries = SamplerCatalog.entries();
     private final Map<SamplerEntry, Node> pages = new LinkedHashMap<>(16, 0.75f, true) {
@@ -73,7 +81,7 @@ public class RXSampler extends Application {
 
         host.getStyleClass().add("page-host");
         host.setAnimation(new AnimFade());
-        host.setAnimationDuration(Duration.millis(180.0));
+        host.setAnimationDuration(FADE_DURATION);
 
         BorderPane main = new BorderPane(host);
         main.getStyleClass().add("sampler-main");
@@ -127,10 +135,52 @@ public class RXSampler extends Application {
         themeLabel.getStyleClass().add("theme-label");
         themeLabel.setLabelFor(themePicker);
 
-        HBox bar = new HBox(10.0, crumbs, spacer, themeLabel, themePicker);
+        RXSelectionBox<Transition> transitionPicker = buildTransitionPicker();
+        Label transitionLabel = new Label("Transition");
+        transitionLabel.getStyleClass().add("theme-label");
+        transitionLabel.setLabelFor(transitionPicker);
+
+        HBox bar = new HBox(10.0, crumbs, spacer, transitionLabel, transitionPicker, themeLabel, themePicker);
         bar.getStyleClass().add("top-bar");
         bar.setAlignment(Pos.CENTER_LEFT);
         return bar;
+    }
+
+    /** Picks the page transition from every preset, grouped and searchable. */
+    private RXSelectionBox<Transition> buildTransitionPicker() {
+        List<Transition> transitions = new ArrayList<>();
+        PageAnimationPresets.byCategory().forEach((category, presets) ->
+                presets.forEach((name, factory) -> transitions.add(new Transition(category, name, factory))));
+
+        RXSelectionBox<Transition> picker = new RXSelectionBox<>();
+        picker.getStyleClass().add("transition-picker");
+        picker.getItems().setAll(transitions);
+        picker.setSectionKeyFactory(Transition::category);
+        picker.setSearchPromptText("Search transitions");
+        picker.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(Transition transition) {
+                return transition == null ? "" : transition.name();
+            }
+
+            @Override
+            public Transition fromString(String text) {
+                throw new UnsupportedOperationException();
+            }
+        });
+        for (Transition transition : transitions) {
+            if (transition.name().equals(DEFAULT_TRANSITION)) {
+                picker.getSelectionModel().select(transition);
+            }
+        }
+        picker.getSelectionModel().selectedItemProperty().addListener((obs, old, transition) -> {
+            if (transition != null) {
+                host.setAnimation(transition.factory().get());
+                host.setAnimationDuration(transition.name().equals(DEFAULT_TRANSITION)
+                        ? FADE_DURATION : EFFECT_DURATION);
+            }
+        });
+        return picker;
     }
 
     private BorderPane buildPager() {
@@ -231,6 +281,9 @@ public class RXSampler extends Application {
         } catch (RuntimeException e) {
             LOG.log(Level.WARNING, "Could not open the theme gallery", e);
         }
+    }
+
+    private record Transition(String category, String name, Supplier<PageAnimation> factory) {
     }
 
     /**
