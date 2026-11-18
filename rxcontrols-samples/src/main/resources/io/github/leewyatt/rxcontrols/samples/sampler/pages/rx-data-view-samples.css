@@ -83,24 +83,10 @@
  * RXTileView                                                                  *
  *                                                                             *
  ******************************************************************************/
-.example-card .rx-tile-cell.photo-tile,
-.example-card .rx-tile-cell.swatch-tile,
-.example-card .rx-tile-cell.product-tile {
+.example-card .rx-tile-cell.photo-tile {
     -fx-padding: 4px;
     -fx-background-radius: 8px;
     -fx-border-radius: 8px;
-}
-
-.example-card .rx-tile-cell.app-tile,
-.example-card .rx-tile-cell.file-tile {
-    -fx-padding: 4px;
-    -fx-background-radius: 10px;
-    -fx-border-radius: 10px;
-}
-
-.example-card .rx-tile-cell.app-tile:hover,
-.example-card .rx-tile-cell.file-tile:hover {
-    -fx-background-color: -fx-hover-base;
 }
 
 .example-card .photo-tile .caption {
@@ -109,70 +95,6 @@
     -fx-text-fill: white;
     -fx-background-color: rgba(0, 0, 0, 0.42);
     -fx-background-radius: 0 6px 0 6px;
-}
-
-.example-card .app-icon {
-    -fx-background-color: #64748b;
-    -fx-background-radius: 12px;
-    -fx-font-size: 20px;
-    -fx-font-weight: bold;
-    -fx-text-fill: white;
-}
-
-.example-card .app-name {
-    -fx-font-size: 12px;
-    -fx-text-fill: -fx-text-base-color;
-}
-
-.example-card .app-icon.rose, .example-card .picture.rose { -fx-background-color: #f43f5e; }
-.example-card .app-icon.orange, .example-card .picture.orange { -fx-background-color: #f97316; }
-.example-card .app-icon.amber, .example-card .picture.amber { -fx-background-color: #f59e0b; }
-.example-card .app-icon.lime, .example-card .picture.lime { -fx-background-color: #65a30d; }
-.example-card .app-icon.teal, .example-card .picture.teal { -fx-background-color: #14b8a6; }
-.example-card .app-icon.sky, .example-card .picture.sky { -fx-background-color: #0ea5e9; }
-.example-card .app-icon.indigo, .example-card .picture.indigo { -fx-background-color: #6366f1; }
-.example-card .app-icon.violet, .example-card .picture.violet { -fx-background-color: #8b5cf6; }
-.example-card .app-icon.pink, .example-card .picture.pink { -fx-background-color: #ec4899; }
-
-.example-card .product {
-    -fx-padding: 6px;
-    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
-    -fx-background-insets: 0, 1px;
-    -fx-background-radius: 8px, 7px;
-}
-
-.example-card .product > .picture {
-    -fx-background-radius: 5px;
-    -fx-opacity: 0.85;
-}
-
-.example-card .chip {
-    -fx-background-radius: 4px;
-}
-
-.example-card .file-tile .symbol {
-    -fx-pref-width: 34px;
-    -fx-pref-height: 34px;
-}
-
-.example-card .doc-icon {
-    -fx-background-color: #0ea5e9;
-    -fx-shape: "M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13zM0 0L0 0M24 24L24 24";
-}
-
-.example-card .image-icon {
-    -fx-background-color: #14b8a6;
-    -fx-shape: "M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5zM0 0L0 0M24 24L24 24";
-}
-
-.example-card .music-icon {
-    -fx-background-color: #ec4899;
-    -fx-shape: "M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6zM0 0L0 0M24 24L24 24";
-}
-
-.example-card .archive-icon {
-    -fx-background-color: #f59e0b;
-    -fx-shape: "M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12zM0 0L0 0M24 24L24 24";
 }
 
 /*******************************************************************************
