@@ -77,7 +77,7 @@ public final class RXReactionButtonSamples {
         photo.setImageRadius(12.0);
         photo.setPrefSize(POST_WIDTH, 190.0);
         RXRibbonBadge ribbon = new RXRibbonBadge(photo, "Double-click the photo");
-        ribbon.getStyleClass().add("primary");
+        ribbon.getStyleClass().add("warning");
 
         RXReactionButton like = counted(new RXReactionButton(), 86);
         RXReactionButton save = styled(RXReactionButton.STYLE_CLASS_BOOKMARK);
