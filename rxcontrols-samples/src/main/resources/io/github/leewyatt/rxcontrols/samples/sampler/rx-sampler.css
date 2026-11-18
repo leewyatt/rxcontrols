@@ -191,6 +191,147 @@
     -fx-pref-width: 190px;
 }
 
+/*******************************************************************************
+ *                                                                             *
+ * Theme switcher                                                              *
+ *                                                                             *
+ ******************************************************************************/
+.theme-switcher .rx-segmented-control > .segment {
+    -fx-padding: 5px 9px;
+}
+
+.theme-switcher .rx-segmented-control > .segment .glyph {
+    -fx-background-color: -rx-on-surface-secondary;
+}
+
+.theme-switcher .rx-segmented-control > .segment:selected .glyph {
+    -fx-background-color: -rx-on-primary;
+}
+
+.theme-switcher .rx-segmented-control > .segment:disabled .glyph {
+    -fx-background-color: -rx-on-surface-disabled;
+}
+
+.theme-switcher .sun-glyph {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+    -fx-shape: "M12 7a5 5 0 1 0 0 10a5 5 0 1 0 0-10ZM11 1h2v3h-2ZM11 20h2v3h-2ZM1 11h3v2H1ZM20 11h3v2h-3ZM4.2 5.6l1.4-1.4l2.1 2.1l-1.4 1.4ZM16.3 17.7l1.4-1.4l2.1 2.1l-1.4 1.4ZM4.2 18.4l2.1-2.1l1.4 1.4l-2.1 2.1ZM16.3 6.3l2.1-2.1l1.4 1.4l-2.1 2.1Z";
+}
+
+.theme-switcher .moon-glyph {
+    -fx-pref-width: 15px;
+    -fx-pref-height: 15px;
+    -fx-shape: "M13.5 2.2A10 10 0 1 0 21.8 14.5A8 8 0 0 1 13.5 2.2Z";
+}
+
+.theme-switcher .family-button {
+    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 7px, 6px;
+    -fx-padding: 6px 10px;
+}
+
+.theme-switcher .family-button:hover {
+    -fx-background-color: -fx-text-box-border, -fx-hover-base;
+}
+
+.theme-switcher .family-button:focused {
+    -fx-background-color: -fx-focus-color, -fx-control-inner-background;
+}
+
+.theme-switcher .family-button .label {
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.theme-switcher .family-button .glyph {
+    -fx-background-color: -showcase-caption-color;
+}
+
+.theme-switcher .palette-glyph {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+    -fx-shape: "M12 3a9 9 0 0 0 0 18c.83 0 1.5-.67 1.5-1.5c0-.39-.15-.74-.39-1.01c-.23-.26-.38-.61-.38-.99c0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5c0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9S8 9.67 8 10.5S7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z";
+}
+
+.theme-switcher .chevron-down-glyph {
+    -fx-pref-width: 10px;
+    -fx-pref-height: 6px;
+    -fx-shape: "M1.4 0L5 3.6L8.6 0L10 1.4L5 6.4L0 1.4Z";
+}
+
+.theme-panel {
+    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 12px, 11px;
+    -fx-padding: 10px 14px 12px 14px;
+    -fx-spacing: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 18, 0, 0, 4);
+}
+
+.theme-panel > .panel-header {
+    -fx-padding: 0 2px 2px 2px;
+}
+
+.theme-panel > .panel-header > .label {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.theme-panel > .divider {
+    -fx-min-height: 1px;
+    -fx-pref-height: 1px;
+    -fx-background-color: -fx-text-box-border;
+}
+
+.theme-panel .family-name {
+    -fx-min-width: 76px;
+    -fx-pref-width: 76px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.theme-panel .theme-tile {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-border-width: 2px;
+    -fx-border-radius: 9px;
+    -fx-padding: 2px;
+}
+
+.theme-panel .theme-tile:hover {
+    -fx-border-color: -fx-text-box-border;
+}
+
+.theme-panel .theme-tile:focused {
+    -fx-border-color: -fx-focus-color;
+}
+
+.theme-panel .current-badge {
+    -rx-badge-ring: -fx-control-inner-background;
+}
+
+/* The badge takes no graphic, so the dot itself is shaped as a check mark; the ring
+   layer, drawn larger, outlines it against any preview. */
+.theme-panel .current-badge > .indicator:dot {
+    -fx-pref-width: 18px;
+    -fx-pref-height: 14px;
+    -fx-background-insets: -2.5, 0;
+    -fx-shape: "M6.5 14L0 7.5L2.1 5.4L6.5 9.8L15.9 0.4L18 2.5Z";
+}
+
+.theme-panel .theme-tile.empty {
+    -fx-min-width: 104px;
+    -fx-min-height: 64px;
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-width: 1px;
+    -fx-border-style: segments(4px, 3px);
+    -fx-border-insets: 3px;
+}
+
+.theme-panel .theme-tile.empty > .label {
+    -fx-text-fill: -showcase-caption-color;
+}
+
 .top-bar .rx-breadcrumb-bar > .item:current {
     -fx-font-weight: bold;
 }

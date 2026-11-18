@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.sampler;
 
+import atlantafx.base.theme.PrimerDark;
 import io.github.leewyatt.rxcontrols.RXBreadcrumbBar;
 import io.github.leewyatt.rxcontrols.RXSelectionBox;
 import io.github.leewyatt.rxcontrols.RXTransitionPane;
@@ -17,7 +18,6 @@ import javafx.scene.Node;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
@@ -76,6 +76,7 @@ public class RXSampler extends Application {
     /** {@inheritDoc} */
     @Override
     public void start(Stage stage) {
+        ShowcaseThemes.apply(startTheme());
         nav = new SamplerNav(entries);
         nav.currentProperty().addListener((obs, old, entry) -> show(entry));
 
@@ -129,18 +130,13 @@ public class RXSampler extends Application {
         crumbs.setOnNavigate(event -> show(entryAt(event.getItem())));
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        ComboBox<ThemeChoice> themePicker = new ComboBox<>();
-        ShowcaseThemes.bindPicker(themePicker);
-        Label themeLabel = new Label("Theme");
-        themeLabel.getStyleClass().add("theme-label");
-        themeLabel.setLabelFor(themePicker);
 
         RXSelectionBox<Transition> transitionPicker = buildTransitionPicker();
         Label transitionLabel = new Label("Transition");
         transitionLabel.getStyleClass().add("theme-label");
         transitionLabel.setLabelFor(transitionPicker);
 
-        HBox bar = new HBox(10.0, crumbs, spacer, transitionLabel, transitionPicker, themeLabel, themePicker);
+        HBox bar = new HBox(10.0, crumbs, spacer, transitionLabel, transitionPicker, new SamplerThemeSwitcher());
         bar.getStyleClass().add("top-bar");
         bar.setAlignment(Pos.CENTER_LEFT);
         return bar;
@@ -273,6 +269,16 @@ public class RXSampler extends Application {
             return new SamplerHome(entries, this::show, RXSampler::openThemeGallery);
         }
         return new SamplerPage(entry);
+    }
+
+    private static ThemeChoice startTheme() {
+        String stylesheet = new PrimerDark().getUserAgentStylesheet();
+        for (ThemeChoice choice : ShowcaseThemes.all()) {
+            if (choice.userAgentStylesheet().equals(stylesheet)) {
+                return choice;
+            }
+        }
+        return ShowcaseThemes.getCurrent();
     }
 
     private static void openThemeGallery() {
