@@ -1,15 +1,16 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
+import io.github.leewyatt.rxcontrols.RXChip;
+import io.github.leewyatt.rxcontrols.RXChipSet;
+import io.github.leewyatt.rxcontrols.RXChipSet.SelectionMode;
 import io.github.leewyatt.rxcontrols.RXHighlightTextView;
 import io.github.leewyatt.rxcontrols.RXHighlightTextView.MatchRules;
 import io.github.leewyatt.rxcontrols.RXTextField;
-import io.github.leewyatt.rxcontrols.RXToggleButton;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
@@ -64,7 +65,7 @@ public final class RXHighlightTextViewSamples {
                                 "Each word in the field becomes a keyword; highlightRanges counts the matches.",
                                 search()),
                         SampleCard.large("Toggle keywords",
-                                "getKeywords is a plain list, so buttons can add and remove terms.",
+                                "getKeywords is a plain list, so the chips of an RXChipSet can add and remove terms.",
                                 toggles()),
                         SampleCard.large("Regular expressions",
                                 "MatchRules REGEX finds patterns such as dates and prices.",
@@ -100,20 +101,22 @@ public final class RXHighlightTextViewSamples {
 
     private static Node toggles() {
         RXHighlightTextView view = sized(new RXHighlightTextView(RELEASE));
-        HBox buttons = new HBox(8.0);
+        RXChipSet chips = new RXChipSet();
+        chips.setSelectionMode(SelectionMode.MULTIPLE);
         for (String keyword : List.of("list", "tile", "masonry", "headers")) {
-            RXToggleButton toggle = new RXToggleButton(keyword);
-            toggle.selectedProperty().addListener((obs, was, on) -> {
+            RXChip chip = new RXChip(keyword);
+            chip.setSelectable(true);
+            chip.selectedProperty().addListener((obs, was, on) -> {
                 if (on) {
                     view.getKeywords().add(keyword);
                 } else {
                     view.getKeywords().remove(keyword);
                 }
             });
-            toggle.setSelected(!keyword.equals("tile"));
-            buttons.getChildren().add(toggle);
+            chips.getChips().add(chip);
+            chip.setSelected(!keyword.equals("tile"));
         }
-        return column(buttons, view);
+        return column(chips, view);
     }
 
     // ==================== Regular expressions ====================
