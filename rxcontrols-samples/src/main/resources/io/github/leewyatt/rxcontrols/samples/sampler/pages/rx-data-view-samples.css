@@ -72,24 +72,10 @@
  * RXListView                                                                  *
  *                                                                             *
  ******************************************************************************/
-.example-card .rx-list-view .subject {
-    -fx-font-size: 12.5px;
-    -fx-text-fill: -fx-text-base-color;
-}
-
-.example-card .rx-list-view .mail {
-    -fx-padding: 8px 4px;
-}
-
 .example-card .rx-list-view .letter {
     -fx-font-size: 13px;
     -fx-font-weight: bold;
     -fx-text-fill: -fx-accent;
-}
-
-.example-card .rx-list-view.log .rx-list-cell {
-    -fx-font-family: monospace;
-    -fx-font-size: 11.5px;
 }
 
 /*******************************************************************************
@@ -389,12 +375,6 @@
     -fx-shape: "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8zM0 0L0 0M24 24L24 24";
 }
 
-.example-card .summary-panel {
-    -fx-padding: 12px 14px;
-    -fx-background-color: -fx-background;
-    -fx-background-radius: 8px;
-}
-
 .example-card .rx-cascader-view.dense .rx-cascader-cell {
     -fx-font-size: 12px;
 }
@@ -451,4 +431,10 @@
 .example-card .rx-tile-view.photos,
 .example-card .rx-masonry-view.pins {
     -fx-padding: 10px;
+}
+
+.example-card .list-controls {
+    -fx-padding: 16px 18px;
+    -fx-background-color: -fx-background;
+    -fx-background-radius: 10px;
 }

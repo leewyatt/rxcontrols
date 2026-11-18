@@ -44,7 +44,7 @@ public final class RXCascaderViewSamples {
                                 "A column opens for each level you visit; select and revealSelectedPath open the columns of a saved choice.",
                                 browser()),
                         SampleCard.wide("Check regions",
-                                "In MULTIPLE mode a region shows a partial check while only some countries are checked; getCheckedPaths drives the summary.",
+                                "In MULTIPLE mode a region shows a partial check while only some countries are checked; getCheckedPaths drives the count.",
                                 regions()),
                         SampleCard.large("Lazy loading",
                                 "childrenLoader fills each column when you open its parent, after a short wait.",
@@ -87,23 +87,14 @@ public final class RXCascaderViewSamples {
                 find(view.getRootItems(), "Oceania")));
         view.expand(europe);
 
-        Label title = text("", "name");
-        VBox list = new VBox(4.0);
+        Label count = text("", "name");
         Runnable refresh = () -> {
             int size = view.getCheckedPaths().size();
-            title.setText(size == 0 ? "No countries checked" : size + (size == 1 ? " country" : " countries"));
-            list.getChildren().clear();
-            for (RXCascaderPath<String> path : view.getCheckedPaths()) {
-                list.getChildren().add(text("• " + last(path), "body"));
-            }
+            count.setText(size == 0 ? "No countries checked" : size + (size == 1 ? " country checked" : " countries checked"));
         };
         view.getCheckedPaths().addListener((ListChangeListener<RXCascaderPath<String>>) change -> refresh.run());
         refresh.run();
-        VBox summary = new VBox(8.0, title, list);
-        summary.getStyleClass().add("summary-panel");
-        summary.setPrefWidth(200.0);
-
-        HBox box = new HBox(16.0, view, summary);
+        VBox box = new VBox(12.0, view, count);
         box.setAlignment(Pos.TOP_LEFT);
         return box;
     }

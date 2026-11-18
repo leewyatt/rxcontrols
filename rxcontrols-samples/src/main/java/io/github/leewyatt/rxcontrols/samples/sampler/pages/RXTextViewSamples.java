@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXButton;
+import io.github.leewyatt.rxcontrols.RXCopyButton;
 import io.github.leewyatt.rxcontrols.RXTextView;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
@@ -14,7 +15,6 @@ import javafx.scene.text.TextAlignment;
 
 import java.util.List;
 
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.icon;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.plain;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.spacer;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.text;
@@ -64,7 +64,7 @@ public final class RXTextViewSamples {
                         "For text nobody copies a Label is enough; for text people edit use a TextArea."),
                 List.of(
                         SampleCard.large("Select and copy",
-                                "Drag, double-click a word or triple-click a line; selectedText updates as you go and copy puts it on the clipboard.",
+                                "Drag, double-click a word or triple-click a line; selectedText updates as you go and an RXCopyButton copies it.",
                                 article()),
                         SampleCard.large("Codes to copy",
                                 "Order and tracking numbers that a Label would not let anyone select.",
@@ -94,10 +94,9 @@ public final class RXTextViewSamples {
             int length = view.getSelectedText().length();
             return length == 0 ? "Nothing selected" : length + " characters selected";
         }, view.selectedTextProperty()));
-        RXButton copy = plain("Copy");
-        copy.setGraphic(icon("copy-icon"));
+        RXCopyButton copy = new RXCopyButton("Copy");
+        copy.setContentFactory(() -> RXCopyButton.textContent(view.getSelectedText()));
         copy.disableProperty().bind(view.selectedTextProperty().isEmpty());
-        copy.setOnAction(event -> view.copy());
         view.selectRange(0, 11);
         HBox actions = new HBox(8.0, count, spacer(), copy);
         actions.setAlignment(Pos.CENTER_LEFT);
