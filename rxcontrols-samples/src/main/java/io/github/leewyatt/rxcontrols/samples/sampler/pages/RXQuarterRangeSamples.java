@@ -101,7 +101,7 @@ public final class RXQuarterRangeSamples {
 
     private static Node[] planAhead() {
         RXYearQuarter now = current();
-        RXQuarterRangeView view = new RXQuarterRangeView(RXQuarterRange.of(now.plusQuarters(1), now.plusQuarters(2)));
+        RXQuarterRangeView view = new RXQuarterRangeView(RXQuarterRange.of(now.plusQuarters(1), now.plusQuarters(4)));
         view.getStyleClass().add("accent-teal");
         view.setMinQuarter(now);
         view.setDisplayedYear(Year.of(now.year()));

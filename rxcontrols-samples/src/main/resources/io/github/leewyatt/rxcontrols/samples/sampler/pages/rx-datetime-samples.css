@@ -77,6 +77,17 @@
 .example-card > .stage .accent-indigo { -rx-primary: #4f46e5; }
 .example-card > .stage .accent-pink { -rx-primary: #db2777; }
 
+/* The range band color is derived from -rx-primary where the theme declares it, so a
+   view with its own accent derives it again here, with the theme's own formula. */
+.example-card > .stage .accent-teal,
+.example-card > .stage .accent-violet,
+.example-card > .stage .accent-rose,
+.example-card > .stage .accent-orange,
+.example-card > .stage .accent-indigo,
+.example-card > .stage .accent-pink {
+    -rx-primary-bg: ladder(-fx-background, derive(-rx-primary, -60%) 45%, derive(derive(-rx-primary, 70%), 70%) 46%);
+}
+
 /*******************************************************************************
  *                                                                             *
  * Icons                                                                       *
