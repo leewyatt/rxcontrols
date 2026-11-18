@@ -5,6 +5,10 @@ import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXKanbanCardCell;
 import io.github.leewyatt.rxcontrols.RXKanbanColumn;
 import io.github.leewyatt.rxcontrols.RXKanbanView;
+import io.github.leewyatt.rxcontrols.RXMenuButton;
+import io.github.leewyatt.rxcontrols.RXMenuItem;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -14,6 +18,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.util.Callback;
 
 import java.util.List;
 
@@ -23,18 +28,21 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.co
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.icon;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.initials;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.paint;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.sized;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.spacer;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.text;
 
 /**
- * The RXKanbanView page: a sprint board with rich cards and a move log, work-in-progress
- * limits with a rule that rejects some moves, columns reordered by their headers, and a
- * footer button that adds cards.
+ * The RXKanbanView page: one sprint board whose cards move within and between columns
+ * and whose columns move by their headers, each with a button that adds a task; a
+ * toolbar reports every move, and its Options menu switches the dragging, the columns
+ * shown, the add buttons and the animation.
  */
 public final class RXKanbanViewSamples {
 
-    private static final double BOARD_WIDTH = 420.0;
+    private static final double BOARD_HEIGHT = 560.0;
+
+    private static final String[] NEW_TAGS = {"Feature", "Bug", "Design", "Docs"};
+    private static final String[] NEW_OWNERS = {"Lee Wyatt", "Mia Chen", "Sam Ortega", "Ada Brooks"};
 
     private record Task(String title, String tag, String owner, int points) {
     }
@@ -54,17 +62,9 @@ public final class RXKanbanViewSamples {
                         "For one ordered list use RXListView; for a fixed sequence of steps use RXSegmentedStepIndicator."),
                 List.of(
                         SampleCard.canvas("Sprint board",
-                                "Drag a card within or across columns; onCardMoved reports every move and a custom card cell shows tag, owner and points.",
-                                sprint()),
-                        SampleCard.canvas("Limits and rules",
-                                "wipLimit marks a column that holds too many cards without blocking the drop; dropValidator refuses moves from Backlog straight to Shipped.",
-                                limits()),
-                        SampleCard.large("Reorder columns",
-                                "columnReorderEnabled lets you drag a column by its header to a new place.",
-                                reorder()),
-                        SampleCard.large("Add cards",
-                                "columnFooterFactory puts an add button under each column; an empty column shows its placeholder.",
-                                addCards())),
+                                "Drag a card within or across columns and a column by its header; the Options "
+                                        + "menu turns dragging on and off and shows the hidden Review column.",
+                                sprint())),
                 DataViewKit.STYLESHEET);
     }
 
@@ -77,31 +77,78 @@ public final class RXKanbanViewSamples {
                         new Task("Write release notes", "Docs", "Lee Wyatt", 2),
                         new Task("Empty state for search", "Design", "Hana Sato", 3),
                         new Task("Retry failed uploads", "Bug", "Ravi Patel", 5),
-                        new Task("Export to CSV", "Feature", "Mia Chen", 3)),
+                        new Task("Export to CSV", "Feature", "Mia Chen", 3),
+                        new Task("Keyboard shortcuts page", "Docs", "Sam Ortega", 2),
+                        new Task("Bulk edit tags", "Feature", "Ada Brooks", 5),
+                        new Task("Slow search on large boards", "Bug", "Omar Haddad", 3)),
                 column("In progress",
                         new Task("Dark theme colors", "Design", "Ada Brooks", 5),
-                        new Task("Login rate limit", "Security", "Omar Haddad", 3)),
+                        new Task("Login rate limit", "Security", "Omar Haddad", 3),
+                        new Task("Drag cards between boards", "Feature", "Lee Wyatt", 8),
+                        new Task("Avatar upload crops", "Bug", "Hana Sato", 2)),
                 column("Review",
-                        new Task("Cache user avatars", "Feature", "Sam Ortega", 2)),
+                        new Task("Cache user avatars", "Feature", "Sam Ortega", 2),
+                        new Task("Onboarding copy", "Docs", "Mia Chen", 1),
+                        new Task("Session timeout dialog", "Design", "Ravi Patel", 3)),
                 column("Done",
                         new Task("Fix date parsing", "Bug", "Lee Wyatt", 1),
-                        new Task("Onboarding tour", "Feature", "Mia Chen", 8))));
-        board.setPrefColumnWidth(220.0);
+                        new Task("Onboarding tour", "Feature", "Mia Chen", 8),
+                        new Task("Two-factor sign in", "Security", "Omar Haddad", 5),
+                        new Task("Faster board loading", "Feature", "Ada Brooks", 3),
+                        new Task("Typo in settings", "Bug", "Sam Ortega", 1))));
+        board.setPrefColumnWidth(190.0);
         board.setColumnsJustify(ItemsJustify.STRETCH);
         board.setPrefCardHeight(92.0);
         board.setCardCellFactory(view -> new TaskCell());
-        board.setPrefSize(BOARD_WIDTH, 360.0);
-        board.setMinHeight(360.0);
+        board.setColumnReorderEnabled(true);
+        // Review starts hidden, so the other three columns show whole in the card.
+        board.getColumns().get(2).setVisible(false);
+        int[] added = {0};
+        Callback<RXKanbanColumn<Task>, Node> addButtons = column -> {
+            RXButton add = new RXButton("Add task");
+            add.getStyleClass().add("add-button");
+            add.setGraphic(icon("plus-icon"));
+            add.setMaxWidth(Double.MAX_VALUE);
+            add.setOnAction(event -> {
+                int n = added[0]++;
+                column.getCards().add(new Task("New task " + (n + 1), NEW_TAGS[n % NEW_TAGS.length],
+                        NEW_OWNERS[n % NEW_OWNERS.length], 1 + n % 5));
+            });
+            return add;
+        };
+        board.setColumnFooterFactory(addButtons);
+        board.setPrefHeight(BOARD_HEIGHT);
+        board.setMinHeight(BOARD_HEIGHT);
 
-        Label log = text("Drag a card to another column", "hint");
+        Label log = text("Drag a card to another column, or a column by its header", "hint");
         board.setOnCardMoved(event -> log.setText(event.isReorder()
                 ? "Reordered “" + event.getCard().title() + "” in " + event.getToColumn().getTitle()
                 : "Moved “" + event.getCard().title() + "” from " + event.getFromColumn().getTitle()
                 + " to " + event.getToColumn().getTitle()));
-        HBox header = new HBox(8.0, text("Sprint 14", "heading"), spacer(), log);
-        header.setAlignment(Pos.CENTER_LEFT);
+        board.setOnColumnMoved(event -> log.setText("Moved the " + event.getColumn().getTitle() + " column"));
+        RXMenuButton options = options(board, addButtons);
+        options.setMinWidth(Region.USE_PREF_SIZE);
+        HBox toolbar = new HBox(8.0, log, spacer(), options);
+        toolbar.setAlignment(Pos.CENTER_LEFT);
         VBox.setVgrow(board, Priority.ALWAYS);
-        return new VBox(12.0, header, board);
+        return new VBox(12.0, toolbar, board);
+    }
+
+    private static RXMenuButton options(RXKanbanView<Task> board, Callback<RXKanbanColumn<Task>, Node> addButtons) {
+        RXMenuButton options = new RXMenuButton("Options");
+        options.getItems().addAll(RXMenuItem.header("Dragging"),
+                RXMenuItem.checkbox("Drag cards", board.cardDragEnabledProperty()),
+                RXMenuItem.checkbox("Drag columns by the header", board.columnReorderEnabledProperty()),
+                RXMenuItem.separator(), RXMenuItem.header("Columns"));
+        for (RXKanbanColumn<Task> column : board.getColumns()) {
+            options.getItems().add(RXMenuItem.checkbox(column.getTitle(), column.visibleProperty()));
+        }
+        BooleanProperty adding = new SimpleBooleanProperty(true);
+        adding.addListener((obs, was, on) -> board.setColumnFooterFactory(on ? addButtons : null));
+        options.getItems().addAll(RXMenuItem.separator(),
+                RXMenuItem.checkbox("Add task buttons", adding),
+                RXMenuItem.checkbox("Animate moves", board.animatedProperty()));
+        return options;
     }
 
     private static final class TaskCell extends RXKanbanCardCell<Task> {
@@ -142,81 +189,11 @@ public final class RXKanbanViewSamples {
         }
     }
 
-    // ==================== Limits and rules ====================
-
-    private static Node limits() {
-        RXKanbanColumn<String> backlog = stringColumn("Backlog",
-                "Price alerts", "Saved searches", "Gift cards", "Wish list", "Bulk edit");
-        RXKanbanColumn<String> building = stringColumn("Building", "Checkout redesign", "Order tracking",
-                "Store pickup");
-        building.setWipLimit(2);
-        RXKanbanColumn<String> testing = stringColumn("Testing", "Coupon codes");
-        testing.setWipLimit(2);
-        RXKanbanColumn<String> shipped = stringColumn("Shipped", "Reviews", "Newsletter");
-
-        RXKanbanView<String> board = new RXKanbanView<>();
-        board.setColumns(FXCollections.observableArrayList(backlog, building, testing, shipped));
-        board.setPrefColumnWidth(200.0);
-        board.setColumnsJustify(ItemsJustify.STRETCH);
-        board.setPrefCardHeight(44.0);
-        board.setPrefSize(BOARD_WIDTH, 300.0);
-        board.setMinHeight(300.0);
-        board.getStyleClass().add("compact");
-        board.setDropValidator(context ->
-                !(context.getSourceColumn() == backlog && context.getTargetColumn() == shipped));
-        return board;
-    }
-
-    // ==================== Reorder columns ====================
-
-    private static Node reorder() {
-        RXKanbanView<String> board = new RXKanbanView<>();
-        board.setColumns(FXCollections.observableArrayList(
-                stringColumn("Ideas", "Podcast", "Workshop", "Mugs"),
-                stringColumn("Planned", "Webinar", "Blog series"),
-                stringColumn("Live", "Newsletter")));
-        board.setColumnReorderEnabled(true);
-        board.setPrefColumnWidth(124.0);
-        board.setPrefCardHeight(40.0);
-        board.getStyleClass().add("compact");
-        return sized(board, BOARD_WIDTH, 280.0);
-    }
-
-    // ==================== Add cards ====================
-
-    private static Node addCards() {
-        RXKanbanView<String> board = new RXKanbanView<>();
-        board.setColumns(FXCollections.observableArrayList(
-                stringColumn("Groceries", "Apples", "Rice", "Coffee"),
-                stringColumn("In the cart"),
-                stringColumn("Paid", "Bread")));
-        board.setPrefColumnWidth(124.0);
-        board.setPrefCardHeight(40.0);
-        board.getStyleClass().add("compact");
-        board.setEmptyColumnPlaceholderFactory(column -> new Label("Drop items here"));
-        int[] counter = {1};
-        board.setColumnFooterFactory(column -> {
-            RXButton add = new RXButton("Add item");
-            add.getStyleClass().add("add-button");
-            add.setGraphic(icon("plus-icon"));
-            add.setMaxWidth(Double.MAX_VALUE);
-            add.setOnAction(event -> column.getCards().add("Item " + counter[0]++));
-            return add;
-        });
-        return sized(board, BOARD_WIDTH, 280.0);
-    }
-
     // ==================== Helpers ====================
 
     @SafeVarargs
     private static <T> RXKanbanColumn<T> column(String title, T... cards) {
         RXKanbanColumn<T> column = new RXKanbanColumn<>(title);
-        column.getCards().addAll(cards);
-        return column;
-    }
-
-    private static RXKanbanColumn<String> stringColumn(String title, String... cards) {
-        RXKanbanColumn<String> column = new RXKanbanColumn<>(title);
         column.getCards().addAll(cards);
         return column;
     }

@@ -113,30 +113,6 @@
  * RXKanbanView                                                                *
  *                                                                             *
  ******************************************************************************/
-.example-card .rx-kanban-view .wip-indicator {
-    -fx-font-size: 11px;
-    -fx-padding: 1px 8px;
-    -fx-text-fill: -showcase-caption-color;
-    -fx-background-color: -fx-text-box-border;
-    -fx-background-radius: 999px;
-}
-
-.example-card .rx-kanban-view > .columns > .column:over-limit {
-    -fx-background-color: #f43f5e, -fx-control-inner-background, rgba(244, 63, 94, 0.08);
-    -fx-background-insets: 0, 1, 1;
-    -fx-background-radius: 8, 7, 7;
-}
-
-.example-card .rx-kanban-view > .columns > .column:over-limit > .header > .wip-indicator {
-    -fx-text-fill: white;
-    -fx-background-color: #f43f5e;
-}
-
-.example-card .rx-kanban-view.compact .rx-kanban-card-cell {
-    -fx-padding: 0 10px;
-    -fx-alignment: center-left;
-}
-
 .example-card .rx-kanban-card-cell .tag {
     -fx-font-size: 11px;
     -fx-padding: 1px 7px;
