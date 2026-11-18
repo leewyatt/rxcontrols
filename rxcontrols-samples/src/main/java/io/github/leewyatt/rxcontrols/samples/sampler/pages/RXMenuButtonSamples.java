@@ -10,7 +10,6 @@ import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.input.KeyCombination;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
@@ -45,7 +44,7 @@ public final class RXMenuButtonSamples {
                                 "Check items keep the menu open, so several can be toggled in one go.",
                                 columnsMenu()),
                         SampleCard.medium("Placement",
-                                "placement opens the menu above, below or to a side, aligned to either edge.",
+                                "placement opens the menu above, below, left or right, aligned to either edge.",
                                 placements())),
                 ButtonIcons.STYLESHEET);
     }
@@ -112,11 +111,11 @@ public final class RXMenuButtonSamples {
         return box;
     }
 
-    private static Node placements() {
-        HBox row = new HBox(10.0, placed("Above", RXPlacement.TOP_START), placed("Below", RXPlacement.BOTTOM_END),
-                placed("Right", RXPlacement.RIGHT_START));
-        row.setAlignment(Pos.CENTER);
-        return row;
+    // Handed to the card as separate nodes: its flow wraps them on a narrow card and
+    // centers every row.
+    private static Node[] placements() {
+        return new Node[]{placed("Above", RXPlacement.TOP_START), placed("Below", RXPlacement.BOTTOM_END),
+                placed("Left", RXPlacement.LEFT_START), placed("Right", RXPlacement.RIGHT_START)};
     }
 
     private static RXMenuButton placed(String text, RXPlacement placement) {
