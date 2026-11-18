@@ -103,7 +103,6 @@ public final class RXChipSamples {
         avatar.getStyleClass().add("chip-avatar");
         RXChip person = new RXChip("Lee Wyatt", avatar);
         person.getStyleClass().add("person");
-        person.setRemovable(true);
         return flow(
                 new RXChip("Add to calendar", icon("calendar-icon")),
                 new RXChip("Directions", icon("directions-icon")),
