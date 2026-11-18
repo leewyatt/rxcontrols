@@ -215,12 +215,18 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.MaterialNumberFieldSa
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.NumberFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXAutoCompleteFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXAutoCompletionSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBackdropSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBadgeSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBarSpinnerSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCheckBoxSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXChipInputSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXChipSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXChipSetSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCircularProgressIndicatorSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCopyButtonSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDialogSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDotPulseSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXFillButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXHoldButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXLineButtonSamples;
@@ -228,19 +234,26 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMaterialPasswordFie
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMaterialTextFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMenuButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXPasswordFieldSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXPlaceholderSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRadioButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRangeSliderSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXReactionButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRibbonBadgeSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSeekBarSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSegmentedControlSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSegmentedProgressBarSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSegmentedStepIndicatorSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSelectionBoxSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSkeletonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSliderSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSnackbarHostSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSpeedDialSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXStatePaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSwitchButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTextFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXToggleButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTransitionButtonSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXWaveProgressIndicatorSamples;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXAccordionShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXAudioSpectrumShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXAutoCompleteFieldShowcase;
@@ -517,25 +530,38 @@ final class SamplerCatalog {
                 RXHighlightTextViewDemo.class));
 
         c = SamplerCategory.FEEDBACK;
-        list.add(single(c, RXBadge.class, RXBadgeShowcase::new, RXBadgeDemo.class));
+        list.add(single(c, RXBadge.class, RXBadgeShowcase::new, RXBadgeDemo.class)
+                .withSamples(RXBadgeSamples::create));
         list.add(single(c, RXRibbonBadge.class, RXRibbonBadgeShowcase::new, null)
                 .withSamples(RXRibbonBadgeSamples::create));
         list.add(single(c, RXCircularProgressIndicator.class, RXCircularProgressIndicatorShowcase::new,
-                RXCircularProgressIndicatorDemo.class));
+                RXCircularProgressIndicatorDemo.class)
+                .withSamples(RXCircularProgressIndicatorSamples::create));
         list.add(single(c, RXWaveProgressIndicator.class, RXWaveProgressIndicatorShowcase::new,
-                RXWaveProgressIndicatorDemo.class));
+                RXWaveProgressIndicatorDemo.class)
+                .withSamples(RXWaveProgressIndicatorSamples::create));
         list.add(single(c, RXSegmentedProgressBar.class, RXSegmentedProgressBarShowcase::new,
-                RXSegmentedProgressBarDemo.class));
+                RXSegmentedProgressBarDemo.class)
+                .withSamples(RXSegmentedProgressBarSamples::create));
         list.add(single(c, RXSegmentedStepIndicator.class, RXSegmentedStepIndicatorShowcase::new,
-                RXSegmentedStepIndicatorDemo.class));
-        list.add(single(c, RXBarSpinner.class, RXBarSpinnerShowcase::new, RXBarSpinnerDemo.class));
-        list.add(single(c, RXDotPulse.class, RXDotPulseShowcase::new, RXDotPulseDemo.class));
-        list.add(single(c, RXSkeleton.class, RXSkeletonShowcase::new, RXSkeletonDemo.class));
-        list.add(single(c, RXPlaceholder.class, RXPlaceholderShowcase::new, null));
-        list.add(single(c, RXStatePane.class, RXStatePaneShowcase::new, RXStatePaneDemo.class));
-        list.add(single(c, RXSnackbarHost.class, RXSnackbarHostShowcase::new, RXSnackbarHostDemo.class));
-        list.add(single(c, RXDialog.class, RXDialogShowcase::new, RXDialogDemo.class));
-        list.add(single(c, RXBackdrop.class, RXBackdropShowcase::new, RXBackdropDemo.class));
+                RXSegmentedStepIndicatorDemo.class)
+                .withSamples(RXSegmentedStepIndicatorSamples::create));
+        list.add(single(c, RXBarSpinner.class, RXBarSpinnerShowcase::new, RXBarSpinnerDemo.class)
+                .withSamples(RXBarSpinnerSamples::create));
+        list.add(single(c, RXDotPulse.class, RXDotPulseShowcase::new, RXDotPulseDemo.class)
+                .withSamples(RXDotPulseSamples::create));
+        list.add(single(c, RXSkeleton.class, RXSkeletonShowcase::new, RXSkeletonDemo.class)
+                .withSamples(RXSkeletonSamples::create));
+        list.add(single(c, RXPlaceholder.class, RXPlaceholderShowcase::new, null)
+                .withSamples(RXPlaceholderSamples::create));
+        list.add(single(c, RXStatePane.class, RXStatePaneShowcase::new, RXStatePaneDemo.class)
+                .withSamples(RXStatePaneSamples::create));
+        list.add(single(c, RXSnackbarHost.class, RXSnackbarHostShowcase::new, RXSnackbarHostDemo.class)
+                .withSamples(RXSnackbarHostSamples::create));
+        list.add(single(c, RXDialog.class, RXDialogShowcase::new, RXDialogDemo.class)
+                .withSamples(RXDialogSamples::create));
+        list.add(single(c, RXBackdrop.class, RXBackdropShowcase::new, RXBackdropDemo.class)
+                .withSamples(RXBackdropSamples::create));
 
         c = SamplerCategory.NAVIGATION;
         list.add(single(c, RXSidebar.class, RXSidebarShowcase::new, RXSidebarDemo.class));
