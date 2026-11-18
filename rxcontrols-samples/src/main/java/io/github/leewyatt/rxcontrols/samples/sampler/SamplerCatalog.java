@@ -216,7 +216,10 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.NumberFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXAutoCompleteFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXAutoCompletionSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXButtonSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCheckBoxSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXChipInputSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXChipSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXChipSetSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCopyButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXFillButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXHoldButtonSamples;
@@ -225,9 +228,16 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMaterialPasswordFie
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMaterialTextFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMenuButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXPasswordFieldSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRadioButtonSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRangeSliderSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXReactionButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRibbonBadgeSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSeekBarSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSegmentedControlSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSelectionBoxSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSliderSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSpeedDialSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSwitchButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTextFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXToggleButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTransitionButtonSamples;
@@ -393,16 +403,26 @@ final class SamplerCatalog {
                 .withSamples(RXSpeedDialSamples::create));
 
         c = SamplerCategory.SELECTION;
-        list.add(single(c, RXCheckBox.class, RXCheckBoxShowcase::new, RXCheckBoxDemo.class));
-        list.add(single(c, RXRadioButton.class, RXRadioButtonShowcase::new, RXRadioButtonDemo.class));
-        list.add(single(c, RXSwitchButton.class, RXSwitchButtonShowcase::new, RXSwitchButtonDemo.class));
-        list.add(single(c, RXSegmentedControl.class, RXSegmentedControlShowcase::new, RXSegmentedControlDemo.class));
-        list.add(single(c, RXSlider.class, RXSliderShowcase::new, RXSliderDemo.class));
-        list.add(single(c, RXRangeSlider.class, RXRangeSliderShowcase::new, RXRangeSliderDemo.class));
-        list.add(single(c, RXSeekBar.class, RXSeekBarShowcase::new, RXSeekBarDemo.class));
-        list.add(single(c, RXChip.class, RXChipShowcase::new, null));
-        list.add(single(c, RXChipSet.class, RXChipSetShowcase::new, null));
-        list.add(single(c, RXSelectionBox.class, RXSelectionBoxShowcase::new, null));
+        list.add(single(c, RXCheckBox.class, RXCheckBoxShowcase::new, RXCheckBoxDemo.class)
+                .withSamples(RXCheckBoxSamples::create));
+        list.add(single(c, RXRadioButton.class, RXRadioButtonShowcase::new, RXRadioButtonDemo.class)
+                .withSamples(RXRadioButtonSamples::create));
+        list.add(single(c, RXSwitchButton.class, RXSwitchButtonShowcase::new, RXSwitchButtonDemo.class)
+                .withSamples(RXSwitchButtonSamples::create));
+        list.add(single(c, RXSegmentedControl.class, RXSegmentedControlShowcase::new, RXSegmentedControlDemo.class)
+                .withSamples(RXSegmentedControlSamples::create));
+        list.add(single(c, RXSlider.class, RXSliderShowcase::new, RXSliderDemo.class)
+                .withSamples(RXSliderSamples::create));
+        list.add(single(c, RXRangeSlider.class, RXRangeSliderShowcase::new, RXRangeSliderDemo.class)
+                .withSamples(RXRangeSliderSamples::create));
+        list.add(single(c, RXSeekBar.class, RXSeekBarShowcase::new, RXSeekBarDemo.class)
+                .withSamples(RXSeekBarSamples::create));
+        list.add(single(c, RXChip.class, RXChipShowcase::new, null)
+                .withSamples(RXChipSamples::create));
+        list.add(single(c, RXChipSet.class, RXChipSetShowcase::new, null)
+                .withSamples(RXChipSetSamples::create));
+        list.add(single(c, RXSelectionBox.class, RXSelectionBoxShowcase::new, null)
+                .withSamples(RXSelectionBoxSamples::create));
 
         c = SamplerCategory.INPUT;
         list.add(single(c, RXTextField.class, null, RXTextFieldDemo.class).withSamples(RXTextFieldSamples::create));

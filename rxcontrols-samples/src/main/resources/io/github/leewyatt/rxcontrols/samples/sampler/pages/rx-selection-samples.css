@@ -1,0 +1,605 @@
+/*******************************************************************************
+ *                                                                             *
+ * Shared                                                                      *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .symbol {
+    -fx-pref-width: 18px;
+    -fx-pref-height: 18px;
+    -fx-background-color: -showcase-caption-color;
+}
+
+.example-card .heading,
+.example-card .body {
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .heading {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.example-card .hint {
+    -fx-font-size: 12px;
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.example-card .value {
+    -fx-font-family: -sampler-mono;
+    -fx-font-size: 12px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .figure {
+    -fx-font-size: 26px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .figure-small {
+    -fx-font-size: 15px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .form-panel {
+    -fx-padding: 16px;
+    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 10px, 9px;
+}
+
+.example-card .option-list {
+    -fx-padding: 4px 4px 4px 12px;
+    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 10px, 9px;
+}
+
+.example-card .icon-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 999px;
+    -fx-padding: 6px;
+    -fx-cursor: hand;
+}
+
+.example-card .icon-button:hover {
+    -fx-background-color: -fx-hover-base;
+}
+
+.example-card .icon-button > .symbol {
+    -fx-pref-width: 22px;
+    -fx-pref-height: 22px;
+    -fx-background-color: -fx-text-base-color;
+}
+
+.example-card .rx-button.solid {
+    -fx-background-color: -rx-primary;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4px;
+    -fx-text-fill: white;
+    -rx-ripple-fill: white;
+}
+
+.example-card .rx-button.solid:disabled {
+    -fx-opacity: 0.45;
+}
+
+.example-card .rx-button.flat {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-text-fill: -rx-primary;
+}
+
+/* Palette: -rx-primary is redefined on each RX control, so it is set on the control itself. */
+.example-card .rx-check-box.rose, .example-card .rx-radio-button.rose, .example-card .rx-slider.rose,
+.example-card .rx-chip.rose {
+    -rx-primary: #f43f5e;
+}
+
+.example-card .rx-check-box.orange, .example-card .rx-switch-button.orange, .example-card .rx-slider.orange,
+.example-card .rx-range-slider.orange, .example-card .rx-seek-bar.orange,
+.example-card .rx-segmented-control.orange, .example-card .rx-chip-set.orange .rx-chip {
+    -rx-primary: #f97316;
+}
+
+.example-card .rx-check-box.amber, .example-card .rx-radio-button.amber, .example-card .rx-switch-button.amber,
+.example-card .rx-slider.amber {
+    -rx-primary: #f59e0b;
+}
+
+.example-card .rx-radio-button.lime, .example-card .rx-slider.lime, .example-card .rx-range-slider.lime {
+    -rx-primary: #65a30d;
+}
+
+.example-card .rx-check-box.teal, .example-card .rx-switch-button.teal, .example-card .rx-slider.teal,
+.example-card .rx-range-slider.teal, .example-card .rx-seek-bar.teal,
+.example-card .rx-segmented-control.teal, .example-card .rx-chip-set.teal .rx-chip {
+    -rx-primary: #14b8a6;
+}
+
+.example-card .rx-slider.sky, .example-card .rx-seek-bar.sky {
+    -rx-primary: #0ea5e9;
+}
+
+.example-card .rx-range-slider.indigo {
+    -rx-primary: #6366f1;
+}
+
+.example-card .rx-check-box.violet, .example-card .rx-switch-button.violet, .example-card .rx-slider.violet,
+.example-card .rx-range-slider.violet, .example-card .rx-seek-bar.violet,
+.example-card .rx-segmented-control.violet {
+    -rx-primary: #8b5cf6;
+}
+
+.example-card .rx-range-slider.pink, .example-card .rx-seek-bar.pink {
+    -rx-primary: #ec4899;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXCheckBox                                                                  *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .permission-grid .rx-check-box {
+    -fx-padding: 0;
+}
+
+.example-card .children {
+    -fx-padding: 0 0 0 28px;
+}
+
+.example-card .rx-check-box.task {
+    -fx-font-size: 13px;
+}
+
+.example-card .rx-check-box.task:selected > .text {
+    -fx-strikethrough: true;
+}
+
+.example-card .rx-check-box.task:selected {
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.example-card .project-tag {
+    -fx-font-size: 11px;
+    -fx-padding: 2px 8px;
+    -fx-background-radius: 999px;
+}
+
+.example-card .project-tag.rose {
+    -fx-background-color: rgba(244, 63, 94, 0.14);
+    -fx-text-fill: #e11d48;
+}
+
+.example-card .project-tag.teal {
+    -fx-background-color: rgba(20, 184, 166, 0.14);
+    -fx-text-fill: #0d9488;
+}
+
+.example-card .project-tag.amber {
+    -fx-background-color: rgba(245, 158, 11, 0.16);
+    -fx-text-fill: #b45309;
+}
+
+.example-card .project-tag.violet {
+    -fx-background-color: rgba(139, 92, 246, 0.14);
+    -fx-text-fill: #7c3aed;
+}
+
+.example-card .rx-check-box.trailing,
+.example-card .rx-radio-button.trailing {
+    -fx-graphic-text-gap: 10px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXRadioButton                                                               *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .plan-card {
+    -fx-padding: 10px 14px 14px 6px;
+    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 10px, 9px;
+    -fx-cursor: hand;
+}
+
+.example-card .plan-card:chosen {
+    -fx-background-color: -fx-accent, -fx-control-inner-background;
+    -fx-background-insets: 0, 2px;
+}
+
+.example-card .plan-card > .rx-radio-button {
+    -fx-font-size: 14px;
+}
+
+.example-card .plan-card > .indent {
+    -fx-padding: 0 0 0 10px;
+}
+
+.example-card .price {
+    -fx-font-size: 22px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .total {
+    -fx-font-size: 13px;
+    -fx-padding: 8px 0 0 0;
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-width: 1px 0 0 0;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .card-icon {
+    -fx-shape: "M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .bank-icon {
+    -fx-shape: "M4 10v7h3v-7H4zm6 0v7h3v-7h-3zM2 22h19v-3H2v3zm14-12v7h3v-7h-3zm-4.5-9L2 6v2h19V6l-9.5-5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .truck-icon {
+    -fx-shape: "M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM0 0L0 0M24 24L24 24";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXSwitchButton                                                              *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .settings-list {
+    -fx-padding: 4px 14px;
+    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 10px, 9px;
+}
+
+.example-card .setting-row {
+    -fx-padding: 9px 0;
+}
+
+.example-card .icon-badge {
+    -fx-pref-width: 32px;
+    -fx-pref-height: 32px;
+    -fx-min-width: 32px;
+    -fx-background-radius: 8px;
+}
+
+.example-card .icon-badge > .symbol {
+    -fx-background-color: white;
+}
+
+.example-card .icon-badge.sky {
+    -fx-background-color: #0ea5e9;
+}
+
+.example-card .icon-badge.indigo {
+    -fx-background-color: #6366f1;
+}
+
+.example-card .icon-badge.orange {
+    -fx-background-color: #f97316;
+}
+
+.example-card .icon-badge.rose {
+    -fx-background-color: #f43f5e;
+}
+
+.example-card .switch-row {
+    -fx-padding: 6px 0;
+}
+
+.example-card .master-row {
+    -fx-padding: 0 0 8px 0;
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.example-card .dependent {
+    -fx-padding: 0 0 0 16px;
+}
+
+.example-card .dependent:disabled {
+    -fx-opacity: 0.45;
+}
+
+.example-card .rx-switch-button {
+    -fx-font-size: 13px;
+}
+
+.example-card .rx-switch-button > .symbol {
+    -fx-background-color: -fx-text-base-color;
+}
+
+.example-card .theme-preview {
+    -fx-padding: 14px 16px;
+    -fx-background-color: -fx-text-box-border, white;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 10px, 9px;
+}
+
+.example-card .theme-preview:dark {
+    -fx-background-color: #334155, #0f172a;
+}
+
+.example-card .preview-title {
+    -fx-font-size: 14px;
+    -fx-text-fill: #0f172a;
+}
+
+.example-card .preview-hint {
+    -fx-font-size: 12px;
+    -fx-text-fill: #64748b;
+}
+
+.example-card .theme-preview:dark > .preview-title {
+    -fx-text-fill: #f1f5f9;
+}
+
+.example-card .theme-preview:dark > .preview-hint {
+    -fx-text-fill: #94a3b8;
+}
+
+.example-card .wifi-icon {
+    -fx-shape: "M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .bluetooth-icon {
+    -fx-shape: "M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .airplane-icon {
+    -fx-shape: "M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .location-icon {
+    -fx-shape: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .moon-icon {
+    -fx-shape: "M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .mail-icon {
+    -fx-shape: "M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .calendar-icon {
+    -fx-shape: "M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .bell-icon {
+    -fx-shape: "M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zM0 0L0 0M24 24L24 24";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXSegmentedControl                                                          *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-segmented-control {
+    -fx-font-size: 13px;
+}
+
+.example-card .rx-segmented-control > .segment .symbol {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+    -fx-background-color: -rx-on-surface-secondary;
+}
+
+.example-card .rx-segmented-control > .segment:selected .symbol {
+    -fx-background-color: -rx-on-primary;
+}
+
+.example-card .rx-segmented-control.with-icons > .segment .label {
+    -fx-graphic-text-gap: 6px;
+}
+
+.example-card .grid-icon {
+    -fx-shape: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .list-icon {
+    -fx-shape: "M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .board-icon {
+    -fx-shape: "M10 18h5V5h-5v13zm-6 0h5V5H4v13zM16 5v13h5V5h-5zM0 0L0 0M24 24L24 24";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXSlider / RXRangeSlider                                                    *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .volume-up-icon {
+    -fx-shape: "M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .volume-down-icon {
+    -fx-shape: "M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .volume-off-icon {
+    -fx-shape: "M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4zM0 0L0 0M24 24L24 24";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXSeekBar                                                                   *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .video-player {
+    -fx-background-color: #0f172a;
+    -fx-background-radius: 12px;
+}
+
+.example-card .player-controls {
+    -fx-padding: 10px 14px;
+    -fx-background-color: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.7));
+    -fx-background-radius: 0 0 12px 12px;
+}
+
+.example-card .player-controls .rx-seek-bar {
+    -rx-primary: #f43f5e;
+    -rx-track-fill: rgba(255, 255, 255, 0.3);
+    -rx-secondary-fill: rgba(255, 255, 255, 0.55);
+    -rx-hover-fill: rgba(255, 255, 255, 0.75);
+}
+
+.example-card .player-controls .icon-button > .symbol {
+    -fx-background-color: white;
+}
+
+.example-card .player-controls .icon-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.18);
+}
+
+.example-card .player-time {
+    -fx-font-family: -sampler-mono;
+    -fx-font-size: 12px;
+    -fx-text-fill: white;
+}
+
+.example-card .album-cover {
+    -fx-pref-width: 48px;
+    -fx-pref-height: 48px;
+    -fx-min-width: 48px;
+    -fx-background-color: linear-gradient(to bottom right, #ec4899, #8b5cf6);
+    -fx-background-radius: 8px;
+}
+
+.example-card .play-icon {
+    -fx-shape: "M8 5v14l11-7zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .pause-icon {
+    -fx-shape: "M6 19h4V5H6v14zm8-14v14h4V5h-4zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .next-icon {
+    -fx-shape: "M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .previous-icon {
+    -fx-shape: "M6 6h2v12H6zm3.5 6l8.5 6V6zM0 0L0 0M24 24L24 24";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXChip / RXChipSet                                                          *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-chip {
+    -fx-font-size: 13px;
+}
+
+.example-card .rx-chip > .symbol {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+    -fx-background-color: -rx-on-surface-secondary;
+}
+
+.example-card .rx-chip.person {
+    -fx-padding: 0.25em 0.833em 0.25em 0.3em;
+}
+
+.example-card .chip-avatar {
+    -rx-avatar-fill: #6366f1;
+    -fx-effect: null;
+    -fx-font-size: 9px;
+}
+
+.example-card .rx-chip.status {
+    -fx-border-color: transparent;
+}
+
+.example-card .rx-chip.status.lime {
+    -fx-background-color: rgba(101, 163, 13, 0.16);
+    -fx-text-fill: #4d7c0f;
+}
+
+.example-card .rx-chip.status.amber {
+    -fx-background-color: rgba(245, 158, 11, 0.18);
+    -fx-text-fill: #b45309;
+}
+
+.example-card .rx-chip.status.rose {
+    -fx-background-color: rgba(244, 63, 94, 0.15);
+    -fx-text-fill: #e11d48;
+}
+
+.example-card .rx-chip.status.sky {
+    -fx-background-color: rgba(14, 165, 233, 0.15);
+    -fx-text-fill: #0369a1;
+}
+
+.example-card .rx-chip.status.violet {
+    -fx-background-color: rgba(139, 92, 246, 0.15);
+    -fx-text-fill: #7c3aed;
+}
+
+.example-card .rx-chip.chip-small {
+    -fx-font-size: 11px;
+}
+
+.example-card .rx-chip.chip-large {
+    -fx-font-size: 16px;
+}
+
+.example-card .reply {
+    -fx-font-size: 13px;
+    -fx-padding: 8px 12px;
+    -fx-background-color: -sampler-accent-soft;
+    -fx-background-radius: 12px;
+    -fx-text-fill: -sampler-accent-text;
+}
+
+.example-card .job-list {
+    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 10px, 9px;
+    -fx-padding: 4px 14px;
+}
+
+.example-card .job-row {
+    -fx-padding: 8px 0;
+}
+
+.example-card .job-list > .hint {
+    -fx-padding: 12px 0;
+}
+
+.example-card .profile-avatar {
+    -rx-avatar-fill: #14b8a6;
+}
+
+.example-card .directions-icon {
+    -fx-shape: "M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .share-icon {
+    -fx-shape: "M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92zM0 0L0 0M24 24L24 24";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXSelectionBox                                                              *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-selection-box .symbol {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+}
+
+.example-card .person-icon {
+    -fx-shape: "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .flag-icon {
+    -fx-shape: "M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .folder-icon {
+    -fx-shape: "M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2zM0 0L0 0M24 24L24 24";
+}
