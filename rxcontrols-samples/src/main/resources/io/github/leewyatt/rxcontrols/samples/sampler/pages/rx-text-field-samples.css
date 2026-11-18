@@ -17,7 +17,7 @@
 }
 
 .example-card .rx-text-field .keycap {
-    -fx-font-family: -sampler-mono;
+    -fx-font-family: monospace;
     -fx-font-size: 11px;
     -fx-padding: 1px 6px;
     -fx-background-color: -fx-text-box-border, -fx-background;

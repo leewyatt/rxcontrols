@@ -21,7 +21,7 @@
 }
 
 .example-card .keycap {
-    -fx-font-family: -sampler-mono;
+    -fx-font-family: monospace;
     -fx-font-size: 11px;
     -fx-padding: 1px 6px;
     -fx-background-color: -fx-text-box-border, -fx-background;
@@ -289,13 +289,13 @@
 }
 
 .example-card .code-block > .code {
-    -fx-font-family: -sampler-mono;
+    -fx-font-family: monospace;
     -fx-font-size: 12.5px;
     -fx-text-fill: -fx-text-base-color;
 }
 
 .example-card .order-number {
-    -fx-font-family: -sampler-mono;
+    -fx-font-family: monospace;
     -fx-font-size: 13px;
     -fx-text-fill: -fx-text-base-color;
 }

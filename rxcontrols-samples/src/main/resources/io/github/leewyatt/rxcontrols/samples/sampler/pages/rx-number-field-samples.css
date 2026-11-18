@@ -6,7 +6,7 @@
 }
 
 .example-card .committed-value {
-    -fx-font-family: -sampler-mono;
+    -fx-font-family: monospace;
     -fx-font-size: 12.5px;
     -fx-text-fill: -sampler-accent-text;
 }

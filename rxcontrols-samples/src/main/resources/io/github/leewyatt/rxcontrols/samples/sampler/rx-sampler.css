@@ -7,7 +7,6 @@
 .root {
     -sampler-accent-soft: derive(-fx-accent, 85%);
     -sampler-accent-text: derive(-fx-accent, -25%);
-    -sampler-mono: "Menlo", "Consolas", monospace;
 }
 
 .root.rx-theme-atlantafx {
@@ -234,7 +233,7 @@
 }
 
 .page-header .chip {
-    -fx-font-family: -sampler-mono;
+    -fx-font-family: monospace;
     -fx-font-size: 11.5px;
     -fx-padding: 2px 8px;
     -fx-background-color: -fx-text-box-border, -fx-background;

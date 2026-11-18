@@ -32,7 +32,7 @@
 }
 
 .example-card .value {
-    -fx-font-family: "Menlo", "Consolas", monospace;
+    -fx-font-family: monospace;
     -fx-font-size: 12px;
     -fx-text-fill: -fx-text-base-color;
 }
@@ -88,7 +88,7 @@
 }
 
 .example-card .rx-list-view.log .rx-list-cell {
-    -fx-font-family: "Menlo", "Consolas", monospace;
+    -fx-font-family: monospace;
     -fx-font-size: 11.5px;
 }
 
@@ -413,7 +413,7 @@
 }
 
 .example-card .rx-text-view.mono .plain {
-    -fx-font-family: "Menlo", "Consolas", monospace;
+    -fx-font-family: monospace;
     -fx-font-size: 12px;
 }
 

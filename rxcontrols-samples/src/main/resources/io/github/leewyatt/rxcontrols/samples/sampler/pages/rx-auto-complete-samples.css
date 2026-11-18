@@ -4,7 +4,7 @@
 }
 
 .rx-list-cell .year {
-    -fx-font-family: -sampler-mono;
+    -fx-font-family: monospace;
     -fx-font-size: 11.5px;
     -fx-text-fill: -showcase-caption-color;
 }

@@ -26,7 +26,7 @@
 }
 
 .example-card .value {
-    -fx-font-family: -sampler-mono;
+    -fx-font-family: monospace;
     -fx-font-size: 12px;
     -fx-text-fill: -fx-text-base-color;
 }
@@ -456,7 +456,7 @@
 }
 
 .example-card .player-time {
-    -fx-font-family: -sampler-mono;
+    -fx-font-family: monospace;
     -fx-font-size: 12px;
     -fx-text-fill: white;
 }
