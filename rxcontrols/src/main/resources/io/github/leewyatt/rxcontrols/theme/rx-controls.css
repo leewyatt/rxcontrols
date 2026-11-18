@@ -2584,25 +2584,38 @@
     -fx-background-radius: 50%;
 }
 
+/* Focus keeps the resting body: these replace the inherited .button:focused
+   ring, and the focus ring itself is drawn by :focus-shown below. */
 .rx-fab:focused {
-    -fx-background-color: -rx-focus, -rx-primary;
-    -fx-background-insets: 0, 2px;
-    -fx-background-radius: 50%, 50%;
+    -fx-background-color: -rx-primary;
+    -fx-background-insets: 0;
+    -fx-background-radius: 50%;
 }
 
 .rx-fab:focused:hover,
 .rx-fab:focused:armed {
-    -fx-background-color: -rx-focus, -rx-primary-hover;
-    -fx-background-insets: 0, 2px;
-    -fx-background-radius: 50%, 50%;
+    -fx-background-color: -rx-primary-hover;
+    -fx-background-insets: 0;
+    -fx-background-radius: 50%;
 }
 
 .rx-fab:focused:pressed,
 .rx-fab:focused:default:armed,
 .rx-fab:focused:cancel:armed {
-    -fx-background-color: -rx-focus, -rx-primary-active;
-    -fx-background-insets: 0, 2px;
-    -fx-background-radius: 50%, 50%;
+    -fx-background-color: -rx-primary-active;
+    -fx-background-insets: 0;
+    -fx-background-radius: 50%;
+}
+
+/* A ring outside the button with a transparent gap, so it reads on a body of any
+   color, the primary one included. The negative insets keep it out of the
+   layout. :focus-shown is set by the skin: focus, unless it came from a pointer
+   press and no key has been pressed since. */
+.rx-fab:focus-shown {
+    -fx-border-color: -rx-focus;
+    -fx-border-width: 2px;
+    -fx-border-insets: -4px;
+    -fx-border-radius: 50%;
 }
 
 .rx-fab:small {
@@ -2659,26 +2672,6 @@
 .rx-speed-dial > .actions > .action > .rx-fab:pressed {
     -fx-background-color: -rx-outline, -rx-outline-variant;
     -fx-background-insets: 0, 1;
-    -fx-background-radius: 50%, 50%;
-}
-
-.rx-speed-dial > .actions > .action > .rx-fab:focused {
-    -fx-background-color: -rx-focus,
-        ladder(-rx-surface, -rx-surface-variant 45%, -fx-control-inner-background 46%);
-    -fx-background-insets: 0, 2px;
-    -fx-background-radius: 50%, 50%;
-}
-
-.rx-speed-dial > .actions > .action > .rx-fab:focused:hover,
-.rx-speed-dial > .actions > .action > .rx-fab:focused:armed {
-    -fx-background-color: -rx-focus, -rx-surface-variant;
-    -fx-background-insets: 0, 2px;
-    -fx-background-radius: 50%, 50%;
-}
-
-.rx-speed-dial > .actions > .action > .rx-fab:focused:pressed {
-    -fx-background-color: -rx-focus, -rx-outline-variant;
-    -fx-background-insets: 0, 2px;
     -fx-background-radius: 50%, 50%;
 }
 
@@ -2745,7 +2738,9 @@
     -fx-background-radius: 999px;
 }
 
-.rx-reaction-button:focused {
+/* :focus-shown is set by the skin: focus, unless it came from a pointer press and
+   no key has been pressed since. */
+.rx-reaction-button:focus-shown {
     -fx-border-color: -rx-focus;
 }
 
@@ -2785,7 +2780,10 @@
     -rx-reaction-color: -rx-primary;
 }
 
+/* The bookmark is narrower than the 20 x 20 box; its own 12 : 18 width keeps
+   the shape from being stretched sideways. */
 .rx-reaction-button.bookmark .reaction-icon {
+    -fx-pref-width: 13.333px;
     -fx-shape: "M6 3 H18 V21 L12 16.5 L6 21 Z M8 5 V17.1 L12 14.1 L16 17.1 V5 Z";
 }
 
@@ -2814,8 +2812,8 @@
     -fx-text-fill: -rx-reaction-color;
 }
 
-.rx-theme-atlantafx .rx-reaction-button:focused,
-.rx-theme-atlantafx.rx-reaction-button:focused {
+.rx-theme-atlantafx .rx-reaction-button:focus-shown,
+.rx-theme-atlantafx.rx-reaction-button:focus-shown {
     -fx-border-color: -rx-focus;
 }
 
