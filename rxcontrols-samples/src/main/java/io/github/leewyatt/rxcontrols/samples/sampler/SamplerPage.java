@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.sampler;
 
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
+import io.github.leewyatt.rxcontrols.layout.RXRow;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleCard;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleContent;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleGallery;
@@ -43,6 +44,9 @@ import java.util.logging.Logger;
 final class SamplerPage extends BorderPane {
 
     private static final Logger LOG = Logger.getLogger(SamplerPage.class.getName());
+    // On wide screens the cards would stretch around controls of a fixed size; past this
+    // width the page content stays centered instead of growing.
+    private static final double CONTENT_MAX_WIDTH = 1440.0;
 
     private final Map<SamplerVariant, Node> playgrounds = new HashMap<>();
     private final Map<SamplerVariant, String> descriptions = new HashMap<>();
@@ -100,9 +104,13 @@ final class SamplerPage extends BorderPane {
             header.getChildren().add(variantSwitch);
             VBox.setMargin(variantSwitch, new Insets(10.0, 0.0, 0.0, 0.0));
         }
-        header.getStyleClass().add("page-header");
+        header.setMaxWidth(CONTENT_MAX_WIDTH);
+        // The header rule spans the page; its content lines up with the examples below.
+        VBox headerBand = new VBox(header);
+        headerBand.setAlignment(Pos.TOP_CENTER);
+        headerBand.getStyleClass().add("page-header");
 
-        setTop(header);
+        setTop(headerBand);
         setCenter(body);
         showVariant(entry.variants().get(0));
     }
@@ -143,7 +151,12 @@ final class SamplerPage extends BorderPane {
                 card.setLinks(cardLinks(card.getType()));
             }
         }
-        VBox content = new VBox(SampleGallery.create(samples.cards()));
+        RXRow gallery = SampleGallery.create(samples.cards());
+        // The gutter leaves half a gap outside the outer cards; count it so the cards
+        // line up with the header.
+        gallery.setMaxWidth(CONTENT_MAX_WIDTH + gallery.getGutter());
+        VBox content = new VBox(gallery);
+        content.setAlignment(Pos.TOP_CENTER);
         content.getStyleClass().add("examples");
         ScrollPane scroll = new ScrollPane(content);
         scroll.setFitToWidth(true);

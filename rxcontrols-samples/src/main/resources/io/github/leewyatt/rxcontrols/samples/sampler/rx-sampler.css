@@ -303,8 +303,9 @@
     -fx-background-color: -fx-control-inner-background;
 }
 
+/* 8px less than the header: the gallery gutter adds half a gap on each side. */
 .examples {
-    -fx-padding: 24px 28px 32px 28px;
+    -fx-padding: 24px 20px 32px 20px;
 }
 
 .example-card {
