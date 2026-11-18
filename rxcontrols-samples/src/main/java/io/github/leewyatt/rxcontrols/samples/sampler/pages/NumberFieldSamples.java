@@ -90,7 +90,7 @@ public final class NumberFieldSamples {
     }
 
     private static Node committedValue() {
-        RXIntegerField field = new RXIntegerField(42);
+        RXIntegerField field = new RXIntegerField(520);
         field.setPromptText("Quantity");
         Label value = new Label();
         value.getStyleClass().add("committed-value");
