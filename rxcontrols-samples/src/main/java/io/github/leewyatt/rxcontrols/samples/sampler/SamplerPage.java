@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.sampler;
 
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
+import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.layout.RXRow;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleCard;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleContent;
@@ -53,7 +54,8 @@ final class SamplerPage extends BorderPane {
 
     private final SamplerEntry entry;
     private final SampleContent samples;
-    private final Label title = new Label();
+    // Selectable, so a page name can be copied as easily as it is read.
+    private final RXTextView title = new RXTextView();
     private final Label chip = new Label();
     private final Label description = new Label();
     private final Button demoButton = launcherButton("Open demo");

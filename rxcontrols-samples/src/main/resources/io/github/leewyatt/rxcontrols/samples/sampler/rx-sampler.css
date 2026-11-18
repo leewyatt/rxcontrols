@@ -384,9 +384,12 @@
 }
 
 .page-title {
+    -rx-text-fill: -fx-text-base-color;
+}
+
+.page-title .plain {
     -fx-font-size: 24px;
     -fx-font-weight: bold;
-    -fx-text-fill: -fx-text-base-color;
 }
 
 .page-header .chip {

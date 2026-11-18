@@ -128,6 +128,7 @@ public final class RXMasonryViewSamples {
         RXMasonryView<Pin> board = new RXMasonryView<>(pins);
         board.setPrefSize(VIEW_WIDTH, 360.0);
         board.setMinHeight(360.0);
+        board.getStyleClass().add("pins");
         board.setColumnWidth(160.0);
         board.setHgap(10.0);
         board.setVgap(10.0);
