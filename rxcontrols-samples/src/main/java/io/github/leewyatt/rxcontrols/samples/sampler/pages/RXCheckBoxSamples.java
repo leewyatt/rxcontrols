@@ -20,8 +20,8 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SelectionIcons
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SelectionIcons.text;
 
 /**
- * The RXCheckBox page: a permissions grid, a tri-state "select all", a sign-up form gated
- * by a terms box, a colored to-do list and boxes placed after their labels.
+ * The RXCheckBox page: a tri-state "select all", a sign-up form gated by a terms box, a
+ * colored to-do list, boxes placed after their labels and a role permissions grid.
  */
 public final class RXCheckBoxSamples {
 
@@ -41,9 +41,6 @@ public final class RXCheckBoxSamples {
                 List.of("Options that can be turned on one by one and take effect when a form is saved.",
                         "For a setting that applies at once use RXSwitchButton; for one choice of several use RXRadioButton."),
                 List.of(
-                        SampleCard.wide("Permissions",
-                                "A role-by-permission grid of check boxes without labels; the owner row is disabled because owners can do everything.",
-                                permissions()),
                         SampleCard.large("Select all",
                                 "The parent box turns indeterminate while only some files are checked.",
                                 selectAll()),
@@ -55,7 +52,10 @@ public final class RXCheckBoxSamples {
                                 todo()),
                         SampleCard.large("Box on the right",
                                 "boxSide RIGHT puts the box after the label, so a list of options lines up on the edge.",
-                                rightSide())),
+                                rightSide()),
+                        SampleCard.wide("Role permissions",
+                                "Each row is a role and each column what it may do; boxes without labels fill the grid, and owners can do everything, so their row is locked.",
+                                permissions())),
                 SelectionIcons.STYLESHEET);
     }
 
@@ -64,6 +64,7 @@ public final class RXCheckBoxSamples {
         grid.getStyleClass().add("permission-grid");
         grid.setHgap(18.0);
         grid.setVgap(2.0);
+        grid.add(text("Role", "hint"), 0, 0);
         for (int c = 0; c < PERMISSIONS.size(); c++) {
             Label header = text(PERMISSIONS.get(c), "hint");
             GridPane.setHalignment(header, HPos.CENTER);
