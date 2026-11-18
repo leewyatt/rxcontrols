@@ -18,6 +18,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
+import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -49,6 +50,8 @@ final class SamplerNav extends RXSidebar {
         this.entries = entries;
         getStyleClass().add("sampler-nav");
         setExpandedWidth(272.0);
+        // Shorter than the default: the page beside the rail relays out on every frame.
+        setAnimationDuration(Duration.millis(150.0));
         getItems().setAll(buildItems());
         buildHeader();
         setHeader(header);
@@ -109,7 +112,8 @@ final class SamplerNav extends RXSidebar {
         logo.getStyleClass().add("brand-logo");
         logo.setPrefSize(32.0, 32.0);
         logo.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        Label name = new Label("RxControls");
+        hideInRail(logo);
+        Label name = new Label("RXControls");
         name.getStyleClass().add("brand-name");
         Label caption = new Label("Component sampler");
         caption.getStyleClass().add("brand-caption");
@@ -119,12 +123,13 @@ final class SamplerNav extends RXSidebar {
         HBox.setHgrow(brandSpacer, Priority.ALWAYS);
         hideInRail(brandSpacer);
 
-        Region chevron = new Region();
-        chevron.getStyleClass().addAll("glyph", "chevron-left-glyph");
-        chevron.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        chevron.setMouseTransparent(true);
+        Region menu = new Region();
+        menu.getStyleClass().addAll("glyph", "menu-glyph");
+        menu.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        menu.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        menu.setMouseTransparent(true);
         collapse.getStyleClass().add("collapse-button");
-        collapse.setGraphic(chevron);
+        collapse.setGraphic(menu);
         collapse.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
         collapse.setAccessibleText("Collapse or expand the sidebar");
         collapse.setOnAction(event -> setMode(getMode() == Mode.MINI ? Mode.EXPANDED : Mode.MINI));
@@ -162,8 +167,6 @@ final class SamplerNav extends RXSidebar {
         });
         hideInRail(search);
         header.getChildren().setAll(brand, search);
-        // Only the toggle is narrower than the header: in the rail it sits under the logo.
-        header.setAlignment(Pos.TOP_CENTER);
     }
 
     private HBox buildFooter() {
@@ -182,22 +185,14 @@ final class SamplerNav extends RXSidebar {
 
     // ==================== Behavior ====================
 
-    // The rail is too narrow for the toggle beside the logo, for the footer, and for a
-    // field to show or clear a query.
+    // The rail keeps only the toggle of the brand row, centered over the glyphs; it is
+    // too narrow for the footer and for a field to show or clear a query.
     private void onModeChanged(boolean rail) {
-        boolean focused = collapse.isFocused();
-        brand.getChildren().remove(collapse);
-        header.getChildren().remove(collapse);
+        brand.setAlignment(rail ? Pos.CENTER : Pos.CENTER_LEFT);
         if (rail) {
-            header.getChildren().add(collapse);
             search.clear();
-        } else {
-            brand.getChildren().add(collapse);
         }
         setFooter(rail ? null : footer);
-        if (focused) {
-            collapse.requestFocus();
-        }
     }
 
     // A group is not asked for a match of its own: a query naming a category matches

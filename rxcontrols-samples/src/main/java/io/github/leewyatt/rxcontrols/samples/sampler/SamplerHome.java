@@ -59,7 +59,7 @@ final class SamplerHome extends ScrollPane {
 
     private static VBox buildHero(Map<SamplerCategory, List<SamplerEntry>> byCategory, int controls,
                                   Consumer<SamplerEntry> open, Runnable openGallery) {
-        Label title = new Label("RxControls");
+        Label title = new Label("RXControls");
         title.getStyleClass().add("home-title");
         Label lead = new Label("JavaFX controls, views, pickers, layouts and page animations, "
                 + "styled for Modena and the AtlantaFX themes.");
@@ -97,7 +97,8 @@ final class SamplerHome extends ScrollPane {
         RXTilePane tiles = new RXTilePane();
         tiles.getStyleClass().add("category-tiles");
         tiles.setPrefTileWidth(300.0);
-        tiles.setMaxTileWidth(420.0);
+        // Two columns at most: ten categories fill five rows, with no one left alone.
+        tiles.setMaxColumns(2);
         tiles.setHgap(12.0);
         tiles.setVgap(12.0);
         tiles.setItemsJustify(ItemsJustify.STRETCH);

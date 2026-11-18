@@ -7,11 +7,15 @@
 .root {
     -sampler-accent-soft: derive(-fx-accent, 85%);
     -sampler-accent-text: derive(-fx-accent, -25%);
+    -sampler-nav-background: -fx-control-inner-background;
+    -sampler-home-background: -fx-control-inner-background;
 }
 
 .root.rx-theme-atlantafx {
     -sampler-accent-soft: -color-accent-subtle;
     -sampler-accent-text: -color-accent-fg;
+    -sampler-nav-background: -color-bg-subtle;
+    -sampler-home-background: -fx-background;
 }
 
 .sampler {
@@ -40,6 +44,7 @@
  *                                                                             *
  ******************************************************************************/
 .sampler-nav {
+    -fx-background-color: -sampler-nav-background;
     -fx-border-color: -fx-text-box-border;
     -fx-border-width: 0 1px 0 0;
 }
@@ -51,6 +56,11 @@
 /* Puts the middle of the logo on the middle of the rail, where the glyphs are. */
 .sampler-nav > .container > .header .brand {
     -fx-padding: 0 2px;
+}
+
+/* The rail is just wide enough for the toggle alone. */
+.sampler-nav:mini > .container > .header .brand {
+    -fx-padding: 0;
 }
 
 .brand-logo {
@@ -151,8 +161,10 @@
     -fx-border-color: -fx-focus-color;
 }
 
-.sampler-nav:mini > .container > .header .collapse-button > .glyph {
-    -fx-rotate: 180;
+.sampler-nav > .container > .header .collapse-button > .menu-glyph {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 12px;
+    -fx-shape: "M0 0H16V1.6H0ZM0 5.2H16V6.8H0ZM0 10.4H16V12H0Z";
 }
 
 /*******************************************************************************
@@ -449,7 +461,7 @@
 }
 
 .sampler-home > .viewport {
-    -fx-background-color: -fx-background;
+    -fx-background-color: -sampler-home-background;
 }
 
 .home-content {
