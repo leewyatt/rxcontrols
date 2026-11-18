@@ -1,0 +1,729 @@
+/*******************************************************************************
+ *                                                                             *
+ * Shared text and surfaces                                                    *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .page-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .headline {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .copy {
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .copy-strong {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .muted {
+    -fx-font-size: 12px;
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.example-card .centered {
+    -fx-text-alignment: center;
+}
+
+.example-card .error-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: #e11d48;
+}
+
+.example-card .code {
+    -fx-font-family: monospace;
+    -fx-font-size: 12px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .code.comment {
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.example-card .code.success {
+    -fx-text-fill: #65a30d;
+}
+
+.example-card .code.failure {
+    -fx-text-fill: #e11d48;
+}
+
+.example-card .frame {
+    -fx-background-color: -fx-text-box-border, -fx-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 10px, 9px;
+    -fx-padding: 1px;
+}
+
+.example-card .frame-bar {
+    -fx-padding: 8px 12px;
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.example-card .frame-bar.bottom {
+    -fx-border-width: 1px 0 0 0;
+}
+
+.example-card .face {
+    -fx-background-color: -fx-background;
+}
+
+.example-card .clickable {
+    -fx-cursor: hand;
+}
+
+.example-card .list-title {
+    -fx-padding: 4px 8px 8px 8px;
+}
+
+.example-card .list-row,
+.example-card .menu-row {
+    -fx-padding: 7px 8px;
+    -fx-background-radius: 6px;
+}
+
+.example-card .menu-row {
+    -fx-padding: 9px 12px;
+}
+
+.example-card .list-row.clickable:hover,
+.example-card .menu-row:hover {
+    -fx-background-color: -fx-hover-base;
+}
+
+.example-card .scroll-pane.plain,
+.example-card .scroll-pane.plain > .viewport {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.example-card .page-area {
+    -fx-padding: 18px 22px;
+}
+
+.example-card .placeholder-line {
+    -fx-pref-height: 10px;
+    -fx-background-color: -fx-text-box-border;
+    -fx-background-radius: 5px;
+}
+
+.example-card .pill {
+    -fx-padding: 1px 8px;
+    -fx-background-radius: 999px;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-background-color: #64748b;
+}
+
+.example-card .pill.rose { -fx-background-color: #f43f5e; }
+.example-card .pill.orange { -fx-background-color: #f97316; }
+.example-card .pill.amber { -fx-background-color: #f59e0b; }
+.example-card .pill.lime { -fx-background-color: #65a30d; }
+.example-card .pill.teal { -fx-background-color: #14b8a6; }
+.example-card .pill.sky { -fx-background-color: #0ea5e9; }
+.example-card .pill.indigo { -fx-background-color: #6366f1; }
+.example-card .pill.violet { -fx-background-color: #8b5cf6; }
+.example-card .pill.pink { -fx-background-color: #ec4899; }
+
+.example-card .avatar {
+    -fx-background-color: #64748b;
+    -fx-background-radius: 999px;
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.example-card .avatar.large-avatar {
+    -fx-font-size: 22px;
+}
+
+.example-card .avatar.rose { -fx-background-color: #f43f5e; }
+.example-card .avatar.orange { -fx-background-color: #f97316; }
+.example-card .avatar.teal { -fx-background-color: #14b8a6; }
+.example-card .avatar.sky { -fx-background-color: #0ea5e9; }
+.example-card .avatar.violet { -fx-background-color: #8b5cf6; }
+.example-card .avatar.pink { -fx-background-color: #ec4899; }
+
+.example-card .tile,
+.example-card .round-tile {
+    -fx-background-radius: 10px;
+    -fx-background-color: #64748b;
+}
+
+.example-card .round-tile {
+    -fx-background-radius: 999px;
+    -fx-pref-width: 48px;
+    -fx-pref-height: 48px;
+}
+
+.example-card .round-tile.big {
+    -fx-pref-width: 72px;
+    -fx-pref-height: 72px;
+}
+
+.example-card .tile.rose, .example-card .round-tile.rose { -fx-background-color: #f43f5e; }
+.example-card .tile.orange, .example-card .round-tile.orange { -fx-background-color: #f97316; }
+.example-card .tile.amber, .example-card .round-tile.amber { -fx-background-color: #f59e0b; }
+.example-card .tile.lime, .example-card .round-tile.lime { -fx-background-color: #65a30d; }
+.example-card .tile.teal, .example-card .round-tile.teal { -fx-background-color: #14b8a6; }
+.example-card .tile.sky, .example-card .round-tile.sky { -fx-background-color: #0ea5e9; }
+.example-card .tile.indigo, .example-card .round-tile.indigo { -fx-background-color: #6366f1; }
+.example-card .tile.violet, .example-card .round-tile.violet { -fx-background-color: #8b5cf6; }
+.example-card .tile.pink, .example-card .round-tile.pink { -fx-background-color: #ec4899; }
+
+.example-card .tile {
+    -fx-pref-width: 64px;
+    -fx-pref-height: 64px;
+}
+
+.example-card .tile.hero-tile {
+    -fx-pref-width: 200px;
+    -fx-pref-height: 130px;
+}
+
+.example-card .tile > .symbol,
+.example-card .round-tile > .symbol {
+    -fx-pref-width: 26px;
+    -fx-pref-height: 26px;
+}
+
+.example-card .tile > .symbol.huge {
+    -fx-pref-width: 48px;
+    -fx-pref-height: 48px;
+}
+
+.example-card .round-tile.big > .symbol {
+    -fx-pref-width: 34px;
+    -fx-pref-height: 34px;
+}
+
+.example-card .icon-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 6px;
+    -fx-padding: 6px;
+    -fx-cursor: hand;
+}
+
+.example-card .icon-button:hover {
+    -fx-background-color: -fx-hover-base;
+}
+
+.example-card .bar {
+    -fx-background-radius: 4px 4px 0 0;
+    -fx-background-color: #64748b;
+}
+
+.example-card .bar.orange { -fx-background-color: #f97316; }
+.example-card .bar.teal { -fx-background-color: #14b8a6; }
+.example-card .bar.indigo { -fx-background-color: #6366f1; }
+.example-card .bar.pink { -fx-background-color: #ec4899; }
+
+/*******************************************************************************
+ *                                                                             *
+ * Buttons                                                                     *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-button.solid {
+    -fx-background-color: -rx-primary;
+    -fx-background-insets: 0;
+    -fx-background-radius: 6px;
+    -fx-padding: 7px 16px;
+    -fx-text-fill: white;
+    -rx-ripple-fill: white;
+}
+
+.example-card .rx-button.solid.rose { -fx-background-color: #f43f5e; }
+.example-card .rx-button.solid.orange { -fx-background-color: #f97316; }
+.example-card .rx-button.solid.amber { -fx-background-color: #f59e0b; }
+.example-card .rx-button.solid.lime { -fx-background-color: #65a30d; }
+.example-card .rx-button.solid.teal { -fx-background-color: #14b8a6; }
+.example-card .rx-button.solid.sky { -fx-background-color: #0ea5e9; }
+.example-card .rx-button.solid.indigo { -fx-background-color: #6366f1; }
+.example-card .rx-button.solid.violet { -fx-background-color: #8b5cf6; }
+.example-card .rx-button.solid.pink { -fx-background-color: #ec4899; }
+
+.example-card .rx-button .symbol {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+}
+
+.example-card .rx-button.solid .symbol {
+    -fx-background-color: white;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Icons                                                                       *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .symbol {
+    -fx-pref-width: 18px;
+    -fx-pref-height: 18px;
+    -fx-background-color: -showcase-caption-color;
+}
+
+.example-card .symbol.tiny {
+    -fx-pref-width: 8px;
+    -fx-pref-height: 8px;
+}
+
+.example-card .symbol.field-icon {
+    -fx-pref-width: 15px;
+    -fx-pref-height: 15px;
+}
+
+.example-card .symbol.large {
+    -fx-pref-width: 30px;
+    -fx-pref-height: 30px;
+}
+
+.example-card .symbol.huge {
+    -fx-pref-width: 48px;
+    -fx-pref-height: 48px;
+}
+
+.example-card .symbol.rose { -fx-background-color: #f43f5e; }
+.example-card .symbol.orange { -fx-background-color: #f97316; }
+.example-card .symbol.amber { -fx-background-color: #f59e0b; }
+.example-card .symbol.lime { -fx-background-color: #65a30d; }
+.example-card .symbol.teal { -fx-background-color: #14b8a6; }
+.example-card .symbol.sky { -fx-background-color: #0ea5e9; }
+.example-card .symbol.indigo { -fx-background-color: #6366f1; }
+.example-card .symbol.violet { -fx-background-color: #8b5cf6; }
+.example-card .symbol.pink { -fx-background-color: #ec4899; }
+.example-card .symbol.on-color { -fx-background-color: white; }
+
+/* Every shape carries 0,0 and 24,24 anchors so it keeps the 24 x 24 icon box. */
+.example-card .home-icon {
+    -fx-shape: "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .inbox-icon {
+    -fx-shape: "M19 3H4.99c-1.11 0-1.98.89-1.98 2L3 19c0 1.1.88 2 1.99 2H19c1.1 0 2-.9 2-2V5c0-1.11-.9-2-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H4.99V5H19v10zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .folder-icon {
+    -fx-shape: "M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .file-icon {
+    -fx-shape: "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .chart-icon {
+    -fx-shape: "M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .calendar-icon {
+    -fx-shape: "M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .people-icon {
+    -fx-shape: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .person-icon {
+    -fx-shape: "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .settings-icon {
+    -fx-shape: "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .help-icon {
+    -fx-shape: "M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .bolt-icon {
+    -fx-shape: "M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .menu-icon {
+    -fx-shape: "M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .close-icon {
+    -fx-shape: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .back-icon {
+    -fx-shape: "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .chevron-icon {
+    -fx-shape: "M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .add-icon {
+    -fx-shape: "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .search-icon {
+    -fx-shape: "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .note-icon {
+    -fx-shape: "M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .code-icon {
+    -fx-shape: "M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .music-icon {
+    -fx-shape: "M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .play-icon {
+    -fx-shape: "M8 5v14l11-7zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .photo-icon {
+    -fx-shape: "M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .star-icon {
+    -fx-shape: "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .delete-icon {
+    -fx-shape: "M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .upload-icon {
+    -fx-shape: "M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .download-icon {
+    -fx-shape: "M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .card-icon {
+    -fx-shape: "M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .bell-icon {
+    -fx-shape: "M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .lock-icon {
+    -fx-shape: "M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .mail-icon {
+    -fx-shape: "M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .chat-icon {
+    -fx-shape: "M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .link-icon {
+    -fx-shape: "M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .share-icon {
+    -fx-shape: "M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .tune-icon {
+    -fx-shape: "M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .check-icon {
+    -fx-shape: "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .cloud-icon {
+    -fx-shape: "M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .drop-icon {
+    -fx-shape: "M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .sun-icon {
+    -fx-shape: "M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .refresh-icon {
+    -fx-shape: "M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .map-icon {
+    -fx-shape: "M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .place-icon {
+    -fx-shape: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .drive-icon {
+    -fx-shape: "M2 20h20v-4H2v4zm2-3h2v2H4v-2zM2 4v4h20V4H2zm4 3H4V5h2v2zm-4 7h20v-4H2v4zm2-3h2v2H4v-2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .truck-icon {
+    -fx-shape: "M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .cart-icon {
+    -fx-shape: "M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0 0 20 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .palette-icon {
+    -fx-shape: "M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .dot-icon {
+    -fx-shape: "M7 12a5 5 0 1 0 10 0a5 5 0 1 0 -10 0zM0 0L0 0M24 24L24 24";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXSidebar                                                                   *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-sidebar .item:selected > .nav-icon {
+    -fx-background-color: -fx-accent;
+}
+
+.example-card .rx-sidebar .sidebar-header {
+    -fx-padding: 10px 12px;
+}
+
+.example-card .rx-sidebar .sidebar-footer {
+    -fx-padding: 12px;
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.example-card .rx-sidebar .logo {
+    -fx-pref-width: 28px;
+    -fx-pref-height: 28px;
+    -fx-background-color: #6366f1;
+    -fx-background-radius: 8px;
+}
+
+.example-card .rx-sidebar .logo > .symbol {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+    -fx-background-color: white;
+}
+
+.example-card .rx-sidebar .app-name {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXTabPane                                                                   *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-tab-pane > .header > .tab:selected .nav-icon {
+    -fx-background-color: -fx-accent;
+}
+
+.example-card .rx-tab-pane.pills > .header {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 14px 0 4px 0;
+}
+
+.example-card .rx-tab-pane.pills > .header > .tab {
+    -fx-background-radius: 999px;
+    -fx-padding: 0.5em 1.4em;
+}
+
+.example-card .rx-tab-pane.pills > .header > .tab:selected {
+    -fx-background-color: #6366f1;
+}
+
+.example-card .rx-tab-pane.pills > .header > .tab:selected .label {
+    -fx-text-fill: white;
+}
+
+.example-card .rx-tab-pane.pills > .header > .indicator {
+    -fx-background-color: transparent;
+}
+
+.example-card .rx-tab-pane.pills > .content {
+    -fx-background-color: transparent;
+}
+
+.example-card .price {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXBreadcrumbBar                                                             *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-breadcrumb-bar {
+    -fx-font-size: 14px;
+}
+
+.example-card .rx-breadcrumb-bar .symbol {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+}
+
+.example-card .rx-breadcrumb-bar .separator-glyph {
+    -fx-pref-width: 14px;
+    -fx-pref-height: 14px;
+}
+
+.example-card .product {
+    -fx-padding: 10px 14px;
+    -fx-pref-width: 110px;
+    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 8px, 7px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXDualPane                                                                  *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .bank-card {
+    -fx-pref-width: 300px;
+    -fx-pref-height: 180px;
+    -fx-background-radius: 14px;
+}
+
+.example-card .bank-card.front {
+    -fx-padding: 18px;
+    -fx-background-color: linear-gradient(to bottom right, #6366f1, #ec4899);
+}
+
+.example-card .bank-card.back {
+    -fx-padding: 22px 0 0 0;
+    -fx-background-color: linear-gradient(to bottom right, #334155, #0f172a);
+}
+
+.example-card .bank-card .stripe {
+    -fx-background-color: #0b0b0b;
+}
+
+.example-card .card-text {
+    -fx-font-size: 13px;
+    -fx-text-fill: white;
+}
+
+.example-card .card-caption {
+    -fx-font-size: 11px;
+    -fx-text-fill: rgba(255, 255, 255, 0.75);
+}
+
+.example-card .card-caption.back-note {
+    -fx-padding: 0 18px;
+}
+
+.example-card .card-number {
+    -fx-font-family: monospace;
+    -fx-font-size: 19px;
+    -fx-text-fill: white;
+}
+
+.example-card .cvc {
+    -fx-font-family: monospace;
+    -fx-font-size: 13px;
+    -fx-padding: 3px 10px;
+    -fx-background-color: white;
+    -fx-text-fill: #0f172a;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXCarousel                                                                  *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-carousel.dark {
+    -fx-background-color: #0f172a;
+}
+
+.example-card .banner-shade {
+    -fx-background-color: linear-gradient(to top, rgba(0, 0, 0, 0.65), transparent 65%);
+}
+
+.example-card .banner-title {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.example-card .banner-text {
+    -fx-font-size: 14px;
+    -fx-text-fill: white;
+}
+
+.example-card .banner-small {
+    -fx-font-size: 12px;
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 4, 0, 0, 1);
+}
+
+.example-card .rx-carousel.light .carousel-navigator > .dot-indicator > .dot {
+    -fx-background-color: -fx-text-box-border;
+}
+
+.example-card .rx-carousel.light .carousel-navigator > .dot-indicator > .dot:selected {
+    -fx-background-color: #0ea5e9;
+}
+
+.example-card .onboarding-page {
+    -fx-background-color: -fx-background;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXTransitionPane                                                            *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .quote-card {
+    -fx-background-radius: 12px;
+    -fx-background-color: #64748b;
+}
+
+.example-card .quote-card.amber { -fx-background-color: #f59e0b; }
+.example-card .quote-card.teal { -fx-background-color: #14b8a6; }
+.example-card .quote-card.violet { -fx-background-color: #8b5cf6; }
+.example-card .quote-card.rose { -fx-background-color: #f43f5e; }
+
+.example-card .quote-mark {
+    -fx-font-size: 44px;
+    -fx-font-weight: bold;
+    -fx-text-fill: rgba(255, 255, 255, 0.7);
+    -fx-padding: 0 0 -24px 0;
+}
+
+.example-card .quote-text {
+    -fx-font-size: 17px;
+    -fx-text-fill: white;
+}
+
+.example-card .temperature {
+    -fx-font-size: 34px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .thumb:hover {
+    -fx-opacity: 0.8;
+}
