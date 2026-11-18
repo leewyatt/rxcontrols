@@ -204,6 +204,10 @@ public final class RXSliderSamples {
             gain.textProperty().bind(gainText(band));
             VBox column = new VBox(8.0, gain, band, text(BANDS[i] + " Hz", "hint"));
             column.setAlignment(Pos.CENTER);
+            // Wide enough for "+12 dB": a column that grows with its gain text would
+            // shift every band sideways while one is dragged.
+            column.setPrefWidth(60.0);
+            column.setMinWidth(Region.USE_PREF_SIZE);
             bands.getChildren().add(column);
         }
         return bands;
