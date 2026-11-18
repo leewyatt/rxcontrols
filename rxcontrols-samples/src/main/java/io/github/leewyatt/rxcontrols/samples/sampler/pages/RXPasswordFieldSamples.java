@@ -68,7 +68,7 @@ public final class RXPasswordFieldSamples {
     private static Node echoFields() {
         RXPasswordField stars = field("secret");
         stars.setEchoChar('\u2605');
-        RXPasswordField diamonds = field("2580");
+        RXPasswordField diamonds = field("2580000");
         diamonds.getStyleClass().add("pin");
         return new VBox(12.0, stars, diamonds);
     }
