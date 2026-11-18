@@ -3323,6 +3323,7 @@
 .rx-tile-section-header {
     -fx-padding: 0.333em 0.583em;
     -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface;
 }
 
 .rx-tile-view .rx-tile-section-header.sticky {
