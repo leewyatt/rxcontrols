@@ -120,7 +120,10 @@ public final class RXReactionButtonSamples {
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        RXReactionButton like = counted(new RXReactionButton(), 1204);
+        RXReactionButton button = new RXReactionButton();
+        button.setBurstAnimation(BurstAnimation.HEARTS);
+        button.setBurstScale(1.5);
+        RXReactionButton like = counted(button, 1027);
         RXReactionButton star = counted(styled(RXReactionButton.STYLE_CLASS_STAR), 318);
         star.setBurstAnimation(BurstAnimation.SPARKLES);
         RXReactionButton save = styled(RXReactionButton.STYLE_CLASS_BOOKMARK);
