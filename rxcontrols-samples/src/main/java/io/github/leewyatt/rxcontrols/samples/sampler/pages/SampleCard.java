@@ -35,12 +35,14 @@ public final class SampleCard extends VBox {
     private Class<?> type;
 
     private SampleCard(Size size, String title, String text, Node... content) {
+        this(size, title, text, flow(content));
+    }
+
+    private SampleCard(Size size, String title, String text, Node stageContent) {
         this.size = size;
         getStyleClass().add("example-card");
 
-        RXFlowPane flow = new RXFlowPane(20.0, 20.0, content);
-        flow.setAlignment(Pos.CENTER);
-        StackPane stage = new StackPane(flow);
+        StackPane stage = new StackPane(stageContent);
         stage.getStyleClass().add("stage");
         VBox.setVgrow(stage, Priority.ALWAYS);
 
@@ -100,6 +102,19 @@ public final class SampleCard extends VBox {
     }
 
     /**
+     * Creates a card as wide as the row whose content fills the whole stage instead of
+     * being centered in it, for examples that use the stage itself as their canvas.
+     *
+     * @param title   the example name
+     * @param text    one sentence on what the example shows
+     * @param content the node that fills the stage
+     * @return the card
+     */
+    public static SampleCard canvas(String title, String text, Node content) {
+        return new SampleCard(Size.WIDE, title, text, content);
+    }
+
+    /**
      * Creates a card as wide as the row.
      *
      * @param title   the example name
@@ -148,5 +163,11 @@ public final class SampleCard extends VBox {
      */
     public void setLinks(Node... nodes) {
         links.getChildren().setAll(nodes);
+    }
+
+    private static Node flow(Node... content) {
+        RXFlowPane flow = new RXFlowPane(20.0, 20.0, content);
+        flow.setAlignment(Pos.CENTER);
+        return flow;
     }
 }
