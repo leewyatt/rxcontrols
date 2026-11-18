@@ -1,12 +1,17 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXButton;
+import io.github.leewyatt.rxcontrols.RXSwitchButton;
+import javafx.geometry.HorizontalDirection;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.util.StringConverter;
 
@@ -137,5 +142,33 @@ final class DataViewKit {
         region.setMinHeight(height);
         region.setMaxWidth(Region.USE_PREF_SIZE);
         return region;
+    }
+
+    // ==================== Control panel ====================
+
+    /** A settings row: the label on the left and the switch on the panel's right edge. */
+    static RXSwitchButton setting(String label) {
+        RXSwitchButton toggle = new RXSwitchButton(label);
+        toggle.setSwitchPosition(HorizontalDirection.RIGHT);
+        toggle.setMaxWidth(Double.MAX_VALUE);
+        return toggle;
+    }
+
+    /** A panel heading; every heading after the first sits a little apart from the rows above. */
+    static Label section(String title, boolean first) {
+        Label heading = text(title, "heading");
+        if (!first) {
+            VBox.setMargin(heading, new Insets(14.0, 0.0, 0.0, 0.0));
+        }
+        return heading;
+    }
+
+    /** The panel beside a large view that switches its options. */
+    static VBox controls(Node... rows) {
+        VBox panel = new VBox(10.0, rows);
+        panel.getStyleClass().add("side-controls");
+        panel.setPrefWidth(330.0);
+        panel.setMinWidth(Region.USE_PREF_SIZE);
+        return panel;
     }
 }

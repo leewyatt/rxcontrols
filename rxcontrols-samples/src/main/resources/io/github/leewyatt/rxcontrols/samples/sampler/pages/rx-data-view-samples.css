@@ -180,65 +180,11 @@
  * RXMasonryView                                                               *
  *                                                                             *
  ******************************************************************************/
-.example-card .rx-masonry-cell.pin-card,
-.example-card .rx-masonry-cell.recipe-card {
+.example-card .rx-masonry-cell.pin-card {
     -fx-padding: 4px;
     -fx-background-radius: 10px;
     -fx-border-radius: 10px;
 }
-
-.example-card .rx-masonry-cell.note-card {
-    -fx-padding: 10px 12px;
-    -fx-font-size: 12.5px;
-    -fx-text-fill: #1f2937;
-    -fx-background-radius: 8px;
-    -fx-border-radius: 8px;
-}
-
-.example-card .note-card.amber { -fx-background-color: #fde68a; }
-.example-card .note-card.lime { -fx-background-color: #d9f99d; }
-.example-card .note-card.sky { -fx-background-color: #bae6fd; }
-.example-card .note-card.pink { -fx-background-color: #fbcfe8; }
-.example-card .note-card.violet { -fx-background-color: #ddd6fe; }
-
-.example-card .rx-masonry-cell.note-card:selected {
-    -fx-border-color: -fx-accent;
-}
-
-.example-card .recipe,
-.example-card .widget {
-    -fx-padding: 10px 12px;
-    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
-    -fx-background-insets: 0, 1px;
-    -fx-background-radius: 8px, 7px;
-}
-
-.example-card .recipe .time {
-    -fx-font-size: 11px;
-    -fx-text-fill: #0f766e;
-    -fx-padding: 1px 7px;
-    -fx-background-color: rgba(20, 184, 166, 0.16);
-    -fx-background-radius: 999px;
-}
-
-.example-card .figure {
-    -fx-font-size: 22px;
-    -fx-text-fill: -fx-text-base-color;
-}
-
-.example-card .bar {
-    -fx-background-radius: 2px;
-}
-
-.example-card .bar.rose { -fx-background-color: #f43f5e; }
-.example-card .bar.orange { -fx-background-color: #f97316; }
-.example-card .bar.amber { -fx-background-color: #f59e0b; }
-.example-card .bar.lime { -fx-background-color: #65a30d; }
-.example-card .bar.teal { -fx-background-color: #14b8a6; }
-.example-card .bar.sky { -fx-background-color: #0ea5e9; }
-.example-card .bar.indigo { -fx-background-color: #6366f1; }
-.example-card .bar.violet { -fx-background-color: #8b5cf6; }
-.example-card .bar.pink { -fx-background-color: #ec4899; }
 
 /*******************************************************************************
  *                                                                             *
@@ -433,7 +379,7 @@
     -fx-padding: 10px;
 }
 
-.example-card .list-controls {
+.example-card .side-controls {
     -fx-padding: 16px 18px;
     -fx-background-color: -fx-background;
     -fx-background-radius: 10px;

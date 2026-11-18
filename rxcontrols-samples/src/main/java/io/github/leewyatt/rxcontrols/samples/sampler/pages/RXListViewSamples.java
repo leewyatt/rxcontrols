@@ -14,7 +14,6 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.SetChangeListener;
 import javafx.collections.transformation.SortedList;
-import javafx.geometry.HorizontalDirection;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -22,7 +21,6 @@ import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.util.Comparator;
@@ -31,8 +29,11 @@ import java.util.Locale;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.avatar;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.colorOf;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.controls;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.initials;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.paint;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.section;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.setting;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.sized;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.spacer;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.text;
@@ -116,18 +117,18 @@ public final class RXListViewSamples {
         list.setSectionHeaderFactory(view -> new LetterHeader());
         list.getSelectionModel().select(1);
 
-        HBox box = new HBox(28.0, list, controls(list));
+        HBox box = new HBox(28.0, list, panel(list));
         box.setAlignment(Pos.TOP_CENTER);
         return box;
     }
 
-    private static Node controls(RXListView<Person> list) {
-        RXSwitchButton grouped = toggle("Group by first letter");
+    private static Node panel(RXListView<Person> list) {
+        RXSwitchButton grouped = setting("Group by first letter");
         grouped.setSelected(true);
         grouped.selectedProperty().addListener((obs, was, on) ->
                 list.setSectionKeyFactory(on ? Person::letter : null));
 
-        RXSwitchButton collapsible = toggle("Collapsible groups");
+        RXSwitchButton collapsible = setting("Collapsible groups");
         collapsible.disableProperty().bind(grouped.selectedProperty().not());
         list.collapsibleSectionsProperty().bind(collapsible.selectedProperty());
 
@@ -161,7 +162,7 @@ public final class RXListViewSamples {
         list.getSections().addListener((ListChangeListener<RXListSection>) change -> syncFold.run());
         syncFold.run();
 
-        RXSwitchButton sticky = toggle("Sticky headers");
+        RXSwitchButton sticky = setting("Sticky headers");
         sticky.setSelected(list.isStickySectionHeader());
         sticky.disableProperty().bind(grouped.selectedProperty().not());
         list.stickySectionHeaderProperty().bind(sticky.selectedProperty());
@@ -196,25 +197,12 @@ public final class RXListViewSamples {
             return picked.size() == 1 ? "Selected: " + picked.get(0).name() : picked.size() + " people selected";
         }, list.getSelectionModel().getSelectedItems()));
 
-        Label selectionHeading = text("Selection", "heading");
-        VBox panel = new VBox(10.0,
-                text("Groups", "heading"), grouped, collapsible, fold, sticky,
-                selectionHeading, mode, look,
+        VBox panel = controls(
+                section("Groups", true), grouped, collapsible, fold, sticky,
+                section("Selection", false), mode, look,
                 selected);
-        VBox.setMargin(selectionHeading, new Insets(14.0, 0.0, 0.0, 0.0));
         VBox.setMargin(selected, new Insets(14.0, 0.0, 0.0, 0.0));
-        panel.getStyleClass().add("list-controls");
-        panel.setPrefWidth(330.0);
-        panel.setMinWidth(Region.USE_PREF_SIZE);
         return panel;
-    }
-
-    // A settings row: the label on the left and the switch on the right edge.
-    private static RXSwitchButton toggle(String label) {
-        RXSwitchButton toggle = new RXSwitchButton(label);
-        toggle.setSwitchPosition(HorizontalDirection.RIGHT);
-        toggle.setMaxWidth(Double.MAX_VALUE);
-        return toggle;
     }
 
     private static final class PersonCell extends RXListCell<Person> {
