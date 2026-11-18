@@ -2,10 +2,11 @@ package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXLrcLineView;
+import io.github.leewyatt.rxcontrols.animation.page.AnimBounce;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFlip;
+import io.github.leewyatt.rxcontrols.animation.page.AnimGaussianBlur;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
-import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.lrc.LrcLine;
 import javafx.geometry.Orientation;
@@ -122,7 +123,7 @@ public final class RXLrcLineViewSamples {
         clock.seek(Duration.seconds(3.0));
         addRow(grid, 0, "AnimFade", new AnimFade(), clock);
         addRow(grid, 1, "AnimSlide vertical", new AnimSlide(Orientation.VERTICAL), clock);
-        addRow(grid, 2, "AnimZoom", new AnimZoom(), clock);
+        addRow(grid, 2, "AnimBounce vertical", new AnimBounce(Orientation.VERTICAL), clock);
         addRow(grid, 3, "AnimFlip vertical", new AnimFlip(Orientation.VERTICAL), clock);
         clock.attach(grid, true);
         return grid;
@@ -140,7 +141,7 @@ public final class RXLrcLineViewSamples {
     // ==================== Desktop lyric ====================
 
     private static Node desktop() {
-        RXLrcLineView line = lineView(new AnimZoom());
+        RXLrcLineView line = lineView(new AnimGaussianBlur());
         line.getStyleClass().add("desktop");
         line.setPrefSize(400.0, 40.0);
         PlaybackClock clock = new PlaybackClock(SONG_LENGTH).attach(line, true);

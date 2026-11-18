@@ -2,9 +2,9 @@ package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXTransitionLabel;
+import io.github.leewyatt.rxcontrols.animation.page.AnimBox;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFlip;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
-import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import javafx.animation.Animation;
@@ -70,7 +70,7 @@ public final class RXTransitionLabelSamples {
                                 "Click Save: the status fades from Saving to Saved, using the default AnimFade.",
                                 saveStatus()),
                         SampleCard.medium("Animations",
-                                "The same changing word with AnimSlide, AnimZoom and AnimFlip; any PageAnimation works.",
+                                "The same changing word with AnimSlide, AnimBox and AnimFlip; any PageAnimation works.",
                                 animations())),
                 MediaKit.STYLESHEET);
     }
@@ -194,19 +194,19 @@ public final class RXTransitionLabelSamples {
 
     private static Node animations() {
         RXTransitionLabel slide = word(new AnimSlide());
-        RXTransitionLabel zoom = word(new AnimZoom());
+        RXTransitionLabel box3d = word(new AnimBox(Orientation.VERTICAL));
         RXTransitionLabel flip = word(new AnimFlip(Orientation.VERTICAL));
         int[] index = {0};
         Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(2.0), event -> {
             index[0] = (index[0] + 1) % WORDS.size();
             String next = WORDS.get(index[0]);
             slide.setText(next);
-            zoom.setText(next);
+            box3d.setText(next);
             flip.setText(next);
         }));
         timeline.setCycleCount(Animation.INDEFINITE);
         playWhileShowing(slide, timeline);
-        VBox box = new VBox(8.0, sentence("AnimSlide", slide), sentence("AnimZoom", zoom), sentence("AnimFlip", flip));
+        VBox box = new VBox(8.0, sentence("AnimSlide", slide), sentence("AnimBox", box3d), sentence("AnimFlip", flip));
         box.setAlignment(Pos.CENTER_LEFT);
         return box;
     }

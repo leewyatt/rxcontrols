@@ -6,7 +6,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimCube;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFlip;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
-import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
+import io.github.leewyatt.rxcontrols.animation.page.AnimSqueeze;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
@@ -46,7 +46,7 @@ public final class RXTransitionButtonSamples {
                                 animated("Slide", new AnimSlide(Orientation.HORIZONTAL), "indigo"),
                                 animated("Flip", new AnimFlip(), "teal"),
                                 animated("Cube", new AnimCube(Orientation.VERTICAL), "orange"),
-                                animated("Zoom", new AnimZoom(), "pink"),
+                                animated("Squeeze", new AnimSqueeze(), "pink"),
                                 animated("Fade", new AnimFade(), "violet")),
                         SampleCard.medium("Press to swap",
                                 "With the PRESSED trigger the second face shows only while the button is held.",

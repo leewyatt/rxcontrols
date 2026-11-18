@@ -1,12 +1,12 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXCopyButton;
+import io.github.leewyatt.rxcontrols.animation.page.AnimBounce;
 import io.github.leewyatt.rxcontrols.animation.page.AnimCube;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFlip;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
 import io.github.leewyatt.rxcontrols.animation.page.AnimWipe;
-import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -53,7 +53,7 @@ public final class RXCopyButtonSamples {
                                 animated("Slide", new AnimSlide(Orientation.VERTICAL)),
                                 animated("Flip", new AnimFlip(Orientation.HORIZONTAL)),
                                 animated("Cube", new AnimCube(Orientation.VERTICAL)),
-                                animated("Zoom", new AnimZoom()),
+                                animated("Bounce", new AnimBounce(Orientation.VERTICAL)),
                                 animated("Fade", new AnimFade()),
                                 animated("Wipe", new AnimWipe())),
                         SampleCard.medium("Text and icon",

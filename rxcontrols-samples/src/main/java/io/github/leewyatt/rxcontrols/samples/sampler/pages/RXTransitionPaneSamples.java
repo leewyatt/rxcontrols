@@ -12,8 +12,8 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimDissolve;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.AnimShatter;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
+import io.github.leewyatt.rxcontrols.animation.page.AnimSwap;
 import io.github.leewyatt.rxcontrols.animation.page.AnimWipe;
-import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import javafx.animation.PauseTransition;
@@ -164,10 +164,10 @@ public final class RXTransitionPaneSamples {
 
     private static Node quotes() {
         Map<String, PageAnimation> animations = Map.of(
-                "fade", new AnimFade(), "zoom", new AnimZoom(), "wipe", new AnimWipe(),
+                "fade", new AnimFade(), "swap", new AnimSwap(), "wipe", new AnimWipe(),
                 "cube", new AnimCube(), "shatter", new AnimShatter());
         RXSegmentedControl<String> picker = new RXSegmentedControl<>(
-                RXSegmentedItem.of("fade", "Fade"), RXSegmentedItem.of("zoom", "Zoom"),
+                RXSegmentedItem.of("fade", "Fade"), RXSegmentedItem.of("swap", "Swap"),
                 RXSegmentedItem.of("wipe", "Wipe"), RXSegmentedItem.of("cube", "Cube"),
                 RXSegmentedItem.of("shatter", "Shatter"));
 
