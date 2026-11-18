@@ -14,7 +14,7 @@
 .root.rx-theme-atlantafx {
     -sampler-accent-soft: -color-accent-subtle;
     -sampler-accent-text: -color-accent-fg;
-    -sampler-nav-background: -color-bg-subtle;
+    -sampler-nav-background: -color-bg-default;
     -sampler-home-background: -fx-background;
 }
 
@@ -177,8 +177,8 @@
 }
 
 .top-bar {
-    -fx-padding: 10px 24px;
-    -fx-background-color: -fx-control-inner-background;
+    -fx-padding: 6px 24px;
+    -fx-background-color: -sampler-nav-background;
     -fx-border-color: -fx-text-box-border;
     -fx-border-width: 0 0 1px 0;
 }
