@@ -19,6 +19,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.CssMetaData;
+import javafx.css.PseudoClass;
 import javafx.css.Styleable;
 import javafx.css.StyleableBooleanProperty;
 import javafx.css.StyleableDoubleProperty;
@@ -550,11 +551,20 @@ public class RXKanbanView<T> extends Control {
 
     // ==================== Column Reorder Enabled ====================
 
+    private static final PseudoClass COLUMN_REORDER_PSEUDO_CLASS = PseudoClass.getPseudoClass("column-reorder");
+
     private final BooleanProperty columnReorderEnabled =
-            new SimpleBooleanProperty(this, "columnReorderEnabled", false);
+            new SimpleBooleanProperty(this, "columnReorderEnabled", false) {
+                @Override
+                protected void invalidated() {
+                    pseudoClassStateChanged(COLUMN_REORDER_PSEUDO_CLASS, get());
+                }
+            };
 
     /**
      * Whether columns can be reordered by dragging their headers. Off by default.
+     * While on, the view carries the {@code :column-reorder} pseudo-class, which the
+     * default style uses to show a grab cursor over the headers.
      *
      * @return the column-reorder-enabled property
      */

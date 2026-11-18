@@ -3870,8 +3870,12 @@
     -fx-background-radius: 8, 7;
 }
 
+/* The tint sits on the column's own surface: some themes give it a translucent tint,
+   which over the accent ring layer alone would show the full accent. */
 .rx-kanban-view > .columns > .column:drop-target {
-    -fx-background-color: -rx-primary, -rx-primary-bg;
+    -fx-background-color: -rx-primary, -rx-surface-variant, -rx-primary-bg;
+    -fx-background-insets: 0, 1, 1;
+    -fx-background-radius: 8, 7, 7;
 }
 
 .rx-kanban-view > .columns > .column:dragging {
@@ -3891,6 +3895,16 @@
     -fx-padding: 0.5em 0.75em;
     -fx-alignment: center-left;
     -fx-spacing: 0.5em;
+}
+
+/* A header that moves its column shows where to grab, and holds the hand closed while
+   the column moves. */
+.rx-kanban-view:column-reorder > .columns > .column > .header {
+    -fx-cursor: open-hand;
+}
+
+.rx-kanban-view:column-reorder > .columns > .column:dragging > .header {
+    -fx-cursor: closed-hand;
 }
 
 .rx-kanban-view > .columns > .column > .header > .label {

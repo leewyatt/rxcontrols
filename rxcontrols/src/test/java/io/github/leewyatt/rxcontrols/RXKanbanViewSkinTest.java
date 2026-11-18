@@ -15,6 +15,7 @@ import javafx.event.Event;
 import javafx.event.EventType;
 import javafx.geometry.Bounds;
 import javafx.scene.AccessibleAttribute;
+import javafx.scene.Cursor;
 import javafx.scene.AccessibleRole;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -78,6 +79,28 @@ public class RXKanbanViewSkinTest {
             throw new AssertionError("JavaFX toolkit did not start");
         }
         Platform.runLater(() -> Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA));
+    }
+
+    /**
+     * A column header shows the grab cursor only while columns can be reordered.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void headerCursorFollowsColumnReorder() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 1, "B", 1);
+            pump(host(board, 900, 500));
+            Node header = board.lookup(".column > .header");
+            assertNotNull(header);
+            assertNotEquals(Cursor.OPEN_HAND, header.getCursor(), "no grab cursor while reorder is off");
+            board.setColumnReorderEnabled(true);
+            board.applyCss();
+            assertEquals(Cursor.OPEN_HAND, header.getCursor(), "grab cursor while reorder is on");
+            board.setColumnReorderEnabled(false);
+            board.applyCss();
+            assertNotEquals(Cursor.OPEN_HAND, header.getCursor(), "grab cursor gone once reorder is off");
+        });
     }
 
     @Test
