@@ -219,6 +219,8 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBackdropSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBadgeSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBarSpinnerSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXButtonSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCascaderSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCascaderViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCheckBoxSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXChipInputSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXChipSamples;
@@ -228,8 +230,12 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCopyButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDialogSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDotPulseSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXFillButtonSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXHighlightTextViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXHoldButtonSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXKanbanViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXLineButtonSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXListViewSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMasonryViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMaterialPasswordFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMaterialTextFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMenuButtonSamples;
@@ -251,6 +257,9 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSpeedDialSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXStatePaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSwitchButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTextFieldSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTextViewSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTileViewSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTimelineViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXToggleButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTransitionButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXWaveProgressIndicatorSamples;
@@ -516,18 +525,26 @@ final class SamplerCatalog {
                         RXYearRangeViewDemo.class)));
 
         c = SamplerCategory.DATA_VIEWS;
-        list.add(single(c, RXListView.class, RXListViewShowcase::new, RXListViewDemo.class));
-        list.add(single(c, RXTileView.class, RXTileViewShowcase::new, RXTileViewDemo.class));
-        list.add(single(c, RXMasonryView.class, RXMasonryViewShowcase::new, RXMasonryViewDemo.class));
-        list.add(single(c, RXKanbanView.class, RXKanbanViewShowcase::new, RXKanbanViewDemo.class));
-        list.add(single(c, RXTimelineView.class, RXTimelineViewShowcase::new, RXTimelineViewDemo.class));
+        list.add(single(c, RXListView.class, RXListViewShowcase::new, RXListViewDemo.class)
+                .withSamples(RXListViewSamples::create));
+        list.add(single(c, RXTileView.class, RXTileViewShowcase::new, RXTileViewDemo.class)
+                .withSamples(RXTileViewSamples::create));
+        list.add(single(c, RXMasonryView.class, RXMasonryViewShowcase::new, RXMasonryViewDemo.class)
+                .withSamples(RXMasonryViewSamples::create));
+        list.add(single(c, RXKanbanView.class, RXKanbanViewShowcase::new, RXKanbanViewDemo.class)
+                .withSamples(RXKanbanViewSamples::create));
+        list.add(single(c, RXTimelineView.class, RXTimelineViewShowcase::new, RXTimelineViewDemo.class)
+                .withSamples(RXTimelineViewSamples::create));
         list.add(family(c, "RXCascader",
                 variant("Options", RXCascader.class, RXCascaderShowcase::new, RXCascaderDemo.class),
-                variant("Lazy loading", RXCascader.class, RXCascaderLazyShowcase::new, RXCascaderDemo.class)));
-        list.add(single(c, RXCascaderView.class, RXCascaderViewShowcase::new, RXCascaderViewDemo.class));
-        list.add(single(c, RXTextView.class, RXTextViewShowcase::new, RXTextViewDemo.class));
+                variant("Lazy loading", RXCascader.class, RXCascaderLazyShowcase::new, RXCascaderDemo.class))
+                .withSamples(RXCascaderSamples::create));
+        list.add(single(c, RXCascaderView.class, RXCascaderViewShowcase::new, RXCascaderViewDemo.class)
+                .withSamples(RXCascaderViewSamples::create));
+        list.add(single(c, RXTextView.class, RXTextViewShowcase::new, RXTextViewDemo.class)
+                .withSamples(RXTextViewSamples::create));
         list.add(single(c, RXHighlightTextView.class, RXHighlightTextViewShowcase::new,
-                RXHighlightTextViewDemo.class));
+                RXHighlightTextViewDemo.class).withSamples(RXHighlightTextViewSamples::create));
 
         c = SamplerCategory.FEEDBACK;
         list.add(single(c, RXBadge.class, RXBadgeShowcase::new, RXBadgeDemo.class)

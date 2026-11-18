@@ -1,0 +1,453 @@
+/*******************************************************************************
+ *                                                                             *
+ * Shared                                                                      *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .symbol {
+    -fx-pref-width: 18px;
+    -fx-pref-height: 18px;
+    -fx-background-color: -showcase-caption-color;
+}
+
+.example-card .name,
+.example-card .body {
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .name {
+    -fx-font-weight: bold;
+}
+
+.example-card .heading {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .note,
+.example-card .hint {
+    -fx-font-size: 12px;
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.example-card .value {
+    -fx-font-family: "Menlo", "Consolas", monospace;
+    -fx-font-size: 12px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .avatar {
+    -fx-background-color: #64748b;
+    -fx-background-radius: 999px;
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.example-card .avatar.rose { -fx-background-color: #f43f5e; }
+.example-card .avatar.orange { -fx-background-color: #f97316; }
+.example-card .avatar.amber { -fx-background-color: #f59e0b; }
+.example-card .avatar.lime { -fx-background-color: #65a30d; }
+.example-card .avatar.teal { -fx-background-color: #14b8a6; }
+.example-card .avatar.sky { -fx-background-color: #0ea5e9; }
+.example-card .avatar.indigo { -fx-background-color: #6366f1; }
+.example-card .avatar.violet { -fx-background-color: #8b5cf6; }
+.example-card .avatar.pink { -fx-background-color: #ec4899; }
+
+.example-card .rx-button.solid {
+    -fx-background-color: -rx-primary;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4px;
+    -fx-text-fill: white;
+    -rx-ripple-fill: white;
+}
+
+.example-card .bell-icon {
+    -fx-shape: "M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zM0 0L0 0M24 24L24 24";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXListView                                                                  *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-list-view .subject {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .rx-list-view .mail {
+    -fx-padding: 8px 4px;
+}
+
+.example-card .rx-list-view .letter {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-accent;
+}
+
+.example-card .rx-list-view.log .rx-list-cell {
+    -fx-font-family: "Menlo", "Consolas", monospace;
+    -fx-font-size: 11.5px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXTileView                                                                  *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-tile-cell.photo-tile,
+.example-card .rx-tile-cell.swatch-tile,
+.example-card .rx-tile-cell.product-tile {
+    -fx-padding: 4px;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+}
+
+.example-card .rx-tile-cell.app-tile,
+.example-card .rx-tile-cell.file-tile {
+    -fx-padding: 4px;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+}
+
+.example-card .rx-tile-cell.app-tile:hover,
+.example-card .rx-tile-cell.file-tile:hover {
+    -fx-background-color: -fx-hover-base;
+}
+
+.example-card .photo-tile .caption {
+    -fx-padding: 3px 7px;
+    -fx-font-size: 11px;
+    -fx-text-fill: white;
+    -fx-background-color: rgba(0, 0, 0, 0.42);
+    -fx-background-radius: 0 6px 0 6px;
+}
+
+.example-card .app-icon {
+    -fx-background-color: #64748b;
+    -fx-background-radius: 12px;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.example-card .app-name {
+    -fx-font-size: 12px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .rx-tile-cell:selected .app-name {
+    -fx-text-fill: black;
+}
+
+.example-card .app-icon.rose, .example-card .picture.rose { -fx-background-color: #f43f5e; }
+.example-card .app-icon.orange, .example-card .picture.orange { -fx-background-color: #f97316; }
+.example-card .app-icon.amber, .example-card .picture.amber { -fx-background-color: #f59e0b; }
+.example-card .app-icon.lime, .example-card .picture.lime { -fx-background-color: #65a30d; }
+.example-card .app-icon.teal, .example-card .picture.teal { -fx-background-color: #14b8a6; }
+.example-card .app-icon.sky, .example-card .picture.sky { -fx-background-color: #0ea5e9; }
+.example-card .app-icon.indigo, .example-card .picture.indigo { -fx-background-color: #6366f1; }
+.example-card .app-icon.violet, .example-card .picture.violet { -fx-background-color: #8b5cf6; }
+.example-card .app-icon.pink, .example-card .picture.pink { -fx-background-color: #ec4899; }
+
+.example-card .product {
+    -fx-padding: 6px;
+    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 8px, 7px;
+}
+
+.example-card .product > .picture {
+    -fx-background-radius: 5px;
+    -fx-opacity: 0.85;
+}
+
+.example-card .chip {
+    -fx-background-radius: 4px;
+}
+
+.example-card .file-tile .symbol {
+    -fx-pref-width: 34px;
+    -fx-pref-height: 34px;
+}
+
+.example-card .doc-icon {
+    -fx-background-color: #0ea5e9;
+    -fx-shape: "M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .image-icon {
+    -fx-background-color: #14b8a6;
+    -fx-shape: "M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .music-icon {
+    -fx-background-color: #ec4899;
+    -fx-shape: "M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .archive-icon {
+    -fx-background-color: #f59e0b;
+    -fx-shape: "M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12zM0 0L0 0M24 24L24 24";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXMasonryView                                                               *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-masonry-cell.pin-card,
+.example-card .rx-masonry-cell.recipe-card {
+    -fx-padding: 4px;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+}
+
+.example-card .rx-masonry-cell.note-card {
+    -fx-padding: 10px 12px;
+    -fx-font-size: 12.5px;
+    -fx-text-fill: #1f2937;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+}
+
+.example-card .note-card.amber { -fx-background-color: #fde68a; }
+.example-card .note-card.lime { -fx-background-color: #d9f99d; }
+.example-card .note-card.sky { -fx-background-color: #bae6fd; }
+.example-card .note-card.pink { -fx-background-color: #fbcfe8; }
+.example-card .note-card.violet { -fx-background-color: #ddd6fe; }
+
+.example-card .rx-masonry-cell.note-card:selected {
+    -fx-border-color: -fx-accent;
+}
+
+.example-card .recipe,
+.example-card .widget {
+    -fx-padding: 10px 12px;
+    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 8px, 7px;
+}
+
+.example-card .recipe .time {
+    -fx-font-size: 11px;
+    -fx-text-fill: #0f766e;
+    -fx-padding: 1px 7px;
+    -fx-background-color: rgba(20, 184, 166, 0.16);
+    -fx-background-radius: 999px;
+}
+
+.example-card .figure {
+    -fx-font-size: 22px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .bar {
+    -fx-background-radius: 2px;
+}
+
+.example-card .bar.rose { -fx-background-color: #f43f5e; }
+.example-card .bar.orange { -fx-background-color: #f97316; }
+.example-card .bar.amber { -fx-background-color: #f59e0b; }
+.example-card .bar.lime { -fx-background-color: #65a30d; }
+.example-card .bar.teal { -fx-background-color: #14b8a6; }
+.example-card .bar.sky { -fx-background-color: #0ea5e9; }
+.example-card .bar.indigo { -fx-background-color: #6366f1; }
+.example-card .bar.violet { -fx-background-color: #8b5cf6; }
+.example-card .bar.pink { -fx-background-color: #ec4899; }
+
+/*******************************************************************************
+ *                                                                             *
+ * RXKanbanView                                                                *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-kanban-view .wip-indicator {
+    -fx-font-size: 11px;
+    -fx-padding: 1px 8px;
+    -fx-text-fill: -showcase-caption-color;
+    -fx-background-color: -fx-text-box-border;
+    -fx-background-radius: 999px;
+}
+
+.example-card .rx-kanban-view > .columns > .column:over-limit {
+    -fx-background-color: #f43f5e, -fx-control-inner-background, rgba(244, 63, 94, 0.08);
+    -fx-background-insets: 0, 1, 1;
+    -fx-background-radius: 8, 7, 7;
+}
+
+.example-card .rx-kanban-view > .columns > .column:over-limit > .header > .wip-indicator {
+    -fx-text-fill: white;
+    -fx-background-color: #f43f5e;
+}
+
+.example-card .rx-kanban-view.compact .rx-kanban-card-cell {
+    -fx-padding: 0 10px;
+    -fx-alignment: center-left;
+}
+
+.example-card .rx-kanban-card-cell .tag {
+    -fx-font-size: 11px;
+    -fx-padding: 1px 7px;
+    -fx-background-radius: 999px;
+    -fx-text-fill: white;
+    -fx-background-color: #64748b;
+}
+
+.example-card .tag.rose { -fx-background-color: #f43f5e; }
+.example-card .tag.orange { -fx-background-color: #f97316; }
+.example-card .tag.amber { -fx-background-color: #d97706; }
+.example-card .tag.lime { -fx-background-color: #65a30d; }
+.example-card .tag.teal { -fx-background-color: #0d9488; }
+.example-card .tag.sky { -fx-background-color: #0284c7; }
+.example-card .tag.indigo { -fx-background-color: #6366f1; }
+.example-card .tag.violet { -fx-background-color: #8b5cf6; }
+.example-card .tag.pink { -fx-background-color: #ec4899; }
+
+.example-card .avatar.small {
+    -fx-font-size: 10px;
+}
+
+.example-card .points-icon {
+    -fx-pref-width: 13px;
+    -fx-pref-height: 13px;
+    -fx-shape: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .rx-kanban-view .add-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: -showcase-caption-color;
+    -fx-alignment: center-left;
+    -fx-padding: 4px 6px;
+}
+
+.example-card .rx-kanban-view .add-button:hover {
+    -fx-background-color: -fx-hover-base;
+    -fx-background-radius: 4px;
+}
+
+.example-card .plus-icon {
+    -fx-pref-width: 12px;
+    -fx-pref-height: 12px;
+    -fx-shape: "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2zM0 0L0 0M24 24L24 24";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXTimelineView                                                              *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-timeline-view .check-icon {
+    -fx-pref-width: 10px;
+    -fx-pref-height: 10px;
+    -fx-background-color: white;
+    -fx-shape: "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .rx-timeline-view .bubble {
+    -fx-padding: 8px 12px;
+    -fx-background-color: -fx-background;
+    -fx-background-radius: 4px 12px 12px 12px;
+}
+
+.example-card .plain-scroll,
+.example-card .plain-scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXCascader / RXCascaderView                                                 *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .pin-icon {
+    -fx-background-color: #f43f5e;
+    -fx-shape: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .tag-icon {
+    -fx-background-color: #f59e0b;
+    -fx-shape: "M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .globe-icon {
+    -fx-background-color: #0ea5e9;
+    -fx-shape: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .person-icon {
+    -fx-background-color: #8b5cf6;
+    -fx-shape: "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .book-icon {
+    -fx-background-color: #14b8a6;
+    -fx-shape: "M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .home-icon {
+    -fx-background-color: #f97316;
+    -fx-shape: "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .summary-panel {
+    -fx-padding: 12px 14px;
+    -fx-background-color: -fx-background;
+    -fx-background-radius: 8px;
+}
+
+.example-card .rx-cascader-view.dense .rx-cascader-cell {
+    -fx-font-size: 12px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXTextView / RXHighlightTextView                                            *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-text-view .plain {
+    -fx-font-size: 13.5px;
+}
+
+.example-card .rx-text-view.mono .plain {
+    -fx-font-family: "Menlo", "Consolas", monospace;
+    -fx-font-size: 12px;
+}
+
+.example-card .rx-text-view.quote .plain {
+    -fx-font-size: 18px;
+}
+
+.example-card .receipt {
+    -fx-padding: 14px 16px;
+    -fx-background-color: -fx-background;
+    -fx-background-radius: 8px;
+}
+
+.example-card .copy-icon {
+    -fx-pref-width: 14px;
+    -fx-pref-height: 14px;
+    -fx-background-color: -fx-text-base-color;
+    -fx-shape: "M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .rx-highlight-text-view.teal {
+    -rx-highlight-fill: rgba(20, 184, 166, 0.30);
+}
+
+.example-card .rx-highlight-text-view.pink {
+    -rx-highlight-fill: #fbcfe8;
+}
+
+.example-card .rx-highlight-text-view.sky {
+    -rx-highlight-fill: #bae6fd;
+}
+
+.example-card .search-icon {
+    -fx-pref-width: 15px;
+    -fx-pref-height: 15px;
+    -fx-shape: "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM0 0L0 0M24 24L24 24";
+}
