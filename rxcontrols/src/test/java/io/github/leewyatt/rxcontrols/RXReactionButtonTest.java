@@ -24,6 +24,7 @@ import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import javafx.scene.transform.Scale;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -328,15 +329,24 @@ public class RXReactionButtonTest {
         });
     }
 
-    /** The focus ring shows for keyboard focus, not for focus a click brought. */
+    /** The focus ring shows for keyboard focus, in the focus color, and not for focus a click brought. */
     @Test
     public void focusRingShowsOnlyForKeyboardFocus() throws Exception {
         onFx(() -> {
             FocusableReactionButton button = laidOut(new FocusableReactionButton());
+            button.requestFocus();
+            button.focus();
+            button.applyCss();
+            assertTrue(button.getPseudoClassStates().contains(FOCUS_SHOWN), "keyboard focus shows the ring");
+            Paint ring = button.getBorder().getStrokes().get(0).getTopStroke();
+            assertNotEquals(Color.TRANSPARENT, ring, "the ring takes the focus color");
+
             button.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, 1, 1, 1, 1, MouseButton.PRIMARY, 1,
                     false, false, false, false, true, false, false, true, false, false, null));
-            button.focus();
-            assertFalse(button.getPseudoClassStates().contains(FOCUS_SHOWN), "pointer focus: no ring");
+            button.applyCss();
+            assertFalse(button.getPseudoClassStates().contains(FOCUS_SHOWN), "a press hides the ring");
+            assertEquals(Color.TRANSPARENT, button.getBorder().getStrokes().get(0).getTopStroke(),
+                    "the border stays, transparent, so nothing moves");
 
             button.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.SPACE, false, false, false, false));
             assertTrue(button.getPseudoClassStates().contains(FOCUS_SHOWN), "a key press brings the ring back");
