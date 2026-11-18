@@ -664,9 +664,13 @@ public class RXControlColorsTest {
 
             Region cell = (Region) board.lookup(".rx-kanban-card-cell");
             Insets restingInsets = cell.getInsets();
+            String restingFill = ThemeColorSamples.hex(cell.getBackground().getFills().get(0).getFill());
             cell.pseudoClassStateChanged(PseudoClass.getPseudoClass("selected"), true);
             root.applyCss();
-            actual.put("selectedFill", ThemeColorSamples.hex(cell.getBackground().getFills().get(0).getFill()));
+            List<BackgroundFill> selectedFills = cell.getBackground().getFills();
+            actual.put("selectedFill", ThemeColorSamples.hex(selectedFills.get(selectedFills.size() - 1).getFill()));
+            actual.put("selectedBase", String.valueOf(
+                    ThemeColorSamples.hex(selectedFills.get(0).getFill()).equals(restingFill)));
             // The card ring only shows while the board itself holds keyboard focus.
             board.showFocus();
             cell.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), true);
@@ -699,6 +703,8 @@ public class RXControlColorsTest {
         assertEquals("false", actual.get("columnStroke"), "column has no border under " + host);
         assertEquals("false", actual.get("headerStroke"), "header has no border under " + host);
         assertEquals(expected.get("-rx-primary-bg"), actual.get("selectedFill"), "selected card tint under " + host);
+        // The tint lies on the card's own surface, so a translucent theme tint shows the card, not the column.
+        assertEquals("true", actual.get("selectedBase"), "selected card keeps its surface under the tint under " + host);
         // The focus ring lies inside the card: the column content clip cuts anything outside.
         assertEquals("1", actual.get("ringStrokes"), "selected focused card has one border under " + host);
         assertEquals(expected.get("-rx-focus") + " width 1.0 insets 0.0", actual.get("ring"),

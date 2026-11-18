@@ -3944,9 +3944,13 @@
 /* Selection is a tint and focus a single ring, so a selected focused card shows one
    border. The 2px ring is drawn inside the card (1px border plus an inset background
    layer): the column clips anything outside, and a wider border would shift the
-   content. */
+   content. The tint sits on the card's own surface: some themes give it a translucent
+   tint, which alone would show what lies under it. */
 .rx-kanban-card-cell:selected {
-    -fx-background-color: -rx-primary-bg;
+    -fx-background-color: ladder(-rx-surface, derive(-rx-surface-variant, 8%) 45%, -fx-control-inner-background 46%),
+        -rx-primary-bg;
+    -fx-background-insets: 0, 0;
+    -fx-background-radius: 6, 6;
 }
 
 .rx-kanban-view:focused .rx-kanban-card-cell:focused {
@@ -3958,7 +3962,11 @@
 }
 
 .rx-kanban-view:focused .rx-kanban-card-cell:selected:focused {
-    -fx-background-color: -rx-focus, -rx-primary-bg;
+    -fx-background-color: -rx-focus,
+        ladder(-rx-surface, derive(-rx-surface-variant, 8%) 45%, -fx-control-inner-background 46%),
+        -rx-primary-bg;
+    -fx-background-insets: 0, 2, 2;
+    -fx-background-radius: 6, 4, 4;
 }
 
 /*******************************************************************************
