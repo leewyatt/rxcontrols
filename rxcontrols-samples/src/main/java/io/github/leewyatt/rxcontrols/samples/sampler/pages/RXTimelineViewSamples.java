@@ -25,10 +25,10 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.pa
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.text;
 
 /**
- * The RXTimelineView page: order tracking with done, current and upcoming steps, an
- * activity feed with times on the opposite side, a release history on alternating
- * sides, a comment thread with custom content, and project milestones laid out
- * horizontally.
+ * The RXTimelineView page: project milestones laid out horizontally, order tracking
+ * with done, current and upcoming steps, an activity feed with times on the opposite
+ * side, a release history on alternating sides, and a comment thread with custom
+ * content.
  */
 public final class RXTimelineViewSamples {
 
@@ -48,6 +48,9 @@ public final class RXTimelineViewSamples {
                 List.of("Showing what happened and in which order: order tracking, activity, release history.",
                         "For steps a user still has to go through, use RXSegmentedStepIndicator."),
                 List.of(
+                        SampleCard.wide("Project milestones",
+                                "Orientation HORIZONTAL lays the events out in a row; dotFill and lineFill color single items.",
+                                milestones()),
                         SampleCard.large("Order tracking",
                                 "Types color the dots, a dotGraphic marks finished steps and hollow dots show steps still to come.",
                                 order()),
@@ -59,10 +62,7 @@ public final class RXTimelineViewSamples {
                                 releases()),
                         SampleCard.large("Comment thread",
                                 "setContent replaces the title and details with any node, here an avatar and a message.",
-                                comments()),
-                        SampleCard.wide("Project milestones",
-                                "Orientation HORIZONTAL lays the events out in a row; dotFill and lineFill color single items.",
-                                milestones())),
+                                comments())),
                 DataViewKit.STYLESHEET);
     }
 
