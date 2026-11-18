@@ -3336,58 +3336,31 @@
 /* Black on a light host, the surface text on a dark one. */
 .rx-tile-cell {
     -fx-text-fill: ladder(-rx-surface, -rx-on-surface 45%, black 46%);
+    /* Every cell keeps a transparent ring, so selecting or focusing one only recolors
+       it: the content never moves, and the ring stays inside the cell's own bounds
+       even with no gap between cells. A ring and not a background, because a cell
+       usually paints its own background over the content area. */
+    -fx-border-color: transparent;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
 }
 
+/* The keyboard cursor on an unselected cell. */
 .rx-tile-view:focused > .viewport > .content > .rx-tile-cell:focused {
     -fx-border-color: -fx-focus-color;
-    -fx-border-width: 2;
-    -fx-border-insets: 1;
 }
 
-/* Selection is a ring + background: the ring survives a cell that paints its own
-   background (an inline background cannot override a border). */
+/* Selection is a light accent tint under a ring; the tint keeps pictures and icons in
+   a selected cell readable. One ring only, also on the focused cell. */
 .rx-tile-cell:selected {
-    -fx-background-color: -fx-selection-bar-non-focused;
-    /* reads on Modena's selection bars, focused or not, on light and dark hosts alike */
-    -fx-text-fill: black;
+    -fx-background-color: -rx-primary-bg;
     -fx-border-color: -fx-selection-bar-non-focused;
-    -fx-border-width: 2;
-    -fx-border-insets: 1;
 }
 
-/* Like a Modena ListView: the accent selection only while the view holds focus. */
+/* The accent ring only while the view holds focus, like a Modena ListView. */
 .rx-tile-view:focused > .viewport > .content > .rx-tile-cell:selected {
-    -fx-background-color: -fx-selection-bar;
-    -fx-border-color: -fx-selection-bar;
-}
-
-/* Selected + focused: keep both rings (selection outer, focus inner) so the
-   keyboard cursor is not lost on a selected tile. */
-.rx-tile-view:focused > .viewport > .content > .rx-tile-cell:selected:focused {
-    -fx-border-color: -fx-selection-bar, -fx-focus-color;
-    -fx-border-width: 2, 1;
-    -fx-border-insets: 0, 2;
-}
-
-/* Under the AtlantaFX bridge a selected cell takes AtlantaFX's own selected-cell
-   gray with the default text, focused or not, and no focus ring, like its ListView.
-   The accent ring stays: tiles usually paint their own background, which would hide
-   a fill-only selection. */
-.rx-theme-atlantafx .rx-tile-cell:selected,
-.rx-theme-atlantafx .rx-tile-view:focused > .viewport > .content > .rx-tile-cell:selected {
-    -fx-background-color: -fx-selection-bar-non-focused;
-    -fx-text-fill: -rx-on-surface;
-    -fx-border-color: -fx-selection-bar;
-}
-
-.rx-theme-atlantafx .rx-tile-view:focused > .viewport > .content > .rx-tile-cell:focused {
-    -fx-border-color: transparent;
-}
-
-.rx-theme-atlantafx .rx-tile-view:focused > .viewport > .content > .rx-tile-cell:selected:focused {
-    -fx-border-color: -fx-selection-bar;
-    -fx-border-width: 2;
-    -fx-border-insets: 1;
+    -fx-border-color: -rx-primary;
 }
 
 /*******************************************************************************
@@ -3845,58 +3818,31 @@
 /* Black on a light host, the surface text on a dark one. */
 .rx-masonry-cell {
     -fx-text-fill: ladder(-rx-surface, -rx-on-surface 45%, black 46%);
+    /* Every cell keeps a transparent ring, so selecting or focusing one only recolors
+       it: the content never moves, and the ring stays inside the cell's own bounds
+       even with no gap between cells. A ring and not a background, because a cell
+       usually paints its own background over the content area. */
+    -fx-border-color: transparent;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
 }
 
+/* The keyboard cursor on an unselected cell. */
 .rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:focused {
     -fx-border-color: -fx-focus-color;
-    -fx-border-width: 2;
-    -fx-border-insets: 1;
 }
 
-/* Selection is a ring + background: the ring survives a cell that paints its own
-   background (an inline background cannot override a border). */
+/* Selection is a light accent tint under a ring; the tint keeps pictures and icons in
+   a selected cell readable. One ring only, also on the focused cell. */
 .rx-masonry-cell:selected {
-    -fx-background-color: -fx-selection-bar-non-focused;
-    /* reads on Modena's selection bars, focused or not, on light and dark hosts alike */
-    -fx-text-fill: black;
+    -fx-background-color: -rx-primary-bg;
     -fx-border-color: -fx-selection-bar-non-focused;
-    -fx-border-width: 2;
-    -fx-border-insets: 1;
 }
 
-/* Like a Modena ListView: the accent selection only while the view holds focus. */
+/* The accent ring only while the view holds focus, like a Modena ListView. */
 .rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:selected {
-    -fx-background-color: -fx-selection-bar;
-    -fx-border-color: -fx-selection-bar;
-}
-
-/* Selected + focused: keep both rings (selection outer, focus inner) so the
-   keyboard cursor is not lost on a selected cell. */
-.rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:selected:focused {
-    -fx-border-color: -fx-selection-bar, -fx-focus-color;
-    -fx-border-width: 2, 1;
-    -fx-border-insets: 0, 2;
-}
-
-/* Under the AtlantaFX bridge a selected cell takes AtlantaFX's own selected-cell
-   gray with the default text, focused or not, and no focus ring, like its ListView.
-   The accent ring stays: masonry cells usually paint their own background, which
-   would hide a fill-only selection. */
-.rx-theme-atlantafx .rx-masonry-cell:selected,
-.rx-theme-atlantafx .rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:selected {
-    -fx-background-color: -fx-selection-bar-non-focused;
-    -fx-text-fill: -rx-on-surface;
-    -fx-border-color: -fx-selection-bar;
-}
-
-.rx-theme-atlantafx .rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:focused {
-    -fx-border-color: transparent;
-}
-
-.rx-theme-atlantafx .rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:selected:focused {
-    -fx-border-color: -fx-selection-bar;
-    -fx-border-width: 2;
-    -fx-border-insets: 1;
+    -fx-border-color: -rx-primary;
 }
 
 /*******************************************************************************

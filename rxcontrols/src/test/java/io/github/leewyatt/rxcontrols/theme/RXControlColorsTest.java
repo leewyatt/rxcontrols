@@ -917,8 +917,8 @@ public class RXControlColorsTest {
     // ==================== Tile / masonry cells ====================
 
     /**
-     * Under default Modena a selected tile or masonry cell in an unfocused view takes
-     * the unfocused selection bar with black text, and an unselected cell keeps black text.
+     * Under default Modena a selected tile or masonry cell takes the light accent tint
+     * with the default text, and an unselected cell keeps the default text.
      *
      * @throws Exception if the FX action fails
      */
@@ -926,8 +926,8 @@ public class RXControlColorsTest {
     public void defaultModenaKeepsTheCellColors() throws Exception {
         List<String> samples = cellSamples(Application.STYLESHEET_MODENA, scene -> { });
         assertEquals(List.of(
-                "RXTileView unselected text #000000ff", "RXTileView selected #d3d3d3ff text #000000ff",
-                "RXMasonryView unselected text #000000ff", "RXMasonryView selected #d3d3d3ff text #000000ff"),
+                "RXTileView unselected text #000000ff", "RXTileView selected #d7f0f8ff text #000000ff",
+                "RXMasonryView unselected text #000000ff", "RXMasonryView selected #d7f0f8ff text #000000ff"),
                 samples);
     }
 
