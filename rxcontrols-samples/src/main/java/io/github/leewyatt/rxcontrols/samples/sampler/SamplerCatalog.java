@@ -214,8 +214,10 @@ import io.github.leewyatt.rxcontrols.samples.demo.carousel.SimpleDemo;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.MaterialNumberFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.NumberFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXAccordionSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXAudioSpectrumSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXAutoCompleteFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXAutoCompletionSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXAvatarSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBackdropSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBadgeSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBarSpinnerSamples;
@@ -229,17 +231,25 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXChipInputSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXChipSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXChipSetSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCircularProgressIndicatorSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXClipPathImageViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCopyButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDialogSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDigitSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDotPulseSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDrawerPaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDualPaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXFillButtonSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXFillLabelSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXHighlightTextViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXHoldButtonSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXImagePaneSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXImageViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXKanbanViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXLineButtonSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXLineLabelSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXListViewSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXLrcLineViewSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXLrcViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMasonryViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMaterialPasswordFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMaterialTextFieldSamples;
@@ -270,6 +280,7 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTimelineViewSamples
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTitledPaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXToggleButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTransitionButtonSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTransitionLabelSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTransitionPaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXWaveProgressIndicatorSamples;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXAccordionShowcase;
@@ -610,18 +621,29 @@ final class SamplerCatalog {
                 .withSamples(RXTransitionPaneSamples::create));
 
         c = SamplerCategory.MEDIA;
-        list.add(single(c, RXAvatar.class, RXAvatarShowcase::new, RXAvatarDemo.class));
-        list.add(single(c, RXImageView.class, RXImageViewShowcase::new, RXImageViewDemo.class));
-        list.add(single(c, RXImagePane.class, RXImagePaneShowcase::new, RXImagePaneDemo.class));
+        list.add(single(c, RXAvatar.class, RXAvatarShowcase::new, RXAvatarDemo.class)
+                .withSamples(RXAvatarSamples::create));
+        list.add(single(c, RXImageView.class, RXImageViewShowcase::new, RXImageViewDemo.class)
+                .withSamples(RXImageViewSamples::create));
+        list.add(single(c, RXImagePane.class, RXImagePaneShowcase::new, RXImagePaneDemo.class)
+                .withSamples(RXImagePaneSamples::create));
         list.add(single(c, RXClipPathImageView.class, RXClipPathImageViewShowcase::new,
-                RXClipPathImageViewDemo.class));
-        list.add(single(c, RXAudioSpectrum.class, RXAudioSpectrumShowcase::new, null));
-        list.add(single(c, RXLrcView.class, RXLrcViewShowcase::new, RXLrcViewDemo.class));
-        list.add(single(c, RXLrcLineView.class, RXLrcLineViewShowcase::new, null));
-        list.add(single(c, RXDigit.class, RXDigitShowcase::new, RXDigitDemo.class));
-        list.add(single(c, RXTransitionLabel.class, RXTransitionLabelShowcase::new, null));
-        list.add(single(c, RXFillLabel.class, RXFillLabelShowcase::new, null));
-        list.add(single(c, RXLineLabel.class, RXLineLabelShowcase::new, null));
+                RXClipPathImageViewDemo.class)
+                .withSamples(RXClipPathImageViewSamples::create));
+        list.add(single(c, RXAudioSpectrum.class, RXAudioSpectrumShowcase::new, null)
+                .withSamples(RXAudioSpectrumSamples::create));
+        list.add(single(c, RXLrcView.class, RXLrcViewShowcase::new, RXLrcViewDemo.class)
+                .withSamples(RXLrcViewSamples::create));
+        list.add(single(c, RXLrcLineView.class, RXLrcLineViewShowcase::new, null)
+                .withSamples(RXLrcLineViewSamples::create));
+        list.add(single(c, RXDigit.class, RXDigitShowcase::new, RXDigitDemo.class)
+                .withSamples(RXDigitSamples::create));
+        list.add(single(c, RXTransitionLabel.class, RXTransitionLabelShowcase::new, null)
+                .withSamples(RXTransitionLabelSamples::create));
+        list.add(single(c, RXFillLabel.class, RXFillLabelShowcase::new, null)
+                .withSamples(RXFillLabelSamples::create));
+        list.add(single(c, RXLineLabel.class, RXLineLabelShowcase::new, null)
+                .withSamples(RXLineLabelSamples::create));
 
         c = SamplerCategory.LAYOUT;
         list.add(single(c, RXBox.class, RXBoxShowcase::new, RXBoxDemo.class));
