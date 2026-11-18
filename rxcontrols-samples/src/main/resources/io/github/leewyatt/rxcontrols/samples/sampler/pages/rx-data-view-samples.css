@@ -378,9 +378,3 @@
 .example-card .rx-masonry-view.pins {
     -fx-padding: 10px;
 }
-
-.example-card .side-controls {
-    -fx-padding: 16px 18px;
-    -fx-background-color: -fx-background;
-    -fx-background-radius: 10px;
-}

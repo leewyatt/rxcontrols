@@ -5,22 +5,24 @@ import io.github.leewyatt.rxcontrols.RXListSection;
 import io.github.leewyatt.rxcontrols.RXListSectionCell;
 import io.github.leewyatt.rxcontrols.RXListSelectionVisualMode;
 import io.github.leewyatt.rxcontrols.RXListView;
+import io.github.leewyatt.rxcontrols.RXMenuButton;
+import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
-import io.github.leewyatt.rxcontrols.RXSwitchButton;
 import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import javafx.collections.SetChangeListener;
 import javafx.collections.transformation.SortedList;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.util.Comparator;
@@ -29,23 +31,21 @@ import java.util.Locale;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.avatar;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.colorOf;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.controls;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.initials;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.paint;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.section;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.setting;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.sized;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.spacer;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.text;
 
 /**
- * The RXListView page: one tall contacts list with a panel beside it that switches the
- * letter groups, collapsible and sticky headers, single or multiple selection and the
- * look of the selection.
+ * The RXListView page: one tall contacts list under a toolbar that picks single
+ * selection with filled rows or multiple selection with check boxes, with an Options
+ * menu for the letter groups, collapsible and sticky headers, and folding every group
+ * at once.
  */
 public final class RXListViewSamples {
 
-    private static final double LIST_WIDTH = 400.0;
+    private static final double LIST_WIDTH = 600.0;
     private static final double LIST_HEIGHT = 520.0;
 
     private static final List<String[]> PEOPLE = List.of(
@@ -95,8 +95,8 @@ public final class RXListViewSamples {
                         "For a grid of pictures use RXTileView; for a short fixed menu a VBox of buttons is simpler."),
                 List.of(
                         SampleCard.wide("Contacts",
-                                "sectionKeyFactory groups people by first letter; the panel switches the groups, "
-                                        + "their headers and how a selection is made and shown.",
+                                "sectionKeyFactory groups people by first letter; Multiple turns on check boxes, "
+                                        + "and the Options menu changes the groups.",
                                 contacts())),
                 DataViewKit.STYLESHEET);
     }
@@ -117,78 +117,7 @@ public final class RXListViewSamples {
         list.setSectionHeaderFactory(view -> new LetterHeader());
         list.getSelectionModel().select(1);
 
-        HBox box = new HBox(28.0, list, panel(list));
-        box.setAlignment(Pos.TOP_CENTER);
-        return box;
-    }
-
-    private static Node panel(RXListView<Person> list) {
-        RXSwitchButton grouped = setting("Group by first letter");
-        grouped.setSelected(true);
-        grouped.selectedProperty().addListener((obs, was, on) ->
-                list.setSectionKeyFactory(on ? Person::letter : null));
-
-        RXSwitchButton collapsible = setting("Collapsible groups");
-        collapsible.disableProperty().bind(grouped.selectedProperty().not());
-        list.collapsibleSectionsProperty().bind(collapsible.selectedProperty());
-
-        // Shown only while the groups can fold; the picked segment follows the groups, so
-        // folding one by hand leaves neither picked.
-        RXSegmentedControl<Boolean> fold = new RXSegmentedControl<>(
-                RXSegmentedItem.of(true, "Expand all"), RXSegmentedItem.of(false, "Collapse all"));
-        fold.setBlock(true);
-        fold.setAllowEmptySelection(true);
-        fold.visibleProperty().bind(collapsible.selectedProperty().and(grouped.selectedProperty()));
-        fold.managedProperty().bind(fold.visibleProperty());
-        boolean[] syncing = {false};
-        fold.valueProperty().addListener((obs, old, expand) -> {
-            if (syncing[0] || expand == null) {
-                return;
-            }
-            if (expand) {
-                list.expandAllSections();
-            } else {
-                list.collapseAllSections();
-            }
-        });
-        Runnable syncFold = () -> {
-            int collapsed = list.getCollapsedSectionKeys().size();
-            syncing[0] = true;
-            fold.setValue(collapsed == 0 ? Boolean.TRUE
-                    : collapsed == list.getSections().size() ? Boolean.FALSE : null);
-            syncing[0] = false;
-        };
-        list.getCollapsedSectionKeys().addListener((SetChangeListener<Object>) change -> syncFold.run());
-        list.getSections().addListener((ListChangeListener<RXListSection>) change -> syncFold.run());
-        syncFold.run();
-
-        RXSwitchButton sticky = setting("Sticky headers");
-        sticky.setSelected(list.isStickySectionHeader());
-        sticky.disableProperty().bind(grouped.selectedProperty().not());
-        list.stickySectionHeaderProperty().bind(sticky.selectedProperty());
-
-        RXSegmentedControl<RXListSelectionVisualMode> look = new RXSegmentedControl<>(
-                RXSegmentedItem.of(RXListSelectionVisualMode.ROW, "Row"),
-                RXSegmentedItem.of(RXListSelectionVisualMode.CHECKMARK, "Check mark"),
-                RXSegmentedItem.of(RXListSelectionVisualMode.CHECKBOX, "Check box"));
-        look.setValue(RXListSelectionVisualMode.ROW);
-        look.setBlock(true);
-        list.selectionVisualModeProperty().bind(look.valueProperty());
-
-        RXSegmentedControl<SelectionMode> mode = new RXSegmentedControl<>(
-                RXSegmentedItem.of(SelectionMode.SINGLE, "Single"),
-                RXSegmentedItem.of(SelectionMode.MULTIPLE, "Multiple"));
-        mode.setValue(SelectionMode.SINGLE);
-        mode.setBlock(true);
-        mode.valueProperty().addListener((obs, old, picked) -> {
-            list.setSelectionMode(picked);
-            // A multiple choice reads best with a light tick on each picked row.
-            look.setValue(picked == SelectionMode.MULTIPLE
-                    ? RXListSelectionVisualMode.CHECKMARK : RXListSelectionVisualMode.ROW);
-        });
-
-        Label selected = text("", "body");
-        selected.setWrapText(true);
+        Label selected = text("", "hint");
         selected.textProperty().bind(Bindings.createStringBinding(() -> {
             List<Person> picked = list.getSelectionModel().getSelectedItems();
             if (picked.isEmpty()) {
@@ -197,12 +126,57 @@ public final class RXListViewSamples {
             return picked.size() == 1 ? "Selected: " + picked.get(0).name() : picked.size() + " people selected";
         }, list.getSelectionModel().getSelectedItems()));
 
-        VBox panel = controls(
-                section("Groups", true), grouped, collapsible, fold, sticky,
-                section("Selection", false), mode, look,
-                selected);
-        VBox.setMargin(selected, new Insets(14.0, 0.0, 0.0, 0.0));
-        return panel;
+        VBox box = new VBox(12.0, toolbar(list), list, selected);
+        box.setPrefWidth(LIST_WIDTH);
+        box.setMaxWidth(Region.USE_PREF_SIZE);
+        return box;
+    }
+
+    // The selection mode stays in sight; the groups wait in the Options menu.
+    private static Node toolbar(RXListView<Person> list) {
+        list.setSelectionVisualMode(RXListSelectionVisualMode.ROW);
+        RXSegmentedControl<SelectionMode> mode = new RXSegmentedControl<>(
+                RXSegmentedItem.of(SelectionMode.SINGLE, "Single"),
+                RXSegmentedItem.of(SelectionMode.MULTIPLE, "Multiple"));
+        mode.setValue(SelectionMode.SINGLE);
+        mode.valueProperty().addListener((obs, old, picked) -> {
+            list.setSelectionMode(picked);
+            // A filled row for one choice, a check box on every row for several.
+            list.setSelectionVisualMode(picked == SelectionMode.MULTIPLE
+                    ? RXListSelectionVisualMode.CHECKBOX : RXListSelectionVisualMode.ROW);
+        });
+
+        RXMenuButton options = options(list);
+        for (Region region : List.of(mode, options)) {
+            region.setMinWidth(Region.USE_PREF_SIZE);
+        }
+        HBox bar = new HBox(10.0, mode, spacer(), options);
+        bar.setAlignment(Pos.CENTER_LEFT);
+        return bar;
+    }
+
+    private static RXMenuButton options(RXListView<Person> list) {
+        BooleanProperty grouped = new SimpleBooleanProperty(true);
+        grouped.addListener((obs, was, on) -> list.setSectionKeyFactory(on ? Person::letter : null));
+
+        RXMenuItem collapsible = RXMenuItem.checkbox("Collapsible groups", list.collapsibleSectionsProperty());
+        RXMenuItem sticky = RXMenuItem.checkbox("Sticky headers", list.stickySectionHeaderProperty());
+        RXMenuItem expand = RXMenuItem.of("Expand all");
+        expand.setOnAction(event -> list.expandAllSections());
+        RXMenuItem collapse = RXMenuItem.of("Collapse all");
+        collapse.setOnAction(event -> list.collapseAllSections());
+        // Folding needs groups that fold; the headers need groups at all.
+        BooleanBinding foldable = grouped.and(list.collapsibleSectionsProperty());
+        expand.disableProperty().bind(foldable.not());
+        collapse.disableProperty().bind(foldable.not());
+        collapsible.disableProperty().bind(grouped.not());
+        sticky.disableProperty().bind(grouped.not());
+
+        RXMenuButton options = new RXMenuButton("Options");
+        options.getItems().addAll(RXMenuItem.header("Groups"),
+                RXMenuItem.checkbox("Group by first letter", grouped), collapsible, sticky,
+                RXMenuItem.separator(), expand, collapse);
+        return options;
     }
 
     private static final class PersonCell extends RXListCell<Person> {
