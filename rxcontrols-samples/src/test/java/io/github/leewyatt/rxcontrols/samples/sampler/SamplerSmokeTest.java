@@ -2,16 +2,12 @@ package io.github.leewyatt.rxcontrols.samples.sampler;
 
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
-import io.github.leewyatt.rxcontrols.RXSlider;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.application.Platform;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.StackPane;
-import javafx.scene.paint.Color;
-import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -34,8 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Smoke tests for the sampler: the catalog, every page and variant, and the generated
- * CSS reference.
+ * Smoke tests for the sampler: the catalog, the navigation, and every page and variant.
  */
 public class SamplerSmokeTest {
 
@@ -107,9 +102,9 @@ public class SamplerSmokeTest {
         });
     }
 
-    /** Every page, every variant's playground and every CSS reference build without error. */
+    /** Every page and every variant's playground build without error. */
     @Test
-    public void everyPageVariantAndCssReferenceBuilds() throws Exception {
+    public void everyPageAndVariantBuilds() throws Exception {
         List<String> failures = new ArrayList<>();
         List<String> cssWarnings = new ArrayList<>();
         Handler handler = new Handler() {
@@ -145,7 +140,6 @@ public class SamplerSmokeTest {
                             if (playground != null) {
                                 mount(playground);
                             }
-                            mount(CssReference.create(variant, playground));
                         }
                     } catch (RuntimeException e) {
                         failures.add(entry.name() + ": " + e);
@@ -157,30 +151,6 @@ public class SamplerSmokeTest {
         }
         assertEquals(List.of(), failures);
         cssWarnings.forEach(message -> System.out.println("CSS warning: " + message));
-    }
-
-    /** The structure starts at the control's own style class and reaches its skin parts. */
-    @Test
-    public void structureOfSliderListsSkinParts() throws Exception {
-        runOnFx(() -> {
-            RXSlider slider = new RXSlider();
-            mount(slider);
-            List<CssReference.StructureRow> rows = CssReference.structureOf(slider);
-            assertEquals(".rx-slider", rows.get(0).selector());
-            assertTrue(rows.stream().anyMatch(row -> row.selector().equals(".rx-slider > .thumb")));
-            assertTrue(CssReference.propertiesOf(slider).stream()
-                    .anyMatch(row -> row.property().equals("-rx-indicator-display")));
-        });
-    }
-
-    /** Values are written the way a stylesheet would write them. */
-    @Test
-    public void formatWritesCssValues() {
-        assertEquals("#ff0000", CssReference.format(Color.RED));
-        assertEquals("#00000080", CssReference.format(Color.rgb(0, 0, 0, 0.5)));
-        assertEquals("200ms", CssReference.format(Duration.millis(200)));
-        assertEquals("1.5", CssReference.format(1.5));
-        assertEquals("top-left", CssReference.format(Pos.TOP_LEFT));
     }
 
     private static void mount(Node node) {

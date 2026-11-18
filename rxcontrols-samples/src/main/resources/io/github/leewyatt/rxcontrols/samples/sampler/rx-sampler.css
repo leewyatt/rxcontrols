@@ -115,8 +115,16 @@
     -fx-font-size: 11px;
 }
 
+/* The nav footer and the pager share one fixed height so their top borders line up. */
+.sampler-nav > .container > .footer,
+.pager {
+    -fx-min-height: 35px;
+    -fx-pref-height: 35px;
+    -fx-max-height: 35px;
+}
+
 .sampler-nav > .container > .footer {
-    -fx-padding: 10px 18px;
+    -fx-padding: 0 18px;
     -fx-border-color: -fx-text-box-border;
     -fx-border-width: 1px 0 0 0;
 }
@@ -173,7 +181,7 @@
 }
 
 .pager {
-    -fx-padding: 6px 16px;
+    -fx-padding: 0 16px;
     -fx-background-color: -fx-background;
     -fx-border-color: -fx-text-box-border;
     -fx-border-width: 1px 0 0 0;
@@ -181,8 +189,8 @@
 
 .pager-button {
     -fx-background-color: transparent;
-    -fx-background-radius: 8px;
-    -fx-padding: 6px 10px;
+    -fx-background-radius: 6px;
+    -fx-padding: 3px 10px;
     -fx-graphic-text-gap: 10px;
     -fx-text-fill: -fx-text-base-color;
     -fx-cursor: hand;
@@ -195,7 +203,7 @@
 .pager-button:focused {
     -fx-background-color: -fx-focus-color, -fx-control-inner-background;
     -fx-background-insets: 0, 1.5px;
-    -fx-background-radius: 8px, 6.5px;
+    -fx-background-radius: 6px, 4.5px;
 }
 
 .pager-position {
@@ -255,64 +263,130 @@
     -fx-text-fill: -showcase-caption-color;
 }
 
-/*******************************************************************************
- *                                                                             *
- * CSS reference                                                               *
- *                                                                             *
- ******************************************************************************/
-.css-scroll {
-    -fx-background-color: transparent;
-    -fx-padding: 0;
+.when-to-use {
+    -fx-padding: 10px 14px 11px 14px;
+    -fx-background-color: -fx-background;
+    -fx-background-radius: 8px;
 }
 
-.css-scroll > .viewport {
-    -fx-background-color: -fx-control-inner-background;
-}
-
-.css-reference {
-    -fx-padding: 24px 28px;
-}
-
-.css-section {
-    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
-    -fx-background-insets: 0, 1px;
-    -fx-background-radius: 10px, 9px;
-    -fx-padding: 14px 16px 16px 16px;
-    -fx-spacing: 10px;
-}
-
-.css-heading {
-    -fx-font-size: 14px;
-    -fx-font-weight: bold;
-    -fx-text-fill: -fx-text-base-color;
-}
-
-.css-table {
-    -fx-hgap: 16px;
-    -fx-vgap: 7px;
-}
-
-.css-table .column-header {
+.when-to-use > .heading {
     -fx-font-size: 11.5px;
     -fx-font-weight: bold;
     -fx-text-fill: -showcase-caption-color;
 }
 
-.css-table .code {
-    -fx-font-family: -sampler-mono;
-    -fx-font-size: 12px;
-    -fx-text-fill: -sampler-accent-text;
+.when-to-use .label {
+    -fx-font-size: 12.5px;
 }
 
-.css-table .value {
-    -fx-font-family: -sampler-mono;
-    -fx-font-size: 12px;
-    -fx-text-fill: -showcase-caption-color;
+.when-to-use .bullet {
+    -fx-pref-width: 4px;
+    -fx-pref-height: 4px;
+    -fx-background-color: -sampler-accent-text;
+    -fx-background-radius: 2px;
 }
 
-.css-note {
+/*******************************************************************************
+ *                                                                             *
+ * Examples                                                                    *
+ *                                                                             *
+ ******************************************************************************/
+.examples-scroll {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.examples-scroll > .viewport {
+    -fx-background-color: -fx-control-inner-background;
+}
+
+.examples {
+    -fx-padding: 24px 28px 32px 28px;
+}
+
+.example-card {
+    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 10px, 9px;
+}
+
+.example-card > .stage {
+    -fx-padding: 32px 20px;
+    -fx-min-height: 120px;
+}
+
+.example-card > .meta {
+    -fx-padding: 11px 16px 13px 16px;
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.example-card > .meta .title {
+    -fx-font-size: 13.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card > .meta > .text {
     -fx-font-size: 12.5px;
     -fx-text-fill: -showcase-caption-color;
+}
+
+.example-card > .meta .hyperlink {
+    -fx-font-size: 12px;
+    -fx-padding: 0;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Field slots in examples                                                     *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-text-field > .leading-wrapper {
+    -fx-padding: 0 0 0 8px;
+}
+
+.example-card .rx-text-field > .trailing-wrapper {
+    -fx-padding: 0 7px 0 0;
+}
+
+.example-card .rx-text-field.leading-addon > .leading-wrapper,
+.example-card .rx-text-field.trailing-addon > .trailing-wrapper {
+    -fx-padding: 0;
+}
+
+.example-card .rx-text-field .unit {
+    -fx-text-fill: -showcase-caption-color;
+}
+
+/* The outer layer shows through as a one-pixel line on the side facing the text. */
+.example-card .rx-text-field .addon {
+    -fx-padding: 0 11px;
+    -fx-background-color: -fx-text-box-border, -fx-background;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .rx-text-field > .leading-wrapper > .addon {
+    -fx-background-insets: 1px 0 1px 1px, 1px;
+    -fx-background-radius: 3px 0 0 3px;
+}
+
+.example-card .rx-text-field > .trailing-wrapper > .addon {
+    -fx-background-insets: 1px 1px 1px 0, 1px;
+    -fx-background-radius: 0 3px 3px 0;
+}
+
+.example-card .rx-text-field > .trailing-wrapper > .addon.button {
+    -fx-effect: null;
+    -fx-cursor: hand;
+}
+
+.example-card .rx-text-field > .trailing-wrapper > .addon.button:hover {
+    -fx-background-color: -fx-text-box-border, derive(-fx-background, -5%);
+}
+
+.example-card .rx-text-field > .trailing-wrapper > .addon.button:pressed {
+    -fx-background-color: -fx-text-box-border, derive(-fx-background, -10%);
 }
 
 /*******************************************************************************

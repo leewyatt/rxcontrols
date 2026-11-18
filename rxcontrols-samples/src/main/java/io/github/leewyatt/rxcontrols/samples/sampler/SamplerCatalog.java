@@ -211,6 +211,9 @@ import io.github.leewyatt.rxcontrols.samples.demo.RXYearRangePickerDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXYearRangeViewDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXYearViewDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.carousel.SimpleDemo;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.NumberFieldSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRibbonBadgeSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTextFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXAccordionShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXAudioSpectrumShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXAutoCompleteFieldShowcase;
@@ -375,13 +378,14 @@ final class SamplerCatalog {
         list.add(single(c, RXSelectionBox.class, RXSelectionBoxShowcase::new, null));
 
         c = SamplerCategory.INPUT;
-        list.add(single(c, RXTextField.class, null, RXTextFieldDemo.class));
+        list.add(single(c, RXTextField.class, null, RXTextFieldDemo.class).withSamples(RXTextFieldSamples::create));
         list.add(single(c, RXPasswordField.class, null, RXPasswordFieldDemo.class));
         list.add(family(c, "Number fields",
                 variant("Integer", RXIntegerField.class, RXIntegerFieldShowcase::new, RXIntegerFieldDemo.class),
                 variant("Long", RXLongField.class, RXLongFieldShowcase::new, RXLongFieldDemo.class),
                 variant("Double", RXDoubleField.class, RXDoubleFieldShowcase::new, RXDoubleFieldDemo.class),
-                variant("Decimal", RXDecimalField.class, RXDecimalFieldShowcase::new, RXDecimalFieldDemo.class)));
+                variant("Decimal", RXDecimalField.class, RXDecimalFieldShowcase::new, RXDecimalFieldDemo.class))
+                .withSamples(NumberFieldSamples::create));
         list.add(single(c, RXMaterialTextField.class, RXMaterialTextFieldShowcase::new,
                 RXMaterialTextFieldDemo.class));
         list.add(single(c, RXMaterialPasswordField.class, RXMaterialPasswordFieldShowcase::new,
@@ -463,7 +467,8 @@ final class SamplerCatalog {
 
         c = SamplerCategory.FEEDBACK;
         list.add(single(c, RXBadge.class, RXBadgeShowcase::new, RXBadgeDemo.class));
-        list.add(single(c, RXRibbonBadge.class, RXRibbonBadgeShowcase::new, null));
+        list.add(single(c, RXRibbonBadge.class, RXRibbonBadgeShowcase::new, null)
+                .withSamples(RXRibbonBadgeSamples::create));
         list.add(single(c, RXCircularProgressIndicator.class, RXCircularProgressIndicatorShowcase::new,
                 RXCircularProgressIndicatorDemo.class));
         list.add(single(c, RXWaveProgressIndicator.class, RXWaveProgressIndicatorShowcase::new,

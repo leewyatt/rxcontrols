@@ -2,6 +2,9 @@ package io.github.leewyatt.rxcontrols.samples.sampler;
 
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleCard;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleContent;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleGallery;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
 import javafx.application.Application;
@@ -10,7 +13,9 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -20,45 +25,43 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 /**
- * One component page: a header with the name, the base class, a one-line description and
- * the demo launcher, a Playground / CSS switch, a variant switch when the page groups
- * several controls, and the body. Each variant's playground and CSS reference are built
- * the first time they are shown and then kept for the life of the page.
+ * One component page: a header with the name, a one-line description and the launchers,
+ * then the body.
+ *
+ * <p>A page with sample content shows example cards and a "when to use" note; its demo
+ * and showcase open in their own windows. A page without it still hosts each variant's
+ * showcase, with a switch between the variants. A variant's playground is built the first
+ * time it is shown and then kept for the life of the page.
  */
 final class SamplerPage extends BorderPane {
 
     private static final Logger LOG = Logger.getLogger(SamplerPage.class.getName());
 
-    private enum Tab {
-        PLAYGROUND("Playground"),
-        CSS("CSS");
-
-        private final String text;
-
-        Tab(String text) {
-            this.text = text;
-        }
-    }
-
     private final Map<SamplerVariant, Node> playgrounds = new HashMap<>();
-    private final Map<SamplerVariant, Node> cssViews = new HashMap<>();
     private final Map<SamplerVariant, String> descriptions = new HashMap<>();
 
+    private final SamplerEntry entry;
+    private final SampleContent samples;
     private final Label title = new Label();
     private final Label chip = new Label();
     private final Label description = new Label();
-    private final Button demoButton = new Button("Open demo");
-    private final RXSegmentedControl<Tab> tabs = new RXSegmentedControl<>();
+    private final Button demoButton = launcherButton("Open demo");
+    private final Button showcaseButton = launcherButton("Open showcase");
     private final StackPane body = new StackPane();
 
+    private Node examples;
     private SamplerVariant variant;
 
     SamplerPage(SamplerEntry entry) {
+        this.entry = entry;
+        this.samples = loadSamples(entry);
         getStyleClass().add("sampler-page");
         title.getStyleClass().add("page-title");
         chip.getStyleClass().add("chip");
@@ -67,33 +70,35 @@ final class SamplerPage extends BorderPane {
         description.setWrapText(true);
         body.getStyleClass().add("page-body");
 
-        Region demoGlyph = new Region();
-        demoGlyph.getStyleClass().add("open-glyph");
-        demoGlyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        demoButton.getStyleClass().add("demo-button");
-        demoButton.setGraphic(demoGlyph);
-        demoButton.setMinWidth(Region.USE_PREF_SIZE);
-        demoButton.setOnAction(event -> openDemo(variant));
-
-        for (Tab tab : Tab.values()) {
-            tabs.getItems().add(new RXSegmentedItem<>(tab, tab.text));
-        }
-        tabs.setValue(Tab.PLAYGROUND);
-        tabs.valueProperty().addListener((obs, old, tab) -> showBody());
+        demoButton.setOnAction(event -> launch(variant.demo() == null ? null : () -> newInstance(variant.demo()),
+                variant.typeName() + " demo"));
+        showcaseButton.setOnAction(event -> launch(variant.showcase(), variant.typeName() + " showcase"));
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox titleRow = new HBox(10.0, title, chip, spacer, demoButton);
+        HBox titleRow = new HBox(10.0, title, chip, spacer, showcaseButton, demoButton);
         titleRow.setAlignment(Pos.CENTER_LEFT);
 
-        HBox switches = new HBox(16.0, tabs);
-        switches.setAlignment(Pos.CENTER_LEFT);
-        if (entry.variants().size() > 1) {
-            switches.getChildren().add(buildVariantSwitch(entry));
+        VBox header = new VBox(6.0, titleRow, description);
+        if (samples != null) {
+            if (samples.stylesheet() != null) {
+                getStylesheets().add(samples.stylesheet());
+            }
+            title.setText(entry.name());
+            description.setText(samples.description());
+            if (!samples.whenToUse().isEmpty()) {
+                Node when = whenToUse(samples.whenToUse());
+                header.getChildren().add(when);
+                VBox.setMargin(when, new Insets(8.0, 0.0, 0.0, 0.0));
+            }
+            examples = buildExamples();
         }
-
-        VBox header = new VBox(6.0, titleRow, description, switches);
-        VBox.setMargin(switches, new Insets(10.0, 0.0, 0.0, 0.0));
+        // The examples show every variant at once; only a showcase page switches between them.
+        if (samples == null && entry.variants().size() > 1) {
+            Node variantSwitch = buildVariantSwitch(entry);
+            header.getChildren().add(variantSwitch);
+            VBox.setMargin(variantSwitch, new Insets(10.0, 0.0, 0.0, 0.0));
+        }
         header.getStyleClass().add("page-header");
 
         setTop(header);
@@ -116,26 +121,89 @@ final class SamplerPage extends BorderPane {
         return variants;
     }
 
+    // ==================== Examples ====================
+
+    private static SampleContent loadSamples(SamplerEntry entry) {
+        if (entry.samples() == null) {
+            return null;
+        }
+        try {
+            return entry.samples().get();
+        } catch (RuntimeException e) {
+            LOG.log(Level.WARNING, "Could not build the examples of " + entry.name(), e);
+            return null;
+        }
+    }
+
+    private Node buildExamples() {
+        boolean single = entry.variants().size() == 1;
+        for (SampleCard card : samples.cards()) {
+            if (!single && card.getType() != null) {
+                card.setLinks(cardLinks(card.getType()));
+            }
+        }
+        VBox content = new VBox(SampleGallery.create(samples.cards()));
+        content.getStyleClass().add("examples");
+        ScrollPane scroll = new ScrollPane(content);
+        scroll.setFitToWidth(true);
+        scroll.getStyleClass().add("examples-scroll");
+        return scroll;
+    }
+
+    private Node[] cardLinks(Class<?> type) {
+        for (SamplerVariant v : entry.variants()) {
+            if (v.type() != type) {
+                continue;
+            }
+            Hyperlink demo = new Hyperlink("Demo");
+            demo.setOnAction(event -> launch(() -> newInstance(v.demo()), v.typeName() + " demo"));
+            demo.setVisible(v.demo() != null);
+            demo.setManaged(v.demo() != null);
+            Hyperlink showcase = new Hyperlink("Showcase");
+            showcase.setOnAction(event -> launch(v.showcase(), v.typeName() + " showcase"));
+            showcase.setVisible(v.showcase() != null);
+            showcase.setManaged(v.showcase() != null);
+            return new Node[]{demo, showcase};
+        }
+        return new Node[0];
+    }
+
+    private static Node whenToUse(List<String> lines) {
+        Label heading = new Label("When to use");
+        heading.getStyleClass().add("heading");
+        VBox box = new VBox(4.0, heading);
+        for (String line : lines) {
+            Region bullet = new Region();
+            bullet.getStyleClass().add("bullet");
+            bullet.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+            Label text = new Label(line);
+            text.setWrapText(true);
+            text.setMinHeight(Region.USE_PREF_SIZE);
+            HBox row = new HBox(8.0, bullet, text);
+            row.setAlignment(Pos.CENTER_LEFT);
+            box.getChildren().add(row);
+        }
+        box.getStyleClass().add("when-to-use");
+        return box;
+    }
+
     // ==================== Content ====================
 
     private void showVariant(SamplerVariant picked) {
         variant = picked;
-        playgrounds.computeIfAbsent(picked, this::buildPlayground);
-        title.setText(picked.typeName());
-        chip.setText(lineage(picked.type()));
-        description.setText(descriptions.get(picked));
-        demoButton.setVisible(picked.demo() != null);
-        demoButton.setManaged(picked.demo() != null);
-        showBody();
-    }
-
-    private void showBody() {
-        if (tabs.getValue() == Tab.CSS) {
-            Node playground = playgrounds.get(variant);
-            body.getChildren().setAll(cssViews.computeIfAbsent(variant, v -> CssReference.create(v, playground)));
-        } else {
-            body.getChildren().setAll(playgrounds.get(variant));
+        boolean launchers = samples == null || entry.variants().size() == 1;
+        if (samples == null) {
+            playgrounds.computeIfAbsent(picked, this::buildPlayground);
+            title.setText(picked.typeName());
+            description.setText(descriptions.get(picked));
         }
+        chip.setText(entry.variants().size() == 1 || samples == null ? lineage(picked.type()) : "");
+        chip.setVisible(!chip.getText().isEmpty());
+        chip.setManaged(chip.isVisible());
+        show(demoButton, launchers && picked.demo() != null);
+        // A page without examples already hosts the showcase.
+        show(showcaseButton, samples != null && launchers && picked.showcase() != null);
+        body.getChildren().setAll(samples != null ? examples : playgrounds.get(variant));
     }
 
     private Node buildPlayground(SamplerVariant v) {
@@ -182,22 +250,44 @@ final class SamplerPage extends BorderPane {
         return parent == null || parent == Object.class ? "utility" : "extends " + parent.getSimpleName();
     }
 
-    // ==================== Demo ====================
+    // ==================== Launchers ====================
 
-    private static void openDemo(SamplerVariant v) {
-        if (v == null || v.demo() == null) {
+    private static Button launcherButton(String text) {
+        Region glyph = new Region();
+        glyph.getStyleClass().add("open-glyph");
+        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        Button button = new Button(text, glyph);
+        button.getStyleClass().add("demo-button");
+        button.setMinWidth(Region.USE_PREF_SIZE);
+        return button;
+    }
+
+    private static void show(Node node, boolean value) {
+        node.setVisible(value);
+        node.setManaged(value);
+    }
+
+    private static Application newInstance(Class<? extends Application> type) {
+        try {
+            return type.getDeclaredConstructor().newInstance();
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static void launch(Supplier<? extends Application> factory, String name) {
+        if (factory == null) {
             return;
         }
-        Class<? extends Application> type = v.demo();
         try {
-            Application demo = type.getDeclaredConstructor().newInstance();
+            Application app = factory.get();
             Stage stage = new Stage();
-            // The demo builds its own scene; it joins the theme the sampler windows share.
+            // The app builds its own scene; it joins the theme the sampler windows share.
             stage.sceneProperty().addListener((obs, old, scene) -> ShowcaseThemes.register(scene));
-            demo.start(stage);
+            app.start(stage);
         } catch (Exception e) {
-            LOG.log(Level.WARNING, "Could not start " + type.getName(), e);
-            new Alert(Alert.AlertType.ERROR, "Could not start " + type.getSimpleName() + ":\n" + e).show();
+            LOG.log(Level.WARNING, "Could not start the " + name, e);
+            new Alert(Alert.AlertType.ERROR, "Could not start the " + name + ":\n" + e).show();
         }
     }
 }

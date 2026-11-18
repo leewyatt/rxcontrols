@@ -170,7 +170,9 @@ final class SamplerNav extends RXSidebar {
         Label platform = new Label("JavaFX 17+");
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        return new HBox(countLabel, spacer, platform);
+        HBox box = new HBox(countLabel, spacer, platform);
+        box.setAlignment(Pos.CENTER_LEFT);
+        return box;
     }
 
     private void hideInRail(Node node) {
