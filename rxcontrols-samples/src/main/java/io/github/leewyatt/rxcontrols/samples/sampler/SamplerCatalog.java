@@ -211,7 +211,14 @@ import io.github.leewyatt.rxcontrols.samples.demo.RXYearRangePickerDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXYearRangeViewDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXYearViewDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.carousel.SimpleDemo;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.MaterialNumberFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.NumberFieldSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXAutoCompleteFieldSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXAutoCompletionSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXChipInputSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMaterialPasswordFieldSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMaterialTextFieldSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXPasswordFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRibbonBadgeSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTextFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXAccordionShowcase;
@@ -379,7 +386,8 @@ final class SamplerCatalog {
 
         c = SamplerCategory.INPUT;
         list.add(single(c, RXTextField.class, null, RXTextFieldDemo.class).withSamples(RXTextFieldSamples::create));
-        list.add(single(c, RXPasswordField.class, null, RXPasswordFieldDemo.class));
+        list.add(single(c, RXPasswordField.class, null, RXPasswordFieldDemo.class)
+                .withSamples(RXPasswordFieldSamples::create));
         list.add(family(c, "Number fields",
                 variant("Integer", RXIntegerField.class, RXIntegerFieldShowcase::new, RXIntegerFieldDemo.class),
                 variant("Long", RXLongField.class, RXLongFieldShowcase::new, RXLongFieldDemo.class),
@@ -387,9 +395,9 @@ final class SamplerCatalog {
                 variant("Decimal", RXDecimalField.class, RXDecimalFieldShowcase::new, RXDecimalFieldDemo.class))
                 .withSamples(NumberFieldSamples::create));
         list.add(single(c, RXMaterialTextField.class, RXMaterialTextFieldShowcase::new,
-                RXMaterialTextFieldDemo.class));
+                RXMaterialTextFieldDemo.class).withSamples(RXMaterialTextFieldSamples::create));
         list.add(single(c, RXMaterialPasswordField.class, RXMaterialPasswordFieldShowcase::new,
-                RXMaterialPasswordFieldDemo.class));
+                RXMaterialPasswordFieldDemo.class).withSamples(RXMaterialPasswordFieldSamples::create));
         list.add(family(c, "Material number fields",
                 variant("Integer", RXMaterialIntegerField.class, RXMaterialIntegerFieldShowcase::new,
                         RXMaterialIntegerFieldDemo.class),
@@ -398,11 +406,14 @@ final class SamplerCatalog {
                 variant("Double", RXMaterialDoubleField.class, RXMaterialDoubleFieldShowcase::new,
                         RXMaterialDoubleFieldDemo.class),
                 variant("Decimal", RXMaterialDecimalField.class, RXMaterialDecimalFieldShowcase::new,
-                        RXMaterialDecimalFieldDemo.class)));
+                        RXMaterialDecimalFieldDemo.class))
+                .withSamples(MaterialNumberFieldSamples::create));
         list.add(single(c, RXAutoCompleteField.class, RXAutoCompleteFieldShowcase::new,
-                RXAutoCompleteFieldDemo.class));
-        list.add(single(c, RXAutoCompletion.class, RXAutoCompletionShowcase::new, RXAutoCompletionDemo.class));
-        list.add(single(c, RXChipInput.class, RXChipInputShowcase::new, RXChipInputDemo.class));
+                RXAutoCompleteFieldDemo.class).withSamples(RXAutoCompleteFieldSamples::create));
+        list.add(single(c, RXAutoCompletion.class, RXAutoCompletionShowcase::new, RXAutoCompletionDemo.class)
+                .withSamples(RXAutoCompletionSamples::create));
+        list.add(single(c, RXChipInput.class, RXChipInputShowcase::new, RXChipInputDemo.class)
+                .withSamples(RXChipInputSamples::create));
 
         c = SamplerCategory.DATE_TIME;
         list.add(family(c, "Date",

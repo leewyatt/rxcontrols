@@ -64,8 +64,9 @@ final class SamplerPage extends BorderPane {
         this.samples = loadSamples(entry);
         getStyleClass().add("sampler-page");
         title.getStyleClass().add("page-title");
+        // On a narrow page the base-class chip gives up its room before the title does.
+        title.setMinWidth(Region.USE_PREF_SIZE);
         chip.getStyleClass().add("chip");
-        chip.setMinWidth(Region.USE_PREF_SIZE);
         description.getStyleClass().add("page-description");
         description.setWrapText(true);
         body.getStyleClass().add("page-body");

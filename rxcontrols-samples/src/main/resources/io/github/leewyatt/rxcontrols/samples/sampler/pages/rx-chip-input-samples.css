@@ -1,0 +1,30 @@
+.example-card .chip-count {
+    -fx-font-size: 12px;
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.example-card .rx-chip .label-dot {
+    -fx-pref-width: 8px;
+    -fx-pref-height: 8px;
+    -fx-background-radius: 50%;
+}
+
+.example-card .rx-chip .label-dot.bug {
+    -fx-background-color: #f56c6c;
+}
+
+.example-card .rx-chip .label-dot.feature {
+    -fx-background-color: #409eff;
+}
+
+.example-card .rx-chip .label-dot.docs {
+    -fx-background-color: #67c23a;
+}
+
+.example-card .rx-chip .label-dot.question {
+    -fx-background-color: #b37feb;
+}
+
+.example-card .rx-chip .label-dot.performance {
+    -fx-background-color: #e6a23c;
+}

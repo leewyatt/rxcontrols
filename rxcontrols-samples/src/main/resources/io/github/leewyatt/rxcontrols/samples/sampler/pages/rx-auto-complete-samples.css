@@ -1,0 +1,10 @@
+.example-card .picked {
+    -fx-font-size: 12px;
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.rx-list-cell .year {
+    -fx-font-family: -sampler-mono;
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -showcase-caption-color;
+}

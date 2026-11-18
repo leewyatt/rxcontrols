@@ -126,9 +126,6 @@ public final class RXTextFieldSamples {
     }
 
     private static Region glyph(String styleClass) {
-        Region glyph = new Region();
-        glyph.getStyleClass().addAll("glyph", styleClass);
-        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        return glyph;
+        return FieldSlots.glyph(styleClass);
     }
 }

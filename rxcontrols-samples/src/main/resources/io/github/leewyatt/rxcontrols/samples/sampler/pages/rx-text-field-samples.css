@@ -1,18 +1,7 @@
-.example-card .rx-text-field .glyph {
-    -fx-background-color: -showcase-caption-color;
-}
-
 .example-card .user-glyph {
     -fx-pref-width: 12px;
     -fx-pref-height: 13px;
     -fx-shape: "M6 0A3.4 3.4 0 1 1 5.99 0Z M0 13C0 9.4 2.7 7.6 6 7.6S12 9.4 12 13Z";
-}
-
-.example-card .rx-text-field .check-glyph {
-    -fx-pref-width: 11px;
-    -fx-pref-height: 9px;
-    -fx-background-color: -rx-success;
-    -fx-shape: "M0 4.6L1.4 3.2L4 5.8L9.6 0.2L11 1.6L4 8.6Z";
 }
 
 .example-card .rx-text-field .status {
