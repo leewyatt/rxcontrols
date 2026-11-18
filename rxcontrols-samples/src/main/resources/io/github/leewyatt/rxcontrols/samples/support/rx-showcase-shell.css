@@ -23,6 +23,8 @@
     -showcase-caption-color: -fx-mid-text-color;
     -fx-text-box-border: -color-border-default;
     -fx-accent: -color-accent-emphasis;
+    -fx-focus-color: -color-accent-emphasis;
+    -fx-hover-base: -color-neutral-muted;
 }
 
 .preview-pane {

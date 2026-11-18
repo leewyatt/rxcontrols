@@ -10,8 +10,8 @@ import javafx.scene.layout.HBox;
 import java.util.List;
 
 /**
- * The RXToggleButton page: format toggles, a joined single-choice group, text that
- * follows the state, and round icon toggles.
+ * The RXToggleButton page: round icon toggles, format toggles, a joined single-choice
+ * group and text that follows the state.
  */
 public final class RXToggleButtonSamples {
 
@@ -29,6 +29,10 @@ public final class RXToggleButtonSamples {
                 List.of("On and off states that should look like buttons: text formatting, view modes, follow.",
                         "For a setting that takes effect at once, an RXSwitchButton usually reads better."),
                 List.of(
+                        SampleCard.medium("Icon toggles",
+                                "Round icon toggles with a ripple that grows from the middle.",
+                                row(12.0, iconToggle("grid-icon", true), iconToggle("list-icon", false),
+                                        iconToggle("pin-icon", false))),
                         SampleCard.medium("Format toggles",
                                 "Independent toggles, each on or off on its own.",
                                 row(6.0, toggle("Bold", true), toggle("Italic", false), toggle("Underline", false))),
@@ -37,11 +41,7 @@ public final class RXToggleButtonSamples {
                                 joinedGroup()),
                         SampleCard.medium("Text follows state",
                                 "Bind the text to the selected state to label each side of the toggle.",
-                                row(10.0, follow(false), follow(true))),
-                        SampleCard.medium("Icon toggles",
-                                "Round icon toggles with a ripple that grows from the middle.",
-                                row(6.0, iconToggle("grid-icon", true), iconToggle("list-icon", false),
-                                        iconToggle("pin-icon", false)))),
+                                row(10.0, follow(false), follow(true)))),
                 ButtonIcons.STYLESHEET);
     }
 
