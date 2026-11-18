@@ -40,7 +40,7 @@ public final class RXMaterialPasswordFieldSamples {
                                 "Any node can go in the leading slot, here a lock in front of the label.",
                                 lockField()),
                         SampleCard.medium("No buttons",
-                                "Turn both buttons off where they do not help, such as a one-time code.",
+                                "Turn both buttons off where they do not help, such as a one-time code; echoChar masks it with stars.",
                                 codeField())),
                 SampleContent.class.getResource("rx-material-field-samples.css").toExternalForm());
     }
@@ -74,6 +74,7 @@ public final class RXMaterialPasswordFieldSamples {
         field.setHelperText("Sent to your phone");
         field.setShowClearButton(false);
         field.setShowRevealButton(false);
+        field.setEchoChar('★');
         return field;
     }
 

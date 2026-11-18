@@ -39,9 +39,12 @@ public final class RXSelectionBoxSamples {
 
     private static final List<String[]> CITIES = List.of(
             new String[]{"Canada", "Montreal"}, new String[]{"Canada", "Toronto"}, new String[]{"Canada", "Vancouver"},
+            new String[]{"China", "Beijing"}, new String[]{"China", "Shanghai"}, new String[]{"China", "Shenzhen"},
             new String[]{"Germany", "Berlin"}, new String[]{"Germany", "Hamburg"}, new String[]{"Germany", "Munich"},
             new String[]{"Japan", "Kyoto"}, new String[]{"Japan", "Osaka"}, new String[]{"Japan", "Tokyo"},
-            new String[]{"Spain", "Barcelona"}, new String[]{"Spain", "Madrid"}, new String[]{"Spain", "Seville"});
+            new String[]{"Spain", "Barcelona"}, new String[]{"Spain", "Madrid"}, new String[]{"Spain", "Seville"},
+            new String[]{"United States", "New York"}, new String[]{"United States", "San Francisco"},
+            new String[]{"United States", "Seattle"});
 
     private RXSelectionBoxSamples() {
     }
@@ -119,7 +122,7 @@ public final class RXSelectionBoxSamples {
         RXSelectionBox<String> box = sized(new RXSelectionBox<>(items));
         box.setPromptText("Pick an office");
         box.setSectionKeyFactory(item -> item.substring(item.indexOf(", ") + 2));
-        box.getSelectionModel().select("Osaka, Japan");
+        box.getSelectionModel().select("New York, United States");
         return withSummary(box, "Office: ");
     }
 

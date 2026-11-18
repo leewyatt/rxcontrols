@@ -21,8 +21,8 @@ import java.util.stream.Collectors;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SelectionIcons.text;
 
 /**
- * The RXChipSet page: a job filter bar that narrows a list, a required single choice, an
- * optional single choice, an editable tag list and a display-only set on a profile.
+ * The RXChipSet page: a required single choice, an optional single choice, an editable
+ * tag list, a display-only set on a profile and a job filter bar that narrows a list.
  */
 public final class RXChipSetSamples {
 
@@ -53,9 +53,6 @@ public final class RXChipSetSamples {
                 List.of("A filter bar, a set of answers to pick from, or a list of tags that wraps to fit.",
                         "To add tags by typing use RXChipInput; for a single chip on its own use RXChip."),
                 List.of(
-                        SampleCard.wide("Filter bar",
-                                "MULTIPLE selection: the list shows only the jobs that carry every selected tag.",
-                                jobFilter()),
                         SampleCard.large("Required choice",
                                 "SINGLE with allowEmptySelection off: one size is always picked once a choice exists.",
                                 sizes()),
@@ -67,7 +64,10 @@ public final class RXChipSetSamples {
                                 editable()),
                         SampleCard.large("Display only",
                                 "Selection mode NONE, the default, turns the set into a plain list of tags.",
-                                profile())),
+                                profile()),
+                        SampleCard.wide("Filter bar",
+                                "MULTIPLE selection: the list shows only the jobs that carry every selected tag.",
+                                jobFilter())),
                 SelectionIcons.STYLESHEET);
     }
 
