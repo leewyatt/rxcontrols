@@ -221,6 +221,7 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXAvatarSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBackdropSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBadgeSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBarSpinnerSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBoxSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXBreadcrumbBarSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCarouselSamples;
@@ -240,6 +241,7 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDrawerPaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDualPaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXFillButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXFillLabelSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXFlowPaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXHighlightTextViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXHoldButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXImagePaneSamples;
@@ -250,6 +252,7 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXLineLabelSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXListViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXLrcLineViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXLrcViewSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMasonryPaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMasonryViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMaterialPasswordFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMaterialTextFieldSamples;
@@ -260,6 +263,7 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRadioButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRangeSliderSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXReactionButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRibbonBadgeSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRowSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSeekBarSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSegmentedControlSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSegmentedProgressBarSamples;
@@ -275,6 +279,7 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSwitchButtonSamples
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTabPaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTextFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTextViewSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTilePaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTileViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTimelineViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTitledPaneSamples;
@@ -646,11 +651,16 @@ final class SamplerCatalog {
                 .withSamples(RXLineLabelSamples::create));
 
         c = SamplerCategory.LAYOUT;
-        list.add(single(c, RXBox.class, RXBoxShowcase::new, RXBoxDemo.class));
-        list.add(family(c, "RXRow / RXCol", variant("RXRow", RXRow.class, RXRowShowcase::new, RXRowDemo.class)));
-        list.add(single(c, RXFlowPane.class, RXFlowPaneShowcase::new, RXFlowPaneDemo.class));
-        list.add(single(c, RXTilePane.class, RXTilePaneShowcase::new, RXTilePaneDemo.class));
-        list.add(single(c, RXMasonryPane.class, RXMasonryPaneShowcase::new, RXMasonryPaneDemo.class));
+        list.add(single(c, RXBox.class, RXBoxShowcase::new, RXBoxDemo.class)
+                .withSamples(RXBoxSamples::create));
+        list.add(family(c, "RXRow / RXCol", variant("RXRow", RXRow.class, RXRowShowcase::new, RXRowDemo.class))
+                .withSamples(RXRowSamples::create));
+        list.add(single(c, RXFlowPane.class, RXFlowPaneShowcase::new, RXFlowPaneDemo.class)
+                .withSamples(RXFlowPaneSamples::create));
+        list.add(single(c, RXTilePane.class, RXTilePaneShowcase::new, RXTilePaneDemo.class)
+                .withSamples(RXTilePaneSamples::create));
+        list.add(single(c, RXMasonryPane.class, RXMasonryPaneShowcase::new, RXMasonryPaneDemo.class)
+                .withSamples(RXMasonryPaneSamples::create));
 
         c = SamplerCategory.MOTION;
         list.add(single(c, RXBursts.class, RXBurstsShowcase::new, RXBurstsDemo.class));
