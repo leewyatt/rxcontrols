@@ -1,10 +1,12 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.layout.RXFlowPane;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -166,8 +168,70 @@ public final class SampleCard extends VBox {
     }
 
     private static Node flow(Node... content) {
+        if (content.length == 1) {
+            return new Centered(content[0]);
+        }
         RXFlowPane flow = new RXFlowPane(20.0, 20.0, content);
         flow.setAlignment(Pos.CENTER);
         return flow;
+    }
+
+    /**
+     * Centers a lone node at its preferred size and lets it shrink toward its minimum
+     * width on a narrow card. A flow pane would hold it at its preferred width, so the
+     * card could not get narrower than that and would overlap its neighbor.
+     */
+    private static final class Centered extends Pane {
+
+        private final Node child;
+
+        Centered(Node child) {
+            super(child);
+            this.child = child;
+        }
+
+        @Override
+        public Orientation getContentBias() {
+            return Orientation.HORIZONTAL;
+        }
+
+        @Override
+        protected double computeMinWidth(double height) {
+            return snappedLeftInset() + child.minWidth(-1) + snappedRightInset();
+        }
+
+        @Override
+        protected double computePrefWidth(double height) {
+            return snappedLeftInset() + child.prefWidth(-1) + snappedRightInset();
+        }
+
+        @Override
+        protected double computeMinHeight(double width) {
+            return computePrefHeight(width);
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            double inner = width < 0 ? -1 : width - snappedLeftInset() - snappedRightInset();
+            return snappedTopInset() + child.prefHeight(childWidth(inner)) + snappedBottomInset();
+        }
+
+        @Override
+        protected void layoutChildren() {
+            double width = getWidth() - snappedLeftInset() - snappedRightInset();
+            double height = getHeight() - snappedTopInset() - snappedBottomInset();
+            double w = childWidth(width);
+            double h = Math.min(Math.max(child.prefHeight(w), child.minHeight(w)), Math.max(height, child.minHeight(w)));
+            child.resizeRelocate(snapPositionX(snappedLeftInset() + (width - w) / 2.0),
+                    snapPositionY(snappedTopInset() + (height - h) / 2.0), snapSizeX(w), snapSizeY(h));
+        }
+
+        private double childWidth(double available) {
+            double pref = Math.min(child.prefWidth(-1), child.maxWidth(-1));
+            if (available < 0) {
+                return pref;
+            }
+            return Math.max(child.minWidth(-1), Math.min(available, pref));
+        }
     }
 }

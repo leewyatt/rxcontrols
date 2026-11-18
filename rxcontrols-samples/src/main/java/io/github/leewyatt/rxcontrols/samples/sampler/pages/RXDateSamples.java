@@ -5,10 +5,8 @@ import io.github.leewyatt.rxcontrols.RXDatePicker;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.WeekFields;
 import java.util.List;
@@ -16,8 +14,7 @@ import java.util.Locale;
 
 /**
  * The RXDate page: date pickers for a birthday, a delivery day, two text formats and a
- * read-only due date, and RXCalendarView as an inline team calendar and with week
- * numbers.
+ * read-only due date, and RXCalendarView inline on the page and with week numbers.
  */
 public final class RXDateSamples {
 
@@ -49,9 +46,9 @@ public final class RXDateSamples {
                         SampleCard.medium("Read-only and clearable",
                                 "With editable off the field only opens the popup; clearable shows a clear button on hover.",
                                 dueDate()).forType(RXDatePicker.class),
-                        SampleCard.large("Team calendar",
-                                "An inline RXCalendarView; the agenda beside it follows the selected day.",
-                                teamCalendar()).forType(RXCalendarView.class),
+                        SampleCard.large("Inline calendar",
+                                "An RXCalendarView keeps the month on the page; the label below follows the selected day.",
+                                inlineCalendar()).forType(RXCalendarView.class),
                         SampleCard.large("Week numbers",
                                 "showWeekNumbers adds a week column, ISO weekFields start on Monday, "
                                         + "and showAdjacentDays off hides the other months' days.",
@@ -97,18 +94,16 @@ public final class RXDateSamples {
         return DateTimeKit.field("Due date", DateTimeKit.icon("flag-shape", "rose"), picker, FIELD_WIDTH);
     }
 
-    private static Node teamCalendar() {
+    private static Node inlineCalendar() {
         RXCalendarView calendar = new RXCalendarView(LocalDate.now());
         Label day = DateTimeKit.bound("panel-value",
                 () -> calendar.getValue() == null ? "Pick a day" : DateTimeKit.DAY.format(calendar.getValue()),
                 calendar.valueProperty());
-        Label first = DateTimeKit.bound("agenda-item", () -> agenda(calendar.getValue(), 0), calendar.valueProperty());
-        Label second = DateTimeKit.bound("agenda-item", () -> agenda(calendar.getValue(), 1), calendar.valueProperty());
-        VBox panel = DateTimeKit.panel("Agenda", 170.0, day, first, second);
-        HBox row = new HBox(16.0, calendar, panel);
-        row.setAlignment(Pos.CENTER);
-        return row;
+        VBox box = new VBox(12.0, calendar, day);
+        box.setAlignment(Pos.CENTER);
+        return box;
     }
+
 
     private static Node weekNumbers() {
         RXCalendarView calendar = new RXCalendarView(LocalDate.now());
@@ -119,22 +114,6 @@ public final class RXDateSamples {
         return calendar;
     }
 
-    private static String agenda(LocalDate day, int slot) {
-        if (day == null) {
-            return "";
-        }
-        DayOfWeek weekday = day.getDayOfWeek();
-        if (weekday == DayOfWeek.SATURDAY || weekday == DayOfWeek.SUNDAY) {
-            return slot == 0 ? "No meetings" : "";
-        }
-        String[][] plans = {
-                {"09:30  Stand-up", "14:00  Design review"},
-                {"10:00  Sprint planning", "15:30  1:1 with Lee"},
-                {"09:30  Stand-up", "13:00  Customer call"},
-                {"11:00  Release check", "16:00  Demo prep"},
-                {"09:30  Stand-up", "15:00  Team retro"}};
-        return plans[weekday.getValue() - 1][slot];
-    }
 
     private static LocalDate nextWeekday(LocalDate day) {
         LocalDate next = day;

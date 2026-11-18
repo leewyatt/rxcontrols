@@ -42,10 +42,10 @@ public final class RXMonthSamples {
                         SampleCard.medium("Billing month",
                                 "maxMonth stops at this month; the invoice period below follows the value.",
                                 billingMonth()).forType(RXMonthPicker.class),
-                        SampleCard.large("Monthly statement",
+                        SampleCard.wide("Monthly statement",
                                 "An inline RXMonthView next to the figures of the selected month.",
                                 statement()).forType(RXMonthView.class),
-                        SampleCard.large("Newsletter archive",
+                        SampleCard.wide("Newsletter archive",
                                 "A monthFilter disables the months with no issue; maxMonth ends at this month.",
                                 archive()).forType(RXMonthView.class)),
                 DateTimeKit.STYLESHEET);

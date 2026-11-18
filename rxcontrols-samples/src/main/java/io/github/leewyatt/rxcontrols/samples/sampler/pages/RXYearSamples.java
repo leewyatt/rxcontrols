@@ -40,10 +40,10 @@ public final class RXYearSamples {
                         SampleCard.medium("Graduation year",
                                 "clearable shows a clear button on hover for an optional field.",
                                 graduation()).forType(RXYearPicker.class),
-                        SampleCard.large("Photo archive",
+                        SampleCard.wide("Photo archive",
                                 "A yearFilter disables the years without photos; the count follows the selected year.",
                                 photos()).forType(RXYearView.class),
-                        SampleCard.large("Fiscal year",
+                        SampleCard.wide("Fiscal year",
                                 "An inline RXYearView that switches the fiscal year shown in the panel.",
                                 fiscalYear()).forType(RXYearView.class)),
                 DateTimeKit.STYLESHEET);

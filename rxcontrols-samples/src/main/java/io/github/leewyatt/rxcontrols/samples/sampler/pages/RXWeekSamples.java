@@ -42,10 +42,10 @@ public final class RXWeekSamples {
                         SampleCard.medium("Sprint week",
                                 "minWeek and maxWeek allow the next eight weeks; a converter writes the field's text.",
                                 sprintWeek()).forType(RXWeekPicker.class),
-                        SampleCard.large("Weekly report",
+                        SampleCard.wide("Weekly report",
                                 "An inline RXWeekView with ISO weekFields; the report beside it follows the week.",
                                 weeklyReport()).forType(RXWeekView.class),
-                        SampleCard.large("Every other week",
+                        SampleCard.wide("Every other week",
                                 "A weekFilter keeps the even weeks for a pay calendar; the others are disabled.",
                                 payWeeks()).forType(RXWeekView.class)),
                 DateTimeKit.STYLESHEET);
