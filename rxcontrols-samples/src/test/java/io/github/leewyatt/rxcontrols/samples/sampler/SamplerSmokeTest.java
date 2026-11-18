@@ -63,7 +63,7 @@ public class SamplerSmokeTest {
     @Test
     public void searchMatchesVariantTypeNamesAndCategory() {
         SamplerEntry week = SamplerCatalog.entries().stream()
-                .filter(entry -> entry.name().equals("Week")).findFirst().orElseThrow();
+                .filter(entry -> entry.name().equals("RXWeekRange")).findFirst().orElseThrow();
         assertTrue(week.matches("weekrangeview"));
         assertTrue(week.matches("date"));
         assertFalse(week.matches("monthpicker"));

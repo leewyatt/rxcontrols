@@ -236,6 +236,10 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXChipSetSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCircularProgressIndicatorSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXClipPathImageViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCopyButtonSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDateRangeSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDateSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDateTimeRangeSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDateTimeSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDialogSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDigitSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDotPulseSamples;
@@ -259,8 +263,12 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMasonryViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMaterialPasswordFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMaterialTextFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMenuButtonSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMonthRangeSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXMonthSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXPasswordFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXPlaceholderSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXQuarterRangeSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXQuarterSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRadioButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRangeSliderSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXReactionButtonSamples;
@@ -285,6 +293,8 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTextFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTextViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTilePaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTileViewSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTimeRangeSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTimeSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTimelineViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTitledPaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXToggleButtonSamples;
@@ -292,6 +302,10 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTransitionButtonSam
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTransitionLabelSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTransitionPaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXWaveProgressIndicatorSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXWeekRangeSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXWeekSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXYearRangeSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXYearSamples;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXAccordionShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXAudioSpectrumShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXAutoCompleteFieldShowcase;
@@ -507,51 +521,73 @@ final class SamplerCatalog {
                 .withSamples(RXChipInputSamples::create));
 
         c = SamplerCategory.DATE_TIME;
-        list.add(family(c, "Date",
+        list.add(family(c, "RXDate",
                 variant("Picker", RXDatePicker.class, RXDatePickerShowcase::new, RXDatePickerDemo.class),
+                variant("View", RXCalendarView.class, RXCalendarViewShowcase::new, RXCalendarViewDemo.class))
+                .withSamples(RXDateSamples::create));
+        list.add(family(c, "RXDateRange",
                 variant("Range picker", RXDateRangePicker.class, RXDateRangePickerShowcase::new,
                         RXDateRangePickerDemo.class),
-                variant("Calendar", RXCalendarView.class, RXCalendarViewShowcase::new, RXCalendarViewDemo.class),
                 variant("Range view", RXDateRangeView.class, RXDateRangeViewShowcase::new,
-                        RXDateRangeViewDemo.class)));
-        list.add(family(c, "Date & time",
-                variant("Picker", RXDateTimePicker.class, RXDateTimePickerShowcase::new, RXDateTimePickerDemo.class),
+                        RXDateRangeViewDemo.class))
+                .withSamples(RXDateRangeSamples::create));
+        list.add(family(c, "RXDateTime",
+                variant("Picker", RXDateTimePicker.class, RXDateTimePickerShowcase::new,
+                        RXDateTimePickerDemo.class),
+                variant("View", RXDateTimeView.class, RXDateTimeViewShowcase::new, RXDateTimeViewDemo.class))
+                .withSamples(RXDateTimeSamples::create));
+        list.add(family(c, "RXDateTimeRange",
                 variant("Range picker", RXDateTimeRangePicker.class, RXDateTimeRangePickerShowcase::new,
-                        RXDateTimeRangePickerDemo.class),
-                variant("View", RXDateTimeView.class, RXDateTimeViewShowcase::new, RXDateTimeViewDemo.class)));
-        list.add(family(c, "Time",
+                        RXDateTimeRangePickerDemo.class))
+                .withSamples(RXDateTimeRangeSamples::create));
+        list.add(family(c, "RXTime",
                 variant("Picker", RXTimePicker.class, RXTimePickerShowcase::new, RXTimePickerDemo.class),
+                variant("View", RXTimeView.class, RXTimeViewShowcase::new, RXTimeViewDemo.class))
+                .withSamples(RXTimeSamples::create));
+        list.add(family(c, "RXTimeRange",
                 variant("Range picker", RXTimeRangePicker.class, RXTimeRangePickerShowcase::new,
-                        RXTimeRangePickerDemo.class),
-                variant("View", RXTimeView.class, RXTimeViewShowcase::new, RXTimeViewDemo.class)));
-        list.add(family(c, "Week",
+                        RXTimeRangePickerDemo.class))
+                .withSamples(RXTimeRangeSamples::create));
+        list.add(family(c, "RXWeek",
                 variant("Picker", RXWeekPicker.class, RXWeekPickerShowcase::new, RXWeekPickerDemo.class),
+                variant("View", RXWeekView.class, RXWeekViewShowcase::new, RXWeekViewDemo.class))
+                .withSamples(RXWeekSamples::create));
+        list.add(family(c, "RXWeekRange",
                 variant("Range picker", RXWeekRangePicker.class, RXWeekRangePickerShowcase::new,
                         RXWeekRangePickerDemo.class),
-                variant("View", RXWeekView.class, RXWeekViewShowcase::new, RXWeekViewDemo.class),
                 variant("Range view", RXWeekRangeView.class, RXWeekRangeViewShowcase::new,
-                        RXWeekRangeViewDemo.class)));
-        list.add(family(c, "Month",
+                        RXWeekRangeViewDemo.class))
+                .withSamples(RXWeekRangeSamples::create));
+        list.add(family(c, "RXMonth",
                 variant("Picker", RXMonthPicker.class, RXMonthPickerShowcase::new, RXMonthPickerDemo.class),
+                variant("View", RXMonthView.class, RXMonthViewShowcase::new, RXMonthViewDemo.class))
+                .withSamples(RXMonthSamples::create));
+        list.add(family(c, "RXMonthRange",
                 variant("Range picker", RXMonthRangePicker.class, RXMonthRangePickerShowcase::new,
                         RXMonthRangePickerDemo.class),
-                variant("View", RXMonthView.class, RXMonthViewShowcase::new, RXMonthViewDemo.class),
                 variant("Range view", RXMonthRangeView.class, RXMonthRangeViewShowcase::new,
-                        RXMonthRangeViewDemo.class)));
-        list.add(family(c, "Quarter",
+                        RXMonthRangeViewDemo.class))
+                .withSamples(RXMonthRangeSamples::create));
+        list.add(family(c, "RXQuarter",
                 variant("Picker", RXQuarterPicker.class, RXQuarterPickerShowcase::new, RXQuarterPickerDemo.class),
+                variant("View", RXQuarterView.class, RXQuarterViewShowcase::new, RXQuarterViewDemo.class))
+                .withSamples(RXQuarterSamples::create));
+        list.add(family(c, "RXQuarterRange",
                 variant("Range picker", RXQuarterRangePicker.class, RXQuarterRangePickerShowcase::new,
                         RXQuarterRangePickerDemo.class),
-                variant("View", RXQuarterView.class, RXQuarterViewShowcase::new, RXQuarterViewDemo.class),
                 variant("Range view", RXQuarterRangeView.class, RXQuarterRangeViewShowcase::new,
-                        RXQuarterRangeViewDemo.class)));
-        list.add(family(c, "Year",
+                        RXQuarterRangeViewDemo.class))
+                .withSamples(RXQuarterRangeSamples::create));
+        list.add(family(c, "RXYear",
                 variant("Picker", RXYearPicker.class, RXYearPickerShowcase::new, RXYearPickerDemo.class),
+                variant("View", RXYearView.class, RXYearViewShowcase::new, RXYearViewDemo.class))
+                .withSamples(RXYearSamples::create));
+        list.add(family(c, "RXYearRange",
                 variant("Range picker", RXYearRangePicker.class, RXYearRangePickerShowcase::new,
                         RXYearRangePickerDemo.class),
-                variant("View", RXYearView.class, RXYearViewShowcase::new, RXYearViewDemo.class),
                 variant("Range view", RXYearRangeView.class, RXYearRangeViewShowcase::new,
-                        RXYearRangeViewDemo.class)));
+                        RXYearRangeViewDemo.class))
+                .withSamples(RXYearRangeSamples::create));
 
         c = SamplerCategory.DATA_VIEWS;
         list.add(single(c, RXListView.class, RXListViewShowcase::new, RXListViewDemo.class)

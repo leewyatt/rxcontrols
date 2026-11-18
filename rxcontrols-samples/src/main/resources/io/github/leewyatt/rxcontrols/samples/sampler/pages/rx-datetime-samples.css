@@ -1,0 +1,193 @@
+/*******************************************************************************
+ *                                                                             *
+ * Text                                                                        *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .body {
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .hint {
+    -fx-font-size: 12px;
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.example-card .result {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: -sampler-accent-text;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Side panels                                                                 *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .side-panel {
+    -fx-padding: 14px 16px;
+    -fx-background-color: -fx-text-box-border, -fx-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 8px, 7px;
+}
+
+.example-card .panel-heading {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.example-card .panel-value {
+    -fx-font-size: 15px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .agenda-item {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Bars                                                                        *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .bars .bar {
+    -fx-background-color: -fx-text-box-border;
+    -fx-background-radius: 4px 4px 0 0;
+}
+
+.example-card .bars .bar-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.example-card .bars.teal .bar:in-range { -fx-background-color: #14b8a6; }
+.example-card .bars.indigo .bar:in-range { -fx-background-color: #6366f1; }
+.example-card .bars.orange .bar:in-range { -fx-background-color: #f97316; }
+.example-card .bars.pink .bar:in-range { -fx-background-color: #ec4899; }
+
+/*******************************************************************************
+ *                                                                             *
+ * View accents                                                                *
+ *                                                                             *
+ ******************************************************************************/
+.example-card > .stage .accent-teal { -rx-primary: #0d9488; }
+.example-card > .stage .accent-violet { -rx-primary: #7c3aed; }
+.example-card > .stage .accent-rose { -rx-primary: #e11d48; }
+.example-card > .stage .accent-orange { -rx-primary: #ea580c; }
+.example-card > .stage .accent-indigo { -rx-primary: #4f46e5; }
+.example-card > .stage .accent-pink { -rx-primary: #db2777; }
+
+/*******************************************************************************
+ *                                                                             *
+ * Icons                                                                       *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .symbol {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+    -fx-background-color: -showcase-caption-color;
+}
+
+.example-card .symbol.rose { -fx-background-color: #f43f5e; }
+.example-card .symbol.orange { -fx-background-color: #f97316; }
+.example-card .symbol.amber { -fx-background-color: #f59e0b; }
+.example-card .symbol.lime { -fx-background-color: #65a30d; }
+.example-card .symbol.teal { -fx-background-color: #14b8a6; }
+.example-card .symbol.sky { -fx-background-color: #0ea5e9; }
+.example-card .symbol.indigo { -fx-background-color: #6366f1; }
+.example-card .symbol.violet { -fx-background-color: #8b5cf6; }
+.example-card .symbol.pink { -fx-background-color: #ec4899; }
+
+.example-card .person-shape {
+    -fx-shape: "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .truck-shape {
+    -fx-shape: "M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .globe-shape {
+    -fx-shape: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .text-shape {
+    -fx-shape: "M2.5 4v3h5v12h3V7h5V4h-13zm19 5h-9v3h3v7h3v-7h3V9zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .flag-shape {
+    -fx-shape: "M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .calendar-shape {
+    -fx-shape: "M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .clock-shape {
+    -fx-shape: "M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .bed-shape {
+    -fx-shape: "M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .chart-shape {
+    -fx-shape: "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .alarm-shape {
+    -fx-shape: "M22 5.72l-4.6-3.86-1.29 1.53 4.6 3.86L22 5.72zM7.88 3.39L6.6 1.86 2 5.71l1.29 1.53 4.59-3.85zM12.5 8H11v6l4.75 2.85.75-1.23-4-2.37V8zM12 4c-4.97 0-9 4.03-9 9s4.02 9 9 9c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .moon-shape {
+    -fx-shape: "M9 2c-1.05 0-2.05.16-3 .46 4.06 1.27 7 5.06 7 9.54 0 4.48-2.94 8.27-7 9.54.95.3 1.95.46 3 .46 5.52 0 10-4.48 10-10S14.52 2 9 2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .store-shape {
+    -fx-shape: "M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .car-shape {
+    -fx-shape: "M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .work-shape {
+    -fx-shape: "M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .school-shape {
+    -fx-shape: "M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .doc-shape {
+    -fx-shape: "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .search-shape {
+    -fx-shape: "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .bell-shape {
+    -fx-shape: "M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .card-shape {
+    -fx-shape: "M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2zM0 0L0 0M24 24L24 24";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Preset buttons                                                              *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-button.preset {
+    -fx-font-size: 12px;
+    -fx-padding: 3px 10px;
+    -fx-background-color: -sampler-accent-soft;
+    -fx-background-insets: 0;
+    -fx-background-radius: 999px;
+    -fx-text-fill: -sampler-accent-text;
+}
+
+.example-card .rx-button.preset:hover {
+    -fx-background-color: derive(-sampler-accent-soft, -6%);
+}
