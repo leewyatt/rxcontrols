@@ -57,7 +57,7 @@ public final class RXSegmentedControlSamples {
                                 "-rx-primary on the control recolors its indicator.",
                                 colors()),
                         SampleCard.medium("Optional and disabled",
-                                "allowEmptySelection lets a second click clear the choice; the disabled XL cannot be picked.",
+                                "allowEmptySelection lets a second click clear a choice; disabled segments (XL, Red) cannot be picked.",
                                 optional())),
                 SelectionIcons.STYLESHEET);
     }
@@ -118,7 +118,14 @@ public final class RXSegmentedControlSamples {
         name.setPromptText("Full name");
         name.visibleProperty().bind(mode.valueProperty().isEqualTo("up"));
         name.managedProperty().bind(name.visibleProperty());
-        VBox form = new VBox(10.0, mode, name, email);
+        // Takes the name field's row while signing in, so switching modes does not
+        // resize the card, and with it the row and the cards beside it.
+        Label reserve = text("New here? Pick Create account above.", "hint");
+        reserve.minHeightProperty().bind(email.heightProperty());
+        reserve.prefHeightProperty().bind(email.heightProperty());
+        reserve.visibleProperty().bind(name.visibleProperty().not());
+        reserve.managedProperty().bind(reserve.visibleProperty());
+        VBox form = new VBox(10.0, mode, name, email, reserve);
         form.getStyleClass().add("form-panel");
         form.setPrefWidth(300.0);
         form.setMaxWidth(Region.USE_PREF_SIZE);
@@ -147,10 +154,11 @@ public final class RXSegmentedControlSamples {
 
     private static Node colors() {
         VBox box = new VBox(12.0,
-                colored("teal", "Song", "Album", "Artist"),
-                colored("orange", "Hot", "New", "Top"),
-                colored("violet", "Light", "Dark", "Auto"));
+                colored("teal", "Song", "Album", "Artist", "Playlist"),
+                colored("orange", "Hot", "New", "Top", "Rising"),
+                colored("violet", "Light", "Dark", "Dim", "Auto"));
         box.setAlignment(Pos.CENTER);
+        box.setMaxWidth(Region.USE_PREF_SIZE);
         return box;
     }
 
@@ -159,27 +167,42 @@ public final class RXSegmentedControlSamples {
         for (String value : texts) {
             control.getItems().add(RXSegmentedItem.of(value, value));
         }
+        // block lets the box stretch all three to the widest one.
+        control.setBlock(true);
         control.getStyleClass().add(color);
         return control;
     }
 
     private static Node optional() {
-        RXSegmentedControl<String> size = new RXSegmentedControl<>(
-                RXSegmentedItem.of("S", "S"),
-                RXSegmentedItem.of("M", "M"),
-                RXSegmentedItem.of("L", "L"),
-                RXSegmentedItem.of("XL", "XL"));
-        size.setAllowEmptySelection(true);
-        size.setEqualSegmentWidth(true);
-        size.getItems().get(3).setDisable(true);
-        size.getItems().get(3).setTooltip(new Tooltip("Sold out"));
-        size.setValue("M");
+        RXSegmentedControl<String> size = optionalFilter("M", "S", "M", "L", "XL");
+        disable(size, 3, "Sold out");
+        RXSegmentedControl<String> color = optionalFilter(null, "Black", "White", "Sand", "Red");
+        disable(color, 3, "Out of stock");
         Label status = text("", "hint");
         status.textProperty().bind(Bindings.createStringBinding(
-                () -> size.getValue() == null ? "No size filter" : "Size " + size.getValue(),
-                size.valueProperty()));
-        VBox box = new VBox(10.0, size, status);
+                () -> (size.getValue() == null ? "Any size" : "Size " + size.getValue())
+                        + " · " + (color.getValue() == null ? "any color" : color.getValue()),
+                size.valueProperty(), color.valueProperty()));
+        VBox box = new VBox(10.0, size, color, status);
         box.setAlignment(Pos.CENTER);
+        box.setMaxWidth(Region.USE_PREF_SIZE);
         return box;
     }
+
+    private static RXSegmentedControl<String> optionalFilter(String value, String... texts) {
+        RXSegmentedControl<String> control = new RXSegmentedControl<>();
+        for (String text : texts) {
+            control.getItems().add(RXSegmentedItem.of(text, text));
+        }
+        control.setAllowEmptySelection(true);
+        control.setBlock(true);
+        control.setValue(value);
+        return control;
+    }
+
+    private static void disable(RXSegmentedControl<String> control, int index, String reason) {
+        control.getItems().get(index).setDisable(true);
+        control.getItems().get(index).setTooltip(new Tooltip(reason));
+    }
+
 }
