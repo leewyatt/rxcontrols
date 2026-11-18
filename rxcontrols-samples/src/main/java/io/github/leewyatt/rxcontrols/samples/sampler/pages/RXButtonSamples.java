@@ -7,7 +7,7 @@ import javafx.scene.layout.HBox;
 import java.util.List;
 
 /**
- * The RXButton page: the ripple on plain and filled buttons, a centered ripple on icon
+ * The RXButton page: a centered ripple on icon buttons, the ripple on plain and filled
  * buttons, and the state overlay without a ripple.
  */
 public final class RXButtonSamples {
@@ -26,6 +26,10 @@ public final class RXButtonSamples {
                 List.of("Any action button where a press should feel physical: dialogs, forms, toolbars.",
                         "It is a plain Button underneath, so existing button code and styles keep working."),
                 List.of(
+                        SampleCard.medium("Icon buttons",
+                                "A centered ripple grows from the middle, which suits round icon buttons.",
+                                new HBox(14.0, iconButton("bold-icon"), iconButton("italic-icon"),
+                                        iconButton("underline-icon"), iconButton("link-icon"))),
                         SampleCard.medium("Ripple",
                                 "The ripple starts where the button is pressed and is clipped to its shape.",
                                 row(new RXButton("Cancel"), new RXButton("Save draft"),
@@ -34,10 +38,6 @@ public final class RXButtonSamples {
                                 "On a colored button a white ripple reads better; -rx-ripple-fill sets it from CSS.",
                                 row(solid("Publish", "primary"), solid("Approve", "success"),
                                         solid("Delete", "danger"))),
-                        SampleCard.medium("Icon buttons",
-                                "A centered ripple grows from the middle, which suits round icon buttons.",
-                                row(iconButton("bold-icon"), iconButton("italic-icon"),
-                                        iconButton("underline-icon"), iconButton("link-icon"))),
                         SampleCard.medium("Overlay only",
                                 "With the ripple off, hover, focus and press still show through the state overlay.",
                                 row(quiet("Previous"), quiet("Next")))),

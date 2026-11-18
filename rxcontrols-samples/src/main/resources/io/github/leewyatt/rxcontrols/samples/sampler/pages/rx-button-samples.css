@@ -162,10 +162,12 @@
     -fx-padding: 8px;
 }
 
+.example-card .rx-button.round,
 .example-card .rx-toggle-button.round {
     -fx-padding: 11px;
 }
 
+.example-card .rx-button.round .icon,
 .example-card .rx-toggle-button.round .icon {
     -fx-pref-width: 22px;
     -fx-pref-height: 22px;
