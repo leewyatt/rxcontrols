@@ -68,6 +68,14 @@ public class PageTransitionEngineTest {
             return play(length, "");
         }
 
+        RecordingAnimation play(RecordingAnimation animation) {
+            engine.play(animation, context,
+                    () -> log.add("started"),
+                    () -> log.add("settled"),
+                    () -> log.add("external stop"));
+            return animation;
+        }
+
         RecordingAnimation play(Duration length, String prefix) {
             RecordingAnimation animation = new RecordingAnimation(this, length, prefix);
             engine.play(animation, context,
@@ -84,6 +92,8 @@ public class PageTransitionEngineTest {
         private final Duration length;
         private final String prefix;
         boolean jumpToEndOnLastFrame;
+        int cycleCount = 1;
+        boolean autoReverse;
         Timeline timeline;
 
         RecordingAnimation(Fixture fixture, Duration length, String prefix) {
@@ -104,6 +114,8 @@ public class PageTransitionEngineTest {
                     jumpToEnd();
                 }
             }));
+            timeline.setCycleCount(cycleCount);
+            timeline.setAutoReverse(autoReverse);
             timeline.setOnFinished(event -> {
                 finish.run();
                 setFinishAction(null);
@@ -177,15 +189,40 @@ public class PageTransitionEngineTest {
         onFx(() -> {
             RecordingAnimation animation = new RecordingAnimation(fixture, LENGTH, "");
             animation.jumpToEndOnLastFrame = true;
-            fixture.engine.play(animation, fixture.context,
-                    () -> fixture.log.add("started"),
-                    () -> fixture.log.add("settled"),
-                    () -> fixture.log.add("external stop"));
+            fixture.play(animation);
             return null;
         });
         assertTrue(fixture.finished.await(5, TimeUnit.SECONDS), "the transition did not end");
         assertEquals(STOPPED_FROM_OUTSIDE, logOf(fixture));
         assertFalse(onFx(fixture.engine::isTransitioning));
+    }
+
+    @Test
+    public void aRepeatingAnimationStoppedBeforeItsFirstFrameReportsAnExternalStop() throws Exception {
+        Fixture fixture = new Fixture();
+        List<String> afterJump = onFx(() -> {
+            RecordingAnimation animation = new RecordingAnimation(fixture, LENGTH, "");
+            animation.cycleCount = 2;
+            fixture.play(animation);
+            animation.timeline.pause();
+            animation.jumpToEnd();
+            return List.copyOf(fixture.log);
+        });
+        assertEquals(STOPPED_FROM_OUTSIDE, afterJump);
+        assertFalse(onFx(fixture.engine::isTransitioning));
+    }
+
+    @Test
+    public void aRepeatingAnimationThatEndsBackAtItsStartSettlesWithoutAnExternalStop() throws Exception {
+        Fixture fixture = new Fixture();
+        onFx(() -> {
+            RecordingAnimation animation = new RecordingAnimation(fixture, LENGTH, "");
+            animation.cycleCount = 2;
+            animation.autoReverse = true;
+            return fixture.play(animation);
+        });
+        assertTrue(fixture.finished.await(5, TimeUnit.SECONDS), "the transition did not finish");
+        assertEquals(FINISHED_ON_ITS_OWN, logOf(fixture));
     }
 
     @Test

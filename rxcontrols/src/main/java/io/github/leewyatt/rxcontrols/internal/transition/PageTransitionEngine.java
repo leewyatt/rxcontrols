@@ -142,13 +142,24 @@ public final class PageTransitionEngine {
 
         // The status turns STOPPED on both paths, and on a natural finish it does so
         // before onFinished runs, so it cannot tell them apart. The play head can:
-        // Animation.stop() rewinds it, a natural finish leaves it at the end.
-        InvalidationListener rewindWatch = new InvalidationListener() {
+        // Animation.stop() rewinds it, a natural finish leaves it at the end. Only an
+        // animation that has not advanced yet may have nothing to rewind; it cannot
+        // have finished either, so its stop is read from the status.
+        InvalidationListener stopWatch = new InvalidationListener() {
+            private boolean advanced;
+
             @Override
             public void invalidated(Observable observable) {
+                boolean playHeadMoved = observable == transition.currentTimeProperty();
                 if (transition.getStatus() != Animation.Status.STOPPED) {
+                    advanced = advanced
+                            || (playHeadMoved && transition.getCurrentTime().greaterThan(Duration.ZERO));
                     return;
                 }
+                if (advanced && !playHeadMoved) {
+                    return;
+                }
+                transition.statusProperty().removeListener(this);
                 transition.currentTimeProperty().removeListener(this);
                 if (transitioning) {
                     transitioning = false;
@@ -162,7 +173,8 @@ public final class PageTransitionEngine {
         EventHandler<ActionEvent> animHandler = transition.getOnFinished();
         transition.setOnFinished(e -> {
             // Playing the same animation again rewinds it too; this run is over.
-            transition.currentTimeProperty().removeListener(rewindWatch);
+            transition.statusProperty().removeListener(stopWatch);
+            transition.currentTimeProperty().removeListener(stopWatch);
             transitioning = false;
             if (animHandler != null) {
                 animHandler.handle(e);
@@ -179,7 +191,8 @@ public final class PageTransitionEngine {
         // Watched only from here: play() rewinds the play head before starting, and
         // an animation with no length has already finished inside it.
         if (transition.getStatus() != Animation.Status.STOPPED) {
-            transition.currentTimeProperty().addListener(rewindWatch);
+            transition.statusProperty().addListener(stopWatch);
+            transition.currentTimeProperty().addListener(stopWatch);
         }
     }
 
