@@ -1,10 +1,13 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
+import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXButton;
+import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.RXDotPulse;
 import io.github.leewyatt.rxcontrols.RXImageView;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
+import io.github.leewyatt.rxcontrols.RXSwitchButton;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.RXTransitionPane;
 import io.github.leewyatt.rxcontrols.animation.page.AnimCube;
@@ -16,8 +19,13 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimSwap;
 import io.github.leewyatt.rxcontrols.animation.page.AnimWipe;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
+import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -37,6 +45,7 @@ import java.util.Map;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.frame;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.icon;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.iconButton;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.plain;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.solid;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.spacer;
@@ -45,14 +54,18 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.wrapped
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.scenery;
 
 /**
- * The RXTransitionPane page: a sign-up wizard that slides forward and back, quotes
- * that change with an animation picked from a segmented control, a weather panel that
- * fades from loading to the result, and a photo viewer driven by thumbnails.
+ * The RXTransitionPane page: a notification bar whose notices each carry their own
+ * controls, a sign-up wizard that slides forward and back, a weather panel that fades
+ * from loading to the result, quotes that change with an animation picked from a
+ * segmented control, and a photo viewer driven by thumbnails.
  */
 public final class RXTransitionPaneSamples {
 
     private static final double FRAME_WIDTH = 440.0;
     private static final double FRAME_HEIGHT = 300.0;
+    private static final double NOTICE_WIDTH = 560.0;
+    private static final double NOTICE_HEIGHT = 30.0;
+    private static final PseudoClass FILLED = PseudoClass.getPseudoClass("filled");
 
     private static final String[][] QUOTES = {
             {"Simplicity is a great virtue but it requires hard work to achieve it.", "amber"},
@@ -74,21 +87,142 @@ public final class RXTransitionPaneSamples {
                 List.of("Steps of a wizard, a loading state turning into a result, any content that is swapped in place.",
                         "For a fixed pair of faces use RXDualPane; for pages the user browses in order use RXCarousel."),
                 List.of(
+                        SampleCard.wide("Notification bar",
+                                "Each notice is a whole row with its own controls at the end, so the content swaps "
+                                        + "as one node; the bar holds still while the pointer is on it.",
+                                notifications()),
                         SampleCard.large("Sign-up wizard",
                                 "transitionTo(page, FORWARD) on Next and BACKWARD on Back, so AnimSlide moves "
                                         + "the right way.",
                                 wizard()),
-                        SampleCard.large("Pick an animation",
-                                "The segmented control sets the animation property; Next quote replaces the content.",
-                                quotes()),
                         SampleCard.large("Loading, then the result",
                                 "Refresh swaps in a loading view, then the result; AnimFade cross-fades each change.",
                                 weather()),
+                        SampleCard.large("Pick an animation",
+                                "The segmented control sets the animation property; Next quote replaces the content.",
+                                quotes()),
                         SampleCard.large("Photo viewer",
                                 "A thumbnail click sets the photo with AnimDissolve; the direction follows "
                                         + "the thumbnail order.",
                                 viewer())),
                 NavKit.STYLESHEET);
+    }
+
+    // ==================== Notification bar ====================
+
+    private static Node notifications() {
+        List<Node> notices = List.of(
+                notice("truck-icon", "Your order #1042 has shipped", track()),
+                notice("person-icon", "Mia Chen started following you", followBack()),
+                notice("drive-icon", "Your storage is almost full", storage()),
+                notice("star-icon", "How was your stay in Lisbon?", stars()),
+                notice("palette-icon", "Dark mode is here", darkMode()),
+                notice("calendar-icon", "Design review starts in 5 minutes", meeting()));
+        RXTransitionPane pane = new RXTransitionPane(notices.get(0));
+        pane.setAnimation(new AnimSlide(Orientation.VERTICAL));
+        pane.setAnimationDuration(Duration.millis(400.0));
+        // A fixed size keeps the bar steady whatever the notice holds.
+        pane.setPrefSize(NOTICE_WIDTH, NOTICE_HEIGHT);
+        pane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+
+        Label count = text("1 / " + notices.size(), "notice-count");
+        count.setMinWidth(Region.USE_PREF_SIZE);
+        int[] index = {0};
+        Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(4.0), event -> {
+            index[0] = (index[0] + 1) % notices.size();
+            pane.transitionTo(notices.get(index[0]), TransitionDirection.FORWARD);
+            count.setText((index[0] + 1) + " / " + notices.size());
+        }));
+        timeline.setCycleCount(Animation.INDEFINITE);
+
+        HBox bar = new HBox(16.0, pane, count);
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.getStyleClass().add("notice-bar");
+        bar.setMaxWidth(Region.USE_PREF_SIZE);
+        // The controls in a notice are live, so the bar holds still while the pointer is on
+        // it, and rests while the page is not shown.
+        Runnable rotate = () -> {
+            if (bar.getScene() != null && !bar.isHover()) {
+                timeline.play();
+            } else {
+                timeline.pause();
+            }
+        };
+        bar.sceneProperty().addListener(obs -> rotate.run());
+        bar.hoverProperty().addListener(obs -> rotate.run());
+        return bar;
+    }
+
+    private static Node notice(String iconClass, String message, Node trailing) {
+        HBox row = new HBox(10.0, icon(iconClass), text(message, "notice-text"), spacer(), trailing);
+        row.setAlignment(Pos.CENTER_LEFT);
+        return row;
+    }
+
+    private static Node track() {
+        RXButton track = noticeButton("Track", true);
+        track.setOnAction(event -> track.setText("Opening…"));
+        return track;
+    }
+
+    private static Node followBack() {
+        RXAvatar avatar = new RXAvatar();
+        avatar.setText("MC");
+        avatar.setPrefSize(24.0, 24.0);
+        RXButton follow = noticeButton("Follow back", true);
+        follow.setOnAction(event -> follow.setText("Following".equals(follow.getText()) ? "Follow back" : "Following"));
+        HBox box = new HBox(8.0, avatar, follow);
+        box.setAlignment(Pos.CENTER_LEFT);
+        return box;
+    }
+
+    private static Node storage() {
+        RXCircularProgressIndicator ring = new RXCircularProgressIndicator(0.92);
+        ring.setPrefSize(22.0, 22.0);
+        ring.setTrackStrokeWidth(3.0);
+        ring.setProgressStrokeWidth(3.0);
+        ring.setTextFactory(value -> "");
+        HBox box = new HBox(8.0, ring, text("92%", "notice-count"), noticeButton("Upgrade", true));
+        box.setAlignment(Pos.CENTER_LEFT);
+        return box;
+    }
+
+    private static Node stars() {
+        HBox box = new HBox(2.0);
+        box.setAlignment(Pos.CENTER_LEFT);
+        for (int i = 0; i < 5; i++) {
+            int value = i + 1;
+            StackPane star = iconButton("star-icon");
+            star.setOnMouseClicked(event -> {
+                for (int k = 0; k < box.getChildren().size(); k++) {
+                    box.getChildren().get(k).pseudoClassStateChanged(FILLED, k < value);
+                }
+            });
+            box.getChildren().add(star);
+        }
+        return box;
+    }
+
+    private static Node darkMode() {
+        RXSwitchButton toggle = new RXSwitchButton("Try it");
+        toggle.getStyleClass().add("notice-switch");
+        return toggle;
+    }
+
+    private static Node meeting() {
+        RXButton snooze = noticeButton("Snooze", false);
+        snooze.setOnAction(event -> snooze.setText("Snoozed"));
+        HBox box = new HBox(8.0, snooze, noticeButton("Join", true));
+        box.setAlignment(Pos.CENTER_LEFT);
+        return box;
+    }
+
+    // A pill button for the bar: white for the main action, a light tint for the other.
+    private static RXButton noticeButton(String value, boolean main) {
+        RXButton button = new RXButton(value);
+        button.getStyleClass().addAll("notice-action", main ? "main" : "other");
+        button.setMinWidth(Region.USE_PREF_SIZE);
+        return button;
     }
 
     // ==================== Sign-up wizard ====================

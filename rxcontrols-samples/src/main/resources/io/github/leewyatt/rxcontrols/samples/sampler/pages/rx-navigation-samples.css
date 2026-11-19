@@ -697,6 +697,69 @@
  * RXTransitionPane                                                            *
  *                                                                             *
  ******************************************************************************/
+.example-card .notice-bar {
+    -fx-padding: 8px 18px;
+    -fx-background-color: linear-gradient(to right, #6366f1, #8b5cf6);
+    -fx-background-radius: 999px;
+}
+
+.example-card .notice-bar .notice-text {
+    -fx-font-size: 14px;
+    -fx-text-fill: white;
+}
+
+.example-card .notice-bar .notice-count {
+    -fx-font-size: 12px;
+    -fx-text-fill: rgba(255, 255, 255, 0.75);
+}
+
+.example-card .notice-bar .symbol {
+    -fx-background-color: white;
+}
+
+.example-card .notice-bar .rx-button.notice-action {
+    -fx-padding: 4px 12px;
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+    -fx-background-insets: 0;
+    -fx-background-radius: 999px;
+    -fx-border-color: transparent;
+    -fx-font-size: 12.5px;
+    -fx-text-fill: white;
+    -rx-ripple-fill: white;
+}
+
+.example-card .notice-bar .rx-button.notice-action.main {
+    -fx-background-color: white;
+    -fx-text-fill: #6d28d9;
+    -rx-ripple-fill: #8b5cf6;
+}
+
+.example-card .notice-bar .icon-button {
+    -fx-padding: 2px;
+    -fx-background-color: transparent;
+}
+
+.example-card .notice-bar .icon-button > .star-icon {
+    -fx-background-color: rgba(255, 255, 255, 0.45);
+}
+
+.example-card .notice-bar .icon-button:filled > .star-icon {
+    -fx-background-color: #fde047;
+}
+
+.example-card .notice-bar .rx-circular-progress-indicator {
+    -rx-track-stroke: rgba(255, 255, 255, 0.3);
+    -rx-progress-stroke: white;
+}
+
+.example-card .notice-bar .rx-avatar > .text-wrapper > .label {
+    -fx-font-size: 10px;
+}
+
+.example-card .notice-bar .rx-switch-button.notice-switch {
+    -fx-text-fill: white;
+}
+
 .example-card .quote-card {
     -fx-background-radius: 12px;
     -fx-background-color: #64748b;
