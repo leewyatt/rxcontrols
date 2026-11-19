@@ -364,6 +364,52 @@ public class AnimFlipTest {
     }
 
     @Test
+    public void aShadowedNextPageLaidOutLateEndsFlatOverItsWholeContent() throws Exception {
+        Fixture fixture = new Fixture(400.0, 300.0);
+        Object[] result = onFx(() -> {
+            Region fresh = new Region();
+            fresh.setEffect(new DropShadow(20.0, Color.BLACK));
+            fixture.contentPane.getChildren().add(0, fresh);
+            Animation animation = new AnimFlip().getAnimation(
+                    fixture.contextFor(fixture.current, fresh, TransitionDirection.FORWARD));
+            animation.play();
+            animation.pause();
+            fresh.resize(400.0, 300.0);
+            animation.jumpTo(DURATION.multiply(0.75));
+            double[] corners = cornersAt(animation, fresh, 1.0 - 1e-9);
+            animation.stop();
+            fresh.setEffect(((PerspectiveTransform) fresh.getEffect()).getInput());
+            return new Object[]{corners, fresh.getBoundsInLocal()};
+        });
+        double[] corners = (double[]) result[0];
+        Bounds content = (Bounds) result[1];
+        assertTrue(content.getMinX() < 0.0, "the shadow does not reach past the page; the test would be vacuous");
+        assertEquals(content.getMinX(), corners[0], 1e-3);
+        assertEquals(content.getMinY(), corners[1], 1e-3);
+        assertEquals(content.getMaxX(), corners[4], 1e-3);
+        assertEquals(content.getMaxY(), corners[5], 1e-3);
+    }
+
+    @Test
+    public void anEffectGivenToTheNextPageWhenItStartsOpeningIsKept() throws Exception {
+        Fixture fixture = new Fixture(400.0, 300.0);
+        Glow glow = new Glow();
+        onFx(() -> {
+            AnimFlip flip = new AnimFlip();
+            Animation animation = flip.getAnimation(fixture.contextFor(fixture.current, fixture.next,
+                    TransitionDirection.FORWARD));
+            // What an opening handler would do once the flip has started.
+            fixture.next.setEffect(glow);
+            animation.play();
+            animation.pause();
+            animation.jumpTo(DURATION.multiply(0.75));
+            flip.jumpToEnd();
+            return null;
+        });
+        assertSame(glow, fixture.next.getEffect());
+    }
+
+    @Test
     public void aShadowReachingFarPastANarrowPageNeverTurnsItInsideOut() throws Exception {
         Fixture fixture = new Fixture(200.0, 20.0);
         onFx(() -> {

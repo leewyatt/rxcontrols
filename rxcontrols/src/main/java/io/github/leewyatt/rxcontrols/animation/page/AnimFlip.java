@@ -99,8 +99,8 @@ public class AnimFlip extends PageAnimationBase {
 
     /**
      * Returns the focal length factor: the distance of the eye from the page, in
-     * page widths (VERTICAL) or heights (HORIZONTAL). Higher values give a flatter
-     * turn. Default is 2.0.
+     * page widths (VERTICAL) or heights (HORIZONTAL), measured over the page's content
+     * when it draws past its bounds. Higher values give a flatter turn. Default is 2.0.
      *
      * @return the focal length factor
      */
@@ -190,8 +190,12 @@ public class AnimFlip extends PageAnimationBase {
                     currentPage.setVisible(false);
                 }
                 if (nextPage != null) {
-                    measureMargins(nextPage, nextEffect, nextMargins);
-                    nextPage.setEffect(ptNext);
+                    // An effect given to the page since the start, by an opening handler
+                    // say, stays; the page then shows without turning.
+                    if (nextPage.getEffect() == ptNext) {
+                        measureMargins(nextPage, nextEffect, nextMargins);
+                        nextPage.setEffect(ptNext);
+                    }
                     nextPage.setVisible(true);
                 }
             }
