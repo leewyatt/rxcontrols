@@ -186,6 +186,7 @@ public final class RXTransitionLabelSamples {
             saving.playFromStart();
         });
         HBox row = new HBox(14.0, save, status);
+        FocusHandOff.onDisable(save, row);
         row.setAlignment(Pos.CENTER_LEFT);
         return row;
     }

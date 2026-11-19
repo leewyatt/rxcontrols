@@ -129,7 +129,12 @@ public final class RXPlaceholderSamples {
             placeholder.setTitle("No results for “" + newValue.trim() + "”");
             placeholder.setDescription("Check the spelling or try a shorter word.");
         });
-        clear.setOnAction(event -> field.clear());
+        // The placeholder hides its button as the results come back, so the focus goes
+        // back to the field first instead of wandering off with the page's scroll.
+        clear.setOnAction(event -> {
+            field.requestFocus();
+            field.clear();
+        });
         field.setText("Paris");
 
         VBox box = new VBox(10.0, field, list);

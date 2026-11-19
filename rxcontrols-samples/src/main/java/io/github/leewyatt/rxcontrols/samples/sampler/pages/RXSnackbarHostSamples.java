@@ -117,6 +117,10 @@ public final class RXSnackbarHostSamples {
         delete.setOnAction(event -> {
             int index = list.getChildren().indexOf(row);
             list.getChildren().remove(row);
+            // The focused button leaves with its row; the focus moves to the row that
+            // takes its place instead of wandering off with the page's scroll.
+            List<Node> rows = list.getChildren();
+            (rows.isEmpty() ? list : rows.get(Math.min(index, rows.size() - 1)).lookup(".flat-icon")).requestFocus();
             RXSnackbars.show(list, RXSnackbarRequest.builder("Conversation deleted")
                     .action("Undo", () -> list.getChildren().add(Math.min(index, list.getChildren().size()), row))
                     .build());
@@ -213,6 +217,7 @@ public final class RXSnackbarHostSamples {
         RXButton start = solid("Upload 3 files", "sky");
         start.setGraphic(icon("upload-icon"));
         Node content = centered(start);
+        FocusHandOff.onDisable(start, content);
         start.setOnAction(event -> {
             start.setDisable(true);
             RXCircularProgressIndicator spinner = new RXCircularProgressIndicator();

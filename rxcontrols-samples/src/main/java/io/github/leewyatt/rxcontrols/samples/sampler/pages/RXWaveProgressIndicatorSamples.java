@@ -85,12 +85,15 @@ public final class RXWaveProgressIndicatorSamples {
         });
         RXButton reset = plain("Use it");
         reset.setOnAction(event -> {
+            // Plug in comes back first, so it can take the focus as Use it disables.
+            charge.setDisable(false);
             tank.setProgress(0.24);
             state.setText("Unplugged");
-            charge.setDisable(false);
         });
         reset.disableProperty().bind(tank.progressProperty().lessThan(1.0));
         VBox side = new VBox(12.0, text("Phone battery", "headline"), state, new HBox(8.0, charge, reset));
+        FocusHandOff.onDisable(charge, side);
+        FocusHandOff.onDisable(reset, charge);
         side.setAlignment(Pos.CENTER_LEFT);
         HBox row = new HBox(28.0, tank, side);
         row.setAlignment(Pos.CENTER);

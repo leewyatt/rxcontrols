@@ -109,6 +109,9 @@ public final class RXSegmentedStepIndicatorSamples {
             back.setDisable(index == 0 || placed);
             next.setText(index == CHECKOUT.size() - 1 ? "Place order" : "Continue");
         };
+        RXButton restart = plain("Start over");
+        FocusHandOff.onDisable(back, next);
+        FocusHandOff.onDisable(next, restart);
         back.setOnAction(event -> {
             steps.setSelectedIndex(steps.getSelectedIndex() - 1);
             update.run();
@@ -127,7 +130,6 @@ public final class RXSegmentedStepIndicatorSamples {
                 update.run();
             }
         });
-        RXButton restart = plain("Start over");
         restart.setOnAction(event -> {
             next.setDisable(false);
             steps.setSelectedIndex(0);
@@ -180,6 +182,7 @@ public final class RXSegmentedStepIndicatorSamples {
             steps.setSelectedIndex(index == titles.length - 1 ? 0 : index + 1);
             update.run();
         });
+        FocusHandOff.onDisable(skip, next);
         skip.setOnAction(event -> {
             steps.setSelectedIndex(titles.length - 1);
             update.run();

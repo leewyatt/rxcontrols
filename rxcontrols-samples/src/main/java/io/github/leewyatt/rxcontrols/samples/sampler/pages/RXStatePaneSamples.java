@@ -140,6 +140,7 @@ public final class RXStatePaneSamples {
         RXButton fail = plain("Fail again");
         fail.setOnAction(event -> pane.showError());
         fail.disableProperty().bind(pane.stateProperty().isEqualTo(RXStatePane.State.ERROR));
+        FocusHandOff.onDisable(fail, pane);
         return withActions(pane, fail);
     }
 
@@ -155,6 +156,8 @@ public final class RXStatePaneSamples {
         clear.setOnAction(event -> pane.showEmpty());
         show.disableProperty().bind(pane.stateProperty().isEqualTo(RXStatePane.State.CONTENT));
         clear.disableProperty().bind(pane.stateProperty().isEqualTo(RXStatePane.State.EMPTY));
+        FocusHandOff.onDisable(show, clear);
+        FocusHandOff.onDisable(clear, show);
         return withActions(pane, show, clear);
     }
 
@@ -165,6 +168,7 @@ public final class RXStatePaneSamples {
                 "Support desk", "support@example.com"));
         RXButton start = solid("Import contacts", "orange");
         start.setGraphic(icon("upload-icon"));
+        FocusHandOff.onDisable(start, pane);
         start.setOnAction(event -> {
             start.setDisable(true);
             pane.setProgress(0.0);
@@ -206,13 +210,19 @@ public final class RXStatePaneSamples {
         RXPlaceholder placeholder = new RXPlaceholder("No projects yet", graphic);
         placeholder.setDescription("Projects group your boards and files.");
         RXButton create = solid("Create project", "amber");
-        create.setOnAction(event -> pane.showContent());
         placeholder.getActions().add(create);
         pane.setEmptyContent(placeholder);
         pane.showEmpty();
         RXButton reset = plain("Archive all");
-        reset.setOnAction(event -> pane.showEmpty());
         reset.disableProperty().bind(pane.stateProperty().isEqualTo(RXStatePane.State.EMPTY));
+        FocusHandOff.onDisable(reset, pane);
+        // The empty view, Create project with it, goes away with the projects back, so
+        // the focus moves on to Archive all, which comes back with them.
+        create.setOnAction(event -> {
+            pane.showContent();
+            reset.requestFocus();
+        });
+        reset.setOnAction(event -> pane.showEmpty());
         return withActions(pane, reset);
     }
 }

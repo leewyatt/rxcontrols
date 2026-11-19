@@ -251,6 +251,7 @@ public final class RXSegmentedProgressBarSamples {
         HBox header = new HBox(10.0, icon("file-icon"), text("design-assets.zip", "copy"), spacer(), state);
         header.setAlignment(Pos.CENTER_LEFT);
         VBox box = new VBox(12.0, header, bar, start);
+        FocusHandOff.onDisable(start, box);
         box.setPrefWidth(340.0);
         box.setMaxWidth(Region.USE_PREF_SIZE);
         return box;

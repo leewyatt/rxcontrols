@@ -98,6 +98,7 @@ public final class RXCircularProgressIndicatorSamples {
             timeline.play();
         });
         VBox box = new VBox(16.0, list, upload);
+        FocusHandOff.onDisable(upload, box);
         box.setAlignment(Pos.CENTER);
         return box;
     }
@@ -259,6 +260,7 @@ public final class RXCircularProgressIndicatorSamples {
         code.setPromptText("6-digit code");
         code.setPrefColumnCount(10);
         RXButton resend = plain("Resend code");
+        FocusHandOff.onDisable(resend, code);
         resend.setOnAction(event -> {
             resend.setDisable(true);
             Timeline timeline = new Timeline(

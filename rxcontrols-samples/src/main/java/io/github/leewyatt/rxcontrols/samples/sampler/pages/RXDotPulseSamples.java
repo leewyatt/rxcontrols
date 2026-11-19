@@ -115,6 +115,7 @@ public final class RXDotPulseSamples {
         messages.setAlignment(Pos.BOTTOM_LEFT);
         FeedbackKit.clip(messages, 10.0);
         VBox box = new VBox(14.0, messages, send);
+        FocusHandOff.onDisable(send, box);
         box.setAlignment(Pos.CENTER);
         return box;
     }

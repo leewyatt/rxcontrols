@@ -115,6 +115,7 @@ public final class RXTileViewSamples {
         Button clear = plain("Clear selection");
         clear.setOnAction(event -> tiles.getSelectionModel().clearSelection());
         clear.disableProperty().bind(Bindings.isEmpty(tiles.getSelectionModel().getSelectedItems()));
+        FocusHandOff.onDisable(clear, tiles);
         HBox footer = new HBox(8.0, count, spacer(), clear);
         footer.setAlignment(Pos.CENTER_LEFT);
         // As wide as the view, so the button stays under the photos it clears.

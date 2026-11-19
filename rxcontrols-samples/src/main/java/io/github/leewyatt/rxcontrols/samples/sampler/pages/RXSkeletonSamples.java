@@ -106,6 +106,7 @@ public final class RXSkeletonSamples {
         RXButton load = solid("Load", "teal");
         load.setOnAction(event -> reload(pane, load));
         VBox box = new VBox(14.0, pane, load);
+        FocusHandOff.onDisable(load, box);
         box.setAlignment(Pos.CENTER);
         return box;
     }
@@ -138,6 +139,7 @@ public final class RXSkeletonSamples {
         RXButton refresh = plain("Refresh");
         refresh.setOnAction(event -> reload(pane, refresh));
         VBox box = new VBox(14.0, pane, refresh);
+        FocusHandOff.onDisable(refresh, box);
         box.setAlignment(Pos.CENTER);
         return box;
     }
@@ -234,6 +236,7 @@ public final class RXSkeletonSamples {
             }
         });
         VBox box = new VBox(14.0, grid, load);
+        FocusHandOff.onDisable(load, box);
         box.setAlignment(Pos.CENTER);
         box.setMaxWidth(Region.USE_PREF_SIZE);
         return box;

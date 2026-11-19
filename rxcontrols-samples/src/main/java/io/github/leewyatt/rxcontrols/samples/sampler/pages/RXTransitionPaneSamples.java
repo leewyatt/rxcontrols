@@ -230,6 +230,7 @@ public final class RXTransitionPaneSamples {
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.getStyleClass().add("frame-bar");
         BorderPane window = new BorderPane(pane);
+        FocusHandOff.onDisable(refresh, window);
         window.setTop(bar);
         return frame(FRAME_WIDTH, FRAME_HEIGHT, window);
     }
