@@ -36,6 +36,7 @@ public final class SampleCard extends VBox {
     private final Size size;
     private final HBox links = new HBox(12.0);
     private Class<?> type;
+    private String ribbon;
 
     private SampleCard(Size size, String title, String text, Node... content) {
         this(size, title, text, flow(content));
@@ -151,6 +152,27 @@ public final class SampleCard extends VBox {
      */
     public Class<?> getType() {
         return type;
+    }
+
+    /**
+     * Hangs a ribbon with a short label over the card's top corner, to tell apart cards
+     * that show the same thing in different modes.
+     *
+     * @param value the label
+     * @return this card
+     */
+    public SampleCard ribbon(String value) {
+        ribbon = value;
+        return this;
+    }
+
+    /**
+     * Returns the label set by {@link #ribbon(String)}.
+     *
+     * @return the label, or {@code null}
+     */
+    public String getRibbon() {
+        return ribbon;
     }
 
     /**

@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
+import io.github.leewyatt.rxcontrols.RXRibbonBadge;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
 import io.github.leewyatt.rxcontrols.layout.RXCol;
@@ -41,7 +42,8 @@ public final class SampleGallery {
         row.setRowGap(GAP);
         row.setAlign(RXRow.Align.STRETCH);
         for (SampleCard card : cards) {
-            RXCol col = new RXCol(card);
+            // The ribbon wraps the card, so it hangs over the card's own corner.
+            RXCol col = new RXCol(card.getRibbon() == null ? card : new RXRibbonBadge(card, card.getRibbon()));
             col.setXs(RXColSpec.of(24));
             switch (card.getSize()) {
                 case SMALL -> {
