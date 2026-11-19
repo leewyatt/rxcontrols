@@ -147,13 +147,22 @@ public final class RXPlaceholderSamples {
 
         RXPlaceholder placeholder = new RXPlaceholder("No tasks yet", graphic("task-icon", "lime"));
         placeholder.setDescription("Tasks you add will be listed here.");
+        // A button that is hidden or disabled while it holds focus hands the focus on by
+        // traversal, and the page's scroll pane scrolls to wherever it lands. So each
+        // button first moves the focus itself, to where the user goes on.
         RXButton add = solid("Add a task", "lime");
-        add.setOnAction(event -> items.addAll("Book the venue", "Send invitations", "Order the cake"));
+        add.setOnAction(event -> {
+            list.requestFocus();
+            items.addAll("Book the venue", "Send invitations", "Order the cake");
+        });
         placeholder.getActions().add(add);
         list.setPlaceholder(placeholder);
 
         RXButton clearAll = plain("Clear all");
-        clearAll.setOnAction(event -> items.clear());
+        clearAll.setOnAction(event -> {
+            items.clear();
+            add.requestFocus();
+        });
         clearAll.disableProperty().bind(Bindings.isEmpty(items));
         VBox box = new VBox(10.0, list, clearAll);
         box.setPrefWidth(340.0);
@@ -188,6 +197,7 @@ public final class RXPlaceholderSamples {
         RXButton request = solid("Request access", "violet");
         request.setOnAction(event -> {
             placeholder.setDescription("Request sent. You'll get an email when the owner answers.");
+            placeholder.requestFocus();
             request.setDisable(true);
         });
         placeholder.getActions().add(request);
