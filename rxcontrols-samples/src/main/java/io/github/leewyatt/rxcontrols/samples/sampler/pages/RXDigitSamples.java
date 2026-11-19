@@ -5,15 +5,17 @@ import io.github.leewyatt.rxcontrols.RXDigit;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.css.PseudoClass;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,13 +24,17 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.solid
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.text;
 
 /**
- * The RXDigit page: a live LED clock, a stopwatch, a scoreboard, an LCD readout with
- * unlit segments and a countdown timer, each built from single digits in a row.
+ * The RXDigit page: a live LCD desk clock, a stopwatch, a scoreboard, an LCD readout with
+ * unlit segments, a countdown timer and every digit from 0 to 9, each built from single
+ * digits in a row.
  */
 public final class RXDigitSamples {
 
     private static final Duration STOPWATCH_TICK = Duration.millis(100.0);
     private static final int COUNTDOWN_SECONDS = 5 * 60;
+    private static final double CLOCK_DIGIT_WIDTH = 34.0;
+    private static final String[] WEEKDAYS = {"MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"};
+    private static final PseudoClass TODAY = PseudoClass.getPseudoClass("today");
 
     private RXDigitSamples() {
     }
@@ -44,8 +50,9 @@ public final class RXDigitSamples {
                 List.of("Retro or hardware-style readouts: clocks, scoreboards, timers, meters and dashboards.",
                         "For plain changing numbers use a Label, or RXTransitionLabel to animate the change."),
                 List.of(
-                        SampleCard.wide("Digital clock",
-                                "Six digits and two colons show the current time; a timeline updates them every second.",
+                        SampleCard.wide("Desk clock",
+                                "An LCD clock: large hours and minutes, small seconds, AM or PM and today's weekday; "
+                                        + "unlitFill leaves the dark segments faintly visible, and a timeline ticks every second.",
                                 clock()),
                         SampleCard.medium("Stopwatch",
                                 "Minutes, seconds and tenths; start, stop and reset with the buttons.",
@@ -58,30 +65,59 @@ public final class RXDigitSamples {
                                 lcd()),
                         SampleCard.medium("Countdown",
                                 "A five-minute timer counting down in amber; it starts over at zero.",
-                                countdown())),
+                                countdown()),
+                        SampleCard.wide("All ten digits",
+                                "setDigit takes 0 to 9; each value lights its own set of the seven segments.",
+                                allDigits())),
                 MediaKit.STYLESHEET);
     }
 
     // ==================== Digital clock ====================
 
     private static Node clock() {
-        List<RXDigit> digits = digits(6, 44.0, "red");
-        HBox row = new HBox(8.0,
-                digits.get(0), digits.get(1), colon("red", 88.0),
-                digits.get(2), digits.get(3), colon("red", 88.0),
-                digits.get(4), digits.get(5));
-        row.setAlignment(Pos.CENTER);
+        List<Label> days = new ArrayList<>();
+        HBox week = new HBox(20.0);
+        week.setAlignment(Pos.CENTER);
+        for (String day : WEEKDAYS) {
+            Label label = text(day, "lcd-day");
+            days.add(label);
+            week.getChildren().add(label);
+        }
+        Label half = text("", "lcd-half");
+        List<RXDigit> digits = digits(4, CLOCK_DIGIT_WIDTH, "lcd-clock");
+        List<RXDigit> seconds = digits(2, CLOCK_DIGIT_WIDTH / 2.0, "lcd-clock");
+        // The small seconds sit on the baseline of the large digits.
+        HBox small = new HBox(4.0, seconds.get(0), seconds.get(1));
+        small.setAlignment(Pos.BOTTOM_LEFT);
+        HBox time = new HBox(8.0, digits.get(0), digits.get(1), colon("lcd-clock", CLOCK_DIGIT_WIDTH * 2.0),
+                digits.get(2), digits.get(3), small);
+        time.setAlignment(Pos.CENTER_LEFT);
+        HBox reading = new HBox(18.0, half, time);
+        reading.setAlignment(Pos.BOTTOM_CENTER);
+
         Runnable update = () -> {
-            LocalTime now = LocalTime.now();
-            show(digits, 0, now.getHour(), 2);
+            LocalDateTime now = LocalDateTime.now();
+            int hour = now.getHour() % 12 == 0 ? 12 : now.getHour() % 12;
+            show(digits, 0, hour, 2);
             show(digits, 2, now.getMinute(), 2);
-            show(digits, 4, now.getSecond(), 2);
+            show(seconds, 0, now.getSecond(), 2);
+            half.setText(now.getHour() < 12 ? "AM" : "PM");
+            int today = now.getDayOfWeek().getValue() - 1;
+            for (int i = 0; i < days.size(); i++) {
+                days.get(i).pseudoClassStateChanged(TODAY, i == today);
+            }
         };
         update.run();
         Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(1.0), event -> update.run()));
         timeline.setCycleCount(Animation.INDEFINITE);
-        playWhileShowing(row, timeline);
-        return led(row);
+        playWhileShowing(reading, timeline);
+
+        VBox screen = new VBox(10.0, week, reading);
+        screen.getStyleClass().add("lcd-screen");
+        StackPane clock = new StackPane(screen);
+        clock.getStyleClass().add("lcd-bezel");
+        clock.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return clock;
     }
 
     // ==================== Stopwatch ====================
@@ -193,6 +229,19 @@ public final class RXDigitSamples {
         VBox box = new VBox(8.0, led(row), text("Break ends in", "muted"));
         box.setAlignment(Pos.CENTER);
         return box;
+    }
+
+    // ==================== All ten digits ====================
+
+    private static Node allDigits() {
+        List<RXDigit> digits = digits(10, 30.0, "teal");
+        HBox row = new HBox(12.0);
+        row.setAlignment(Pos.CENTER);
+        for (int i = 0; i < digits.size(); i++) {
+            digits.get(i).setDigit(i);
+            row.getChildren().add(digits.get(i));
+        }
+        return led(row);
     }
 
     // ==================== Helpers ====================

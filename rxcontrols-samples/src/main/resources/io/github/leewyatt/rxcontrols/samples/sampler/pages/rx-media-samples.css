@@ -461,7 +461,6 @@
  * RXDigit                                                                     *
  *                                                                             *
  ******************************************************************************/
-.example-card .rx-digit.red { -rx-lit-fill: #ef4444; }
 .example-card .rx-digit.teal { -rx-lit-fill: #2dd4bf; }
 .example-card .rx-digit.orange { -rx-lit-fill: #fb923c; }
 .example-card .rx-digit.sky { -rx-lit-fill: #38bdf8; }
@@ -478,7 +477,6 @@
     -fx-background-radius: 999px;
 }
 
-.example-card .segment-dot.red { -fx-background-color: #ef4444; }
 .example-card .segment-dot.teal { -fx-background-color: #2dd4bf; }
 .example-card .segment-dot.amber { -fx-background-color: #fbbf24; }
 .example-card .segment-dot.lcd { -fx-background-color: #1f2a12; }
@@ -494,6 +492,46 @@
     -fx-font-size: 22px;
     -fx-font-weight: bold;
     -fx-text-fill: #1f2a12;
+}
+
+.example-card .lcd-bezel {
+    -fx-padding: 26px 30px;
+    -fx-background-color: linear-gradient(to right, #e6e6e6 0%, #b3b3b3 50%, #b3b3b3 100%);
+    -fx-background-radius: 10px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 16, 0, 2, 2);
+}
+
+.example-card .lcd-screen {
+    -fx-padding: 12px 26px 16px 22px;
+    -fx-background-color: #9dba9c;
+    -fx-background-radius: 8px;
+    -fx-effect: innershadow(gaussian, rgba(0, 0, 0, 0.5), 6, 0, 1, 1);
+}
+
+.example-card .lcd-day {
+    -fx-font-size: 13px;
+    -fx-text-fill: #dfffdf;
+}
+
+.example-card .lcd-day:today {
+    -fx-text-fill: #111111;
+}
+
+.example-card .lcd-half {
+    -fx-font-size: 20px;
+    -fx-text-fill: #111111;
+}
+
+.example-card .rx-digit.lcd-clock {
+    -rx-lit-fill: #111111;
+    -rx-unlit-fill: rgba(0, 0, 0, 0.03);
+}
+
+.example-card .segment-dot.lcd-clock {
+    -fx-pref-width: 6px;
+    -fx-pref-height: 6px;
+    -fx-background-color: #111111;
+    -fx-background-radius: 1px;
 }
 
 /*******************************************************************************
