@@ -5176,7 +5176,9 @@
     -rx-ripple-fill: -rx-state-overlay-color;
 }
 
+/* The taller arrow target takes the header's vertical padding, so the header keeps its height. */
 .rx-titled-pane:indicator-trigger > .header {
+    -fx-padding: 0.375em 1em;
     -fx-cursor: default;
     -rx-ripple-enabled: false;
     -rx-ripple-state-overlay-enabled: false;
@@ -5196,8 +5198,17 @@
     -fx-padding: 0.25em;
 }
 
+/* When only the arrow opens the pane, its box becomes a round target that shows on hover. */
 .rx-titled-pane:indicator-trigger > .header > .row > .indicator-button {
     -fx-cursor: hand;
+    -fx-background-radius: 999px;
+    -fx-padding: 0.5em 0.666667em;
+}
+
+.rx-titled-pane:indicator-trigger > .header > .row > .indicator-button:hover {
+    -fx-background-color: ladder(-rx-titled-pane-header-color,
+            derive(-rx-titled-pane-header-color, 25%) 45%,
+            derive(-rx-titled-pane-header-color, -10%) 46%);
 }
 
 .rx-titled-pane:indicator-trigger > .header > .row > .indicator-button:hover > .indicator {
