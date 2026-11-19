@@ -3,6 +3,8 @@ package io.github.leewyatt.rxcontrols.internal.transition;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import javafx.animation.Animation;
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.util.Duration;
@@ -28,7 +30,9 @@ public final class PageTransitionEngine {
     private boolean transitioning;
 
     /**
-     * Returns whether a transition is currently playing.
+     * Returns whether a transition is currently playing. The flag clears as
+     * soon as the animation stops, before its finish action and before
+     * {@code onSettled} or {@code onExternalStop} run.
      *
      * @return true while a transition started by {@link #play} is running
      */
@@ -47,9 +51,8 @@ public final class PageTransitionEngine {
     }
 
     /**
-     * Jumps the running transition to its end state. The stopped animation's
-     * status listener fires the host's external-stop callback before this
-     * method returns. Safe to call when idle.
+     * Jumps the running transition to its end state. The host's external-stop
+     * callback runs before this method returns. Safe to call when idle.
      */
     public void interrupt() {
         if (transitioning && usedAnimation != null) {
@@ -117,14 +120,13 @@ public final class PageTransitionEngine {
      * Builds and plays the transition. The animation's own {@code onFinished}
      * (which settles page visibility) is wrapped rather than overwritten.
      *
-     * <p>External stops (e.g. a resize guard calling {@code jumpToEnd}) skip
-     * {@code onFinished}; they are caught by a status listener that fires
-     * {@code onExternalStop} instead. That listener runs during
-     * {@code Animation.stop()}, before the animation's finish action restores
-     * visual properties — hosts must not remove pages in
-     * {@code onExternalStop}. Natural completion runs {@code onFinished}
-     * first (clearing the running flag), so the two paths never both
-     * execute.</p>
+     * <p>A transition ends in exactly one of two ways. Natural completion
+     * runs the animation's finish action and then {@code onSettled}. An
+     * external stop ({@link #interrupt()}, a resize guard calling
+     * {@code jumpToEnd}) skips {@code onFinished} and runs
+     * {@code onExternalStop} instead, during {@code Animation.stop()} and so
+     * before the animation's finish action restores visual properties — hosts
+     * must not remove pages in {@code onExternalStop}.</p>
      *
      * @param anim           the animation to play
      * @param context        the transition context
@@ -138,23 +140,35 @@ public final class PageTransitionEngine {
         usedAnimation = anim;
         transitioning = true;
 
+        // The status turns STOPPED on both paths, and on a natural finish it does so
+        // before onFinished runs, so it cannot tell them apart. The play head can:
+        // Animation.stop() rewinds it, a natural finish leaves it at the end.
+        InvalidationListener rewindWatch = new InvalidationListener() {
+            @Override
+            public void invalidated(Observable observable) {
+                if (transition.getStatus() != Animation.Status.STOPPED) {
+                    return;
+                }
+                transition.currentTimeProperty().removeListener(this);
+                if (transitioning) {
+                    transitioning = false;
+                    if (onExternalStop != null) {
+                        onExternalStop.run();
+                    }
+                }
+            }
+        };
+
         EventHandler<ActionEvent> animHandler = transition.getOnFinished();
         transition.setOnFinished(e -> {
+            // Playing the same animation again rewinds it too; this run is over.
+            transition.currentTimeProperty().removeListener(rewindWatch);
+            transitioning = false;
             if (animHandler != null) {
                 animHandler.handle(e);
             }
-            transitioning = false;
             if (onSettled != null) {
                 onSettled.run();
-            }
-        });
-
-        transition.statusProperty().addListener((observable, oldStatus, newStatus) -> {
-            if (newStatus == Animation.Status.STOPPED && transitioning) {
-                transitioning = false;
-                if (onExternalStop != null) {
-                    onExternalStop.run();
-                }
             }
         });
 
@@ -162,6 +176,11 @@ public final class PageTransitionEngine {
             onStarted.run();
         }
         transition.play();
+        // Watched only from here: play() rewinds the play head before starting, and
+        // an animation with no length has already finished inside it.
+        if (transition.getStatus() != Animation.Status.STOPPED) {
+            transition.currentTimeProperty().addListener(rewindWatch);
+        }
     }
 
     /**
