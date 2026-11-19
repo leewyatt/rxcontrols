@@ -164,7 +164,7 @@ public final class RXRipplePaneSamples {
         RXRipplePane card = new RXRipplePane(content);
         card.getStyleClass().add("message-card");
 
-        String[] messages = {"Mia Chen: Can you send the photos?", "Sam Ortiz: Lunch at 1?",
+        String[] messages = {"Mia Chen: Can you send the photos?", "Sam Ortiz: Lunch at 1 at the usual place?",
             "Lee Wyatt: Bring the blue tent, please."};
         int[] unread = {2};
         RXButton simulate = plain("Simulate a new message");
