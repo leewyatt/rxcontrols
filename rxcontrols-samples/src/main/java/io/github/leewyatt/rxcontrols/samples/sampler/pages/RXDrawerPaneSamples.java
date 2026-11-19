@@ -274,7 +274,7 @@ public final class RXDrawerPaneSamples {
     private static Node beckon(Node button, RXDrawerPane drawer) {
         RXBorderBeam beam = new RXBorderBeam(button);
         beam.setBeamFill(BEAM_COLOR);
-        beam.setBeamSize(40.0);
+        beam.setBeamSize(20.0);
         beam.setLineWidth(1.5);
         beam.setCycleDuration(Duration.seconds(2.5));
         beam.activeProperty().bind(drawer.showingProperty().not());

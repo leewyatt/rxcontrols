@@ -224,7 +224,7 @@ public final class RXDualPaneSamples {
         link.getStyleClass().add("switch-link");
         RXBorderBeam beam = new RXBorderBeam(link);
         beam.setBeamFill(Color.web("pink".equals(color) ? "#ec4899" : "#6366f1"));
-        beam.setBeamSize(50);
+        beam.setBeamSize(20.0);
         beam.setLineWidth(1.5);
         beam.setCycleDuration(Duration.seconds(2.5));
         // The form would stretch it to the full width otherwise.

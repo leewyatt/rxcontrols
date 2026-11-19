@@ -139,7 +139,7 @@ public final class RXBorderBeamSamples {
 
         RXBorderBeam beam = new RXBorderBeam(line);
         beam.setBeamFill(color);
-        beam.setBeamSize(50);
+        beam.setBeamSize(24.0);
         beam.setLineWidth(1.5);
         beam.activeProperty().bind(input.focusedProperty());
         return beam;
@@ -158,7 +158,7 @@ public final class RXBorderBeamSamples {
         beam.setReverse(true);
         beam.setCycleDuration(Duration.seconds(10.0));
         beam.setLineWidth(2.0);
-        beam.setBeamSize(120.0);
+        beam.setBeamSize(60.0);
         return fixedWidth(beam, 250.0);
     }
 
