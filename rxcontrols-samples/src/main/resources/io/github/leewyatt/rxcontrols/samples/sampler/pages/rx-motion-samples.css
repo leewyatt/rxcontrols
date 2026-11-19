@@ -321,7 +321,7 @@
 .example-card .smooth-view {
     -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
     -fx-background-insets: 0, 1px;
-    -fx-background-radius: 10px;
+    -fx-background-radius: 2px;
     -fx-padding: 1px;
 }
 
