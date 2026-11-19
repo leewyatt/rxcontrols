@@ -6,14 +6,17 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.IntConsumer;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.FeedbackKit.icon;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.FeedbackKit.plain;
@@ -29,6 +32,7 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.FeedbackKit.te
 public final class RXSegmentedStepIndicatorSamples {
 
     private static final List<String> CHECKOUT = List.of("Cart", "Shipping", "Payment", "Review");
+    private static final List<String> PROFILE_STEPS = List.of("Account", "Profile", "Review");
     private static final List<String> CHECKOUT_TEXT = List.of(
             "2 items, $86.00. Edit quantities or remove items.",
             "Deliver to 12 Harbor Street. Standard shipping, 3 to 5 days.",
@@ -59,7 +63,7 @@ public final class RXSegmentedStepIndicatorSamples {
                                 "A short tour on thin segments; Skip jumps to the last step.",
                                 onboarding()),
                         SampleCard.large("Step in progress",
-                                "segmentProgress follows how many fields of the current step are filled in.",
+                                "Each step's segment fills as its fields are filled, and Next moves on once they all are; the page area keeps one height.",
                                 profileStep()),
                         SampleCard.large("Video chapters",
                                 "Point at a segment to see its chapter name; click it to jump there.",
@@ -195,30 +199,110 @@ public final class RXSegmentedStepIndicatorSamples {
     // ==================== Step in progress ====================
 
     private static Node profileStep() {
-        RXSegmentedStepIndicator steps = new RXSegmentedStepIndicator(3);
+        RXSegmentedStepIndicator steps = new RXSegmentedStepIndicator(PROFILE_STEPS.size());
         steps.getStyleClass().add("violet");
-        steps.setSelectedIndex(1);
         steps.setMaxWidth(Double.MAX_VALUE);
 
+        List<Label> names = new ArrayList<>();
+        HBox nameRow = new HBox(4.0);
+        for (String name : PROFILE_STEPS) {
+            Label label = text(name, "step-name");
+            label.setMaxWidth(Double.MAX_VALUE);
+            HBox.setHgrow(label, Priority.ALWAYS);
+            names.add(label);
+            nameRow.getChildren().add(label);
+        }
+
+        TextField email = field("lee@example.com", "Email");
+        PasswordField password = new PasswordField();
+        password.setText("lighthouse42");
+        password.setPromptText("Password");
         TextField name = field("Lee Wyatt", "Full name");
         TextField handle = field("@LeeWyatt_7788", "Handle");
         TextField city = field("", "City");
-        List<TextField> fields = List.of(name, handle, city);
-        Label filled = text("", "muted");
-        Runnable update = () -> {
-            long count = fields.stream().filter(f -> !f.getText().isBlank()).count();
-            steps.setSegmentProgress(count / (double) fields.size());
-            filled.setText(count + " of " + fields.size() + " fields");
-        };
-        fields.forEach(f -> f.textProperty().addListener((obs, oldValue, newValue) -> update.run()));
-        update.run();
+        Label summary = text("", "copy");
+        summary.setWrapText(true);
+        // The fields that fill each step's segment; Review has none.
+        List<List<TextField>> stepFields = List.of(List.of(email, password), List.of(name, handle, city), List.of());
+        List<VBox> pages = List.of(new VBox(10.0, email, password), new VBox(10.0, name, handle, city),
+                new VBox(10.0, summary));
+        // Every page stays managed, so the stack is as tall as the tallest one and the
+        // card keeps its height from step to step.
+        StackPane content = new StackPane();
+        for (VBox page : pages) {
+            page.setAlignment(Pos.TOP_LEFT);
+            content.getChildren().add(page);
+        }
 
-        HBox header = new HBox(text("Step 2 of 3: Profile", "copy"), spacer(), filled);
-        VBox box = new VBox(10.0, header, steps, name, handle, city);
+        Label filled = text("", "muted");
+        RXButton back = plain("Back");
+        RXButton next = solid("Next", "violet");
+        boolean[] saved = {false};
+
+        Runnable update = () -> {
+            int index = steps.getSelectedIndex();
+            List<TextField> fields = stepFields.get(index);
+            long count = fields.stream().filter(f -> !f.getText().isBlank()).count();
+            boolean review = fields.isEmpty();
+            steps.setSegmentProgress(review ? (saved[0] ? 1.0 : 0.0) : count / (double) fields.size());
+            for (int i = 0; i < names.size(); i++) {
+                names.get(i).getStyleClass().removeAll("done", "current", "todo");
+                names.get(i).getStyleClass().add(i < index ? "done" : i == index ? "current" : "todo");
+                pages.get(i).setVisible(i == index);
+            }
+            summary.setText(saved[0] ? "Profile saved for " + name.getText() + "."
+                    : email.getText() + "\n" + name.getText() + "  ·  " + handle.getText() + "  ·  " + city.getText());
+            filled.setText(review ? "" : count + " of " + fields.size() + " fields");
+            back.setVisible(index > 0);
+            back.setDisable(saved[0]);
+            next.setText(review ? "Save" : "Next");
+            next.setDisable(review ? saved[0] : count < fields.size());
+        };
+        stepFields.forEach(fields -> fields.forEach(f -> f.textProperty().addListener((obs, o, n) -> update.run())));
+
+        HBox header = new HBox(text("New account", "copy"), spacer(), filled);
+        HBox actions = new HBox(10.0, back, spacer(), next);
+        VBox box = new VBox(10.0, header, nameRow, steps, content, actions);
+        // A button that is disabled or hidden while it holds focus hands the focus on by
+        // traversal, and the page's scroll pane scrolls to wherever it lands. So focus
+        // moves first, straight to where the user goes on: the step's first empty field.
+        IntConsumer goTo = index -> {
+            steps.setSelectedIndex(index);
+            for (int i = 0; i < pages.size(); i++) {
+                pages.get(i).setVisible(i == index);
+            }
+            focusFirstEmpty(stepFields.get(index), next);
+            update.run();
+        };
+        back.setOnAction(event -> goTo.accept(steps.getSelectedIndex() - 1));
+        next.setOnAction(event -> {
+            if (steps.getSelectedIndex() == PROFILE_STEPS.size() - 1) {
+                box.requestFocus();
+                saved[0] = true;
+                update.run();
+            } else {
+                goTo.accept(steps.getSelectedIndex() + 1);
+            }
+        });
+        // The account step is already done, so the card opens on Profile with one field left.
+        steps.setSelectedIndex(1);
+        update.run();
         box.setPrefWidth(320.0);
         box.setMaxWidth(Region.USE_PREF_SIZE);
-        VBox.setMargin(name, new Insets(6.0, 0, 0, 0));
+        VBox.setMargin(content, new Insets(6.0, 0, 0, 0));
+        VBox.setMargin(actions, new Insets(6.0, 0, 0, 0));
         return box;
+    }
+
+
+
+    // Focuses the first empty field, or the first field, or the fallback when there is none.
+    private static void focusFirstEmpty(List<TextField> fields, Node fallback) {
+        fields.stream().filter(f -> f.getText().isBlank()).findFirst()
+                .or(() -> fields.stream().findFirst())
+                .map(Node.class::cast)
+                .orElse(fallback)
+                .requestFocus();
     }
 
     private static TextField field(String value, String prompt) {

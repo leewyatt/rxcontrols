@@ -245,6 +245,19 @@
     -rx-ripple-fill: white;
 }
 
+.example-card .rx-button.outline {
+    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 6px, 5px;
+    -fx-padding: 7px 16px;
+    -fx-graphic-text-gap: 8px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .rx-button.outline:hover {
+    -fx-background-color: -fx-text-box-border, -fx-hover-base;
+}
+
 .example-card .rx-button.solid .symbol {
     -fx-pref-width: 16px;
     -fx-pref-height: 16px;

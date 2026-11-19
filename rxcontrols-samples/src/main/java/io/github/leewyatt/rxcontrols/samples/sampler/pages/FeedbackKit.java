@@ -42,8 +42,11 @@ final class FeedbackKit {
         return button;
     }
 
+    /** A secondary button: an outline the same size and shape as a solid one beside it. */
     static RXButton plain(String value) {
-        return new RXButton(value);
+        RXButton button = new RXButton(value);
+        button.getStyleClass().add("outline");
+        return button;
     }
 
     static Region spacer() {
