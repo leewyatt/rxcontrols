@@ -11,6 +11,7 @@ import javafx.stage.Stage;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -174,7 +175,23 @@ public class RingIndicatorTest {
             awaitLength(ring, -90.0);
             assertRests(ring);
 
-            onFx(() -> ring.setProgress(-1.0));
+            // Back to indeterminate: the arc shrinks to the length the sweep
+            // starts from before it travels, and a second indeterminate value
+            // on the way does not cut that short. The lengths seen before
+            // the ring turns include the end of the shrink, exactly.
+            List<Double> lengthsBeforeTurning = new ArrayList<>();
+            onFx(() -> {
+                arc(ring).lengthProperty().addListener((observable, oldLength, newLength) -> {
+                    if (spin(ring).getAngle() == 0.0) {
+                        lengthsBeforeTurning.add(newLength.doubleValue());
+                    }
+                });
+                ring.setProgress(-1.0);
+                ring.setProgress(Double.NaN);
+            });
+            awaitTurning(ring);
+            assertTrue(onFxGet(() -> lengthsBeforeTurning.contains(REST_LENGTH)),
+                    () -> "lengths before turning: " + lengthsBeforeTurning);
             assertMoves(ring);
 
             // Hidden through an ancestor: back on the pose a shown ring starts from.
@@ -267,6 +284,17 @@ public class RingIndicatorTest {
         List<Double> before = pose(ring);
         Thread.sleep(200L);
         assertEquals(before, pose(ring));
+    }
+
+    private static void awaitTurning(RingIndicator ring) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (System.nanoTime() < deadline) {
+            if (onFxGet(() -> spin(ring).getAngle()) != 0.0) {
+                return;
+            }
+            Thread.sleep(30L);
+        }
+        throw new AssertionError("the ring never turned");
     }
 
     private static void awaitLength(RingIndicator ring, double length) throws InterruptedException {

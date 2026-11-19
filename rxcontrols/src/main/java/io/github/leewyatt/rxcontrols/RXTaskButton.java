@@ -1056,7 +1056,8 @@ public class RXTaskButton extends RXButton {
      * {@link #pendingGraphicProperty() pendingGraphic}, which sits inside the
      * caption next to the pending text. A focus traversable indicator should
      * have its {@code focusTraversable} turned off, or the Tab key stops on
-     * it.</p>
+     * it. Like a graphic, the indicator cannot be shown anywhere else at the
+     * same time.</p>
      *
      * @return the pending indicator property
      */

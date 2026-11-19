@@ -159,7 +159,13 @@ public class RXTaskButtonSkin extends RXSkinBase<RXTaskButton> {
     // The button does not drive an indicator of the application: it neither
     // sets its progress nor paints it.
     private void updatePendingIndicator() {
-        Node custom = getSkinnable().getPendingIndicator();
+        RXTaskButton button = getSkinnable();
+        if (button == null) {
+            // Told once more after dispose; the indicator belongs to the
+            // skin that replaced this one.
+            return;
+        }
+        Node custom = button.getPendingIndicator();
         pendingFace.setIndicator(custom == null ? ring : custom);
     }
 

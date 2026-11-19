@@ -178,6 +178,28 @@ public class ClickBehaviorTest {
     }
 
     @Test
+    public void releasingAnotherButtonDoesNotEndARefusedPress() {
+        Fixture fixture = new Fixture();
+        BareButton button = fixture.button;
+        fixture.canArm.set(false);
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+        button.press(true);
+
+        // A click of the secondary button while the primary one stays down,
+        // which keeps the button pressed.
+        Event.fireEvent(button, secondaryWhilePrimaryIsDown(MouseEvent.MOUSE_PRESSED));
+        Event.fireEvent(button, secondaryWhilePrimaryIsDown(MouseEvent.MOUSE_RELEASED));
+        assertTrue(button.isPressed());
+        fixture.canArm.set(true);
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_EXITED, MouseButton.PRIMARY));
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_ENTERED, MouseButton.PRIMARY));
+
+        assertFalse(button.isArmed());
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+        assertEquals(0, fixture.actions.get());
+    }
+
+    @Test
     public void disposedBehaviorLetsGoOfAKeyThatIsStillDown() {
         Fixture fixture = new Fixture();
         BareButton button = fixture.button;
@@ -372,6 +394,13 @@ public class ClickBehaviorTest {
     }
 
     // ==================== Helpers ====================
+
+    private static MouseEvent secondaryWhilePrimaryIsDown(EventType<MouseEvent> type) {
+        return new MouseEvent(type, 0.0, 0.0, 0.0, 0.0, MouseButton.SECONDARY, 1,
+                false, false, false, false,
+                true, false, type == MouseEvent.MOUSE_PRESSED,
+                false, false, false, null);
+    }
 
     private static MouseEvent mouseEvent(EventType<MouseEvent> type, MouseButton button) {
         boolean pressed = type == MouseEvent.MOUSE_PRESSED;

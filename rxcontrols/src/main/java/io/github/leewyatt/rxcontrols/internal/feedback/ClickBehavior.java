@@ -10,6 +10,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 
 import java.util.function.BooleanSupplier;
@@ -167,7 +168,9 @@ public final class ClickBehavior {
     }
 
     private void mouseReleased(MouseEvent event) {
-        mouseRefused = false;
+        if (event.getButton() == MouseButton.PRIMARY) {
+            mouseRefused = false;
+        }
         if (!keyDown && button.isArmed()) {
             // An action handler that throws propagates out of fire(); the
             // button must not stay armed behind it.

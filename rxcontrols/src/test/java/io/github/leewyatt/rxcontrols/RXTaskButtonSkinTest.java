@@ -505,15 +505,17 @@ public class RXTaskButtonSkinTest {
             RingIndicator ring = ring(button);
             Region pendingFace = face(button, ".pending-face");
             Region custom = new Region();
-            custom.setPrefSize(30.0, 10.0);
             double width = pendingFace.prefWidth(-1);
-
+            // The face with an indicator that takes no room, to measure from.
             button.setPendingIndicator(custom);
+            double withoutIndicator = pendingFace.prefWidth(-1);
+
+            custom.setPrefSize(30.0, 10.0);
             assertSame(custom, pendingFace.getChildrenUnmodifiable().get(0));
             assertNull(ring.getParent());
             assertEquals(2, pendingFace.getChildrenUnmodifiable().size());
             // It counts toward the size of the face, at its own preferred size.
-            assertEquals(width + 30.0, pendingFace.prefWidth(-1), 1.0e-6);
+            assertEquals(withoutIndicator + 30.0, pendingFace.prefWidth(-1), 1.0e-6);
             button.start();
             relayout(button);
             assertEquals(30.0, custom.getWidth());
@@ -694,6 +696,37 @@ public class RXTaskButtonSkinTest {
             relayout(button);
             assertEquals(2, button.getChildrenUnmodifiable().size());
             assertShowing(button, ".pending-face");
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void skinReplacedWhileThePendingIndicatorIsReportedLeavesItToTheNewSkin() throws InterruptedException {
+        onFx(() -> {
+            RXTaskButton button = button();
+            // Registered before the first skin, so that skin is told about an
+            // indicator after it was disposed.
+            button.pendingIndicatorProperty().addListener((Observable observable) -> {
+                if (button.getPendingIndicator() != null) {
+                    replaceSkin(button);
+                }
+            });
+            laidOut(button);
+            Region custom = new Region();
+            List<Throwable> uncaught = new ArrayList<>();
+            Thread thread = Thread.currentThread();
+            Thread.UncaughtExceptionHandler previous = thread.getUncaughtExceptionHandler();
+            thread.setUncaughtExceptionHandler((failed, error) -> uncaught.add(error));
+            try {
+                button.setPendingIndicator(custom);
+            } finally {
+                thread.setUncaughtExceptionHandler(previous);
+            }
+
+            assertEquals(List.of(), uncaught);
+            relayout(button);
+            assertSame(custom, indicator(button, ".pending-face"));
+            assertSame(button, custom.getParent().getParent().getParent().getParent());
             button.getSkin().dispose();
         });
     }

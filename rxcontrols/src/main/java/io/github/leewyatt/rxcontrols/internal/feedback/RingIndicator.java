@@ -62,6 +62,8 @@ public final class RingIndicator extends Region {
 
     private Timeline sweep;
     private Timeline tween;
+    // The tween is shrinking the arc to the length the sweep starts from.
+    private boolean shrinking;
     private double progress = ProgressIndicator.INDETERMINATE_PROGRESS;
 
     /**
@@ -144,26 +146,32 @@ public final class RingIndicator extends Region {
     }
 
     private void refresh(boolean modeChanged) {
-        stopTween();
         if (isIndeterminate()) {
             if (!showing.get()) {
+                stopTween();
                 stopSweep();
                 arc.setLength(-SWEEP_MIN_LENGTH);
                 sweepOffset.set(0.0);
                 spin.setAngle(0.0);
                 return;
             }
-            if (sweep != null) {
+            if (sweep != null || shrinking) {
                 return;
             }
+            stopTween();
             if (modeChanged) {
                 // The arc first shrinks to the length the sweep starts from.
-                tweenLengthTo(-SWEEP_MIN_LENGTH, this::startSweep);
+                shrinking = true;
+                tweenLengthTo(-SWEEP_MIN_LENGTH, () -> {
+                    shrinking = false;
+                    startSweep();
+                });
             } else {
                 startSweep();
             }
             return;
         }
+        stopTween();
         stopSweep();
         sweepOffset.set(0.0);
         spin.setAngle(0.0);
@@ -190,6 +198,7 @@ public final class RingIndicator extends Region {
     }
 
     private void stopTween() {
+        shrinking = false;
         if (tween != null) {
             tween.stop();
             tween = null;
