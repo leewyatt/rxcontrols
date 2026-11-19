@@ -9,7 +9,6 @@ import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -66,8 +65,7 @@ public final class RXSeekBarSamples {
     }
 
     private static Node videoPlayer() {
-        RXImageView frame = new RXImageView(new Image(
-                RXSeekBarSamples.class.getResource("/scenery/2.png").toExternalForm(), true));
+        RXImageView frame = new RXImageView(SampleImages.scenery(2));
         frame.setPrefSize(520.0, 240.0);
         frame.setImageRadius(12.0);
 

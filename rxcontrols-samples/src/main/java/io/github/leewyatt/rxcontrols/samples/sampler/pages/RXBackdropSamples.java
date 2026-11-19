@@ -167,8 +167,7 @@ public final class RXBackdropSamples {
         grid.setVgap(10.0);
         grid.setAlignment(Pos.CENTER);
         for (int i = 0; i < 4; i++) {
-            Image image = new Image(RXBackdropSamples.class.getResource("/scenery/" + (i + 1) + ".png")
-                    .toExternalForm(), true);
+            Image image = SampleImages.scenery(i + 1);
             RXImageView thumb = new RXImageView(image);
             thumb.setImageFit(ImageFit.COVER);
             thumb.setImageRadius(8.0);

@@ -11,7 +11,6 @@ import javafx.animation.PauseTransition;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.image.Image;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -210,8 +209,7 @@ public final class RXSkeletonSamples {
             RXImageView photo = new RXImageView();
             photo.setImageFit(ImageFit.COVER);
             photo.setImageRadius(10.0);
-            String url = RXSkeletonSamples.class.getResource("/scenery/" + (i + 1) + ".png").toExternalForm();
-            photo.setImage(new Image(url, true));
+            photo.setImage(SampleImages.scenery(i + 1));
             RXSkeletonPane tile = new RXSkeletonPane(skeleton, photo, true);
             tile.setPrefSize(150.0, 92.0);
             tiles.add(tile);

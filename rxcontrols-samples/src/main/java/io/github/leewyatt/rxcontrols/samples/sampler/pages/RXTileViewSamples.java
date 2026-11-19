@@ -32,9 +32,9 @@ import javafx.scene.layout.VBox;
 import java.util.List;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.plain;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.scenery;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.spacer;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.text;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.scenery;
 
 /**
  * The RXTileView page: one tall photo library grouped by album, under a toolbar that

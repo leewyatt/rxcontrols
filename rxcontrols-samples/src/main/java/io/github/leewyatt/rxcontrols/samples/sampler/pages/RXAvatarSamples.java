@@ -15,9 +15,9 @@ import java.util.List;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.PORTRAIT;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.TIGER;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.fixedWidth;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.image;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.text;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.wrapped;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.image;
 
 /**
  * The RXAvatar page: an overlapping team stack, the image / initials / icon fallback,

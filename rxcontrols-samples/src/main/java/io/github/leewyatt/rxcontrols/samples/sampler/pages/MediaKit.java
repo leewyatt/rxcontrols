@@ -4,7 +4,6 @@ import io.github.leewyatt.rxcontrols.RXButton;
 import javafx.animation.Animation;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -14,7 +13,7 @@ import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
 /**
- * Icons, text helpers, sample images, animation lifecycle and the stylesheet shared by
+ * Icons, text helpers, animation lifecycle and the stylesheet shared by
  * the media and display pages. Each icon is a shape-backed region whose shape comes from
  * its style class in the stylesheet.
  */
@@ -129,16 +128,6 @@ final class MediaKit {
         clip.heightProperty().bind(region.heightProperty());
         region.setClip(clip);
         return region;
-    }
-
-    /** Loads a classpath image in the background. */
-    static Image image(String path) {
-        return new Image(MediaKit.class.getResource(path).toExternalForm(), true);
-    }
-
-    /** Loads one of the four sample landscape photos in the background. */
-    static Image scenery(int number) {
-        return image("/scenery/" + number + ".png");
     }
 
     /**

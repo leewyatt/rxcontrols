@@ -4,17 +4,12 @@ import io.github.leewyatt.rxcontrols.RXButton;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
-
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Icons, text helpers, buttons, framed "windows" and the stylesheet shared by the
@@ -26,7 +21,6 @@ final class NavKit {
     static final String STYLESHEET =
             NavKit.class.getResource("rx-navigation-samples.css").toExternalForm();
 
-    private static final int SCENERY_COUNT = 4;
     private static final double FRAME_RADIUS = 10.0;
 
     private NavKit() {
@@ -133,17 +127,5 @@ final class NavKit {
         clip.widthProperty().bind(region.widthProperty());
         clip.heightProperty().bind(region.heightProperty());
         region.setClip(clip);
-    }
-
-    /**
-     * Loads the sample landscape photos in the background.
-     */
-    static List<Image> scenery() {
-        List<Image> images = new ArrayList<>();
-        for (int i = 1; i <= SCENERY_COUNT; i++) {
-            URL url = NavKit.class.getResource("/scenery/" + i + ".png");
-            images.add(new Image(url.toExternalForm(), true));
-        }
-        return images;
     }
 }

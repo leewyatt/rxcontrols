@@ -28,11 +28,11 @@ import java.util.List;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.frame;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.icon;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.scenery;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.solid;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.text;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.wideFrame;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.wrapped;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.scenery;
 
 /**
  * The RXCarousel page: a hero banner that plays by itself with a different

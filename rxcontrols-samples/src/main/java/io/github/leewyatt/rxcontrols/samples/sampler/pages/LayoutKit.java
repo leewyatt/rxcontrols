@@ -14,7 +14,6 @@ import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.control.ToggleGroup;
-import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -101,11 +100,6 @@ final class LayoutKit {
         RXButton button = new RXButton(value);
         button.getStyleClass().add("plain");
         return button;
-    }
-
-    /** Loads one of the four sample landscape photos in the background. */
-    static Image scenery(int number) {
-        return new Image(LayoutKit.class.getResource("/scenery/" + number + ".png").toExternalForm(), true);
     }
 
     /** A small colored pill. */

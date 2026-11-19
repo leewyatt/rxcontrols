@@ -22,12 +22,12 @@ import java.util.List;
 import java.util.Random;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.iconButton;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.image;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.playWhileShowing;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.scenery;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.setIcon;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.spacer;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.text;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.image;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.scenery;
 
 /**
  * The RXAudioSpectrum page: a music player whose spectrum settles when paused, mirrored

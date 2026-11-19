@@ -8,7 +8,6 @@ import io.github.leewyatt.rxcontrols.animation.burst.BurstAnimation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.image.Image;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -73,8 +72,7 @@ public final class RXReactionButtonSamples {
     }
 
     private static Node photoPost() {
-        RXImageView photo = new RXImageView(new Image(
-                RXReactionButtonSamples.class.getResource("/scenery/1.png").toExternalForm(), true));
+        RXImageView photo = new RXImageView(SampleImages.scenery(1));
         photo.setImageRadius(12.0);
         photo.setPrefSize(POST_WIDTH, 190.0);
         RXRibbonBadge ribbon = new RXRibbonBadge(photo, "Double-click the photo");
@@ -104,8 +102,7 @@ public final class RXReactionButtonSamples {
     }
 
     private static Node textPost() {
-        RXAvatar avatar = new RXAvatar(new Image(
-                RXReactionButtonSamples.class.getResource("/image/avatar.png").toExternalForm(), true));
+        RXAvatar avatar = new RXAvatar(SampleImages.image("/image/avatar.png"));
         avatar.setPrefSize(40.0, 40.0);
         Label name = new Label("Lee Wyatt");
         name.getStyleClass().add("post-title");

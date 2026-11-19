@@ -38,11 +38,11 @@ import java.util.Map;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.frame;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.icon;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.plain;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.scenery;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.solid;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.spacer;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.text;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.wrapped;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.scenery;
 
 /**
  * The RXTransitionPane page: a sign-up wizard that slides forward and back, quotes

@@ -23,10 +23,10 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.icon
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.iconButton;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.picker;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.plain;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.scenery;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.solid;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.text;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.wrapped;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.scenery;
 
 /**
  * The RXBox page: a product card that flips between a row and a column, a

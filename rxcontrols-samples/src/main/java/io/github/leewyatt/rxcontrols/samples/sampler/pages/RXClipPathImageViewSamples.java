@@ -14,9 +14,9 @@ import java.util.List;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.PORTRAIT;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.TIGER;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.image;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.scenery;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.text;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.image;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.scenery;
 
 /**
  * The RXClipPathImageView page: the built-in shapes, a shape picker, a honeycomb of

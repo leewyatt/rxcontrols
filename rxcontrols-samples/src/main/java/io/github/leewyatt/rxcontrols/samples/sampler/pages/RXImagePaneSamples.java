@@ -16,12 +16,12 @@ import java.util.List;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.PORTRAIT;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.icon;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.image;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.roundClip;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.scenery;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.solid;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.text;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.wrapped;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.image;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.scenery;
 
 /**
  * The RXImagePane page: a profile header, a hero banner with a call to action, a video

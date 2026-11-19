@@ -28,9 +28,9 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.SONG_
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.SONG_TITLE;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.icon;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.iconButton;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.scenery;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.setIcon;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.text;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.scenery;
 
 /**
  * The RXLrcLineView page: a now-playing bar with one line of lyrics, the same lyrics

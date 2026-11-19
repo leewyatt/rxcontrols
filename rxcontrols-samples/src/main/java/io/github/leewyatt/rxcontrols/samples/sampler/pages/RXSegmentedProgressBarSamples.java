@@ -87,8 +87,7 @@ public final class RXSegmentedProgressBarSamples {
 
         Image[] images = new Image[STORY_COUNT];
         for (int i = 0; i < STORY_COUNT; i++) {
-            images[i] = new Image(RXSegmentedProgressBarSamples.class.getResource("/scenery/" + (i + 1) + ".png")
-                    .toExternalForm(), true);
+            images[i] = SampleImages.scenery(i + 1);
         }
         RXImageView view = new RXImageView(images[1]);
         view.setImageFit(ImageFit.COVER);

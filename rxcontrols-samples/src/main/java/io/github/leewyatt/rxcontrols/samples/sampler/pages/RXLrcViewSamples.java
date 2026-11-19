@@ -21,11 +21,11 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.LYRIC
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.SONG_ARTIST;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.SONG_LENGTH;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.SONG_TITLE;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.iconButton;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.icon;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.scenery;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.iconButton;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.setIcon;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.text;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.scenery;
 
 /**
  * The RXLrcView page: a music player with scrolling lyrics and a seek bar, a karaoke

@@ -26,10 +26,10 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.brea
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.menu;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.picker;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.plain;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.scenery;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.text;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.widthFrame;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.wrapped;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.scenery;
 
 /**
  * The RXMasonryPane page: a photo wall in a resizable frame with menus for the column

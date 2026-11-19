@@ -15,9 +15,9 @@ import java.util.List;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.fixedWidth;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.roundClip;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.scenery;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.text;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.wrapped;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.scenery;
 
 /**
  * The RXImageView page: the three fit modes side by side, rounded corners, a matted

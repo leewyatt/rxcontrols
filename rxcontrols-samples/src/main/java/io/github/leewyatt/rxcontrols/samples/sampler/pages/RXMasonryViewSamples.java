@@ -29,9 +29,9 @@ import javafx.scene.layout.VBox;
 import java.util.List;
 import java.util.function.DoubleConsumer;
 
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.scenery;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.spacer;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.text;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.scenery;
 
 /**
  * The RXMasonryView page: one tall photo board under a toolbar that sets its width and

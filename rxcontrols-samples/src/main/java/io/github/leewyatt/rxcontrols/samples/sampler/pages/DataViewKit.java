@@ -3,21 +3,18 @@ package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 import io.github.leewyatt.rxcontrols.RXButton;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
-import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.util.StringConverter;
 
-import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 
 /**
- * Icons, text helpers, avatars, sample images and the stylesheet shared by the data
+ * Icons, text helpers, avatars and the stylesheet shared by the data
  * view pages. Each icon is a shape-backed region whose shape comes from its style
  * class in the stylesheet.
  */
@@ -32,7 +29,6 @@ final class DataViewKit {
     private static final List<String> PALETTE_HEX = List.of(
             "#f43f5e", "#f97316", "#f59e0b", "#65a30d", "#14b8a6", "#0ea5e9", "#6366f1", "#8b5cf6", "#ec4899");
 
-    private static final int SCENERY_COUNT = 4;
 
     private DataViewKit() {
     }
@@ -101,18 +97,6 @@ final class DataViewKit {
             return parts[0].substring(0, 1).toUpperCase(Locale.ROOT);
         }
         return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase(Locale.ROOT);
-    }
-
-    /**
-     * Loads the sample landscape photos in the background.
-     */
-    static List<Image> scenery() {
-        List<Image> images = new ArrayList<>();
-        for (int i = 1; i <= SCENERY_COUNT; i++) {
-            URL url = DataViewKit.class.getResource("/scenery/" + i + ".png");
-            images.add(new Image(url.toExternalForm(), true));
-        }
-        return images;
     }
 
     /**
