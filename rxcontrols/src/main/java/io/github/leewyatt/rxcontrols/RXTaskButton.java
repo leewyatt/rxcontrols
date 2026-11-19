@@ -376,6 +376,14 @@ public class RXTaskButton extends RXButton {
      * sees the cancellation, not the failure. Call {@link #start()} right
      * before the restart to keep the pending face up.</p>
      *
+     * <p>A {@code ScheduledService} cannot be tracked. Drive the button from
+     * its events instead: call {@link #start()} from a
+     * {@code WORKER_STATE_RUNNING} handler and keep the returned handle, then
+     * call {@link Run#succeed()}, {@link Run#fail()} and {@link Run#cancel()}
+     * on it from the {@code WORKER_STATE_SUCCEEDED},
+     * {@code WORKER_STATE_FAILED} and {@code WORKER_STATE_CANCELLED}
+     * handlers.</p>
+     *
      * @param worker the worker to follow
      * @return the handle of the new run
      * @throws NullPointerException     if {@code worker} is {@code null}
@@ -395,8 +403,9 @@ public class RXTaskButton extends RXButton {
             throw new IllegalArgumentException("A ScheduledService cannot be tracked: it stays scheduled"
                     + " between two rounds and restarts itself before a listener can see a round"
                     + " succeed. Call start() from a WORKER_STATE_RUNNING handler of the service and"
-                    + " report through the returned Run from its WORKER_STATE_SUCCEEDED and"
-                    + " WORKER_STATE_FAILED handlers instead.");
+                    + " call succeed(), fail() and cancel() on the returned Run from its"
+                    + " WORKER_STATE_SUCCEEDED, WORKER_STATE_FAILED and WORKER_STATE_CANCELLED"
+                    + " handlers instead.");
         }
         return begin(new WorkerSource(worker));
     }
@@ -1618,7 +1627,8 @@ public class RXTaskButton extends RXButton {
      *
      * <p>The handle does not keep the button alive: a button nothing else
      * refers to can be collected while a callback still holds its handle,
-     * and the handle then does nothing.</p>
+     * and the handle then does nothing. Only a delay or duration of the
+     * button that is still counting keeps it until it has run out.</p>
      */
     public static final class Run {
 

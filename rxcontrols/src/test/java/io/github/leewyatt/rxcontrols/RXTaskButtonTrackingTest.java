@@ -347,6 +347,29 @@ public class RXTaskButtonTrackingTest {
     }
 
     @Test
+    public void startBeforeARestartKeepsThePendingFace() throws InterruptedException {
+        RXTaskButton button = button(Duration.ZERO, Duration.ZERO);
+        ManualService service = new ManualService();
+        Probe probe = new Probe(button);
+        onFx(() -> {
+            service.addEventHandler(WorkerStateEvent.WORKER_STATE_SCHEDULED,
+                    event -> button.track(service));
+            service.start();
+            probe.events.clear();
+
+            button.start();
+            service.restart();
+
+            assertEquals(List.of(), probe.events);
+            assertTrue(button.isRunning());
+            // The cancelled task does nothing; the new one succeeds.
+            service.runNext();
+            service.runNext();
+        });
+        onFx(() -> assertEquals(List.of("running=false", "state=SUCCEEDED"), probe.events));
+    }
+
+    @Test
     public void restartThenTrackFollowsTheNewRun() throws InterruptedException {
         RXTaskButton button = button(Duration.ZERO, Duration.ZERO);
         ManualService service = finishedService();
@@ -472,6 +495,43 @@ public class RXTaskButtonTrackingTest {
                 "running=true", "state=PENDING", "running=false", "state=FAILED"), probe.events));
     }
 
+    @Test
+    public void scheduledServiceCancelledInARoundCancelsTheRunThroughTheHandle()
+            throws InterruptedException {
+        RXTaskButton button = button(Duration.ZERO, Duration.ZERO);
+        Probe probe = new Probe(button);
+        GatedTask task = new GatedTask();
+        AtomicReference<Run> current = new AtomicReference<>();
+        ScheduledService<Void> service = new ScheduledService<>() {
+            @Override
+            protected Task<Void> createTask() {
+                return task;
+            }
+        };
+        onFx(() -> {
+            service.setExecutor(command -> {
+                Thread worker = new Thread(command, "task-button-test-round");
+                worker.setDaemon(true);
+                worker.start();
+            });
+            service.addEventHandler(WorkerStateEvent.WORKER_STATE_RUNNING,
+                    event -> current.set(button.start()));
+            service.addEventHandler(WorkerStateEvent.WORKER_STATE_CANCELLED,
+                    event -> current.get().cancel());
+            service.start();
+        });
+        assertTrue(task.entered.await(10, TimeUnit.SECONDS));
+        onFx(() -> {
+            assertTrue(button.isRunning());
+
+            service.cancel();
+
+            assertEquals(List.of("running=true", "state=PENDING", "running=false", "state=IDLE"),
+                    probe.events);
+        });
+        task.release.countDown();
+    }
+
     // ==================== CompletionStage ====================
 
     @Test
@@ -584,6 +644,26 @@ public class RXTaskButtonTrackingTest {
             assertTrue(future.isCancelled());
             assertFalse(button.isRunning());
             assertEquals(State.IDLE, button.getState());
+        });
+    }
+
+    @Test
+    public void stageIsCancelledWithInterruption() throws InterruptedException {
+        onFx(() -> {
+            RXTaskButton button = button(LONG, LONG);
+            List<Boolean> interrupts = new ArrayList<>();
+            CompletableFuture<String> future = new CompletableFuture<>() {
+                @Override
+                public boolean cancel(boolean mayInterruptIfRunning) {
+                    interrupts.add(mayInterruptIfRunning);
+                    return super.cancel(mayInterruptIfRunning);
+                }
+            };
+            button.track(future);
+
+            button.cancel();
+
+            assertEquals(List.of(true), interrupts);
         });
     }
 
