@@ -3756,10 +3756,12 @@
     -fx-background-insets: -1.4, 0, 1;
     -fx-background-radius: 5, 4, 3;
 }
+/* The tint is translucent in some themes; the surface under it keeps the solid
+   accent ring from showing through, which would hide the accent arrow. */
 .rx-menu-button:showing {
-    -fx-background-color: -rx-primary, -rx-primary-bg;
-    -fx-background-insets: 0, 1;
-    -fx-background-radius: 4, 3;
+    -fx-background-color: -rx-primary, -rx-surface, -rx-primary-bg;
+    -fx-background-insets: 0, 1, 1;
+    -fx-background-radius: 4, 3, 3;
 }
 .rx-menu-button:showing > .arrow {
     -fx-background-color: -rx-primary;
