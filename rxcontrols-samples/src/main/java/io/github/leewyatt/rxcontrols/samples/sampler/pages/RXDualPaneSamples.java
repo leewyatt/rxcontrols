@@ -67,6 +67,9 @@ public final class RXDualPaneSamples {
                 List.of("Two states of one place: a list and its detail, view and edit, front and back.",
                         "For more than two contents, or content that changes freely, use RXTransitionPane."),
                 List.of(
+                        SampleCard.large("Front and back",
+                                "A click on the card calls toggle(); AnimFlip with Orientation.VERTICAL turns it over side to side.",
+                                paymentCard()),
                         SampleCard.large("List and detail",
                                 "Picking a contact sets showingSecond; AnimSlide plays forward to the detail and "
                                         + "backward on the way back.",
@@ -74,9 +77,6 @@ public final class RXDualPaneSamples {
                         SampleCard.large("View and edit",
                                 "showingSecond is bound to the Edit switch; AnimFade cross-fades the two faces.",
                                 profile()),
-                        SampleCard.large("Front and back",
-                                "A click on the card calls toggle(); AnimFlip with Orientation.VERTICAL turns it over side to side.",
-                                paymentCard()),
                         SampleCard.large("Sign in or sign up",
                                 "The links flip between the two forms with AnimCube; the pane keeps the size of "
                                         + "the larger face.",
@@ -173,7 +173,7 @@ public final class RXDualPaneSamples {
     // ==================== Front and back ====================
 
     private static Node paymentCard() {
-        Label number = text("4242  4242  4242  4242", "card-number");
+        Label number = text("5858  5858  5858  5858", "card-number");
         HBox top = new HBox(text("Northwind Bank", "card-text"), spacer(), icon("card-icon", "on-color"));
         HBox bottom = new HBox(new VBox(2.0, text("Card holder", "card-caption"), text("LEE WYATT", "card-text")),
                 spacer(), new VBox(2.0, text("Expires", "card-caption"), text("09/29", "card-text")));
