@@ -380,11 +380,6 @@
     -fx-background-color: transparent;
 }
 
-.example-card .close-icon {
-    -fx-pref-width: 12px;
-    -fx-pref-height: 12px;
-}
-
 .example-card .chip.size-s { -fx-font-size: 12px; }
 .example-card .chip.size-m { -fx-font-size: 15px; }
 .example-card .chip.size-l { -fx-font-size: 20px; }
@@ -447,10 +442,6 @@
     -fx-text-fill: #1f2937;
 }
 
-.example-card .note .close-icon {
-    -fx-background-color: #475569;
-}
-
 .example-card .note.amber { -fx-background-color: #fde68a; }
 .example-card .note.lime { -fx-background-color: #d9f99d; }
 .example-card .note.sky { -fx-background-color: #bae6fd; }
@@ -458,13 +449,6 @@
 .example-card .note.violet { -fx-background-color: #ddd6fe; }
 .example-card .note.orange { -fx-background-color: #fed7aa; }
 .example-card .note.teal { -fx-background-color: #99f6e4; }
-
-.example-card .post {
-    -fx-padding: 8px;
-    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
-    -fx-background-insets: 0, 1px;
-    -fx-background-radius: 10px, 9px;
-}
 
 /*******************************************************************************
  *                                                                             *
@@ -506,10 +490,6 @@
 
 .example-card .inbox-icon {
     -fx-shape: "M19 3H4.99c-1.11 0-1.98.89-1.98 2L3 19c0 1.1.88 2 1.99 2H19c1.1 0 2-.9 2-2V5c0-1.11-.9-2-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H4.99V5H19v10zM0 0L0 0M24 24L24 24";
-}
-
-.example-card .close-icon {
-    -fx-shape: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12zM0 0L0 0M24 24L24 24";
 }
 
 .example-card .warning-icon {
