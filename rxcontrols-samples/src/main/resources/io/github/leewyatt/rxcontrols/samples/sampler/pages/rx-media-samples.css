@@ -1,0 +1,735 @@
+/*******************************************************************************
+ *                                                                             *
+ * Shared text and surfaces                                                    *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .page-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .headline {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .copy {
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .copy-large {
+    -fx-font-size: 16px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .copy-strong {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .muted {
+    -fx-font-size: 12px;
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.example-card .eyebrow {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f97316;
+}
+
+.example-card .code,
+.example-card .time-code {
+    -fx-font-family: monospace;
+    -fx-font-size: 12px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .panel {
+    -fx-padding: 16px;
+    -fx-background-color: -fx-text-box-border, -fx-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 12px, 11px;
+}
+
+.example-card .screen {
+    -fx-padding: 16px;
+    -fx-background-color: #0f172a;
+    -fx-background-radius: 12px;
+}
+
+.example-card .screen-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f8fafc;
+}
+
+.example-card .screen-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: #94a3b8;
+}
+
+.example-card .symbol {
+    -fx-pref-width: 18px;
+    -fx-pref-height: 18px;
+    -fx-background-color: -showcase-caption-color;
+}
+
+.example-card .icon-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 999px;
+    -fx-padding: 6px;
+    -fx-cursor: hand;
+}
+
+.example-card .icon-button:hover {
+    -fx-background-color: -fx-hover-base;
+}
+
+.example-card .icon-button:hover > .symbol {
+    -fx-background-color: -fx-text-base-color;
+}
+
+.example-card .icon-button.round-button,
+.example-card .icon-button.round-button:hover {
+    -fx-background-color: #14b8a6;
+    -fx-padding: 9px;
+}
+
+.example-card .icon-button.round-button > .symbol,
+.example-card .icon-button.round-button:hover > .symbol {
+    -fx-background-color: white;
+}
+
+.example-card .icon-button.screen-button,
+.example-card .icon-button.screen-button:hover {
+    -fx-background-color: #f8fafc;
+    -fx-padding: 10px;
+}
+
+.example-card .icon-button.screen-button > .symbol,
+.example-card .icon-button.screen-button:hover > .symbol {
+    -fx-background-color: #0f172a;
+}
+
+.example-card .rx-button.solid {
+    -fx-background-color: -rx-primary;
+    -fx-background-insets: 0;
+    -fx-background-radius: 6px;
+    -fx-padding: 7px 16px;
+    -fx-text-fill: white;
+    -rx-ripple-fill: white;
+}
+
+.example-card .rx-button.solid.orange { -fx-background-color: #f97316; }
+.example-card .rx-button.solid.amber { -fx-background-color: #f59e0b; }
+.example-card .rx-button.solid.teal { -fx-background-color: #14b8a6; }
+.example-card .rx-button.solid.sky { -fx-background-color: #0ea5e9; }
+.example-card .rx-button.solid.indigo { -fx-background-color: #6366f1; }
+.example-card .rx-button.solid.violet { -fx-background-color: #8b5cf6; }
+
+/*******************************************************************************
+ *                                                                             *
+ * Icons                                                                       *
+ *                                                                             *
+ ******************************************************************************/
+/* Every shape carries 0,0 and 24,24 anchors so it keeps the 24 x 24 icon box. */
+.example-card .play-icon {
+    -fx-shape: "M8 5v14l11-7zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .pause-icon {
+    -fx-shape: "M6 19h4V5H6v14zm8-14v14h4V5h-4zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .next-icon {
+    -fx-shape: "M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .previous-icon {
+    -fx-shape: "M6 6h2v12H6zm3.5 6l8.5 6V6zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .music-icon {
+    -fx-shape: "M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6zM0 0L0 0M24 24L24 24";
+    -fx-pref-width: 26px;
+    -fx-pref-height: 26px;
+}
+
+.example-card .megaphone-icon {
+    -fx-shape: "M18 11v2h4v-2h-4zm-2 6.61c.96.71 2.21 1.65 3.2 2.39.4-.53.8-1.07 1.2-1.6-.99-.74-2.24-1.68-3.2-2.4-.4.54-.8 1.08-1.2 1.61zM20.4 5.6c-.4-.53-.8-1.07-1.2-1.6-.99.74-2.24 1.68-3.2 2.4.4.53.8 1.07 1.2 1.6.96-.72 2.21-1.65 3.2-2.4zM4 9c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1v4h2v-4h1l5 3V6L8 9H4zm11.5 3c0-1.33-.58-2.53-1.5-3.35v6.69c.92-.81 1.5-2.01 1.5-3.34zM0 0L0 0M24 24L24 24";
+    -fx-background-color: white;
+}
+
+.example-card .chart-icon {
+    -fx-shape: "M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .inbox-icon {
+    -fx-shape: "M19 3H4.99c-1.11 0-1.98.89-1.98 2L3 19c0 1.1.88 2 1.99 2H19c1.1 0 2-.9 2-2V5c0-1.11-.9-2-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H4.99V5H19v10zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .star-icon {
+    -fx-shape: "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .draft-icon {
+    -fx-shape: "M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .archive-icon {
+    -fx-shape: "M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .download-icon {
+    -fx-shape: "M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .share-icon {
+    -fx-shape: "M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .open-icon {
+    -fx-shape: "M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7zM0 0L0 0M24 24L24 24";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXAvatar                                                                    *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-avatar.rose { -rx-avatar-fill: #f43f5e; }
+.example-card .rx-avatar.orange { -rx-avatar-fill: #f97316; }
+.example-card .rx-avatar.amber { -rx-avatar-fill: #f59e0b; }
+.example-card .rx-avatar.teal { -rx-avatar-fill: #14b8a6; }
+.example-card .rx-avatar.sky { -rx-avatar-fill: #0ea5e9; }
+.example-card .rx-avatar.indigo { -rx-avatar-fill: #6366f1; }
+.example-card .rx-avatar.violet { -rx-avatar-fill: #8b5cf6; }
+.example-card .rx-avatar.pink { -rx-avatar-fill: #ec4899; }
+.example-card .rx-avatar.more { -rx-avatar-fill: #64748b; }
+
+.example-card .rx-avatar.size-xs > .text-wrapper > .label { -fx-font-size: 10px; }
+.example-card .rx-avatar.size-sm > .text-wrapper > .label { -fx-font-size: 12px; }
+.example-card .rx-avatar.size-md > .text-wrapper > .label { -fx-font-size: 14px; }
+.example-card .rx-avatar.size-lg > .text-wrapper > .label { -fx-font-size: 18px; }
+.example-card .rx-avatar.size-xl > .text-wrapper > .label { -fx-font-size: 24px; }
+
+.example-card .avatar-ring {
+    -fx-padding: 2.5px;
+    -fx-background-color: -fx-control-inner-background;
+    -fx-background-radius: 999px;
+}
+
+.example-card .avatar-ring.thick {
+    -fx-padding: 4px;
+}
+
+.example-card .rx-badge.presence {
+    -rx-badge-ring: -fx-control-inner-background;
+}
+
+.example-card .rx-badge.presence > .indicator {
+    -fx-font-size: 14px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXImageView                                                                 *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-image-view.letterbox {
+    -fx-background-color: -fx-text-box-border;
+    -fx-background-radius: 6px;
+}
+
+.example-card .rx-image-view.mat {
+    -fx-background-color: #f5f0e6;
+    -fx-border-color: #d6cbb5;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.18), 10, 0, 0, 3);
+}
+
+.example-card .thumb {
+    -fx-padding: 2px;
+    -fx-background-color: transparent;
+    -fx-background-radius: 8px;
+    -fx-cursor: hand;
+}
+
+.example-card .thumb.selected {
+    -fx-background-color: #6366f1;
+}
+
+.example-card .article {
+    -fx-background-color: -fx-text-box-border, -fx-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 10px, 9px;
+}
+
+.example-card .article-body {
+    -fx-padding: 12px 14px 14px 14px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXImagePane                                                                 *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .profile {
+    -fx-background-color: -fx-text-box-border, -fx-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 10px, 9px;
+}
+
+.example-card .shade {
+    -fx-background-color: linear-gradient(to right, rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.15));
+}
+
+.example-card .bottom-shade {
+    -fx-background-color: linear-gradient(to bottom, transparent 30%, rgba(15, 23, 42, 0.75));
+}
+
+.example-card .hero-name {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.example-card .hero-title {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.example-card .hero-text {
+    -fx-font-size: 14px;
+    -fx-text-fill: #e2e8f0;
+}
+
+.example-card .play-disc {
+    -fx-padding: 12px;
+    -fx-background-color: rgba(255, 255, 255, 0.9);
+    -fx-background-radius: 999px;
+    -fx-cursor: hand;
+}
+
+.example-card .play-disc > .symbol {
+    -fx-pref-width: 22px;
+    -fx-pref-height: 22px;
+    -fx-background-color: #0f172a;
+}
+
+.example-card .duration,
+.example-card .quality {
+    -fx-padding: 1px 6px;
+    -fx-background-color: rgba(15, 23, 42, 0.78);
+    -fx-background-radius: 4px;
+    -fx-font-size: 11px;
+    -fx-text-fill: white;
+}
+
+.example-card .quality {
+    -fx-background-color: #f43f5e;
+    -fx-font-weight: bold;
+}
+
+.example-card .caption {
+    -fx-padding: 36px 14px 12px 14px;
+    -fx-background-color: linear-gradient(to bottom, transparent, rgba(15, 23, 42, 0.8));
+    -fx-background-radius: 0 0 14px 14px;
+}
+
+.example-card .caption-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.example-card .caption-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: #e2e8f0;
+}
+
+.example-card .chip-tag {
+    -fx-padding: 2px 9px;
+    -fx-background-color: #f59e0b;
+    -fx-background-radius: 999px;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXClipPathImageView                                                         *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-segmented-control.pink {
+    -rx-primary: #ec4899;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXAudioSpectrum                                                             *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-audio-spectrum.sunset {
+    -rx-bar-fill: linear-gradient(from 0% 100% to 0% 0%, #f97316, #ec4899 60%, #8b5cf6);
+}
+
+.example-card .rx-audio-spectrum.aqua {
+    -rx-bar-fill: linear-gradient(from 0% 100% to 0% 0%, #0ea5e9, #14b8a6);
+}
+
+.example-card .rx-audio-spectrum.violet {
+    -rx-bar-fill: linear-gradient(from 0% 100% to 0% 0%, #6366f1, #ec4899);
+}
+
+.example-card .rx-audio-spectrum.lime {
+    -rx-bar-fill: linear-gradient(from 0% 100% to 0% 0%, #65a30d, #a3e635);
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXLrcView / RXLrcLineView                                                   *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-seek-bar.teal {
+    -rx-primary: #14b8a6;
+}
+
+.example-card .rx-lrc-view > .viewport > .content > .line > .text {
+    -fx-font-size: 14px;
+    -fx-text-alignment: center;
+}
+
+.example-card .rx-lrc-view > .viewport > .content > .line:current > .text {
+    -fx-text-fill: #0d9488;
+}
+
+.example-card .rx-lrc-view.compact > .viewport > .content > .line > .text {
+    -fx-font-size: 13px;
+}
+
+.example-card .rx-lrc-view.compact > .viewport > .content > .line:current > .text {
+    -fx-text-fill: #6366f1;
+}
+
+.example-card .rx-lrc-view.karaoke > .viewport > .content > .line > .text {
+    -fx-font-size: 15px;
+    -fx-text-fill: #94a3b8;
+}
+
+.example-card .rx-lrc-view.karaoke > .viewport > .content > .line:current > .text {
+    -fx-text-fill: #fbbf24;
+}
+
+.example-card .rx-lrc-line-view .label {
+    -fx-font-size: 15px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .rx-lrc-line-view.boxed {
+    -fx-padding: 0 10px;
+    -fx-background-color: -fx-text-box-border, -fx-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 6px, 5px;
+}
+
+.example-card .rx-lrc-line-view.desktop .label {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #fde047;
+    -fx-effect: dropshadow(gaussian, rgba(236, 72, 153, 0.9), 8, 0.3, 0, 0);
+}
+
+.example-card .screen.wallpaper {
+    -fx-padding: 28px 18px;
+    -fx-background-color: linear-gradient(to bottom right, #1e1b4b, #0f766e);
+}
+
+.example-card .now-playing {
+    -fx-padding: 10px 14px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXDigit                                                                     *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-digit.teal { -rx-lit-fill: #2dd4bf; }
+.example-card .rx-digit.orange { -rx-lit-fill: #fb923c; }
+.example-card .rx-digit.sky { -rx-lit-fill: #38bdf8; }
+.example-card .rx-digit.amber { -rx-lit-fill: #fbbf24; }
+
+.example-card .rx-digit.lcd {
+    -rx-lit-fill: #1f2a12;
+    -rx-unlit-fill: rgba(31, 42, 18, 0.1);
+}
+
+.example-card .segment-dot {
+    -fx-pref-width: 8px;
+    -fx-pref-height: 8px;
+    -fx-background-radius: 999px;
+}
+
+.example-card .segment-dot.teal { -fx-background-color: #2dd4bf; }
+.example-card .segment-dot.amber { -fx-background-color: #fbbf24; }
+.example-card .segment-dot.lcd { -fx-background-color: #1f2a12; }
+
+.example-card .lcd-panel {
+    -fx-padding: 16px 20px;
+    -fx-background-color: #4d5a3a, #b5c99a;
+    -fx-background-insets: 0, 4px;
+    -fx-background-radius: 10px, 7px;
+}
+
+.example-card .lcd-unit {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1f2a12;
+}
+
+.example-card .lcd-bezel {
+    -fx-padding: 26px 30px;
+    -fx-background-color: linear-gradient(to right, #e6e6e6 0%, #b3b3b3 50%, #b3b3b3 100%);
+    -fx-background-radius: 10px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 16, 0, 2, 2);
+}
+
+.example-card .lcd-screen {
+    -fx-padding: 12px 26px 16px 22px;
+    -fx-background-color: #9dba9c;
+    -fx-background-radius: 8px;
+    -fx-effect: innershadow(gaussian, rgba(0, 0, 0, 0.5), 6, 0, 1, 1);
+}
+
+.example-card .lcd-day {
+    -fx-font-size: 13px;
+    -fx-text-fill: #dfffdf;
+}
+
+.example-card .lcd-day:today {
+    -fx-text-fill: #111111;
+}
+
+.example-card .lcd-half {
+    -fx-font-size: 20px;
+    -fx-text-fill: #111111;
+}
+
+.example-card .rx-digit.lcd-clock {
+    -rx-lit-fill: #111111;
+    -rx-unlit-fill: rgba(0, 0, 0, 0.03);
+}
+
+.example-card .segment-dot.lcd-clock {
+    -fx-pref-width: 6px;
+    -fx-pref-height: 6px;
+    -fx-background-color: #111111;
+    -fx-background-radius: 1px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXTransitionLabel                                                           *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .announcement-bar {
+    -fx-padding: 10px 18px;
+    -fx-background-color: linear-gradient(to right, #6366f1, #8b5cf6);
+    -fx-background-radius: 999px;
+}
+
+.example-card .rx-transition-label.announcement .label {
+    -fx-font-size: 14px;
+    -fx-text-fill: white;
+}
+
+.example-card .rx-transition-label.price .label {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .rx-transition-label.change .label {
+    -fx-font-family: monospace;
+    -fx-font-size: 13px;
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.example-card .rx-transition-label.change.up .label {
+    -fx-text-fill: #16a34a;
+}
+
+.example-card .rx-transition-label.change.down .label {
+    -fx-text-fill: #e11d48;
+}
+
+.example-card .tile-icon {
+    -fx-pref-width: 30px;
+    -fx-pref-height: 30px;
+    -fx-background-color: #0ea5e9;
+}
+
+.example-card .rx-transition-label.counter {
+    -fx-background-color: -fx-text-box-border, -fx-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 10px, 9px;
+}
+
+.example-card .rx-transition-label.counter .label {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f97316;
+}
+
+.example-card .rx-button.step-button {
+    -fx-font-size: 18px;
+    -fx-pref-width: 40px;
+    -fx-pref-height: 40px;
+    -fx-background-radius: 999px;
+}
+
+.example-card .rx-transition-label.status .label {
+    -fx-font-size: 13px;
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.example-card .rx-transition-label.word .label {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ec4899;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXFillLabel                                                                 *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-fill-label.rose { -rx-fill: #f43f5e; }
+.example-card .rx-fill-label.orange { -rx-fill: #f97316; }
+.example-card .rx-fill-label.amber { -rx-fill: #f59e0b; }
+.example-card .rx-fill-label.lime { -rx-fill: #65a30d; }
+.example-card .rx-fill-label.teal { -rx-fill: #14b8a6; }
+.example-card .rx-fill-label.sky { -rx-fill: #0ea5e9; }
+.example-card .rx-fill-label.indigo { -rx-fill: #6366f1; }
+.example-card .rx-fill-label.violet { -rx-fill: #8b5cf6; }
+.example-card .rx-fill-label.pink { -rx-fill: #ec4899; }
+
+.example-card .rx-fill-label.tag {
+    -fx-padding: 5px 14px;
+    -fx-font-size: 13px;
+    -fx-border-color: -rx-fill;
+    -fx-border-radius: 999px;
+    -fx-background-radius: 999px;
+    -fx-text-fill: -rx-fill;
+    -fx-cursor: hand;
+}
+
+.example-card .rx-fill-label.tag.square {
+    -fx-padding: 7px 14px;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+}
+
+.example-card .rx-fill-label.tag:filling,
+.example-card .rx-fill-label.menu-item:filling,
+.example-card .rx-fill-label.heading-fill:filling {
+    -fx-text-fill: white;
+}
+
+.example-card .menu-panel {
+    -fx-padding: 8px;
+    -fx-background-color: -fx-text-box-border, -fx-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 10px, 9px;
+}
+
+.example-card .rx-fill-label.menu-item {
+    -fx-padding: 9px 12px;
+    -fx-font-size: 13px;
+    -fx-background-radius: 6px;
+    -fx-text-fill: -fx-text-base-color;
+    -fx-cursor: hand;
+}
+
+.example-card .rx-fill-label.menu-item:filling .menu-icon {
+    -fx-background-color: white;
+}
+
+.example-card .rx-fill-label.heading-fill {
+    -fx-padding: 4px 8px;
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-base-color;
+    -fx-border-color: transparent transparent -rx-fill transparent;
+    -fx-border-width: 0 0 3px 0;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXLineLabel                                                                 *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-line-label.orange { -rx-line-color: #f97316; }
+.example-card .rx-line-label.lime { -rx-line-color: #65a30d; }
+.example-card .rx-line-label.teal { -rx-line-color: #14b8a6; }
+.example-card .rx-line-label.sky { -rx-line-color: #0ea5e9; }
+.example-card .rx-line-label.violet { -rx-line-color: #8b5cf6; }
+.example-card .rx-line-label.pink { -rx-line-color: #ec4899; }
+
+.example-card .paragraph .flow-text {
+    -fx-font-size: 14px;
+    -fx-fill: -fx-text-base-color;
+}
+
+.example-card .rx-line-label.inline-link {
+    -fx-font-size: 14px;
+    -fx-text-fill: #6366f1;
+    -rx-line-color: #6366f1;
+    -fx-cursor: hand;
+}
+
+.example-card .rx-line-label.footer-link {
+    -fx-font-size: 13px;
+    -fx-text-fill: -showcase-caption-color;
+    -rx-line-color: #0ea5e9;
+    -fx-cursor: hand;
+}
+
+.example-card .rx-line-label.heading-line {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .rx-line-label.sample-line {
+    -fx-font-size: 14px;
+    -fx-text-fill: -fx-text-base-color;
+    -fx-cursor: hand;
+}
+
+.example-card .rx-line-label .line-icon {
+    -fx-background-color: -fx-text-base-color;
+}
+
+.example-card .rx-line-label:line-showing .line-icon {
+    -fx-background-color: -rx-line-color;
+}
+
+.example-card .rx-line-label.footer-link:line-showing,
+.example-card .rx-line-label.heading-line:line-showing,
+.example-card .rx-line-label.sample-line:line-showing {
+    -fx-text-fill: -rx-line-color;
+}
+
+.example-card .rx-line-label.heading-line .heading-number {
+    -fx-font-family: monospace;
+    -fx-font-size: 14px;
+    -fx-text-fill: -rx-line-color;
+}

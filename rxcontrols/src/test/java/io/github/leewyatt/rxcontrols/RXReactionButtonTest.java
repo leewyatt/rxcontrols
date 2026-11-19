@@ -7,6 +7,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.css.CssMetaData;
+import javafx.css.PseudoClass;
 import javafx.css.Styleable;
 import javafx.geometry.Bounds;
 import javafx.scene.Node;
@@ -15,10 +16,15 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import javafx.scene.transform.Scale;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -50,6 +56,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class RXReactionButtonTest {
 
     private static final Duration SHORT_BURST = Duration.millis(120.0);
+    private static final PseudoClass FOCUS_SHOWN = PseudoClass.getPseudoClass("focus-shown");
 
     @BeforeAll
     public static void startToolkit() throws InterruptedException {
@@ -319,6 +326,30 @@ public class RXReactionButtonTest {
             CornerRadii radii = button.getBackground().getFills().get(0).getRadii();
             assertEquals(999.0, radii.getTopLeftHorizontalRadius(),
                     "the toggle button's focused radius would square off the ripple clip");
+        });
+    }
+
+    /** The focus ring shows for keyboard focus, in the focus color, and not for focus a click brought. */
+    @Test
+    public void focusRingShowsOnlyForKeyboardFocus() throws Exception {
+        onFx(() -> {
+            FocusableReactionButton button = laidOut(new FocusableReactionButton());
+            button.requestFocus();
+            button.focus();
+            button.applyCss();
+            assertTrue(button.getPseudoClassStates().contains(FOCUS_SHOWN), "keyboard focus shows the ring");
+            Paint ring = button.getBorder().getStrokes().get(0).getTopStroke();
+            assertNotEquals(Color.TRANSPARENT, ring, "the ring takes the focus color");
+
+            button.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, 1, 1, 1, 1, MouseButton.PRIMARY, 1,
+                    false, false, false, false, true, false, false, true, false, false, null));
+            button.applyCss();
+            assertFalse(button.getPseudoClassStates().contains(FOCUS_SHOWN), "a press hides the ring");
+            assertEquals(Color.TRANSPARENT, button.getBorder().getStrokes().get(0).getTopStroke(),
+                    "the border stays, transparent, so nothing moves");
+
+            button.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.SPACE, false, false, false, false));
+            assertTrue(button.getPseudoClassStates().contains(FOCUS_SHOWN), "a key press brings the ring back");
         });
     }
 

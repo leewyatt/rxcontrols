@@ -57,7 +57,7 @@ public class RXThemeGallery extends Application {
 
         Scene scene = new Scene(root, 1280, 860);
         scene.getStylesheets().add(getClass().getResource("rx-theme-gallery.css").toExternalForm());
-        root.setTop(buildToolbar(scene)); // applies the initial theme
+        root.setTop(buildToolbar());
 
         primaryStage.setScene(scene);
         primaryStage.setTitle("RxControls Theme Gallery");
@@ -66,7 +66,7 @@ public class RXThemeGallery extends Application {
 
     // ==================== Toolbar ====================
 
-    private HBox buildToolbar(Scene scene) {
+    private HBox buildToolbar() {
         Label title = new Label("RxControls Theme Gallery");
         title.getStyleClass().add("gallery-title");
         countLabel.getStyleClass().add("gallery-count");
@@ -78,11 +78,8 @@ public class RXThemeGallery extends Application {
         filter.setTrailing(clearButton(filter));
         applyFilter("");
 
-        List<ThemeChoice> choices = ShowcaseThemes.all();
         ComboBox<ThemeChoice> picker = new ComboBox<>();
-        picker.getItems().setAll(choices);
-        ShowcaseThemes.bindPicker(picker, () -> scene);
-        picker.setValue(choices.get(0)); // start on plain Modena
+        ShowcaseThemes.bindPicker(picker);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);

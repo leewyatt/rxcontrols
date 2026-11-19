@@ -8,9 +8,17 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.css.Styleable;
+import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -38,6 +46,7 @@ public class RXFloatingActionButtonTest {
 
     private static final PseudoClass SMALL = PseudoClass.getPseudoClass("small");
     private static final PseudoClass LARGE = PseudoClass.getPseudoClass("large");
+    private static final PseudoClass FOCUS_SHOWN = PseudoClass.getPseudoClass("focus-shown");
 
     /**
      * Starts the JavaFX toolkit so CSS and skins can be applied.
@@ -193,7 +202,7 @@ public class RXFloatingActionButtonTest {
     }
 
     /**
-     * Verifies focused FAB states keep circular background geometry.
+     * Verifies focus keeps the round body and the keyboard focus ring sits outside it.
      *
      * @throws Exception if the FX-thread assertion fails
      */
@@ -202,16 +211,23 @@ public class RXFloatingActionButtonTest {
         runOnFx(() -> {
             RXFloatingActionButton button = new RXFloatingActionButton();
             attachAndApplyCss(button);
+            Insets restingInsets = button.getInsets();
 
             button.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), true);
             button.applyCss();
-
             List<BackgroundFill> fills = button.getBackground().getFills();
-            assertEquals(2, fills.size());
+            assertEquals(1, fills.size(), "focus alone keeps the resting body, with no ring");
             assertEquals(0.0, fills.get(0).getInsets().getTop());
-            assertEquals(2.0, fills.get(1).getInsets().getTop());
             assertPercentRadius(fills.get(0).getRadii());
-            assertPercentRadius(fills.get(1).getRadii());
+            assertNull(button.getBorder(), "focus alone draws no ring");
+
+            button.pseudoClassStateChanged(FOCUS_SHOWN, true);
+            button.applyCss();
+            assertEquals(1, button.getBackground().getFills().size(), "the ring does not repaint the body");
+            BorderStroke ring = button.getBorder().getStrokes().get(0);
+            assertEquals(-4.0, ring.getInsets().getTop(), "the ring sits outside the button");
+            assertPercentRadius(ring.getRadii());
+            assertEquals(restingInsets, button.getInsets(), "the ring does not move the content");
         });
     }
 
@@ -284,6 +300,107 @@ public class RXFloatingActionButtonTest {
         assertTrue(radii.isBottomRightVerticalRadiusAsPercentage());
         assertTrue(radii.isBottomLeftHorizontalRadiusAsPercentage());
         assertTrue(radii.isBottomLeftVerticalRadiusAsPercentage());
+    }
+
+    /** The ring hides after a click, comes back with a plain key and survives a window round trip hidden. */
+    @Test
+    public void focusRingFollowsTheFocusSource() throws Exception {
+        runOnFx(() -> {
+            FocusableFab fab = new FocusableFab();
+            Button other = new Button("Other");
+            StackPane root = new StackPane(fab, other);
+            new Scene(root, 200, 200);
+            root.applyCss();
+
+            fab.requestFocus();
+            fab.focus(true);
+            assertTrue(shown(fab), "focus without a press shows the ring");
+
+            press(fab);
+            assertFalse(shown(fab), "a press hides the ring");
+            fab.fireEvent(key(KeyCode.SHIFT, false));
+            fab.fireEvent(key(KeyCode.C, true));
+            assertFalse(shown(fab), "a modifier or a shortcut chord keeps it hidden");
+            fab.fireEvent(key(KeyCode.A, false));
+            assertTrue(shown(fab), "a plain key press brings it back");
+
+            press(fab);
+            // A deactivating window keeps the scene's focus owner and only clears focused.
+            fab.focus(false);
+            fab.focus(true);
+            assertFalse(shown(fab), "returning to the window keeps a clicked button's ring hidden");
+
+            other.requestFocus();
+            assertFalse(shown(fab), "no focus, no ring");
+            fab.requestFocus();
+            fab.focus(true);
+            assertTrue(shown(fab), "focus moved back without a press shows the ring");
+        });
+    }
+
+    /** A press that does not focus the button does not hide the ring of a later focus. */
+    @Test
+    public void pressWithoutFocusDoesNotMarkLaterFocus() throws Exception {
+        runOnFx(() -> {
+            FocusableFab fab = new FocusableFab();
+            fab.setFocusTraversable(false);
+            StackPane root = new StackPane(fab);
+            new Scene(root, 200, 200);
+            root.applyCss();
+
+            press(fab);
+            assertNull(fab.getScene().getFocusOwner(), "a non-traversable button does not take focus on a press");
+            fab.requestFocus();
+            fab.focus(true);
+            assertTrue(shown(fab), "focus from code after that press shows the ring");
+        });
+    }
+
+    /** A replacing skin keeps the focus source; removing the skin clears the pseudo-class. */
+    @Test
+    public void skinReplacementKeepsTheFocusSource() throws Exception {
+        runOnFx(() -> {
+            FocusableFab fab = new FocusableFab();
+            StackPane root = new StackPane(fab);
+            new Scene(root, 200, 200);
+            root.applyCss();
+            fab.requestFocus();
+            fab.focus(true);
+
+            fab.setSkin(new RXFloatingActionButtonSkin(fab) { });
+            assertTrue(shown(fab), "a new skin keeps a keyboard focus ring");
+            press(fab);
+            fab.setSkin(new RXFloatingActionButtonSkin(fab) { });
+            assertFalse(shown(fab), "a new skin keeps a clicked button's ring hidden");
+            fab.fireEvent(key(KeyCode.A, false));
+            assertTrue(shown(fab), "the new skin still reacts to a key press");
+
+            fab.setSkin(null);
+            assertFalse(shown(fab), "removing the skin clears the pseudo-class");
+        });
+    }
+
+    private static boolean shown(RXFloatingActionButton fab) {
+        return fab.getPseudoClassStates().contains(FOCUS_SHOWN);
+    }
+
+    private static void press(Node node) {
+        node.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, 1, 1, 1, 1, MouseButton.PRIMARY, 1,
+                false, false, false, false, true, false, false, true, false, false, null));
+        node.fireEvent(new MouseEvent(MouseEvent.MOUSE_RELEASED, 1, 1, 1, 1, MouseButton.PRIMARY, 1,
+                false, false, false, false, false, false, false, true, false, false, null));
+    }
+
+    private static KeyEvent key(KeyCode code, boolean shortcut) {
+        return new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, false, shortcut, false, shortcut);
+    }
+
+    /** Exposes the protected focus setter: the headless test window cannot take focus. */
+    private static final class FocusableFab extends RXFloatingActionButton {
+
+        void focus(boolean value) {
+            setFocused(value);
+        }
     }
 
     private static void runOnFx(Runnable action) throws Exception {

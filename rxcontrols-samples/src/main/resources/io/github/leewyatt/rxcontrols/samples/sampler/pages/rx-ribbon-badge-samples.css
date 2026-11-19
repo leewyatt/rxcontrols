@@ -1,0 +1,36 @@
+.example-card .plan {
+    -fx-padding: 16px 18px 18px 18px;
+    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 8px, 7px;
+}
+
+.example-card .plan.tile {
+    -fx-padding: 40px 16px 18px 16px;
+}
+
+.example-card .plan.sheet {
+    -fx-padding: 40px 18px 20px 18px;
+}
+
+.example-card .plan.featured {
+    -fx-background-color: -fx-accent, -fx-control-inner-background;
+    -fx-background-insets: 0, 2px;
+}
+
+.example-card .plan > .name {
+    -fx-font-size: 13.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .plan > .price {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.example-card .plan > .note {
+    -fx-font-size: 12px;
+    -fx-text-fill: -showcase-caption-color;
+}

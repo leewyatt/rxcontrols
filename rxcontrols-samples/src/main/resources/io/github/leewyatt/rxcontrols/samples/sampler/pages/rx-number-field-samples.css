@@ -1,0 +1,12 @@
+.example-card .rx-number-field .storage-glyph {
+    -fx-pref-width: 10px;
+    -fx-pref-height: 13px;
+    -fx-background-color: -showcase-caption-color;
+    -fx-shape: "M5 0C7.8 0 10 0.9 10 2S7.8 4 5 4S0 3.1 0 2S2.2 0 5 0Z M0 3.6C0.9 4.6 2.9 5.2 5 5.2S9.1 4.6 10 3.6V6.6C10 7.7 7.8 8.6 5 8.6S0 7.7 0 6.6Z M0 8.2C0.9 9.2 2.9 9.8 5 9.8S9.1 9.2 10 8.2V11C10 12.1 7.8 13 5 13S0 12.1 0 11Z";
+}
+
+.example-card .committed-value {
+    -fx-font-family: monospace;
+    -fx-font-size: 12.5px;
+    -fx-text-fill: -sampler-accent-text;
+}

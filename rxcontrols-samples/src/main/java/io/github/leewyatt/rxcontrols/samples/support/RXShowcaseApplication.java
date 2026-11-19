@@ -3,8 +3,12 @@ package io.github.leewyatt.rxcontrols.samples.support;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes.ThemeChoice;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
+import javafx.event.Event;
+import javafx.event.EventHandler;
+import javafx.event.EventType;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -49,31 +53,116 @@ public abstract class RXShowcaseApplication extends Application {
 
     // ==================== Application lifecycle ====================
 
-    private Scene scene;
-    private ComboBox<ThemeChoice> themePicker;
+
+    private final List<SceneFilter<?>> sceneFilters = new ArrayList<>();
 
     @Override
     public final void start(Stage primaryStage) {
         BorderPane root = new BorderPane();
         root.getStyleClass().add("root");
         root.setCenter(buildPreviewPane());
-        root.setRight(buildControlPane());
+        root.setRight(buildControlPane(true));
+        trackSceneFilters(root);
 
-        scene = new Scene(root, sceneWidth(), sceneHeight());
-        scene.getStylesheets().add(
-                RXShowcaseApplication.class.getResource(SHELL_STYLESHEET).toExternalForm());
+        Scene scene = new Scene(root, sceneWidth(), sceneHeight());
+        scene.getStylesheets().add(shellStylesheet());
         String stylesheetPath = stylesheetPath();
         if (stylesheetPath != null) {
             scene.getStylesheets().add(stylesheetPath);
-        }
-        if (themePicker != null) {
-            themePicker.getSelectionModel().selectFirst(); // applies the initial theme
         }
         configureScene(scene);
 
         primaryStage.setScene(scene);
         primaryStage.setTitle(windowTitle());
         primaryStage.show();
+    }
+
+    // ==================== Embedding ====================
+
+    /**
+     * Builds the preview and the property panel as one node for hosting inside another
+     * application. The title block and the theme picker are left out (the host shows
+     * its own), and the showcase stylesheet is attached to the returned node. The host
+     * scene must carry the showcase shell stylesheet ({@link #shellStylesheet()}).
+     * Call it at most once per instance.
+     *
+     * @return the showcase content
+     */
+    public final Parent createEmbeddedContent() {
+        BorderPane root = new BorderPane();
+        root.getStyleClass().add("showcase-content");
+        root.setCenter(buildPreviewPane());
+        root.setRight(buildControlPane(false));
+        String stylesheetPath = stylesheetPath();
+        if (stylesheetPath != null) {
+            root.getStylesheets().add(stylesheetPath);
+        }
+        trackSceneFilters(root);
+        return root;
+    }
+
+    /**
+     * Returns the showcase title.
+     *
+     * @return the title shown at the top of the control panel
+     */
+    public final String getShowcaseTitle() {
+        return title();
+    }
+
+    /**
+     * Returns the showcase subtitle, a one-line description of the control.
+     *
+     * @return the subtitle shown below the title
+     */
+    public final String getShowcaseSubtitle() {
+        return subtitle();
+    }
+
+    /**
+     * Returns the URL of the stylesheet that styles the showcase chrome.
+     *
+     * @return the shell stylesheet URL
+     */
+    public static String shellStylesheet() {
+        return RXShowcaseApplication.class.getResource(SHELL_STYLESHEET).toExternalForm();
+    }
+
+    /**
+     * Registers an event filter on whichever scene shows this showcase: it is added when
+     * the content enters a scene and removed when it leaves, so an embedded showcase does
+     * not leave filters behind in its host scene. Call it while building the content.
+     *
+     * @param type   the event type to filter
+     * @param filter the filter
+     * @param <T>    the event class
+     */
+    protected final <T extends Event> void addSceneEventFilter(EventType<T> type, EventHandler<? super T> filter) {
+        sceneFilters.add(new SceneFilter<>(type, filter));
+    }
+
+    private void trackSceneFilters(Parent root) {
+        root.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            for (SceneFilter<?> filter : sceneFilters) {
+                if (oldScene != null) {
+                    filter.removeFrom(oldScene);
+                }
+                if (newScene != null) {
+                    filter.addTo(newScene);
+                }
+            }
+        });
+    }
+
+    private record SceneFilter<T extends Event>(EventType<T> type, EventHandler<? super T> handler) {
+
+        void addTo(Scene scene) {
+            scene.addEventFilter(type, handler);
+        }
+
+        void removeFrom(Scene scene) {
+            scene.removeEventFilter(type, handler);
+        }
     }
 
     // ==================== Subclass hooks ====================
@@ -108,7 +197,9 @@ public abstract class RXShowcaseApplication extends Application {
 
     /**
      * Gives subclasses a final chance to configure the scene before it is
-     * attached to the stage.
+     * attached to the stage. Only called when the showcase runs on its own; event
+     * filters that an embedded showcase also needs go through
+     * {@link #addSceneEventFilter}.
      *
      * @param scene the scene created by this showcase shell
      */
@@ -165,10 +256,8 @@ public abstract class RXShowcaseApplication extends Application {
 
     private Node buildThemeBar() {
         ComboBox<ThemeChoice> picker = new ComboBox<>();
-        picker.getItems().setAll(ShowcaseThemes.all());
         picker.setMaxWidth(Double.MAX_VALUE);
-        ShowcaseThemes.bindPicker(picker, () -> scene);
-        themePicker = picker;
+        ShowcaseThemes.bindPicker(picker);
 
         Label label = new Label("Theme");
         label.getStyleClass().add("section-label");
@@ -178,18 +267,19 @@ public abstract class RXShowcaseApplication extends Application {
         return box;
     }
 
-    private Node buildControlPane() {
-        Label titleLabel = new Label(title());
-        titleLabel.getStyleClass().add("title-label");
-        Label subtitleLabel = new Label(subtitle());
-        subtitleLabel.getStyleClass().add("subtitle-label");
-        VBox header = new VBox(2.0, titleLabel, subtitleLabel);
-        header.getStyleClass().add("header-block");
-
+    private Node buildControlPane(boolean standalone) {
         List<Node> children = new ArrayList<>();
-        children.add(header);
-        if (enableTheme()) {
-            children.add(buildThemeBar());
+        if (standalone) {
+            Label titleLabel = new Label(title());
+            titleLabel.getStyleClass().add("title-label");
+            Label subtitleLabel = new Label(subtitle());
+            subtitleLabel.getStyleClass().add("subtitle-label");
+            VBox header = new VBox(2.0, titleLabel, subtitleLabel);
+            header.getStyleClass().add("header-block");
+            children.add(header);
+            if (enableTheme()) {
+                children.add(buildThemeBar());
+            }
         }
         for (Section s : createSections()) {
             children.add(buildSection(s));

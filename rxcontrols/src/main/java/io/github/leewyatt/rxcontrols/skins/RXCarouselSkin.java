@@ -515,8 +515,8 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         }
 
         // Jump current animation to end if running. Capture the indices
-        // first: the stopped animation's status listener resets them through
-        // the external-stop callback before interrupt() returns.
+        // first: the external-stop callback resets them before interrupt()
+        // returns.
         if (engine.isTransitioning()) {
             int closedIndex = animatingFromIndex;
             int openedIndex = animatingToIndex;

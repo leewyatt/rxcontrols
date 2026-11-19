@@ -14,7 +14,6 @@ import javafx.beans.property.StringProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
@@ -107,18 +106,16 @@ public class RXSpeedDialShowcase extends RXShowcaseApplication {
         surface.getChildren().addAll(stateLabel, speedDial);
         StackPane.setAlignment(speedDial, Pos.BOTTOM_RIGHT);
         StackPane.setMargin(speedDial, new Insets(0.0, 28.0, 28.0, 0.0));
-        return surface;
-    }
 
-    @Override
-    protected void configureScene(Scene scene) {
-        scene.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
+        // Scene level, so it runs before the dial's own outside-press filter decides to close.
+        addSceneEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
             if (commandBox != null && event.getTarget() instanceof Node node
                     && isDescendantOf(node, commandBox)) {
                 commandPress.set(true);
                 Platform.runLater(() -> commandPress.set(false));
             }
         });
+        return surface;
     }
 
     @Override

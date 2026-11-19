@@ -2121,9 +2121,11 @@
     -rx-bar-fill: -rx-primary;
 }
 
+/* A capsule at any height: a percentage radius is taken per axis, which turns a thin
+   tall bar into a pointed ellipse. */
 .rx-bar-spinner > .bar {
     -fx-background-color: -rx-bar-fill;
-    -fx-background-radius: 50%;
+    -fx-background-radius: 999px;
 }
 
 /*******************************************************************************
@@ -2584,25 +2586,38 @@
     -fx-background-radius: 50%;
 }
 
+/* Focus keeps the resting body: these replace the inherited .button:focused
+   ring, and the focus ring itself is drawn by :focus-shown below. */
 .rx-fab:focused {
-    -fx-background-color: -rx-focus, -rx-primary;
-    -fx-background-insets: 0, 2px;
-    -fx-background-radius: 50%, 50%;
+    -fx-background-color: -rx-primary;
+    -fx-background-insets: 0;
+    -fx-background-radius: 50%;
 }
 
 .rx-fab:focused:hover,
 .rx-fab:focused:armed {
-    -fx-background-color: -rx-focus, -rx-primary-hover;
-    -fx-background-insets: 0, 2px;
-    -fx-background-radius: 50%, 50%;
+    -fx-background-color: -rx-primary-hover;
+    -fx-background-insets: 0;
+    -fx-background-radius: 50%;
 }
 
 .rx-fab:focused:pressed,
 .rx-fab:focused:default:armed,
 .rx-fab:focused:cancel:armed {
-    -fx-background-color: -rx-focus, -rx-primary-active;
-    -fx-background-insets: 0, 2px;
-    -fx-background-radius: 50%, 50%;
+    -fx-background-color: -rx-primary-active;
+    -fx-background-insets: 0;
+    -fx-background-radius: 50%;
+}
+
+/* A ring outside the button with a transparent gap, so it reads on a body of any
+   color, the primary one included. The negative insets keep it out of the
+   layout. :focus-shown is set by the skin: focus, unless it came from a pointer
+   press and no key has been pressed since. */
+.rx-fab:focus-shown {
+    -fx-border-color: -rx-focus;
+    -fx-border-width: 2px;
+    -fx-border-insets: -4px;
+    -fx-border-radius: 50%;
 }
 
 .rx-fab:small {
@@ -2659,26 +2674,6 @@
 .rx-speed-dial > .actions > .action > .rx-fab:pressed {
     -fx-background-color: -rx-outline, -rx-outline-variant;
     -fx-background-insets: 0, 1;
-    -fx-background-radius: 50%, 50%;
-}
-
-.rx-speed-dial > .actions > .action > .rx-fab:focused {
-    -fx-background-color: -rx-focus,
-        ladder(-rx-surface, -rx-surface-variant 45%, -fx-control-inner-background 46%);
-    -fx-background-insets: 0, 2px;
-    -fx-background-radius: 50%, 50%;
-}
-
-.rx-speed-dial > .actions > .action > .rx-fab:focused:hover,
-.rx-speed-dial > .actions > .action > .rx-fab:focused:armed {
-    -fx-background-color: -rx-focus, -rx-surface-variant;
-    -fx-background-insets: 0, 2px;
-    -fx-background-radius: 50%, 50%;
-}
-
-.rx-speed-dial > .actions > .action > .rx-fab:focused:pressed {
-    -fx-background-color: -rx-focus, -rx-outline-variant;
-    -fx-background-insets: 0, 2px;
     -fx-background-radius: 50%, 50%;
 }
 
@@ -2745,7 +2740,9 @@
     -fx-background-radius: 999px;
 }
 
-.rx-reaction-button:focused {
+/* :focus-shown is set by the skin: focus, unless it came from a pointer press and
+   no key has been pressed since. */
+.rx-reaction-button:focus-shown {
     -fx-border-color: -rx-focus;
 }
 
@@ -2785,7 +2782,10 @@
     -rx-reaction-color: -rx-primary;
 }
 
+/* The bookmark is narrower than the 20 x 20 box; its own 12 : 18 width keeps
+   the shape from being stretched sideways. */
 .rx-reaction-button.bookmark .reaction-icon {
+    -fx-pref-width: 13.333px;
     -fx-shape: "M6 3 H18 V21 L12 16.5 L6 21 Z M8 5 V17.1 L12 14.1 L16 17.1 V5 Z";
 }
 
@@ -2814,8 +2814,8 @@
     -fx-text-fill: -rx-reaction-color;
 }
 
-.rx-theme-atlantafx .rx-reaction-button:focused,
-.rx-theme-atlantafx.rx-reaction-button:focused {
+.rx-theme-atlantafx .rx-reaction-button:focus-shown,
+.rx-theme-atlantafx.rx-reaction-button:focus-shown {
     -fx-border-color: -rx-focus;
 }
 
@@ -3325,6 +3325,7 @@
 .rx-tile-section-header {
     -fx-padding: 0.333em 0.583em;
     -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface;
 }
 
 .rx-tile-view .rx-tile-section-header.sticky {
@@ -3338,58 +3339,31 @@
 /* Black on a light host, the surface text on a dark one. */
 .rx-tile-cell {
     -fx-text-fill: ladder(-rx-surface, -rx-on-surface 45%, black 46%);
+    /* Every cell keeps a transparent ring, so selecting or focusing one only recolors
+       it: the content never moves, and the ring stays inside the cell's own bounds
+       even with no gap between cells. A ring and not a background, because a cell
+       usually paints its own background over the content area. */
+    -fx-border-color: transparent;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
 }
 
+/* The keyboard cursor on an unselected cell. */
 .rx-tile-view:focused > .viewport > .content > .rx-tile-cell:focused {
     -fx-border-color: -fx-focus-color;
-    -fx-border-width: 2;
-    -fx-border-insets: 1;
 }
 
-/* Selection is a ring + background: the ring survives a cell that paints its own
-   background (an inline background cannot override a border). */
+/* Selection is a light accent tint under a ring; the tint keeps pictures and icons in
+   a selected cell readable. One ring only, also on the focused cell. */
 .rx-tile-cell:selected {
-    -fx-background-color: -fx-selection-bar-non-focused;
-    /* reads on Modena's selection bars, focused or not, on light and dark hosts alike */
-    -fx-text-fill: black;
+    -fx-background-color: -rx-primary-bg;
     -fx-border-color: -fx-selection-bar-non-focused;
-    -fx-border-width: 2;
-    -fx-border-insets: 1;
 }
 
-/* Like a Modena ListView: the accent selection only while the view holds focus. */
+/* The accent ring only while the view holds focus, like a Modena ListView. */
 .rx-tile-view:focused > .viewport > .content > .rx-tile-cell:selected {
-    -fx-background-color: -fx-selection-bar;
-    -fx-border-color: -fx-selection-bar;
-}
-
-/* Selected + focused: keep both rings (selection outer, focus inner) so the
-   keyboard cursor is not lost on a selected tile. */
-.rx-tile-view:focused > .viewport > .content > .rx-tile-cell:selected:focused {
-    -fx-border-color: -fx-selection-bar, -fx-focus-color;
-    -fx-border-width: 2, 1;
-    -fx-border-insets: 0, 2;
-}
-
-/* Under the AtlantaFX bridge a selected cell takes AtlantaFX's own selected-cell
-   gray with the default text, focused or not, and no focus ring, like its ListView.
-   The accent ring stays: tiles usually paint their own background, which would hide
-   a fill-only selection. */
-.rx-theme-atlantafx .rx-tile-cell:selected,
-.rx-theme-atlantafx .rx-tile-view:focused > .viewport > .content > .rx-tile-cell:selected {
-    -fx-background-color: -fx-selection-bar-non-focused;
-    -fx-text-fill: -rx-on-surface;
-    -fx-border-color: -fx-selection-bar;
-}
-
-.rx-theme-atlantafx .rx-tile-view:focused > .viewport > .content > .rx-tile-cell:focused {
-    -fx-border-color: transparent;
-}
-
-.rx-theme-atlantafx .rx-tile-view:focused > .viewport > .content > .rx-tile-cell:selected:focused {
-    -fx-border-color: -fx-selection-bar;
-    -fx-border-width: 2;
-    -fx-border-insets: 1;
+    -fx-border-color: -rx-primary;
 }
 
 /*******************************************************************************
@@ -3782,10 +3756,12 @@
     -fx-background-insets: -1.4, 0, 1;
     -fx-background-radius: 5, 4, 3;
 }
+/* The tint is translucent in some themes; the surface under it keeps the solid
+   accent ring from showing through, which would hide the accent arrow. */
 .rx-menu-button:showing {
-    -fx-background-color: -rx-primary, -rx-primary-bg;
-    -fx-background-insets: 0, 1;
-    -fx-background-radius: 4, 3;
+    -fx-background-color: -rx-primary, -rx-surface, -rx-primary-bg;
+    -fx-background-insets: 0, 1, 1;
+    -fx-background-radius: 4, 3, 3;
 }
 .rx-menu-button:showing > .arrow {
     -fx-background-color: -rx-primary;
@@ -3847,58 +3823,31 @@
 /* Black on a light host, the surface text on a dark one. */
 .rx-masonry-cell {
     -fx-text-fill: ladder(-rx-surface, -rx-on-surface 45%, black 46%);
+    /* Every cell keeps a transparent ring, so selecting or focusing one only recolors
+       it: the content never moves, and the ring stays inside the cell's own bounds
+       even with no gap between cells. A ring and not a background, because a cell
+       usually paints its own background over the content area. */
+    -fx-border-color: transparent;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
 }
 
+/* The keyboard cursor on an unselected cell. */
 .rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:focused {
     -fx-border-color: -fx-focus-color;
-    -fx-border-width: 2;
-    -fx-border-insets: 1;
 }
 
-/* Selection is a ring + background: the ring survives a cell that paints its own
-   background (an inline background cannot override a border). */
+/* Selection is a light accent tint under a ring; the tint keeps pictures and icons in
+   a selected cell readable. One ring only, also on the focused cell. */
 .rx-masonry-cell:selected {
-    -fx-background-color: -fx-selection-bar-non-focused;
-    /* reads on Modena's selection bars, focused or not, on light and dark hosts alike */
-    -fx-text-fill: black;
+    -fx-background-color: -rx-primary-bg;
     -fx-border-color: -fx-selection-bar-non-focused;
-    -fx-border-width: 2;
-    -fx-border-insets: 1;
 }
 
-/* Like a Modena ListView: the accent selection only while the view holds focus. */
+/* The accent ring only while the view holds focus, like a Modena ListView. */
 .rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:selected {
-    -fx-background-color: -fx-selection-bar;
-    -fx-border-color: -fx-selection-bar;
-}
-
-/* Selected + focused: keep both rings (selection outer, focus inner) so the
-   keyboard cursor is not lost on a selected cell. */
-.rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:selected:focused {
-    -fx-border-color: -fx-selection-bar, -fx-focus-color;
-    -fx-border-width: 2, 1;
-    -fx-border-insets: 0, 2;
-}
-
-/* Under the AtlantaFX bridge a selected cell takes AtlantaFX's own selected-cell
-   gray with the default text, focused or not, and no focus ring, like its ListView.
-   The accent ring stays: masonry cells usually paint their own background, which
-   would hide a fill-only selection. */
-.rx-theme-atlantafx .rx-masonry-cell:selected,
-.rx-theme-atlantafx .rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:selected {
-    -fx-background-color: -fx-selection-bar-non-focused;
-    -fx-text-fill: -rx-on-surface;
-    -fx-border-color: -fx-selection-bar;
-}
-
-.rx-theme-atlantafx .rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:focused {
-    -fx-border-color: transparent;
-}
-
-.rx-theme-atlantafx .rx-masonry-view:focused > .viewport > .content > .rx-masonry-cell:selected:focused {
-    -fx-border-color: -fx-selection-bar;
-    -fx-border-width: 2;
-    -fx-border-insets: 1;
+    -fx-border-color: -rx-primary;
 }
 
 /*******************************************************************************
@@ -3925,8 +3874,12 @@
     -fx-background-radius: 8, 7;
 }
 
+/* The tint sits on the column's own surface: some themes give it a translucent tint,
+   which over the accent ring layer alone would show the full accent. */
 .rx-kanban-view > .columns > .column:drop-target {
-    -fx-background-color: -rx-primary, -rx-primary-bg;
+    -fx-background-color: -rx-primary, -rx-surface-variant, -rx-primary-bg;
+    -fx-background-insets: 0, 1, 1;
+    -fx-background-radius: 8, 7, 7;
 }
 
 .rx-kanban-view > .columns > .column:dragging {
@@ -3946,6 +3899,16 @@
     -fx-padding: 0.5em 0.75em;
     -fx-alignment: center-left;
     -fx-spacing: 0.5em;
+}
+
+/* A header that moves its column shows where to grab, and holds the hand closed while
+   the column moves. */
+.rx-kanban-view:column-reorder > .columns > .column > .header {
+    -fx-cursor: open-hand;
+}
+
+.rx-kanban-view:column-reorder > .columns > .column:dragging > .header {
+    -fx-cursor: closed-hand;
 }
 
 .rx-kanban-view > .columns > .column > .header > .label {
@@ -3985,9 +3948,13 @@
 /* Selection is a tint and focus a single ring, so a selected focused card shows one
    border. The 2px ring is drawn inside the card (1px border plus an inset background
    layer): the column clips anything outside, and a wider border would shift the
-   content. */
+   content. The tint sits on the card's own surface: some themes give it a translucent
+   tint, which alone would show what lies under it. */
 .rx-kanban-card-cell:selected {
-    -fx-background-color: -rx-primary-bg;
+    -fx-background-color: ladder(-rx-surface, derive(-rx-surface-variant, 8%) 45%, -fx-control-inner-background 46%),
+        -rx-primary-bg;
+    -fx-background-insets: 0, 0;
+    -fx-background-radius: 6, 6;
 }
 
 .rx-kanban-view:focused .rx-kanban-card-cell:focused {
@@ -3999,7 +3966,11 @@
 }
 
 .rx-kanban-view:focused .rx-kanban-card-cell:selected:focused {
-    -fx-background-color: -rx-focus, -rx-primary-bg;
+    -fx-background-color: -rx-focus,
+        ladder(-rx-surface, derive(-rx-surface-variant, 8%) 45%, -fx-control-inner-background 46%),
+        -rx-primary-bg;
+    -fx-background-insets: 0, 2, 2;
+    -fx-background-radius: 6, 4, 4;
 }
 
 /*******************************************************************************
@@ -5205,7 +5176,9 @@
     -rx-ripple-fill: -rx-state-overlay-color;
 }
 
+/* The taller arrow target takes the header's vertical padding, so the header keeps its height. */
 .rx-titled-pane:indicator-trigger > .header {
+    -fx-padding: 0.375em 1em;
     -fx-cursor: default;
     -rx-ripple-enabled: false;
     -rx-ripple-state-overlay-enabled: false;
@@ -5225,8 +5198,17 @@
     -fx-padding: 0.25em;
 }
 
+/* When only the arrow opens the pane, its box becomes a round target that shows on hover. */
 .rx-titled-pane:indicator-trigger > .header > .row > .indicator-button {
     -fx-cursor: hand;
+    -fx-background-radius: 999px;
+    -fx-padding: 0.5em 0.666667em;
+}
+
+.rx-titled-pane:indicator-trigger > .header > .row > .indicator-button:hover {
+    -fx-background-color: ladder(-rx-titled-pane-header-color,
+            derive(-rx-titled-pane-header-color, 25%) 45%,
+            derive(-rx-titled-pane-header-color, -10%) 46%);
 }
 
 .rx-titled-pane:indicator-trigger > .header > .row > .indicator-button:hover > .indicator {

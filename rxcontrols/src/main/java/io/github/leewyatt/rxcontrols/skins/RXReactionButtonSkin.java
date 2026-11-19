@@ -24,6 +24,9 @@ import java.util.List;
  * toggle button plus ripple) with an icon pop and a burst canvas behind the
  * icon and text.
  *
+ * <p>The {@code :focus-shown} pseudo-class marks keyboard focus, so the focus
+ * ring does not show after a click.</p>
+ *
  * <p>The burst canvas is an unmanaged child centered on the icon, hidden
  * between bursts so that it never adds to the button's bounds. A shared
  * burst playback clears it every frame and lets the {@link BurstAnimation}
@@ -88,6 +91,8 @@ public class RXReactionButtonSkin extends RXToggleButtonSkin {
                 pop.cancel();
             }
         });
+
+        FocusShownTracker.install(button, disposer);
 
         // The super constructors ran updateChildren before this skin's
         // fields existed, so the canvas is added here.
