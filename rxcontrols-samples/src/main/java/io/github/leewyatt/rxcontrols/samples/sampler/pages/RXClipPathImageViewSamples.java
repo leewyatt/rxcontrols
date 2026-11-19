@@ -13,7 +13,7 @@ import javafx.scene.layout.VBox;
 import java.util.List;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.PORTRAIT;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.TIGER;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.SHIBA;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.text;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.image;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.scenery;
@@ -100,7 +100,7 @@ public final class RXClipPathImageViewSamples {
     // ==================== Shape picker ====================
 
     private static Node picker() {
-        RXClipPathImageView view = clipped(image(TIGER), RXClipPathImageView.SHAPE_HEART, 160.0, 160.0);
+        RXClipPathImageView view = clipped(image(SHIBA), RXClipPathImageView.SHAPE_HEART, 160.0, 160.0);
         RXSegmentedControl<String> shapes = new RXSegmentedControl<>(
                 RXSegmentedItem.of(RXClipPathImageView.SHAPE_HEART, "Heart"),
                 RXSegmentedItem.of(RXClipPathImageView.SHAPE_STAR, "Star"),
@@ -117,7 +117,7 @@ public final class RXClipPathImageViewSamples {
     // ==================== Honeycomb ====================
 
     private static Node honeycomb() {
-        Image[] images = {image(PORTRAIT), scenery(1), image(TIGER), scenery(2), scenery(3), image(PORTRAIT), scenery(4)};
+        Image[] images = {image(PORTRAIT), scenery(1), image(SHIBA), scenery(2), scenery(3), image(PORTRAIT), scenery(4)};
         HBox top = row(images[0], images[1], images[2]);
         HBox middle = row(images[3], images[4], images[5], images[6]);
         HBox bottom = row(images[2], images[0], images[1]);

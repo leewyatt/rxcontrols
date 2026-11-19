@@ -25,8 +25,8 @@ final class MediaKit {
     /** A portrait of a person in a pink kimono under cherry blossoms. */
     static final String PORTRAIT = "/image/avatar.png";
 
-    /** A cartoon tiger holding a heart. */
-    static final String TIGER = "/image/tx.jpeg";
+    /** A cheerful cartoon dog wearing a bandana. */
+    static final String SHIBA = "/image/shiba.png";
 
     /** The song the lyric pages pretend to play. */
     static final String SONG_TITLE = "Paper Boats";

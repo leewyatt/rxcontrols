@@ -131,7 +131,7 @@ public final class RXAudioSpectrumSamples {
         spectrum.setVisualization(ring);
         spectrum.getStyleClass().add("violet");
         spectrum.setPrefSize(170.0, 170.0);
-        RXAvatar cover = new RXAvatar(image(MediaKit.TIGER));
+        RXAvatar cover = new RXAvatar(image(MediaKit.SHIBA));
         cover.setPrefSize(64.0, 64.0);
         StackPane stack = new StackPane(spectrum, cover);
         stack.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
