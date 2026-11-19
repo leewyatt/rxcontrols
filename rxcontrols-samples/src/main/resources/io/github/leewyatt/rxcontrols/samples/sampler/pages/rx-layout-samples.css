@@ -367,7 +367,8 @@
  * RXFlowPane                                                                  *
  *                                                                             *
  ******************************************************************************/
-.example-card .flow-board {
+.example-card .flow-board,
+.example-card .flow-frame {
     -fx-padding: 12px;
     -fx-background-color: -fx-text-box-border, -fx-background;
     -fx-background-insets: 0, 1px;
@@ -383,6 +384,11 @@
     -fx-pref-width: 12px;
     -fx-pref-height: 12px;
 }
+
+.example-card .chip.size-s { -fx-font-size: 12px; }
+.example-card .chip.size-m { -fx-font-size: 15px; }
+.example-card .chip.size-l { -fx-font-size: 20px; }
+.example-card .chip.size-xl { -fx-font-size: 28px; }
 
 /*******************************************************************************
  *                                                                             *

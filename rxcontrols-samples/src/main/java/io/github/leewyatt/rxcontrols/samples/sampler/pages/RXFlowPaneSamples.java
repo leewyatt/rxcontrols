@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCheckBox;
 import io.github.leewyatt.rxcontrols.RXMenuButton;
+import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSlider;
 import io.github.leewyatt.rxcontrols.layout.RXFlowPane;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.Choice;
@@ -24,15 +25,17 @@ import javafx.scene.layout.VBox;
 
 import java.util.List;
 
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.chip;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.menu;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.picker;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.plain;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.spacer;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.text;
 
 /**
  * The RXFlowPane page: one board of numbered blocks of mixed sizes under a toolbar that
- * sets its width and adds or removes blocks, with a menu button for each layout choice:
- * direction, block alignment, run alignment, item alignment and gap.
+ * sets its width and adds or removes blocks, with a menu button for each layout choice;
+ * then one card each for row, item and block alignment, switched from a picker.
  */
 public final class RXFlowPaneSamples {
 
@@ -42,6 +45,7 @@ public final class RXFlowPaneSamples {
     private static final double BOARD_HEIGHT = 420.0;
     private static final double START_GAP = 10.0;
     private static final int START_COUNT = 20;
+    private static final double ROW_FRAME_WIDTH = 560.0;
     private static final String[] COLORS = {
         "rose", "orange", "amber", "lime", "teal", "sky", "indigo", "violet", "pink"};
 
@@ -66,7 +70,17 @@ public final class RXFlowPaneSamples {
                         SampleCard.wide("Flow board",
                                 "The block is centered while every row starts at its left edge, so the last row stays "
                                         + "in line; Runs: Center is what FlowPane does. Drag the width to watch the blocks reflow.",
-                                board())),
+                                board()),
+                        SampleCard.canvas("Row alignment",
+                                "rowHalignment places each row inside the block; a short last row shows it best.",
+                                rowAlignment()),
+                        SampleCard.canvas("Item alignment",
+                                "rowValignment places the items of a row against each other; BASELINE lines up "
+                                        + "text of different sizes.",
+                                itemAlignment()),
+                        SampleCard.canvas("Block alignment",
+                                "alignment places the whole block in a pane larger than its content.",
+                                blockAlignment())),
                 LayoutKit.STYLESHEET);
     }
 
@@ -220,6 +234,83 @@ public final class RXFlowPaneSamples {
         // instead of gliding there.
         bar.setAnimated(false);
         return bar;
+    }
+
+    // ==================== Row alignment ====================
+
+    private static Node rowAlignment() {
+        RXFlowPane flow = new RXFlowPane(10.0, 10.0);
+        // The block sits centered in the frame, so a row's place inside the block shows.
+        flow.setAlignment(Pos.TOP_CENTER);
+        String[][] items = {
+            {"Desk lamp", "$39", "amber", "150"}, {"Plant pot", "$18", "lime", "120"},
+            {"Wool throw", "$64", "rose", "180"}, {"Mug", "$9", "sky", "110"},
+            {"Wall clock", "$45", "teal", "160"}, {"Tea set", "$52", "violet", "130"},
+            {"Candle", "$14", "orange", "140"}};
+        for (String[] item : items) {
+            flow.getChildren().add(product(item[0], item[1], item[2], Double.parseDouble(item[3])));
+        }
+        flow.getStyleClass().add("flow-frame");
+        flow.setPrefWidth(ROW_FRAME_WIDTH);
+        flow.setMaxWidth(Region.USE_PREF_SIZE);
+        RXSegmentedControl<HPos> picker = picker(flow::setRowHalignment, HPos.LEFT, HPos.CENTER, HPos.RIGHT);
+        return column(picker, flow);
+    }
+
+    private static Node product(String name, String price, String color, double width) {
+        Region photo = new Region();
+        photo.getStyleClass().addAll("product-photo", color);
+        photo.setPrefHeight(44.0);
+        HBox meta = new HBox(text(name, "copy"), spacer(), text(price, "copy-strong"));
+        VBox card = new VBox(8.0, photo, meta);
+        card.getStyleClass().add("product");
+        card.setPrefWidth(width);
+        card.setMinWidth(width);
+        return card;
+    }
+
+    // ==================== Item alignment ====================
+
+    private static Node itemAlignment() {
+        RXFlowPane flow = new RXFlowPane(10.0, 10.0);
+        flow.setAlignment(Pos.TOP_CENTER);
+        String[][] words = {
+            {"JavaFX", "size-l", "indigo"}, {"css", "size-s", "teal"}, {"Layout", "size-m", "amber"},
+            {"Flow", "size-xl", "rose"}, {"pane", "size-s", "lime"}, {"Baseline", "size-l", "sky"},
+            {"rows", "size-m", "violet"}};
+        for (String[] word : words) {
+            Label chip = chip(word[0], word[2]);
+            chip.getStyleClass().add(word[1]);
+            flow.getChildren().add(chip);
+        }
+        flow.getStyleClass().add("flow-frame");
+        flow.setPrefWidth(ROW_FRAME_WIDTH);
+        flow.setMaxWidth(Region.USE_PREF_SIZE);
+        RXSegmentedControl<VPos> picker = picker(flow::setRowValignment,
+                VPos.BASELINE, VPos.TOP, VPos.CENTER, VPos.BOTTOM);
+        return column(picker, flow);
+    }
+
+    // ==================== Block alignment ====================
+
+    private static Node blockAlignment() {
+        RXFlowPane flow = new RXFlowPane(10.0, 10.0);
+        for (int i = 0; i < 5; i++) {
+            flow.getChildren().add(block(i));
+        }
+        flow.getStyleClass().add("flow-frame");
+        flow.setPrefSize(ROW_FRAME_WIDTH, 220.0);
+        flow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSegmentedControl<Pos> picker = picker(flow::setAlignment,
+                Pos.TOP_LEFT, Pos.TOP_CENTER, Pos.CENTER, Pos.BOTTOM_RIGHT);
+        return column(picker, flow);
+    }
+
+    private static Node column(Node picker, Node flow) {
+        VBox box = new VBox(14.0, picker, flow);
+        box.setAlignment(Pos.TOP_CENTER);
+        box.setMinHeight(Region.USE_PREF_SIZE);
+        return box;
     }
 
     // Widths and heights step with the number, so rows of mixed blocks show how runs and
