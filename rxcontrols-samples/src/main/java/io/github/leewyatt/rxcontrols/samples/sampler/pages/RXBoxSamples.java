@@ -29,9 +29,9 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.text
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.wrapped;
 
 /**
- * The RXBox page: a toolbar with a growing search field, a product card that flips
- * between a row and a column, a baseline-aligned form row, chat bubbles aligned per
- * child, a sidebar with a pinned footer and equal-height plan columns.
+ * The RXBox page: a product card that flips between a row and a column, a
+ * baseline-aligned form row, a sidebar with a pinned footer, chat bubbles aligned per
+ * child, equal-height plan columns and a toolbar with a growing search field.
  */
 public final class RXBoxSamples {
 
@@ -49,9 +49,6 @@ public final class RXBoxSamples {
                 List.of("Toolbars, form rows, stacks and any single run of nodes, where you would reach for HBox or VBox.",
                         "For a grid that reflows by width use RXRow and RXCol; for wrapping runs use RXFlowPane."),
                 List.of(
-                        SampleCard.canvas("Toolbar",
-                                "RXBox.setGrow gives the spare width to the search field, and setMargin sets the compose button apart from the icons.",
-                                toolbar()),
                         SampleCard.canvas("Row or column",
                                 "orientation flips the same card between a row and a column at runtime; grow and margin constraints follow the new axis.",
                                 productCard()),
@@ -66,7 +63,10 @@ public final class RXBoxSamples {
                                 chat()),
                         SampleCard.large("Equal-height columns",
                                 "fillCrossAxis is on by default, so plan cards with more text do not leave their neighbours short; untick it to compare.",
-                                plans())),
+                                plans()),
+                        SampleCard.canvas("Toolbar",
+                                "RXBox.setGrow gives the spare width to the search field, and setMargin sets the compose button apart from the icons.",
+                                toolbar())),
                 LayoutKit.STYLESHEET);
     }
 
