@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
+import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.layout.RXFlowPane;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -48,8 +49,11 @@ public final class SampleCard extends VBox {
         stage.getStyleClass().add("stage");
         VBox.setVgrow(stage, Priority.ALWAYS);
 
-        Label titleLabel = new Label(title);
+        // Selectable, so a card can be named exactly when talking about it; a click still
+        // focuses it for copying, but Tab skips it rather than stopping at every card.
+        RXTextView titleLabel = new RXTextView(title);
         titleLabel.getStyleClass().add("title");
+        titleLabel.setFocusTraversable(false);
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         links.setAlignment(Pos.CENTER_RIGHT);

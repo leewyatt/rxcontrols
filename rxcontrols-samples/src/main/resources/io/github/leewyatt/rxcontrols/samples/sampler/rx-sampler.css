@@ -482,9 +482,12 @@
 }
 
 .example-card > .meta .title {
+    -rx-text-fill: -fx-text-base-color;
+}
+
+.example-card > .meta .title .plain {
     -fx-font-size: 13.5px;
     -fx-font-weight: bold;
-    -fx-text-fill: -fx-text-base-color;
 }
 
 .example-card > .meta > .text {
