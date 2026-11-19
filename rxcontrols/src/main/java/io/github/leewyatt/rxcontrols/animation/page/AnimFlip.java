@@ -42,6 +42,8 @@ public class AnimFlip extends PageAnimationBase {
     private static final double DEFAULT_FOCAL_LENGTH_FACTOR = 2.0;
     // Below this the camera would sit inside the turning content.
     private static final double MIN_FOCAL_LENGTH_FACTOR = 0.5;
+    // The share of the flip at which the pages are seen edge on and swap.
+    private static final double SWAP_POINT = 0.5;
 
     private final Orientation orientation;
     private Interpolator interpolator = Interpolator.EASE_BOTH;
@@ -58,6 +60,8 @@ public class AnimFlip extends PageAnimationBase {
 
     private final DoubleProperty progress = new SimpleDoubleProperty(0);
     private ChangeListener<Number> progressListener;
+
+    // ==================== Constructors ====================
 
     /**
      * Creates a flip animation about the horizontal centre line.
@@ -76,6 +80,8 @@ public class AnimFlip extends PageAnimationBase {
     public AnimFlip(Orientation orientation) {
         this.orientation = orientation;
     }
+
+    // ==================== Settings ====================
 
     /**
      * Returns the interpolator used for the flip animation.
@@ -118,6 +124,8 @@ public class AnimFlip extends PageAnimationBase {
         this.focalLengthFactor = focalLengthFactor;
     }
 
+    // ==================== Transition ====================
+
     /**
      * {@inheritDoc}
      */
@@ -128,12 +136,9 @@ public class AnimFlip extends PageAnimationBase {
         Duration duration = context.getDuration();
         double sign = context.getDirection() == TransitionDirection.FORWARD ? 1.0 : -1.0;
 
-        // A transition still running or paused on this instance ends first, so two never
-        // drive the same transforms.
-        Animation running = getCurrentAnimation();
-        if (running != null && running.getStatus() != Animation.Status.STOPPED) {
-            jumpToEnd();
-        }
+        // A flip this instance has not ended yet ends first, so two never drive the same
+        // transforms and no page is left wearing one.
+        jumpToEnd();
 
         // A page's own effect turns with it, as the transform's input, and comes back
         // when the flip ends.
@@ -142,7 +147,6 @@ public class AnimFlip extends PageAnimationBase {
         // The current page is showing, so it has been laid out. The next one may have
         // joined the pane just now; it is measured at the swap, once it has a size.
         measureMargins(currentPage, currentEffect, currentMargins);
-        measureMargins(null, null, nextMargins);
         ptCurrent.setInput(currentEffect);
         ptNext.setInput(nextEffect);
 
@@ -161,10 +165,10 @@ public class AnimFlip extends PageAnimationBase {
         };
         setFinishAction(finish);
 
-        // Both pages start flat: a PerspectiveTransform left at its all-zero default
-        // would draw the page as a single point on the first frame.
+        // The current page starts flat: a PerspectiveTransform left at its all-zero
+        // default would draw it as a single point on the first frame. The next page is
+        // hidden until the swap, which projects it before it shows.
         project(ptCurrent, 0.0, currentPage, currentMargins);
-        project(ptNext, 0.0, nextPage, nextMargins);
         if (currentPage != null) {
             currentPage.setEffect(ptCurrent);
             currentPage.setVisible(true);
@@ -174,12 +178,11 @@ public class AnimFlip extends PageAnimationBase {
             nextPage.setVisible(false);
         }
 
-        removeProgressListener();
         progress.set(0);
         boolean[] swapped = {false};
         progressListener = (obs, oldValue, newValue) -> {
             double p = newValue.doubleValue();
-            if (!swapped[0] && p < 0.5) {
+            if (!swapped[0] && p < SWAP_POINT) {
                 // The current page turns away until it is edge on.
                 project(ptCurrent, sign * p * Math.PI, currentPage, currentMargins);
                 return;
@@ -201,7 +204,7 @@ public class AnimFlip extends PageAnimationBase {
             }
             // The next page turns in from the other side. Once it shows, an
             // interpolator that dips back below the middle cannot turn it away again.
-            project(ptNext, -sign * (1.0 - Math.max(p, 0.5)) * Math.PI, nextPage, nextMargins);
+            project(ptNext, -sign * (1.0 - Math.max(p, SWAP_POINT)) * Math.PI, nextPage, nextMargins);
         };
         progress.addListener(progressListener);
 
@@ -224,6 +227,10 @@ public class AnimFlip extends PageAnimationBase {
 
         setCurrentAnimation(timeline);
         return timeline;
+    }
+
+    private Interpolator interpolatorOrDefault() {
+        return interpolator == null ? Interpolator.EASE_BOTH : interpolator;
     }
 
     // ==================== Projection ====================
@@ -296,6 +303,28 @@ public class AnimFlip extends PageAnimationBase {
         return reach > extent ? extent / reach : 1.0;
     }
 
+    private double focalLengthOrDefault() {
+        // NaN fails the comparison; an infinite factor is caught where the focal length
+        // is worked out.
+        return focalLengthFactor > MIN_FOCAL_LENGTH_FACTOR
+                ? focalLengthFactor : DEFAULT_FOCAL_LENGTH_FACTOR;
+    }
+
+    private void setPT(PerspectiveTransform pt,
+                       double ulx, double uly, double urx, double ury,
+                       double lrx, double lry, double llx, double lly) {
+        pt.setUlx(ulx);
+        pt.setUly(uly);
+        pt.setUrx(urx);
+        pt.setUry(ury);
+        pt.setLrx(lrx);
+        pt.setLry(lry);
+        pt.setLlx(llx);
+        pt.setLly(lly);
+    }
+
+    // ==================== Page effect ====================
+
     // The page's own effect; one of this instance's transforms left on it by a flip
     // that never ended stands for the effect it wraps.
     private Effect ownEffectOf(Node page) {
@@ -337,33 +366,13 @@ public class AnimFlip extends PageAnimationBase {
         margins[3] = Math.max(0.0, layout.getMinX() - content.getMinX());
     }
 
-    private Interpolator interpolatorOrDefault() {
-        return interpolator == null ? Interpolator.EASE_BOTH : interpolator;
-    }
+    // ==================== Cleanup ====================
 
     private void removeProgressListener() {
         if (progressListener != null) {
             progress.removeListener(progressListener);
             progressListener = null;
         }
-    }
-
-    private double focalLengthOrDefault() {
-        return Double.isFinite(focalLengthFactor) && focalLengthFactor > MIN_FOCAL_LENGTH_FACTOR
-                ? focalLengthFactor : DEFAULT_FOCAL_LENGTH_FACTOR;
-    }
-
-    private void setPT(PerspectiveTransform pt,
-                       double ulx, double uly, double urx, double ury,
-                       double lrx, double lry, double llx, double lly) {
-        pt.setUlx(ulx);
-        pt.setUly(uly);
-        pt.setUrx(urx);
-        pt.setUry(ury);
-        pt.setLrx(lrx);
-        pt.setLry(lry);
-        pt.setLlx(llx);
-        pt.setLly(lly);
     }
 
     /**

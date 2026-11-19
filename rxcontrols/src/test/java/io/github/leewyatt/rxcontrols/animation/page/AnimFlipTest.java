@@ -35,9 +35,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link AnimFlip}: the lifecycle event order shared with the other page
- * transitions, the page swap at the middle, restoring the pages and their own
- * effects on every end path, the geometry of every frame and of pages that do not
- * fill the pane or draw past their bounds, invalid settings, and reuse.
+ * transitions, the page swap at the middle, the direction and perspective of the
+ * turn, restoring the pages and their own effects on every end path, pages that do
+ * not fill the pane or draw past their bounds, invalid settings, and reuse.
  */
 public class AnimFlipTest {
 
@@ -140,14 +140,49 @@ public class AnimFlipTest {
             Animation animation = new AnimFlip().getAnimation(fixture.context);
             animation.play();
             animation.pause();
-            animation.jumpTo(DURATION.multiply(0.75));
-            boolean[] result = {fixture.current.isVisible(), fixture.next.isVisible()};
+            animation.jumpTo(DURATION.multiply(0.45));
+            boolean currentBefore = fixture.current.isVisible();
+            boolean nextBefore = fixture.next.isVisible();
+            animation.jumpTo(DURATION.multiply(0.55));
+            boolean[] result = {currentBefore, nextBefore, fixture.current.isVisible(), fixture.next.isVisible()};
             animation.stop();
             return result;
         });
-        assertFalse(visible[0], "the current page still shows after the middle");
-        assertTrue(visible[1], "the next page does not show after the middle");
+        assertTrue(visible[0], "the current page is hidden before the middle");
+        assertFalse(visible[1], "the next page shows before the middle");
+        assertFalse(visible[2], "the current page still shows after the middle");
+        assertTrue(visible[3], "the next page does not show after the middle");
         assertEquals(List.of("closing 0", "opening 1"), onFx(() -> List.copyOf(fixture.events)));
+    }
+
+    @Test
+    public void startingShowsTheCurrentPageAndHidesTheNext() throws Exception {
+        Fixture fixture = new Fixture(400.0, 300.0);
+        boolean[] visible = onFx(() -> {
+            fixture.current.setVisible(false);
+            fixture.next.setVisible(true);
+            new AnimFlip().getAnimation(fixture.context);
+            return new boolean[]{fixture.current.isVisible(), fixture.next.isVisible()};
+        });
+        assertTrue(visible[0], "the current page does not show at the start");
+        assertFalse(visible[1], "the next page shows at the start");
+    }
+
+    @Test
+    public void aNaturalFinishRestoresBothPages() throws Exception {
+        Fixture fixture = new Fixture(400.0, 300.0);
+        CountDownLatch finished = new CountDownLatch(1);
+        onFx(() -> {
+            Animation animation = new AnimFlip().getAnimation(fixture.context);
+            runAfterFinish(animation, finished::countDown);
+            animation.play();
+            return null;
+        });
+        assertTrue(finished.await(5, TimeUnit.SECONDS), "the flip did not finish");
+        assertNull(fixture.current.getEffect());
+        assertNull(fixture.next.getEffect());
+        assertFalse(fixture.current.isVisible());
+        assertTrue(fixture.next.isVisible());
     }
 
     @Test
@@ -241,6 +276,76 @@ public class AnimFlipTest {
                 });
             }
         }
+    }
+
+    @Test
+    public void eachPageTurnsWithItsNearEdgeOnTheSideTheDirectionAndOrientationGive() throws Exception {
+        for (Orientation orientation : Orientation.values()) {
+            for (TransitionDirection direction : TransitionDirection.values()) {
+                String label = orientation + " " + direction;
+                double[][] frames = onFx(() -> {
+                    Fixture fixture = new Fixture(400.0, 300.0, direction);
+                    Animation animation = new AnimFlip(orientation).getAnimation(fixture.context);
+                    animation.play();
+                    animation.pause();
+                    double[][] result = new double[4][];
+                    result[0] = cornersAt(animation, fixture.current, 0.25);
+                    result[1] = cornersAt(animation, fixture.current, 0.49);
+                    result[2] = cornersAt(animation, fixture.next, 0.51);
+                    result[3] = cornersAt(animation, fixture.next, 0.75);
+                    animation.stop();
+                    return result;
+                });
+                boolean horizontal = orientation == Orientation.HORIZONTAL;
+                boolean forward = direction == TransitionDirection.FORWARD;
+                double full = horizontal ? 300.0 : 400.0;
+                for (int frame = 0; frame < 4; frame++) {
+                    double[] c = frames[frame];
+                    // The two edges parallel to the turning axis, and the extent across it.
+                    double startEdge = horizontal ? c[2] - c[0] : c[7] - c[1];
+                    double endEdge = horizontal ? c[4] - c[6] : c[5] - c[3];
+                    double across = horizontal ? c[7] - c[1] : c[2] - c[0];
+                    if (frame == 1 || frame == 2) {
+                        assertTrue(across >= 0.0 && across < full * 0.1,
+                                label + " frame " + frame + " is not near edge on: " + across);
+                    } else {
+                        assertTrue(across > full * 0.5 && across < full - 1.0,
+                                label + " frame " + frame + " is not partly turned: " + across);
+                        // The near edge is drawn longer than the far one.
+                        boolean startEdgeNear = forward == (frame == 0);
+                        assertTrue(startEdgeNear ? startEdge > endEdge + 1.0 : endEdge > startEdge + 1.0,
+                                label + " frame " + frame + " has its near edge on the wrong side: "
+                                        + startEdge + " / " + endEdge);
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    public void aQuarterOfTheFlipTurnsThePageFortyFiveDegrees() throws Exception {
+        Fixture fixture = new Fixture(400.0, 300.0);
+        double[] corners = onFx(() -> {
+            AnimFlip flip = new AnimFlip();
+            flip.setInterpolator(Interpolator.LINEAR);
+            Animation animation = flip.getAnimation(fixture.context);
+            animation.play();
+            animation.pause();
+            double[] result = cornersAt(animation, fixture.current, 0.25);
+            animation.stop();
+            return result;
+        });
+        // About the horizontal centre line, the eye two page heights (600) away. The top
+        // edge comes near and is scaled back to the page width; sine and cosine are equal.
+        double turn = Math.sin(Math.PI / 4.0);
+        double near = 600.0 / (600.0 - 150.0 * turn);
+        double far = 600.0 / (600.0 + 150.0 * turn);
+        double fit = 1.0 / near;
+        double top = 150.0 - 150.0 * turn * near * fit;
+        double bottom = 150.0 + 150.0 * turn * far * fit;
+        double[] expected = {0.0, top, 400.0, top,
+            200.0 + 200.0 * far * fit, bottom, 200.0 - 200.0 * far * fit, bottom};
+        assertArrayEquals(expected, corners, 1e-6);
     }
 
     @Test
@@ -340,6 +445,29 @@ public class AnimFlipTest {
     }
 
     @Test
+    public void aFlipStoppedFromOutsideEndsBeforeTheNextOneStarts() throws Exception {
+        Fixture fixture = new Fixture(400.0, 300.0);
+        Object[] state = onFx(() -> {
+            Region third = new Region();
+            fixture.contentPane.getChildren().add(0, third);
+            third.resize(400.0, 300.0);
+            AnimFlip flip = new AnimFlip();
+            Animation first = flip.getAnimation(fixture.context);
+            first.play();
+            first.pause();
+            first.jumpTo(DURATION.multiply(0.25));
+            first.stop();
+            // The next flip leaves out the page the first one was turning away.
+            flip.getAnimation(fixture.contextFor(fixture.next, third, TransitionDirection.FORWARD));
+            Object[] result = {fixture.current.getEffect(), fixture.current.isVisible()};
+            flip.jumpToEnd();
+            return result;
+        });
+        assertNull(state[0], "the page left behind still wears a transform");
+        assertFalse((Boolean) state[1], "the page left behind still shows");
+    }
+
+    @Test
     public void aNextPageNotLaidOutAtTheStartEndsOnItsLaidOutBounds() throws Exception {
         Fixture fixture = new Fixture(400.0, 300.0);
         double[] corners = onFx(() -> {
@@ -353,14 +481,11 @@ public class AnimFlipTest {
             animation.pause();
             fresh.resize(400.0, 300.0);
             animation.jumpTo(DURATION.multiply(0.75));
-            double[] result = cornersAt(animation, fresh, 0.999);
+            double[] result = cornersAt(animation, fresh, 1.0 - 1e-9);
             animation.stop();
             return result;
         });
-        for (int i = 0; i < corners.length; i++) {
-            double limit = i % 2 == 0 ? 400.0 : 300.0;
-            assertTrue(corners[i] >= -1e-6 && corners[i] <= limit + 1e-6, "corner " + i + " is " + corners[i]);
-        }
+        assertArrayEquals(new double[]{0.0, 0.0, 400.0, 0.0, 400.0, 300.0, 0.0, 300.0}, corners, 1e-3);
     }
 
     @Test
