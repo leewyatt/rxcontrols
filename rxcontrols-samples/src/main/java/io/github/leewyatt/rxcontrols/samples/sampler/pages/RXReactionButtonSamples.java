@@ -18,12 +18,13 @@ import javafx.scene.layout.VBox;
 import java.util.List;
 
 /**
- * The RXReactionButton page: a photo post liked by double click, a text post with the
- * heart, star and bookmark and their counts, and the burst effects in custom colors.
+ * The RXReactionButton page: a photo post liked by double click, a text post with like,
+ * repost and bookmark buttons and their counts, and the burst effects in custom colors.
  */
 public final class RXReactionButtonSamples {
 
     private static final double POST_WIDTH = 320.0;
+    private static final double TEXT_POST_WIDTH = 440.0;
 
     private RXReactionButtonSamples() {
     }
@@ -43,7 +44,7 @@ public final class RXReactionButtonSamples {
                                 "A double click on the photo likes the post, or plays the burst again if it is liked.",
                                 photoPost()),
                         SampleCard.large("Counts on a post",
-                                "The text is a normal label, so each button can show a count that follows the toggle.",
+                                "Each button's text is a count that follows the toggle; a style class gives the repost button its own icon and color.",
                                 textPost()),
                         SampleCard.wide("Burst effects",
                                 "burstAnimation picks the effect; -rx-reaction-color sets the icon and burst color.",
@@ -103,37 +104,34 @@ public final class RXReactionButtonSamples {
     }
 
     private static Node textPost() {
-        RXAvatar avatar = new RXAvatar();
-        avatar.setText("LW");
-        avatar.getStyleClass().add("post-avatar");
+        RXAvatar avatar = new RXAvatar(new Image(
+                RXReactionButtonSamples.class.getResource("/image/avatar.png").toExternalForm(), true));
+        avatar.setPrefSize(40.0, 40.0);
         Label name = new Label("Lee Wyatt");
         name.getStyleClass().add("post-title");
-        Label meta = new Label("@LeeWyatt_7788 · 2 h");
+        Label meta = new Label("@LeeWyatt_7788  ·  2h");
         meta.getStyleClass().add("result");
         HBox author = new HBox(10.0, avatar, new VBox(1.0, name, meta));
         author.setAlignment(Pos.CENTER_LEFT);
 
-        Label body = new Label("Shipped the new release today. The smallest change in it took the longest:"
-                + " making a button feel right when you press it.");
+        Label body = new Label("Finally finished the cabin trip photo book. Forty pages of lakes, pine trees"
+                + " and far too many sunsets.");
         body.getStyleClass().add("post-body");
         body.setWrapText(true);
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        RXReactionButton button = new RXReactionButton();
-        button.setBurstAnimation(BurstAnimation.HEARTS);
-        button.setBurstScale(1.5);
-        RXReactionButton like = counted(button, 1027);
-        RXReactionButton star = counted(styled(RXReactionButton.STYLE_CLASS_STAR), 318);
-        star.setBurstAnimation(BurstAnimation.SPARKLES);
-        RXReactionButton save = styled(RXReactionButton.STYLE_CLASS_BOOKMARK);
-        save.setBurstAnimation(BurstAnimation.RAYS);
-        HBox actions = new HBox(4.0, like, star, spacer, save);
+        RXReactionButton like = counted(new RXReactionButton(), 128);
+        like.setBurstAnimation(BurstAnimation.HEARTS);
+        // No repost icon is built in; a style class gives the button its own shape and color.
+        RXReactionButton repost = counted(styled("repost"), 14);
+        repost.setBurstAnimation(BurstAnimation.RAYS);
+        RXReactionButton save = counted(styled(RXReactionButton.STYLE_CLASS_BOOKMARK), 36);
+        save.setBurstAnimation(BurstAnimation.SPARKLES);
+        HBox actions = new HBox(12.0, like, repost, save);
         actions.setAlignment(Pos.CENTER_LEFT);
 
         VBox post = new VBox(12.0, author, body, actions);
         post.getStyleClass().add("text-post");
-        post.setPrefWidth(POST_WIDTH);
+        post.setPrefWidth(TEXT_POST_WIDTH);
         post.setMaxWidth(Region.USE_PREF_SIZE);
         return post;
     }

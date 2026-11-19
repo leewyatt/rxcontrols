@@ -1,9 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXButton;
-import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -57,15 +55,6 @@ final class MotionKit {
         return button;
     }
 
-    /** Swaps the icon inside a button made by {@link #iconButton(String, String...)}. */
-    static void setIcon(StackPane button, String from, String to) {
-        Node icon = button.getChildren().get(0);
-        icon.getStyleClass().remove(from);
-        if (!icon.getStyleClass().contains(to)) {
-            icon.getStyleClass().add(to);
-        }
-    }
-
     static Label text(String value, String... styleClasses) {
         Label label = new Label(value);
         label.getStyleClass().addAll(styleClasses);
@@ -99,12 +88,6 @@ final class MotionKit {
         return button;
     }
 
-    static Label chip(String value, String color) {
-        Label chip = text(value, "chip", color);
-        chip.setMinWidth(Region.USE_PREF_SIZE);
-        return chip;
-    }
-
     /** A round badge with an icon inside, in one of the palette colors. */
     static StackPane iconBadge(String iconClass, String color, String... more) {
         StackPane badge = new StackPane(icon(iconClass, "on-color"));
@@ -113,11 +96,6 @@ final class MotionKit {
         badge.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         badge.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return badge;
-    }
-
-    /** Loads a classpath image in the background. */
-    static Image image(String path) {
-        return new Image(MotionKit.class.getResource(path).toExternalForm(), true);
     }
 
     static <T extends Region> T fixedWidth(T region, double width) {

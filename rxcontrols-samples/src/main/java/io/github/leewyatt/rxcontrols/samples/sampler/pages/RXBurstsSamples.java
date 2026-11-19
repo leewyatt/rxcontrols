@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
-import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXBurstOptions;
 import io.github.leewyatt.rxcontrols.RXBursts;
 import io.github.leewyatt.rxcontrols.RXButton;
@@ -24,23 +23,17 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.AMBE
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.LIME;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.ORANGE;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.PARTY;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.PINK;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.ROSE;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.SKY;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.TEAL;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.fixedWidth;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.icon;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.iconButton;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.image;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.setIcon;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.solid;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.text;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.wrapped;
 
 /**
- * The RXBursts page: like, repost and save on a post, confetti for a placed order,
- * sparkles on a star rating, bursts wherever the pointer clicks and every preset on
- * its own button.
+ * The RXBursts page: confetti for a placed order, sparkles on a star rating, bursts
+ * wherever the pointer clicks and every preset on its own button.
  */
 public final class RXBurstsSamples {
 
@@ -49,12 +42,6 @@ public final class RXBurstsSamples {
     private static final double PRESET_GAP = 10.0;
     private static final PseudoClass FILLED = PseudoClass.getPseudoClass("filled");
 
-    private static final RXBurstOptions HEARTS = RXBurstOptions.builder()
-            .animation(BurstAnimation.HEARTS).palette(List.of(PINK, ROSE)).build();
-    private static final RXBurstOptions RAYS = RXBurstOptions.builder()
-            .animation(BurstAnimation.RAYS).color(TEAL).build();
-    private static final RXBurstOptions SAVE = RXBurstOptions.builder()
-            .animation(BurstAnimation.SPARKLES).color(AMBER).build();
     private static final RXBurstOptions CONFETTI = RXBurstOptions.builder()
             .animation(BurstAnimation.CONFETTI).palette(PARTY)
             .duration(Duration.millis(1400.0)).scale(2.0).build();
@@ -77,9 +64,6 @@ public final class RXBurstsSamples {
                 List.of("Celebrate small moments: a like, a saved item, a finished order, a top rating.",
                         "For a like button with its own count and states use RXReactionButton."),
                 List.of(
-                        SampleCard.wide("Post actions",
-                                "Each action plays its own burst when it switches on: HEARTS in pink, RAYS in teal and SPARKLES in amber.",
-                                post()),
                         SampleCard.medium("Order placed",
                                 "CONFETTI with a party palette, scale 2 and a 1.4 second duration for a moment worth celebrating.",
                                 order()),
@@ -95,54 +79,11 @@ public final class RXBurstsSamples {
                 MotionKit.STYLESHEET);
     }
 
-    // ==================== Post actions ====================
-
-    private static Node post() {
-        RXAvatar avatar = new RXAvatar(image("/image/avatar.png"));
-        avatar.setPrefSize(40.0, 40.0);
-        VBox names = new VBox(text("Lee Wyatt", "copy-strong"), text("@LeeWyatt_7788  ·  2h", "muted"));
-        HBox head = new HBox(10.0, avatar, names);
-        head.setAlignment(Pos.CENTER_LEFT);
-
-        Label body = wrapped("Finally finished the cabin trip photo book. Forty pages of lakes, pine trees and far too many sunsets.", "copy");
-
-        HBox actions = new HBox(22.0,
-                action("heart-outline-icon", "heart-icon", "liked", 128, HEARTS),
-                action("repost-icon", "repost-icon", "reposted", 14, RAYS),
-                action("bookmark-outline-icon", "bookmark-icon", "saved", 36, SAVE));
-        actions.setAlignment(Pos.CENTER_LEFT);
-
-        VBox card = new VBox(12.0, head, body, actions);
-        card.getStyleClass().add("panel");
-        return fixedWidth(card, 440.0);
-    }
-
-    private static Node action(String offIcon, String onIcon, String onClass, int start, RXBurstOptions burst) {
-        StackPane button = iconButton(offIcon);
-        Label count = text(String.valueOf(start), "count");
-        HBox action = new HBox(4.0, button, count);
-        action.setAlignment(Pos.CENTER_LEFT);
-        boolean[] on = {false};
-        button.setOnMouseClicked(event -> {
-            on[0] = !on[0];
-            count.setText(String.valueOf(on[0] ? start + 1 : start));
-            if (on[0]) {
-                setIcon(button, offIcon, onIcon);
-                action.getStyleClass().add(onClass);
-                RXBursts.play(button, burst);
-            } else {
-                setIcon(button, onIcon, offIcon);
-                action.getStyleClass().remove(onClass);
-            }
-        });
-        return action;
-    }
-
     // ==================== Order placed ====================
 
     private static Node order() {
         Label status = text("2 items  ·  $86.00", "muted");
-        RXButton place = solid("Place order", "violet");
+        RXButton place = solid("Click here", "violet");
         place.setMaxWidth(Double.MAX_VALUE);
         int[] number = {1041};
         place.setOnAction(event -> {
@@ -151,7 +92,7 @@ public final class RXBurstsSamples {
             status.getStyleClass().add("success");
             RXBursts.play(place, CONFETTI);
         });
-        HBox line = new HBox(10.0, MotionKit.iconBadge("bag-icon", "violet"),
+        HBox line = new HBox(10.0, MotionKit.iconBadge("bag-icon", "amber"),
                 new VBox(2.0, text("Checkout", "headline"), status));
         line.setAlignment(Pos.CENTER_LEFT);
         VBox box = new VBox(16.0, line, place);

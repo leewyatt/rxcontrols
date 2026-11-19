@@ -356,6 +356,14 @@
     -fx-background-color: -rx-reaction-color;
 }
 
+.example-card .rx-reaction-button.repost {
+    -rx-reaction-color: #14b8a6;
+}
+
+.example-card .rx-reaction-button.repost .reaction-icon {
+    -fx-shape: "M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4zM0 0L0 0M24 24L24 24";
+}
+
 .example-card .text-post {
     -fx-padding: 16px;
     -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
