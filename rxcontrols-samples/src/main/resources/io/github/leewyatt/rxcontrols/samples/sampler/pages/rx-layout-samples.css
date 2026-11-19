@@ -48,17 +48,6 @@
     -fx-text-fill: -fx-text-base-color;
 }
 
-.example-card .price-small {
-    -fx-font-size: 16px;
-    -fx-font-weight: bold;
-    -fx-text-fill: #0ea5e9;
-}
-
-.example-card .name-large {
-    -fx-font-size: 24px;
-    -fx-font-weight: bold;
-    -fx-text-fill: -fx-text-base-color;
-}
 
 .example-card .panel {
     -fx-padding: 16px;
@@ -159,38 +148,37 @@
 .example-card .chip.violet { -fx-background-color: rgba(139, 92, 246, 0.15); -fx-text-fill: #7c3aed; }
 .example-card .chip.pink { -fx-background-color: rgba(236, 72, 153, 0.15); -fx-text-fill: #db2777; }
 
-.example-card .stat-dot,
-.example-card .chip-dot {
+.example-card .stat-dot {
     -fx-pref-width: 8px;
     -fx-pref-height: 8px;
     -fx-background-radius: 999px;
 }
 
-.example-card .rose.stat-dot, .example-card .rose.chip-dot, .example-card .rose.block, .example-card .rose.cell,
+.example-card .rose.stat-dot, .example-card .rose.block, .example-card .rose.cell,
 .example-card .rose.app-icon, .example-card .rose.swatch, .example-card .rose.product-photo,
 .example-card .rose.project-stripe { -fx-background-color: #f43f5e; }
-.example-card .orange.stat-dot, .example-card .orange.chip-dot, .example-card .orange.block, .example-card .orange.cell,
+.example-card .orange.stat-dot, .example-card .orange.block, .example-card .orange.cell,
 .example-card .orange.app-icon, .example-card .orange.swatch, .example-card .orange.product-photo,
 .example-card .orange.project-stripe { -fx-background-color: #f97316; }
-.example-card .amber.stat-dot, .example-card .amber.chip-dot, .example-card .amber.block, .example-card .amber.cell,
+.example-card .amber.stat-dot, .example-card .amber.block, .example-card .amber.cell,
 .example-card .amber.app-icon, .example-card .amber.swatch, .example-card .amber.product-photo,
 .example-card .amber.project-stripe { -fx-background-color: #f59e0b; }
-.example-card .lime.stat-dot, .example-card .lime.chip-dot, .example-card .lime.block, .example-card .lime.cell,
+.example-card .lime.stat-dot, .example-card .lime.block, .example-card .lime.cell,
 .example-card .lime.app-icon, .example-card .lime.swatch, .example-card .lime.product-photo,
 .example-card .lime.project-stripe { -fx-background-color: #65a30d; }
-.example-card .teal.stat-dot, .example-card .teal.chip-dot, .example-card .teal.block, .example-card .teal.cell,
+.example-card .teal.stat-dot, .example-card .teal.block, .example-card .teal.cell,
 .example-card .teal.app-icon, .example-card .teal.swatch, .example-card .teal.product-photo,
 .example-card .teal.project-stripe { -fx-background-color: #14b8a6; }
-.example-card .sky.stat-dot, .example-card .sky.chip-dot, .example-card .sky.block, .example-card .sky.cell,
+.example-card .sky.stat-dot, .example-card .sky.block, .example-card .sky.cell,
 .example-card .sky.app-icon, .example-card .sky.swatch, .example-card .sky.product-photo,
 .example-card .sky.project-stripe { -fx-background-color: #0ea5e9; }
-.example-card .indigo.stat-dot, .example-card .indigo.chip-dot, .example-card .indigo.block, .example-card .indigo.cell,
+.example-card .indigo.stat-dot, .example-card .indigo.block, .example-card .indigo.cell,
 .example-card .indigo.app-icon, .example-card .indigo.swatch, .example-card .indigo.product-photo,
 .example-card .indigo.project-stripe { -fx-background-color: #6366f1; }
-.example-card .violet.stat-dot, .example-card .violet.chip-dot, .example-card .violet.block, .example-card .violet.cell,
+.example-card .violet.stat-dot, .example-card .violet.block, .example-card .violet.cell,
 .example-card .violet.app-icon, .example-card .violet.swatch, .example-card .violet.product-photo,
 .example-card .violet.project-stripe { -fx-background-color: #8b5cf6; }
-.example-card .pink.stat-dot, .example-card .pink.chip-dot, .example-card .pink.block, .example-card .pink.cell,
+.example-card .pink.stat-dot, .example-card .pink.block, .example-card .pink.cell,
 .example-card .pink.app-icon, .example-card .pink.swatch, .example-card .pink.product-photo,
 .example-card .pink.project-stripe { -fx-background-color: #ec4899; }
 .example-card .slate.swatch, .example-card .slate.app-icon { -fx-background-color: #475569; }
@@ -384,56 +372,21 @@
  * RXFlowPane                                                                  *
  *                                                                             *
  ******************************************************************************/
-.example-card .cloud {
+.example-card .flow-board {
     -fx-padding: 12px;
-    -fx-background-color: -fx-background;
-    -fx-background-radius: 10px;
-}
-
-.example-card .filter-chip {
-    -fx-padding: 6px 12px;
-    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
+    -fx-background-color: -fx-text-box-border, -fx-background;
     -fx-background-insets: 0, 1px;
-    -fx-background-radius: 999px;
-    -fx-cursor: hand;
+    -fx-background-radius: 10px, 9px;
 }
 
-.example-card .filter-chip.on {
-    -fx-background-color: #6366f1, rgba(99, 102, 241, 0.14);
-}
-
-.example-card .removable-tag {
-    -fx-padding: 2px 4px 2px 11px;
-    -fx-background-radius: 999px;
-}
-
-.example-card .removable-tag.rose { -fx-background-color: rgba(244, 63, 94, 0.14); }
-.example-card .removable-tag.orange { -fx-background-color: rgba(249, 115, 22, 0.14); }
-.example-card .removable-tag.amber { -fx-background-color: rgba(245, 158, 11, 0.16); }
-.example-card .removable-tag.lime { -fx-background-color: rgba(101, 163, 13, 0.15); }
-.example-card .removable-tag.teal { -fx-background-color: rgba(20, 184, 166, 0.15); }
-.example-card .removable-tag.sky { -fx-background-color: rgba(14, 165, 233, 0.15); }
-.example-card .removable-tag.indigo { -fx-background-color: rgba(99, 102, 241, 0.15); }
-.example-card .removable-tag.violet { -fx-background-color: rgba(139, 92, 246, 0.15); }
-.example-card .removable-tag.pink { -fx-background-color: rgba(236, 72, 153, 0.15); }
-
-.example-card .removable-tag .icon-button {
-    -fx-padding: 4px;
+.example-card .flow-board > .viewport,
+.example-card .flow-board > .corner {
+    -fx-background-color: transparent;
 }
 
 .example-card .close-icon {
     -fx-pref-width: 12px;
     -fx-pref-height: 12px;
-}
-
-.example-card .key-cap {
-    -fx-padding: 2px 7px;
-    -fx-font-family: monospace;
-    -fx-font-size: 12px;
-    -fx-text-fill: -fx-text-base-color;
-    -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
-    -fx-background-insets: 0, 1px 1px 2px 1px;
-    -fx-background-radius: 5px;
 }
 
 /*******************************************************************************
