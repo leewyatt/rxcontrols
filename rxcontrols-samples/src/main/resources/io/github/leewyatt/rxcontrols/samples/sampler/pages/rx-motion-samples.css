@@ -199,6 +199,11 @@
     -fx-font-weight: bold;
 }
 
+.example-card .rx-ribbon-badge.recommended {
+    -rx-ribbon-fill: #8b5cf6;
+    -rx-ribbon-on-fill: white;
+}
+
 .example-card .plan-name.sky { -fx-text-fill: #0ea5e9; }
 .example-card .plan-name.violet { -fx-text-fill: #8b5cf6; }
 .example-card .plan-name.teal { -fx-text-fill: #14b8a6; }
