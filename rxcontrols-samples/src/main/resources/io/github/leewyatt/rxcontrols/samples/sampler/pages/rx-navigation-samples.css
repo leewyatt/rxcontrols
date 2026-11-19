@@ -692,6 +692,12 @@
     -fx-background-color: -fx-background;
 }
 
+.example-card .face .hyperlink.switch-link {
+    -fx-padding: 4px 10px;
+    -fx-background-color: transparent;
+    -fx-background-radius: 999px;
+}
+
 /*******************************************************************************
  *                                                                             *
  * RXTransitionPane                                                            *

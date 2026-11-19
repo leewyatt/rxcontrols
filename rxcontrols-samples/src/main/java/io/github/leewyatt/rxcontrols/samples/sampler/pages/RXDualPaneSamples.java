@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
+import io.github.leewyatt.rxcontrols.RXBorderBeam;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXDualPane;
 import io.github.leewyatt.rxcontrols.RXPasswordField;
@@ -20,6 +21,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.util.Duration;
 
 import java.util.List;
@@ -40,6 +42,7 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.text;
 public final class RXDualPaneSamples {
 
     private static final double FRAME_WIDTH = 440.0;
+    private static final double SWITCH_LINK_PADDING = 10.0;
     private static final double FRAME_HEIGHT = 300.0;
 
     private static final String[][] CONTACTS = {
@@ -216,14 +219,31 @@ public final class RXDualPaneSamples {
         return frame(FRAME_WIDTH, FRAME_HEIGHT + 30.0, pane);
     }
 
+    // A beam runs round the link to the other face, to invite the switch.
+    private static Node beam(Hyperlink link, String color) {
+        link.getStyleClass().add("switch-link");
+        RXBorderBeam beam = new RXBorderBeam(link);
+        beam.setBeamFill(Color.web("pink".equals(color) ? "#ec4899" : "#6366f1"));
+        beam.setBeamSize(50);
+        beam.setLineWidth(1.5);
+        beam.setCycleDuration(Duration.seconds(2.5));
+        // The form would stretch it to the full width otherwise.
+        beam.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return beam;
+    }
+
     private static VBox form(String title, String action, String color, Hyperlink link, Node... fields) {
         VBox form = new VBox(8.0);
         form.getChildren().add(text(title, "page-title"));
         form.getChildren().addAll(fields);
         RXButton submit = solid(action, color);
         submit.setMaxWidth(Double.MAX_VALUE);
-        form.getChildren().addAll(submit, link);
+        Node switchLink = beam(link, color);
+        form.getChildren().addAll(submit, switchLink);
         VBox.setMargin(submit, new Insets(6.0, 0.0, 0.0, 0.0));
+        // The link's padding gives the beam room; pulling it back keeps its text in line
+        // with the fields.
+        VBox.setMargin(switchLink, new Insets(0.0, 0.0, 0.0, -SWITCH_LINK_PADDING));
         form.setPadding(new Insets(18.0, 60.0, 18.0, 60.0));
         form.setAlignment(Pos.CENTER_LEFT);
         form.getStyleClass().add("face");
