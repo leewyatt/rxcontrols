@@ -65,6 +65,14 @@ final class FeedbackKit {
         screen.setPrefSize(prefWidth, prefHeight);
         screen.setMinHeight(prefHeight);
         clip(screen, 10.0);
+        // The border is drawn over the content rather than under it, so a panel, sheet or
+        // dialog that reaches the edge is rounded by the clip and keeps the border; the
+        // view order holds it on top of anything added later, such as a dialog's layer.
+        Region outline = new Region();
+        outline.getStyleClass().add("screen-outline");
+        outline.setMouseTransparent(true);
+        outline.setViewOrder(-1.0);
+        screen.getChildren().add(outline);
         return screen;
     }
 

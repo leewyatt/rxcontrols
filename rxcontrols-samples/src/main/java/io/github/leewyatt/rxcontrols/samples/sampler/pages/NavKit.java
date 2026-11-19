@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXButton;
+import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -21,7 +22,8 @@ final class NavKit {
     static final String STYLESHEET =
             NavKit.class.getResource("rx-navigation-samples.css").toExternalForm();
 
-    private static final double FRAME_RADIUS = 10.0;
+    // The inner radius of the frame's border in the stylesheet (10px outside, 1px wide).
+    private static final double INNER_RADIUS = 9.0;
 
     private NavKit() {
     }
@@ -92,7 +94,7 @@ final class NavKit {
         frame.setPrefSize(prefWidth, prefHeight);
         frame.setMinHeight(prefHeight);
         frame.setMaxSize(prefWidth, prefHeight);
-        clip(frame);
+        clip(content);
         return frame;
     }
 
@@ -103,7 +105,7 @@ final class NavKit {
         frame.setPrefHeight(prefHeight);
         frame.setMinHeight(prefHeight);
         frame.setMaxHeight(prefHeight);
-        clip(frame);
+        clip(content);
         return frame;
     }
 
@@ -120,12 +122,17 @@ final class NavKit {
         return area;
     }
 
-    private static void clip(Region region) {
+    // The content sits inside the frame's 1px border, so it is clipped to the border's
+    // inner curve. A clip on the frame itself follows the outer curve instead, and the
+    // content's square corners would cover the border there.
+    private static void clip(Node content) {
         Rectangle clip = new Rectangle();
-        clip.setArcWidth(FRAME_RADIUS * 2.0);
-        clip.setArcHeight(FRAME_RADIUS * 2.0);
-        clip.widthProperty().bind(region.widthProperty());
-        clip.heightProperty().bind(region.heightProperty());
-        region.setClip(clip);
+        clip.setArcWidth(INNER_RADIUS * 2.0);
+        clip.setArcHeight(INNER_RADIUS * 2.0);
+        clip.widthProperty().bind(Bindings.createDoubleBinding(
+                () -> content.getLayoutBounds().getWidth(), content.layoutBoundsProperty()));
+        clip.heightProperty().bind(Bindings.createDoubleBinding(
+                () -> content.getLayoutBounds().getHeight(), content.layoutBoundsProperty()));
+        content.setClip(clip);
     }
 }

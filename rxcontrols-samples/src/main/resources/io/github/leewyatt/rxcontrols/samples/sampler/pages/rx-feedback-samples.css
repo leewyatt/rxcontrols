@@ -54,9 +54,14 @@
 }
 
 .example-card .screen {
-    -fx-background-color: -fx-text-box-border, -fx-background;
-    -fx-background-insets: 0, 1px;
-    -fx-background-radius: 10px, 9px;
+    -fx-background-color: -fx-background;
+    -fx-background-radius: 10px;
+}
+
+.example-card .screen-outline {
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;
 }
 
 .example-card .clickable {
