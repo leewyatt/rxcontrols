@@ -8,10 +8,10 @@ import javafx.animation.Timeline;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.effect.PerspectiveTransform;
-import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 
 /**
@@ -24,10 +24,10 @@ import javafx.util.Duration;
  * horizontal centre line, top over bottom; {@link Orientation#VERTICAL} turns them
  * about the vertical centre line, side over side, like a playing card.</p>
  *
- * <p>This animation is resize-safe: it reads the content pane dimensions on every
- * frame. When the near edge of a turning page would leave the content pane, the
- * whole page is scaled down just enough to stay inside it, so the pane's clip
- * never cuts the page.</p>
+ * <p>Each page turns about the centre of its own layout bounds, read on every frame,
+ * so the animation is resize-safe and a page that does not fill the content pane
+ * turns in place. When the near edge of a turning page would leave those bounds,
+ * the whole page is scaled down just enough to stay inside them.</p>
  */
 public class AnimFlip extends PageAnimationBase {
 
@@ -76,7 +76,7 @@ public class AnimFlip extends PageAnimationBase {
     /**
      * Sets the interpolator used for the flip animation. It runs over the whole
      * flip, so the default {@link Interpolator#EASE_BOTH} turns fastest when the
-     * pages are edge on.
+     * pages are edge on; {@code null} falls back to that default.
      *
      * @param interpolator the interpolator
      */
@@ -105,15 +105,18 @@ public class AnimFlip extends PageAnimationBase {
         this.focalLengthFactor = focalLengthFactor;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Animation getAnimation(TransitionContext context) {
         Node currentPage = context.getCurrentPage();
         Node nextPage = context.getNextPage();
         Duration duration = context.getDuration();
-        StackPane contentPane = context.getContentPane();
         double sign = context.getDirection() == TransitionDirection.FORWARD ? 1.0 : -1.0;
 
         Runnable finish = () -> {
+            removeProgressListener();
             if (currentPage != null) {
                 currentPage.setEffect(null);
                 currentPage.setVisible(false);
@@ -127,8 +130,8 @@ public class AnimFlip extends PageAnimationBase {
 
         // Both pages start flat: a PerspectiveTransform left at its all-zero default
         // would draw the page as a single point on the first frame.
-        project(ptCurrent, 0.0, contentPane.getWidth(), contentPane.getHeight());
-        project(ptNext, 0.0, contentPane.getWidth(), contentPane.getHeight());
+        project(ptCurrent, 0.0, currentPage);
+        project(ptNext, 0.0, nextPage);
         if (currentPage != null) {
             currentPage.setEffect(ptCurrent);
             currentPage.setVisible(true);
@@ -138,48 +141,42 @@ public class AnimFlip extends PageAnimationBase {
             nextPage.setVisible(false);
         }
 
-        if (progressListener != null) {
-            progress.removeListener(progressListener);
-        }
+        removeProgressListener();
         progress.set(0);
         boolean[] swapped = {false};
         progressListener = (obs, oldValue, newValue) -> {
             double p = newValue.doubleValue();
-            double w = contentPane.getWidth();
-            double h = contentPane.getHeight();
-            if (p < 0.5) {
+            if (!swapped[0] && p < 0.5) {
                 // The current page turns away until it is edge on.
-                project(ptCurrent, sign * p * Math.PI, w, h);
-            } else {
-                if (!swapped[0]) {
-                    swapped[0] = true;
-                    if (currentPage != null) {
-                        currentPage.setVisible(false);
-                    }
-                    context.fireClosed(context.getCurrentIndex());
-                    if (nextPage != null) {
-                        nextPage.setVisible(true);
-                    }
-                    context.fireOpening(context.getNextIndex());
-                }
-                // The next page turns in from the other side, flat again at the end.
-                project(ptNext, p >= 0.999 ? 0.0 : -sign * (1.0 - p) * Math.PI, w, h);
+                project(ptCurrent, sign * p * Math.PI, currentPage);
+                return;
             }
+            if (!swapped[0]) {
+                swapped[0] = true;
+                if (currentPage != null) {
+                    currentPage.setVisible(false);
+                }
+                if (nextPage != null) {
+                    nextPage.setVisible(true);
+                }
+            }
+            // The next page turns in from the other side. Once it shows, an
+            // interpolator that dips back below the middle cannot turn it away again.
+            project(ptNext, -sign * (1.0 - Math.max(p, 0.5)) * Math.PI, nextPage);
         };
         progress.addListener(progressListener);
 
+        // The same order as the other transitions: closing and opening now, closed and
+        // opened when it ends. A host that interrupts the flip makes up the last two.
         context.fireClosing(context.getCurrentIndex());
+        context.fireOpening(context.getNextIndex());
 
         Timeline timeline = new Timeline(
                 new KeyFrame(Duration.ZERO, new KeyValue(progress, 0)),
-                new KeyFrame(duration, new KeyValue(progress, 1, interpolator)));
+                new KeyFrame(duration, new KeyValue(progress, 1, interpolatorOrDefault())));
         timeline.setOnFinished(e -> {
-            if (!swapped[0]) {
-                swapped[0] = true;
-                context.fireClosed(context.getCurrentIndex());
-                context.fireOpening(context.getNextIndex());
-            }
             finish.run();
+            context.fireClosed(context.getCurrentIndex());
             context.fireOpened(context.getNextIndex());
         });
 
@@ -190,19 +187,26 @@ public class AnimFlip extends PageAnimationBase {
     // ==================== Projection ====================
 
     /**
-     * Turns a w x h page by theta about its centre line and projects its corners
-     * for an eye in front of the page, then shrinks the result about the centre if
-     * the near edge would leave the w x h area.
+     * Turns a page by theta about its own centre line and projects its corners for an
+     * eye in front of it, then shrinks the result about the centre if the near edge
+     * would leave the page's own bounds. The page's layout bounds are its local
+     * rectangle, so a page that does not fill the content pane turns in place.
      */
-    private void project(PerspectiveTransform pt, double theta, double w, double h) {
-        double halfW = w / 2.0;
-        double halfH = h / 2.0;
+    private void project(PerspectiveTransform pt, double theta, Node page) {
+        if (page == null) {
+            return;
+        }
+        Bounds bounds = page.getLayoutBounds();
+        double halfW = bounds.getWidth() / 2.0;
+        double halfH = bounds.getHeight() / 2.0;
+        double centerX = bounds.getMinX() + halfW;
+        double centerY = bounds.getMinY() + halfH;
         if (halfW <= 0.0 || halfH <= 0.0) {
-            setPT(pt, 0, 0, 0, 0, 0, 0, 0, 0);
+            setPT(pt, centerX, centerY, centerX, centerY, centerX, centerY, centerX, centerY);
             return;
         }
         boolean aboutVertical = orientation == Orientation.VERTICAL;
-        double f = (aboutVertical ? w : h) * focalLengthOrDefault();
+        double f = 2.0 * (aboutVertical ? halfW : halfH) * focalLengthOrDefault();
         double cos = Math.cos(theta);
         double sin = Math.sin(theta);
         double reachX = 0.0;
@@ -233,10 +237,21 @@ public class AnimFlip extends PageAnimationBase {
             fit = Math.min(fit, halfH / reachY);
         }
         setPT(pt,
-                corners[0] * fit + halfW, corners[1] * fit + halfH,
-                corners[2] * fit + halfW, corners[3] * fit + halfH,
-                corners[4] * fit + halfW, corners[5] * fit + halfH,
-                corners[6] * fit + halfW, corners[7] * fit + halfH);
+                corners[0] * fit + centerX, corners[1] * fit + centerY,
+                corners[2] * fit + centerX, corners[3] * fit + centerY,
+                corners[4] * fit + centerX, corners[5] * fit + centerY,
+                corners[6] * fit + centerX, corners[7] * fit + centerY);
+    }
+
+    private Interpolator interpolatorOrDefault() {
+        return interpolator == null ? Interpolator.EASE_BOTH : interpolator;
+    }
+
+    private void removeProgressListener() {
+        if (progressListener != null) {
+            progress.removeListener(progressListener);
+            progressListener = null;
+        }
     }
 
     private double focalLengthOrDefault() {
@@ -257,24 +272,24 @@ public class AnimFlip extends PageAnimationBase {
         pt.setLly(lly);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void clearEffects(TransitionContext context) {
         super.clearEffects(context);
-        if (progressListener != null) {
-            progress.removeListener(progressListener);
-            progressListener = null;
-        }
+        removeProgressListener();
         for (Node child : context.getContentPane().getChildren()) {
             child.setEffect(null);
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void dispose() {
-        if (progressListener != null) {
-            progress.removeListener(progressListener);
-            progressListener = null;
-        }
+        removeProgressListener();
         super.dispose();
     }
 }
