@@ -11,6 +11,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFlip;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Hyperlink;
@@ -74,7 +75,7 @@ public final class RXDualPaneSamples {
                                 "showingSecond is bound to the Edit switch; AnimFade cross-fades the two faces.",
                                 profile()),
                         SampleCard.large("Front and back",
-                                "A click on the card calls toggle(); AnimFlip turns it over.",
+                                "A click on the card calls toggle(); AnimFlip with Orientation.VERTICAL turns it over side to side.",
                                 paymentCard()),
                         SampleCard.large("Sign in or sign up",
                                 "The links flip between the two forms with AnimCube; the pane keeps the size of "
@@ -190,7 +191,7 @@ public final class RXDualPaneSamples {
         back.getStyleClass().addAll("bank-card", "back");
 
         RXDualPane pane = new RXDualPane(front, back);
-        pane.setAnimation(new AnimFlip());
+        pane.setAnimation(new AnimFlip(Orientation.VERTICAL));
         pane.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         pane.getStyleClass().add("clickable");
         pane.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> pane.toggle());
