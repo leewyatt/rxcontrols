@@ -93,8 +93,11 @@ public final class IndicatorFace extends Region {
         if (this.indicator == indicator) {
             return;
         }
+        // By reference, not by index: a node the application also put
+        // somewhere else has already left this face.
+        getChildren().remove(this.indicator);
         this.indicator = indicator;
-        getChildren().set(0, indicator);
+        getChildren().add(0, indicator);
     }
 
     /**

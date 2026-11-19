@@ -13,10 +13,11 @@ import javafx.util.Duration;
  * with a page animation or a direct cut between them.
  *
  * <p>Every face is parented by one of the two pages at all times. Only the
- * current face is visible; the others stay managed, so both pages keep
- * measuring them and the surface is as large as the largest face, whichever
- * page a face happens to be on. To show a face that sits on the page being
- * shown, a face is carried over to the other page first.</p>
+ * current face can be seen: every other face is hidden or sits on the hidden
+ * page. All of them stay managed, so both pages keep measuring them and the
+ * surface is as large as the largest face, whichever page a face happens to
+ * be on. To show a face that sits on the page being shown, a face is carried
+ * over to the other page first.</p>
  */
 public final class FeedbackFaces {
 

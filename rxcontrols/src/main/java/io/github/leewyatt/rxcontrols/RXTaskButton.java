@@ -2,6 +2,8 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.internal.feedback.FeedbackDurations;
+import io.github.leewyatt.rxcontrols.internal.feedback.TaskButtonAccess;
+import io.github.leewyatt.rxcontrols.skins.RXTaskButtonSkin;
 import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -32,6 +34,7 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.Skin;
 import javafx.util.Duration;
 
 import java.lang.ref.WeakReference;
@@ -167,6 +170,14 @@ import java.util.concurrent.atomic.AtomicReference;
  * in flight, and its outcome is shown as usual. The state lives in the
  * control, so it also survives a skin replacement.</p>
  *
+ * <p>The accessible name of the button follows the face shown: the text of
+ * that face when it has one, the button's own text otherwise, unless an
+ * {@code accessibleText} is set, which always wins. A screen reader is not
+ * guaranteed to announce the change on its own, so a failure that matters
+ * should also be conveyed another way, for example with a dialog or by
+ * moving the focus. Mnemonics are not supported: {@code mnemonicParsing}
+ * starts {@code false} and has no effect.</p>
+ *
  * <p>{@link #start()}, the {@code track} methods, {@link #cancel()} and
  * {@link #resetFeedback()} must be called on the JavaFX application thread and
  * throw an
@@ -197,6 +208,12 @@ public class RXTaskButton extends RXButton {
     }
 
     private static final String DEFAULT_STYLE_CLASS = "rx-task-button";
+
+    static {
+        // The skin is in another package and has to know when an activation
+        // would be swallowed; the answer depends on a private timer.
+        TaskButtonAccess.setActivationProbe(RXTaskButton::isActivationEffective);
+    }
 
     private static final PseudoClass RUNNING_PSEUDO_CLASS = PseudoClass.getPseudoClass("running");
     private static final PseudoClass PENDING_PSEUDO_CLASS = PseudoClass.getPseudoClass("pending");
@@ -297,9 +314,20 @@ public class RXTaskButton extends RXButton {
         initialize();
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @return the default skin
+     */
+    @Override
+    protected Skin<?> createDefaultSkin() {
+        return new RXTaskButtonSkin(this);
+    }
+
     private void initialize() {
         addEventFilter(ActionEvent.ACTION, activationGuard);
         getStyleClass().add(DEFAULT_STYLE_CLASS);
+        setMnemonicParsing(false);
         pendingDelayTimer.setOnFinished(event -> pendingDelayElapsed());
         pendingMinTimer.setOnFinished(event -> pendingMinElapsed());
         resultTimer.setOnFinished(event -> resultElapsed());
@@ -382,7 +410,8 @@ public class RXTaskButton extends RXButton {
      * call {@link Run#succeed()}, {@link Run#fail()} and {@link Run#cancel()}
      * on it from the {@code WORKER_STATE_SUCCEEDED},
      * {@code WORKER_STATE_FAILED} and {@code WORKER_STATE_CANCELLED}
-     * handlers.</p>
+     * handlers. A service cancelled before its first round runs has not
+     * started the button yet, so there is no handle to call then.</p>
      *
      * @param worker the worker to follow
      * @return the handle of the new run
@@ -670,13 +699,23 @@ public class RXTaskButton extends RXButton {
     // ==================== Activation ====================
 
     private void guardActivation(ActionEvent event) {
-        if (!isRunning() && getState() != State.PENDING) {
+        if (!isBusy()) {
             return;
         }
         event.consume();
         if (isActivationCancelling()) {
             cancelRun(false);
         }
+    }
+
+    private boolean isBusy() {
+        return isRunning() || getState() == State.PENDING;
+    }
+
+    // Whether an activation would reach onAction or cancel the run, instead
+    // of being swallowed. The skin only arms the button while this holds.
+    private boolean isActivationEffective() {
+        return !isBusy() || isActivationCancelling();
     }
 
     // The pending face has to have shown for its minimum duration before a

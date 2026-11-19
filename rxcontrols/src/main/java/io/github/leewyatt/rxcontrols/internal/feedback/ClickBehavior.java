@@ -38,6 +38,10 @@ public final class ClickBehavior {
     private final BooleanSupplier canArm;
 
     private boolean keyDown;
+    // A key stroke that began while the button could not be armed stays
+    // without effect until the key is released: the repeats of a held key
+    // must not arm the button once it can be armed again.
+    private boolean keyRefused;
 
     // Two objects: an accelerator is only removed while it is still the one
     // this behavior installed, and the two combinations are told apart.
@@ -81,7 +85,12 @@ public final class ClickBehavior {
         // If the key went down but focus left, the button must disarm or it
         // would stay armed forever.
         disposer.registerListener(button.focusedProperty(), () -> {
-            if (keyDown && !button.isFocused()) {
+            if (button.isFocused()) {
+                return;
+            }
+            // The release of the key goes to whatever has the focus now.
+            keyRefused = false;
+            if (keyDown) {
                 keyDown = false;
                 button.disarm();
             }
@@ -180,9 +189,13 @@ public final class ClickBehavior {
         if (!isActivationKey(event) || hasModifier(event)) {
             return;
         }
-        if (!button.isPressed() && !button.isArmed() && canArm.getAsBoolean()) {
-            keyDown = true;
-            button.arm();
+        if (!keyRefused && !button.isPressed() && !button.isArmed()) {
+            if (canArm.getAsBoolean()) {
+                keyDown = true;
+                button.arm();
+            } else {
+                keyRefused = true;
+            }
         }
         event.consume();
     }
@@ -191,6 +204,7 @@ public final class ClickBehavior {
         if (!isActivationKey(event)) {
             return;
         }
+        keyRefused = false;
         if (keyDown) {
             keyDown = false;
             if (button.isArmed()) {

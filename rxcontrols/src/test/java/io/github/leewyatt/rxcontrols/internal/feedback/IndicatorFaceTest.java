@@ -141,6 +141,21 @@ public class IndicatorFaceTest {
         assertEquals(custom.getLayoutX() + 8.0 + GAP, face.getCaption().getLayoutX(), EPSILON);
     }
 
+    @Test
+    public void indicatorTakenAwayByAnotherParentIsReplacedWithoutLosingTheCaption() {
+        IndicatorFace face = face("Save");
+        Rectangle custom = new Rectangle(8.0, 6.0);
+        face.setIndicator(custom);
+        // A node has one parent: adding it elsewhere removes it from the face.
+        new StackPane(custom);
+        assertEquals(List.of(face.getCaption()), face.getChildrenUnmodifiable());
+
+        Region replacement = IndicatorFace.createShapeIndicator();
+        face.setIndicator(replacement);
+
+        assertEquals(List.of(replacement, face.getCaption()), face.getChildrenUnmodifiable());
+    }
+
     // ==================== Helpers ====================
 
     private static Button owner() {

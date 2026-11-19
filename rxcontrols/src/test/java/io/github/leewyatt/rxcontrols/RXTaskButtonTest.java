@@ -2,7 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.RXTaskButton.Run;
 import io.github.leewyatt.rxcontrols.RXTaskButton.State;
-import io.github.leewyatt.rxcontrols.skins.RXButtonSkin;
+import io.github.leewyatt.rxcontrols.skins.RXTaskButtonSkin;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -1286,14 +1286,14 @@ public class RXTaskButtonTest {
         button.setSkin(button.getSkin() instanceof FirstSkin ? new SecondSkin(button) : new FirstSkin(button));
     }
 
-    private static final class FirstSkin extends RXButtonSkin {
+    private static final class FirstSkin extends RXTaskButtonSkin {
 
         FirstSkin(RXTaskButton button) {
             super(button);
         }
     }
 
-    private static final class SecondSkin extends RXButtonSkin {
+    private static final class SecondSkin extends RXTaskButtonSkin {
 
         SecondSkin(RXTaskButton button) {
             super(button);

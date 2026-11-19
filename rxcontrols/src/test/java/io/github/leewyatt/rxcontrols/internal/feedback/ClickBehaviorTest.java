@@ -128,6 +128,71 @@ public class ClickBehaviorTest {
     }
 
     @Test
+    public void draggingBackInArmsAgainOnlyWhileThePressMayArm() {
+        Fixture fixture = new Fixture();
+        BareButton button = fixture.button;
+
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+        button.press(true);
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_EXITED, MouseButton.PRIMARY));
+        assertFalse(button.isArmed());
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_ENTERED, MouseButton.PRIMARY));
+        assertTrue(button.isArmed());
+
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_EXITED, MouseButton.PRIMARY));
+        fixture.canArm.set(false);
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_ENTERED, MouseButton.PRIMARY));
+        assertFalse(button.isArmed());
+
+        // Entering without the mouse button down never arms.
+        fixture.canArm.set(true);
+        button.press(false);
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_ENTERED, MouseButton.PRIMARY));
+        assertFalse(button.isArmed());
+        assertEquals(0, fixture.actions.get());
+    }
+
+    @Test
+    public void keyHeldSinceItCouldNotArmStaysWithoutEffectUntilReleased() {
+        Fixture fixture = new Fixture();
+        BareButton button = fixture.button;
+        fixture.canArm.set(false);
+
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.SPACE, false));
+        fixture.canArm.set(true);
+        // The repeats of the held key.
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.SPACE, false));
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.SPACE, false));
+        assertFalse(button.isArmed());
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_RELEASED, KeyCode.SPACE, false));
+        assertEquals(0, fixture.actions.get());
+        assertEquals(0, fixture.unconsumedKeyPresses.get());
+
+        // A new stroke works again.
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.SPACE, false));
+        assertTrue(button.isArmed());
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_RELEASED, KeyCode.SPACE, false));
+        assertEquals(1, fixture.actions.get());
+    }
+
+    @Test
+    public void focusLossEndsAStrokeThatCouldNotArm() {
+        Fixture fixture = new Fixture();
+        BareButton button = fixture.button;
+        button.focus(true);
+        fixture.canArm.set(false);
+
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.SPACE, false));
+        // The release goes to whatever took the focus.
+        button.focus(false);
+        button.focus(true);
+        fixture.canArm.set(true);
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.SPACE, false));
+
+        assertTrue(button.isArmed());
+    }
+
+    @Test
     public void activationKeysFireAndAreConsumed() {
         Fixture fixture = new Fixture();
         BareButton button = fixture.button;
@@ -344,6 +409,12 @@ public class ClickBehaviorTest {
 
         void focus(boolean value) {
             setFocused(value);
+        }
+
+        // Node.pressed is set by the scene's mouse handling, which a
+        // synthetic event fired at the button does not go through.
+        void press(boolean value) {
+            setPressed(value);
         }
     }
 }
