@@ -2121,9 +2121,11 @@
     -rx-bar-fill: -rx-primary;
 }
 
+/* A capsule at any height: a percentage radius is taken per axis, which turns a thin
+   tall bar into a pointed ellipse. */
 .rx-bar-spinner > .bar {
     -fx-background-color: -rx-bar-fill;
-    -fx-background-radius: 50%;
+    -fx-background-radius: 999px;
 }
 
 /*******************************************************************************
