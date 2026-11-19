@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXButton;
-import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -89,23 +88,21 @@ final class NavKit {
      * slides in leaves it.
      */
     static StackPane frame(double prefWidth, double prefHeight, Node content) {
-        StackPane frame = new StackPane(content);
+        StackPane frame = new StackPane(clipped(content));
         frame.getStyleClass().add("frame");
         frame.setPrefSize(prefWidth, prefHeight);
         frame.setMinHeight(prefHeight);
         frame.setMaxSize(prefWidth, prefHeight);
-        clip(content);
         return frame;
     }
 
     /** A frame that fills the width of a canvas card and keeps a fixed height. */
     static StackPane wideFrame(double prefHeight, Node content) {
-        StackPane frame = new StackPane(content);
+        StackPane frame = new StackPane(clipped(content));
         frame.getStyleClass().add("frame");
         frame.setPrefHeight(prefHeight);
         frame.setMinHeight(prefHeight);
         frame.setMaxHeight(prefHeight);
-        clip(content);
         return frame;
     }
 
@@ -124,15 +121,17 @@ final class NavKit {
 
     // The content sits inside the frame's 1px border, so it is clipped to the border's
     // inner curve. A clip on the frame itself follows the outer curve instead, and the
-    // content's square corners would cover the border there.
-    private static void clip(Node content) {
+    // content's square corners would cover the border there. The clip goes on a holder
+    // of our own, not on the content: a control's skin may set the control's clip (the
+    // drawer pane clips its sliding panel) and would replace a rounded one.
+    private static StackPane clipped(Node content) {
+        StackPane holder = new StackPane(content);
         Rectangle clip = new Rectangle();
         clip.setArcWidth(INNER_RADIUS * 2.0);
         clip.setArcHeight(INNER_RADIUS * 2.0);
-        clip.widthProperty().bind(Bindings.createDoubleBinding(
-                () -> content.getLayoutBounds().getWidth(), content.layoutBoundsProperty()));
-        clip.heightProperty().bind(Bindings.createDoubleBinding(
-                () -> content.getLayoutBounds().getHeight(), content.layoutBoundsProperty()));
-        content.setClip(clip);
+        clip.widthProperty().bind(holder.widthProperty());
+        clip.heightProperty().bind(holder.heightProperty());
+        holder.setClip(clip);
+        return holder;
     }
 }
