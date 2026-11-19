@@ -329,23 +329,28 @@
     -fx-background-color: -fx-control-inner-background;
 }
 
-.example-card .article {
-    -fx-padding: 16px;
-}
-
 .example-card .list {
     -fx-padding: 4px 0;
+}
+
+.example-card .smooth-toolbar {
+    -fx-alignment: center-left;
 }
 
 .example-card .list-row {
     -fx-padding: 7px 14px;
 }
 
+.example-card .list-row:hover {
+    -fx-background-color: -fx-hover-base;
+}
+
 .example-card .track-number {
     -fx-font-family: monospace;
     -fx-font-size: 12px;
+    -fx-font-weight: bold;
     -fx-min-width: 20px;
-    -fx-text-fill: -showcase-caption-color;
+    -fx-text-fill: -fx-text-base-color;
 }
 
 .example-card .cover {
@@ -354,22 +359,28 @@
     -fx-background-radius: 6px;
 }
 
-.example-card .cover.round {
-    -fx-background-radius: 999px;
-}
-
-.example-card .comments {
-    -fx-padding: 12px 14px;
-}
-
 .example-card .shelf {
-    -fx-padding: 12px;
+    -fx-padding: 14px;
 }
 
 .example-card .album {
     -fx-pref-width: 96px;
     -fx-pref-height: 96px;
     -fx-background-radius: 10px;
+}
+
+.example-card .album-card {
+    -fx-pref-width: 96px;
+    -fx-max-width: 96px;
+}
+
+.example-card .gesture-chip {
+    -fx-padding: 4px 9px;
+    -fx-background-color: -sampler-accent-soft;
+    -fx-background-radius: 999px;
+    -fx-font-family: monospace;
+    -fx-font-size: 11px;
+    -fx-text-fill: -sampler-accent-text;
 }
 
 /*******************************************************************************
