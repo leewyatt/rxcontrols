@@ -31,11 +31,16 @@ import javafx.util.Duration;
  * page, and when the near edge would leave the page's content the whole page is
  * scaled down just enough to stay inside it. A page's own effect turns with it and
  * is put back when the flip ends.</p>
+ *
+ * <p>An effect is drawn before the node's clip is applied, so the transform sees a
+ * page's content unclipped. A page that clips content reaching past its bounds should
+ * carry that clip on an inner node, or the first and last frames squeeze the whole
+ * content into the page.</p>
  */
 public class AnimFlip extends PageAnimationBase {
 
     private static final double DEFAULT_FOCAL_LENGTH_FACTOR = 2.0;
-    // Below this the camera would sit inside the turning page.
+    // Below this the camera would sit inside the turning content.
     private static final double MIN_FOCAL_LENGTH_FACTOR = 0.5;
 
     private final Orientation orientation;
@@ -134,8 +139,10 @@ public class AnimFlip extends PageAnimationBase {
         // when the flip ends.
         Effect currentEffect = ownEffectOf(currentPage);
         Effect nextEffect = ownEffectOf(nextPage);
+        // The current page is showing, so it has been laid out. The next one may have
+        // joined the pane just now; it is measured at the swap, once it has a size.
         measureMargins(currentPage, currentEffect, currentMargins);
-        measureMargins(nextPage, nextEffect, nextMargins);
+        measureMargins(null, null, nextMargins);
         ptCurrent.setInput(currentEffect);
         ptNext.setInput(nextEffect);
 
@@ -144,11 +151,11 @@ public class AnimFlip extends PageAnimationBase {
             ptCurrent.setInput(null);
             ptNext.setInput(null);
             if (currentPage != null) {
-                currentPage.setEffect(currentEffect);
+                restoreEffect(currentPage, currentEffect);
                 currentPage.setVisible(false);
             }
             if (nextPage != null) {
-                nextPage.setEffect(nextEffect);
+                restoreEffect(nextPage, nextEffect);
                 nextPage.setVisible(true);
             }
         };
@@ -183,6 +190,8 @@ public class AnimFlip extends PageAnimationBase {
                     currentPage.setVisible(false);
                 }
                 if (nextPage != null) {
+                    measureMargins(nextPage, nextEffect, nextMargins);
+                    nextPage.setEffect(ptNext);
                     nextPage.setVisible(true);
                 }
             }
@@ -241,7 +250,9 @@ public class AnimFlip extends PageAnimationBase {
         double bottom = halfH + margins[2];
         double left = halfW + margins[3];
         boolean aboutVertical = orientation == Orientation.VERTICAL;
-        double size = 2.0 * (aboutVertical ? halfW : halfH);
+        // The focal length grows with the content's reach along the turn, so the
+        // camera stays in front of a shadow that reaches far past a narrow page.
+        double size = 2.0 * (aboutVertical ? Math.max(left, right) : Math.max(top, bottom));
         double f = size * focalLengthOrDefault();
         if (!Double.isFinite(f)) {
             f = size * DEFAULT_FOCAL_LENGTH_FACTOR;
@@ -294,13 +305,27 @@ public class AnimFlip extends PageAnimationBase {
         return effect;
     }
 
+    // A page wearing something other than this instance's transform was given that
+    // effect during the flip, and keeps it.
+    private void restoreEffect(Node page, Effect ownEffect) {
+        Effect effect = page.getEffect();
+        if (effect == ptCurrent || effect == ptNext) {
+            page.setEffect(ownEffect);
+        }
+    }
+
+    // Leaves the page wearing its own effect. A page not laid out yet has no size to
+    // measure against, so its content would read as all margin.
     private static void measureMargins(Node page, Effect ownEffect, double[] margins) {
+        margins[0] = margins[1] = margins[2] = margins[3] = 0.0;
         if (page == null) {
-            margins[0] = margins[1] = margins[2] = margins[3] = 0.0;
             return;
         }
         page.setEffect(ownEffect);
         Bounds layout = page.getLayoutBounds();
+        if (layout.getWidth() <= 0.0 || layout.getHeight() <= 0.0) {
+            return;
+        }
         Bounds content = page.getBoundsInLocal();
         margins[0] = Math.max(0.0, layout.getMinY() - content.getMinY());
         margins[1] = Math.max(0.0, content.getMaxX() - layout.getMaxX());

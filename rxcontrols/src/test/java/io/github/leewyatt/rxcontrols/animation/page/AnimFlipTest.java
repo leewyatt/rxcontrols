@@ -9,10 +9,12 @@ import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.effect.Effect;
+import javafx.scene.effect.Glow;
 import javafx.scene.effect.PerspectiveTransform;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -335,6 +337,116 @@ public class AnimFlipTest {
         assertFalse(state[2], "the page flipped away from still shows");
         assertNull(fixture.current.getEffect());
         assertNull(fixture.next.getEffect());
+    }
+
+    @Test
+    public void aNextPageNotLaidOutAtTheStartEndsOnItsLaidOutBounds() throws Exception {
+        Fixture fixture = new Fixture(400.0, 300.0);
+        double[] corners = onFx(() -> {
+            // An intrinsic-size child counts in the page's content before the page has a size.
+            StackPane fresh = new StackPane(new Rectangle(400.0, 300.0));
+            fixture.contentPane.getChildren().add(0, fresh);
+            AnimFlip flip = new AnimFlip();
+            Animation animation = flip.getAnimation(
+                    fixture.contextFor(fixture.current, fresh, TransitionDirection.FORWARD));
+            animation.play();
+            animation.pause();
+            fresh.resize(400.0, 300.0);
+            animation.jumpTo(DURATION.multiply(0.75));
+            double[] result = cornersAt(animation, fresh, 0.999);
+            animation.stop();
+            return result;
+        });
+        for (int i = 0; i < corners.length; i++) {
+            double limit = i % 2 == 0 ? 400.0 : 300.0;
+            assertTrue(corners[i] >= -1e-6 && corners[i] <= limit + 1e-6, "corner " + i + " is " + corners[i]);
+        }
+    }
+
+    @Test
+    public void aShadowReachingFarPastANarrowPageNeverTurnsItInsideOut() throws Exception {
+        Fixture fixture = new Fixture(200.0, 20.0);
+        onFx(() -> {
+            fixture.current.setEffect(new DropShadow(25.0, Color.BLACK));
+            AnimFlip flip = new AnimFlip();
+            flip.setFocalLengthFactor(1.0);
+            Animation animation = flip.getAnimation(fixture.context);
+            animation.play();
+            animation.pause();
+            for (int step = 0; step < 50; step++) {
+                double share = step / 100.0;
+                double[] c = cornersAt(animation, fixture.current, share);
+                for (double corner : c) {
+                    assertTrue(Double.isFinite(corner), "a corner at " + share + " is " + corner);
+                }
+                // Left stays left of right on both the far and the near edge.
+                assertTrue(c[0] < c[2] && c[6] < c[4], "the page turned inside out at " + share);
+            }
+            animation.stop();
+            return null;
+        });
+    }
+
+    @Test
+    public void anEffectGivenToAPageDuringTheFlipIsKept() throws Exception {
+        Fixture fixture = new Fixture(400.0, 300.0);
+        Glow glow = new Glow();
+        onFx(() -> {
+            AnimFlip flip = new AnimFlip();
+            Animation animation = flip.getAnimation(fixture.context);
+            animation.play();
+            animation.pause();
+            animation.jumpTo(DURATION.multiply(0.7));
+            fixture.next.setEffect(glow);
+            flip.jumpToEnd();
+            return null;
+        });
+        assertSame(glow, fixture.next.getEffect());
+    }
+
+    @Test
+    public void aNaturalFinishLetsGoOfTheFlipSoALaterJumpToEndDoesNothing() throws Exception {
+        Fixture fixture = new Fixture(400.0, 300.0);
+        AnimFlip flip = new AnimFlip();
+        CountDownLatch finished = new CountDownLatch(1);
+        onFx(() -> {
+            Animation animation = flip.getAnimation(fixture.context);
+            runAfterFinish(animation, finished::countDown);
+            animation.play();
+            return null;
+        });
+        assertTrue(finished.await(5, TimeUnit.SECONDS), "the flip did not finish");
+        boolean[] state = onFx(() -> {
+            boolean released = flip.getCurrentAnimation() == null;
+            fixture.current.setVisible(true);
+            flip.jumpToEnd();
+            return new boolean[]{released, fixture.current.isVisible()};
+        });
+        assertTrue(state[0], "the flip still holds its timeline");
+        assertTrue(state[1], "jumpToEnd ran the finished flip's restore again");
+    }
+
+    @Test
+    public void aTransformLeftByADisposedFlipGivesThePageItsOwnEffectBack() throws Exception {
+        Fixture fixture = new Fixture(400.0, 300.0);
+        DropShadow shadow = new DropShadow(20.0, Color.BLACK);
+        Object[] result = onFx(() -> {
+            fixture.current.setEffect(shadow);
+            AnimFlip flip = new AnimFlip();
+            Animation first = flip.getAnimation(fixture.context);
+            first.play();
+            first.pause();
+            first.jumpTo(DURATION.multiply(0.25));
+            flip.dispose();
+            Animation.Status afterDispose = first.getStatus();
+            flip.getAnimation(fixture.context);
+            Effect input = ((PerspectiveTransform) fixture.current.getEffect()).getInput();
+            flip.jumpToEnd();
+            return new Object[]{afterDispose, input};
+        });
+        assertEquals(Animation.Status.STOPPED, result[0]);
+        assertSame(shadow, result[1]);
+        assertSame(shadow, fixture.current.getEffect());
     }
 
     // Runs a task after the animation's own finish handler, keeping that handler.
