@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXTaskButton.State;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
+import io.github.leewyatt.rxcontrols.internal.feedback.RingIndicator;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.skins.RXTaskButtonSkin;
 import javafx.animation.Animation;
@@ -26,7 +27,9 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Arc;
 import javafx.scene.text.Font;
+import javafx.scene.transform.Rotate;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,6 +41,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -50,8 +54,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests the RXTaskButton skin: the four faces and the size they give the
  * button, the face shown in every state, animated swaps and direct cuts, the
- * hand-wired button behavior with its arming rule, the accessible name and
- * the skin lifecycle.
+ * built-in indicators, the hand-wired button behavior with its arming rule,
+ * the accessible name and the skin lifecycle.
  */
 public class RXTaskButtonSkinTest {
 
@@ -423,6 +427,185 @@ public class RXTaskButtonSkinTest {
         });
     }
 
+    // ==================== Indicators ====================
+
+    @Test
+    public void pendingFaceHoldsARingAndTheResultFacesHoldShapes() throws InterruptedException {
+        onFx(() -> {
+            RXTaskButton button = laidOut(button());
+
+            assertInstanceOf(RingIndicator.class, indicator(button, ".pending-face"));
+            for (String selector : List.of(".idle-face", ".succeeded-face", ".failed-face")) {
+                Node indicator = indicator(button, selector);
+                assertFalse(indicator instanceof RingIndicator, selector);
+                assertTrue(indicator.getStyleClass().contains("indicator"), selector);
+            }
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void builtInIndicatorsArePaintedInTheTextFill() throws InterruptedException {
+        onFx(() -> {
+            RXTaskButton button = laidOut(button());
+            RingIndicator ring = ring(button);
+            Region check = assertInstanceOf(Region.class, indicator(button, ".succeeded-face"));
+            Region cross = assertInstanceOf(Region.class, indicator(button, ".failed-face"));
+
+            button.setTextFill(Color.CRIMSON);
+            assertEquals(Color.CRIMSON, ring.getPaint());
+            for (Region shape : List.of(check, cross)) {
+                assertEquals(1, shape.getBackground().getFills().size());
+                assertEquals(Color.CRIMSON, shape.getBackground().getFills().get(0).getFill());
+            }
+
+            // A style sheet cannot paint them another color.
+            check.setStyle("-fx-background-color: blue;");
+            button.applyCss();
+            assertEquals(Color.CRIMSON, check.getBackground().getFills().get(0).getFill());
+
+            button.setTextFill(null);
+            assertNull(ring.getPaint());
+            assertNull(check.getBackground());
+            assertNull(cross.getBackground());
+
+            button.getSkin().dispose();
+            assertFalse(ring.paintProperty().isBound());
+            assertFalse(check.backgroundProperty().isBound());
+            assertFalse(cross.backgroundProperty().isBound());
+        });
+    }
+
+    @Test
+    public void ringDrawsTheProgressOfTheButton() throws InterruptedException {
+        onFx(() -> {
+            RXTaskButton button = laidOut(button());
+            Arc arc = arc(ring(button));
+            // Not in a showing window, so the arc takes every length at once.
+            assertEquals(-12.0, arc.getLength());
+
+            button.setProgress(0.25);
+            assertEquals(-90.0, arc.getLength());
+            button.setProgress(3.0);
+            assertEquals(-360.0, arc.getLength());
+
+            // A run starts indeterminate.
+            Run run = button.start();
+            assertEquals(-12.0, arc.getLength());
+            run.updateProgress(0.5);
+            assertEquals(-180.0, arc.getLength());
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void pendingIndicatorTakesThePlaceOfTheRingAndNullBringsItBack() throws InterruptedException {
+        onFx(() -> {
+            RXTaskButton button = laidOut(button());
+            RingIndicator ring = ring(button);
+            Region pendingFace = face(button, ".pending-face");
+            Region custom = new Region();
+            custom.setPrefSize(30.0, 10.0);
+            double width = pendingFace.prefWidth(-1);
+
+            button.setPendingIndicator(custom);
+            assertSame(custom, pendingFace.getChildrenUnmodifiable().get(0));
+            assertNull(ring.getParent());
+            assertEquals(2, pendingFace.getChildrenUnmodifiable().size());
+            // It counts toward the size of the face, at its own preferred size.
+            assertEquals(width + 30.0, pendingFace.prefWidth(-1), 1.0e-6);
+            button.start();
+            relayout(button);
+            assertEquals(30.0, custom.getWidth());
+            assertEquals(10.0, custom.getHeight());
+            // The button does not paint an indicator of the application.
+            assertNull(custom.getBackground());
+
+            button.setPendingIndicator(null);
+            assertSame(ring, pendingFace.getChildrenUnmodifiable().get(0));
+            assertNull(custom.getParent());
+            assertEquals(width, pendingFace.prefWidth(-1), 1.0e-6);
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void pendingIndicatorSetBeforeTheSkinIsInPlaceFromTheStart() throws InterruptedException {
+        onFx(() -> {
+            RXTaskButton button = button();
+            Region custom = new Region();
+            button.setPendingIndicator(custom);
+
+            laidOut(button);
+
+            assertSame(custom, face(button, ".pending-face").getChildrenUnmodifiable().get(0));
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void progressSetBeforeTheSkinIsDrawnFromTheStart() throws InterruptedException {
+        onFx(() -> {
+            RXTaskButton button = button();
+            button.setProgress(0.5);
+
+            laidOut(button);
+
+            assertEquals(-180.0, arc(ring(button)).getLength());
+            button.getSkin().dispose();
+        });
+    }
+
+    // The ring only animates in a showing window, so this test needs a real
+    // stage. "Moves" is polled for; "rests" compares two samples taken apart.
+    @Test
+    public void ringTravelsOnlyWhileThePendingFaceShows() throws InterruptedException {
+        AtomicReference<RXTaskButton> buttonRef = new AtomicReference<>();
+        AtomicReference<Stage> stageRef = new AtomicReference<>();
+        AtomicReference<Run> runRef = new AtomicReference<>();
+        onFx(() -> {
+            RXTaskButton button = button();
+            Stage stage = new Stage();
+            stage.setScene(new Scene(new StackPane(button), 200.0, 100.0));
+            stage.show();
+            buttonRef.set(button);
+            stageRef.set(stage);
+        });
+        RXTaskButton button = buttonRef.get();
+        try {
+            RingIndicator ring = onFxGet(() -> ring(button));
+            assertRests(ring);
+
+            onFx(() -> runRef.set(button.start()));
+            assertMoves(ring);
+
+            // A determinate progress: the arc settles on its length.
+            onFx(() -> button.setProgress(0.5));
+            awaitLength(ring, -180.0);
+            assertRests(ring);
+            onFx(() -> button.setProgress(-1.0));
+            assertMoves(ring);
+
+            // Hidden through an ancestor of the button.
+            onFx(() -> button.getParent().setVisible(false));
+            assertRests(ring);
+            onFx(() -> button.getParent().setVisible(true));
+            assertMoves(ring);
+
+            onFx(() -> runRef.get().succeed());
+            assertRests(ring);
+
+            // A replaced skin lets go of its ring; the new one has its own.
+            onFx(() -> button.start());
+            assertMoves(ring);
+            onFx(() -> replaceSkin(button));
+            assertRests(ring);
+            assertMoves(onFxGet(() -> ring(button)));
+        } finally {
+            onFx(() -> stageRef.get().hide());
+        }
+    }
+
     // ==================== Skin lifecycle ====================
 
     @Test
@@ -482,6 +665,36 @@ public class RXTaskButtonSkinTest {
             assertEquals(1, recording.contexts.size());
             assertTrue(button.getChildrenUnmodifiable().isEmpty());
             assertTrue(idleFace.isVisible() && idleFace.getParent().isVisible());
+        });
+    }
+
+    @Test
+    public void skinReplacedWhileTheStateIsReportedLeavesQuietly() throws InterruptedException {
+        onFx(() -> {
+            RXTaskButton button = button();
+            // Registered before the first skin, so it runs before that skin's
+            // listener, which is then told about a state it can no longer show.
+            button.stateProperty().addListener((Observable observable) -> {
+                if (button.getState() == State.PENDING) {
+                    replaceSkin(button);
+                }
+            });
+            laidOut(button);
+            List<Throwable> uncaught = new ArrayList<>();
+            Thread thread = Thread.currentThread();
+            Thread.UncaughtExceptionHandler previous = thread.getUncaughtExceptionHandler();
+            thread.setUncaughtExceptionHandler((failed, error) -> uncaught.add(error));
+            try {
+                button.start();
+            } finally {
+                thread.setUncaughtExceptionHandler(previous);
+            }
+
+            assertEquals(List.of(), uncaught);
+            relayout(button);
+            assertEquals(2, button.getChildrenUnmodifiable().size());
+            assertShowing(button, ".pending-face");
+            button.getSkin().dispose();
         });
     }
 
@@ -818,6 +1031,56 @@ public class RXTaskButtonSkinTest {
         return assertInstanceOf(Label.class, face(button, faceSelector).lookup(".caption"));
     }
 
+    private static Node indicator(RXTaskButton button, String faceSelector) {
+        return face(button, faceSelector).getChildrenUnmodifiable().get(0);
+    }
+
+    private static RingIndicator ring(RXTaskButton button) {
+        return assertInstanceOf(RingIndicator.class, indicator(button, ".pending-face"));
+    }
+
+    private static Arc arc(RingIndicator ring) {
+        return (Arc) ring.getChildrenUnmodifiable().get(1);
+    }
+
+    // Everything the animations of the ring change.
+    private static List<Double> pose(RingIndicator ring) throws InterruptedException {
+        Arc arc = arc(ring);
+        return onFxGet(() -> List.of(arc.getLength(), arc.getStartAngle(),
+                ((Rotate) arc.getTransforms().get(0)).getAngle()));
+    }
+
+    private static void assertMoves(RingIndicator ring) throws InterruptedException {
+        List<Double> before = pose(ring);
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (System.nanoTime() < deadline) {
+            Thread.sleep(30L);
+            if (!before.equals(pose(ring))) {
+                return;
+            }
+        }
+        throw new AssertionError("the ring does not move: " + before);
+    }
+
+    private static void assertRests(RingIndicator ring) throws InterruptedException {
+        List<Double> before = pose(ring);
+        Thread.sleep(200L);
+        assertEquals(before, pose(ring));
+    }
+
+    private static void awaitLength(RingIndicator ring, double length) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        double last = Double.NaN;
+        while (System.nanoTime() < deadline) {
+            last = onFxGet(() -> arc(ring).getLength());
+            if (last == length) {
+                return;
+            }
+            Thread.sleep(30L);
+        }
+        throw new AssertionError("arc length " + last + " never reached " + length);
+    }
+
     private static void setIndicatorSizes(RXTaskButton button, double size) {
         for (String selector : FACES) {
             if (!".idle-face".equals(selector)) {
@@ -828,11 +1091,19 @@ public class RXTaskButtonSkinTest {
     }
 
     private static void onFx(Runnable body) throws InterruptedException {
+        onFxGet(() -> {
+            body.run();
+            return null;
+        });
+    }
+
+    private static <T> T onFxGet(Supplier<T> body) throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<T> result = new AtomicReference<>();
         AtomicReference<Throwable> failure = new AtomicReference<>();
         Platform.runLater(() -> {
             try {
-                body.run();
+                result.set(body.get());
             } catch (Throwable t) {
                 failure.set(t);
             } finally {
@@ -845,6 +1116,7 @@ public class RXTaskButtonSkinTest {
         if (failure.get() != null) {
             throw new AssertionError(failure.get());
         }
+        return result.get();
     }
 
     private static MouseEvent mouseEvent(EventType<MouseEvent> type, MouseButton button) {

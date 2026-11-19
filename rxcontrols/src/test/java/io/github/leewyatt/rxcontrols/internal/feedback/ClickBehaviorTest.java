@@ -153,6 +153,44 @@ public class ClickBehaviorTest {
     }
 
     @Test
+    public void pressThatCouldNotArmStaysWithoutEffectUntilReleased() {
+        Fixture fixture = new Fixture();
+        BareButton button = fixture.button;
+        fixture.canArm.set(false);
+
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+        button.press(true);
+        fixture.canArm.set(true);
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_EXITED, MouseButton.PRIMARY));
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_ENTERED, MouseButton.PRIMARY));
+        assertFalse(button.isArmed());
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+        assertEquals(0, fixture.actions.get());
+
+        // A new press works again, and so does dragging it out and back in.
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+        assertTrue(button.isArmed());
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_EXITED, MouseButton.PRIMARY));
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_ENTERED, MouseButton.PRIMARY));
+        assertTrue(button.isArmed());
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+        assertEquals(1, fixture.actions.get());
+    }
+
+    @Test
+    public void disposedBehaviorLetsGoOfAKeyThatIsStillDown() {
+        Fixture fixture = new Fixture();
+        BareButton button = fixture.button;
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.SPACE, false));
+        assertTrue(button.isArmed());
+
+        fixture.disposer.dispose();
+
+        assertFalse(button.isArmed());
+        assertEquals(0, fixture.actions.get());
+    }
+
+    @Test
     public void keyHeldSinceItCouldNotArmStaysWithoutEffectUntilReleased() {
         Fixture fixture = new Fixture();
         BareButton button = fixture.button;

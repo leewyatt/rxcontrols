@@ -42,6 +42,8 @@ public final class ClickBehavior {
     // without effect until the key is released: the repeats of a held key
     // must not arm the button once it can be armed again.
     private boolean keyRefused;
+    // The same for a mouse press: dragging out and back in must not arm it.
+    private boolean mouseRefused;
 
     // Two objects: an accelerator is only removed while it is still the one
     // this behavior installed, and the two combinations are told apart.
@@ -71,6 +73,12 @@ public final class ClickBehavior {
         // Registered first, so it runs last, against the scene the button is
         // in at that moment.
         disposer.registerDisposeTask(() -> {
+            // The release of a key that is still down goes to the next
+            // behavior, which knows nothing of this stroke.
+            if (keyDown) {
+                keyDown = false;
+                button.disarm();
+            }
             Scene scene = button.getScene();
             setAccelerator(scene, DEFAULT_BUTTON_COMBO, defaultButtonRunnable, false);
             setAccelerator(scene, CANCEL_BUTTON_COMBO, cancelButtonRunnable, false);
@@ -148,13 +156,18 @@ public final class ClickBehavior {
         if (button.isFocusTraversable()) {
             button.requestFocus();
         }
-        if (!button.isArmed() && RXMouse.isPlainPrimaryPress(event) && canArm.getAsBoolean()) {
-            button.arm();
+        if (!button.isArmed() && RXMouse.isPlainPrimaryPress(event)) {
+            if (canArm.getAsBoolean()) {
+                button.arm();
+            } else {
+                mouseRefused = true;
+            }
         }
         event.consume();
     }
 
     private void mouseReleased(MouseEvent event) {
+        mouseRefused = false;
         if (!keyDown && button.isArmed()) {
             // An action handler that throws propagates out of fire(); the
             // button must not stay armed behind it.
@@ -168,7 +181,7 @@ public final class ClickBehavior {
     }
 
     private void mouseEntered(MouseEvent event) {
-        if (!keyDown && button.isPressed() && canArm.getAsBoolean()) {
+        if (!keyDown && !mouseRefused && button.isPressed() && canArm.getAsBoolean()) {
             button.arm();
         }
         event.consume();

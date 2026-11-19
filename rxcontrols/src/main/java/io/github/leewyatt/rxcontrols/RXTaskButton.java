@@ -1,8 +1,8 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
+import io.github.leewyatt.rxcontrols.internal.TaskButtonAccess;
 import io.github.leewyatt.rxcontrols.internal.feedback.FeedbackDurations;
-import io.github.leewyatt.rxcontrols.internal.feedback.TaskButtonAccess;
 import io.github.leewyatt.rxcontrols.skins.RXTaskButtonSkin;
 import javafx.animation.Animation;
 import javafx.animation.PauseTransition;

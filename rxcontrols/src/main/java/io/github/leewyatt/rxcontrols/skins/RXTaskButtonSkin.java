@@ -2,20 +2,27 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXTaskButton;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
+import io.github.leewyatt.rxcontrols.internal.TaskButtonAccess;
 import io.github.leewyatt.rxcontrols.internal.feedback.AccessibleNames;
 import io.github.leewyatt.rxcontrols.internal.feedback.CaptionBinding;
 import io.github.leewyatt.rxcontrols.internal.feedback.ClickBehavior;
 import io.github.leewyatt.rxcontrols.internal.feedback.FeedbackDurations;
 import io.github.leewyatt.rxcontrols.internal.feedback.FeedbackFaces;
 import io.github.leewyatt.rxcontrols.internal.feedback.IndicatorFace;
-import io.github.leewyatt.rxcontrols.internal.feedback.TaskButtonAccess;
+import io.github.leewyatt.rxcontrols.internal.feedback.RingIndicator;
 import io.github.leewyatt.rxcontrols.internal.ripple.ArmedRippleTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.ObjectBinding;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.StringProperty;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.Region;
+import javafx.scene.paint.Paint;
 
 /**
  * Skin for {@link RXTaskButton}: a ripple layer below four faces, one per
@@ -23,6 +30,13 @@ import javafx.scene.control.Label;
  * graphic; the pending, succeeded and failed faces each show an indicator
  * next to their own text and graphic. The button is sized to the largest
  * face, so swapping faces never changes its size.
+ *
+ * <p>The pending indicator is a ring that draws the button's progress, or
+ * travels round while the progress is indeterminate; the button's
+ * {@code pendingIndicator}, when set, takes its place. The succeeded and
+ * failed indicators are regions shaped from CSS. The ring and the two shapes
+ * are painted in the button's text fill, so they follow whatever colors the
+ * text: a theme, a state rule or the application.</p>
  *
  * <p>The button owns the state; the skin only follows it. A face swap plays
  * the button's animation when one is set, forward to the pending and result
@@ -47,6 +61,8 @@ public class RXTaskButtonSkin extends RXSkinBase<RXTaskButton> {
     private final IndicatorFace succeededFace;
     private final IndicatorFace failedFace;
     private final FeedbackFaces faces;
+    private final RingIndicator ring = new RingIndicator();
+    private final ObjectBinding<Background> shapeBackground;
     private final RippleDecoration ripple;
     private final ArmedRippleTrigger rippleTrigger;
 
@@ -95,6 +111,23 @@ public class RXTaskButtonSkin extends RXSkinBase<RXTaskButton> {
             failedFace.requestLayout();
         });
 
+        // Bound, not styled: a style sheet cannot color the built-in
+        // indicators, they always match the text.
+        disposer.registerBinding(ring.paintProperty(), button.textFillProperty());
+        shapeBackground = Bindings.createObjectBinding(() -> {
+            Paint fill = button.getTextFill();
+            return fill == null ? null : new Background(new BackgroundFill(fill, null, null));
+        }, button.textFillProperty());
+        disposer.registerDisposeTask(shapeBackground::dispose);
+        disposer.registerBinding(shapeOf(succeededFace).backgroundProperty(), shapeBackground);
+        disposer.registerBinding(shapeOf(failedFace).backgroundProperty(), shapeBackground);
+
+        disposer.registerDisposeTask(ring::dispose);
+        ring.setProgress(button.getProgress());
+        disposer.registerListener(button.progressProperty(), () -> ring.setProgress(button.getProgress()));
+        updatePendingIndicator();
+        disposer.registerListener(button.pendingIndicatorProperty(), this::updatePendingIndicator);
+
         rippleTrigger.installPointerTracking(disposer);
         rippleTrigger.installPlayRipple(disposer);
         disposer.registerListener(button.armedProperty(), rippleTrigger::handleArmedChanged);
@@ -117,6 +150,19 @@ public class RXTaskButtonSkin extends RXSkinBase<RXTaskButton> {
         disposer.registerBinding(face.paddingProperty(), button.labelPaddingProperty());
     }
 
+    // ==================== Indicators ====================
+
+    private static Region shapeOf(IndicatorFace face) {
+        return (Region) face.getIndicator();
+    }
+
+    // The button does not drive an indicator of the application: it neither
+    // sets its progress nor paints it.
+    private void updatePendingIndicator() {
+        Node custom = getSkinnable().getPendingIndicator();
+        pendingFace.setIndicator(custom == null ? ring : custom);
+    }
+
     // ==================== Faces ====================
 
     // Reads the state instead of taking it from the notification: a listener
@@ -124,6 +170,11 @@ public class RXTaskButtonSkin extends RXSkinBase<RXTaskButton> {
     // where the button is now.
     private void showFace(boolean animate) {
         RXTaskButton button = getSkinnable();
+        if (button == null) {
+            // A listener removed while the state is being reported is still
+            // told once; this skin is disposed and has nothing left to show.
+            return;
+        }
         IndicatorFace face = faceOf(button.getState());
         if (face == faces.getCurrentFace()) {
             return;

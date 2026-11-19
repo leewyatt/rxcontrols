@@ -1,4 +1,4 @@
-package io.github.leewyatt.rxcontrols.internal.feedback;
+package io.github.leewyatt.rxcontrols.internal;
 
 import io.github.leewyatt.rxcontrols.RXTaskButton;
 
