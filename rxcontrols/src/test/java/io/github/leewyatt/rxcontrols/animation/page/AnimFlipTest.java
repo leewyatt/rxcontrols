@@ -1,13 +1,18 @@
 package io.github.leewyatt.rxcontrols.animation.page;
 
 import javafx.animation.Animation;
+import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.effect.Effect;
 import javafx.scene.effect.PerspectiveTransform;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -19,17 +24,18 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link AnimFlip}: the lifecycle event order shared with the other page
- * transitions, the page swap at the middle, restoring the pages on every end path,
- * turning a page that does not fill the content pane in place, and the null
- * interpolator fallback.
+ * transitions, the page swap at the middle, restoring the pages and their own
+ * effects on every end path, the geometry of every frame and of pages that do not
+ * fill the pane or draw past their bounds, invalid settings, and reuse.
  */
 public class AnimFlipTest {
 
@@ -54,15 +60,19 @@ public class AnimFlipTest {
         final Region current = new Region();
         final Region next = new Region();
         final List<String> events = new ArrayList<>();
+        final TransitionContext.LifecycleCallback callback;
         final TransitionContext context;
 
         Fixture(double pageWidth, double pageHeight) {
+            this(pageWidth, pageHeight, TransitionDirection.FORWARD);
+        }
+
+        Fixture(double pageWidth, double pageHeight, TransitionDirection direction) {
             contentPane.getChildren().addAll(next, current);
             contentPane.resize(400.0, 300.0);
             current.resize(pageWidth, pageHeight);
             next.resize(pageWidth, pageHeight);
-            context = new TransitionContext(current, next, 0, 1, 2, TransitionDirection.FORWARD, DURATION,
-                    contentPane, index -> null, new TransitionContext.LifecycleCallback() {
+            callback = new TransitionContext.LifecycleCallback() {
                         @Override
                         public void fireOpening(int pageIndex) {
                             events.add("opening " + pageIndex);
@@ -82,8 +92,21 @@ public class AnimFlipTest {
                         public void fireClosed(int pageIndex) {
                             events.add("closed " + pageIndex);
                         }
-                    });
+                    };
+            context = contextFor(current, next, direction);
         }
+
+        TransitionContext contextFor(Region from, Region to, TransitionDirection direction) {
+            return new TransitionContext(from, to, 0, 1, 2, direction, DURATION, contentPane, index -> null, callback);
+        }
+    }
+
+    // The transform the page wears at a share of the flip, read while paused there.
+    private static double[] cornersAt(Animation animation, Region page, double share) {
+        animation.jumpTo(DURATION.multiply(share));
+        PerspectiveTransform pt = (PerspectiveTransform) page.getEffect();
+        return new double[]{pt.getUlx(), pt.getUly(), pt.getUrx(), pt.getUry(),
+            pt.getLrx(), pt.getLry(), pt.getLlx(), pt.getLly()};
     }
 
     private static <T> T onFx(Callable<T> task) throws Exception {
@@ -171,11 +194,147 @@ public class AnimFlipTest {
     }
 
     @Test
-    public void aNullInterpolatorFallsBackToTheDefault() throws Exception {
+    public void aNullInterpolatorFallsBackToEaseBoth() throws Exception {
+        double[][] corners = onFx(() -> {
+            double[][] result = new double[2][];
+            Interpolator[] interpolators = {null, Interpolator.EASE_BOTH};
+            for (int i = 0; i < 2; i++) {
+                Fixture fixture = new Fixture(400.0, 300.0);
+                AnimFlip flip = new AnimFlip();
+                flip.setInterpolator(interpolators[i]);
+                Animation animation = flip.getAnimation(fixture.context);
+                animation.play();
+                animation.pause();
+                result[i] = cornersAt(animation, fixture.current, 0.3);
+                animation.stop();
+            }
+            return result;
+        });
+        assertArrayEquals(corners[1], corners[0], 1e-9);
+    }
+
+    @Test
+    public void everyFrameStaysFiniteAndInsideThePageInBothOrientationsAndDirections() throws Exception {
+        for (Orientation orientation : Orientation.values()) {
+            for (TransitionDirection direction : TransitionDirection.values()) {
+                String label = orientation + " " + direction;
+                onFx(() -> {
+                    Fixture fixture = new Fixture(400.0, 300.0, direction);
+                    AnimFlip flip = new AnimFlip(orientation);
+                    Animation animation = flip.getAnimation(fixture.context);
+                    animation.play();
+                    animation.pause();
+                    for (int step = 0; step <= 20; step++) {
+                        double share = step / 20.0;
+                        Region page = share < 0.5 ? fixture.current : fixture.next;
+                        double[] corners = cornersAt(animation, page, share);
+                        for (int i = 0; i < corners.length; i++) {
+                            double limit = i % 2 == 0 ? 400.0 : 300.0;
+                            assertTrue(Double.isFinite(corners[i]) && corners[i] >= -1e-9 && corners[i] <= limit + 1e-9,
+                                    label + " corner " + i + " at " + share + " is " + corners[i]);
+                        }
+                    }
+                    animation.stop();
+                    return null;
+                });
+            }
+        }
+    }
+
+    @Test
+    public void aPageKeepsItsOwnEffectWhileTurningAndGetsItBackAfterwards() throws Exception {
         Fixture fixture = new Fixture(400.0, 300.0);
-        AnimFlip flip = new AnimFlip();
-        flip.setInterpolator(null);
-        assertDoesNotThrow(() -> onFx(() -> flip.getAnimation(fixture.context)));
+        DropShadow shadow = new DropShadow(20.0, Color.BLACK);
+        Effect during = onFx(() -> {
+            fixture.current.setEffect(shadow);
+            AnimFlip flip = new AnimFlip();
+            Animation animation = flip.getAnimation(fixture.context);
+            Effect input = ((PerspectiveTransform) fixture.current.getEffect()).getInput();
+            animation.play();
+            animation.pause();
+            animation.jumpTo(DURATION.multiply(0.25));
+            flip.jumpToEnd();
+            return input;
+        });
+        assertSame(shadow, during);
+        assertSame(shadow, fixture.current.getEffect());
+    }
+
+    @Test
+    public void clearEffectsLeavesAPageItsOwnEffect() throws Exception {
+        Fixture fixture = new Fixture(400.0, 300.0);
+        DropShadow shadow = new DropShadow(20.0, Color.BLACK);
+        onFx(() -> {
+            fixture.next.setEffect(shadow);
+            AnimFlip flip = new AnimFlip();
+            flip.getAnimation(fixture.context);
+            flip.clearEffects(fixture.context);
+            return null;
+        });
+        assertSame(shadow, fixture.next.getEffect());
+        assertNull(fixture.current.getEffect());
+    }
+
+    @Test
+    public void aShadowedPageStartsFlatOverItsWholeContent() throws Exception {
+        Fixture fixture = new Fixture(200.0, 100.0);
+        Object[] result = onFx(() -> {
+            fixture.current.setEffect(new DropShadow(20.0, Color.BLACK));
+            Bounds content = fixture.current.getBoundsInLocal();
+            new AnimFlip().getAnimation(fixture.context);
+            return new Object[]{content, fixture.current.getEffect()};
+        });
+        Bounds content = (Bounds) result[0];
+        PerspectiveTransform start = (PerspectiveTransform) result[1];
+        assertTrue(content.getMinX() < 0.0, "the shadow does not reach past the page; the test would be vacuous");
+        assertEquals(content.getMinX(), start.getUlx(), 1e-9);
+        assertEquals(content.getMinY(), start.getUly(), 1e-9);
+        assertEquals(content.getMaxX(), start.getLrx(), 1e-9);
+        assertEquals(content.getMaxY(), start.getLry(), 1e-9);
+    }
+
+    @Test
+    public void aHugeFocalLengthFactorStillGivesFiniteCorners() throws Exception {
+        Fixture fixture = new Fixture(400.0, 300.0);
+        double[] corners = onFx(() -> {
+            AnimFlip flip = new AnimFlip();
+            flip.setFocalLengthFactor(1e308);
+            Animation animation = flip.getAnimation(fixture.context);
+            animation.play();
+            animation.pause();
+            double[] result = cornersAt(animation, fixture.current, 0.3);
+            animation.stop();
+            return result;
+        });
+        for (double corner : corners) {
+            assertTrue(Double.isFinite(corner), "a corner is " + corner);
+        }
+    }
+
+    @Test
+    public void oneInstanceFlipsBackAndForthAndAStillRunningFlipEndsFirst() throws Exception {
+        Fixture fixture = new Fixture(400.0, 300.0);
+        boolean[] state = onFx(() -> {
+            AnimFlip flip = new AnimFlip();
+            Animation first = flip.getAnimation(fixture.context);
+            first.play();
+            // The second flip starts while the first still runs: the first ends first,
+            // showing the next page, and the second turns it back.
+            Animation second = flip.getAnimation(
+                    fixture.contextFor(fixture.next, fixture.current, TransitionDirection.BACKWARD));
+            boolean firstStopped = first.getStatus() == Animation.Status.STOPPED;
+            second.play();
+            second.pause();
+            second.jumpTo(DURATION.multiply(0.75));
+            boolean[] result = {firstStopped, fixture.current.isVisible(), fixture.next.isVisible()};
+            flip.jumpToEnd();
+            return result;
+        });
+        assertTrue(state[0], "the first flip still runs");
+        assertTrue(state[1], "the page flipped back to does not show");
+        assertFalse(state[2], "the page flipped away from still shows");
+        assertNull(fixture.current.getEffect());
+        assertNull(fixture.next.getEffect());
     }
 
     // Runs a task after the animation's own finish handler, keeping that handler.

@@ -11,6 +11,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
+import javafx.scene.effect.Effect;
 import javafx.scene.effect.PerspectiveTransform;
 import javafx.util.Duration;
 
@@ -26,8 +27,10 @@ import javafx.util.Duration;
  *
  * <p>Each page turns about the centre of its own layout bounds, read on every frame,
  * so the animation is resize-safe and a page that does not fill the content pane
- * turns in place. When the near edge of a turning page would leave those bounds,
- * the whole page is scaled down just enough to stay inside them.</p>
+ * turns in place. Content drawn past those bounds, such as a shadow, turns with the
+ * page, and when the near edge would leave the page's content the whole page is
+ * scaled down just enough to stay inside it. A page's own effect turns with it and
+ * is put back when the flip ends.</p>
  */
 public class AnimFlip extends PageAnimationBase {
 
@@ -42,6 +45,11 @@ public class AnimFlip extends PageAnimationBase {
     private final PerspectiveTransform ptCurrent = new PerspectiveTransform();
     private final PerspectiveTransform ptNext = new PerspectiveTransform();
     private final double[] corners = new double[8];
+    // How far each page's content (a shadow, say) reaches past its layout bounds:
+    // top, right, bottom, left. The transform maps the whole content, so the turn
+    // uses that wider rectangle and the first and last frames match the page exactly.
+    private final double[] currentMargins = new double[4];
+    private final double[] nextMargins = new double[4];
 
     private final DoubleProperty progress = new SimpleDoubleProperty(0);
     private ChangeListener<Number> progressListener;
@@ -115,14 +123,32 @@ public class AnimFlip extends PageAnimationBase {
         Duration duration = context.getDuration();
         double sign = context.getDirection() == TransitionDirection.FORWARD ? 1.0 : -1.0;
 
+        // A transition still running or paused on this instance ends first, so two never
+        // drive the same transforms.
+        Animation running = getCurrentAnimation();
+        if (running != null && running.getStatus() != Animation.Status.STOPPED) {
+            jumpToEnd();
+        }
+
+        // A page's own effect turns with it, as the transform's input, and comes back
+        // when the flip ends.
+        Effect currentEffect = ownEffectOf(currentPage);
+        Effect nextEffect = ownEffectOf(nextPage);
+        measureMargins(currentPage, currentEffect, currentMargins);
+        measureMargins(nextPage, nextEffect, nextMargins);
+        ptCurrent.setInput(currentEffect);
+        ptNext.setInput(nextEffect);
+
         Runnable finish = () -> {
             removeProgressListener();
+            ptCurrent.setInput(null);
+            ptNext.setInput(null);
             if (currentPage != null) {
-                currentPage.setEffect(null);
+                currentPage.setEffect(currentEffect);
                 currentPage.setVisible(false);
             }
             if (nextPage != null) {
-                nextPage.setEffect(null);
+                nextPage.setEffect(nextEffect);
                 nextPage.setVisible(true);
             }
         };
@@ -130,8 +156,8 @@ public class AnimFlip extends PageAnimationBase {
 
         // Both pages start flat: a PerspectiveTransform left at its all-zero default
         // would draw the page as a single point on the first frame.
-        project(ptCurrent, 0.0, currentPage);
-        project(ptNext, 0.0, nextPage);
+        project(ptCurrent, 0.0, currentPage, currentMargins);
+        project(ptNext, 0.0, nextPage, nextMargins);
         if (currentPage != null) {
             currentPage.setEffect(ptCurrent);
             currentPage.setVisible(true);
@@ -148,7 +174,7 @@ public class AnimFlip extends PageAnimationBase {
             double p = newValue.doubleValue();
             if (!swapped[0] && p < 0.5) {
                 // The current page turns away until it is edge on.
-                project(ptCurrent, sign * p * Math.PI, currentPage);
+                project(ptCurrent, sign * p * Math.PI, currentPage, currentMargins);
                 return;
             }
             if (!swapped[0]) {
@@ -162,7 +188,7 @@ public class AnimFlip extends PageAnimationBase {
             }
             // The next page turns in from the other side. Once it shows, an
             // interpolator that dips back below the middle cannot turn it away again.
-            project(ptNext, -sign * (1.0 - Math.max(p, 0.5)) * Math.PI, nextPage);
+            project(ptNext, -sign * (1.0 - Math.max(p, 0.5)) * Math.PI, nextPage, nextMargins);
         };
         progress.addListener(progressListener);
 
@@ -176,6 +202,9 @@ public class AnimFlip extends PageAnimationBase {
                 new KeyFrame(duration, new KeyValue(progress, 1, interpolatorOrDefault())));
         timeline.setOnFinished(e -> {
             finish.run();
+            // Let go of this transition's pages, panes and host callbacks.
+            setFinishAction(null);
+            setCurrentAnimation(null);
             context.fireClosed(context.getCurrentIndex());
             context.fireOpened(context.getNextIndex());
         });
@@ -189,10 +218,12 @@ public class AnimFlip extends PageAnimationBase {
     /**
      * Turns a page by theta about its own centre line and projects its corners for an
      * eye in front of it, then shrinks the result about the centre if the near edge
-     * would leave the page's own bounds. The page's layout bounds are its local
-     * rectangle, so a page that does not fill the content pane turns in place.
+     * would leave the page's content rectangle. The turn is about the centre of the
+     * page's layout bounds, so a page that does not fill the content pane turns in
+     * place; the projected rectangle is the layout bounds widened by the margins, as
+     * the transform maps the page's whole content.
      */
-    private void project(PerspectiveTransform pt, double theta, Node page) {
+    private void project(PerspectiveTransform pt, double theta, Node page, double[] margins) {
         if (page == null) {
             return;
         }
@@ -205,16 +236,23 @@ public class AnimFlip extends PageAnimationBase {
             setPT(pt, centerX, centerY, centerX, centerY, centerX, centerY, centerX, centerY);
             return;
         }
+        double top = halfH + margins[0];
+        double right = halfW + margins[1];
+        double bottom = halfH + margins[2];
+        double left = halfW + margins[3];
         boolean aboutVertical = orientation == Orientation.VERTICAL;
-        double f = 2.0 * (aboutVertical ? halfW : halfH) * focalLengthOrDefault();
+        double size = 2.0 * (aboutVertical ? halfW : halfH);
+        double f = size * focalLengthOrDefault();
+        if (!Double.isFinite(f)) {
+            f = size * DEFAULT_FOCAL_LENGTH_FACTOR;
+        }
         double cos = Math.cos(theta);
         double sin = Math.sin(theta);
-        double reachX = 0.0;
-        double reachY = 0.0;
+        double fit = 1.0;
         // Upper left, upper right, lower right, lower left.
         for (int i = 0; i < 4; i++) {
-            double x = i == 1 || i == 2 ? halfW : -halfW;
-            double y = i >= 2 ? halfH : -halfH;
+            double x = i == 1 || i == 2 ? right : -left;
+            double y = i >= 2 ? bottom : -top;
             double z;
             if (aboutVertical) {
                 z = x * sin;
@@ -226,21 +264,48 @@ public class AnimFlip extends PageAnimationBase {
             double scale = f / (f + z);
             corners[2 * i] = x * scale;
             corners[2 * i + 1] = y * scale;
-            reachX = Math.max(reachX, Math.abs(corners[2 * i]));
-            reachY = Math.max(reachY, Math.abs(corners[2 * i + 1]));
-        }
-        double fit = 1.0;
-        if (reachX > halfW) {
-            fit = halfW / reachX;
-        }
-        if (reachY > halfH) {
-            fit = Math.min(fit, halfH / reachY);
+            fit = Math.min(fit, fitWithin(corners[2 * i], left, right));
+            fit = Math.min(fit, fitWithin(corners[2 * i + 1], top, bottom));
         }
         setPT(pt,
                 corners[0] * fit + centerX, corners[1] * fit + centerY,
                 corners[2] * fit + centerX, corners[3] * fit + centerY,
                 corners[4] * fit + centerX, corners[5] * fit + centerY,
                 corners[6] * fit + centerX, corners[7] * fit + centerY);
+    }
+
+    // The scale that brings an offset from the centre back within the extent on its side.
+    private static double fitWithin(double offset, double negativeExtent, double positiveExtent) {
+        double extent = offset < 0.0 ? negativeExtent : positiveExtent;
+        double reach = Math.abs(offset);
+        return reach > extent ? extent / reach : 1.0;
+    }
+
+    // The page's own effect; one of this instance's transforms left on it by a flip
+    // that never ended stands for the effect it wraps.
+    private Effect ownEffectOf(Node page) {
+        if (page == null) {
+            return null;
+        }
+        Effect effect = page.getEffect();
+        if (effect == ptCurrent || effect == ptNext) {
+            return ((PerspectiveTransform) effect).getInput();
+        }
+        return effect;
+    }
+
+    private static void measureMargins(Node page, Effect ownEffect, double[] margins) {
+        if (page == null) {
+            margins[0] = margins[1] = margins[2] = margins[3] = 0.0;
+            return;
+        }
+        page.setEffect(ownEffect);
+        Bounds layout = page.getLayoutBounds();
+        Bounds content = page.getBoundsInLocal();
+        margins[0] = Math.max(0.0, layout.getMinY() - content.getMinY());
+        margins[1] = Math.max(0.0, content.getMaxX() - layout.getMaxX());
+        margins[2] = Math.max(0.0, content.getMaxY() - layout.getMaxY());
+        margins[3] = Math.max(0.0, layout.getMinX() - content.getMinX());
     }
 
     private Interpolator interpolatorOrDefault() {
@@ -279,9 +344,15 @@ public class AnimFlip extends PageAnimationBase {
     public void clearEffects(TransitionContext context) {
         super.clearEffects(context);
         removeProgressListener();
+        // Only this instance's transforms come off; a page's own effect stays.
         for (Node child : context.getContentPane().getChildren()) {
-            child.setEffect(null);
+            Effect effect = child.getEffect();
+            if (effect == ptCurrent || effect == ptNext) {
+                child.setEffect(((PerspectiveTransform) effect).getInput());
+            }
         }
+        ptCurrent.setInput(null);
+        ptNext.setInput(null);
     }
 
     /**
