@@ -18,6 +18,10 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.WeakChangeListener;
+import javafx.concurrent.ScheduledService;
+import javafx.concurrent.Worker;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.css.Styleable;
@@ -34,13 +38,19 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Button that shows the life of one piece of work: a pending face while the
  * work is in flight, then a succeeded or failed face, then the normal face
- * again. The work can be anything asynchronous or synchronous; the button
- * does not run it, it is only told when it starts and how it ends.
+ * again. The work can be anything, asynchronous or synchronous: a callback
+ * API, a {@code CompletionStage}, a {@code Service}; a JavaFX {@code Task} is
+ * only one of the possibilities. The button does not run the work, it is only
+ * told when it starts and how it ends.
  *
  * <p>The button publishes two read-only properties, and they answer different
  * questions:</p>
@@ -105,6 +115,32 @@ import java.util.concurrent.atomic.AtomicReference;
  * nothing, so a late callback can never report into a newer run. Always
  * report both outcomes: a run that never gets one keeps the button busy.</p>
  *
+ * <p>For work that already is a {@code CompletionStage} or a JavaFX
+ * {@code Worker}, {@link #track(CompletionStage) track} starts a run and
+ * reports its outcome for you. The verb is deliberate: the button follows
+ * the work, it never starts it.</p>
+ *
+ * <pre>{@code
+ * // A CompletionStage, completed on any thread
+ * send.setOnAction(event -> send.track(client.sendAsync(request, handler)));
+ *
+ * // A Task: the application still executes it
+ * export.setOnAction(event -> {
+ *     Task<Void> task = new ExportTask(file);
+ *     export.track(task);
+ *     executor.execute(task);
+ * });
+ *
+ * // A Service: wired once, the button then follows every run of it
+ * service.addEventHandler(WorkerStateEvent.WORKER_STATE_SCHEDULED, event -> sync.track(service));
+ * sync.setOnAction(event -> service.restart());
+ * }</pre>
+ *
+ * <p>When a tracked worker or stage fails, the button does not read its
+ * exception: nothing of it goes into a text, an accessible text, a tooltip
+ * or a log. The exception stays where it was, for the application to
+ * handle.</p>
+ *
  * <p>Two delays keep quick work from flashing. The pending face only appears
  * when the run is still in flight after the {@code pendingDelay}; work that
  * ends inside that window goes straight from the normal face to its result.
@@ -131,8 +167,9 @@ import java.util.concurrent.atomic.AtomicReference;
  * in flight, and its outcome is shown as usual. The state lives in the
  * control, so it also survives a skin replacement.</p>
  *
- * <p>{@link #start()}, {@link #cancel()} and {@link #resetFeedback()} must be
- * called on the JavaFX application thread and throw an
+ * <p>{@link #start()}, the {@code track} methods, {@link #cancel()} and
+ * {@link #resetFeedback()} must be called on the JavaFX application thread and
+ * throw an
  * {@code IllegalStateException} elsewhere. The methods of a {@link Run} can be
  * called from any thread. Do not open a nested event loop (a
  * {@code showAndWait} dialog) from a listener of {@code running} or
@@ -212,6 +249,12 @@ public class RXTaskButton extends RXButton {
     // for Run.isCurrent(), which worker threads poll.
     private volatile Run currentRun;
 
+    // What the current run follows; null when the run is reported through
+    // its handle only, and while not running. A followed Worker refers to
+    // its listeners weakly, so this field is what keeps them alive, and a
+    // button nothing else refers to can be collected while it still follows.
+    private Source source;
+
     // An outcome that arrived before the pending face had shown long enough.
     private State deferredOutcome;
 
@@ -290,16 +333,121 @@ public class RXTaskButton extends RXButton {
      */
     public final Run start() {
         checkFxThread();
-        return begin();
+        return begin(null);
     }
 
-    private Run begin() {
+    /**
+     * Starts a run that follows the given worker and returns its handle.
+     * The button does not run the worker: the application executes the
+     * {@code Task} or starts the {@code Service} itself, before or after
+     * this call. Like {@link #start()}, this can be called in any state.
+     *
+     * <p>The button is running while the worker is ready, scheduled or
+     * running. A worker that succeeds or fails ends the run with that
+     * outcome; a worker that is cancelled cancels the run. The worker's
+     * progress is copied to {@link #progressProperty() progress}, unless
+     * that property is bound. The state and the progress the worker already
+     * has are taken over at once, so a worker that has finished gives its
+     * outcome before this method returns. Cancelling the run from the button
+     * or the handle calls {@code worker.cancel()}. The returned handle can
+     * still report an outcome first; whatever the worker reports afterwards
+     * is ignored.</p>
+     *
+     * <p>A {@code Service} runs many times. The simplest way to follow it is
+     * to track it whenever it is scheduled, wired once:</p>
+     *
+     * <pre>{@code
+     * service.addEventHandler(WorkerStateEvent.WORKER_STATE_SCHEDULED, event -> button.track(service));
+     * }</pre>
+     *
+     * <p>The button then follows every run, whoever started it. That handler
+     * keeps the button alive for as long as the service lives: remove it, or
+     * wrap it in a {@code WeakEventHandler}, when the service outlives the
+     * button. To track a service from {@code onAction} instead, call
+     * {@code service.restart()} first and {@code track(service)} second; the
+     * other way round the button takes over the outcome left from the
+     * previous run and never sees the new one.</p>
+     *
+     * <p>A service that is restarted while the button follows it reports the
+     * old run as cancelled first, so the button returns to the normal face
+     * and the pending face of the new run waits for the
+     * {@link #pendingDelayProperty() pendingDelay} again. This includes a
+     * service restarted from its own {@code onFailed} handler: the button
+     * sees the cancellation, not the failure. Call {@link #start()} right
+     * before the restart to keep the pending face up.</p>
+     *
+     * @param worker the worker to follow
+     * @return the handle of the new run
+     * @throws NullPointerException     if {@code worker} is {@code null}
+     * @throws IllegalArgumentException if {@code worker} is a
+     *                                  {@code ScheduledService}: it stays
+     *                                  scheduled between two rounds and
+     *                                  restarts itself before a listener can
+     *                                  see a round succeed, so the button
+     *                                  would stay pending forever
+     * @throws IllegalStateException    if not called on the JavaFX
+     *                                  application thread
+     */
+    public final Run track(Worker<?> worker) {
+        checkFxThread();
+        Objects.requireNonNull(worker, "worker");
+        if (worker instanceof ScheduledService) {
+            throw new IllegalArgumentException("A ScheduledService cannot be tracked: it stays scheduled"
+                    + " between two rounds and restarts itself before a listener can see a round"
+                    + " succeed. Call start() from a WORKER_STATE_RUNNING handler of the service and"
+                    + " report through the returned Run from its WORKER_STATE_SUCCEEDED and"
+                    + " WORKER_STATE_FAILED handlers instead.");
+        }
+        return begin(new WorkerSource(worker));
+    }
+
+    /**
+     * Starts a run that follows the given stage and returns its handle. The
+     * stage may complete on any thread, and may be complete already: its
+     * outcome is then taken over before this method returns. Like
+     * {@link #start()}, this can be called in any state.
+     *
+     * <p>A stage that completes normally ends the run as succeeded, one that
+     * completes exceptionally as failed. A stage completed with a
+     * {@code CancellationException}, also one wrapped in a
+     * {@code CompletionException}, cancels the run instead. A stage has no
+     * progress; {@link #progressProperty() progress} stays indeterminate
+     * unless the application sets it. The returned handle can still report
+     * an outcome first; whatever the stage reports afterwards is
+     * ignored.</p>
+     *
+     * <p>Cancelling the run from the button or the handle makes a
+     * best-effort attempt to cancel the stage through
+     * {@code toCompletableFuture().cancel(true)}. For most stages this does
+     * not interrupt the work, and cancelling a dependent stage does not
+     * reach the stage it was derived from: the only guarantee is that the
+     * button no longer cares about the outcome.</p>
+     *
+     * @param stage the stage to follow
+     * @return the handle of the new run
+     * @throws NullPointerException  if {@code stage} is {@code null}
+     * @throws IllegalStateException if not called on the JavaFX application
+     *                               thread
+     */
+    public final Run track(CompletionStage<?> stage) {
+        checkFxThread();
+        Objects.requireNonNull(stage, "stage");
+        return begin(new StageSource(stage));
+    }
+
+    private Run begin(Source next) {
+        // The previous source is let go, not cancelled: the application
+        // started a new run on purpose, the old work is its business.
+        releaseSource();
         // The newest run wins: an outcome held back for the previous one is
         // never shown.
         deferredOutcome = null;
         resultTimer.stop();
         Run run = new Run(this, ++generation);
         currentRun = run;
+        // Recorded before the first public write, so that a cancel() from a
+        // listener of running finds the source to cancel.
+        source = next;
         boolean showPending = schedulePendingFace();
 
         running.set(true);
@@ -314,6 +462,14 @@ public class RXTaskButton extends RXButton {
         }
         if (showPending) {
             state.set(State.PENDING);
+            if (!isAwaiting(run)) {
+                return run;
+            }
+        }
+        // Last, because a source that has already finished reports its
+        // outcome from inside attach.
+        if (next != null) {
+            next.attach(run);
         }
         return run;
     }
@@ -364,6 +520,7 @@ public class RXTaskButton extends RXButton {
             return;
         }
         currentRun = null;
+        releaseSource();
         pendingDelayTimer.stop();
         if (getState() == State.PENDING && pendingMinTimer.getStatus() == Animation.Status.RUNNING) {
             deferredOutcome = outcome;
@@ -417,20 +574,25 @@ public class RXTaskButton extends RXButton {
      * which includes the time an arrived outcome is held back behind the
      * pending face.
      *
+     * <p>A tracked source is cancelled as well: a worker through
+     * {@code Worker.cancel()}, a stage on a best-effort basis (see
+     * {@link #track(CompletionStage)}).</p>
+     *
      * @throws IllegalStateException if not called on the JavaFX application
      *                               thread
      */
     public final void cancel() {
         checkFxThread();
-        cancelRun();
+        cancelRun(false);
     }
 
-    private void cancelRun() {
+    private void cancelRun(boolean reportedBySource) {
         if (!isRunning()) {
             return;
         }
         int cancelled = ++generation;
         currentRun = null;
+        Source cancelledSource = releaseSource();
         pendingDelayTimer.stop();
         pendingMinTimer.stop();
 
@@ -440,6 +602,25 @@ public class RXTaskButton extends RXButton {
         if (cancelled == generation && getState() != State.IDLE) {
             state.set(State.IDLE);
         }
+        // Last, because it runs code of the source, and whatever the
+        // listeners above did: work the user cancelled must not go on. A
+        // source that reported its own cancellation is not cancelled back,
+        // and neither is one a listener is already tracking again, which
+        // would cancel its new run.
+        if (cancelledSource != null && !reportedBySource
+                && (source == null || source.target() != cancelledSource.target())) {
+            cancelledSource.cancel();
+        }
+    }
+
+    // Stops following the source of the current run and returns it.
+    private Source releaseSource() {
+        Source released = source;
+        source = null;
+        if (released != null) {
+            released.detach();
+        }
+        return released;
     }
 
     /**
@@ -485,7 +666,7 @@ public class RXTaskButton extends RXButton {
         }
         event.consume();
         if (isActivationCancelling()) {
-            cancelRun();
+            cancelRun(false);
         }
     }
 
@@ -991,7 +1172,9 @@ public class RXTaskButton extends RXButton {
      * value below one millisecond, shows the pending face at once.
      * {@code null}, negative, unknown and indefinite values fall back to
      * {@link #DEFAULT_PENDING_DELAY}. The delay only applies to a run
-     * started while the normal face shows, and is read when that run starts.
+     * started while the normal face shows, and is read when that run starts;
+     * a run started while the delay of the previous run is still counting
+     * shares what is left of it.
      * From CSS: {@code -rx-pending-delay}.
      *
      * @return the pending delay property
@@ -1315,11 +1498,115 @@ public class RXTaskButton extends RXButton {
         return getClassCssMetaData();
     }
 
+    // ==================== Sources ====================
+
+    // What a run started by track follows.
+    private abstract static class Source {
+
+        // The followed object; two sources with the same one follow the same work.
+        abstract Object target();
+
+        // Starts listening and takes over what the target has already reached.
+        abstract void attach(Run run);
+
+        // Stops listening; does nothing when attach was never called.
+        abstract void detach();
+
+        // Asks the target to stop its work.
+        abstract void cancel();
+    }
+
+    private static final class WorkerSource extends Source {
+
+        private final Worker<?> worker;
+        private ChangeListener<Worker.State> stateListener;
+        private ChangeListener<Number> progressListener;
+        private WeakChangeListener<Worker.State> weakStateListener;
+        private WeakChangeListener<Number> weakProgressListener;
+
+        WorkerSource(Worker<?> worker) {
+            this.worker = worker;
+        }
+
+        @Override
+        Object target() {
+            return worker;
+        }
+
+        @Override
+        void attach(Run run) {
+            // The listeners belong to one run. A listener that has been
+            // removed can still get a notification that was already under
+            // way, and it gets the worker's value of that moment, not the
+            // one that set the notification off; its stale run drops it.
+            stateListener = (observable, was, is) -> run.workerReached(is);
+            progressListener = (observable, was, is) -> run.applyProgress(is.doubleValue());
+            weakStateListener = new WeakChangeListener<>(stateListener);
+            weakProgressListener = new WeakChangeListener<>(progressListener);
+            worker.stateProperty().addListener(weakStateListener);
+            worker.progressProperty().addListener(weakProgressListener);
+            // A listener is not called for the value the worker already has.
+            run.applyProgress(worker.getProgress());
+            run.workerReached(worker.getState());
+        }
+
+        @Override
+        void detach() {
+            if (weakStateListener != null) {
+                worker.stateProperty().removeListener(weakStateListener);
+                worker.progressProperty().removeListener(weakProgressListener);
+            }
+        }
+
+        @Override
+        void cancel() {
+            worker.cancel();
+        }
+    }
+
+    private static final class StageSource extends Source {
+
+        private final CompletionStage<?> stage;
+
+        StageSource(CompletionStage<?> stage) {
+            this.stage = stage;
+        }
+
+        @Override
+        Object target() {
+            return stage;
+        }
+
+        @Override
+        void attach(Run run) {
+            // The callback cannot be removed again and a stage that never
+            // completes keeps it forever, so it holds the handle only: the
+            // handle refers to the button weakly and drops a late outcome.
+            stage.whenComplete((value, error) -> run.stageCompleted(error));
+        }
+
+        @Override
+        void detach() {
+            // Nothing to remove; the stale handle ignores the callback.
+        }
+
+        @Override
+        void cancel() {
+            try {
+                // true: some futures only abort their work when asked to interrupt.
+                stage.toCompletableFuture().cancel(true);
+            } catch (UnsupportedOperationException ex) {
+                // A stage need not be convertible to a future; it then cannot be cancelled.
+            }
+        }
+    }
+
     // ==================== Run ====================
 
     /**
-     * Handle of one run of a task button, returned by {@link RXTaskButton#start()}.
-     * The outcome and the progress of the run are reported through it.
+     * Handle of one run of a task button, returned by
+     * {@link RXTaskButton#start()} and the {@code track} methods. The
+     * outcome and the progress of the run are reported through it.
      *
      * <p>A handle is good for its own run only: once the run has an outcome,
      * was cancelled or was replaced by a newer run, every method does
@@ -1376,7 +1663,7 @@ public class RXTaskButton extends RXButton {
             onFxThread(() -> {
                 RXTaskButton owner = button.get();
                 if (owner != null && owner.isAwaiting(this)) {
-                    owner.cancelRun();
+                    owner.cancelRun(false);
                 }
             });
         }
@@ -1426,6 +1713,43 @@ public class RXTaskButton extends RXButton {
             if (owner != null && owner.isAwaiting(this) && !owner.progress.isBound()) {
                 owner.progress.set(value);
             }
+        }
+
+        // Ready, scheduled and running all mean "in flight" and change nothing.
+        private void workerReached(Worker.State workerState) {
+            if (workerState == Worker.State.SUCCEEDED) {
+                settle(State.SUCCEEDED);
+            } else if (workerState == Worker.State.FAILED) {
+                settle(State.FAILED);
+            } else if (workerState == Worker.State.CANCELLED) {
+                sourceCancelled();
+            }
+        }
+
+        private void stageCompleted(Throwable error) {
+            if (error == null) {
+                succeed();
+            } else if (isCancellation(error)) {
+                onFxThread(this::sourceCancelled);
+            } else {
+                fail();
+            }
+        }
+
+        // The source ended as cancelled; it is not asked to cancel again.
+        private void sourceCancelled() {
+            RXTaskButton owner = button.get();
+            if (owner != null && owner.isAwaiting(this)) {
+                owner.cancelRun(true);
+            }
+        }
+
+        // A dependent stage reports the cancellation of the stage it was
+        // derived from wrapped in a CompletionException.
+        private static boolean isCancellation(Throwable error) {
+            return error instanceof CancellationException
+                    || (error instanceof CompletionException
+                    && error.getCause() instanceof CancellationException);
         }
 
         private static void onFxThread(Runnable action) {

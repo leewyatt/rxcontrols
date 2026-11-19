@@ -456,21 +456,35 @@ public class RXTaskButtonTest {
     }
 
     @Test
-    public void delayStartsAfreshAfterAnOutcomeInsideThePreviousDelay() throws InterruptedException {
+    public void outcomeInsideTheDelayStopsTheDelay() throws InterruptedException {
         AtomicReference<RXTaskButton> ref = new AtomicReference<>();
         onFx(() -> {
-            RXTaskButton button = button(Duration.millis(600.0), LONG);
+            RXTaskButton button = button(Duration.millis(80.0), LONG);
             button.setSucceededDuration(Duration.ZERO);
             ref.set(button);
             button.start().succeed();
+
+            // Only a delay left over from the first run could end during the test.
+            button.setPendingDelay(LONG);
+            button.start();
         });
-        Thread.sleep(300L);
-        onFx(() -> ref.get().start());
-        Thread.sleep(450L);
-        // 750 ms in: the delay of the first run would have ended at 600 ms.
+        Thread.sleep(400L);
         onFx(() -> assertEquals(State.IDLE, ref.get().getState()));
-        Thread.sleep(450L);
-        onFx(() -> assertEquals(State.PENDING, ref.get().getState()));
+    }
+
+    @Test
+    public void heldOutcomeWithZeroResultDurationGoesStraightToIdle() throws InterruptedException {
+        AtomicReference<Probe> probe = new AtomicReference<>();
+        onFx(() -> {
+            RXTaskButton button = button(Duration.ZERO, Duration.millis(100.0));
+            button.setSucceededDuration(Duration.ZERO);
+            probe.set(new Probe(button));
+            button.start().succeed();
+        });
+        Thread.sleep(500L);
+        onFx(() -> assertEquals(
+                List.of("running=true", "state=PENDING", "running=false", "state=IDLE"),
+                probe.get().events));
     }
 
     @Test
@@ -1109,6 +1123,25 @@ public class RXTaskButtonTest {
 
             assertTrue(run.isCurrent());
             assertEquals(State.PENDING, button.getState());
+        });
+    }
+
+    @Test
+    public void cancelFromTheProgressListenerOfAStartLeavesNoPendingFaceBehind() throws InterruptedException {
+        onFx(() -> {
+            RXTaskButton button = button(Duration.ZERO, LONG);
+            button.setProgress(0.5);
+            button.progressProperty().addListener((o, was, is) -> {
+                if (is.doubleValue() < 0.0) {
+                    button.cancel();
+                }
+            });
+
+            Run run = button.start();
+
+            assertFalse(run.isCurrent());
+            assertFalse(button.isRunning());
+            assertEquals(State.IDLE, button.getState());
         });
     }
 
