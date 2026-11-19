@@ -133,11 +133,6 @@
     -fx-font-size: 12.5px;
 }
 
-.example-card .chip.big {
-    -fx-padding: 6px 14px;
-    -fx-font-size: 14px;
-}
-
 .example-card .chip.rose { -fx-background-color: rgba(244, 63, 94, 0.14); -fx-text-fill: #e11d48; }
 .example-card .chip.orange { -fx-background-color: rgba(249, 115, 22, 0.14); -fx-text-fill: #ea580c; }
 .example-card .chip.amber { -fx-background-color: rgba(245, 158, 11, 0.16); -fx-text-fill: #d97706; }
@@ -155,33 +150,33 @@
 }
 
 .example-card .rose.stat-dot, .example-card .rose.block, .example-card .rose.cell,
-.example-card .rose.app-icon, .example-card .rose.swatch, .example-card .rose.product-photo,
+.example-card .rose.app-icon, .example-card .rose.product-photo,
 .example-card .rose.project-stripe { -fx-background-color: #f43f5e; }
 .example-card .orange.stat-dot, .example-card .orange.block, .example-card .orange.cell,
-.example-card .orange.app-icon, .example-card .orange.swatch, .example-card .orange.product-photo,
+.example-card .orange.app-icon, .example-card .orange.product-photo,
 .example-card .orange.project-stripe { -fx-background-color: #f97316; }
 .example-card .amber.stat-dot, .example-card .amber.block, .example-card .amber.cell,
-.example-card .amber.app-icon, .example-card .amber.swatch, .example-card .amber.product-photo,
+.example-card .amber.app-icon, .example-card .amber.product-photo,
 .example-card .amber.project-stripe { -fx-background-color: #f59e0b; }
 .example-card .lime.stat-dot, .example-card .lime.block, .example-card .lime.cell,
-.example-card .lime.app-icon, .example-card .lime.swatch, .example-card .lime.product-photo,
+.example-card .lime.app-icon, .example-card .lime.product-photo,
 .example-card .lime.project-stripe { -fx-background-color: #65a30d; }
 .example-card .teal.stat-dot, .example-card .teal.block, .example-card .teal.cell,
-.example-card .teal.app-icon, .example-card .teal.swatch, .example-card .teal.product-photo,
+.example-card .teal.app-icon, .example-card .teal.product-photo,
 .example-card .teal.project-stripe { -fx-background-color: #14b8a6; }
 .example-card .sky.stat-dot, .example-card .sky.block, .example-card .sky.cell,
-.example-card .sky.app-icon, .example-card .sky.swatch, .example-card .sky.product-photo,
+.example-card .sky.app-icon, .example-card .sky.product-photo,
 .example-card .sky.project-stripe { -fx-background-color: #0ea5e9; }
 .example-card .indigo.stat-dot, .example-card .indigo.block, .example-card .indigo.cell,
-.example-card .indigo.app-icon, .example-card .indigo.swatch, .example-card .indigo.product-photo,
+.example-card .indigo.app-icon, .example-card .indigo.product-photo,
 .example-card .indigo.project-stripe { -fx-background-color: #6366f1; }
 .example-card .violet.stat-dot, .example-card .violet.block, .example-card .violet.cell,
-.example-card .violet.app-icon, .example-card .violet.swatch, .example-card .violet.product-photo,
+.example-card .violet.app-icon, .example-card .violet.product-photo,
 .example-card .violet.project-stripe { -fx-background-color: #8b5cf6; }
 .example-card .pink.stat-dot, .example-card .pink.block, .example-card .pink.cell,
-.example-card .pink.app-icon, .example-card .pink.swatch, .example-card .pink.product-photo,
+.example-card .pink.app-icon, .example-card .pink.product-photo,
 .example-card .pink.project-stripe { -fx-background-color: #ec4899; }
-.example-card .slate.swatch, .example-card .slate.app-icon { -fx-background-color: #475569; }
+.example-card .slate.app-icon { -fx-background-color: #475569; }
 
 .example-card .block {
     -fx-background-radius: 8px;
@@ -429,10 +424,6 @@
 
 .example-card .project-stripe {
     -fx-background-radius: 8px 0 0 8px;
-}
-
-.example-card .swatch {
-    -fx-background-radius: 10px;
 }
 
 /*******************************************************************************

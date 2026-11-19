@@ -1,6 +1,8 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXButton;
+import io.github.leewyatt.rxcontrols.RXMenuButton;
+import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
@@ -11,6 +13,7 @@ import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -110,6 +113,33 @@ final class LayoutKit {
         Label chip = text(value, "chip", color);
         chip.setMinWidth(Region.USE_PREF_SIZE);
         return chip;
+    }
+
+    /** One entry of a menu made by {@code menu}: the text it shows and the value it applies. */
+    record Choice<T>(String name, T value) {
+    }
+
+    /**
+     * A menu button of radio choices that reads "Name: choice", so the current setting
+     * stays in sight; the choice at {@code start} is selected and assumed applied.
+     */
+    @SafeVarargs
+    static <T> RXMenuButton menu(String name, int start, Consumer<T> apply, Choice<T>... choices) {
+        RXMenuButton button = new RXMenuButton(name + ": " + choices[start].name());
+        ToggleGroup group = new ToggleGroup();
+        for (int i = 0; i < choices.length; i++) {
+            Choice<T> choice = choices[i];
+            RXMenuItem item = RXMenuItem.radio(choice.name(), group);
+            item.setKeepOpen(false);
+            item.setSelected(i == start);
+            item.setOnAction(event -> {
+                apply.accept(choice.value());
+                button.setText(name + ": " + choice.name());
+            });
+            button.getItems().add(item);
+        }
+        button.setMinWidth(Region.USE_PREF_SIZE);
+        return button;
     }
 
     /** A segmented picker over enum-like values; the first value starts selected. */

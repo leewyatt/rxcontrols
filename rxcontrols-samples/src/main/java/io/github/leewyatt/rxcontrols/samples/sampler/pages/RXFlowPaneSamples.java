@@ -3,9 +3,9 @@ package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCheckBox;
 import io.github.leewyatt.rxcontrols.RXMenuButton;
-import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXSlider;
 import io.github.leewyatt.rxcontrols.layout.RXFlowPane;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.Choice;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.DoubleBinding;
 import javafx.beans.property.BooleanProperty;
@@ -17,15 +17,14 @@ import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
-import java.util.function.Consumer;
 
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.menu;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.plain;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.spacer;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.text;
@@ -45,9 +44,6 @@ public final class RXFlowPaneSamples {
     private static final int START_COUNT = 20;
     private static final String[] COLORS = {
         "rose", "orange", "amber", "lime", "teal", "sky", "indigo", "violet", "pink"};
-
-    private record Choice<T>(String name, T value) {
-    }
 
     // A run or item alignment, read as hpos or vpos by the current direction.
     private record Align(HPos hpos, VPos vpos) {
@@ -224,26 +220,6 @@ public final class RXFlowPaneSamples {
         // instead of gliding there.
         bar.setAnimated(false);
         return bar;
-    }
-
-    // A menu of radio choices; the button reads "Name: choice" and shows the starting one.
-    @SafeVarargs
-    private static <T> RXMenuButton menu(String name, int start, Consumer<T> apply, Choice<T>... choices) {
-        RXMenuButton button = new RXMenuButton(name + ": " + choices[start].name());
-        ToggleGroup group = new ToggleGroup();
-        for (int i = 0; i < choices.length; i++) {
-            Choice<T> choice = choices[i];
-            RXMenuItem item = RXMenuItem.radio(choice.name(), group);
-            item.setKeepOpen(false);
-            item.setSelected(i == start);
-            item.setOnAction(event -> {
-                apply.accept(choice.value());
-                button.setText(name + ": " + choice.name());
-            });
-            button.getItems().add(item);
-        }
-        button.setMinWidth(Region.USE_PREF_SIZE);
-        return button;
     }
 
     // Widths and heights step with the number, so rows of mixed blocks show how runs and

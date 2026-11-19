@@ -1,12 +1,19 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.ItemsJustify;
+import io.github.leewyatt.rxcontrols.RXButton;
+import io.github.leewyatt.rxcontrols.RXCheckBox;
+import io.github.leewyatt.rxcontrols.RXMenuButton;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
+import io.github.leewyatt.rxcontrols.layout.RXFlowPane;
 import io.github.leewyatt.rxcontrols.layout.RXTilePane;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.Choice;
+import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -14,14 +21,16 @@ import javafx.scene.layout.VBox;
 import java.util.List;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.icon;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.menu;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.picker;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.plain;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.text;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.widthFrame;
 
 /**
- * The RXTilePane page: an app launcher in a resizable frame, product tiles with each
- * itemsJustify mode, a filtered project grid whose tiles glide, badges sized by the
- * largest child and a color palette capped at a column count.
+ * The RXTilePane page: an app launcher in a resizable frame with menus for the tile size,
+ * a column cap and the gap, product tiles with each itemsJustify mode and a filtered
+ * project grid whose tiles glide.
  */
 public final class RXTilePaneSamples {
 
@@ -30,6 +39,8 @@ public final class RXTilePaneSamples {
         {"Music", "music-icon", "pink"}, {"Maps", "map-icon", "lime"}, {"Notes", "note-icon", "orange"},
         {"Files", "folder-icon", "indigo"}, {"Weather", "sun-icon", "teal"}, {"Settings", "settings-icon", "violet"},
         {"Camera", "camera-icon", "rose"}, {"Clock", "clock-icon", "slate"}, {"Chat", "chat-icon", "sky"}};
+
+    private static final double TILE_SIZE = 92.0;
 
     private RXTilePaneSamples() {
     }
@@ -46,20 +57,16 @@ public final class RXTilePaneSamples {
                         "For many data items use the virtualized RXTileView; for items of their own size use RXFlowPane."),
                 List.of(
                         SampleCard.canvas("App launcher",
-                                "Drag the frame edge: the column count follows the width and the tiles glide to their new places.",
+                                "Drag the frame edge: the column count follows the width and the tiles glide to their new "
+                                        + "places. Tile size Computed sizes every tile by the largest app; Max columns caps the "
+                                        + "count however wide the frame is.",
                                 launcher()),
                         SampleCard.canvas("Spare width",
                                 "itemsJustify decides where a row's spare width goes; STRETCH grows the tiles up to maxTileWidth.",
                                 products()),
                         SampleCard.canvas("Filtered projects",
                                 "Pick a category: hidden tiles leave the layout and the rest glide into the free slots.",
-                                projects()),
-                        SampleCard.large("Tiles sized by content",
-                                "With prefTileWidth left computed, every tile is as wide as the longest badge.",
-                                badges()),
-                        SampleCard.large("Column cap",
-                                "maxColumns 5 keeps the swatches in rows of five even when there is room for more.",
-                                swatches())),
+                                projects())),
                 LayoutKit.STYLESHEET);
     }
 
@@ -67,18 +74,60 @@ public final class RXTilePaneSamples {
 
     private static Node launcher() {
         RXTilePane tiles = new RXTilePane();
-        tiles.setPrefTileWidth(92.0);
-        tiles.setPrefTileHeight(92.0);
+        tiles.setPrefTileWidth(TILE_SIZE);
+        tiles.setPrefTileHeight(TILE_SIZE);
         tiles.setHgap(8.0);
         tiles.setVgap(8.0);
-        for (String[] app : APPS) {
-            tiles.getChildren().add(app(app[0], app[1], app[2]));
+        int[] next = {0};
+        for (; next[0] < APPS.length; next[0]++) {
+            tiles.getChildren().add(app(APPS[next[0]]));
         }
         Label columns = text("", "frame-size");
-        tiles.actualColumnCountProperty().addListener((obs, old, count) ->
-                columns.setText(count + " columns"));
+        columns.textProperty().bind(Bindings.createStringBinding(
+                () -> tiles.getActualColumnCount() + " columns", tiles.actualColumnCountProperty()));
         columns.setMinWidth(Region.USE_PREF_SIZE);
-        return widthFrame(tiles, 220.0, columns);
+
+        // Computed sizes every tile by the largest app instead of a fixed square.
+        RXMenuButton size = menu("Tile size", 1, value -> {
+                    tiles.setPrefTileWidth(value);
+                    tiles.setPrefTileHeight(value);
+                },
+                new Choice<>("72", 72.0), new Choice<>("92", TILE_SIZE), new Choice<>("120", 120.0),
+                new Choice<>("Computed", Region.USE_COMPUTED_SIZE));
+        RXMenuButton cap = menu("Max columns", 0, tiles::setMaxColumns,
+                new Choice<>("Any", 0), new Choice<>("3", 3), new Choice<>("4", 4), new Choice<>("6", 6));
+        RXMenuButton gap = menu("Gap", 1, value -> {
+                    tiles.setHgap(value);
+                    tiles.setVgap(value);
+                },
+                new Choice<>("0", 0.0), new Choice<>("8", 8.0), new Choice<>("16", 16.0));
+        RXCheckBox animate = new RXCheckBox("Animate");
+        animate.selectedProperty().bindBidirectional(tiles.animatedProperty());
+
+        RXButton add = plain("Add app");
+        add.setOnAction(event -> tiles.getChildren().add(app(APPS[next[0]++ % APPS.length])));
+        RXButton remove = plain("Remove last");
+        remove.setOnAction(event -> tiles.getChildren().remove(tiles.getChildren().size() - 1));
+        remove.disableProperty().bind(Bindings.isEmpty(tiles.getChildren()));
+        FocusHandOff.onDisable(remove, add);
+        for (Region region : List.of(add, remove)) {
+            region.setMinWidth(Region.USE_PREF_SIZE);
+        }
+
+        // The layout choices wrap on a narrow card, being a flow pane themselves.
+        RXFlowPane choices = new RXFlowPane(8.0, 8.0, size, cap, gap, animate);
+        choices.setAnimated(false);
+        HBox.setHgrow(choices, Priority.ALWAYS);
+        HBox options = new HBox(8.0, choices, add, remove);
+        options.setAlignment(Pos.TOP_LEFT);
+
+        VBox frame = widthFrame(tiles, 220.0, columns);
+        frame.getChildren().add(1, options);
+        return frame;
+    }
+
+    private static Node app(String[] app) {
+        return app(app[0], app[1], app[2]);
     }
 
     private static Node app(String name, String iconClass, String color) {
@@ -158,43 +207,5 @@ public final class RXTilePaneSamples {
         box.setAlignment(Pos.TOP_CENTER);
         box.setMinHeight(Region.USE_PREF_SIZE);
         return box;
-    }
-
-    // ==================== Sized by content ====================
-
-    private static Node badges() {
-        RXTilePane tiles = new RXTilePane();
-        tiles.setHgap(6.0);
-        tiles.setVgap(6.0);
-        String[][] skills = {{"Java", "orange"}, {"CSS", "sky"}, {"Scene Builder", "violet"},
-            {"Gradle", "teal"}, {"SQL", "amber"}, {"Git", "rose"}};
-        for (String[] skill : skills) {
-            Label badge = text(skill[0], "chip", "big", skill[1]);
-            badge.setMaxWidth(Double.MAX_VALUE);
-            badge.setAlignment(Pos.CENTER);
-            tiles.getChildren().add(badge);
-        }
-        tiles.setPrefWidth(340.0);
-        tiles.setMaxWidth(Region.USE_PREF_SIZE);
-        return tiles;
-    }
-
-    // ==================== Column cap ====================
-
-    private static Node swatches() {
-        String[] colors = {"rose", "orange", "amber", "lime", "teal", "sky", "indigo", "violet", "pink", "slate"};
-        RXTilePane tiles = new RXTilePane();
-        tiles.setPrefTileWidth(48.0);
-        tiles.setPrefTileHeight(48.0);
-        tiles.setMaxColumns(5);
-        for (String color : colors) {
-            Region swatch = new Region();
-            swatch.getStyleClass().addAll("swatch", color);
-            tiles.getChildren().add(swatch);
-        }
-        tiles.setPrefWidth(380.0);
-        tiles.setMaxWidth(Region.USE_PREF_SIZE);
-        tiles.getStyleClass().add("grid-area");
-        return tiles;
     }
 }
