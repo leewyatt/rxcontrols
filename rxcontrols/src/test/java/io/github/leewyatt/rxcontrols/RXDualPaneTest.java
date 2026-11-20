@@ -234,6 +234,27 @@ public class RXDualPaneTest {
     }
 
     @Test
+    public void flipBackRequestedWhenAnInstantFlipStartsShowsTheFirstFace() {
+        RXDualPane pane = laidOutPane(new Label("First"), new Label("Second"));
+        pane.setAnimation(new RecordingAnimation(Duration.ZERO));
+        pane.transitioningProperty().addListener((observable, was, is) -> {
+            if (is && pane.isShowingSecond()) {
+                pane.setShowingSecond(false);
+            }
+        });
+
+        try {
+            pane.setShowingSecond(true);
+
+            assertFalse(pane.isShowingSecond());
+            assertFalse(pane.isTransitioning());
+            assertSame(pane.getFirstContent(), visibleContent(pane));
+        } finally {
+            pane.getSkin().dispose();
+        }
+    }
+
+    @Test
     public void synchronouslyCompletingAnimationLeavesTransitioningFalse() {
         RXDualPane pane = laidOutPane(new Label("First"), new Label("Second"));
         // A zero play-duration completes synchronously inside play(); the

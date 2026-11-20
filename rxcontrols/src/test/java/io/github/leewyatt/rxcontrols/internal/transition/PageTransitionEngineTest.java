@@ -284,6 +284,45 @@ public class PageTransitionEngineTest {
     }
 
     @Test
+    public void disposeFromTheStartedCallbackOfAnAnimationWithNoLengthEndsTheRun() throws Exception {
+        Fixture fixture = new Fixture();
+        List<String> afterPlay = onFx(() -> {
+            RecordingAnimation animation = new RecordingAnimation(fixture, Duration.ZERO, "");
+            fixture.engine.play(animation, fixture.context,
+                    () -> {
+                        fixture.log.add("started");
+                        fixture.engine.dispose(animation);
+                    },
+                    () -> fixture.log.add("settled"),
+                    () -> fixture.log.add("external stop"));
+            return List.copyOf(fixture.log);
+        });
+        assertEquals(List.of("started"), afterPlay);
+    }
+
+    @Test
+    public void runStartedFromTheStartedCallbackOfAnAnimationWithNoLengthKeepsPlaying() throws Exception {
+        Fixture fixture = new Fixture();
+        boolean transitioning = onFx(() -> {
+            RecordingAnimation animation = new RecordingAnimation(fixture, Duration.ZERO, "first ");
+            fixture.engine.play(animation, fixture.context,
+                    () -> {
+                        fixture.log.add("first started");
+                        fixture.engine.interrupt();
+                        fixture.play(LONG, "second ");
+                    },
+                    () -> fixture.log.add("first settled"),
+                    () -> fixture.log.add("first external stop"));
+            boolean running = fixture.engine.isTransitioning();
+            fixture.engine.interrupt();
+            return running;
+        });
+        assertTrue(transitioning, "the first run ended the second");
+        assertEquals(List.of("first started", "first finish, transitioning=true", "second started",
+                "second external stop", "second finish, transitioning=false"), logOf(fixture));
+    }
+
+    @Test
     public void aDisposedEngineIgnoresPlay() throws Exception {
         Fixture fixture = new Fixture();
         RecordingAnimation animation = onFx(() -> {

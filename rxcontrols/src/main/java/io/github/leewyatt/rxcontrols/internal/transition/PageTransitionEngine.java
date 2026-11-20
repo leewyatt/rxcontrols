@@ -22,13 +22,18 @@ import java.util.function.Supplier;
  * stop or dispose made from it reaches that animation. Zero-duration
  * animations (e.g. {@code AnimNone}) complete synchronously inside
  * {@code Animation.play()}; for them {@code onStarted} runs right before
- * {@code onSettled}, before {@link #play} returns.</p>
+ * {@code onSettled}, before {@link #play} returns. When such an
+ * {@code onStarted} interrupts, replaces or disposes its run, the run ends
+ * there: no finish handler and no {@code onSettled} follow.</p>
  */
 public final class PageTransitionEngine {
 
     private PageAnimation usedAnimation;
     private boolean transitioning;
     private boolean disposed;
+    // Advanced by every play, interrupt and dispose, so a run that finishes
+    // inside play() can tell whether its onStarted ended it.
+    private int run;
 
     /**
      * Returns whether a transition is currently playing. The flag clears as
@@ -56,6 +61,7 @@ public final class PageTransitionEngine {
      * callback runs before this method returns. Safe to call when idle.
      */
     public void interrupt() {
+        run++;
         if (transitioning && usedAnimation != null) {
             usedAnimation.jumpToEnd();
         }
@@ -129,7 +135,10 @@ public final class PageTransitionEngine {
      * before the animation's finish action restores visual properties — hosts
      * must not remove pages in {@code onExternalStop}.</p>
      *
-     * <p>Does nothing once the engine has been disposed.</p>
+     * <p>One exception: a run that completes inside {@code Animation.play()}
+     * and is interrupted, replaced or disposed from its {@code onStarted}
+     * ends with neither callback; the host that ended it owns its state.
+     * Does nothing once the engine has been disposed.</p>
      *
      * @param anim           the animation to play
      * @param context        the transition context
@@ -144,6 +153,7 @@ public final class PageTransitionEngine {
         if (disposed) {
             return;
         }
+        int thisRun = ++run;
         Animation transition = anim.getAnimation(context);
         usedAnimation = anim;
         transitioning = true;
@@ -193,8 +203,15 @@ public final class PageTransitionEngine {
             // Playing the same animation again rewinds it too; this run is over.
             transition.statusProperty().removeListener(stopWatch);
             transition.currentTimeProperty().removeListener(stopWatch);
-            // An animation with no length finishes inside play(): start first.
-            start.run();
+            if (!started[0]) {
+                // An animation with no length finishes inside play(): start
+                // first. A run that onStarted interrupted, replaced or disposed
+                // is over; the engine state belongs to whatever came next.
+                start.run();
+                if (run != thisRun) {
+                    return;
+                }
+            }
             transitioning = false;
             if (animHandler != null) {
                 animHandler.handle(e);
@@ -226,6 +243,7 @@ public final class PageTransitionEngine {
      */
     public void dispose(PageAnimation configuredAnimation) {
         disposed = true;
+        run++;
         transitioning = false;
         if (configuredAnimation != null) {
             configuredAnimation.dispose();
