@@ -435,10 +435,15 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
         // Completes the started pairs while the pages are in the pane, so the
         // events bubble to it, then removes them. Removing the skin clears the
         // pane's children right after this dispose, so a deferred finish puts
-        // the pages back for the events.
+        // the pages back for the events; and a current node no skin holds
+        // (this one was replaced before taking it over) joins our page.
         Runnable finish = () -> {
             if (!children.contains(contentPane)) {
                 children.add(contentPane);
+            }
+            Node current = ledger.current();
+            if (current != null && current.getParent() == null) {
+                pages.getCurrentPage().getChildren().setAll(current);
             }
             control.setTransitioning(false);
             ledger.finish(!replaced,

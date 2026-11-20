@@ -86,7 +86,9 @@ import java.util.List;
  * interrupted transition jumps to its end and completes its events before
  * the next change starts. {@code isTransitioning()} is {@code false} during
  * every event. At {@code OPENING} and {@code CLOSED} the node is in the pane
- * but hidden; at {@code CLOSING} and {@code OPENED} it is shown. The pane
+ * but hidden; at {@code CLOSING} and {@code OPENED} it is shown. These states
+ * hold when an event starts its dispatch: a handler that replaces or removes
+ * the skin changes them for the handlers that run after it. The pane
  * hides and shows internal wrappers, never the content node itself. When the
  * animation is stopped from outside, for example by its own resize guard,
  * the completing events follow on the next turn of the event loop.</p>

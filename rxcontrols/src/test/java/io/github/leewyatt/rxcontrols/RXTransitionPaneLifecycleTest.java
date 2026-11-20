@@ -831,6 +831,36 @@ public class RXTransitionPaneLifecycleTest {
     }
 
     @Test
+    public void skinReplacedThenRemovedInOneHandlerStillClosesThroughThePane() throws Exception {
+        onFx(() -> {
+            RXTransitionPane pane = laidOutPane(new Label("A"));
+            pane.setAnimation(new ManualAnimation());
+            Label b = new Label("B");
+            b.addEventHandler(RXTransitionPaneEvent.OPENING, e -> {
+                pane.setSkin(new RXTransitionPaneSkin(pane) {
+                });
+                pane.setSkin(null);
+            });
+            List<String> log = new ArrayList<>();
+            pane.addEventHandler(RXTransitionPaneEvent.ANY, e -> log.add(stateAt(e)));
+
+            pane.setContent(b);
+
+            // The handler removed the skin, and with it the pages, while
+            // OPENING:B was still on its way to the pane.
+            assertEquals(List.of(
+                    "CLOSING:A t=false in=true page=true own=true",
+                    "OPENING:B t=false in=false page=false own=true",
+                    "CLOSED:A t=false in=true page=false own=true",
+                    "OPENED:B t=false in=true page=true own=true",
+                    "CLOSING:B t=false in=true page=true own=true",
+                    "CLOSED:B t=false in=true page=false own=true"), log);
+            assertNull(b.getParent());
+            assertEquals(0, pane.getChildrenUnmodifiable().size());
+        });
+    }
+
+    @Test
     public void skinRemovedInDirectCutOpeningShowsTheContentAtOpened() throws Exception {
         onFx(() -> {
             RXTransitionPane pane = laidOutPane(new Label("A"));
