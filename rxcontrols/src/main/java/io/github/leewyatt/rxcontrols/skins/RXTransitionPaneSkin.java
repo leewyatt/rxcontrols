@@ -9,6 +9,8 @@ import io.github.leewyatt.rxcontrols.internal.transition.TransitionPages;
 import javafx.application.Platform;
 import javafx.event.EventType;
 import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.control.Skin;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 
@@ -41,6 +43,9 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
     private boolean settlePending;
     // Tags the playing transition, so callbacks of an ended one are ignored.
     private int transitionId;
+    // An opened node carried over from a replaced skin that now belongs to
+    // another parent: it is closed where it is.
+    private Node orphan;
     private boolean activated;
     private boolean disposed;
 
@@ -141,6 +146,17 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
         activated = true;
         ledger.activate(this, this::sync);
         getChildren().add(pages.getContentPane());
+        // A replaced skin leaves its opened content behind: show it again
+        // without events, and let the loop close it if the content changed.
+        Node carried = ledger.current();
+        if (carried != null) {
+            if (carried == control.getContent() || carried.getParent() == null) {
+                pages.getCurrentPage().getChildren().setAll(carried);
+                shown = carried;
+            } else {
+                orphan = carried;
+            }
+        }
         sync();
     }
 
@@ -173,6 +189,14 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
         ledger.clearSyncRequest();
         if (settlePending) {
             settle();
+            return true;
+        }
+        if (orphan != null) {
+            Node node = orphan;
+            orphan = null;
+            if (announce(RXTransitionPaneEvent.CLOSING, node)) {
+                announce(RXTransitionPaneEvent.CLOSED, node);
+            }
             return true;
         }
         Node target = getSkinnable().getContent();
@@ -383,13 +407,41 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
     protected void disposeSkin() {
         RXTransitionPane control = getSkinnable();
         disposed = true;
+        if (activated && control != null) {
+            finishLifecycle(control);
+        }
         ledger.release(this);
         pages.dispose(control == null ? null : control.getAnimation());
         if (control != null) {
             control.setTransitioning(false);
         }
-        // A replacement skin is constructed before this one is disposed and has
-        // already added its nodes: remove only our own.
+        pages.getPageA().getChildren().clear();
+        pages.getPageB().getChildren().clear();
         getChildren().remove(pages.getContentPane());
+    }
+
+    // Completes the started pairs while this skin's pages are still in the
+    // pane, so the events bubble to it. A replacement skin carries the opened
+    // content over without new events (setSkin has already stored it when the
+    // old skin is disposed); without one, the content is closed too.
+    private void finishLifecycle(RXTransitionPane control) {
+        Skin<?> installed = control.getSkin();
+        boolean replaced = installed != null && installed != this;
+        pages.interrupt();
+        ledger.enter();
+        try {
+            control.setTransitioning(false);
+            ledger.finish(this, !replaced, this::hidePageOf);
+        } finally {
+            ledger.release(this);
+            ledger.exit();
+        }
+    }
+
+    private void hidePageOf(Node node) {
+        Parent page = node.getParent();
+        if (page == pages.getPageA() || page == pages.getPageB()) {
+            page.setVisible(false);
+        }
     }
 }

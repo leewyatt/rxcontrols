@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimSelector;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.event.RXTransitionPaneEvent;
+import io.github.leewyatt.rxcontrols.skins.RXTransitionPaneSkin;
 import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -607,6 +608,167 @@ public class RXTransitionPaneLifecycleTest {
                     "transitioning=false", "CLOSED:A", "OPENED:B"), recorder.take());
             assertFalse(pane.isTransitioning());
             assertEquals("B", visibleText(pane));
+        });
+    }
+
+    // ==================== Skin Lifecycle ====================
+
+    @Test
+    public void replacingTheSkinWhileIdleFiresNothing() throws Exception {
+        onFx(() -> {
+            RXTransitionPane pane = laidOutPane(new Label("A"));
+            pane.setAnimated(false);
+            Recorder recorder = new Recorder(pane);
+
+            pane.setSkin(new RXTransitionPaneSkin(pane) {
+            });
+
+            assertEquals(List.of(), recorder.take());
+            assertEquals(1, pane.getChildrenUnmodifiable().size());
+            assertEquals("A", visibleText(pane));
+
+            pane.setContent(new Label("B"));
+            assertEquals(List.of("CLOSING:A", "CLOSED:A", "OPENING:B", "OPENED:B"), recorder.take());
+        });
+    }
+
+    @Test
+    public void removingTheSkinClosesTheContentAndTheNextSkinOpensTheCurrentOne() throws Exception {
+        onFx(() -> {
+            Label a = new Label("A");
+            RXTransitionPane pane = laidOutPane(a);
+            Recorder recorder = new Recorder(pane);
+
+            pane.setSkin(null);
+            assertEquals(List.of("CLOSING:A", "CLOSED:A"), recorder.take());
+            assertNull(a.getParent());
+
+            pane.setContent(new Label("C"));
+            assertEquals(List.of(), recorder.take());
+
+            pane.setSkin(new RXTransitionPaneSkin(pane));
+            assertEquals(List.of("OPENING:C", "OPENED:C"), recorder.take());
+            assertEquals("C", visibleText(pane));
+        });
+    }
+
+    @Test
+    public void replacingTheSkinMidTransitionCompletesThePairsOnce() throws Exception {
+        onFx(() -> {
+            Label a = new Label("A");
+            RXTransitionPane pane = laidOutPane(a);
+            ManualAnimation animation = new ManualAnimation();
+            pane.setAnimation(animation);
+            List<Boolean> closedInPane = new ArrayList<>();
+            a.addEventHandler(RXTransitionPaneEvent.CLOSED, e -> closedInPane.add(a.getScene() != null));
+            Recorder recorder = new Recorder(pane);
+            pane.setContent(new Label("B"));
+            assertEquals(List.of("CLOSING:A", "OPENING:B", "transitioning=true"), recorder.take());
+
+            pane.setSkin(new RXTransitionPaneSkin(pane) {
+            });
+
+            assertEquals(List.of("transitioning=false", "CLOSED:A", "OPENED:B"), recorder.take());
+            assertEquals(List.of(true), closedInPane);
+            assertEquals(1, pane.getChildrenUnmodifiable().size());
+            assertEquals("B", visibleText(pane));
+            assertNull(a.getParent());
+
+            pane.setContent(new Label("C"));
+            assertEquals(List.of("CLOSING:B", "OPENING:C", "transitioning=true"), recorder.take());
+        });
+    }
+
+    @Test
+    public void changeDuringSkinReplacementIsPlayedByTheNewSkin() throws Exception {
+        onFx(() -> {
+            RXTransitionPane pane = laidOutPane(new Label("A"));
+            ManualAnimation animation = new ManualAnimation();
+            pane.setAnimation(animation);
+            Label b = new Label("B");
+            Label c = new Label("C");
+            b.addEventHandler(RXTransitionPaneEvent.OPENED, e -> pane.setContent(c));
+            Recorder recorder = new Recorder(pane);
+            pane.setContent(b);
+            recorder.take();
+
+            pane.setSkin(new RXTransitionPaneSkin(pane) {
+            });
+
+            assertEquals(List.of("transitioning=false", "CLOSED:A", "OPENED:B",
+                    "CLOSING:B", "OPENING:C", "transitioning=true"), recorder.take());
+            assertEquals(1, pane.getChildrenUnmodifiable().size());
+            TransitionContext running = animation.contexts.get(animation.contexts.size() - 1);
+            assertSame(b, pageContent(running.getCurrentPage()));
+            assertSame(c, pageContent(running.getNextPage()));
+            assertSame(pane.lookup(".content-pane"), running.getCurrentPage().getParent());
+        });
+    }
+
+    @Test
+    public void carriedContentMovedElsewhereIsClosedWhereItIs() throws Exception {
+        onFx(() -> {
+            RXTransitionPane pane = laidOutPane(new Label("A"));
+            pane.setAnimation(new ManualAnimation());
+            Label b = new Label("B");
+            VBox elsewhere = new VBox();
+            List<String> bLog = new ArrayList<>();
+            b.addEventHandler(RXTransitionPaneEvent.ANY, e -> bLog.add(describe(e)));
+            b.addEventHandler(RXTransitionPaneEvent.OPENED, e -> {
+                elsewhere.getChildren().add(b);
+                pane.setContent(new Label("C"));
+            });
+            Recorder recorder = new Recorder(pane);
+            pane.setContent(b);
+            recorder.take();
+
+            pane.setSkin(new RXTransitionPaneSkin(pane) {
+            });
+
+            assertEquals(List.of("transitioning=false", "CLOSED:A", "OPENED:B",
+                    "OPENING:C", "OPENED:C"), recorder.take());
+            assertEquals(List.of("OPENING:B", "OPENED:B", "CLOSING:B", "CLOSED:B"), bLog);
+            assertSame(elsewhere, b.getParent());
+            assertEquals("C", visibleText(pane));
+        });
+    }
+
+    @Test
+    public void ignoredSkinOfTheInstalledClassStaysInert() throws Exception {
+        onFx(() -> {
+            RXTransitionPane pane = laidOutPane(new Label("A"));
+            pane.setAnimated(false);
+            Recorder recorder = new Recorder(pane);
+
+            RXTransitionPaneSkin ignored = new RXTransitionPaneSkin(pane);
+            pane.setSkin(ignored);
+
+            assertFalse(pane.getSkin() == ignored);
+            assertEquals(List.of(), recorder.take());
+            assertEquals("A", visibleText(pane));
+
+            pane.setContent(new Label("B"));
+            assertEquals(List.of("CLOSING:A", "CLOSED:A", "OPENING:B", "OPENED:B"), recorder.take());
+            assertEquals("B", visibleText(pane));
+        });
+    }
+
+    @Test
+    public void disposingTheInstalledSkinClosesTheContent() throws Exception {
+        onFx(() -> {
+            RXTransitionPane pane = laidOutPane(new Label("A"));
+            ManualAnimation animation = new ManualAnimation();
+            pane.setAnimation(animation);
+            Recorder recorder = new Recorder(pane);
+            pane.setContent(new Label("B"));
+            recorder.take();
+
+            pane.getSkin().dispose();
+
+            assertEquals(List.of("transitioning=false", "CLOSED:A", "OPENED:B",
+                    "CLOSING:B", "CLOSED:B"), recorder.take());
+            pane.setContent(new Label("C"));
+            assertEquals(List.of(), recorder.take());
         });
     }
 
