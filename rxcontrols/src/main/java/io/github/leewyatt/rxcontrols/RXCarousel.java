@@ -219,6 +219,8 @@ public class RXCarousel extends Control {
 
     /**
      * The animation used for page transitions.
+     * A {@code PageAnimation} instance may be reused sequentially, but must
+     * not drive concurrent transitions or be shared by multiple live hosts.
      *
      * @return the animation property
      */

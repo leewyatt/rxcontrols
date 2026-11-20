@@ -454,6 +454,8 @@ public class RXHoldButton extends ButtonBase {
      * back to the idle face. The default {@code null} swaps with a direct cut,
      * and so do multi-page display animations and animations requiring more
      * than two pages. The idle and holding faces always swap instantly.
+     * A {@code PageAnimation} instance may be reused sequentially, but must
+     * not drive concurrent transitions or be shared by multiple live hosts.
      *
      * @return the animation property
      */

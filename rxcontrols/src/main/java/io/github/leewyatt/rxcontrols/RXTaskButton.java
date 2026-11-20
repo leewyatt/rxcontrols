@@ -1412,6 +1412,8 @@ public class RXTaskButton extends RXButton {
      * swaps with a direct cut, and so do multi-page display animations and
      * animations requiring more than two pages. A swap requested while one is
      * playing jumps the running one to its end first.
+     * A {@code PageAnimation} instance may be reused sequentially, but must
+     * not drive concurrent transitions or be shared by multiple live hosts.
      *
      * @return the animation property
      */

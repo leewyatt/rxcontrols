@@ -256,6 +256,8 @@ public class RXDualPane extends Control {
      * The animation used for flips. Any {@link PageAnimation} implementation
      * can be used; a {@code null} animation, multi-page display animations,
      * and animations requiring more than two pages fall back to a direct cut.
+     * A {@code PageAnimation} instance may be reused sequentially, but must
+     * not drive concurrent transitions or be shared by multiple live hosts.
      *
      * @return the animation property
      */

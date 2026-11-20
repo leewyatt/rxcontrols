@@ -10,6 +10,11 @@ import javafx.animation.Animation;
  * Implementations produce a JavaFX {@link Animation} that transitions
  * between two pages using the information provided in a
  * {@link TransitionContext}.</p>
+ *
+ * <p>A {@code PageAnimation} instance may be reused sequentially, but must
+ * not drive concurrent transitions or be shared by multiple live hosts: an
+ * implementation keeps the state of the transition it is playing, which
+ * {@link #jumpToEnd()} and {@link #dispose()} act on.</p>
  */
 public interface PageAnimation {
 
