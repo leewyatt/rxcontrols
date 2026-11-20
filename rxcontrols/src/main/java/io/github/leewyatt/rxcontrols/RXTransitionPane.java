@@ -75,9 +75,11 @@ import java.util.List;
  * <p>A direct cut fires {@code CLOSING(A) CLOSED(A)}, removes {@code A}, then
  * fires {@code OPENING(B) OPENED(B)}; a change from or to {@code null} fires
  * only the half that applies, and setting the same node again fires nothing.
- * The skin fires {@code OPENING} / {@code OPENED} for the initial content when
- * it is created, during the first CSS pass, so register handlers before the
- * pane is first shown. Replacing the skin does not repeat the events.</p>
+ * The initial content receives {@code OPENING} / {@code OPENED} when the skin
+ * is installed, normally during the pane's first CSS pass, so register
+ * handlers before the pane is first shown. Replacing the skin does not
+ * repeat the events; removing it closes the content, and the next skin opens
+ * the content current at that time.</p>
  *
  * <p>Every node that receives {@code OPENING} receives {@code OPENED}, and
  * every node that receives {@code CLOSING} receives {@code CLOSED}: an
@@ -85,21 +87,26 @@ import java.util.List;
  * the next change starts. {@code isTransitioning()} is {@code false} during
  * every event. At {@code OPENING} and {@code CLOSED} the node is in the pane
  * but hidden; at {@code CLOSING} and {@code OPENED} it is shown. The pane
- * hides and shows internal wrappers, never the content node itself.</p>
+ * hides and shows internal wrappers, never the content node itself. When the
+ * animation is stopped from outside, for example by its own resize guard,
+ * the completing events follow on the next turn of the event loop.</p>
  *
  * <p>Handlers may change the content. The change is applied once the current
  * step has completed its events, and only the latest content is opened: a
- * node replaced before it was opened receives no events. A change made in an
- * {@code OPENING} or {@code CLOSING} handler skips the now outdated animation.
- * The events are notifications and cannot veto a change. An exception thrown
- * by a handler ends that event's dispatch, as for any JavaFX event; the pane
- * reports it to the thread's uncaught exception handler and still completes
- * the sequence.</p>
+ * node replaced before its {@code OPENING} receives no events, and a node
+ * replaced after its {@code OPENING} but before it shows receives
+ * {@code OPENED}, {@code CLOSING} and {@code CLOSED} without ever being
+ * shown. A change made in an {@code OPENING} or {@code CLOSING} handler skips
+ * the now outdated animation. The events are notifications and cannot veto a
+ * change. An exception thrown by a handler ends that event's dispatch, as for
+ * any JavaFX event; the pane reports it to the thread's uncaught exception
+ * handler and still completes the sequence.</p>
  *
  * <p>The lifecycle tracks whether a node is the pane's content, not whether
  * it is on screen: hiding the pane or an ancestor, switching tabs, or closing
  * the window fires no content events. Work that should pause while hidden
- * needs both signals: running while opened and actually showing.</p>
+ * needs both signals: running while opened and actually showing, as reported
+ * by {@link io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty}.</p>
  */
 @DefaultProperty("content")
 public class RXTransitionPane extends Control {
