@@ -70,6 +70,115 @@
 
 /*******************************************************************************
  *                                                                             *
+ * RXDialog                                                                    *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .dialog-workspace,
+.example-card .dialog-playground {
+    -fx-background-color: -fx-background;
+}
+
+.example-card .workspace-header {
+    -fx-padding: 18px 22px;
+    -fx-background-color: -fx-control-inner-background;
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.example-card .workspace-brand,
+.example-card .settings-icon {
+    -fx-background-color: -sampler-accent-soft;
+}
+
+.example-card .workspace-brand {
+    -fx-pref-width: 42px;
+    -fx-pref-height: 42px;
+    -fx-background-radius: 10px;
+}
+
+.example-card .settings-icon {
+    -fx-pref-width: 36px;
+    -fx-pref-height: 36px;
+    -fx-background-radius: 9px;
+}
+
+.example-card .workspace-brand > .symbol,
+.example-card .settings-icon > .symbol {
+    -fx-pref-width: 18px;
+    -fx-pref-height: 18px;
+    -fx-background-color: -sampler-accent-text;
+}
+
+.example-card .workspace-rows {
+    -fx-padding: 6px 22px;
+    -fx-background-color: -fx-background;
+}
+
+.example-card .workspace-row {
+    -fx-padding: 12px 0;
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.example-card .workspace-status {
+    -fx-padding: 8px 12px;
+    -fx-background-color: -sampler-accent-soft;
+    -fx-background-radius: 999px;
+    -fx-text-fill: -sampler-accent-text;
+    -fx-font-size: 12px;
+}
+
+.example-card .workspace-footer {
+    -fx-padding: 8px 22px 16px 22px;
+}
+
+.example-card .dialog-toolbar {
+    -fx-alignment: center-left;
+}
+
+.example-card .dialog-playground {
+    -fx-padding: 22px;
+}
+
+.example-card .playground-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.example-card .dialog-directions {
+    -fx-padding: 18px;
+}
+
+.example-card .dialog-action-beam {
+    -rx-beam-size: 60px;
+    -rx-cycle-duration: 2s;
+}
+
+.example-card .dialog-action-beam.rename-beam {
+    -rx-beam-fill: linear-gradient(to right, #0ea5e9, #14b8a6);
+}
+
+.example-card .dialog-action-beam.plan-beam {
+    -rx-beam-fill: linear-gradient(to right, #8b5cf6, #ec4899);
+}
+
+.example-card .dialog-action-beam.delete-beam {
+    -rx-beam-fill: linear-gradient(to right, #f59e0b, #fde047);
+    -rx-outset: 3px;
+}
+
+.example-card .rx-button.solid.danger {
+    -fx-background-color: -rx-danger;
+    -fx-text-fill: -rx-on-primary;
+}
+
+.example-card .symbol.danger {
+    -fx-background-color: -rx-danger;
+}
+
+/*******************************************************************************
+ *                                                                             *
  * Icons                                                                       *
  *                                                                             *
  ******************************************************************************/
