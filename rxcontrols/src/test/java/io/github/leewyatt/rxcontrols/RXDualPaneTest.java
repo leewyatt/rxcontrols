@@ -11,11 +11,19 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
+import javafx.event.Event;
+import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.input.PickResult;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -23,6 +31,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -600,7 +610,162 @@ public class RXDualPaneTest {
         pane.getSkin().dispose();
     }
 
+    @Test
+    public void ignoredSkinOfTheInstalledClassAddsNothing() {
+        Label first = new Label("First");
+        Label second = new Label("Second");
+        RXDualPane pane = laidOutPane(first, second);
+        pane.setAnimated(false);
+        Parent firstPage = first.getParent();
+
+        RXDualPaneSkin ignored = new RXDualPaneSkin(pane);
+        pane.setSkin(ignored);
+
+        try {
+            assertNotSame(ignored, pane.getSkin());
+            assertEquals(1, pane.getChildrenUnmodifiable().size());
+            assertSame(firstPage, first.getParent());
+            pane.setShowingSecond(true);
+            assertSame(second, visibleContent(pane));
+            assertTrue(clickReachesParent(pane, second));
+        } finally {
+            pane.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void ignoredSkinOfTheInstalledClassCanBeCollected() throws InterruptedException {
+        Label first = new Label("First");
+        RXDualPane pane = laidOutPane(first, new Label("Second"));
+
+        WeakReference<RXDualPaneSkin> ignored = installIgnoredSkin(pane);
+
+        try {
+            for (int i = 0; i < 50 && ignored.get() != null; i++) {
+                System.gc();
+                Thread.sleep(10L);
+            }
+            assertNull(ignored.get(), "an ignored skin must not stay reachable from the pane");
+            assertSame(first, visibleContent(pane));
+        } finally {
+            pane.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void disposingASkinThatWasNeverInstalledLeavesThePaneAlone() {
+        RXDualPane pane = laidOutPane(new Label("First"), new Label("Second"));
+        RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
+        pane.setAnimation(recording);
+
+        new RXDualPaneSkin(pane).dispose();
+
+        try {
+            assertEquals(0, recording.disposeCalls);
+            pane.setShowingSecond(true);
+            assertEquals(1, recording.contexts.size());
+            assertTrue(pane.isTransitioning());
+        } finally {
+            pane.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void removingTheSkinReleasesBothFaces() {
+        Label first = new Label("First");
+        Label second = new Label("Second");
+        RXDualPane pane = laidOutPane(first, second);
+
+        pane.setSkin(null);
+
+        assertNull(first.getParent());
+        assertNull(second.getParent());
+    }
+
+    // ==================== Mouse Events ====================
+
+    @Test
+    public void mouseEventsOnAFaceReachTheParent() {
+        Label first = new Label("First");
+        RXDualPane pane = laidOutPane(first, new Label("Second"));
+
+        try {
+            assertTrue(clickReachesParent(pane, first));
+        } finally {
+            pane.getSkin().dispose();
+        }
+    }
+
+    // ==================== Baseline ====================
+
+    @Test
+    public void baselineFollowsTheShownFace() {
+        Label first = new Label("small");
+        first.setStyle("-fx-font-size: 10px;");
+        Label second = new Label("BIG");
+        second.setStyle("-fx-font-size: 40px;");
+        RXDualPane pane = new RXDualPane(first, second);
+        pane.setAnimated(false);
+        Label neighbour = new Label("ref");
+        HBox row = new HBox(8.0, neighbour, pane);
+        row.setAlignment(Pos.BASELINE_LEFT);
+        StackPane root = new StackPane(row);
+        new Scene(root, 400.0, 200.0);
+        root.applyCss();
+        root.resize(400.0, 200.0);
+        layOutUntilStable(root);
+
+        try {
+            assertEquals(sceneBaseline(first), sceneBaseline(pane), 0.5);
+            assertEquals(sceneBaseline(first), sceneBaseline(neighbour), 0.5);
+
+            pane.setShowingSecond(true);
+            layOutUntilStable(root);
+
+            assertEquals(sceneBaseline(second), sceneBaseline(pane), 0.5);
+            assertEquals(sceneBaseline(second), sceneBaseline(neighbour), 0.5);
+        } finally {
+            pane.getSkin().dispose();
+        }
+    }
+
     // ==================== Helpers ====================
+
+    private static WeakReference<RXDualPaneSkin> installIgnoredSkin(RXDualPane pane) {
+        RXDualPaneSkin skin = new RXDualPaneSkin(pane);
+        pane.setSkin(skin);
+        assertNotSame(skin, pane.getSkin());
+        return new WeakReference<>(skin);
+    }
+
+    private static boolean clickReachesParent(RXDualPane pane, Node target) {
+        List<MouseEvent> received = new ArrayList<>();
+        EventHandler<MouseEvent> handler = received::add;
+        Parent parent = pane.getParent();
+        parent.addEventHandler(MouseEvent.MOUSE_CLICKED, handler);
+        try {
+            Event.fireEvent(target, new MouseEvent(MouseEvent.MOUSE_CLICKED, 1.0, 1.0, 1.0, 1.0,
+                    MouseButton.PRIMARY, 1, false, false, false, false, false, false, false,
+                    false, false, true, new PickResult(target, 1.0, 1.0)));
+        } finally {
+            parent.removeEventHandler(MouseEvent.MOUSE_CLICKED, handler);
+        }
+        return received.size() == 1;
+    }
+
+    private static double sceneBaseline(Node node) {
+        return node.localToScene(0.0, 0.0).getY() + node.getBaselineOffset();
+    }
+
+    // A baseline-aligned row takes more than one pass to settle: it reads the
+    // pane's baseline before the pane has laid out its faces.
+    private static void layOutUntilStable(Parent root) {
+        root.layout();
+        for (int i = 0; i < 5 && root.isNeedsLayout(); i++) {
+            root.layout();
+        }
+        assertFalse(root.isNeedsLayout());
+    }
 
     private static RXDualPane laidOutPane(Node first, Node second) {
         RXDualPane pane = new RXDualPane(first, second);
