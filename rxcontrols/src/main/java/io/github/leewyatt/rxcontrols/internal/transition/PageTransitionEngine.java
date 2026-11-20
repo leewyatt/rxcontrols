@@ -58,7 +58,10 @@ public final class PageTransitionEngine {
 
     /**
      * Jumps the running transition to its end state. The host's external-stop
-     * callback runs before this method returns. Safe to call when idle.
+     * callback runs before this method returns, except for a run that
+     * completed inside {@code Animation.play()} and is still in its
+     * {@code onStarted}: that run ends with no callback, as {@link #play}
+     * describes. Safe to call when idle.
      */
     public void interrupt() {
         run++;
