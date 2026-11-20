@@ -19,7 +19,8 @@ import java.util.function.Consumer;
  * legal step, so a replacement skin never repeats or reorders what an earlier
  * skin announced. It also owns the run-to-completion guard: while any skin is
  * firing events, content changes are recorded and handed to the installed
- * skin once the outermost step has finished.</p>
+ * skin once the outermost step has finished, and a skin disposed from an
+ * event handler completes its pairs only then.</p>
  */
 final class ContentLifecycleLedger {
 
@@ -42,6 +43,7 @@ final class ContentLifecycleLedger {
 
     private final RXTransitionPane pane;
     private final List<Entry> entries = new ArrayList<>();
+    private final List<Runnable> deferred = new ArrayList<>();
     private Object owner;
     private Runnable ownerSync;
     private int depth;
@@ -127,11 +129,28 @@ final class ContentLifecycleLedger {
     }
 
     /**
-     * Ends a step; when it was the outermost one, hands a recorded change to
-     * the owner.
+     * Runs the task when the outermost step ends, before a recorded change is
+     * handed to the owner. The task still counts as part of the step, so
+     * content changes it causes are recorded as well.
+     *
+     * @param task the task to run
+     */
+    void defer(Runnable task) {
+        deferred.add(task);
+    }
+
+    /**
+     * Ends a step; when it was the outermost one, runs the deferred tasks and
+     * then hands a recorded change to the owner.
      */
     void exit() {
-        depth--;
+        try {
+            while (depth == 1 && !deferred.isEmpty()) {
+                deferred.remove(0).run();
+            }
+        } finally {
+            depth--;
+        }
         if (depth == 0 && syncRequested) {
             syncRequested = false;
             if (ownerSync != null) {
@@ -170,7 +189,44 @@ final class ContentLifecycleLedger {
      * @param node the affected node
      */
     void announce(Object skin, EventType<RXTransitionPaneEvent> type, Node node) {
-        if (owner != skin || node == null) {
+        if (owner == skin) {
+            advance(type, node);
+        }
+    }
+
+    /**
+     * Completes every started pair: closing nodes get {@code CLOSED}, an
+     * opening node gets {@code OPENED}. When the pane is left without a skin,
+     * the current node is closed as well, so a later skin starts afresh. Runs
+     * for a skin being disposed, which may already have handed ownership to
+     * its replacement.
+     *
+     * @param closeCurrent whether to close the current node too
+     * @param hide         hides a node's page before its {@code CLOSED}
+     * @param show         shows a node's page before its {@code OPENED}
+     */
+    void finish(boolean closeCurrent, Consumer<Node> hide, Consumer<Node> show) {
+        for (Entry entry : List.copyOf(entries)) {
+            if (entry.phase == Phase.CLOSING) {
+                hide.accept(entry.node);
+                advance(RXTransitionPaneEvent.CLOSED, entry.node);
+            }
+        }
+        Node node = current();
+        if (node != null && find(node).phase == Phase.OPENING) {
+            show.accept(node);
+            advance(RXTransitionPaneEvent.OPENED, node);
+        }
+        node = current();
+        if (closeCurrent && node != null) {
+            advance(RXTransitionPaneEvent.CLOSING, node);
+            hide.accept(node);
+            advance(RXTransitionPaneEvent.CLOSED, node);
+        }
+    }
+
+    private void advance(EventType<RXTransitionPaneEvent> type, Node node) {
+        if (node == null) {
             return;
         }
         Entry entry = find(node);
@@ -198,31 +254,6 @@ final class ContentLifecycleLedger {
             return;
         }
         fire(type, node);
-    }
-
-    /**
-     * Completes every started pair: closing nodes get {@code CLOSED}, an
-     * opening node gets {@code OPENED}. When the pane is left without a skin,
-     * the current node is closed as well, so a later skin starts afresh.
-     *
-     * @param skin         the skin being disposed
-     * @param closeCurrent whether to close the current node too
-     * @param beforeClosed hides a node's page before its {@code CLOSED}
-     */
-    void finish(Object skin, boolean closeCurrent, Consumer<Node> beforeClosed) {
-        for (Entry entry : List.copyOf(entries)) {
-            if (entry.phase == Phase.CLOSING) {
-                beforeClosed.accept(entry.node);
-                announce(skin, RXTransitionPaneEvent.CLOSED, entry.node);
-            }
-        }
-        announce(skin, RXTransitionPaneEvent.OPENED, current());
-        Node node = current();
-        if (closeCurrent && node != null) {
-            announce(skin, RXTransitionPaneEvent.CLOSING, node);
-            beforeClosed.accept(node);
-            announce(skin, RXTransitionPaneEvent.CLOSED, node);
-        }
     }
 
     private Entry find(Node node) {

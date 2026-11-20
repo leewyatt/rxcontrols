@@ -24,6 +24,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.net.URL;
@@ -778,6 +779,78 @@ public class RXTransitionPaneLifecycleTest {
             TransitionContext running = animation.contexts.get(animation.contexts.size() - 1);
             assertSame(b, pageContent(running.getCurrentPage()));
             assertSame(c, pageContent(running.getNextPage()));
+        });
+    }
+
+    @Test
+    public void ignoredSkinOfTheInstalledClassCanBeCollected() throws Exception {
+        RXTransitionPane[] pane = new RXTransitionPane[1];
+        List<WeakReference<RXTransitionPaneSkin>> ignored = new ArrayList<>();
+        onFx(() -> {
+            pane[0] = laidOutPane(new Label("A"));
+            RXTransitionPaneSkin skin = new RXTransitionPaneSkin(pane[0]);
+            pane[0].setSkin(skin);
+            assertFalse(pane[0].getSkin() == skin);
+            ignored.add(new WeakReference<>(skin));
+        });
+
+        for (int i = 0; i < 50 && ignored.get(0).get() != null; i++) {
+            System.gc();
+            Thread.sleep(10L);
+        }
+        assertNull(ignored.get(0).get(), "an ignored skin must not stay reachable from the pane");
+        onFx(() -> assertEquals("A", visibleText(pane[0])));
+    }
+
+    @Test
+    public void skinReplacedInOpeningShowsTheContentAtOpened() throws Exception {
+        onFx(() -> {
+            RXTransitionPane pane = laidOutPane(new Label("A"));
+            pane.setAnimation(new ManualAnimation());
+            Label b = new Label("B");
+            boolean[] replaced = {false};
+            b.addEventHandler(RXTransitionPaneEvent.OPENING, e -> {
+                if (!replaced[0]) {
+                    replaced[0] = true;
+                    pane.setSkin(new RXTransitionPaneSkin(pane) {
+                    });
+                }
+            });
+            List<String> log = new ArrayList<>();
+            pane.addEventHandler(RXTransitionPaneEvent.ANY, e -> log.add(stateAt(e)));
+
+            pane.setContent(b);
+
+            assertEquals(List.of(
+                    "CLOSING:A t=false in=true page=true own=true",
+                    "OPENING:B t=false in=true page=false own=true",
+                    "CLOSED:A t=false in=true page=false own=true",
+                    "OPENED:B t=false in=true page=true own=true"), log);
+            assertEquals("B", visibleText(pane));
+        });
+    }
+
+    @Test
+    public void skinRemovedInDirectCutOpeningShowsTheContentAtOpened() throws Exception {
+        onFx(() -> {
+            RXTransitionPane pane = laidOutPane(new Label("A"));
+            pane.setAnimated(false);
+            Label b = new Label("B");
+            b.addEventHandler(RXTransitionPaneEvent.OPENING, e -> pane.setSkin(null));
+            List<String> log = new ArrayList<>();
+            pane.addEventHandler(RXTransitionPaneEvent.ANY, e -> log.add(stateAt(e)));
+
+            pane.setContent(b);
+
+            // The handler removed the skin, and with it the pages, while
+            // OPENING:B was still on its way to the pane.
+            assertEquals(List.of(
+                    "CLOSING:A t=false in=true page=true own=true",
+                    "CLOSED:A t=false in=true page=false own=true",
+                    "OPENING:B t=false in=false page=false own=true",
+                    "OPENED:B t=false in=true page=true own=true",
+                    "CLOSING:B t=false in=true page=true own=true",
+                    "CLOSED:B t=false in=true page=false own=true"), log);
         });
     }
 
