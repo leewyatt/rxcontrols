@@ -80,9 +80,17 @@
     -fx-background-color: white;
 }
 
-.example-card .symbol.sky { -fx-background-color: #0ea5e9; }
-.example-card .symbol.amber { -fx-background-color: #f59e0b; }
-.example-card .symbol.violet { -fx-background-color: #8b5cf6; }
+.example-card .symbol.sky {
+    -fx-background-color: #0ea5e9;
+}
+
+.example-card .symbol.amber {
+    -fx-background-color: #f59e0b;
+}
+
+.example-card .symbol.violet {
+    -fx-background-color: #8b5cf6;
+}
 
 .example-card .icon-button {
     -fx-background-color: transparent;
@@ -108,11 +116,25 @@
     -rx-ripple-fill: white;
 }
 
-.example-card .rx-button.solid.orange { -fx-background-color: #f97316; }
-.example-card .rx-button.solid.amber { -fx-background-color: #f59e0b; }
-.example-card .rx-button.solid.teal { -fx-background-color: #14b8a6; }
-.example-card .rx-button.solid.indigo { -fx-background-color: #6366f1; }
-.example-card .rx-button.solid.violet { -fx-background-color: #8b5cf6; }
+.example-card .rx-button.solid.orange {
+    -fx-background-color: #f97316;
+}
+
+.example-card .rx-button.solid.amber {
+    -fx-background-color: #f59e0b;
+}
+
+.example-card .rx-button.solid.teal {
+    -fx-background-color: #14b8a6;
+}
+
+.example-card .rx-button.solid.indigo {
+    -fx-background-color: #6366f1;
+}
+
+.example-card .rx-button.solid.violet {
+    -fx-background-color: #8b5cf6;
+}
 
 .example-card .rx-button.plain {
     -fx-background-color: -fx-text-box-border, -fx-control-inner-background;
@@ -133,15 +155,50 @@
     -fx-font-size: 12.5px;
 }
 
-.example-card .chip.rose { -fx-background-color: rgba(244, 63, 94, 0.14); -fx-text-fill: #e11d48; }
-.example-card .chip.orange { -fx-background-color: rgba(249, 115, 22, 0.14); -fx-text-fill: #ea580c; }
-.example-card .chip.amber { -fx-background-color: rgba(245, 158, 11, 0.16); -fx-text-fill: #d97706; }
-.example-card .chip.lime { -fx-background-color: rgba(101, 163, 13, 0.15); -fx-text-fill: #4d7c0f; }
-.example-card .chip.teal { -fx-background-color: rgba(20, 184, 166, 0.15); -fx-text-fill: #0f766e; }
-.example-card .chip.sky { -fx-background-color: rgba(14, 165, 233, 0.15); -fx-text-fill: #0284c7; }
-.example-card .chip.indigo { -fx-background-color: rgba(99, 102, 241, 0.15); -fx-text-fill: #4f46e5; }
-.example-card .chip.violet { -fx-background-color: rgba(139, 92, 246, 0.15); -fx-text-fill: #7c3aed; }
-.example-card .chip.pink { -fx-background-color: rgba(236, 72, 153, 0.15); -fx-text-fill: #db2777; }
+.example-card .chip.rose {
+    -fx-background-color: rgba(244, 63, 94, 0.14);
+    -fx-text-fill: #e11d48;
+}
+
+.example-card .chip.orange {
+    -fx-background-color: rgba(249, 115, 22, 0.14);
+    -fx-text-fill: #ea580c;
+}
+
+.example-card .chip.amber {
+    -fx-background-color: rgba(245, 158, 11, 0.16);
+    -fx-text-fill: #d97706;
+}
+
+.example-card .chip.lime {
+    -fx-background-color: rgba(101, 163, 13, 0.15);
+    -fx-text-fill: #4d7c0f;
+}
+
+.example-card .chip.teal {
+    -fx-background-color: rgba(20, 184, 166, 0.15);
+    -fx-text-fill: #0f766e;
+}
+
+.example-card .chip.sky {
+    -fx-background-color: rgba(14, 165, 233, 0.15);
+    -fx-text-fill: #0284c7;
+}
+
+.example-card .chip.indigo {
+    -fx-background-color: rgba(99, 102, 241, 0.15);
+    -fx-text-fill: #4f46e5;
+}
+
+.example-card .chip.violet {
+    -fx-background-color: rgba(139, 92, 246, 0.15);
+    -fx-text-fill: #7c3aed;
+}
+
+.example-card .chip.pink {
+    -fx-background-color: rgba(236, 72, 153, 0.15);
+    -fx-text-fill: #db2777;
+}
 
 .example-card .stat-dot {
     -fx-pref-width: 8px;
@@ -151,32 +208,61 @@
 
 .example-card .rose.stat-dot, .example-card .rose.block, .example-card .rose.cell,
 .example-card .rose.app-icon, .example-card .rose.product-photo,
-.example-card .rose.project-stripe { -fx-background-color: #f43f5e; }
+.example-card .rose.project-stripe {
+    -fx-background-color: #f43f5e;
+}
+
 .example-card .orange.stat-dot, .example-card .orange.block, .example-card .orange.cell,
 .example-card .orange.app-icon, .example-card .orange.product-photo,
-.example-card .orange.project-stripe { -fx-background-color: #f97316; }
+.example-card .orange.project-stripe {
+    -fx-background-color: #f97316;
+}
+
 .example-card .amber.stat-dot, .example-card .amber.block, .example-card .amber.cell,
 .example-card .amber.app-icon, .example-card .amber.product-photo,
-.example-card .amber.project-stripe { -fx-background-color: #f59e0b; }
+.example-card .amber.project-stripe {
+    -fx-background-color: #f59e0b;
+}
+
 .example-card .lime.stat-dot, .example-card .lime.block, .example-card .lime.cell,
 .example-card .lime.app-icon, .example-card .lime.product-photo,
-.example-card .lime.project-stripe { -fx-background-color: #65a30d; }
+.example-card .lime.project-stripe {
+    -fx-background-color: #65a30d;
+}
+
 .example-card .teal.stat-dot, .example-card .teal.block, .example-card .teal.cell,
 .example-card .teal.app-icon, .example-card .teal.product-photo,
-.example-card .teal.project-stripe { -fx-background-color: #14b8a6; }
+.example-card .teal.project-stripe {
+    -fx-background-color: #14b8a6;
+}
+
 .example-card .sky.stat-dot, .example-card .sky.block, .example-card .sky.cell,
 .example-card .sky.app-icon, .example-card .sky.product-photo,
-.example-card .sky.project-stripe { -fx-background-color: #0ea5e9; }
+.example-card .sky.project-stripe {
+    -fx-background-color: #0ea5e9;
+}
+
 .example-card .indigo.stat-dot, .example-card .indigo.block, .example-card .indigo.cell,
 .example-card .indigo.app-icon, .example-card .indigo.product-photo,
-.example-card .indigo.project-stripe { -fx-background-color: #6366f1; }
+.example-card .indigo.project-stripe {
+    -fx-background-color: #6366f1;
+}
+
 .example-card .violet.stat-dot, .example-card .violet.block, .example-card .violet.cell,
 .example-card .violet.app-icon, .example-card .violet.product-photo,
-.example-card .violet.project-stripe { -fx-background-color: #8b5cf6; }
+.example-card .violet.project-stripe {
+    -fx-background-color: #8b5cf6;
+}
+
 .example-card .pink.stat-dot, .example-card .pink.block, .example-card .pink.cell,
 .example-card .pink.app-icon, .example-card .pink.product-photo,
-.example-card .pink.project-stripe { -fx-background-color: #ec4899; }
-.example-card .slate.app-icon { -fx-background-color: #475569; }
+.example-card .pink.project-stripe {
+    -fx-background-color: #ec4899;
+}
+
+.example-card .slate.app-icon {
+    -fx-background-color: #475569;
+}
 
 .example-card .block {
     -fx-background-radius: 8px;
@@ -270,8 +356,27 @@
 }
 
 .example-card .box-cell {
-    -fx-font-size: 14px;
-    -fx-font-weight: bold;
+    -fx-font-size: 18px;
+}
+
+.example-card .box-cell.size-s {
+    -fx-font-size: 10px;
+}
+
+.example-card .box-cell.size-m {
+    -fx-font-size: 15px;
+}
+
+.example-card .box-cell.size-l {
+    -fx-font-size: 20px;
+}
+
+.example-card .box-cell.size-xl {
+    -fx-font-size: 25px;
+}
+
+.example-card .baseline-cell {
+    -fx-padding: 3px 6px;
 }
 
 /*******************************************************************************
@@ -289,8 +394,13 @@
     -fx-font-size: 12px;
 }
 
-.example-card .trend.up { -fx-text-fill: #16a34a; }
-.example-card .trend.down { -fx-text-fill: #e11d48; }
+.example-card .trend.up {
+    -fx-text-fill: #16a34a;
+}
+
+.example-card .trend.down {
+    -fx-text-fill: #e11d48;
+}
 
 .example-card .bar {
     -fx-background-color: linear-gradient(to top, #6366f1, #8b5cf6);
@@ -315,10 +425,25 @@
     -fx-background-color: transparent;
 }
 
-.example-card .chip.size-s { -fx-padding: 4px 11px; -fx-font-size: 12px; }
-.example-card .chip.size-m { -fx-padding: 6px 11px; -fx-font-size: 15px; }
-.example-card .chip.size-l { -fx-padding: 8px 11px; -fx-font-size: 20px; }
-.example-card .chip.size-xl { -fx-padding: 10px 11px; -fx-font-size: 28px; }
+.example-card .chip.size-s {
+    -fx-padding: 4px 11px;
+    -fx-font-size: 12px;
+}
+
+.example-card .chip.size-m {
+    -fx-padding: 6px 11px;
+    -fx-font-size: 15px;
+}
+
+.example-card .chip.size-l {
+    -fx-padding: 8px 11px;
+    -fx-font-size: 20px;
+}
+
+.example-card .chip.size-xl {
+    -fx-padding: 10px 11px;
+    -fx-font-size: 28px;
+}
 
 /*******************************************************************************
  *                                                                             *
@@ -377,13 +502,33 @@
     -fx-text-fill: #1f2937;
 }
 
-.example-card .note.amber { -fx-background-color: #fde68a; }
-.example-card .note.lime { -fx-background-color: #d9f99d; }
-.example-card .note.sky { -fx-background-color: #bae6fd; }
-.example-card .note.pink { -fx-background-color: #fbcfe8; }
-.example-card .note.violet { -fx-background-color: #ddd6fe; }
-.example-card .note.orange { -fx-background-color: #fed7aa; }
-.example-card .note.teal { -fx-background-color: #99f6e4; }
+.example-card .note.amber {
+    -fx-background-color: #fde68a;
+}
+
+.example-card .note.lime {
+    -fx-background-color: #d9f99d;
+}
+
+.example-card .note.sky {
+    -fx-background-color: #bae6fd;
+}
+
+.example-card .note.pink {
+    -fx-background-color: #fbcfe8;
+}
+
+.example-card .note.violet {
+    -fx-background-color: #ddd6fe;
+}
+
+.example-card .note.orange {
+    -fx-background-color: #fed7aa;
+}
+
+.example-card .note.teal {
+    -fx-background-color: #99f6e4;
+}
 
 /*******************************************************************************
  *                                                                             *

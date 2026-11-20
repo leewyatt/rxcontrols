@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Priority;
@@ -61,15 +62,18 @@ public final class RXBoxSamples {
                         SampleCard.canvas("Row or column",
                                 "orientation flips the same image-and-copy card between a row and a column without reparenting its content.",
                                 productCard()),
-                        SampleCard.canvas("Main-axis grow",
+                        SampleCard.large("Main-axis grow",
                                 "setGrow distributes spare space along the current main axis; compare none, the middle item and every item.",
                                 mainAxisGrow()),
-                        SampleCard.canvas("Box alignment",
+                        SampleCard.large("Box alignment",
                                 "alignment positions the complete run inside a box larger than its preferred content.",
                                 boxAlignment()),
-                        SampleCard.canvas("Per-item alignment",
+                        SampleCard.large("Per-item alignment",
                                 "setAlignment overrides the cross-axis position of each item; fillCrossAxis can stretch them instead.",
-                                itemAlignment())),
+                                itemAlignment()),
+                        SampleCard.large("Baseline alignment",
+                                "BASELINE lines up text across items with different font sizes; compare it with top, center and bottom.",
+                                baselineAlignment())),
                 LayoutKit.STYLESHEET);
     }
 
@@ -165,6 +169,26 @@ public final class RXBoxSamples {
         return column(mode, box);
     }
 
+    // ==================== Baseline alignment ====================
+
+    private static Node baselineAlignment() {
+        RXBox box = frame(180.0,
+                baselineBlock("Layout", "amber", "size-l"),
+                baselineBlock("JavaFX", "indigo", "size-m"),
+                baselineBlock("RXBox", "rose", "size-xl"),
+                baselineBlock("Pane", "violet", "size-l"));
+        box.setFillCrossAxis(false);
+        box.setAlignment(Pos.CENTER);
+
+        RXSegmentedControl<VPos> alignment = picker(value -> box.setAlignment(switch (value) {
+            case TOP -> Pos.TOP_CENTER;
+            case CENTER -> Pos.CENTER;
+            case BOTTOM -> Pos.BOTTOM_CENTER;
+            case BASELINE -> Pos.BASELINE_CENTER;
+        }), VPos.BASELINE, VPos.TOP, VPos.CENTER, VPos.BOTTOM);
+        return column(alignment, box);
+    }
+
     // ==================== Helpers ====================
 
     private static RXBox frame(double height, Node... children) {
@@ -180,6 +204,13 @@ public final class RXBoxSamples {
         block.setPrefSize(width, height);
         block.setMinSize(width, height);
         block.setMaxSize(width, height);
+        return block;
+    }
+
+    private static Label baselineBlock(String value, String color, String size) {
+        Label block = text(value, "cell", "box-cell", "baseline-cell", color, size);
+        block.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        block.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return block;
     }
 
