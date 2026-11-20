@@ -522,6 +522,29 @@ public class RXTransitionLabelTest {
     }
 
     @Test
+    public void skinRemovedWhenATransitionStartsLeavesNoAnimationRunning() throws Exception {
+        TrackingFade fade = new TrackingFade();
+        onFx(() -> {
+            RXTransitionLabel label = laidOutLabelShowing("A");
+            label.setAnimation(fade);
+            label.setAnimationDuration(Duration.seconds(30.0));
+            label.transitioningProperty().addListener((observable, was, is) -> {
+                if (is) {
+                    label.setSkin(null);
+                }
+            });
+
+            label.setText("B");
+
+            try {
+                assertEquals(Animation.Status.STOPPED, fade.animations.get(0).getStatus());
+            } finally {
+                fade.animations.forEach(Animation::stop);
+            }
+        });
+    }
+
+    @Test
     public void ignoredSkinOfTheInstalledClassAddsNothing() {
         RXTransitionLabel label = laidOutLabelShowing("A");
         label.setAnimated(false);

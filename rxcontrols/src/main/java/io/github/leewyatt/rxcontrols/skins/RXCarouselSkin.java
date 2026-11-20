@@ -1064,6 +1064,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             nav.dispose();
         }
         engine.dispose(carousel.getAnimation());
+        // A disposed engine reports neither a stop nor a settle: clear the
+        // mirror here, as no callback will.
+        carousel.setPageTransitioning(false);
         pageCache.clear();
     }
 }

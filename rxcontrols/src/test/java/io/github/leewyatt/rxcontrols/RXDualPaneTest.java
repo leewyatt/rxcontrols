@@ -209,6 +209,52 @@ public class RXDualPaneTest {
     }
 
     @Test
+    public void flipBackRequestedWhenAFlipStartsStopsTheFlipAndShowsTheFirstFace() {
+        RXDualPane pane = laidOutPane(new Label("First"), new Label("Second"));
+        RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
+        pane.setAnimation(recording);
+        pane.transitioningProperty().addListener((observable, was, is) -> {
+            if (is && pane.isShowingSecond()) {
+                pane.setShowingSecond(false);
+            }
+        });
+
+        try {
+            pane.setShowingSecond(true);
+
+            assertEquals(2, recording.animations.size());
+            assertEquals(Animation.Status.STOPPED, recording.animations.get(0).getStatus());
+            assertSame(pane.getFirstContent(),
+                    pageContent(recording.contexts.get(1).getNextPage()));
+            recording.jumpToEnd();
+            assertSame(pane.getFirstContent(), visibleContent(pane));
+        } finally {
+            pane.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void flipBackRequestedWhenAnInstantFlipStartsShowsTheFirstFace() {
+        RXDualPane pane = laidOutPane(new Label("First"), new Label("Second"));
+        pane.setAnimation(new RecordingAnimation(Duration.ZERO));
+        pane.transitioningProperty().addListener((observable, was, is) -> {
+            if (is && pane.isShowingSecond()) {
+                pane.setShowingSecond(false);
+            }
+        });
+
+        try {
+            pane.setShowingSecond(true);
+
+            assertFalse(pane.isShowingSecond());
+            assertFalse(pane.isTransitioning());
+            assertSame(pane.getFirstContent(), visibleContent(pane));
+        } finally {
+            pane.getSkin().dispose();
+        }
+    }
+
+    @Test
     public void synchronouslyCompletingAnimationLeavesTransitioningFalse() {
         RXDualPane pane = laidOutPane(new Label("First"), new Label("Second"));
         // A zero play-duration completes synchronously inside play(); the
@@ -598,6 +644,7 @@ public class RXDualPaneTest {
     private static class RecordingAnimation implements PageAnimation {
 
         final List<TransitionContext> contexts = new ArrayList<>();
+        final List<Animation> animations = new ArrayList<>();
         int jumpToEndCalls;
         int disposeCalls;
         int minimumPageCount = 2;
@@ -629,6 +676,7 @@ public class RXDualPaneTest {
             PauseTransition pause = new PauseTransition(playDuration);
             pause.setOnFinished(event -> finish.run());
             running = pause;
+            animations.add(pause);
             return pause;
         }
 

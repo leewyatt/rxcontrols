@@ -146,6 +146,20 @@ public class RXCarouselTest {
         }
     }
 
+    // ==================== Dispose ====================
+
+    @Test
+    public void removingTheSkinMidTransitionClearsPageTransitioning() {
+        RXCarousel carousel = createLaidOutCarousel(3);
+        carousel.setAnimation(new RecordingAnimation(Duration.seconds(30.0)));
+        carousel.goToPage(1, true);
+        assertTrue(carousel.isPageTransitioning());
+
+        carousel.setSkin(null);
+
+        assertFalse(carousel.isPageTransitioning());
+    }
+
     // ==================== Duration Gating ====================
 
     @Test

@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -223,6 +224,114 @@ public class PageTransitionEngineTest {
         });
         assertTrue(fixture.finished.await(5, TimeUnit.SECONDS), "the transition did not finish");
         assertEquals(FINISHED_ON_ITS_OWN, logOf(fixture));
+    }
+
+    @Test
+    public void interruptFromTheStartedCallbackStopsTheRunningAnimation() throws Exception {
+        Fixture fixture = new Fixture();
+        Animation.Status afterPlay = onFx(() -> {
+            RecordingAnimation animation = new RecordingAnimation(fixture, LENGTH, "");
+            fixture.engine.play(animation, fixture.context,
+                    () -> {
+                        fixture.log.add("started");
+                        fixture.engine.interrupt();
+                    },
+                    () -> fixture.log.add("settled"),
+                    () -> fixture.log.add("external stop"));
+            return animation.timeline.getStatus();
+        });
+        assertEquals(Animation.Status.STOPPED, afterPlay);
+        Thread.sleep((long) LENGTH.toMillis() * 3);
+        assertEquals(STOPPED_FROM_OUTSIDE, logOf(fixture));
+    }
+
+    @Test
+    public void jumpToEndFromTheStartedCallbackStopsTheRunningAnimation() throws Exception {
+        Fixture fixture = new Fixture();
+        Animation.Status afterPlay = onFx(() -> {
+            RecordingAnimation animation = new RecordingAnimation(fixture, LENGTH, "");
+            fixture.engine.play(animation, fixture.context,
+                    () -> {
+                        fixture.log.add("started");
+                        animation.jumpToEnd();
+                    },
+                    () -> fixture.log.add("settled"),
+                    () -> fixture.log.add("external stop"));
+            return animation.timeline.getStatus();
+        });
+        assertEquals(Animation.Status.STOPPED, afterPlay);
+        Thread.sleep((long) LENGTH.toMillis() * 3);
+        assertEquals(STOPPED_FROM_OUTSIDE, logOf(fixture));
+    }
+
+    @Test
+    public void disposeFromTheStartedCallbackStopsTheRunningAnimation() throws Exception {
+        Fixture fixture = new Fixture();
+        Animation.Status afterPlay = onFx(() -> {
+            RecordingAnimation animation = new RecordingAnimation(fixture, LENGTH, "");
+            fixture.engine.play(animation, fixture.context,
+                    () -> {
+                        fixture.log.add("started");
+                        fixture.engine.dispose(animation);
+                    },
+                    () -> fixture.log.add("settled"),
+                    () -> fixture.log.add("external stop"));
+            return animation.timeline.getStatus();
+        });
+        assertEquals(Animation.Status.STOPPED, afterPlay);
+        Thread.sleep((long) LENGTH.toMillis() * 3);
+        assertEquals(List.of("started"), logOf(fixture));
+    }
+
+    @Test
+    public void disposeFromTheStartedCallbackOfAnAnimationWithNoLengthEndsTheRun() throws Exception {
+        Fixture fixture = new Fixture();
+        List<String> afterPlay = onFx(() -> {
+            RecordingAnimation animation = new RecordingAnimation(fixture, Duration.ZERO, "");
+            fixture.engine.play(animation, fixture.context,
+                    () -> {
+                        fixture.log.add("started");
+                        fixture.engine.dispose(animation);
+                    },
+                    () -> fixture.log.add("settled"),
+                    () -> fixture.log.add("external stop"));
+            return List.copyOf(fixture.log);
+        });
+        assertEquals(List.of("started"), afterPlay);
+    }
+
+    @Test
+    public void runStartedFromTheStartedCallbackOfAnAnimationWithNoLengthKeepsPlaying() throws Exception {
+        Fixture fixture = new Fixture();
+        boolean transitioning = onFx(() -> {
+            RecordingAnimation animation = new RecordingAnimation(fixture, Duration.ZERO, "first ");
+            fixture.engine.play(animation, fixture.context,
+                    () -> {
+                        fixture.log.add("first started");
+                        fixture.engine.interrupt();
+                        fixture.play(LONG, "second ");
+                    },
+                    () -> fixture.log.add("first settled"),
+                    () -> fixture.log.add("first external stop"));
+            boolean running = fixture.engine.isTransitioning();
+            fixture.engine.interrupt();
+            return running;
+        });
+        assertTrue(transitioning, "the first run ended the second");
+        assertEquals(List.of("first started", "first finish, transitioning=true", "second started",
+                "second external stop", "second finish, transitioning=false"), logOf(fixture));
+    }
+
+    @Test
+    public void aDisposedEngineIgnoresPlay() throws Exception {
+        Fixture fixture = new Fixture();
+        RecordingAnimation animation = onFx(() -> {
+            fixture.engine.dispose(null);
+            return fixture.play(LENGTH);
+        });
+        assertNull(animation.timeline, "the animation was requested");
+        assertEquals(List.of(), logOf(fixture));
+        assertFalse(onFx(fixture.engine::isTransitioning));
     }
 
     @Test

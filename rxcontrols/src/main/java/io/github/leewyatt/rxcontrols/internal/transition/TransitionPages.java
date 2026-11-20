@@ -231,7 +231,7 @@ public final class TransitionPages {
      * @param animation      the animation to play
      * @param direction      the transition direction
      * @param duration       the transition duration
-     * @param onStarted      runs right before the animation starts (mirror state), may be {@code null}
+     * @param onStarted      runs once the animation is playing (mirror state), may be {@code null}
      * @param onSettled      runs after natural completion, before off-stage pages are removed;
      *                       if it starts another transition or cut, the pages are left to
      *                       that one; may be {@code null}
