@@ -212,8 +212,18 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         if (value == null) {
             return DEFAULT_COLUMN_CONTENT_PADDING;
         }
+        // Runs on every column layout pass (scroll, drag, hide animation): reuse a valid
+        // value instead of allocating a sanitized copy.
+        if (isFiniteNonNegative(value.getTop()) && isFiniteNonNegative(value.getRight())
+                && isFiniteNonNegative(value.getBottom()) && isFiniteNonNegative(value.getLeft())) {
+            return value;
+        }
         return new Insets(finiteNonNegative(value.getTop()), finiteNonNegative(value.getRight()),
                 finiteNonNegative(value.getBottom()), finiteNonNegative(value.getLeft()));
+    }
+
+    private static boolean isFiniteNonNegative(double value) {
+        return Double.isFinite(value) && value >= 0.0;
     }
 
     private static double finiteNonNegative(double value) {

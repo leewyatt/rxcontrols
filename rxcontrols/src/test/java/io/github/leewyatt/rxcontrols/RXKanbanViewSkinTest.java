@@ -295,7 +295,9 @@ public class RXKanbanViewSkinTest {
                     RXKanbanCardCell<?> last = cellByText(board, "card-" + (cardCount - 1));
                     assertNotNull(last, scenario + ": last card realized after scrolling to the end");
                     double lastBottom = contentTop + last.getLayoutY() + last.getHeight();
-                    double expectedLastBottom = cardCount > 3 ? contentBottom : contentTop + cardCount * 84.0 - 8.0;
+                    double stackHeight = cardCount * 84.0 - 8.0;
+                    boolean overflows = stackHeight > content.getHeight();
+                    double expectedLastBottom = overflows ? contentBottom : contentTop + stackHeight;
                     assertEquals(expectedLastBottom, lastBottom, 0.5,
                             scenario + ": last card bottom (scrolled to the end)");
                     assertTrue(bottomEdge - lastBottom >= topGap - 0.5,
@@ -346,7 +348,8 @@ public class RXKanbanViewSkinTest {
                                        double top, double right, double bottom, double left, String message) {
         double headerBottom = header.getLayoutY() + header.getHeight();
         assertEquals(top, content.getLayoutY() - headerBottom, 0.5, message + ": top");
-        assertEquals(bottom, column.getHeight() - content.getLayoutY() - content.getHeight(), 0.5, message + ": bottom");
+        assertEquals(bottom, column.getHeight() - content.getLayoutY() - content.getHeight(), 0.5,
+                message + ": bottom");
         assertEquals(left, content.getLayoutX(), 0.5, message + ": left");
         assertEquals(right, column.getWidth() - content.getLayoutX() - content.getWidth(), 0.5, message + ": right");
     }

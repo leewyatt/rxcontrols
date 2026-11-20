@@ -184,7 +184,9 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
         Slider cardSpacing = createSlider(0.0, 24.0, kanban.getCardSpacing());
         cardSpacing.valueProperty().addListener((o, ov, v) -> kanban.setCardSpacing(v.doubleValue()));
         // Uniform here for brevity; the property (and -rx-column-content-padding) takes four sides.
-        Slider columnContentPadding = createSlider(0.0, 24.0, kanban.getColumnContentPadding().getTop());
+        // A null padding renders the 6px default.
+        Insets initialPadding = kanban.getColumnContentPadding();
+        Slider columnContentPadding = createSlider(0.0, 24.0, initialPadding == null ? 6.0 : initialPadding.getTop());
         columnContentPadding.valueProperty().addListener(
                 (o, ov, v) -> kanban.setColumnContentPadding(new Insets(v.doubleValue())));
         return createGrid(
