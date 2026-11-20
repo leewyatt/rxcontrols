@@ -193,6 +193,10 @@ final class SamplerHome extends ScrollPane {
         row.setGutter(40.0);
         row.setRowGap(24.0);
         row.setAlign(RXRow.Align.CENTER);
+        // The narrow layout keeps only the essentials: the strip below links to GitHub,
+        // and the categories further down are the way into the components.
+        actions.visibleProperty().bind(row.activeBreakpointProperty().isNotEqualTo(RXBreakpoint.XS));
+        actions.managedProperty().bind(actions.visibleProperty());
         row.getChildren().addAll(
                 heroCol(text, 12, true, true),
                 heroCol(well, 12, false, true),

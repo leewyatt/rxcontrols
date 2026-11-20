@@ -168,6 +168,7 @@ final class HomeTiles {
         board.setCardCellFactory(view -> new TaskCell());
         board.setPrefHeight(270.0);
         board.setMinHeight(270.0);
+        board.setColumnReorderEnabled(true);
         return board;
     }
 
