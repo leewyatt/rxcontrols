@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -189,6 +190,32 @@ public class RXTransitionLabelTest {
     }
 
     // ==================== Alignment ====================
+
+    @Test
+    public void textSetWhenTransitionSettlesKeepsNextOutgoingPage() {
+        RXTransitionLabel label = laidOutLabelShowing("A");
+        label.setAnimation(new RecordingAnimation(Duration.ZERO));
+        RecordingAnimation slow = new RecordingAnimation(Duration.seconds(30.0));
+        label.transitioningProperty().addListener((observable, was, is) -> {
+            if (!is && "B".equals(label.getText())) {
+                label.setAnimation(slow);
+                label.setText("C");
+            }
+        });
+
+        try {
+            label.setText("B");
+
+            assertTrue(label.isTransitioning());
+            assertEquals(1, slow.contexts.size());
+            Node outgoing = slow.contexts.get(0).getCurrentPage();
+            assertEquals("B", pageText(outgoing));
+            assertSame(label.lookup(".content-pane"), outgoing.getParent());
+            assertEquals("C", pageText(slow.contexts.get(0).getNextPage()));
+        } finally {
+            label.getSkin().dispose();
+        }
+    }
 
     @Test
     public void alignmentAppliesToBothInternalLabels() {

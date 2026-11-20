@@ -290,6 +290,35 @@ public class RXTransitionPaneTest {
         }
     }
 
+    @Test
+    public void contentSetWhenTransitionSettlesKeepsNextOutgoingPage() {
+        Label a = new Label("A");
+        Label b = new Label("B");
+        Label c = new Label("C");
+        RXTransitionPane pane = laidOutPaneShowing(a);
+        pane.setAnimation(new RecordingAnimation(Duration.ZERO));
+        RecordingAnimation slow = new RecordingAnimation(Duration.seconds(30.0));
+        pane.transitioningProperty().addListener((observable, was, is) -> {
+            if (!is && pane.getContent() == b) {
+                pane.setAnimation(slow);
+                pane.setContent(c);
+            }
+        });
+
+        try {
+            pane.setContent(b);
+
+            assertTrue(pane.isTransitioning());
+            assertEquals(1, slow.contexts.size());
+            Node outgoing = slow.contexts.get(0).getCurrentPage();
+            assertSame(b, pageContent(outgoing));
+            assertSame(pane.lookup(".content-pane"), outgoing.getParent());
+            assertSame(c, pageContent(slow.contexts.get(0).getNextPage()));
+        } finally {
+            pane.getSkin().dispose();
+        }
+    }
+
     // ==================== Wrapper Isolation ====================
 
     @Test

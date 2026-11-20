@@ -135,8 +135,11 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
         pages.transitionTo(target, animation, direction, duration,
                 () -> control.setTransitioning(true),
                 () -> {
-                    control.setTransitioning(false);
+                    // Detach before notifying: a transitioning listener may
+                    // start the next transition, whose outgoing page is the
+                    // one this would otherwise clear.
                     detachReplacedContent();
+                    control.setTransitioning(false);
                 },
                 () -> control.setTransitioning(false));
     }
