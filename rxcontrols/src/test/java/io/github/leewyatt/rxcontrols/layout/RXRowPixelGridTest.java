@@ -112,7 +112,8 @@ public class RXRowPixelGridTest {
                 List<Region> columns = sortedColumns(row);
                 Region last = columns.get(columns.size() - 1);
                 assertEquals(width - 7.5, last.getLayoutX() + last.getWidth(), 1.0e-6, width + ": trailing edge");
-                assertEquals(4.25 + (width - 11.75) / 6.0, columns.get(0).getLayoutX(), 1.0e-6,
+                // END leaves (content + gutter) * 4 / 24 before the line.
+                assertEquals(4.25 + (width - 1.75) / 6.0, columns.get(0).getLayoutX(), 1.0e-6,
                         width + ": leading edge");
             }
         });
@@ -294,15 +295,54 @@ public class RXRowPixelGridTest {
         });
     }
 
+    /**
+     * Verifies the gutter is snapped once, so an odd gutter renders at its own snapped
+     * value rather than as two separately rounded halves, and both outer columns stay
+     * flush with the content edges.
+     */
+    @Test
+    public void gutterIsSnappedOnceAtEveryScale() throws Exception {
+        runOnFx(() -> {
+            for (double gutter : new double[] {7.0, 10.0, 15.0, 16.0}) {
+                RXCol first = new RXCol(new Region());
+                first.setSpan(12);
+                RXCol second = new RXCol(new Region());
+                second.setSpan(12);
+                RXRow row = new RXRow(first, second);
+                row.setGutter(gutter);
+                Stage stage = stageFor(row);
+                for (double scale : SCALES) {
+                    stage.setRenderScaleX(scale);
+                    for (int base = 300; base < 340; base++) {
+                        for (double fraction : FRACTIONS) {
+                            double width = base + fraction;
+                            layout(row, width);
+                            String at = "gutter " + gutter + ", scale " + scale + ", width " + width;
+                            double expected = Math.round(gutter * scale) / scale;
+                            assertEquals(expected, second.getLayoutX() - (first.getLayoutX() + first.getWidth()),
+                                    EPSILON, at + ": rendered gutter");
+                            assertEquals(0.0, first.getLayoutX(), EPSILON, at + ": leading edge");
+                            assertEquals(Math.floor(width * scale + 1.0e-9) / scale,
+                                    second.getLayoutX() + second.getWidth(), EPSILON, at + ": trailing edge");
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     // ==================== Assertions ====================
 
     // Offsets leave empty columns inside the line, so only offset-free rows are checked
-    // for a centred block.
+    // for a centred block and for exact gutters.
     private static void assertRow(RXRow row, RXRow.Justify justify, boolean full, boolean noOffsets,
                                   double scale, String at) {
         double left = row.snappedLeftInset();
         double right = row.getWidth() - row.snappedRightInset();
         double unit = 1.0 / scale;
+        double gutter = Math.round(row.getGutter() * scale) / scale;
+        boolean packed = justify == RXRow.Justify.START || justify == RXRow.Justify.CENTER
+                || justify == RXRow.Justify.END;
         List<Region> columns = sortedColumns(row);
         for (int i = 0; i < columns.size(); i++) {
             Region column = columns.get(i);
@@ -310,9 +350,12 @@ public class RXRowPixelGridTest {
             assertOnGrid(column.getLayoutX() + column.getWidth(), scale, at + ": end of column " + i);
             if (i > 0) {
                 Region previous = columns.get(i - 1);
-                assertTrue(column.getLayoutX() >= previous.getLayoutX() + previous.getWidth() - EPSILON,
-                        at + ": column " + i + " at " + column.getLayoutX() + " overlaps the one before, ending at "
-                                + (previous.getLayoutX() + previous.getWidth()));
+                double gap = column.getLayoutX() - (previous.getLayoutX() + previous.getWidth());
+                assertTrue(gap >= gutter - EPSILON,
+                        at + ": column " + i + " is " + gap + " from the one before, less than the gutter " + gutter);
+                if ((noOffsets || full) && packed) {
+                    assertEquals(gutter, gap, EPSILON, at + ": gutter before column " + i);
+                }
             }
         }
         double first = columns.get(0).getLayoutX();
@@ -330,7 +373,8 @@ public class RXRowPixelGridTest {
             assertEquals(flooredRight, last, EPSILON, at + ": trailing edge");
         }
         if (justify == RXRow.Justify.CENTER && noOffsets) {
-            assertTrue(Math.abs((first - left) - (right - last)) <= unit + EPSILON,
+            double flooredRight = left + Math.floor((right - left) * scale + 1.0e-9) / scale;
+            assertTrue(Math.abs((first - left) - (flooredRight - last)) <= unit + EPSILON,
                     at + ": centred within a pixel");
         }
         if (noOffsets && (justify == RXRow.Justify.SPACE_AROUND || justify == RXRow.Justify.SPACE_EVENLY)) {
@@ -341,7 +385,8 @@ public class RXRowPixelGridTest {
             double trailing = flooredRight - last;
             for (int i = 1; i < columns.size(); i++) {
                 Region previous = columns.get(i - 1);
-                double inner = columns.get(i).getLayoutX() - (previous.getLayoutX() + previous.getWidth());
+                double inner = columns.get(i).getLayoutX() - (previous.getLayoutX() + previous.getWidth())
+                        - gutter;
                 double edge = justify == RXRow.Justify.SPACE_EVENLY ? inner : inner / 2.0;
                 assertTrue(Math.abs(leading - edge) <= unit + EPSILON,
                         at + ": leading space " + leading + " against " + edge);

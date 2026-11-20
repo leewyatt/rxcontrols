@@ -94,7 +94,7 @@ public class RXRow extends Pane {
     /**
      * Default horizontal gutter.
      */
-    public static final double DEFAULT_GUTTER = 0.0;
+    private static final double DEFAULT_GUTTER = 0.0;
 
     /**
      * Default vertical row gap.
@@ -266,7 +266,6 @@ public class RXRow extends Pane {
         @Override
         protected void invalidated() {
             requestLayout();
-            requestColumnLayouts();
         }
 
         @Override
@@ -286,8 +285,10 @@ public class RXRow extends Pane {
     };
 
     /**
-     * Horizontal space between adjacent column content areas. Each
-     * {@link RXCol} receives half of this value on each side.
+     * Horizontal gap between adjacent columns of a line, like {@link #rowGapProperty()}
+     * between lines. The outermost columns sit flush with the row's content edges and
+     * a column's bounds hold no gutter. The gap is snapped to the pixel grid once. A
+     * negative or non-finite value is not rejected; it lays out as {@code 0}.
      *
      * @return the gutter property
      */
@@ -785,11 +786,14 @@ public class RXRow extends Pane {
             maxEndColumn = Math.max(maxEndColumn,
                     startColumns.get(i) + lineCandidates.get(i).spec().span());
         }
-        double usedWidth = contentWidth * maxEndColumn / columnsCount;
+        // Column boundaries are spaced over the content width plus one gutter, so the
+        // trailing boundary minus the gutter lands on the content edge.
+        double gutterValue = snappedGutter();
+        double unit = (contentWidth + gutterValue) / columnsCount;
         JustifyMetrics justifyMetrics = justifyMetrics(justifyOrDefault(),
-                Math.max(0.0, contentWidth - usedWidth), lineCandidates.size());
+                Math.max(0.0, (contentWidth + gutterValue) - maxEndColumn * unit),
+                lineCandidates.size());
         double contentX = snapPositionX(getInsets().getLeft());
-        double gutterValue = gutterOrDefault();
         List<LineItem> items = new ArrayList<>(lineCandidates.size());
         double lineHeight = 0.0;
         for (int i = 0; i < lineCandidates.size(); i++) {
@@ -797,15 +801,14 @@ public class RXRow extends Pane {
             int start = startColumns.get(i);
             double itemOffset = justifyMetrics.edgeOffset() + i * justifyMetrics.itemGap();
             double lineX = contentX + justifyMetrics.lineOffset() + itemOffset;
-            // Both edges come from the same column-boundary expression, so a column ends
-            // exactly where the next one starts instead of rounding a separate sum.
-            double x = snapPositionX(lineX + contentWidth * start / columnsCount);
-            double right = snapPositionX(lineX
-                    + contentWidth * (start + candidate.spec().span()) / columnsCount);
+            // Both edges come from snapped column boundaries and the gutter is on the
+            // grid, so adjacent columns are exactly one gutter apart.
+            double x = snapPositionX(lineX + start * unit);
+            double right = snapPositionX(lineX + (start + candidate.spec().span()) * unit)
+                    - gutterValue;
             double width = Math.max(0.0, right - x);
             items.add(new LineItem(candidate.child(), x, width));
-            lineHeight = Math.max(lineHeight,
-                    computeChildPrefHeight(candidate.child(), width, gutterValue));
+            lineHeight = Math.max(lineHeight, computeChildPrefHeight(candidate.child(), width));
         }
         return new Line(List.copyOf(items), snapSizeY(lineHeight));
     }
@@ -872,20 +875,16 @@ public class RXRow extends Pane {
         return span != RXCol.DEFAULT_SPAN || offset != 0 || coercedSpan != columnsCount;
     }
 
-    private double computeChildPrefHeight(Node child, double width, double gutterValue) {
-        double prefHeight = child instanceof RXCol col
-                ? col.computeResponsivePrefHeight(width, gutterValue)
-                : child.prefHeight(width);
+    private double computeChildPrefHeight(Node child, double width) {
+        double prefHeight = child.prefHeight(width);
         if (!child.isResizable()) {
             return snapSizeY(prefHeight);
         }
         return snapSizeY(RXMath.clamp(prefHeight, child.minHeight(width), child.maxHeight(width)));
     }
 
-    private double computeChildPrefWidth(Node child, double height, double gutterValue) {
-        double prefWidth = child instanceof RXCol col
-                ? col.computeResponsivePrefWidth(height, gutterValue)
-                : child.prefWidth(height);
+    private double computeChildPrefWidth(Node child, double height) {
+        double prefWidth = child.prefWidth(height);
         if (!child.isResizable()) {
             return snapSizeX(prefWidth);
         }
@@ -905,8 +904,9 @@ public class RXRow extends Pane {
     private double computePreferredWidth(double height, boolean min,
                                          List<RXBreakpoint> breakpoints) {
         int columnsCount = columnsOrDefault();
-        double gutterValue = gutterOrDefault();
-        double contentWidth = 0.0;
+        double gutterValue = snappedGutter();
+        // A column spanning s columns gets s * (width + gutter) / columns - gutter.
+        double spannedWidth = 0.0;
 
         for (RXBreakpoint breakpoint : breakpoints) {
             List<LayoutCandidate> candidates =
@@ -914,21 +914,20 @@ public class RXRow extends Pane {
             for (LayoutCandidate candidate : candidates) {
                 Node child = candidate.child();
                 EffectiveSpec spec = candidate.spec();
-                double childWidth = min ? computeChildMinWidth(child, height, gutterValue)
-                        : computeChildPrefWidth(child, height, gutterValue);
-                contentWidth = Math.max(contentWidth, childWidth * columnsCount / spec.span());
+                double childWidth = min ? computeChildMinWidth(child, height)
+                        : computeChildPrefWidth(child, height);
+                spannedWidth = Math.max(spannedWidth,
+                        (childWidth + gutterValue) * columnsCount / spec.span());
             }
         }
+        double contentWidth = Math.max(0.0, spannedWidth - gutterValue);
         // Snapped insets match the layout's content width, so a row given exactly this
         // width still fits every column.
         return snappedLeftInset() + snapSizeX(contentWidth) + snappedRightInset();
     }
 
-    private double computeChildMinWidth(Node child, double height, double gutterValue) {
-        double minWidth = child instanceof RXCol col
-                ? col.computeResponsiveMinWidth(height, gutterValue)
-                : child.minWidth(height);
-        return snapSizeX(minWidth);
+    private double computeChildMinWidth(Node child, double height) {
+        return snapSizeX(child.minWidth(height));
     }
 
     private void updateActiveBreakpoint(double width) {
@@ -968,17 +967,9 @@ public class RXRow extends Pane {
         return value > 0 ? value : breakpointProfileOrDefault().getColumns();
     }
 
-    private double gutterOrDefault() {
+    private double snappedGutter() {
         double value = getGutter();
-        return Double.isFinite(value) ? value : DEFAULT_GUTTER;
-    }
-
-    private void requestColumnLayouts() {
-        for (Node child : getChildren()) {
-            if (child instanceof RXCol col) {
-                col.requestLayout();
-            }
-        }
+        return Double.isFinite(value) && value > 0.0 ? snapSpaceX(value) : DEFAULT_GUTTER;
     }
 
     private double rowGapOrDefault() {

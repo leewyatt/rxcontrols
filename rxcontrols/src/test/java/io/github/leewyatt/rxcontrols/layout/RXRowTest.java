@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.layout;
 
+import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
 import javafx.scene.layout.Region;
 import org.junit.jupiter.api.Test;
 
@@ -31,23 +33,177 @@ public class RXRowTest {
     }
 
     /**
-     * Verifies a finite negative gutter is preserved into the column's own layout
-     * (overlap) rather than being clamped to zero on the column side.
+     * Verifies a negative gutter is kept on the property but lays out and measures as zero.
      */
     @Test
-    public void negativeGutterIsNotClampedOnColumns() {
-        RXRow row = new RXRow();
-        RXCol col = new RXCol(fixedRegion(120.0, 10.0, 240.0, 20.0));
-        col.setXs(RXColSpec.of(24));
-        row.getChildren().add(col);
+    public void negativeGutterLaysOutAsZero() {
+        RXRow row = twoHalfColumns();
+        layout(row, 400.0, 40.0);
+        double zeroPref = row.prefWidth(-1.0);
+        double zeroMin = row.minWidth(-1.0);
+        double zeroSecondX = row.getChildren().get(1).getLayoutX();
 
-        row.setGutter(0.0);
-        double prefZeroGutter = row.prefWidth(-1.0);
         row.setGutter(-20.0);
-        double prefNegativeGutter = row.prefWidth(-1.0);
+        layout(row, 400.0, 40.0);
 
-        assertTrue(prefNegativeGutter < prefZeroGutter,
-                "negative gutter reaches column layout, not clamped to 0");
+        assertClose(-20.0, row.getGutter(), "gutter value is kept");
+        assertClose(zeroPref, row.prefWidth(-1.0), "pref width");
+        assertClose(zeroMin, row.minWidth(-1.0), "min width");
+        assertClose(zeroSecondX, row.getChildren().get(1).getLayoutX(), "second column x");
+    }
+
+    /**
+     * Verifies the outer columns sit flush with the content edges and adjacent columns
+     * are exactly one gutter apart.
+     */
+    @Test
+    public void outerColumnsAreFlushWithTheContentEdges() {
+        RXRow row = new RXRow();
+        row.setGutter(16.0);
+        row.setPadding(new Insets(0.0, 6.0, 0.0, 10.0));
+        for (int i = 0; i < 3; i++) {
+            RXCol col = new RXCol(fixedRegion(10.0, 10.0, 20.0, 20.0));
+            col.setSpan(8);
+            row.getChildren().add(col);
+        }
+        layout(row, 976.0, 40.0);
+
+        Region first = (Region) row.getChildren().get(0);
+        Region middle = (Region) row.getChildren().get(1);
+        Region last = (Region) row.getChildren().get(2);
+        assertClose(10.0, first.getLayoutX(), "first column x");
+        assertClose(970.0, last.getLayoutX() + last.getWidth(), "last column end");
+        assertClose(16.0, middle.getLayoutX() - (first.getLayoutX() + first.getWidth()), "first gutter");
+        assertClose(16.0, last.getLayoutX() - (middle.getLayoutX() + middle.getWidth()), "second gutter");
+        assertClose(first.getWidth(), last.getWidth(), "equal spans get equal widths");
+    }
+
+    /**
+     * Verifies a row nested in a column lines up with the outer row's columns on both
+     * edges instead of sitting a gutter further in.
+     */
+    @Test
+    public void nestedRowLinesUpWithTheOuterRow() {
+        Region nestedContent = fixedRegion(10.0, 10.0, 20.0, 20.0);
+        RXCol nestedCol = new RXCol(nestedContent);
+        RXRow nested = new RXRow(nestedCol);
+        nested.setGutter(16.0);
+        RXCol host = new RXCol(nested);
+        host.setSpan(16);
+        RXCol side = new RXCol(fixedRegion(10.0, 10.0, 20.0, 20.0));
+        side.setSpan(8);
+        Region belowContent = fixedRegion(10.0, 10.0, 20.0, 20.0);
+        RXCol below = new RXCol(belowContent);
+        below.setSpan(16);
+        RXRow outer = new RXRow(host, side, below);
+        outer.setGutter(16.0);
+        layout(outer, 960.0, 200.0);
+
+        Bounds inner = nestedContent.localToScene(nestedContent.getLayoutBounds());
+        Bounds reference = belowContent.localToScene(belowContent.getLayoutBounds());
+        assertClose(0.0, inner.getMinX(), "nested content left edge");
+        assertClose(reference.getMinX(), inner.getMinX(), "left edges line up");
+        assertClose(reference.getMaxX(), inner.getMaxX(), "right edges line up");
+    }
+
+    /**
+     * Verifies a plain node and a full-span column share the same content area and bounds.
+     */
+    @Test
+    public void plainNodeAndFullColumnShareTheContentArea() {
+        Region plain = fixedRegion(10.0, 10.0, 20.0, 20.0);
+        Region inColumn = fixedRegion(10.0, 10.0, 20.0, 20.0);
+        RXCol col = new RXCol(inColumn);
+        RXRow row = new RXRow(plain, col);
+        row.setGutter(16.0);
+        layout(row, 400.0, 100.0);
+
+        assertClose(plain.getLayoutX(), col.getLayoutX(), "node x");
+        assertClose(plain.getWidth(), col.getWidth(), "node width");
+        assertClose(plain.getLayoutX(), col.getLayoutX() + inColumn.getLayoutX(), "content x");
+        assertClose(plain.getWidth(), inColumn.getWidth(), "content width");
+    }
+
+    /**
+     * Verifies a column's bounds hold no gutter: its content fills it and a point in
+     * the gutter is outside it.
+     */
+    @Test
+    public void columnBoundsHoldNoGutter() {
+        Region content = fixedRegion(10.0, 10.0, 20.0, 20.0);
+        RXCol left = new RXCol(content);
+        left.setSpan(12);
+        RXCol right = new RXCol(fixedRegion(10.0, 10.0, 20.0, 20.0));
+        right.setSpan(12);
+        RXRow row = new RXRow(left, right);
+        row.setGutter(40.0);
+        layout(row, 440.0, 40.0);
+
+        assertClose(200.0, left.getWidth(), "column width");
+        assertClose(left.getWidth(), content.getWidth(), "content fills the column");
+        assertFalse(left.contains(left.getWidth() + 5.0, 5.0), "gutter point is outside the column");
+        assertClose(240.0, right.getLayoutX(), "second column x");
+    }
+
+    /**
+     * Verifies half-gutter row padding brings back an outer inset of half a gutter.
+     */
+    @Test
+    public void halfGutterPaddingRestoresTheOuterInset() {
+        RXRow row = twoHalfColumns();
+        row.setGutter(16.0);
+        row.setPadding(new Insets(0.0, 8.0, 0.0, 8.0));
+        layout(row, 400.0, 40.0);
+
+        Region first = (Region) row.getChildren().get(0);
+        Region last = (Region) row.getChildren().get(1);
+        assertClose(8.0, first.getLayoutX(), "leading inset");
+        assertClose(392.0, last.getLayoutX() + last.getWidth(), "trailing inset");
+    }
+
+    /**
+     * Verifies min and preferred widths leave each column its size plus one gutter per
+     * column boundary, and an empty or fully hidden row measures zero.
+     */
+    @Test
+    public void widthsAccountForTheGutterBetweenColumns() {
+        RXRow row = twoHalfColumns();
+        row.setGutter(16.0);
+        // (child + gutter) * 24 / 12 - gutter
+        assertClose(2.0 * (50.0 + 16.0) - 16.0, row.minWidth(-1.0), "min width");
+        assertClose(2.0 * (80.0 + 16.0) - 16.0, row.prefWidth(-1.0), "pref width");
+
+        RXRow empty = new RXRow();
+        empty.setGutter(16.0);
+        assertClose(0.0, empty.prefWidth(-1.0), "empty pref width");
+        assertClose(0.0, empty.minWidth(-1.0), "empty min width");
+
+        RXCol hidden = new RXCol(fixedRegion(50.0, 10.0, 80.0, 20.0));
+        hidden.setHidden(true);
+        RXRow allHidden = new RXRow(hidden);
+        allHidden.setGutter(16.0);
+        assertClose(0.0, allHidden.prefWidth(-1.0), "hidden pref width");
+    }
+
+    /**
+     * Verifies size overrides set on a column take part in the row's measurement.
+     */
+    @Test
+    public void columnSizeOverridesReachTheRow() {
+        RXCol col = new RXCol(fixedRegion(10.0, 10.0, 20.0, 30.0));
+        col.setMinWidth(200.0);
+        col.setPrefWidth(250.0);
+        col.setPrefHeight(300.0);
+        RXCol next = new RXCol(fixedRegion(10.0, 10.0, 20.0, 30.0));
+        RXRow row = new RXRow(col, next);
+
+        assertClose(200.0, row.minWidth(-1.0), "min width");
+        assertClose(250.0, row.prefWidth(-1.0), "pref width");
+
+        layout(row, 400.0, 1000.0);
+        assertClose(300.0, col.getHeight(), "column height");
+        assertClose(300.0, next.getLayoutY(), "next line y");
+        assertClose(330.0, row.prefHeight(400.0), "row pref height");
     }
 
     /**
@@ -173,6 +329,16 @@ public class RXRowTest {
 
         layout(row, 1000.0, 40.0);
         assertTrue(col.isVisible(), "shown at lg");
+    }
+
+    private RXRow twoHalfColumns() {
+        RXRow row = new RXRow();
+        for (int i = 0; i < 2; i++) {
+            RXCol col = new RXCol(fixedRegion(50.0, 10.0, 80.0, 20.0));
+            col.setSpan(12);
+            row.getChildren().add(col);
+        }
+        return row;
     }
 
     private FixedRegion fixedRegion(double minWidth, double minHeight,

@@ -34,7 +34,9 @@ import java.util.List;
  * grid convention. It is not a vertical stacking
  * box; for that, use {@link RXBox} in vertical orientation. As a
  * {@link StackPane} it lays its own children on top of each other and occupies a
- * {@link #spanProperty() span} of the row's columns.</p>
+ * {@link #spanProperty() span} of the row's columns. The row's
+ * {@link RXRow#gutterProperty() gutter} lies between columns, never inside one, so a
+ * column's bounds, background and mouse area cover only its own slot.</p>
  *
  * <p>The base {@link #spanProperty() span} and {@link #offsetProperty() offset}
  * are used until a responsive {@link RXColSpec} for the active row breakpoint
@@ -514,9 +516,8 @@ public class RXCol extends StackPane {
         HPos alignHpos = align.getHpos();
         VPos alignVpos = align.getVpos();
         Insets insets = getInsets();
-        double halfGutter = halfGutterSpace(resolveEffectiveGutter());
-        double left = insets.getLeft() + halfGutter;
-        double right = insets.getRight() + halfGutter;
+        double left = insets.getLeft();
+        double right = insets.getRight();
         double top = insets.getTop();
         double bottom = insets.getBottom();
         double contentWidth = Math.max(0.0, getWidth() - left - right);
@@ -531,27 +532,11 @@ public class RXCol extends StackPane {
         }
     }
 
+    // The measurements subtract the insets (and each child's margin) before asking a
+    // child for its size, so a column is measured at the width it lays its content out
+    // at; StackPane.computeMinHeight passes the full width through.
     @Override
     protected double computeMinWidth(double height) {
-        return computeResponsiveMinWidth(height, resolveEffectiveGutter());
-    }
-
-    @Override
-    protected double computeMinHeight(double width) {
-        return computeResponsiveMinHeight(width, resolveEffectiveGutter());
-    }
-
-    @Override
-    protected double computePrefWidth(double height) {
-        return computeResponsivePrefWidth(height, resolveEffectiveGutter());
-    }
-
-    @Override
-    protected double computePrefHeight(double width) {
-        return computeResponsivePrefHeight(width, resolveEffectiveGutter());
-    }
-
-    double computeResponsiveMinWidth(double height, double gutter) {
         Insets insets = getInsets();
         double contentHeight = height == -1.0 ? -1.0
                 : Math.max(0.0, height - insets.getTop() - insets.getBottom());
@@ -564,15 +549,14 @@ public class RXCol extends StackPane {
             maxWidth = Math.max(maxWidth, snapSpaceX(margin.getLeft())
                     + childWidth + snapSpaceX(margin.getRight()));
         }
-        return insets.getLeft() + snapSizeX(maxWidth)
-                + gutterSpace(gutter) + insets.getRight();
+        return insets.getLeft() + snapSizeX(maxWidth) + insets.getRight();
     }
 
-    double computeResponsiveMinHeight(double width, double gutter) {
+    @Override
+    protected double computeMinHeight(double width) {
         Insets insets = getInsets();
         double contentWidth = width == -1.0 ? -1.0
-                : Math.max(0.0, width - insets.getLeft() - insets.getRight()
-                                - gutterSpace(gutter));
+                : Math.max(0.0, width - insets.getLeft() - insets.getRight());
         double maxHeight = 0.0;
         for (Node child : getManagedChildren()) {
             Insets margin = marginOrEmpty(child);
@@ -585,7 +569,8 @@ public class RXCol extends StackPane {
         return insets.getTop() + snapSizeY(maxHeight) + insets.getBottom();
     }
 
-    double computeResponsivePrefWidth(double height, double gutter) {
+    @Override
+    protected double computePrefWidth(double height) {
         Insets insets = getInsets();
         double contentHeight = height == -1.0 ? -1.0
                 : Math.max(0.0, height - insets.getTop() - insets.getBottom());
@@ -598,15 +583,14 @@ public class RXCol extends StackPane {
             maxWidth = Math.max(maxWidth, snapSpaceX(margin.getLeft())
                     + childWidth + snapSpaceX(margin.getRight()));
         }
-        return insets.getLeft() + snapSizeX(maxWidth)
-                + gutterSpace(gutter) + insets.getRight();
+        return insets.getLeft() + snapSizeX(maxWidth) + insets.getRight();
     }
 
-    double computeResponsivePrefHeight(double width, double gutter) {
+    @Override
+    protected double computePrefHeight(double width) {
         Insets insets = getInsets();
         double contentWidth = width == -1.0 ? -1.0
-                : Math.max(0.0, width - insets.getLeft() - insets.getRight()
-                                - gutterSpace(gutter));
+                : Math.max(0.0, width - insets.getLeft() - insets.getRight());
         double maxHeight = 0.0;
         for (Node child : getManagedChildren()) {
             Insets margin = marginOrEmpty(child);
@@ -648,14 +632,6 @@ public class RXCol extends StackPane {
         }
     }
 
-    private double resolveEffectiveGutter() {
-        Parent parent = getParent();
-        if (parent instanceof RXRow row) {
-            return normalizeGutter(row.getGutter());
-        }
-        return 0.0;
-    }
-
     private double boundedPrefWidth(Node child, double height) {
         double prefWidth = child.prefWidth(height);
         if (!child.isResizable()) {
@@ -675,20 +651,6 @@ public class RXCol extends StackPane {
     private static Insets marginOrEmpty(Node child) {
         Insets margin = StackPane.getMargin(child);
         return margin == null ? Insets.EMPTY : margin;
-    }
-
-    // Each side of the column keeps half the gutter on the pixel grid; measuring with the
-    // same two halves keeps the measured content width equal to the laid-out one.
-    private double halfGutterSpace(double gutter) {
-        return snapSpaceX(normalizeGutter(gutter) / 2.0);
-    }
-
-    private double gutterSpace(double gutter) {
-        return 2.0 * halfGutterSpace(gutter);
-    }
-
-    private static double normalizeGutter(double value) {
-        return Double.isFinite(value) ? value : RXRow.DEFAULT_GUTTER;
     }
 
     // ==================== CSS Metadata ====================
