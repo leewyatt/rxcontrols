@@ -26,6 +26,7 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.LIME
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.ORANGE;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.PINK;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.ROSE;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.SKY;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.TEAL;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.VIOLET;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.fixedWidth;
@@ -59,7 +60,7 @@ public final class RXBorderBeamSamples {
                         "It carries no meaning of its own: for progress or validation use an indicator instead."),
                 List.of(
                         SampleCard.wide("Highlighted plan",
-                                "Two beams in a violet-to-pink gradient, lineWidth 2, mark the recommended plan; the corners follow the card's own radius, and an RXRibbonBadge tags it.",
+                                "The recommended plan stays highlighted; Starter and Business run their own gradient beams on hover.",
                                 plans()),
                         SampleCard.medium("Running job",
                                 "Three fast beams with a 2 second cycleDuration run only while the switch is on.",
@@ -79,26 +80,39 @@ public final class RXBorderBeamSamples {
     // ==================== Highlighted plan ====================
 
     private static Node plans() {
-        Node pro = plan("Pro", "$12", "For growing teams", "violet",
-                List.of("Unlimited projects", "Shared calendars", "Priority support"), true);
-        RXBorderBeam beam = new RXBorderBeam(pro);
-        beam.setBeamFill(gradient(VIOLET, PINK));
-        beam.setBeamCount(2);
-        beam.setLineWidth(2.0);
-        beam.setBeamSize(140.0);
+        RXBorderBeam starter = planBeam(
+                plan("Starter", "$0", "For trying things out", "sky",
+                        List.of("3 projects", "Personal calendar", "Community help"), false),
+                gradient(SKY, TEAL));
+        starter.activeProperty().bind(starter.hoverProperty());
+
+        RXBorderBeam pro = planBeam(
+                plan("Pro", "$12", "For growing teams", "violet",
+                        List.of("Unlimited projects", "Shared calendars", "Priority support"), true),
+                gradient(VIOLET, PINK));
         // The ribbon lies over the card instead of in it, so the three plans line up inside.
-        RXRibbonBadge recommended = new RXRibbonBadge(beam, "Hot");
+        RXRibbonBadge recommended = new RXRibbonBadge(pro, "Hot");
         recommended.setRibbonOffset(15);
         recommended.getStyleClass().add("recommended");
 
-        HBox row = new HBox(14.0,
-                plan("Starter", "$0", "For trying things out", "sky",
-                        List.of("3 projects", "Personal calendar", "Community help"), false),
-                recommended,
+        RXBorderBeam business = planBeam(
                 plan("Business", "$29", "For whole companies", "teal",
-                        List.of("Everything in Pro", "Single sign-on", "Audit log"), false));
+                        List.of("Everything in Pro", "Single sign-on", "Audit log"), false),
+                gradient(TEAL, LIME));
+        business.activeProperty().bind(business.hoverProperty());
+
+        HBox row = new HBox(14.0, starter, recommended, business);
         row.setAlignment(Pos.CENTER);
         return row;
+    }
+
+    private static RXBorderBeam planBeam(Node content, Paint fill) {
+        RXBorderBeam beam = new RXBorderBeam(content);
+        beam.setBeamFill(fill);
+        beam.setBeamCount(2);
+        beam.setLineWidth(2.0);
+        beam.setBeamSize(140.0);
+        return beam;
     }
 
     private static Node plan(String name, String price, String audience, String color, List<String> features,
