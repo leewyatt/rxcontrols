@@ -221,8 +221,10 @@ public class RXTaskButton extends RXButton {
 
     static {
         // The skin is in another package and has to know what an activation
-        // would do; the answer depends on a private timer.
+        // would do and when it turns into a cancel; both depend on a private
+        // timer.
         TaskButtonAccess.setActivationProbe(RXTaskButton::activation);
+        TaskButtonAccess.setCancelReadyProbe(button -> button.cancelReady.getReadOnlyProperty());
     }
 
     private static final PseudoClass RUNNING_PSEUDO_CLASS = PseudoClass.getPseudoClass("running");
@@ -601,6 +603,8 @@ public class RXTaskButton extends RXButton {
     }
 
     private void pendingMinElapsed() {
+        // The timer has stopped, so an activation may cancel from now on.
+        updateCancelReady();
         State outcome = deferredOutcome;
         if (outcome == null) {
             return;
@@ -744,12 +748,22 @@ public class RXTaskButton extends RXButton {
                 && pendingMinTimer.getStatus() != Animation.Status.RUNNING;
     }
 
+    // isActivationCancelling() as a property, for the skin, which shows the
+    // stop mark exactly while it holds. Updated by everything it reads: the
+    // cancellable, running and state properties, and the end of the timer.
+    private final ReadOnlyBooleanWrapper cancelReady = new ReadOnlyBooleanWrapper(this, "cancelReady");
+
+    private void updateCancelReady() {
+        cancelReady.set(isActivationCancelling());
+    }
+
     // ==================== Running ====================
 
     private final ReadOnlyBooleanWrapper running = new ReadOnlyBooleanWrapper(this, "running") {
         @Override
         protected void invalidated() {
             pseudoClassStateChanged(RUNNING_PSEUDO_CLASS, get());
+            updateCancelReady();
         }
     };
 
@@ -787,6 +801,7 @@ public class RXTaskButton extends RXButton {
             pseudoClassStateChanged(PENDING_PSEUDO_CLASS, current == State.PENDING);
             pseudoClassStateChanged(SUCCEEDED_PSEUDO_CLASS, current == State.SUCCEEDED);
             pseudoClassStateChanged(FAILED_PSEUDO_CLASS, current == State.FAILED);
+            updateCancelReady();
         }
     };
 
@@ -1327,7 +1342,12 @@ public class RXTaskButton extends RXButton {
 
     // ==================== Cancellable ====================
 
-    private final BooleanProperty cancellable = new SimpleBooleanProperty(this, "cancellable");
+    private final BooleanProperty cancellable = new SimpleBooleanProperty(this, "cancellable") {
+        @Override
+        protected void invalidated() {
+            updateCancelReady();
+        }
+    };
 
     /**
      * Whether activating the button cancels the run in flight. The default
@@ -1344,10 +1364,12 @@ public class RXTaskButton extends RXButton {
      * {@link #cancel()} itself works at any time, whatever this property
      * says.
      *
-     * <p>While this is {@code true}, the built-in ring of the pending face
-     * shows a stop mark, a small square at its centre, so the user can tell
-     * that the work can be stopped. The mark shows whenever the ring does,
-     * including the moments when activations are still swallowed. It is red
+     * <p>While an activation would cancel the run, the built-in ring of the
+     * pending face shows a stop mark, a small square at its centre, so the
+     * user can tell that a click now stops the work. The mark appears once
+     * the pending face has shown for the {@code pendingMinDuration}, and goes
+     * as soon as an activation would not cancel any more: when the run ends
+     * or is cancelled, or when this property turns {@code false}. It is red
      * ({@code -rx-danger}), and the text color on a filled button; from CSS
      * it is {@code .pending-face > .indicator > .stop}. A custom
      * {@link #pendingIndicatorProperty() pendingIndicator} gets no mark: an

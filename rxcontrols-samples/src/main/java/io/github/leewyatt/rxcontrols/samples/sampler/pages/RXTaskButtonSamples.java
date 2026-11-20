@@ -82,9 +82,9 @@ public final class RXTaskButtonSamples {
                                         + " face starts the work again.",
                                 retry()),
                         SampleCard.medium("Cancellable",
-                                "Both downloads take five seconds. Only the first can be cancelled: its ring"
-                                        + " carries a stop mark, and a click stops the run once the ring has"
-                                        + " shown for a moment. The second ignores clicks until it is done.",
+                                "Both downloads take five seconds. Only the first can be cancelled: once its"
+                                        + " ring has shown for a moment, a stop mark appears in it, and a click"
+                                        + " then stops the run. The second ignores clicks until it is done.",
                                 cancellable()),
                         SampleCard.medium("Pending state only",
                                 "With both result durations at zero the button only shows the ring, and a"

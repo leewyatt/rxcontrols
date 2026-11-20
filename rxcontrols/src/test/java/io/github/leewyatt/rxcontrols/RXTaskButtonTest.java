@@ -2,8 +2,10 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.RXTaskButton.Run;
 import io.github.leewyatt.rxcontrols.RXTaskButton.State;
+import io.github.leewyatt.rxcontrols.internal.TaskButtonAccess;
 import io.github.leewyatt.rxcontrols.skins.RXTaskButtonSkin;
 import javafx.application.Platform;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
@@ -932,6 +934,78 @@ public class RXTaskButtonTest {
             assertEquals(1, actions.get());
             assertTrue(button.isRunning());
             assertEquals(State.PENDING, button.getState());
+        });
+    }
+
+    @Test
+    public void cancelReadinessFollowsWhatAnActivationWouldDo() throws InterruptedException {
+        AtomicReference<RXTaskButton> ref = new AtomicReference<>();
+        onFx(() -> {
+            RXTaskButton button = button(Duration.ZERO, Duration.millis(150.0));
+            button.setCancellable(true);
+            ref.set(button);
+            ReadOnlyBooleanProperty ready = TaskButtonAccess.cancelReadyOf(button);
+            assertFalse(ready.get());
+
+            // The pending face is up, but still protected.
+            button.start();
+            assertEquals(State.PENDING, button.getState());
+            assertFalse(ready.get());
+        });
+        Thread.sleep(500L);
+        onFx(() -> {
+            RXTaskButton button = ref.get();
+            ReadOnlyBooleanProperty ready = TaskButtonAccess.cancelReadyOf(button);
+            assertTrue(ready.get());
+
+            button.setCancellable(false);
+            assertFalse(ready.get());
+            button.setCancellable(true);
+            assertTrue(ready.get());
+
+            // A run started on the pending face keeps the protection that has run out.
+            button.start();
+            assertTrue(ready.get());
+
+            button.cancel();
+            assertFalse(ready.get());
+        });
+    }
+
+    @Test
+    public void outcomeHeldBehindThePendingFaceNeverMakesTheButtonCancelReady() throws InterruptedException {
+        AtomicReference<RXTaskButton> ref = new AtomicReference<>();
+        AtomicReference<List<Boolean>> seen = new AtomicReference<>();
+        onFx(() -> {
+            RXTaskButton button = button(Duration.ZERO, Duration.millis(150.0));
+            button.setCancellable(true);
+            button.setSucceededDuration(Duration.INDEFINITE);
+            ref.set(button);
+            List<Boolean> values = new ArrayList<>();
+            TaskButtonAccess.cancelReadyOf(button).addListener((obs, was, is) -> values.add(is));
+            seen.set(values);
+
+            button.start().succeed();
+        });
+        Thread.sleep(500L);
+        onFx(() -> {
+            assertEquals(State.SUCCEEDED, ref.get().getState());
+            assertEquals(List.of(), seen.get());
+        });
+    }
+
+    @Test
+    public void withoutAMinimumThePendingFaceIsCancelReadyAtOnce() throws InterruptedException {
+        onFx(() -> {
+            RXTaskButton button = button(Duration.ZERO, Duration.ZERO);
+            button.setCancellable(true);
+            ReadOnlyBooleanProperty ready = TaskButtonAccess.cancelReadyOf(button);
+
+            Run run = button.start();
+            assertTrue(ready.get());
+
+            run.fail();
+            assertFalse(ready.get());
         });
     }
 
