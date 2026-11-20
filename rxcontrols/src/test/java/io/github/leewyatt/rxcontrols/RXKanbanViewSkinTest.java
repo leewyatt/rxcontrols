@@ -249,6 +249,111 @@ public class RXKanbanViewSkinTest {
         });
     }
 
+    /**
+     * The card area keeps the same gap above (below the header) and below (above the
+     * column bottom, or the footer when there is one): an overflowing column scrolled
+     * to the end leaves its last card that gap above the bottom edge, not flush.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void cardAreaGapIsSymmetricWithAndWithoutFooter() throws Exception {
+        onFx(() -> {
+            for (boolean withFooter : new boolean[]{false, true}) {
+                for (int cardCount : new int[]{2, 30}) {
+                    String scenario = (withFooter ? "footer" : "no footer") + ", " + cardCount + " cards";
+                    RXKanbanView<String> board = board("A", cardCount);
+                    board.setPrefCardHeight(76);
+                    board.setCardSpacing(8);
+                    if (withFooter) {
+                        board.setColumnFooterFactory(column -> new Label("footer"));
+                    }
+                    pump(host(board, 400, 400));
+
+                    Region column = (Region) board.lookup(".column");
+                    Region header = (Region) column.lookup(".column > .header");
+                    Region content = (Region) column.lookup(".column > .content");
+                    Region footer = withFooter ? (Region) column.lookup(".column > .footer") : null;
+                    double contentTop = content.getLayoutY();
+                    double contentBottom = contentTop + content.getHeight();
+                    double topGap = contentTop - (header.getLayoutY() + header.getHeight());
+                    double bottomEdge = footer != null ? footer.getLayoutY() : column.getHeight();
+                    double bottomGap = bottomEdge - contentBottom;
+                    assertTrue(topGap > 0.0, scenario + ": gap below the header (was " + topGap + ")");
+                    assertEquals(topGap, bottomGap, 0.5, scenario + ": gap above the bottom edge matches the top gap");
+
+                    RXKanbanCardCell<?> first = cellByText(board, "card-0");
+                    assertEquals(contentTop, contentTop + first.getLayoutY(), 0.5,
+                            scenario + ": first card starts at the card-area top");
+
+                    for (Node node : content.lookupAll(".scroll-bar")) {
+                        if (node instanceof ScrollBar bar && bar.isVisible()) {
+                            bar.setValue(bar.getMax());
+                        }
+                    }
+                    pump(board);
+                    RXKanbanCardCell<?> last = cellByText(board, "card-" + (cardCount - 1));
+                    assertNotNull(last, scenario + ": last card realized after scrolling to the end");
+                    double lastBottom = contentTop + last.getLayoutY() + last.getHeight();
+                    double stackHeight = cardCount * 84.0 - 8.0;
+                    boolean overflows = stackHeight > content.getHeight();
+                    double expectedLastBottom = overflows ? contentBottom : contentTop + stackHeight;
+                    assertEquals(expectedLastBottom, lastBottom, 0.5,
+                            scenario + ": last card bottom (scrolled to the end)");
+                    assertTrue(bottomEdge - lastBottom >= topGap - 0.5,
+                            scenario + ": last card keeps at least the gap above the bottom edge");
+                }
+            }
+        });
+    }
+
+    /**
+     * columnContentPadding places the content area per side, applies on a live change without
+     * any resize, is settable from CSS, and resolves null / negative / non-finite
+     * values leniently at layout time.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void columnContentPaddingPlacesContentPerSide() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 2);
+            StackPane root = host(board, 400, 400);
+            pump(root);
+            Region column = (Region) board.lookup(".column");
+            Region header = (Region) column.lookup(".column > .header");
+            Region content = (Region) column.lookup(".column > .content");
+
+            board.setColumnContentPadding(new Insets(3, 11, 7, 5));
+            pump(root);
+            assertContentArea(column, header, content, 3, 11, 7, 5, "explicit per-side padding");
+
+            board.setColumnContentPadding(null);
+            pump(root);
+            assertContentArea(column, header, content, 6, 6, 6, 6, "null falls back to the default");
+
+            board.setColumnContentPadding(new Insets(-4, Double.NaN, 10, -1));
+            pump(root);
+            assertContentArea(column, header, content, 0, 0, 10, 0, "negative / non-finite sides resolve to 0");
+
+            board.setColumnContentPadding(new Insets(6));
+            board.setStyle("-rx-column-content-padding: 2 4 8 12;");
+            pump(root);
+            assertEquals(new Insets(2, 4, 8, 12), board.getColumnContentPadding(), "CSS sets the property");
+            assertContentArea(column, header, content, 2, 4, 8, 12, "CSS padding lays out the content area");
+        });
+    }
+
+    private static void assertContentArea(Region column, Region header, Region content,
+                                       double top, double right, double bottom, double left, String message) {
+        double headerBottom = header.getLayoutY() + header.getHeight();
+        assertEquals(top, content.getLayoutY() - headerBottom, 0.5, message + ": top");
+        assertEquals(bottom, column.getHeight() - content.getLayoutY() - content.getHeight(), 0.5,
+                message + ": bottom");
+        assertEquals(left, content.getLayoutX(), 0.5, message + ": left");
+        assertEquals(right, column.getWidth() - content.getLayoutX() - content.getWidth(), 0.5, message + ": right");
+    }
+
     @Test
     public void illegalCardHeightFallsBackToDefault() throws Exception {
         onFx(() -> {

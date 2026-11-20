@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -182,6 +183,12 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
         cardHeight.valueProperty().addListener((o, ov, v) -> kanban.setPrefCardHeight(v.doubleValue()));
         Slider cardSpacing = createSlider(0.0, 24.0, kanban.getCardSpacing());
         cardSpacing.valueProperty().addListener((o, ov, v) -> kanban.setCardSpacing(v.doubleValue()));
+        // Uniform here for brevity; the property (and -rx-column-content-padding) takes four sides.
+        // A null padding renders the 6px default.
+        Insets initialPadding = kanban.getColumnContentPadding();
+        Slider columnContentPadding = createSlider(0.0, 24.0, initialPadding == null ? 6.0 : initialPadding.getTop());
+        columnContentPadding.valueProperty().addListener(
+                (o, ov, v) -> kanban.setColumnContentPadding(new Insets(v.doubleValue())));
         return createGrid(
                 row("Column justify", justify),
                 row("Column width", columnWidth, createValueLabel(columnWidth, "%.0f px")),
@@ -189,7 +196,8 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
                 row("Max column width", maxWidth, sizeOrAutoLabel(maxWidth)),
                 row("Column spacing", columnSpacing, createValueLabel(columnSpacing, "%.0f px")),
                 row("Card height", cardHeight, createValueLabel(cardHeight, "%.0f px")),
-                row("Card spacing", cardSpacing, createValueLabel(cardSpacing, "%.0f px")));
+                row("Card spacing", cardSpacing, createValueLabel(cardSpacing, "%.0f px")),
+                row("Column content padding", columnContentPadding, createValueLabel(columnContentPadding, "%.0f px")));
     }
 
     // A value label that renders a negative slider value (USE_COMPUTED_SIZE) as "auto"

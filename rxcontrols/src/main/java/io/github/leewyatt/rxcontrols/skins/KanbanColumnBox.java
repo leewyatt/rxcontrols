@@ -37,11 +37,6 @@ final class KanbanColumnBox<T> extends Region {
     private static final PseudoClass OVER_LIMIT_PSEUDO_CLASS = PseudoClass.getPseudoClass("over-limit");
     private static final PseudoClass DRAGGING_PSEUDO_CLASS = PseudoClass.getPseudoClass("dragging");
 
-    // Horizontal breathing room and header/footer gap for the card area so cards do
-    // not butt against the column edges (the column itself carries no side padding).
-    private static final double CARD_AREA_HGAP = 6.0;
-    private static final double CARD_AREA_VGAP = 6.0;
-
     private final RXKanbanView<T> control;
     private final RXKanbanColumn<T> column;
     private final KanbanColumnViewport<T> viewport;
@@ -311,10 +306,15 @@ final class KanbanColumnBox<T> extends Region {
             headerNode.resizeRelocate(snapPositionX(left), snapPositionY(top), innerW, headerH);
         }
 
-        double cardsX = left + CARD_AREA_HGAP;
-        double cardsW = Math.max(0.0, innerW - 2.0 * CARD_AREA_HGAP);
-        double cardsTop = top + headerH + CARD_AREA_VGAP;
-        double cardsH = Math.max(0.0, innerH - headerH - footerH - CARD_AREA_VGAP);
+        // The content area sits inside the column chrome (between header and footer) by
+        // the board's columnContentPadding; the column itself carries no padding, so the
+        // header and footer span the full column width.
+        Insets contentPad = RXKanbanViewSkin.columnContentPaddingOrDefault(control);
+        double cardsX = left + snapSpaceX(contentPad.getLeft());
+        double cardsW = Math.max(0.0, innerW - snapSpaceX(contentPad.getLeft()) - snapSpaceX(contentPad.getRight()));
+        double cardsTop = top + headerH + snapSpaceY(contentPad.getTop());
+        double cardsH = Math.max(0.0,
+                innerH - headerH - footerH - snapSpaceY(contentPad.getTop()) - snapSpaceY(contentPad.getBottom()));
         viewport.resizeRelocate(snapPositionX(cardsX), snapPositionY(cardsTop), cardsW, cardsH);
         if (placeholderNode != null) {
             boolean placeholderVisible = cardAreaVisible && column.getCardCount() == 0;
