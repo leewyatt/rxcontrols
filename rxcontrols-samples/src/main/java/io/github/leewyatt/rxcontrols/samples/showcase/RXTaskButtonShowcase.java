@@ -15,7 +15,9 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimSqueeze;
 import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -27,6 +29,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.Separator;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
@@ -44,24 +47,26 @@ import java.util.function.Supplier;
 /**
  * Showcase application for {@link RXTaskButton}.
  *
- * <p>Clicking the button starts a run. The run ends on its own after the work
- * time, or waits for the control pane: Succeed and Fail report through the
- * handle of the newest run, Cancel and Reset call the button. The preview shows
+ * <p>Clicking the button starts a run, which succeeds or fails after the work
+ * time; Cancel and Reset in the control pane call the button. The preview shows
  * {@code running} and {@code state} as they change, and how often
- * {@code onAction} fired. The control pane covers the four durations including zero and indefinite, the
- * progress, {@code cancellable}, the text of every face, the pending indicator,
- * the swap animation, the disabled state and right-to-left orientation.</p>
+ * {@code onAction} fired. The control pane covers the four durations including
+ * zero and indefinite, {@code cancellable}, the text of every face, the pending
+ * indicator, the swap animation, the disabled state and right-to-left
+ * orientation.</p>
+ *
+ * <p>Two more buttons run on their own, untouched by the control pane: one
+ * reports its progress, which the ring draws, the other always fails.</p>
  */
 public class RXTaskButtonShowcase extends RXShowcaseApplication {
 
-    private static final String MANUAL = "Waits for the buttons below";
     private static final String SUCCEEDS = "Succeeds after the work time";
     private static final String FAILS = "Fails after the work time";
     private static final String BUILT_IN_RING = "Ring (built in)";
     private static final String START_ANIMATION = "Slide (vertical)";
+    private static final double HINT_MAX_WIDTH = 340.0;
 
     private RXTaskButton button;
-    private RXTaskButton.Run run;
     private final ComboBox<String> outcomeBox = new ComboBox<>();
     private Slider workSlider;
     private final Label firedLabel = new Label("onAction fired 0x");
@@ -114,9 +119,9 @@ public class RXTaskButtonShowcase extends RXShowcaseApplication {
                 + " pending delay and the pending minimum.");
         hint.getStyleClass().add("hint-label");
         hint.setWrapText(true);
-        hint.setMaxWidth(340.0);
+        hint.setMaxWidth(HINT_MAX_WIDTH);
 
-        VBox preview = new VBox(18.0, button, status, hint);
+        VBox preview = new VBox(18.0, button, status, hint, new Separator(), createFixedRuns());
         preview.getStyleClass().add("live-preview");
         preview.setAlignment(Pos.CENTER);
         return preview;
@@ -126,7 +131,6 @@ public class RXTaskButtonShowcase extends RXShowcaseApplication {
     protected List<Section> createSections() {
         return List.of(
                 section("Run", buildRunGrid()),
-                section("Progress", buildProgressGrid()),
                 section("Timing", buildTimingGrid()),
                 section("Faces", buildFacesGrid()),
                 section("Swap animation", buildAnimationGrid()),
@@ -137,11 +141,7 @@ public class RXTaskButtonShowcase extends RXShowcaseApplication {
 
     private void startRun() {
         RXTaskButton.Run started = button.start();
-        run = started;
         String outcome = outcomeBox.getValue();
-        if (MANUAL.equals(outcome)) {
-            return;
-        }
         // Each run keeps its own handle: a timer that outlives its run reports
         // into a handle that no longer does anything.
         PauseTransition work = new PauseTransition(Duration.millis(workSlider.getValue()));
@@ -156,26 +156,13 @@ public class RXTaskButtonShowcase extends RXShowcaseApplication {
     }
 
     private Node buildRunGrid() {
-        outcomeBox.getItems().setAll(SUCCEEDS, FAILS, MANUAL);
+        outcomeBox.getItems().setAll(SUCCEEDS, FAILS);
         outcomeBox.setValue(SUCCEEDS);
         outcomeBox.setMaxWidth(Double.MAX_VALUE);
 
         workSlider = createSlider(0.0, 5000.0, 1500.0);
         Label workValue = createValueLabel(workSlider, "%.0f ms");
-        workSlider.disableProperty().bind(outcomeBox.valueProperty().isEqualTo(MANUAL));
 
-        Button succeedButton = new Button("Succeed");
-        succeedButton.setOnAction(event -> {
-            if (run != null) {
-                run.succeed();
-            }
-        });
-        Button failButton = new Button("Fail");
-        failButton.setOnAction(event -> {
-            if (run != null) {
-                run.fail();
-            }
-        });
         Button cancelButton = new Button("Cancel");
         cancelButton.setOnAction(event -> button.cancel());
         Button resetButton = new Button("Reset");
@@ -188,12 +175,10 @@ public class RXTaskButtonShowcase extends RXShowcaseApplication {
         return createGrid(
                 row("A run", outcomeBox),
                 row("Work time", workSlider, workValue),
-                row("Newest run", sideBySide(succeedButton, failButton)),
                 row("Button", sideBySide(cancelButton, resetButton)),
                 row("Program", fireButton));
     }
 
-    // Two to a row: four in one row do not fit the control pane under every theme.
     private static Node sideBySide(Button first, Button second) {
         first.setMaxWidth(Double.MAX_VALUE);
         second.setMaxWidth(Double.MAX_VALUE);
@@ -202,29 +187,69 @@ public class RXTaskButtonShowcase extends RXShowcaseApplication {
         return new HBox(8.0, first, second);
     }
 
-    // ==================== Progress ====================
+    // ==================== Fixed runs ====================
 
-    private Node buildProgressGrid() {
-        Slider progressSlider = createSlider(0.0, 1.0, 0.0);
-        progressSlider.valueProperty().addListener((obs, oldV, newV) ->
-                button.setProgress(newV.doubleValue()));
-        // Shows the property, not the slider: starting a run makes it indeterminate again.
-        Label progressValue = new Label();
-        progressValue.getStyleClass().add("value-label");
-        progressValue.setMinWidth(VALUE_LABEL_MIN_WIDTH);
-        progressValue.setAlignment(Pos.CENTER_RIGHT);
-        progressValue.textProperty().bind(Bindings.createStringBinding(() -> {
-            double progress = button.getProgress();
-            return progress >= 0.0 ? String.format("%.0f%%", Math.min(progress, 1.0) * 100.0) : "none";
-        }, button.progressProperty()));
+    // Progress and a certain failure come from the work, not from a setting,
+    // so each has a button of its own instead of an entry in the control pane.
+    private static Node createFixedRuns() {
+        Label note = new Label("These two run on their own. The control pane does not change them.");
+        note.getStyleClass().add("hint-label");
+        note.setWrapText(true);
+        note.setMaxWidth(HINT_MAX_WIDTH);
 
-        Button indeterminateButton = new Button("Indeterminate");
-        indeterminateButton.setMaxWidth(Double.MAX_VALUE);
-        indeterminateButton.setOnAction(event -> button.setProgress(-1.0));
+        HBox buttons = new HBox(32.0,
+                captioned(createUploadButton(), "Reports its progress"),
+                captioned(createSyncButton(), "Always fails"));
+        buttons.setAlignment(Pos.TOP_CENTER);
 
-        return createGrid(
-                row("Progress", progressSlider, progressValue),
-                row("Unknown", indeterminateButton));
+        VBox fixedRuns = new VBox(12.0, note, buttons);
+        fixedRuns.setAlignment(Pos.CENTER);
+        return fixedRuns;
+    }
+
+    private static Node captioned(RXTaskButton taskButton, String caption) {
+        Label label = new Label(caption);
+        label.getStyleClass().add("hint-label");
+        VBox box = new VBox(6.0, taskButton, label);
+        box.setAlignment(Pos.TOP_CENTER);
+        return box;
+    }
+
+    private static RXTaskButton createUploadButton() {
+        RXTaskButton upload = new RXTaskButton("Upload");
+        upload.setPendingText("Uploading…");
+        upload.setSucceededText("Uploaded");
+        upload.setOnAction(event -> {
+            RXTaskButton.Run started = upload.start();
+            started.updateProgress(0.0);
+            final int chunks = 12;
+            final double chunkMillis = 250.0;
+            Timeline work = new Timeline();
+            for (int chunk = 1; chunk <= chunks; chunk++) {
+                double done = (double) chunk / chunks;
+                work.getKeyFrames().add(new KeyFrame(Duration.millis(chunk * chunkMillis),
+                        tick -> started.updateProgress(done)));
+            }
+            // One more beat before the outcome: reported with the last chunk,
+            // it would take the ring away before it is seen full.
+            work.getKeyFrames().add(new KeyFrame(Duration.millis((chunks + 1) * chunkMillis)));
+            work.setOnFinished(finished -> started.succeed());
+            work.play();
+        });
+        return upload;
+    }
+
+    private static RXTaskButton createSyncButton() {
+        RXTaskButton sync = new RXTaskButton("Sync");
+        sync.setPendingText("Syncing…");
+        sync.setFailedText("Failed");
+        sync.setOnAction(event -> {
+            RXTaskButton.Run started = sync.start();
+            PauseTransition work = new PauseTransition(Duration.millis(1200.0));
+            work.setOnFinished(finished -> started.fail());
+            work.play();
+        });
+        return sync;
     }
 
     // ==================== Timing ====================
