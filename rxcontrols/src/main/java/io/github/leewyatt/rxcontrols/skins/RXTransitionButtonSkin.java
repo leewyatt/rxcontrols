@@ -13,6 +13,8 @@ import io.github.leewyatt.rxcontrols.internal.transition.TransitionPages;
 import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
 import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
+import javafx.beans.InvalidationListener;
+import javafx.beans.WeakInvalidationListener;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -38,6 +40,9 @@ import javafx.util.Duration;
  * (and ENTER on non-Mac platforms) activation, disarm on focus loss, and
  * the default/cancel button accelerators. Mnemonics and arrow-key focus
  * traversal rely on JavaFX-internal APIs and are not supported.</p>
+ *
+ * <p>The skin takes the button over when it is installed on the button, not
+ * when it is constructed.</p>
  */
 public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
 
@@ -49,32 +54,31 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
 
     private final TransitionPages pages = new TransitionPages("page", true);
     private final Label frontLabel = new Label();
-    private final RippleDecoration ripple;
-    private final ArmedRippleTrigger rippleTrigger;
+    // Created on activation: the decoration registers handlers and listeners
+    // on the button as soon as it is constructed.
+    private RippleDecoration ripple;
+    private ArmedRippleTrigger rippleTrigger;
 
     // ==================== Behavior state ====================
 
     private boolean keyDown;
+    private boolean activated;
+    private boolean disposed;
 
     private final Runnable defaultButtonRunnable = () -> fireFromAccelerator();
     private final Runnable cancelButtonRunnable = () -> fireFromAccelerator();
+    private final InvalidationListener skinListener = observable -> activate();
 
     // ==================== Constructors ====================
 
     /**
-     * Creates the skin for the given button.
+     * Creates the skin for the given button. The skin starts showing and
+     * driving the button once it is installed as the button's skin.
      *
      * @param button the button this skin is attached to
      */
     public RXTransitionButtonSkin(RXTransitionButton button) {
         super(button);
-
-        ripple = new RippleDecoration(button, button.rippleEnabledProperty(),
-                button.stateOverlayEnabledProperty(), button.rippleFillProperty(),
-                button::getRippleOpacity, null, button.rippleCornerRadiusProperty());
-        rippleTrigger = new ArmedRippleTrigger(button, ripple,
-                button::isRippleEnabled, button::isRippleCentered);
-        getChildren().addAll(ripple.getLayer(), pages.getContentPane());
 
         // Front face: an internal label mirroring the button's Labeled API.
         // mnemonicParsing is deliberately not mirrored: the label would render
@@ -90,8 +94,36 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         // label's text fill resets to black.
         frontLabel.getStyleClass().setAll("front");
         pages.getPageA().getChildren().add(frontLabel);
-        bindFrontLabel(button);
 
+        // Weak: setSkin drops a skin of the installed class without disposing
+        // it, and nothing else may keep such a skin reachable from the button.
+        WeakInvalidationListener weakSkinListener = new WeakInvalidationListener(skinListener);
+        button.skinProperty().addListener(weakSkinListener);
+        disposer.registerDisposeTask(() -> button.skinProperty().removeListener(weakSkinListener));
+    }
+
+    // ==================== Activation ====================
+
+    // A skin is constructed before setSkin installs it, and setSkin ignores a
+    // second skin of the installed class. Taking the button over only once
+    // installed keeps a skin that never gets installed from adding a second
+    // face and ripple, taking the alternate content, wiring a second set of
+    // handlers and scene accelerators, or being kept reachable by the
+    // button; it also runs after the replaced skin has been disposed.
+    private void activate() {
+        RXTransitionButton button = getSkinnable();
+        if (activated || disposed || button == null || button.getSkin() != this) {
+            return;
+        }
+        activated = true;
+        ripple = new RippleDecoration(button, button.rippleEnabledProperty(),
+                button.stateOverlayEnabledProperty(), button.rippleFillProperty(),
+                button::getRippleOpacity, null, button.rippleCornerRadiusProperty());
+        rippleTrigger = new ArmedRippleTrigger(button, ripple,
+                button::isRippleEnabled, button::isRippleCentered);
+        getChildren().addAll(ripple.getLayer(), pages.getContentPane());
+
+        bindFrontLabel(button);
         setPageContent(pages.getPageB(), button.getAlternateContent());
 
         wireFaces(button);
@@ -113,6 +145,9 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         disposer.registerBinding(frontLabel.wrapTextProperty(), button.wrapTextProperty());
         disposer.registerBinding(frontLabel.underlineProperty(), button.underlineProperty());
         disposer.registerBinding(frontLabel.lineSpacingProperty(), button.lineSpacingProperty());
+        // labelPadding pads the front face's text and graphic, as it pads those
+        // of a Button; the label's own labelPadding is settable from CSS only.
+        disposer.registerBinding(frontLabel.paddingProperty(), button.labelPaddingProperty());
     }
 
     private void wireFaces(RXTransitionButton button) {
@@ -123,7 +158,14 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         });
         disposer.registerListener(button.animationTriggerProperty(), this::updateFace);
         disposer.registerListener(button.alternateContentProperty(),
-                () -> setPageContent(pages.getPageB(), button.getAlternateContent()));
+                (observable, oldContent, newContent) -> {
+                    setPageContent(pages.getPageB(), newContent);
+                    // Without alternate content the button keeps its front
+                    // face, so gaining or losing it may change the face to show.
+                    if ((oldContent == null) != (newContent == null)) {
+                        updateFace();
+                    }
+                });
         disposer.registerEventHandler(button, RXAnimationEvent.PLAY_ANIMATION, event -> {
             // Reject events bubbling up from a nested animation host.
             if (event.getTarget() != button) {
@@ -186,7 +228,9 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
      */
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
-        ripple.layout(getSkinnable().getWidth(), getSkinnable().getHeight());
+        if (ripple != null) {
+            ripple.layout(getSkinnable().getWidth(), getSkinnable().getHeight());
+        }
         pages.layout(x, y, w, h);
     }
 
@@ -274,11 +318,16 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
     // ==================== Faces ====================
 
     private void updateFace() {
-        boolean targetAlternate = isTriggerActive();
         boolean showingAlternate = pages.getCurrentPage() == pages.getPageB();
-        if (targetAlternate != showingAlternate) {
-            showFace(targetAlternate, null);
+        if (showAlternate() != showingAlternate) {
+            showFace(false);
         }
+    }
+
+    // Without alternate content the button keeps its front face, even while
+    // the trigger state is active.
+    private boolean showAlternate() {
+        return isTriggerActive() && getSkinnable().getAlternateContent() != null;
     }
 
     private boolean isTriggerActive() {
@@ -290,10 +339,29 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         };
     }
 
-    private void showFace(boolean alternate, Runnable onSettledExtra) {
+    // Shows the face derived from the current state; playOnce shows the
+    // alternate face regardless of the trigger, then converges back.
+    private void showFace(boolean playOnce) {
         pages.interrupt();
-
+        // The stop notifies transitioning listeners, which may have removed
+        // the skin or changed the state the face is derived from, so the
+        // target is derived only now.
+        if (disposed) {
+            return;
+        }
         RXTransitionButton button = getSkinnable();
+        boolean alternate = showAlternate() || (playOnce && button.getAlternateContent() != null);
+        StackPane target = alternate ? pages.getPageB() : pages.getPageA();
+        if (target == pages.getCurrentPage()) {
+            // Already the shown face. A transition such a listener started
+            // is left to run; otherwise the stopped one's pages are settled.
+            if (!pages.isTransitioning()) {
+                pages.directCutTo(target);
+                button.setTransitioning(false);
+            }
+            return;
+        }
+
         PageAnimation animation = button.getAnimation();
         TransitionDirection direction =
                 alternate ? TransitionDirection.FORWARD : TransitionDirection.BACKWARD;
@@ -301,14 +369,13 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
 
         pages.clearEffectsIfChanged(animation, direction, duration);
 
-        StackPane target = alternate ? pages.getPageB() : pages.getPageA();
         boolean animate = button.getAlternateContent() != null
                 && PageTransitionEngine.canAnimate(animation, true, 2, duration, false);
         if (!animate) {
             pages.directCutTo(target);
             button.setTransitioning(false);
-            if (onSettledExtra != null) {
-                onSettledExtra.run();
+            if (playOnce) {
+                updateFace();
             }
             return;
         }
@@ -317,8 +384,8 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
                 () -> button.setTransitioning(true),
                 () -> {
                     button.setTransitioning(false);
-                    if (onSettledExtra != null) {
-                        onSettledExtra.run();
+                    if (playOnce) {
+                        updateFace();
                     }
                 },
                 () -> button.setTransitioning(false));
@@ -339,7 +406,7 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         if (!animate) {
             return;
         }
-        showFace(true, this::updateFace);
+        showFace(true);
     }
 
     private static void setPageContent(StackPane page, Node content) {
@@ -484,17 +551,19 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
      */
     @Override
     protected void disposeSkin() {
+        disposed = true;
         RXTransitionButton button = getSkinnable();
-        if (button != null) {
-            Scene scene = button.getScene();
-            setAccelerator(scene, DEFAULT_BUTTON_COMBO, defaultButtonRunnable, false);
-            setAccelerator(scene, CANCEL_BUTTON_COMBO, cancelButtonRunnable, false);
-            button.setTransitioning(false);
+        if (!activated || button == null) {
+            // Never installed: the animation belongs to the installed skin.
+            pages.dispose(null);
+            return;
         }
+        Scene scene = button.getScene();
+        setAccelerator(scene, DEFAULT_BUTTON_COMBO, defaultButtonRunnable, false);
+        setAccelerator(scene, CANCEL_BUTTON_COMBO, cancelButtonRunnable, false);
+        button.setTransitioning(false);
         ripple.dispose();
-        pages.dispose(button == null ? null : button.getAnimation());
-        // A replacement skin is constructed before this one is disposed and has
-        // already added its nodes: remove only our own.
+        pages.dispose(button.getAnimation());
         getChildren().removeAll(ripple.getLayer(), pages.getContentPane());
     }
 }

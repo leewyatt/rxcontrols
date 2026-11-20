@@ -21,11 +21,15 @@ import javafx.scene.control.Skin;
  * {@link PageAnimation} transition to the alternate face and plays back when
  * it turns inactive.
  *
+ * <p>Without alternate content the button keeps its normal face, even while
+ * the trigger state is active: setting the content while the trigger is
+ * active switches to it, clearing it returns to the normal face.</p>
+ *
  * <p>Any {@link PageAnimation} preset can drive the swap; the default is a
- * vertical slide. A {@code null} alternate content, a {@code Duration.ZERO}
- * duration, multi-page display animations, and animations requiring more
- * than two pages switch with a direct cut. Interrupting a running transition
- * jumps it to its end state before the new one starts (latest wins).</p>
+ * vertical slide. A {@code Duration.ZERO} duration, multi-page display
+ * animations, and animations requiring more than two pages switch with a
+ * direct cut. Interrupting a running transition jumps it to its end state
+ * before the new one starts (latest wins).</p>
  *
  * <p>Keyboard activation (SPACE, and ENTER on non-Mac platforms), default
  * and cancel button accelerators, ripple feedback and accessibility follow
@@ -79,8 +83,9 @@ public class RXTransitionButton extends RXAnimatedButton {
             new SimpleObjectProperty<>(this, "alternateContent");
 
     /**
-     * The content shown while the trigger state is active. {@code null}
-     * shows an empty face with a direct cut.
+     * The content shown while the trigger state is active. While it is
+     * {@code null} the button keeps its normal face; clearing it while it is
+     * shown returns to the normal face with a direct cut.
      *
      * @return the alternate content property
      */

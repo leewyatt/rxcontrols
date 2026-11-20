@@ -15,7 +15,9 @@ import javafx.css.PseudoClass;
 import javafx.event.Event;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
@@ -24,6 +26,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Paint;
 import javafx.stage.Stage;
@@ -31,6 +34,7 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -41,6 +45,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -161,6 +166,28 @@ public class RXTransitionButtonTest {
     }
 
     @Test
+    public void labelPaddingWidensTheFrontFaceLikeAButton() {
+        RXTransitionButton button = new RXTransitionButton("Label");
+        Button plain = new Button("Label");
+        StackPane root = new StackPane(new HBox(button, plain));
+        new Scene(root, 400.0, 200.0);
+        root.applyCss();
+        double before = button.prefWidth(-1);
+        double plainBefore = plain.prefWidth(-1);
+
+        try {
+            button.setStyle("-fx-label-padding: 0 20 0 20;");
+            plain.setStyle("-fx-label-padding: 0 20 0 20;");
+            root.applyCss();
+
+            assertEquals(40.0, plain.prefWidth(-1) - plainBefore, 0.5);
+            assertEquals(40.0, button.prefWidth(-1) - before, 0.5);
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
     public void alternateLabelKeepsThemeTextFillOnFocus() {
         Label alternate = new Label("Alt");
         RXTransitionButton button = laidOutButton("Front", alternate);
@@ -215,7 +242,7 @@ public class RXTransitionButtonTest {
     }
 
     @Test
-    public void nullAlternateContentUsesDirectCut() {
+    public void triggerWithoutAlternateContentKeepsTheFrontFace() {
         RXTransitionButton button = laidOutButton("Front", null);
         button.setAnimationTrigger(AnimationTrigger.PRESSED);
         RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
@@ -225,12 +252,125 @@ public class RXTransitionButtonTest {
             button.arm();
             assertEquals(0, recording.contexts.size());
             assertFalse(button.isTransitioning());
+            assertSame(frontLabel(button), visibleFaceContent(button));
 
             button.disarm();
             assertEquals(0, recording.contexts.size());
         } finally {
             button.getSkin().dispose();
         }
+    }
+
+    @Test
+    public void clearingShownAlternateContentReturnsToTheFrontFace() {
+        Label alternate = new Label("Back");
+        RXTransitionButton button = laidOutButton("Front", alternate);
+        button.setAnimationTrigger(AnimationTrigger.PRESSED);
+        button.setAnimation(null);
+        button.arm();
+        assertSame(alternate, visibleFaceContent(button));
+
+        try {
+            button.setAlternateContent(null);
+
+            assertSame(frontLabel(button), visibleFaceContent(button));
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void alternateContentSetWhileTriggeredIsShown() {
+        RXTransitionButton button = laidOutButton("Front", null);
+        button.setAnimationTrigger(AnimationTrigger.PRESSED);
+        button.setAnimation(null);
+        button.arm();
+        Label alternate = new Label("Back");
+
+        try {
+            button.setAlternateContent(alternate);
+
+            assertSame(alternate, visibleFaceContent(button));
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void clearingAlternateContentDuringATransitionEndsOnTheFrontFace() {
+        RXTransitionButton button = laidOutButton("Front", new Label("Back"));
+        button.setAnimationTrigger(AnimationTrigger.PRESSED);
+        RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
+        button.setAnimation(recording);
+        button.arm();
+        assertTrue(button.isTransitioning());
+
+        try {
+            button.setAlternateContent(null);
+
+            assertFalse(button.isTransitioning());
+            assertSame(frontLabel(button), visibleFaceContent(button));
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void triggerChangedWhenAnInterruptedTransitionEndsIsTheFaceShown() {
+        Label alternate = new Label("Back");
+        RXTransitionButton button = laidOutButton("Front", alternate);
+        button.setAnimationTrigger(AnimationTrigger.PRESSED);
+        button.setAnimation(new RecordingAnimation(Duration.seconds(30.0)));
+        button.arm();
+        boolean[] armed = {true};
+        button.transitioningProperty().addListener((observable, was, is) -> {
+            if (armed[0] && !is) {
+                armed[0] = false;
+                button.arm();
+            }
+        });
+
+        try {
+            button.disarm();
+
+            assertTrue(button.isArmed());
+            assertSame(alternate, visibleFaceContent(button));
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void skinRemovedWhenAnInterruptedTransitionEndsLeavesNoAnimationRunning()
+            throws InterruptedException {
+        RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
+        List<Throwable> errors = new ArrayList<>();
+        runOnFx(() -> {
+            Thread thread = Thread.currentThread();
+            Thread.UncaughtExceptionHandler saved = thread.getUncaughtExceptionHandler();
+            thread.setUncaughtExceptionHandler((t, e) -> errors.add(e));
+            try {
+                RXTransitionButton button = laidOutButton("Front", new Label("Back"));
+                button.setAnimationTrigger(AnimationTrigger.PRESSED);
+                button.setAnimation(recording);
+                button.arm();
+                button.transitioningProperty().addListener((observable, was, is) -> {
+                    if (!is) {
+                        button.setSkin(null);
+                    }
+                });
+
+                button.disarm();
+
+                for (Animation animation : recording.animations) {
+                    assertEquals(Animation.Status.STOPPED, animation.getStatus());
+                }
+            } finally {
+                recording.animations.forEach(Animation::stop);
+                thread.setUncaughtExceptionHandler(saved);
+            }
+        });
+        assertEquals(List.of(), errors);
     }
 
     @Test
@@ -615,6 +755,84 @@ public class RXTransitionButtonTest {
     }
 
     @Test
+    public void ignoredSkinOfTheInstalledClassAddsNothing() {
+        Label alternate = new Label("Back");
+        RXTransitionButton button = laidOutButton("Front", alternate);
+        button.setDefaultButton(true);
+        Scene scene = button.getScene();
+        Parent alternatePage = alternate.getParent();
+
+        RXTransitionButtonSkin ignored = new RXTransitionButtonSkin(button);
+        button.setSkin(ignored);
+
+        assertNotSame(ignored, button.getSkin());
+        assertEquals(2, button.getChildrenUnmodifiable().size());
+        assertSame(alternatePage, alternate.getParent());
+        assertEquals(1, button.lookupAll(".front").size());
+
+        button.setSkin(null);
+
+        assertFalse(scene.getAccelerators().containsKey(new KeyCodeCombination(KeyCode.ENTER)));
+    }
+
+    @Test
+    public void ignoredSkinOfTheInstalledClassCanBeCollected() throws InterruptedException {
+        RXTransitionButton button = laidOutButton("Front", new Label("Back"));
+
+        WeakReference<RXTransitionButtonSkin> ignored = installIgnoredSkin(button);
+
+        try {
+            for (int i = 0; i < 50 && ignored.get() != null; i++) {
+                System.gc();
+                Thread.sleep(10L);
+            }
+            assertNull(ignored.get(), "an ignored skin must not stay reachable from the button");
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void disposingASkinThatWasNeverInstalledLeavesTheButtonAlone() {
+        RXTransitionButton button = laidOutButton("Front", new Label("Back"));
+        button.setAnimationTrigger(AnimationTrigger.PRESSED);
+        RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
+        button.setAnimation(recording);
+        button.setDefaultButton(true);
+        KeyCodeCombination enter = new KeyCodeCombination(KeyCode.ENTER);
+        Runnable accelerator = button.getScene().getAccelerators().get(enter);
+
+        new RXTransitionButtonSkin(button).dispose();
+
+        try {
+            assertEquals(0, recording.disposeCalls);
+            assertSame(accelerator, button.getScene().getAccelerators().get(enter));
+            assertEquals(2, button.getChildrenUnmodifiable().size());
+            button.arm();
+            assertTrue(button.isTransitioning());
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void mouseEventsStayWithTheButtonLikeAButton() {
+        RXTransitionButton button = laidOutButton("Front", null);
+        List<MouseEvent> received = new ArrayList<>();
+        button.getParent().addEventHandler(MouseEvent.MOUSE_CLICKED, received::add);
+
+        try {
+            Event.fireEvent(button, new MouseEvent(MouseEvent.MOUSE_CLICKED, 1.0, 1.0, 1.0, 1.0,
+                    MouseButton.PRIMARY, 1, false, false, false, false, false, false, false,
+                    false, false, true, new PickResult(button, 1.0, 1.0)));
+
+            assertEquals(0, received.size());
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
     public void playRippleStartsARipple() {
         RXTransitionButton button = laidOutButton("Front", null);
 
@@ -697,6 +915,13 @@ public class RXTransitionButtonTest {
         return button;
     }
 
+    private static WeakReference<RXTransitionButtonSkin> installIgnoredSkin(RXTransitionButton button) {
+        RXTransitionButtonSkin skin = new RXTransitionButtonSkin(button);
+        button.setSkin(skin);
+        assertNotSame(skin, button.getSkin());
+        return new WeakReference<>(skin);
+    }
+
     private static Label frontLabel(RXTransitionButton button) {
         return assertInstanceOf(Label.class,
                 ((StackPane) button.lookup(".page")).getChildren().get(0));
@@ -759,6 +984,7 @@ public class RXTransitionButtonTest {
     private static class RecordingAnimation implements PageAnimation {
 
         final List<TransitionContext> contexts = new ArrayList<>();
+        final List<Animation> animations = new ArrayList<>();
         int jumpToEndCalls;
         int disposeCalls;
 
@@ -788,6 +1014,7 @@ public class RXTransitionButtonTest {
             PauseTransition pause = new PauseTransition(playDuration);
             pause.setOnFinished(event -> finish.run());
             running = pause;
+            animations.add(pause);
             return pause;
         }
 
