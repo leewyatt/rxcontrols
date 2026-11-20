@@ -471,12 +471,13 @@
  * RXTaskButton                                                                *
  *                                                                             *
  ******************************************************************************/
-/* Sized in em so the indicators grow with the font. The three are equally wide,
-   so the caption starts at the same place on every face. The built-in
-   indicators are painted in the text fill, which leaves no insets to fit a
-   shape into a box: each box has the proportions of its shape instead. */
-.rx-task-button .pending-face > .indicator,
-.rx-task-button .failed-face > .indicator {
+/* Sized in em so the indicators grow with the font. The built-in indicators
+   are painted in the text fill, which leaves no insets to fit a shape into a
+   box: each box has the proportions of its shape instead. The cross is
+   smaller than the ring and the check, as one of their width looks heavier
+   than the check; its shape is drawn on a grid as much smaller, which keeps
+   its strokes as thick as the check's. */
+.rx-task-button .pending-face > .indicator {
     -fx-pref-width: 1.1em;
     -fx-pref-height: 1.1em;
 }
@@ -488,7 +489,9 @@
 }
 
 .rx-task-button .failed-face > .indicator {
-    -fx-shape: "M1.5 0 L6.75 5.25 L12 0 L13.5 1.5 L8.25 6.75 L13.5 12 L12 13.5 L6.75 8.25 L1.5 13.5 L0 12 L5.25 6.75 L0 1.5 Z";
+    -fx-pref-width: 0.9em;
+    -fx-pref-height: 0.9em;
+    -fx-shape: "M1.5 0 L5.5 4 L9.5 0 L11 1.5 L7 5.5 L11 9.5 L9.5 11 L5.5 7 L1.5 11 L0 9.5 L4 5.5 L0 1.5 Z";
 }
 
 /* A result colors the text through the token Modena's button text reads, not

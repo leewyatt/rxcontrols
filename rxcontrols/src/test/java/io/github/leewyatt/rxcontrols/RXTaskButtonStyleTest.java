@@ -73,8 +73,8 @@ public class RXTaskButtonStyleTest {
             assertEquals(22.0, ring.prefHeight(-1), 0.5);
             assertEquals(22.0, check.prefWidth(-1), 0.5);
             assertEquals(16.3, check.prefHeight(-1), 0.5);
-            assertEquals(22.0, cross.prefWidth(-1), 0.5);
-            assertEquals(22.0, cross.prefHeight(-1), 0.5);
+            assertEquals(18.0, cross.prefWidth(-1), 0.5);
+            assertEquals(18.0, cross.prefHeight(-1), 0.5);
             // The idle face has no indicator to show.
             assertEquals(0.0, indicator(button, ".idle-face").prefWidth(-1));
 
@@ -86,6 +86,7 @@ public class RXTaskButtonStyleTest {
             assertEquals(11.0, ring.prefWidth(-1), 0.5);
             assertEquals(11.0, check.prefWidth(-1), 0.5);
             assertEquals(8.15, check.prefHeight(-1), 0.5);
+            assertEquals(9.0, cross.prefWidth(-1), 0.5);
         });
     }
 
