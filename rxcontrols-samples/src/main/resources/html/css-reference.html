@@ -2168,10 +2168,12 @@ container-level styling.</p>
 <code>PageAnimation</code> transition. Text styling goes through the inner
 Label's built-in <code>-fx-*</code> properties (e.g.
 <code>-fx-text-fill</code>, <code>-fx-font-size</code>) via
-<code>.rx-transition-label .label</code>. Unlike RXLrcLineView, text alignment
-is controlled by the control's <code>alignment</code> property (Java), which
-takes precedence over <code>-fx-alignment</code> on the <code>.page</code>
-pane.</p>
+<code>.rx-transition-label .label</code>. Unlike RXLrcLineView, the position of
+the text block is controlled by the control's <code>alignment</code> property
+(Java), which takes precedence over <code>-fx-alignment</code> on the
+<code>.page</code> pane. The alignment of the lines within the block is the
+control's <code>-fx-text-alignment</code>: set it on
+<code>.rx-transition-label</code>, not on the inner label.</p>
 <h4>Substructure</h4>
 .content-pane — StackPane <br>
 &emsp;&emsp;.page — StackPane (two reused pages)<br>
@@ -2189,6 +2191,11 @@ pane.</p>
         <td>-rx-animation-duration</td>
         <td> duration</td>
         <td>500ms</td>
+    </tr>
+    <tr>
+        <td>-fx-text-alignment</td>
+        <td>LEFT,CENTER,RIGHT,JUSTIFY</td>
+        <td>LEFT</td>
     </tr>
     </tbody>
 </table>
