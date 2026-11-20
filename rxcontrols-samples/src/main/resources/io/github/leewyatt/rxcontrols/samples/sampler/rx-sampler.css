@@ -471,7 +471,7 @@
 }
 
 .example-card > .stage {
-    -fx-padding: 32px 20px;
+    -fx-padding: 20px 16px;
     -fx-min-height: 120px;
 }
 

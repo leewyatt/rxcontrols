@@ -13,7 +13,7 @@ import javafx.scene.layout.VBox;
 import java.util.List;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.PORTRAIT;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.TIGER;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.SHIBA;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.fixedWidth;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.text;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.wrapped;
@@ -66,7 +66,7 @@ public final class RXAvatarSamples {
         HBox stack = new HBox(-12.0,
                 ringed(photo(PORTRAIT, 48.0)),
                 ringed(initials("LW", "teal", 48.0)),
-                ringed(photo(TIGER, 48.0)),
+                ringed(photo(SHIBA, 48.0)),
                 ringed(initials("MK", "violet", 48.0)),
                 ringed(initials("JS", "orange", 48.0)),
                 ringed(initials("+5", "more", 48.0)));
@@ -121,7 +121,7 @@ public final class RXAvatarSamples {
         HBox row = new HBox(16.0,
                 labeled(square(initials("DS", "violet", 56.0), 14.0), "Design"),
                 labeled(square(initials("MK", "amber", 56.0), 14.0), "Marketing"),
-                labeled(square(photo(TIGER, 56.0), 14.0), "Mascot"),
+                labeled(square(photo(SHIBA, 56.0), 14.0), "Mascot"),
                 labeled(square(photo(PORTRAIT, 56.0), 28.0), "Arc 28"));
         row.setAlignment(Pos.CENTER);
         return row;
