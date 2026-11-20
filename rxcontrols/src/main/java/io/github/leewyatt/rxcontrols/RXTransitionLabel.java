@@ -40,6 +40,12 @@ import java.util.List;
  * direction} property at the moment the text changes. A {@code null} text is
  * displayed as an empty string.</p>
  *
+ * <p>A text change made from a {@link #transitioningProperty() transitioning}
+ * listener is applied once the current change has been processed. When the
+ * animation is stopped from outside, for example by its own resize guard,
+ * {@code transitioning} turns {@code false} on the next turn of the event
+ * loop.</p>
+ *
  * <p>Text styling (font, fill) is applied through CSS on the internal labels,
  * e.g. {@code .rx-transition-label .label}.</p>
  *

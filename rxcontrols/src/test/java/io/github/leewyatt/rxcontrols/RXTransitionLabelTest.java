@@ -19,9 +19,13 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -187,6 +191,131 @@ public class RXTransitionLabelTest {
         } finally {
             label.getSkin().dispose();
         }
+    }
+
+    // ==================== Changes From Listeners ====================
+
+    @Test
+    public void textChangedWhenTransitionStartsShowsTheLatestText() throws Exception {
+        RXTransitionLabel[] label = new RXTransitionLabel[1];
+        TrackingFade fade = new TrackingFade();
+        onFx(() -> {
+            label[0] = laidOutLabelShowing("A");
+            label[0].setAnimation(fade);
+            label[0].setAnimationDuration(Duration.millis(80.0));
+            label[0].transitioningProperty().addListener((observable, was, is) -> {
+                if (is && !"C".equals(label[0].getText())) {
+                    label[0].setText("C");
+                }
+            });
+
+            label[0].setText("B");
+
+            assertTrue(label[0].isTransitioning());
+            assertOnlyLatestRunning(fade);
+        });
+        awaitStopped(fade);
+        onFx(() -> {
+            assertEquals("C", visibleText(label[0]));
+            assertFalse(label[0].isTransitioning());
+            label[0].getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void textQueuedWhenAnInterruptedTransitionEndsIsTheTextShown() throws Exception {
+        RXTransitionLabel[] label = new RXTransitionLabel[1];
+        TrackingFade fade = new TrackingFade();
+        onFx(() -> {
+            label[0] = laidOutLabelShowing("A");
+            label[0].setAnimation(fade);
+            label[0].setAnimationDuration(Duration.millis(80.0));
+            Deque<String> queue = new ArrayDeque<>(List.of("D"));
+            label[0].transitioningProperty().addListener((observable, was, is) -> {
+                if (!is && !queue.isEmpty()) {
+                    label[0].setText(queue.poll());
+                }
+            });
+            label[0].setText("B");
+
+            label[0].setText("C");
+
+            assertEquals("D", label[0].getText());
+            assertOnlyLatestRunning(fade);
+        });
+        awaitStopped(fade);
+        onFx(() -> {
+            assertEquals("D", visibleText(label[0]));
+            assertFalse(label[0].isTransitioning());
+            label[0].getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void textChangedWhenStoppedFromOutsidePlaysOnTheNextTurn() throws Exception {
+        RXTransitionLabel[] label = new RXTransitionLabel[1];
+        TrackingFade fade = new TrackingFade();
+        List<Boolean> flags = new ArrayList<>();
+        onFx(() -> {
+            label[0] = laidOutLabelShowing("A");
+            label[0].setAnimation(fade);
+            label[0].setAnimationDuration(Duration.seconds(30.0));
+            label[0].transitioningProperty().addListener((observable, was, is) -> {
+                flags.add(is);
+                if (!is && "B".equals(label[0].getText())) {
+                    label[0].setText("C");
+                }
+            });
+            label[0].setText("B");
+
+            // A resize guard or the application stops the animation directly
+            fade.jumpToEnd();
+
+            assertEquals(List.of(true), flags);
+            assertEquals("B", visibleText(label[0]));
+            assertEquals(1, fade.animations.size());
+        });
+        onFx(() -> {
+            assertEquals(List.of(true, false, true), flags);
+            assertOnlyLatestRunning(fade);
+            assertEquals(List.of("B", "C"), visibleTexts(label[0]));
+            label[0].getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void transitionStartedAfterAnExternalStopCanBeInterrupted() throws Exception {
+        RXTransitionLabel[] label = new RXTransitionLabel[1];
+        TrackingFade fade = new TrackingFade();
+        boolean[] earlierRunning = new boolean[1];
+        onFx(() -> {
+            label[0] = laidOutLabelShowing("A");
+            label[0].setAnimation(fade);
+            label[0].setAnimationDuration(Duration.millis(400.0));
+            label[0].transitioningProperty().addListener((observable, was, is) -> {
+                if (!is && "B".equals(label[0].getText())) {
+                    label[0].setText("C");
+                }
+            });
+            label[0].setText("B");
+            fade.jumpToEnd();
+        });
+        onFx(() -> {
+            // Shorter, so a transition left running would end after this one
+            label[0].setAnimationDuration(Duration.millis(50.0));
+            label[0].setText("D");
+            List<Animation> animations = fade.animations;
+            for (Animation animation : animations.subList(0, animations.size() - 1)) {
+                earlierRunning[0] |= animation.getStatus() != Animation.Status.STOPPED;
+            }
+        });
+        awaitStopped(fade);
+        onFx(() -> {
+            assertEquals("D", visibleText(label[0]));
+            assertFalse(label[0].isTransitioning());
+            label[0].getSkin().dispose();
+        });
+        assertFalse(earlierRunning[0], "an interrupted transition kept running");
     }
 
     // ==================== Alignment ====================
@@ -361,14 +490,74 @@ public class RXTransitionLabelTest {
         root.layout();
     }
 
+    private static void onFx(Runnable body) throws Exception {
+        FutureTask<Void> task = new FutureTask<>(body, null);
+        Platform.runLater(task);
+        try {
+            task.get(5, TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof Error error) {
+                throw error;
+            }
+            throw e;
+        }
+    }
+
+    private static void awaitStopped(TrackingFade fade) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        boolean[] running = new boolean[1];
+        do {
+            Thread.sleep(20L);
+            onFx(() -> running[0] = fade.animations.stream()
+                    .anyMatch(animation -> animation.getStatus() != Animation.Status.STOPPED));
+        } while (running[0] && System.nanoTime() < deadline);
+        assertFalse(running[0], "animations did not stop");
+    }
+
+    private static void assertOnlyLatestRunning(TrackingFade fade) {
+        List<Animation> animations = fade.animations;
+        int latest = animations.size() - 1;
+        for (int i = 0; i < latest; i++) {
+            assertEquals(Animation.Status.STOPPED, animations.get(i).getStatus(),
+                    "animation " + i + " of " + animations.size() + " still runs");
+        }
+        assertEquals(Animation.Status.RUNNING, animations.get(latest).getStatus());
+    }
+
     private static String visibleText(RXTransitionLabel label) {
         StackPane content = assertInstanceOf(StackPane.class, label.lookup(".content-pane"));
+        String shown = null;
         for (Node node : content.getChildren()) {
             if (node.isVisible() && node.getStyleClass().contains("page")) {
-                return pageText(node);
+                assertNull(shown, "more than one page is visible");
+                shown = pageText(node);
             }
         }
-        return null;
+        return shown;
+    }
+
+    // Texts of the internal labels that are visible up to the control, in
+    // scene-graph order.
+    private static List<String> visibleTexts(RXTransitionLabel label) {
+        List<String> texts = new ArrayList<>();
+        for (Node node : label.lookupAll(".page .label")) {
+            if (node instanceof Label found && visibleWithin(found, label)) {
+                texts.add(found.getText());
+            }
+        }
+        return texts;
+    }
+
+    private static boolean visibleWithin(Node node, Node root) {
+        for (Node current = node; current != null; current = current.getParent()) {
+            if (!current.isVisible()) {
+                return false;
+            }
+            if (current == root) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String pageText(Node page) {
@@ -387,7 +576,19 @@ public class RXTransitionLabelTest {
         return labels;
     }
 
-    // ==================== Recording animation ====================
+    // ==================== Recording animations ====================
+
+    private static final class TrackingFade extends AnimFade {
+
+        final List<Animation> animations = new ArrayList<>();
+
+        @Override
+        public Animation getAnimation(TransitionContext context) {
+            Animation animation = super.getAnimation(context);
+            animations.add(animation);
+            return animation;
+        }
+    }
 
     private static class RecordingAnimation implements PageAnimation {
 
