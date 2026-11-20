@@ -1344,6 +1344,18 @@ public class RXTaskButton extends RXButton {
      * {@link #cancel()} itself works at any time, whatever this property
      * says.
      *
+     * <p>While this is {@code true}, the built-in ring of the pending face
+     * shows a stop mark, a small square at its centre, so the user can tell
+     * that the work can be stopped. The mark shows whenever the ring does,
+     * including the moments when activations are still swallowed. It is red
+     * ({@code -rx-danger}), and the text color on a filled button; from CSS
+     * it is {@code .pending-face > .indicator > .stop}. A custom
+     * {@link #pendingIndicatorProperty() pendingIndicator} gets no mark: an
+     * application that wants one draws it into its own indicator, or puts it
+     * in the {@link #pendingGraphicProperty() pendingGraphic}. The mark is
+     * not announced to a screen reader; a pending text that says the work
+     * can be cancelled, such as "Cancel upload", tells everyone.</p>
+     *
      * @return the cancellable property
      */
     public final BooleanProperty cancellableProperty() {

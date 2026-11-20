@@ -111,8 +111,9 @@ public class RXTaskButtonSkin extends RXSkinBase<RXTaskButton> {
             failedFace.requestLayout();
         });
 
-        // Bound, not styled: a style sheet cannot color the built-in
-        // indicators, they always match the text.
+        // Bound, not styled: a style sheet cannot color the ring, the check
+        // or the cross, they always match the text. Only the stop mark of the
+        // ring takes its color from the style sheet.
         disposer.registerBinding(ring.paintProperty(), button.textFillProperty());
         shapeBackground = Bindings.createObjectBinding(() -> {
             Paint fill = button.getTextFill();
@@ -123,6 +124,8 @@ public class RXTaskButtonSkin extends RXSkinBase<RXTaskButton> {
         disposer.registerBinding(shapeOf(failedFace).backgroundProperty(), shapeBackground);
 
         disposer.registerDisposeTask(ring::dispose);
+        // The stop mark belongs to the ring: a custom indicator gets none.
+        disposer.registerBinding(ring.stopMarkVisibleProperty(), button.cancellableProperty());
         ring.setProgress(button.getProgress());
         disposer.registerListener(button.progressProperty(), () -> ring.setProgress(button.getProgress()));
         updatePendingIndicator();

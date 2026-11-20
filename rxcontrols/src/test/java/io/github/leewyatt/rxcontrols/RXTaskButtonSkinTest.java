@@ -477,6 +477,41 @@ public class RXTaskButtonSkinTest {
     }
 
     @Test
+    public void ringShowsAStopMarkWhileTheButtonIsCancellable() throws InterruptedException {
+        onFx(() -> {
+            RXTaskButton button = laidOut(button());
+            RingIndicator ring = ring(button);
+            assertFalse(ring.isStopMarkVisible());
+
+            button.setCancellable(true);
+            assertTrue(ring.isStopMarkVisible());
+            button.setCancellable(false);
+            assertFalse(ring.isStopMarkVisible());
+
+            // A custom indicator gets no mark.
+            button.setCancellable(true);
+            button.setPendingIndicator(new Region());
+            assertNull(face(button, ".pending-face").lookup(".stop"));
+
+            button.getSkin().dispose();
+            assertFalse(ring.stopMarkVisibleProperty().isBound());
+        });
+    }
+
+    @Test
+    public void cancellableSetBeforeTheSkinIsInPlaceShowsTheStopMarkFromTheStart() throws InterruptedException {
+        onFx(() -> {
+            RXTaskButton button = button();
+            button.setCancellable(true);
+
+            laidOut(button);
+
+            assertTrue(ring(button).isStopMarkVisible());
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
     public void ringDrawsTheProgressOfTheButton() throws InterruptedException {
         onFx(() -> {
             RXTaskButton button = laidOut(button());

@@ -40,7 +40,8 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 /**
  * Tests the AtlantaFX rules of {@link RXTaskButton} under a real Primer theme:
  * a result state turns the button into the success or danger variant of its
- * own kind, in every interaction state. The colors resolve in every theme.
+ * own kind, in every interaction state, and the stop mark stays visible on
+ * every body. The colors resolve in every theme.
  */
 public class RXTaskButtonAtlantaFXStyleTest {
 
@@ -178,6 +179,52 @@ public class RXTaskButtonAtlantaFXStyleTest {
         });
     }
 
+    // ==================== Stop mark ====================
+
+    @Test
+    public void stopMarkIsRedOnAPlainBodyAndTheTextColorOnAColoredOneInEveryStateOfEveryTheme()
+            throws InterruptedException {
+        List<String> colors = List.of("accent", "success", "danger", ":default");
+        List<List<String>> variants = new ArrayList<>(List.of(List.of(), List.of("button-outlined"),
+                List.of("flat"), List.of("accent", "flat"), List.of("danger", "flat")));
+        for (String color : colors) {
+            variants.add(List.of(color));
+            variants.add(List.of(color, "button-outlined"));
+        }
+        List<String> interactions = new ArrayList<>(INTERACTIONS);
+        interactions.add("focused+armed");
+        onFx(() -> {
+            try {
+                for (Theme theme : THEMES) {
+                    Application.setUserAgentStylesheet(theme.getUserAgentStylesheet());
+                    for (List<String> variant : variants) {
+                        Fixture fixture = new Fixture(variant.stream()
+                                .filter(each -> !each.startsWith(":")).toArray(String[]::new));
+                        fixture.button.setDefaultButton(variant.contains(":default"));
+                        fixture.pendCancellable();
+                        boolean colored = colors.stream().anyMatch(variant::contains);
+                        boolean outlined = variant.contains("button-outlined");
+                        boolean flat = variant.contains("flat");
+                        for (String interaction : interactions) {
+                            fixture.interact(interaction);
+                            String where = theme.getName() + " " + variant + " " + interaction;
+                            // A color button is filled, and an outlined one fills up as soon as it is
+                            // hovered, focused or pressed: the mark takes the text color there.
+                            boolean filled = colored && !flat && (!outlined || !interaction.isEmpty());
+                            Paint expected = filled
+                                    ? fixture.button.getTextFill() : fixture.color("-color-danger-emphasis");
+                            assertEquals(expected, fixture.stopFill(), where);
+                            assertNotEquals(fixture.inside(), fixture.stopFill(), where);
+                        }
+                    }
+                }
+            } finally {
+                // The other tests of this class read the colors of this theme.
+                Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
+            }
+        });
+    }
+
     // ==================== Lookups ====================
 
     @Test
@@ -198,7 +245,10 @@ public class RXTaskButtonAtlantaFXStyleTest {
                             for (boolean defaultButton : new boolean[] {false, true}) {
                                 Fixture fixture = new Fixture(variant.toArray(new String[0]));
                                 fixture.button.setDefaultButton(defaultButton);
-                                fixture.refresh();
+                                fixture.pendCancellable();
+                                for (String interaction : INTERACTIONS) {
+                                    fixture.interact(interaction);
+                                }
                                 fixture.succeed();
                                 for (String interaction : INTERACTIONS) {
                                     fixture.interact(interaction);
@@ -276,6 +326,17 @@ public class RXTaskButtonAtlantaFXStyleTest {
         void reset() {
             button.resetFeedback();
             refresh();
+        }
+
+        void pendCancellable() {
+            button.setCancellable(true);
+            button.start();
+            refresh();
+        }
+
+        Paint stopFill() {
+            Region stop = (Region) button.lookup(".stop");
+            return stop.getBackground().getFills().get(0).getFill();
         }
 
         void interact(String states) {
