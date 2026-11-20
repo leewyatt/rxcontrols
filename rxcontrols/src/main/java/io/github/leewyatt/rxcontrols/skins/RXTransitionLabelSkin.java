@@ -6,6 +6,8 @@ import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
 import io.github.leewyatt.rxcontrols.internal.transition.TransitionPages;
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
+import javafx.beans.WeakInvalidationListener;
 import javafx.beans.value.ChangeListener;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
@@ -22,7 +24,8 @@ import javafx.util.Duration;
  *
  * <p>Every text change is processed to completion before the next one
  * starts: a change made by a {@code transitioning} listener is picked up once
- * the current step has finished.</p>
+ * the current step has finished. The skin takes the control over when it is
+ * installed on the control, not when it is constructed.</p>
  */
 public class RXTransitionLabelSkin extends RXSkinBase<RXTransitionLabel> {
 
@@ -39,35 +42,34 @@ public class RXTransitionLabelSkin extends RXSkinBase<RXTransitionLabel> {
     private boolean settlePending;
     // Tags the playing transition, so callbacks of an ended one are ignored.
     private int transitionId;
+    private boolean activated;
     private boolean disposed;
 
+    private final InvalidationListener skinListener = observable -> activate();
     private final ChangeListener<String> textListener =
             (observable, oldValue, newValue) -> sync();
     private final ChangeListener<Pos> alignmentListener =
             (observable, oldValue, newValue) -> applyAlignment();
 
     /**
-     * Creates the skin for the given control.
+     * Creates the skin for the given control. The skin starts showing the
+     * text once it is installed as the control's skin.
      *
      * @param control the control
      */
     public RXTransitionLabelSkin(RXTransitionLabel control) {
         super(control);
+        // Mouse events pass through to the parent, as with Label
+        consumeMouseEvents(false);
 
         pages.getPageA().getChildren().add(labelA);
         pages.getPageB().getChildren().add(labelB);
-        getChildren().add(pages.getContentPane());
 
-        currentLabel().setText(safeText(control.getText()));
-        applyAlignment();
-
-        // Bind both pages so whichever is current or spare wraps consistently;
-        // the control's wrapText is the single source of the labels' wrapText.
-        disposer.registerBinding(labelA.wrapTextProperty(), control.wrapTextProperty());
-        disposer.registerBinding(labelB.wrapTextProperty(), control.wrapTextProperty());
-
-        disposer.registerListener(control.textProperty(), textListener);
-        disposer.registerListener(control.alignmentProperty(), alignmentListener);
+        // Weak: setSkin drops a skin of the installed class without disposing
+        // it, and nothing else may keep such a skin reachable from the label.
+        WeakInvalidationListener weakSkinListener = new WeakInvalidationListener(skinListener);
+        control.skinProperty().addListener(weakSkinListener);
+        disposer.registerDisposeTask(() -> control.skinProperty().removeListener(weakSkinListener));
     }
 
     // ==================== Layout ====================
@@ -138,6 +140,32 @@ public class RXTransitionLabelSkin extends RXSkinBase<RXTransitionLabel> {
     protected double computeMaxHeight(double width, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
         return getSkinnable().prefHeight(width);
+    }
+
+    // ==================== Activation ====================
+
+    // A skin is constructed before setSkin installs it, and setSkin ignores a
+    // second skin of the installed class. Taking the control over only once
+    // installed keeps a skin that never gets installed from adding a second
+    // text or being kept reachable by the control's properties, and runs
+    // after the replaced skin has been disposed.
+    private void activate() {
+        RXTransitionLabel control = getSkinnable();
+        if (activated || disposed || control == null || control.getSkin() != this) {
+            return;
+        }
+        activated = true;
+        getChildren().add(pages.getContentPane());
+        currentLabel().setText(safeText(control.getText()));
+        applyAlignment();
+
+        // Bind both pages so whichever is current or spare wraps consistently;
+        // the control's wrapText is the single source of the labels' wrapText.
+        disposer.registerBinding(labelA.wrapTextProperty(), control.wrapTextProperty());
+        disposer.registerBinding(labelB.wrapTextProperty(), control.wrapTextProperty());
+
+        disposer.registerListener(control.textProperty(), textListener);
+        disposer.registerListener(control.alignmentProperty(), alignmentListener);
     }
 
     // ==================== Text Changes ====================
@@ -272,12 +300,13 @@ public class RXTransitionLabelSkin extends RXSkinBase<RXTransitionLabel> {
     protected void disposeSkin() {
         disposed = true;
         RXTransitionLabel control = getSkinnable();
-        pages.dispose(control == null ? null : control.getAnimation());
-        if (control != null) {
-            control.setTransitioning(false);
+        if (!activated || control == null) {
+            // Never installed: the animation belongs to the installed skin.
+            pages.dispose(null);
+            return;
         }
-        // A replacement skin is constructed before this one is disposed and has
-        // already added its nodes: remove only our own.
+        pages.dispose(control.getAnimation());
+        control.setTransitioning(false);
         getChildren().remove(pages.getContentPane());
     }
 }

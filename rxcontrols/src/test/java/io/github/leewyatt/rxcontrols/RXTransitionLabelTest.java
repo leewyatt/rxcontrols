@@ -9,16 +9,23 @@ import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
+import javafx.event.Event;
+import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.input.PickResult;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -31,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -474,7 +482,80 @@ public class RXTransitionLabelTest {
         label.getSkin().dispose();
     }
 
+    @Test
+    public void ignoredSkinOfTheInstalledClassAddsNothing() {
+        RXTransitionLabel label = laidOutLabelShowing("A");
+        label.setAnimated(false);
+
+        RXTransitionLabelSkin ignored = new RXTransitionLabelSkin(label);
+        label.setSkin(ignored);
+
+        try {
+            assertNotSame(ignored, label.getSkin());
+            assertEquals(1, label.getChildrenUnmodifiable().size());
+            label.setText("B");
+            assertEquals(List.of("B"), visibleTexts(label));
+            assertTrue(clickReachesParent(label));
+        } finally {
+            label.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void ignoredSkinOfTheInstalledClassCanBeCollected() throws InterruptedException {
+        RXTransitionLabel label = laidOutLabelShowing("A");
+
+        WeakReference<RXTransitionLabelSkin> ignored = installIgnoredSkin(label);
+
+        try {
+            for (int i = 0; i < 50 && ignored.get() != null; i++) {
+                System.gc();
+                Thread.sleep(10L);
+            }
+            assertNull(ignored.get(), "an ignored skin must not stay reachable from the label");
+            assertEquals("A", visibleText(label));
+        } finally {
+            label.getSkin().dispose();
+        }
+    }
+
+    // ==================== Mouse Events ====================
+
+    @Test
+    public void mouseEventsOnTheTextReachTheParent() {
+        RXTransitionLabel label = laidOutLabelShowing("A");
+
+        try {
+            assertTrue(clickReachesParent(label));
+        } finally {
+            label.getSkin().dispose();
+        }
+    }
+
     // ==================== Helpers ====================
+
+    private static WeakReference<RXTransitionLabelSkin> installIgnoredSkin(RXTransitionLabel label) {
+        RXTransitionLabelSkin skin = new RXTransitionLabelSkin(label);
+        label.setSkin(skin);
+        assertNotSame(skin, label.getSkin());
+        return new WeakReference<>(skin);
+    }
+
+    private static boolean clickReachesParent(RXTransitionLabel label) {
+        List<MouseEvent> received = new ArrayList<>();
+        EventHandler<MouseEvent> handler = received::add;
+        Parent parent = label.getParent();
+        parent.addEventHandler(MouseEvent.MOUSE_CLICKED, handler);
+        try {
+            Label text = internalLabels(label).get(0);
+            Event.fireEvent(text, new MouseEvent(MouseEvent.MOUSE_CLICKED, 1.0, 1.0, 1.0, 1.0,
+                    MouseButton.PRIMARY, 1, false, false, false, false, false, false, false,
+                    false, false, true, new PickResult(text, 1.0, 1.0)));
+        } finally {
+            parent.removeEventHandler(MouseEvent.MOUSE_CLICKED, handler);
+        }
+        return received.size() == 1;
+    }
 
     private static RXTransitionLabel laidOutLabelShowing(String text) {
         RXTransitionLabel label = new RXTransitionLabel(text);
