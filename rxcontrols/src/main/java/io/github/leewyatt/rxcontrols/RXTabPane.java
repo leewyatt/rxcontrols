@@ -718,6 +718,8 @@ public class RXTabPane extends Control {
      * Transition played when the displayed content changes. When {@code null}
      * (the default) the content swaps instantly; otherwise the given
      * {@link PageAnimation} is played (direction inferred from the selection delta).
+     * A {@code PageAnimation} instance may be reused sequentially, but must
+     * not drive concurrent transitions or be shared by multiple live hosts.
      *
      * @return the content-animation property
      */

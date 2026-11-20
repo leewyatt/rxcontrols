@@ -18,10 +18,12 @@ import javafx.css.SimpleStyleableObjectProperty;
 import javafx.css.Styleable;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.DurationConverter;
+import javafx.css.converter.EnumConverter;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
+import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -39,6 +41,12 @@ import java.util.List;
  * The transition direction is taken from the {@link #directionProperty()
  * direction} property at the moment the text changes. A {@code null} text is
  * displayed as an empty string.</p>
+ *
+ * <p>A text change made from a {@link #transitioningProperty() transitioning}
+ * listener is applied once the current change has been processed. When the
+ * animation is stopped from outside, for example by its own resize guard,
+ * {@code transitioning} turns {@code false} on the next turn of the event
+ * loop.</p>
  *
  * <p>Text styling (font, fill) is applied through CSS on the internal labels,
  * e.g. {@code .rx-transition-label .label}.</p>
@@ -59,6 +67,11 @@ public class RXTransitionLabel extends Control {
      * The default transition duration.
      */
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(500.0);
+
+    /**
+     * The default alignment of the lines within the text block, as for Label.
+     */
+    private static final TextAlignment DEFAULT_TEXT_ALIGNMENT = TextAlignment.LEFT;
 
     // ==================== Constructors ====================
 
@@ -123,8 +136,9 @@ public class RXTransitionLabel extends Control {
             new SimpleObjectProperty<>(this, "alignment", Pos.CENTER);
 
     /**
-     * How the text is positioned within the label's bounds. A {@code null}
-     * value is treated as {@link Pos#CENTER}.
+     * How the text block is positioned within the label's bounds. A
+     * {@code null} value is treated as {@link Pos#CENTER}. The lines within
+     * the block are aligned by {@link #textAlignmentProperty() textAlignment}.
      *
      * @return the alignment property
      */
@@ -133,7 +147,7 @@ public class RXTransitionLabel extends Control {
     }
 
     /**
-     * Returns the text alignment.
+     * Returns the content alignment.
      *
      * @return the alignment
      */
@@ -142,12 +156,49 @@ public class RXTransitionLabel extends Control {
     }
 
     /**
-     * Sets the text alignment.
+     * Sets the content alignment.
      *
      * @param value the alignment
      */
     public final void setAlignment(Pos value) {
         alignment.set(value);
+    }
+
+    // ==================== Text Alignment ====================
+
+    private final ObjectProperty<TextAlignment> textAlignment =
+            new SimpleStyleableObjectProperty<>(StyleableProperties.TEXT_ALIGNMENT,
+                    this, "textAlignment", DEFAULT_TEXT_ALIGNMENT);
+
+    /**
+     * The horizontal alignment of each line within the text block, for text
+     * that spans several lines. It does not move the block itself, which is
+     * positioned by {@link #alignmentProperty() alignment}. A {@code null}
+     * value is treated as {@link TextAlignment#LEFT}, as for {@code Label}.
+     * Also settable from CSS via {@code -fx-text-alignment}.
+     *
+     * @return the text-alignment property
+     */
+    public final ObjectProperty<TextAlignment> textAlignmentProperty() {
+        return textAlignment;
+    }
+
+    /**
+     * Returns the horizontal alignment of each line of text.
+     *
+     * @return the text alignment
+     */
+    public final TextAlignment getTextAlignment() {
+        return textAlignment.get();
+    }
+
+    /**
+     * Sets the horizontal alignment of each line of text.
+     *
+     * @param value the text alignment
+     */
+    public final void setTextAlignment(TextAlignment value) {
+        textAlignment.set(value);
     }
 
     // ==================== Wrap Text ====================
@@ -227,6 +278,8 @@ public class RXTransitionLabel extends Control {
      * implementation can be used; a {@code null} animation, multi-page
      * display animations, and animations requiring more than two pages fall
      * back to a direct cut.
+     * A {@code PageAnimation} instance may be reused sequentially, but must
+     * not drive concurrent transitions or be shared by multiple live hosts.
      *
      * @return the animation property
      */
@@ -426,12 +479,28 @@ public class RXTransitionLabel extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXTransitionLabel, TextAlignment> TEXT_ALIGNMENT =
+                new CssMetaData<>("-fx-text-alignment",
+                        new EnumConverter<>(TextAlignment.class), DEFAULT_TEXT_ALIGNMENT) {
+
+                    @Override
+                    public boolean isSettable(RXTransitionLabel control) {
+                        return !control.textAlignment.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<TextAlignment> getStyleableProperty(RXTransitionLabel control) {
+                        return (StyleableProperty<TextAlignment>) control.textAlignmentProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Control.getClassCssMetaData());
-            Collections.addAll(styleables, ANIMATION_DURATION);
+            Collections.addAll(styleables, ANIMATION_DURATION, TEXT_ALIGNMENT);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }
