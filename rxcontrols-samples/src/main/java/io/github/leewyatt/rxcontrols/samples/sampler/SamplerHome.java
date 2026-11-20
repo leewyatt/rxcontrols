@@ -201,7 +201,7 @@ final class SamplerHome extends ScrollPane {
                 heroCol(text, 12, true, true),
                 heroCol(well, 12, false, true),
                 heroCol(HomeSpotlight.strip(openLink), 24, true, false));
-        return HomeKit.bleed(row);
+        return row;
     }
 
     /** A hero column: full width when narrow, {@code wideSpan} when wide, shown where asked. */
@@ -267,7 +267,7 @@ final class SamplerHome extends ScrollPane {
         RXRow row = HomeKit.row(12.0, 12.0);
         row.setAlign(RXRow.Align.STRETCH);
         byCategory.forEach((category, list) -> row.getChildren().add(col(categoryCard(category, list), 24, 12, 6)));
-        return HomeKit.bleed(row);
+        return row;
     }
 
     private Button categoryCard(SamplerCategory category, List<SamplerEntry> list) {
@@ -310,7 +310,7 @@ final class SamplerHome extends ScrollPane {
         RXRow row = HomeKit.row(16.0, 16.0);
         row.setAlign(RXRow.Align.STRETCH);
         row.getChildren().addAll(col(getStarted(), 24, 24, 12), col(whatsNew(), 24, 24, 12));
-        return HomeKit.bleed(row);
+        return row;
     }
 
     private Node getStarted() {
