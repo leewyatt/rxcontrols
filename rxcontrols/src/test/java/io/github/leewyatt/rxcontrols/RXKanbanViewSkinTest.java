@@ -249,6 +249,62 @@ public class RXKanbanViewSkinTest {
         });
     }
 
+    /**
+     * The card area keeps the same gap above (below the header) and below (above the
+     * column bottom, or the footer when there is one): an overflowing column scrolled
+     * to the end leaves its last card that gap above the bottom edge, not flush.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void cardAreaGapIsSymmetricWithAndWithoutFooter() throws Exception {
+        onFx(() -> {
+            for (boolean withFooter : new boolean[]{false, true}) {
+                for (int cardCount : new int[]{2, 30}) {
+                    String scenario = (withFooter ? "footer" : "no footer") + ", " + cardCount + " cards";
+                    RXKanbanView<String> board = board("A", cardCount);
+                    board.setPrefCardHeight(76);
+                    board.setCardSpacing(8);
+                    if (withFooter) {
+                        board.setColumnFooterFactory(column -> new Label("footer"));
+                    }
+                    pump(host(board, 400, 400));
+
+                    Region column = (Region) board.lookup(".column");
+                    Region header = (Region) column.lookup(".column > .header");
+                    Region content = (Region) column.lookup(".column > .content");
+                    Region footer = withFooter ? (Region) column.lookup(".column > .footer") : null;
+                    double contentTop = content.getLayoutY();
+                    double contentBottom = contentTop + content.getHeight();
+                    double topGap = contentTop - (header.getLayoutY() + header.getHeight());
+                    double bottomEdge = footer != null ? footer.getLayoutY() : column.getHeight();
+                    double bottomGap = bottomEdge - contentBottom;
+                    assertTrue(topGap > 0.0, scenario + ": gap below the header (was " + topGap + ")");
+                    assertEquals(topGap, bottomGap, 0.5, scenario + ": gap above the bottom edge matches the top gap");
+
+                    RXKanbanCardCell<?> first = cellByText(board, "card-0");
+                    assertEquals(contentTop, contentTop + first.getLayoutY(), 0.5,
+                            scenario + ": first card starts at the card-area top");
+
+                    for (Node node : content.lookupAll(".scroll-bar")) {
+                        if (node instanceof ScrollBar bar && bar.isVisible()) {
+                            bar.setValue(bar.getMax());
+                        }
+                    }
+                    pump(board);
+                    RXKanbanCardCell<?> last = cellByText(board, "card-" + (cardCount - 1));
+                    assertNotNull(last, scenario + ": last card realized after scrolling to the end");
+                    double lastBottom = contentTop + last.getLayoutY() + last.getHeight();
+                    double expectedLastBottom = cardCount > 3 ? contentBottom : contentTop + cardCount * 84.0 - 8.0;
+                    assertEquals(expectedLastBottom, lastBottom, 0.5,
+                            scenario + ": last card bottom (scrolled to the end)");
+                    assertTrue(bottomEdge - lastBottom >= topGap - 0.5,
+                            scenario + ": last card keeps at least the gap above the bottom edge");
+                }
+            }
+        });
+    }
+
     @Test
     public void illegalCardHeightFallsBackToDefault() throws Exception {
         onFx(() -> {

@@ -314,7 +314,7 @@ final class KanbanColumnBox<T> extends Region {
         double cardsX = left + CARD_AREA_HGAP;
         double cardsW = Math.max(0.0, innerW - 2.0 * CARD_AREA_HGAP);
         double cardsTop = top + headerH + CARD_AREA_VGAP;
-        double cardsH = Math.max(0.0, innerH - headerH - footerH - CARD_AREA_VGAP);
+        double cardsH = Math.max(0.0, innerH - headerH - footerH - 2.0 * CARD_AREA_VGAP);
         viewport.resizeRelocate(snapPositionX(cardsX), snapPositionY(cardsTop), cardsW, cardsH);
         if (placeholderNode != null) {
             boolean placeholderVisible = cardAreaVisible && column.getCardCount() == 0;
