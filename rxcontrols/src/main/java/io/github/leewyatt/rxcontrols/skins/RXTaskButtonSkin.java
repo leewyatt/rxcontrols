@@ -124,8 +124,10 @@ public class RXTaskButtonSkin extends RXSkinBase<RXTaskButton> {
         disposer.registerBinding(shapeOf(failedFace).backgroundProperty(), shapeBackground);
 
         disposer.registerDisposeTask(ring::dispose);
-        // The stop mark belongs to the ring: a custom indicator gets none.
-        disposer.registerBinding(ring.stopMarkVisibleProperty(), button.cancellableProperty());
+        // The stop mark shows exactly while a click would cancel, not while
+        // the button is merely cancellable. It belongs to the ring: a custom
+        // indicator gets none.
+        disposer.registerBinding(ring.stopMarkVisibleProperty(), TaskButtonAccess.cancelReadyOf(button));
         ring.setProgress(button.getProgress());
         disposer.registerListener(button.progressProperty(), () -> ring.setProgress(button.getProgress()));
         updatePendingIndicator();
