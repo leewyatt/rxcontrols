@@ -48,6 +48,7 @@ public final class TransitionPages {
     private final boolean keepBothAttached;
 
     private StackPane currentPage;
+    private int generation;
 
     /**
      * Creates the surface with two empty pages in detach mode (only the current
@@ -192,6 +193,20 @@ public final class TransitionPages {
     }
 
     /**
+     * Hides the page and makes sure it is parented to the content pane, so its
+     * content is part of the scene graph before a later
+     * {@link #transitionTo} plays it in.
+     *
+     * @param page the page to attach hidden
+     */
+    public void attachHidden(StackPane page) {
+        page.setVisible(false);
+        if (!contentPane.getChildren().contains(page)) {
+            contentPane.getChildren().add(page);
+        }
+    }
+
+    /**
      * Shows the target page with a direct cut: it becomes the current page,
      * is made visible, and every other page is hidden ({@code setVisible(false)}
      * in keep-both mode, removed from the content pane in detach mode). In
@@ -201,6 +216,7 @@ public final class TransitionPages {
      * @param target the page to show
      */
     public void directCutTo(StackPane target) {
+        generation++;
         currentPage = target;
         target.setVisible(true);
         hideNonCurrentPages();
@@ -216,7 +232,9 @@ public final class TransitionPages {
      * @param direction      the transition direction
      * @param duration       the transition duration
      * @param onStarted      runs right before the animation starts (mirror state), may be {@code null}
-     * @param onSettled      runs after natural completion, before off-stage pages are removed, may be {@code null}
+     * @param onSettled      runs after natural completion, before off-stage pages are removed;
+     *                       if it starts another transition or cut, the pages are left to
+     *                       that one; may be {@code null}
      * @param onExternalStop runs after an external stop, may be {@code null}
      */
     public void transitionTo(StackPane target, PageAnimation animation,
@@ -231,13 +249,18 @@ public final class TransitionPages {
             contentPane.getChildren().add(target);
         }
 
+        int playing = ++generation;
         TransitionContext context = buildContext(outgoing, target, direction, duration);
         engine.play(animation, context, onStarted,
                 () -> {
                     if (onSettled != null) {
                         onSettled.run();
                     }
-                    hideNonCurrentPages();
+                    // onSettled runs host and user code, which may already have
+                    // started the next transition; its outgoing page must stay.
+                    if (generation == playing) {
+                        hideNonCurrentPages();
+                    }
                 },
                 onExternalStop);
     }

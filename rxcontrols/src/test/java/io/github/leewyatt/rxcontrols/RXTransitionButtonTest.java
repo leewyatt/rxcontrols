@@ -377,6 +377,29 @@ public class RXTransitionButtonTest {
     }
 
     @Test
+    public void playAnimationReturnLegKeepsAlternateFaceVisible() {
+        RXTransitionButton button = laidOutButton("Front", new Label("Back"));
+        button.setAnimationTrigger(AnimationTrigger.NONE);
+        button.setAnimation(new RecordingAnimation(Duration.ZERO));
+        RecordingAnimation slow = new RecordingAnimation(Duration.seconds(30.0));
+        button.transitioningProperty().addListener((observable, was, is) -> {
+            if (!is) {
+                button.setAnimation(slow);
+            }
+        });
+
+        try {
+            button.playAnimation();
+
+            assertEquals(1, slow.contexts.size());
+            assertTrue(button.isTransitioning());
+            assertTrue(slow.contexts.get(0).getCurrentPage().isVisible());
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
     public void playAnimationHasNoEffectWhenDisabled() {
         RXTransitionButton button = laidOutButton("Front", new Label("Back"));
         button.setAnimationTrigger(AnimationTrigger.NONE);

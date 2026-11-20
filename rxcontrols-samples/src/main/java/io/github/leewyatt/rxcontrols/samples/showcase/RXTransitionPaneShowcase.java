@@ -22,6 +22,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimWind;
 import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
+import io.github.leewyatt.rxcontrols.event.RXTransitionPaneEvent;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Orientation;
@@ -31,6 +32,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
@@ -49,12 +51,16 @@ import java.util.function.Supplier;
  * Next over a fixed list of step cards) and a state machine (loading,
  * content, error, empty) — plus the transition presets shared with
  * RXCarousel and RXLrcLineView (multi-page display animations are excluded;
- * the pane falls back to a direct cut for those).</p>
+ * the pane falls back to a direct cut for those). A lifecycle log lists the
+ * content events and the transitioning flag as they happen, and a redirect
+ * switch replaces the error state from its OPENING handler.</p>
  */
 public class RXTransitionPaneShowcase extends RXShowcaseApplication {
 
     private static final String DEFAULT_ANIMATION = "Fade";
     private static final int STEP_COUNT = 4;
+    private static final int LOG_LIMIT = 200;
+    private static final String ERROR_NAME = "Error";
 
     private final Map<String, Supplier<PageAnimation>> animationPresets = animationPresets();
     private final List<Node> stepCards = createStepCards();
@@ -126,7 +132,8 @@ public class RXTransitionPaneShowcase extends RXShowcaseApplication {
     protected List<Section> createSections() {
         return List.of(
                 section("Animation", buildAnimationGrid()),
-                section("View States", buildStateGrid()));
+                section("View States", buildStateGrid()),
+                section("Lifecycle", buildLifecycleGrid()));
     }
 
     // ==================== Sections ====================
@@ -180,6 +187,50 @@ public class RXTransitionPaneShowcase extends RXShowcaseApplication {
                 row(hint));
     }
 
+    private Node buildLifecycleGrid() {
+        ListView<String> log = new ListView<>();
+        log.setPrefHeight(180.0);
+        // Registered before the pane's first CSS pass, so the initial
+        // content's OPENING / OPENED are logged too.
+        transitionPane.addEventHandler(RXTransitionPaneEvent.ANY, event -> appendLog(log,
+                eventName(event) + "  " + event.getContent().getUserData()));
+        transitionPane.transitioningProperty().addListener((obs, oldValue, newValue) ->
+                appendLog(log, "transitioning = " + newValue));
+
+        Button clearButton = new Button("Clear log");
+        clearButton.setOnAction(event -> log.getItems().clear());
+
+        CheckBox redirectBox = new CheckBox("Redirect Error to the current step");
+        transitionPane.setOnContentOpening(event -> {
+            if (redirectBox.isSelected() && ERROR_NAME.equals(event.getContent().getUserData())) {
+                showStep(stepIndex, TransitionDirection.FORWARD);
+            }
+        });
+
+        Label hint = new Label("A redirected page gets OPENED, CLOSING and CLOSED without ever showing.");
+        hint.getStyleClass().add("hint-label");
+        hint.setWrapText(true);
+
+        return createGrid(
+                row(log),
+                row(clearButton),
+                row(redirectBox),
+                row(hint));
+    }
+
+    private static void appendLog(ListView<String> log, String line) {
+        log.getItems().add(line);
+        if (log.getItems().size() > LOG_LIMIT) {
+            log.getItems().remove(0);
+        }
+        log.scrollTo(log.getItems().size() - 1);
+    }
+
+    private static String eventName(RXTransitionPaneEvent event) {
+        String name = event.getEventType().getName();
+        return name.substring(name.lastIndexOf('_') + 1);
+    }
+
     // ==================== Content nodes ====================
 
     private void showStep(int index, TransitionDirection direction) {
@@ -208,6 +259,7 @@ public class RXTransitionPaneShowcase extends RXShowcaseApplication {
         VBox card = new VBox(8.0, step, heading, body);
         card.setAlignment(Pos.CENTER);
         card.getStyleClass().addAll("state-card", "step-card", "step-card-" + number);
+        card.setUserData("Step " + number);
         return card;
     }
 
@@ -218,6 +270,7 @@ public class RXTransitionPaneShowcase extends RXShowcaseApplication {
         VBox card = new VBox(12.0, spinner, label);
         card.setAlignment(Pos.CENTER);
         card.getStyleClass().addAll("state-card", "loading-card");
+        card.setUserData("Loading");
         return card;
     }
 
@@ -229,6 +282,7 @@ public class RXTransitionPaneShowcase extends RXShowcaseApplication {
         VBox card = new VBox(8.0, icon, label);
         card.setAlignment(Pos.CENTER);
         card.getStyleClass().addAll("state-card", "error-card");
+        card.setUserData(ERROR_NAME);
         return card;
     }
 
