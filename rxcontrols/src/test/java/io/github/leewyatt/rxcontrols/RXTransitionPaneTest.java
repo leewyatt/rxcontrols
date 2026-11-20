@@ -9,10 +9,16 @@ import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
+import javafx.event.Event;
+import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.input.PickResult;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -375,7 +381,41 @@ public class RXTransitionPaneTest {
         pane.getSkin().dispose();
     }
 
+    // ==================== Mouse Events ====================
+
+    @Test
+    public void mouseEventsOnTheContentReachTheParent() {
+        Label content = new Label("A");
+        RXTransitionPane pane = laidOutPaneShowing(content);
+
+        try {
+            assertTrue(clickReachesParent(pane, content));
+
+            // An ignored skin runs the SkinBase constructor, which consumes mouse events.
+            pane.setSkin(new RXTransitionPaneSkin(pane));
+
+            assertTrue(clickReachesParent(pane, content));
+        } finally {
+            pane.getSkin().dispose();
+        }
+    }
+
     // ==================== Helpers ====================
+
+    private static boolean clickReachesParent(RXTransitionPane pane, Node target) {
+        List<MouseEvent> received = new ArrayList<>();
+        EventHandler<MouseEvent> handler = received::add;
+        Parent parent = pane.getParent();
+        parent.addEventHandler(MouseEvent.MOUSE_CLICKED, handler);
+        try {
+            Event.fireEvent(target, new MouseEvent(MouseEvent.MOUSE_CLICKED, 1.0, 1.0, 1.0, 1.0,
+                    MouseButton.PRIMARY, 1, false, false, false, false, false, false, false,
+                    false, false, true, new PickResult(target, 1.0, 1.0)));
+        } finally {
+            parent.removeEventHandler(MouseEvent.MOUSE_CLICKED, handler);
+        }
+        return received.size() == 1;
+    }
 
     private static RXTransitionPane laidOutPaneShowing(Node content) {
         RXTransitionPane pane = new RXTransitionPane();

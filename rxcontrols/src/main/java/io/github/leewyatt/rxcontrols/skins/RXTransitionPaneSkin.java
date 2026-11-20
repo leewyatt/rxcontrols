@@ -61,6 +61,10 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
      */
     public RXTransitionPaneSkin(RXTransitionPane control) {
         super(control);
+        // A container passes mouse events on its content through to the
+        // parent, as ScrollPane does. Done here rather than on activation:
+        // the SkinBase constructor of an ignored skin re-adds the consumer.
+        consumeMouseEvents(false);
         ledger = ContentLifecycleLedger.of(control);
 
         // Weak: setSkin drops a skin of the installed class without disposing
