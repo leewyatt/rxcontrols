@@ -166,15 +166,18 @@ import java.util.concurrent.atomic.AtomicReference;
  * cancels a run that has just started. Activating the button on a result
  * face reaches {@code onAction} again, which is how a failed run is
  * retried. A mouse press or key stroke does only what it would have done
- * when it began: if the run ends while the button is held down to cancel
- * it, the release does nothing, rather than reach {@code onAction} and
- * start the work again; and a press that began as an action does not
- * cancel a run started meanwhile.</p>
+ * when it {@linkplain #armedProperty() armed} the button: if the run ends
+ * while the button is held down to cancel it, the release does nothing,
+ * rather than reach {@code onAction} and start the work again; and a press
+ * that armed the button for its action does not cancel a run started
+ * meanwhile.</p>
  *
  * <p>The run belongs to the application, not to the button: disabling the
  * button, hiding it or removing it from the scene changes nothing about a run
  * in flight, and its outcome is shown as usual. The state lives in the
- * control, so it also survives a skin replacement.</p>
+ * control, so it also survives a skin replacement; only what a mouse press
+ * under way armed the button for is forgotten with the old skin: its
+ * release is then an ordinary activation.</p>
  *
  * <p>The accessible name of the button follows the face shown: the text of
  * that face when it has one, the button's own text otherwise, and the
@@ -1336,8 +1339,8 @@ public class RXTaskButton extends RXButton {
      * {@link #pendingDelayProperty() pendingDelay}, are still swallowed, so
      * a double click does not cancel what it started. A
      * {@code pendingMinDuration} of {@code Duration.ZERO} gives that
-     * protection up. A press or key stroke that began as a cancel does
-     * nothing when the run has ended by the time it is released.
+     * protection up. A press or key stroke that armed the button to cancel
+     * does nothing when the run has ended by the time it is released.
      * {@link #cancel()} itself works at any time, whatever this property
      * says.
      *
