@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.RXTaskButton.Run;
 import javafx.application.Platform;
+import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.Region;
@@ -31,7 +32,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Tests the default theme rules of {@link RXTaskButton}: the sizes and shapes
- * of the indicators and the colors of the result states.
+ * of the indicators, the color of the stop mark and the colors of the result
+ * states.
  */
 public class RXTaskButtonStyleTest {
 
@@ -116,6 +118,25 @@ public class RXTaskButtonStyleTest {
         });
     }
 
+    // ==================== Stop mark ====================
+
+    @Test
+    public void stopMarkIsRedAndTakesTheTextColorOnADefaultButton() throws InterruptedException {
+        onFx(() -> {
+            RXTaskButton plain = pendingAndCancellable(new RXTaskButton("Save"));
+            assertEquals(DANGER, fill(stop(plain)));
+
+            RXTaskButton filled = new RXTaskButton("Save");
+            filled.setDefaultButton(true);
+            pendingAndCancellable(filled);
+            assertNotEquals(DANGER, fill(stop(filled)));
+            assertEquals(filled.getTextFill(), fill(stop(filled)));
+            filled.pseudoClassStateChanged(PseudoClass.getPseudoClass("hover"), true);
+            filled.getParent().applyCss();
+            assertEquals(filled.getTextFill(), fill(stop(filled)));
+        });
+    }
+
     // ==================== Result colors ====================
 
     @Test
@@ -192,6 +213,7 @@ public class RXTaskButtonStyleTest {
                 for (boolean defaultButton : new boolean[] {false, true}) {
                     RXTaskButton button = new RXTaskButton("Save");
                     button.setDefaultButton(defaultButton);
+                    button.setCancellable(true);
                     styled(button);
                     button.setPendingDelay(Duration.ZERO);
                     button.setPendingMinDuration(Duration.ZERO);
@@ -235,6 +257,19 @@ public class RXTaskButtonStyleTest {
         Region face = (Region) button.lookup(faceSelector);
         Node indicator = face.getChildrenUnmodifiable().get(0);
         return (Region) indicator;
+    }
+
+    private static RXTaskButton pendingAndCancellable(RXTaskButton button) {
+        button.setCancellable(true);
+        button.setPendingDelay(Duration.ZERO);
+        styled(button);
+        button.start();
+        button.getParent().applyCss();
+        return button;
+    }
+
+    private static Region stop(RXTaskButton button) {
+        return (Region) indicator(button, ".pending-face").lookup(".stop");
     }
 
     private static Paint fill(Region region) {

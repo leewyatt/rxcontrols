@@ -19,13 +19,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests the built-in ring: what it draws for a progress, its paint, its
- * layout, and that it only animates while it can be seen.
+ * layout, its stop mark, and that it only animates while it can be seen.
  */
 public class RingIndicatorTest {
 
@@ -61,7 +62,7 @@ public class RingIndicatorTest {
         assertEquals(Region.USE_PREF_SIZE, ring.getMaxWidth());
         assertEquals(Region.USE_PREF_SIZE, ring.getMaxHeight());
         assertTrue(ring.isMouseTransparent());
-        assertEquals(2, ring.getChildrenUnmodifiable().size());
+        assertEquals(3, ring.getChildrenUnmodifiable().size());
         assertEquals(360.0, track(ring).getLength());
         assertTrue(track(ring).getOpacity() < 1.0);
         assertEquals(1.0, arc(ring).getOpacity());
@@ -132,6 +133,50 @@ public class RingIndicatorTest {
         ring.layout();
         assertEquals(0.0, arc.getStrokeWidth());
         assertEquals(0.0, arc.getRadiusX());
+    }
+
+    @Test
+    public void stopMarkIsAHiddenSquareUntilAskedFor() {
+        RingIndicator ring = new RingIndicator();
+        Region stop = stop(ring);
+
+        assertEquals(List.of("stop"), stop.getStyleClass());
+        assertFalse(stop.isManaged());
+        assertFalse(stop.isVisible());
+        assertFalse(ring.isStopMarkVisible());
+
+        ring.setStopMarkVisible(true);
+        assertTrue(stop.isVisible());
+        ring.setStopMarkVisible(false);
+        assertFalse(stop.isVisible());
+    }
+
+    @Test
+    public void stopMarkIsCentredOnWholePixelsAndDoesNotTurn() {
+        RingIndicator ring = new RingIndicator();
+        ring.setStopMarkVisible(true);
+        Region stop = stop(ring);
+        ring.resize(20.0, 20.0);
+        ring.layout();
+
+        // 38% of the size, rounded so the same whole pixels are left on each side.
+        assertEquals(8.0, stop.getWidth());
+        assertEquals(8.0, stop.getHeight());
+        assertEquals(6.0, stop.getLayoutX());
+        assertEquals(6.0, stop.getLayoutY());
+
+        // Measured from the smaller side, around the centre.
+        ring.resize(20.0, 30.0);
+        ring.layout();
+        assertEquals(8.0, stop.getWidth());
+        assertEquals(8.0, stop.getHeight());
+        assertEquals(6.0, stop.getLayoutX());
+        assertEquals(11.0, stop.getLayoutY());
+        assertTrue(stop.getTransforms().isEmpty());
+
+        ring.resize(0.0, 0.0);
+        ring.layout();
+        assertEquals(0.0, stop.getWidth());
     }
 
     // ==================== On show ====================
@@ -257,6 +302,10 @@ public class RingIndicatorTest {
 
     private static Arc arc(RingIndicator ring) {
         return (Arc) ring.getChildrenUnmodifiable().get(1);
+    }
+
+    private static Region stop(RingIndicator ring) {
+        return (Region) ring.getChildrenUnmodifiable().get(2);
     }
 
     private static Rotate spin(RingIndicator ring) {

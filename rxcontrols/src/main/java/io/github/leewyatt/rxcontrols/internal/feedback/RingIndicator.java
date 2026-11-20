@@ -8,8 +8,10 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.beans.InvalidationListener;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.NodeOrientation;
@@ -27,7 +29,8 @@ import javafx.util.Duration;
  * between 0 and 1 is drawn as an arc that grows clockwise from twelve
  * o'clock; an indeterminate progress as an arc that stretches and shrinks
  * while it travels round the ring. The arc and the track below it share one
- * paint, the track dimmed.
+ * paint, the track dimmed. A stop mark, a square at the centre, can be
+ * shown to tell that the work behind the ring can be stopped.
  *
  * <p>The ring is sized from CSS through its {@code indicator} style class and
  * keeps its preferred size. It animates only while it can be seen, that is
@@ -37,12 +40,16 @@ import javafx.util.Duration;
 public final class RingIndicator extends Region {
 
     private static final String STYLE_CLASS = "indicator";
+    private static final String STOP_STYLE_CLASS = "stop";
     private static final double FULL_CIRCLE = 360.0;
     private static final double TWELVE_O_CLOCK = 90.0;
     private static final double TRACK_OPACITY = 0.28;
     // The stroke scales with the ring, but stays visible on a tiny one.
     private static final double STROKE_RATIO = 0.14;
     private static final double MIN_STROKE_WIDTH = 1.5;
+    // Side of the stop mark against the size of the ring; at the sizes a
+    // button uses it leaves a gap to the stroke all round.
+    private static final double STOP_RATIO = 0.38;
 
     /** Length of the travelling arc at the start and the end of a cycle. */
     private static final double SWEEP_MIN_LENGTH = 12.0;
@@ -54,6 +61,7 @@ public final class RingIndicator extends Region {
 
     private final Arc track = new Arc();
     private final Arc arc = new Arc();
+    private final Region stop = new Region();
     private final Rotate spin = new Rotate();
     // Added to the start angle of the arc while it travels.
     private final DoubleProperty sweepOffset = new SimpleDoubleProperty();
@@ -87,7 +95,12 @@ public final class RingIndicator extends Region {
         track.setLength(FULL_CIRCLE);
         arc.startAngleProperty().bind(sweepOffset.add(TWELVE_O_CLOCK));
         arc.getTransforms().add(spin);
-        getChildren().addAll(track, arc);
+        // Colored from a style sheet, not from the paint: the mark stands
+        // for an action, not for the state the ring shows.
+        stop.getStyleClass().add(STOP_STYLE_CLASS);
+        stop.setManaged(false);
+        stop.setVisible(false);
+        getChildren().addAll(track, arc, stop);
 
         showing.addListener(showingListener);
         refresh(false);
@@ -123,6 +136,44 @@ public final class RingIndicator extends Region {
      */
     public void setPaint(Paint value) {
         paint.set(value);
+    }
+
+    // ==================== Stop Mark ====================
+
+    private final BooleanProperty stopMarkVisible = new SimpleBooleanProperty(this, "stopMarkVisible") {
+        @Override
+        protected void invalidated() {
+            stop.setVisible(get());
+        }
+    };
+
+    /**
+     * Whether the stop mark shows: a square at the centre of the ring that
+     * does not turn with the arc. It carries the {@code stop} style class
+     * and takes its color from a style sheet. Off by default.
+     *
+     * @return the stop mark visible property
+     */
+    public BooleanProperty stopMarkVisibleProperty() {
+        return stopMarkVisible;
+    }
+
+    /**
+     * Returns whether the stop mark shows.
+     *
+     * @return whether the stop mark shows
+     */
+    public boolean isStopMarkVisible() {
+        return stopMarkVisible.get();
+    }
+
+    /**
+     * Sets whether the stop mark shows.
+     *
+     * @param value {@code true} to show the stop mark
+     */
+    public void setStopMarkVisible(boolean value) {
+        stopMarkVisible.set(value);
     }
 
     // ==================== Progress ====================
@@ -261,6 +312,12 @@ public final class RingIndicator extends Region {
         }
         spin.setPivotX(centerX);
         spin.setPivotY(centerY);
+
+        // As much smaller than the ring on each side, on whole pixels, so
+        // the square is centred and its edges stay sharp.
+        double inset = snapPositionX(size * (1.0 - STOP_RATIO) / 2.0);
+        double side = Math.max(0.0, size - 2.0 * inset);
+        stop.resizeRelocate(centerX - side / 2.0, centerY - side / 2.0, side, side);
     }
 
     // ==================== Dispose ====================

@@ -494,6 +494,18 @@
     -fx-shape: "M1.5 0 L5.5 4 L9.5 0 L11 1.5 L7 5.5 L11 9.5 L9.5 11 L5.5 7 L1.5 11 L0 9.5 L4 5.5 L0 1.5 Z";
 }
 
+/* The stop mark of a cancellable button, at the centre of the ring. On a
+   filled body red would sink in, so there it takes the text color, as the
+   ring does. */
+.rx-task-button .pending-face > .indicator > .stop {
+    -fx-background-color: -rx-danger;
+    -fx-background-radius: 0.08em;
+}
+
+.rx-task-button:default .pending-face > .indicator > .stop {
+    -fx-background-color: -fx-text-base-color;
+}
+
 /* A result colors the text through the token Modena's button text reads, not
    through -fx-text-fill: a theme that sets the text fill state by state keeps
    doing so. The indicators follow the text. */
@@ -624,6 +636,38 @@
     -color-button-border-focused: transparent;
     -color-button-bg-pressed: transparent;
     -color-button-fg-pressed: -color-danger-fg;
+}
+
+/* The stop mark on AtlantaFX: the filled variants take the text color, the
+   outlined and flat ones are plain again until an outlined color button
+   fills up under the mouse. */
+.rx-theme-atlantafx .rx-task-button:default .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button:default .pending-face > .indicator > .stop,
+.rx-theme-atlantafx .rx-task-button.accent .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button.accent .pending-face > .indicator > .stop,
+.rx-theme-atlantafx .rx-task-button.success .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button.success .pending-face > .indicator > .stop,
+.rx-theme-atlantafx .rx-task-button.danger .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button.danger .pending-face > .indicator > .stop {
+    -fx-background-color: -color-button-fg;
+}
+
+.rx-theme-atlantafx .rx-task-button.button-outlined .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button.button-outlined .pending-face > .indicator > .stop,
+.rx-theme-atlantafx .rx-task-button.flat .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button.flat .pending-face > .indicator > .stop {
+    -fx-background-color: -rx-danger;
+}
+
+.rx-theme-atlantafx .rx-task-button.button-outlined:default:hover .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button.button-outlined:default:hover .pending-face > .indicator > .stop,
+.rx-theme-atlantafx .rx-task-button.button-outlined.accent:hover .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button.button-outlined.accent:hover .pending-face > .indicator > .stop,
+.rx-theme-atlantafx .rx-task-button.button-outlined.success:hover .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button.button-outlined.success:hover .pending-face > .indicator > .stop,
+.rx-theme-atlantafx .rx-task-button.button-outlined.danger:hover .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button.button-outlined.danger:hover .pending-face > .indicator > .stop {
+    -fx-background-color: -color-button-fg-hover;
 }
 
 /*******************************************************************************

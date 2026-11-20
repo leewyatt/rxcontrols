@@ -82,8 +82,9 @@ public final class RXTaskButtonSamples {
                                         + " face starts the work again.",
                                 retry()),
                         SampleCard.medium("Cancellable",
-                                "With cancellable on, a click cancels the run once the ring has shown for a"
-                                        + " moment; a late result of the cancelled work is ignored.",
+                                "Both downloads take five seconds. Only the first can be cancelled: its ring"
+                                        + " carries a stop mark, and a click stops the run once the ring has"
+                                        + " shown for a moment. The second ignores clicks until it is done.",
                                 cancellable()),
                         SampleCard.medium("Pending state only",
                                 "With both result durations at zero the button only shows the ring, and a"
@@ -291,12 +292,27 @@ public final class RXTaskButtonSamples {
     // ==================== Cancellable ====================
 
     private static Node cancellable() {
+        HBox row = new HBox(32.0, labelled(download(true), "Cancellable"),
+                labelled(download(false), "Not cancellable"));
+        row.setAlignment(Pos.CENTER);
+        return row;
+    }
+
+    private static RXTaskButton download(boolean cancellable) {
         RXTaskButton button = succeeding("Download", 5000.0);
         button.setGraphic(ButtonIcons.icon("download-icon"));
-        button.setCancellable(true);
-        button.setPendingText("Cancel");
+        button.setCancellable(cancellable);
+        button.setPendingText("Downloading…");
         button.setSucceededText("Downloaded");
         return button;
+    }
+
+    private static Node labelled(Node node, String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("caption");
+        VBox box = new VBox(8.0, node, label);
+        box.setAlignment(Pos.CENTER);
+        return box;
     }
 
     // ==================== Pending state only ====================
