@@ -754,6 +754,34 @@ public class RXTransitionPaneLifecycleTest {
     }
 
     @Test
+    public void skinReplacedFromAHandlerTakesTheChangeOverAfterTheStep() throws Exception {
+        onFx(() -> {
+            RXTransitionPane pane = laidOutPane(new Label("A"));
+            ManualAnimation animation = new ManualAnimation();
+            pane.setAnimation(animation);
+            Label b = new Label("B");
+            Label c = new Label("C");
+            b.addEventHandler(RXTransitionPaneEvent.OPENED, e -> {
+                pane.setContent(c);
+                pane.setSkin(new RXTransitionPaneSkin(pane) {
+                });
+            });
+            Recorder recorder = new Recorder(pane);
+            pane.setContent(b);
+            recorder.take();
+
+            animation.finishNaturally();
+
+            assertEquals(List.of("transitioning=false", "CLOSED:A", "OPENED:B",
+                    "CLOSING:B", "OPENING:C", "transitioning=true"), recorder.take());
+            assertEquals(1, pane.getChildrenUnmodifiable().size());
+            TransitionContext running = animation.contexts.get(animation.contexts.size() - 1);
+            assertSame(b, pageContent(running.getCurrentPage()));
+            assertSame(c, pageContent(running.getNextPage()));
+        });
+    }
+
+    @Test
     public void disposingTheInstalledSkinClosesTheContent() throws Exception {
         onFx(() -> {
             RXTransitionPane pane = laidOutPane(new Label("A"));
