@@ -371,14 +371,6 @@
     -fx-padding: 1px 8px;
 }
 
-.sampler-home .reaction-bar {
-    -fx-padding: 8px 12px;
-}
-
-.sampler-home .reaction-bar .rx-chip {
-    -fx-font-size: 12px;
-}
-
 /*******************************************************************************
  *                                                                             *
  * Tiles                                                                       *

@@ -12,6 +12,7 @@ import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
 import io.github.leewyatt.rxcontrols.layout.RXCol;
 import io.github.leewyatt.rxcontrols.layout.RXColSpec;
 import io.github.leewyatt.rxcontrols.layout.RXRow;
+import javafx.animation.PauseTransition;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -42,6 +43,8 @@ final class HomeSpotlight {
             .breakpoint(RXBreakpoint.SM, 360.0)
             .build();
 
+    private static final Duration STAR_LINK_DELAY = Duration.seconds(2.0);
+
     private HomeSpotlight() {
     }
 
@@ -65,8 +68,7 @@ final class HomeSpotlight {
         VBox.setVgrow(side.getChildren().get(0), Priority.ALWAYS);
         row.getChildren().addAll(
                 half(libraryCard(controls, transitions, browse)),
-                half(side),
-                new RXCol(reactionBar()));
+                half(side));
         row.getStyleClass().add("home-spotlight");
         return row;
     }
@@ -127,11 +129,16 @@ final class HomeSpotlight {
         RXReactionButton star = new RXReactionButton("Star on GitHub");
         star.getStyleClass().addAll(RXReactionButton.STYLE_CLASS_STAR, "star-button");
         star.setBurstAnimation(BurstAnimation.SPARKLES);
+        // The browser opens once the burst has played; un-starring before then cancels it.
+        PauseTransition delay = new PauseTransition(STAR_LINK_DELAY);
+        delay.setOnFinished(event -> openLink.accept(SamplerHome.REPO_URL));
         star.selectedProperty().addListener((obs, was, starred) -> {
             star.setText(starred ? "Starred" : "Star on GitHub");
             hint.setText(starred ? "Thank you!" : "A star helps others find it.");
             if (starred) {
-                openLink.accept(SamplerHome.REPO_URL);
+                delay.playFromStart();
+            } else {
+                delay.stop();
             }
         });
 
@@ -160,44 +167,5 @@ final class HomeSpotlight {
         beam.setBeamSize(60.0);
         beam.setCycleDuration(Duration.seconds(3.0));
         return beam;
-    }
-
-    // ==================== Reactions ====================
-
-    private static Node reactionBar() {
-        RXReactionButton like = counted(new RXReactionButton(), 128);
-        like.setBurstAnimation(BurstAnimation.HEARTS);
-        RXReactionButton save = new RXReactionButton();
-        save.getStyleClass().add(RXReactionButton.STYLE_CLASS_BOOKMARK);
-        counted(save, 12);
-
-        // The mode comes first: the default NONE clears the selection of every chip added.
-        RXChipSet tags = new RXChipSet();
-        tags.setSelectionMode(RXChipSet.SelectionMode.MULTIPLE);
-        tags.getChips().addAll(filter("Design", true), filter("Engineering", false), filter("Product", true));
-        tags.setHgap(6.0);
-        tags.setAlignment(Pos.CENTER_RIGHT);
-        HBox.setHgrow(tags, Priority.ALWAYS);
-
-        like.setMinWidth(Region.USE_PREF_SIZE);
-        save.setMinWidth(Region.USE_PREF_SIZE);
-        HBox bar = new HBox(8.0, like, save, tags);
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.getStyleClass().addAll("spotlight-card", "reaction-bar");
-        return bar;
-    }
-
-    private static RXReactionButton counted(RXReactionButton button, int count) {
-        button.setText(String.valueOf(count));
-        button.selectedProperty().addListener((obs, was, now) ->
-                button.setText(String.valueOf(now ? count + 1 : count)));
-        return button;
-    }
-
-    private static RXChip filter(String name, boolean selected) {
-        RXChip chip = new RXChip(name);
-        chip.setSelectable(true);
-        chip.setSelected(selected);
-        return chip;
     }
 }
