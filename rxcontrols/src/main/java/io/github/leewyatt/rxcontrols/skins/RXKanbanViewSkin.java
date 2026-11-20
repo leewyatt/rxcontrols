@@ -60,7 +60,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
     // applied when a styleable size is non-positive / non-finite at layout time.
     private static final double DEFAULT_PREF_CARD_HEIGHT = 96.0;
     private static final double DEFAULT_CARD_SPACING = 8.0;
-    private static final Insets DEFAULT_CARD_AREA_PADDING = new Insets(6.0);
+    private static final Insets DEFAULT_COLUMN_CONTENT_PADDING = new Insets(6.0);
     private static final double DEFAULT_PREF_COLUMN_WIDTH = 280.0;
     private static final double DEFAULT_COLUMN_SPACING = 12.0;
 
@@ -150,7 +150,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         disposer.registerListener(control.columnSpacingProperty(), this::requestLayout);
         disposer.registerListener(control.prefCardHeightProperty(), this::onCardMetricsChanged);
         disposer.registerListener(control.cardSpacingProperty(), this::onCardMetricsChanged);
-        disposer.registerListener(control.cardAreaPaddingProperty(), this::onCardAreaPaddingChanged);
+        disposer.registerListener(control.columnContentPaddingProperty(), this::onColumnContentPaddingChanged);
         disposer.registerListener(control.animatedProperty(), this::onAnimationSettingsChanged);
         disposer.registerListener(control.animationDurationProperty(), this::onAnimationSettingsChanged);
         disposer.registerListener(control.smoothScrollingProperty(), this::stopSmoothScrolling);
@@ -187,9 +187,9 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         getSkinnable().requestLayout();
     }
 
-    // The card area is placed by each column box's layoutChildren, which the pulse skips
+    // The content area is placed by each column box's layoutChildren, which the pulse skips
     // while the box's own size is unchanged; dirty every box so the new padding applies.
-    private void onCardAreaPaddingChanged() {
+    private void onColumnContentPaddingChanged() {
         for (KanbanColumnBox<T> box : boxes) {
             box.requestLayout();
         }
@@ -207,10 +207,10 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         return Double.isFinite(value) ? Math.max(0.0, value) : DEFAULT_CARD_SPACING;
     }
 
-    static Insets cardAreaPaddingOrDefault(RXKanbanView<?> control) {
-        Insets value = control.getCardAreaPadding();
+    static Insets columnContentPaddingOrDefault(RXKanbanView<?> control) {
+        Insets value = control.getColumnContentPadding();
         if (value == null) {
-            return DEFAULT_CARD_AREA_PADDING;
+            return DEFAULT_COLUMN_CONTENT_PADDING;
         }
         return new Insets(finiteNonNegative(value.getTop()), finiteNonNegative(value.getRight()),
                 finiteNonNegative(value.getBottom()), finiteNonNegative(value.getLeft()));

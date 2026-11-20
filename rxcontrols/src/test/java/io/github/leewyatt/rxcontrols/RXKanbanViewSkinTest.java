@@ -306,14 +306,14 @@ public class RXKanbanViewSkinTest {
     }
 
     /**
-     * cardAreaPadding places the card area per side, applies on a live change without
+     * columnContentPadding places the content area per side, applies on a live change without
      * any resize, is settable from CSS, and resolves null / negative / non-finite
      * values leniently at layout time.
      *
      * @throws Exception if the FX action fails
      */
     @Test
-    public void cardAreaPaddingPlacesCardAreaPerSide() throws Exception {
+    public void columnContentPaddingPlacesContentPerSide() throws Exception {
         onFx(() -> {
             RXKanbanView<String> board = board("A", 2);
             StackPane root = host(board, 400, 400);
@@ -322,27 +322,27 @@ public class RXKanbanViewSkinTest {
             Region header = (Region) column.lookup(".column > .header");
             Region content = (Region) column.lookup(".column > .content");
 
-            board.setCardAreaPadding(new Insets(3, 11, 7, 5));
+            board.setColumnContentPadding(new Insets(3, 11, 7, 5));
             pump(root);
-            assertCardArea(column, header, content, 3, 11, 7, 5, "explicit per-side padding");
+            assertContentArea(column, header, content, 3, 11, 7, 5, "explicit per-side padding");
 
-            board.setCardAreaPadding(null);
+            board.setColumnContentPadding(null);
             pump(root);
-            assertCardArea(column, header, content, 6, 6, 6, 6, "null falls back to the default");
+            assertContentArea(column, header, content, 6, 6, 6, 6, "null falls back to the default");
 
-            board.setCardAreaPadding(new Insets(-4, Double.NaN, 10, -1));
+            board.setColumnContentPadding(new Insets(-4, Double.NaN, 10, -1));
             pump(root);
-            assertCardArea(column, header, content, 0, 0, 10, 0, "negative / non-finite sides resolve to 0");
+            assertContentArea(column, header, content, 0, 0, 10, 0, "negative / non-finite sides resolve to 0");
 
-            board.setCardAreaPadding(new Insets(6));
-            board.setStyle("-rx-card-area-padding: 2 4 8 12;");
+            board.setColumnContentPadding(new Insets(6));
+            board.setStyle("-rx-column-content-padding: 2 4 8 12;");
             pump(root);
-            assertEquals(new Insets(2, 4, 8, 12), board.getCardAreaPadding(), "CSS sets the property");
-            assertCardArea(column, header, content, 2, 4, 8, 12, "CSS padding lays out the card area");
+            assertEquals(new Insets(2, 4, 8, 12), board.getColumnContentPadding(), "CSS sets the property");
+            assertContentArea(column, header, content, 2, 4, 8, 12, "CSS padding lays out the content area");
         });
     }
 
-    private static void assertCardArea(Region column, Region header, Region content,
+    private static void assertContentArea(Region column, Region header, Region content,
                                        double top, double right, double bottom, double left, String message) {
         double headerBottom = header.getLayoutY() + header.getHeight();
         assertEquals(top, content.getLayoutY() - headerBottom, 0.5, message + ": top");

@@ -306,15 +306,15 @@ final class KanbanColumnBox<T> extends Region {
             headerNode.resizeRelocate(snapPositionX(left), snapPositionY(top), innerW, headerH);
         }
 
-        // The card area sits inside the column chrome (between header and footer) by
-        // the board's cardAreaPadding; the column itself carries no padding, so the
+        // The content area sits inside the column chrome (between header and footer) by
+        // the board's columnContentPadding; the column itself carries no padding, so the
         // header and footer span the full column width.
-        Insets cardPad = RXKanbanViewSkin.cardAreaPaddingOrDefault(control);
-        double cardsX = left + snapSpaceX(cardPad.getLeft());
-        double cardsW = Math.max(0.0, innerW - snapSpaceX(cardPad.getLeft()) - snapSpaceX(cardPad.getRight()));
-        double cardsTop = top + headerH + snapSpaceY(cardPad.getTop());
+        Insets contentPad = RXKanbanViewSkin.columnContentPaddingOrDefault(control);
+        double cardsX = left + snapSpaceX(contentPad.getLeft());
+        double cardsW = Math.max(0.0, innerW - snapSpaceX(contentPad.getLeft()) - snapSpaceX(contentPad.getRight()));
+        double cardsTop = top + headerH + snapSpaceY(contentPad.getTop());
         double cardsH = Math.max(0.0,
-                innerH - headerH - footerH - snapSpaceY(cardPad.getTop()) - snapSpaceY(cardPad.getBottom()));
+                innerH - headerH - footerH - snapSpaceY(contentPad.getTop()) - snapSpaceY(contentPad.getBottom()));
         viewport.resizeRelocate(snapPositionX(cardsX), snapPositionY(cardsTop), cardsW, cardsH);
         if (placeholderNode != null) {
             boolean placeholderVisible = cardAreaVisible && column.getCardCount() == 0;

@@ -183,10 +183,10 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
         cardHeight.valueProperty().addListener((o, ov, v) -> kanban.setPrefCardHeight(v.doubleValue()));
         Slider cardSpacing = createSlider(0.0, 24.0, kanban.getCardSpacing());
         cardSpacing.valueProperty().addListener((o, ov, v) -> kanban.setCardSpacing(v.doubleValue()));
-        // Uniform here for brevity; the property (and -rx-card-area-padding) takes four sides.
-        Slider cardAreaPadding = createSlider(0.0, 24.0, kanban.getCardAreaPadding().getTop());
-        cardAreaPadding.valueProperty().addListener(
-                (o, ov, v) -> kanban.setCardAreaPadding(new Insets(v.doubleValue())));
+        // Uniform here for brevity; the property (and -rx-column-content-padding) takes four sides.
+        Slider columnContentPadding = createSlider(0.0, 24.0, kanban.getColumnContentPadding().getTop());
+        columnContentPadding.valueProperty().addListener(
+                (o, ov, v) -> kanban.setColumnContentPadding(new Insets(v.doubleValue())));
         return createGrid(
                 row("Column justify", justify),
                 row("Column width", columnWidth, createValueLabel(columnWidth, "%.0f px")),
@@ -195,7 +195,7 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
                 row("Column spacing", columnSpacing, createValueLabel(columnSpacing, "%.0f px")),
                 row("Card height", cardHeight, createValueLabel(cardHeight, "%.0f px")),
                 row("Card spacing", cardSpacing, createValueLabel(cardSpacing, "%.0f px")),
-                row("Card area padding", cardAreaPadding, createValueLabel(cardAreaPadding, "%.0f px")));
+                row("Column content padding", columnContentPadding, createValueLabel(columnContentPadding, "%.0f px")));
     }
 
     // A value label that renders a negative slider value (USE_COMPUTED_SIZE) as "auto"

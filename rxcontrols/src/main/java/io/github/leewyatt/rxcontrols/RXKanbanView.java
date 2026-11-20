@@ -81,7 +81,7 @@ public class RXKanbanView<T> extends Control {
     private static final ItemsJustify DEFAULT_COLUMNS_JUSTIFY = ItemsJustify.START;
     private static final double DEFAULT_CARD_SPACING = 8.0;
     private static final double DEFAULT_PREF_CARD_HEIGHT = 96.0;
-    private static final Insets DEFAULT_CARD_AREA_PADDING = new Insets(6.0);
+    private static final Insets DEFAULT_COLUMN_CONTENT_PADDING = new Insets(6.0);
     private static final boolean DEFAULT_SMOOTH_SCROLLING = true;
     private static final SmoothScrollMode DEFAULT_SMOOTH_SCROLL_MODE = RXSmoothScrollOptions.DEFAULT_MODE;
     private static final boolean DEFAULT_ANIMATED = true;
@@ -1125,54 +1125,56 @@ public class RXKanbanView<T> extends Control {
         prefCardHeight.set(value);
     }
 
-    // ==================== Card Area Padding ====================
+    // ==================== Column Content Padding ====================
 
-    private final ObjectProperty<Insets> cardAreaPadding = new StyleableObjectProperty<>(DEFAULT_CARD_AREA_PADDING) {
-        @Override
-        public CssMetaData<RXKanbanView<?>, Insets> getCssMetaData() {
-            return StyleableProperties.CARD_AREA_PADDING;
-        }
+    private final ObjectProperty<Insets> columnContentPadding =
+            new StyleableObjectProperty<>(DEFAULT_COLUMN_CONTENT_PADDING) {
+                @Override
+                public CssMetaData<RXKanbanView<?>, Insets> getCssMetaData() {
+                    return StyleableProperties.COLUMN_CONTENT_PADDING;
+                }
 
-        @Override
-        public Object getBean() {
-            return RXKanbanView.this;
-        }
+                @Override
+                public Object getBean() {
+                    return RXKanbanView.this;
+                }
 
-        @Override
-        public String getName() {
-            return "cardAreaPadding";
-        }
-    };
+                @Override
+                public String getName() {
+                    return "columnContentPadding";
+                }
+            };
 
     /**
-     * Space between each column's card area and the column edges: top is the gap
-     * below the header, bottom the gap above the column bottom (or the footer), left
-     * and right the side gaps. Cards scroll and clip inside this area. Initial value
-     * is 6 pixels on every side; a {@code null} value falls back to that default, and
-     * a negative or non-finite side is treated as {@code 0}, at layout time.
+     * Space between each column's content area (the scrolling card list, styleable
+     * as {@code .column > .content}) and the column edges: top is the gap below the
+     * header, bottom the gap above the column bottom (or the footer), left and right
+     * the side gaps. Cards scroll and clip inside the content area. Initial value is
+     * 6 pixels on every side; a {@code null} value falls back to that default, and a
+     * negative or non-finite side is treated as {@code 0}, at layout time.
      *
-     * @return the card-area-padding property
+     * @return the column-content-padding property
      */
-    public final ObjectProperty<Insets> cardAreaPaddingProperty() {
-        return cardAreaPadding;
+    public final ObjectProperty<Insets> columnContentPaddingProperty() {
+        return columnContentPadding;
     }
 
     /**
-     * Returns the card area padding.
+     * Returns the column content padding.
      *
-     * @return the card area padding, possibly {@code null}
+     * @return the column content padding, possibly {@code null}
      */
-    public final Insets getCardAreaPadding() {
-        return cardAreaPadding.get();
+    public final Insets getColumnContentPadding() {
+        return columnContentPadding.get();
     }
 
     /**
-     * Sets the card area padding.
+     * Sets the column content padding.
      *
-     * @param value the card area padding, or {@code null} for the default
+     * @param value the column content padding, or {@code null} for the default
      */
-    public final void setCardAreaPadding(Insets value) {
-        cardAreaPadding.set(value);
+    public final void setColumnContentPadding(Insets value) {
+        columnContentPadding.set(value);
     }
 
     // ==================== Smooth Scrolling ====================
@@ -1474,17 +1476,18 @@ public class RXKanbanView<T> extends Control {
                     }
                 };
 
-        private static final CssMetaData<RXKanbanView<?>, Insets> CARD_AREA_PADDING =
-                new CssMetaData<>("-rx-card-area-padding", InsetsConverter.getInstance(), DEFAULT_CARD_AREA_PADDING) {
+        private static final CssMetaData<RXKanbanView<?>, Insets> COLUMN_CONTENT_PADDING =
+                new CssMetaData<>("-rx-column-content-padding", InsetsConverter.getInstance(),
+                        DEFAULT_COLUMN_CONTENT_PADDING) {
                     @Override
                     public boolean isSettable(RXKanbanView<?> n) {
-                        return !n.cardAreaPadding.isBound();
+                        return !n.columnContentPadding.isBound();
                     }
 
                     @Override
                     @SuppressWarnings("unchecked")
                     public StyleableProperty<Insets> getStyleableProperty(RXKanbanView<?> n) {
-                        return (StyleableProperty<Insets>) n.cardAreaPaddingProperty();
+                        return (StyleableProperty<Insets>) n.columnContentPaddingProperty();
                     }
                 };
 
@@ -1523,7 +1526,8 @@ public class RXKanbanView<T> extends Control {
             List<CssMetaData<? extends Styleable, ?>> styleables =
                     new ArrayList<>(Control.getClassCssMetaData());
             Collections.addAll(styleables, COLUMN_SPACING, PREF_COLUMN_WIDTH, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH,
-                    COLUMNS_JUSTIFY, CARD_SPACING, PREF_CARD_HEIGHT, CARD_AREA_PADDING, ANIMATED, ANIMATION_DURATION);
+                    COLUMNS_JUSTIFY, CARD_SPACING, PREF_CARD_HEIGHT, COLUMN_CONTENT_PADDING, ANIMATED,
+                    ANIMATION_DURATION);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }
