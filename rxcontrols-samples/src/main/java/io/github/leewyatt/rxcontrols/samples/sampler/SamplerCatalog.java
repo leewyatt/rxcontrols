@@ -87,6 +87,7 @@ import io.github.leewyatt.rxcontrols.RXSpeedDial;
 import io.github.leewyatt.rxcontrols.RXStatePane;
 import io.github.leewyatt.rxcontrols.RXSwitchButton;
 import io.github.leewyatt.rxcontrols.RXTabPane;
+import io.github.leewyatt.rxcontrols.RXTaskButton;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.RXTextView;
 import io.github.leewyatt.rxcontrols.RXTileView;
@@ -191,6 +192,7 @@ import io.github.leewyatt.rxcontrols.samples.demo.RXSpeedDialDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXStatePaneDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXSwitchButtonDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXTabPaneDemo;
+import io.github.leewyatt.rxcontrols.samples.demo.RXTaskButtonDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXTextFieldDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXTextViewDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXTilePaneDemo;
@@ -289,6 +291,7 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSpeedDialSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXStatePaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXSwitchButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTabPaneSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTaskButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTextFieldSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTextViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXTilePaneSamples;
@@ -397,6 +400,7 @@ import io.github.leewyatt.rxcontrols.samples.showcase.RXSpeedDialShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXStatePaneShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXSwitchButtonShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXTabPaneShowcase;
+import io.github.leewyatt.rxcontrols.samples.showcase.RXTaskButtonShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXTextViewShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXTilePaneShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXTileViewShowcase;
@@ -456,6 +460,8 @@ final class SamplerCatalog {
                 .withSamples(RXHoldButtonSamples::create));
         list.add(single(c, RXCopyButton.class, RXCopyButtonShowcase::new, RXCopyButtonDemo.class)
                 .withSamples(RXCopyButtonSamples::create));
+        list.add(single(c, RXTaskButton.class, RXTaskButtonShowcase::new, RXTaskButtonDemo.class)
+                .withSamples(RXTaskButtonSamples::create));
         list.add(single(c, RXReactionButton.class, RXReactionButtonShowcase::new, RXReactionButtonDemo.class)
                 .withSamples(RXReactionButtonSamples::create));
         list.add(single(c, RXToggleButton.class, RXToggleButtonShowcase::new, null)
