@@ -182,33 +182,45 @@ public class RXTaskButtonAtlantaFXStyleTest {
     // ==================== Stop mark ====================
 
     @Test
-    public void stopMarkIsRedOnAPlainBodyAndTakesTheTextColorOnAColoredOne() throws InterruptedException {
+    public void stopMarkIsRedOnAPlainBodyAndTheTextColorOnAColoredOneInEveryStateOfEveryTheme()
+            throws InterruptedException {
+        List<String> colors = List.of("accent", "success", "danger", ":default");
+        List<List<String>> variants = new ArrayList<>(List.of(List.of(), List.of("button-outlined"),
+                List.of("flat"), List.of("accent", "flat"), List.of("danger", "flat")));
+        for (String color : colors) {
+            variants.add(List.of(color));
+            variants.add(List.of(color, "button-outlined"));
+        }
+        List<String> interactions = new ArrayList<>(INTERACTIONS);
+        interactions.add("focused+armed");
         onFx(() -> {
-            List<List<String>> plainBodies = List.of(List.of(), List.of("button-outlined"), List.of("flat"),
-                    List.of("accent", "button-outlined"), List.of("danger", "flat"));
-            for (List<String> variant : plainBodies) {
-                Fixture fixture = new Fixture(variant.toArray(new String[0]));
-                fixture.pendCancellable();
-                assertEquals(fixture.color("-color-danger-emphasis"), fixture.stopFill(), variant.toString());
-            }
-
-            for (String variant : List.of("accent", "success", "danger", ":default")) {
-                Fixture fixture = variant.startsWith(":") ? new Fixture() : new Fixture(variant);
-                fixture.button.setDefaultButton(variant.startsWith(":"));
-                fixture.pendCancellable();
-                for (String interaction : INTERACTIONS) {
-                    fixture.interact(interaction);
-                    assertEquals(fixture.button.getTextFill(), fixture.stopFill(), variant + " " + interaction);
+            try {
+                for (Theme theme : THEMES) {
+                    Application.setUserAgentStylesheet(theme.getUserAgentStylesheet());
+                    for (List<String> variant : variants) {
+                        Fixture fixture = new Fixture(variant.stream()
+                                .filter(each -> !each.startsWith(":")).toArray(String[]::new));
+                        fixture.button.setDefaultButton(variant.contains(":default"));
+                        fixture.pendCancellable();
+                        boolean colored = colors.stream().anyMatch(variant::contains);
+                        boolean outlined = variant.contains("button-outlined");
+                        boolean flat = variant.contains("flat");
+                        for (String interaction : interactions) {
+                            fixture.interact(interaction);
+                            String where = theme.getName() + " " + variant + " " + interaction;
+                            // A color button is filled, and an outlined one fills up as soon as it is
+                            // hovered, focused or pressed: the mark takes the text color there.
+                            boolean filled = colored && !flat && (!outlined || !interaction.isEmpty());
+                            Paint expected = filled
+                                    ? fixture.button.getTextFill() : fixture.color("-color-danger-emphasis");
+                            assertEquals(expected, fixture.stopFill(), where);
+                            assertNotEquals(fixture.inside(), fixture.stopFill(), where);
+                        }
+                    }
                 }
-            }
-
-            // An outlined color button fills up under the mouse; the mark follows its text then.
-            for (String color : List.of("accent", "success", "danger")) {
-                Fixture fixture = new Fixture(color, "button-outlined");
-                fixture.pendCancellable();
-                fixture.interact("hover");
-                assertEquals(fixture.color("-color-fg-emphasis"), fixture.stopFill(), color);
-                assertEquals(fixture.button.getTextFill(), fixture.stopFill(), color);
+            } finally {
+                // The other tests of this class read the colors of this theme.
+                Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
             }
         });
     }

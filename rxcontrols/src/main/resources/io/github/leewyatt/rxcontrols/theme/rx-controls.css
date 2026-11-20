@@ -639,8 +639,9 @@
 }
 
 /* The stop mark on AtlantaFX: the filled variants take the text color, the
-   outlined and flat ones are plain again until an outlined color button
-   fills up under the mouse. */
+   outlined and flat ones are plain again. An outlined color button fills up
+   as soon as it is hovered, focused or pressed; the mark then follows the
+   text of each state, in the order AtlantaFX gives them. */
 .rx-theme-atlantafx .rx-task-button:default .pending-face > .indicator > .stop,
 .rx-theme-atlantafx.rx-task-button:default .pending-face > .indicator > .stop,
 .rx-theme-atlantafx .rx-task-button.accent .pending-face > .indicator > .stop,
@@ -668,6 +669,28 @@
 .rx-theme-atlantafx .rx-task-button.button-outlined.danger:hover .pending-face > .indicator > .stop,
 .rx-theme-atlantafx.rx-task-button.button-outlined.danger:hover .pending-face > .indicator > .stop {
     -fx-background-color: -color-button-fg-hover;
+}
+
+.rx-theme-atlantafx .rx-task-button.button-outlined:default:focused .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button.button-outlined:default:focused .pending-face > .indicator > .stop,
+.rx-theme-atlantafx .rx-task-button.button-outlined.accent:focused .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button.button-outlined.accent:focused .pending-face > .indicator > .stop,
+.rx-theme-atlantafx .rx-task-button.button-outlined.success:focused .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button.button-outlined.success:focused .pending-face > .indicator > .stop,
+.rx-theme-atlantafx .rx-task-button.button-outlined.danger:focused .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button.button-outlined.danger:focused .pending-face > .indicator > .stop {
+    -fx-background-color: -color-button-fg-focused;
+}
+
+.rx-theme-atlantafx .rx-task-button.button-outlined:default:armed .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button.button-outlined:default:armed .pending-face > .indicator > .stop,
+.rx-theme-atlantafx .rx-task-button.button-outlined.accent:armed .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button.button-outlined.accent:armed .pending-face > .indicator > .stop,
+.rx-theme-atlantafx .rx-task-button.button-outlined.success:armed .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button.button-outlined.success:armed .pending-face > .indicator > .stop,
+.rx-theme-atlantafx .rx-task-button.button-outlined.danger:armed .pending-face > .indicator > .stop,
+.rx-theme-atlantafx.rx-task-button.button-outlined.danger:armed .pending-face > .indicator > .stop {
+    -fx-background-color: -color-button-fg-pressed;
 }
 
 /*******************************************************************************
