@@ -276,8 +276,7 @@ public final class RXFlowPaneSamples {
         flow.setAlignment(Pos.TOP_CENTER);
         String[][] words = {
             {"JavaFX", "size-l", "indigo"}, {"css", "size-s", "teal"}, {"Layout", "size-m", "amber"},
-            {"Flow", "size-xl", "rose"}, {"pane", "size-s", "lime"}, {"Baseline", "size-l", "sky"},
-            {"rows", "size-m", "violet"}};
+            {"Flow", "size-xl", "rose"}, {"pane", "size-s", "lime"}, {"rows", "size-m", "violet"}};
         for (String[] word : words) {
             Label chip = chip(word[0], word[2]);
             chip.getStyleClass().add(word[1]);

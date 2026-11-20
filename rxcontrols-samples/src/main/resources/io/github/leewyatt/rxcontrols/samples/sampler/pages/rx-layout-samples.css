@@ -262,82 +262,17 @@
  * RXBox                                                                       *
  *                                                                             *
  ******************************************************************************/
-.example-card .toolbar {
-    -fx-padding: 10px 12px;
-    -fx-background-color: -fx-text-box-border, -fx-background;
-    -fx-background-insets: 0, 1px;
-    -fx-background-radius: 12px, 11px;
-}
-
-.example-card .bubble {
-    -fx-padding: 8px 12px;
-    -fx-font-size: 13px;
-}
-
-.example-card .bubble.theirs {
-    -fx-background-color: -fx-control-inner-background;
-    -fx-background-radius: 14px 14px 14px 4px;
-    -fx-text-fill: -fx-text-base-color;
-}
-
-.example-card .bubble.mine {
-    -fx-background-color: #0ea5e9;
-    -fx-background-radius: 14px 14px 4px 14px;
-    -fx-text-fill: white;
-}
-
-.example-card .sidebar {
-    -fx-padding: 14px 10px 10px 10px;
-    -fx-background-color: -fx-text-box-border, -fx-background;
-    -fx-background-insets: 0, 1px;
-    -fx-background-radius: 12px, 11px;
-}
-
-.example-card .sidebar > .eyebrow {
-    -fx-padding: 0 0 0 8px;
-}
-
-.example-card .nav-item {
-    -fx-padding: 8px 10px;
-    -fx-background-radius: 8px;
-}
-
-.example-card .nav-item.selected {
-    -fx-background-color: rgba(99, 102, 241, 0.14);
-}
-
-.example-card .nav-item.selected > .symbol {
-    -fx-background-color: #6366f1;
-}
-
-.example-card .profile-row {
-    -fx-padding: 10px 8px 2px 8px;
-    -fx-border-color: -fx-text-box-border;
-    -fx-border-width: 1px 0 0 0;
-}
-
-.example-card .avatar-dot {
-    -fx-pref-width: 34px;
-    -fx-pref-height: 34px;
-    -fx-background-color: linear-gradient(to bottom right, #f97316, #ec4899);
-    -fx-background-radius: 999px;
-}
-
-.example-card .plan {
-    -fx-padding: 12px;
+.example-card .box-frame {
+    -fx-padding: 14px;
     -fx-background-color: -fx-text-box-border, -fx-background;
     -fx-background-insets: 0, 1px;
     -fx-background-radius: 10px, 9px;
 }
 
-.example-card .plan-name {
-    -fx-font-size: 13px;
+.example-card .box-cell {
+    -fx-font-size: 14px;
     -fx-font-weight: bold;
 }
-
-.example-card .plan-name.sky { -fx-text-fill: #0ea5e9; }
-.example-card .plan-name.violet { -fx-text-fill: #8b5cf6; }
-.example-card .plan-name.orange { -fx-text-fill: #f97316; }
 
 /*******************************************************************************
  *                                                                             *
@@ -380,10 +315,10 @@
     -fx-background-color: transparent;
 }
 
-.example-card .chip.size-s { -fx-font-size: 12px; }
-.example-card .chip.size-m { -fx-font-size: 15px; }
-.example-card .chip.size-l { -fx-font-size: 20px; }
-.example-card .chip.size-xl { -fx-font-size: 28px; }
+.example-card .chip.size-s { -fx-padding: 4px 11px; -fx-font-size: 12px; }
+.example-card .chip.size-m { -fx-padding: 6px 11px; -fx-font-size: 15px; }
+.example-card .chip.size-l { -fx-padding: 8px 11px; -fx-font-size: 20px; }
+.example-card .chip.size-xl { -fx-padding: 10px 11px; -fx-font-size: 28px; }
 
 /*******************************************************************************
  *                                                                             *
