@@ -363,6 +363,8 @@
     -fx-text-base-color: -color-fg-default;
     -fx-text-inner-color: -color-fg-default;
     -fx-mid-text-color: -color-fg-muted;
+    -fx-light-text-color: -color-light;
+    -fx-dark-text-color: -color-dark;
     -fx-box-border: -color-border-default;
     -fx-text-box-border: -color-border-default;
     -fx-accent: -color-accent-emphasis;
@@ -462,6 +464,163 @@
 .rx-theme-atlantafx .rx-copy-button.success:armed .copied-face > .indicator,
 .rx-theme-atlantafx.rx-copy-button.success:armed .copied-face > .indicator {
     -fx-background-color: -color-button-fg-pressed;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXTaskButton                                                                *
+ *                                                                             *
+ ******************************************************************************/
+/* Sized in em so the indicators grow with the font. The three are equally wide,
+   so the caption starts at the same place on every face. The built-in
+   indicators are painted in the text fill, which leaves no insets to fit a
+   shape into a box: each box has the proportions of its shape instead. */
+.rx-task-button .pending-face > .indicator,
+.rx-task-button .failed-face > .indicator {
+    -fx-pref-width: 1.1em;
+    -fx-pref-height: 1.1em;
+}
+
+.rx-task-button .succeeded-face > .indicator {
+    -fx-pref-width: 1.1em;
+    -fx-pref-height: 0.815em;
+    -fx-shape: "M0 5 L1.5 3.5 L5 7 L12 0 L13.5 1.5 L5 10 Z";
+}
+
+.rx-task-button .failed-face > .indicator {
+    -fx-shape: "M1.5 0 L6.75 5.25 L12 0 L13.5 1.5 L8.25 6.75 L13.5 12 L12 13.5 L6.75 8.25 L1.5 13.5 L0 12 L5.25 6.75 L0 1.5 Z";
+}
+
+/* A result colors the text through the token Modena's button text reads, not
+   through -fx-text-fill: a theme that sets the text fill state by state keeps
+   doing so. The indicators follow the text. */
+.rx-task-button:succeeded {
+    -fx-text-base-color: -rx-success;
+}
+
+.rx-task-button:failed {
+    -fx-text-base-color: -rx-danger;
+}
+
+/* A default button is a filled one: the result colors its body, and the text
+   goes back to Modena's choice of a readable color on that body. */
+.rx-task-button:default:succeeded,
+.rx-task-button:default:failed {
+    -fx-text-base-color: ladder(-fx-color, -fx-light-text-color 45%, -fx-dark-text-color 46%, -fx-dark-text-color 59%, -fx-mid-text-color 60%);
+}
+
+.rx-task-button:default:succeeded {
+    -fx-base: -rx-success;
+}
+
+.rx-task-button:default:failed {
+    -fx-base: -rx-danger;
+}
+
+
+/* AtlantaFX colors a button through its tokens, one set per interaction state,
+   so a result turns the button into the success or danger variant of its own
+   kind: colored text on a plain, outlined or flat button, a colored body on a
+   filled one. The outlined and flat rules come after the filled ones, which
+   they override for a button that also has a color class. */
+.rx-theme-atlantafx .rx-task-button:succeeded,
+.rx-theme-atlantafx.rx-task-button:succeeded {
+    -color-button-fg: -color-success-fg;
+    -color-button-fg-hover: -color-success-fg;
+    -color-button-fg-focused: -color-success-fg;
+    -color-button-fg-pressed: -color-success-fg;
+}
+
+.rx-theme-atlantafx .rx-task-button:failed,
+.rx-theme-atlantafx.rx-task-button:failed {
+    -color-button-fg: -color-danger-fg;
+    -color-button-fg-hover: -color-danger-fg;
+    -color-button-fg-focused: -color-danger-fg;
+    -color-button-fg-pressed: -color-danger-fg;
+}
+
+.rx-theme-atlantafx .rx-task-button:default:succeeded,
+.rx-theme-atlantafx.rx-task-button:default:succeeded,
+.rx-theme-atlantafx .rx-task-button.accent:succeeded,
+.rx-theme-atlantafx.rx-task-button.accent:succeeded,
+.rx-theme-atlantafx .rx-task-button.success:succeeded,
+.rx-theme-atlantafx.rx-task-button.success:succeeded,
+.rx-theme-atlantafx .rx-task-button.danger:succeeded,
+.rx-theme-atlantafx.rx-task-button.danger:succeeded {
+    -color-button-bg: -color-success-emphasis;
+    -color-button-fg: -color-fg-emphasis;
+    -color-button-border: -color-success-emphasis;
+    -color-button-bg-hover: -color-success-emphasis;
+    -color-button-fg-hover: -color-fg-emphasis;
+    -color-button-border-hover: -color-success-emphasis;
+    -color-button-bg-focused: derive(-color-success-emphasis, -12%);
+    -color-button-fg-focused: -color-fg-emphasis;
+    -color-button-border-focused: -color-success-emphasis;
+    -color-button-bg-pressed: -color-success-emphasis;
+    -color-button-fg-pressed: -color-fg-emphasis;
+}
+
+.rx-theme-atlantafx .rx-task-button:default:failed,
+.rx-theme-atlantafx.rx-task-button:default:failed,
+.rx-theme-atlantafx .rx-task-button.accent:failed,
+.rx-theme-atlantafx.rx-task-button.accent:failed,
+.rx-theme-atlantafx .rx-task-button.success:failed,
+.rx-theme-atlantafx.rx-task-button.success:failed,
+.rx-theme-atlantafx .rx-task-button.danger:failed,
+.rx-theme-atlantafx.rx-task-button.danger:failed {
+    -color-button-bg: -color-danger-emphasis;
+    -color-button-fg: -color-fg-emphasis;
+    -color-button-border: -color-danger-emphasis;
+    -color-button-bg-hover: -color-danger-emphasis;
+    -color-button-fg-hover: -color-fg-emphasis;
+    -color-button-border-hover: -color-danger-emphasis;
+    -color-button-bg-focused: derive(-color-danger-emphasis, -12%);
+    -color-button-fg-focused: -color-fg-emphasis;
+    -color-button-border-focused: -color-danger-emphasis;
+    -color-button-bg-pressed: -color-danger-emphasis;
+    -color-button-fg-pressed: -color-fg-emphasis;
+}
+
+.rx-theme-atlantafx .rx-task-button.button-outlined:succeeded,
+.rx-theme-atlantafx.rx-task-button.button-outlined:succeeded {
+    -color-button-bg: -color-bg-default;
+    -color-button-fg: -color-success-fg;
+}
+
+.rx-theme-atlantafx .rx-task-button.button-outlined:failed,
+.rx-theme-atlantafx.rx-task-button.button-outlined:failed {
+    -color-button-bg: -color-bg-default;
+    -color-button-fg: -color-danger-fg;
+}
+
+.rx-theme-atlantafx .rx-task-button.flat:succeeded,
+.rx-theme-atlantafx.rx-task-button.flat:succeeded {
+    -color-button-bg: transparent;
+    -color-button-fg: -color-success-fg;
+    -color-button-border: transparent;
+    -color-button-bg-hover: -color-success-subtle;
+    -color-button-fg-hover: -color-success-fg;
+    -color-button-border-hover: -color-success-subtle;
+    -color-button-bg-focused: transparent;
+    -color-button-fg-focused: -color-success-fg;
+    -color-button-border-focused: transparent;
+    -color-button-bg-pressed: transparent;
+    -color-button-fg-pressed: -color-success-fg;
+}
+
+.rx-theme-atlantafx .rx-task-button.flat:failed,
+.rx-theme-atlantafx.rx-task-button.flat:failed {
+    -color-button-bg: transparent;
+    -color-button-fg: -color-danger-fg;
+    -color-button-border: transparent;
+    -color-button-bg-hover: -color-danger-subtle;
+    -color-button-fg-hover: -color-danger-fg;
+    -color-button-border-hover: -color-danger-subtle;
+    -color-button-bg-focused: transparent;
+    -color-button-fg-focused: -color-danger-fg;
+    -color-button-border-focused: transparent;
+    -color-button-bg-pressed: transparent;
+    -color-button-fg-pressed: -color-danger-fg;
 }
 
 /*******************************************************************************
