@@ -49,9 +49,10 @@ public final class RXTaskButtonSamples {
     /**
      * Builds the page content.
      *
+     * @param life the lifecycle of the page
      * @return the content
      */
-    public static SampleContent create() {
+    public static SampleContent create(SampleLifecycle life) {
         return new SampleContent(
                 "A button that follows one piece of work: a ring while it runs, then a check or a cross.",
                 List.of("Save, send, upload, export: actions that take a moment and can fail.",
@@ -63,7 +64,7 @@ public final class RXTaskButtonSamples {
                                         + " the first runs once; the second takes five seconds and ends either"
                                         + " way, by chance; the third fails every time and the fourth succeeds"
                                         + " every time, and both keep their result.",
-                                states()),
+                                states(life)),
                         SampleCard.medium("Fast and slow",
                                 "Started from the normal face, work that ends within 200 ms never shows the ring,"
                                         + " and a ring that shows stays at least 400 ms, so nothing flashes.",
@@ -134,15 +135,20 @@ public final class RXTaskButtonSamples {
 
     // ==================== States ====================
 
-    private static Node states() {
+    private static Node states(SampleLifecycle life) {
         RXTaskButton idle = saveButton();
         runOnClick(idle, WORK_MILLIS, () -> true);
 
         // Longer work, so the pending face can be looked at; chance decides
-        // how it ends. One run is under way when the page opens.
+        // how it ends. A run starts each time the page opens, unless one is
+        // still under way.
         RXTaskButton pending = saveButton();
         runOnClick(pending, 5000.0, () -> ThreadLocalRandom.current().nextBoolean());
-        pending.fire();
+        life.whenShown(() -> {
+            if (!pending.isRunning()) {
+                pending.fire();
+            }
+        });
 
         // An indefinite duration keeps a result face until the next run.
         RXTaskButton failed = saveButton();

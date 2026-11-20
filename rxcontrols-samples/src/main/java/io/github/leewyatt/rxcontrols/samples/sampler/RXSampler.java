@@ -56,10 +56,16 @@ public class RXSampler extends Application {
     private static final Duration EFFECT_DURATION = Duration.millis(520.0);
 
     private final List<SamplerEntry> entries = SamplerCatalog.entries();
+    // In access order the eldest page is never the one on display or the one fading out,
+    // which was shown just before it, so a dropped page is out of view when disposed.
     private final Map<SamplerEntry, Node> pages = new LinkedHashMap<>(16, 0.75f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<SamplerEntry, Node> eldest) {
-            return size() > PAGE_CACHE_SIZE;
+            if (size() <= PAGE_CACHE_SIZE) {
+                return false;
+            }
+            dispose(eldest.getValue());
+            return true;
         }
     };
 
@@ -102,6 +108,7 @@ public class RXSampler extends Application {
                 nav::focusSearch);
 
         show(entries.get(0));
+        stage.setOnHidden(event -> pages.values().forEach(RXSampler::dispose));
         stage.setScene(scene);
         stage.setTitle("RXControls Sampler");
         stage.setMinWidth(960.0);
@@ -269,6 +276,12 @@ public class RXSampler extends Application {
             return new SamplerHome(entries, this::show, RXSampler::openThemeGallery);
         }
         return new SamplerPage(entry);
+    }
+
+    private static void dispose(Node page) {
+        if (page instanceof SamplerPage samplerPage) {
+            samplerPage.dispose();
+        }
     }
 
     private static ThemeChoice startTheme() {

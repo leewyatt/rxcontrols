@@ -45,9 +45,10 @@ public final class RXLrcLineViewSamples {
     /**
      * Builds the page content.
      *
+     * @param life the lifecycle of the page
      * @return the content
      */
-    public static SampleContent create() {
+    public static SampleContent create(SampleLifecycle life) {
         return new SampleContent(
                 "One line of song lyrics, the one being sung, that changes with an animated transition.",
                 List.of("Now-playing bars, mini players and lock screens with room for a single line.",
@@ -55,13 +56,13 @@ public final class RXLrcLineViewSamples {
                 List.of(
                         SampleCard.wide("Now playing",
                                 "Press play: the current line slides up in a mini player bar; the skip buttons jump a line back or ahead.",
-                                nowPlaying()),
+                                nowPlaying(life)),
                         SampleCard.wide("Transitions",
                                 "Four views on one clock, each with a different animation; AnimFade is the default.",
-                                transitions()),
+                                transitions(life)),
                         SampleCard.large("Desktop lyric",
                                 "Large colored text over the desktop; the line views style their text through .label.",
-                                desktop()),
+                                desktop(life)),
                         SampleCard.large("Instrumental",
                                 "With no document the placeholder node shows instead.",
                                 instrumental())),
@@ -70,11 +71,11 @@ public final class RXLrcLineViewSamples {
 
     // ==================== Now playing ====================
 
-    private static Node nowPlaying() {
+    private static Node nowPlaying(SampleLifecycle life) {
         RXLrcLineView line = lineView(new AnimSlide(Orientation.VERTICAL));
         line.setPrefHeight(28.0);
         line.setMaxWidth(Double.MAX_VALUE);
-        PlaybackClock clock = new PlaybackClock(SONG_LENGTH).attach(line, false);
+        PlaybackClock clock = new PlaybackClock(SONG_LENGTH).attach(life, false);
         clock.seek(Duration.seconds(13.0));
         line.currentTimeProperty().bind(clock.timeProperty());
 
@@ -114,7 +115,7 @@ public final class RXLrcLineViewSamples {
 
     // ==================== Transitions ====================
 
-    private static Node transitions() {
+    private static Node transitions(SampleLifecycle life) {
         GridPane grid = new GridPane();
         grid.setHgap(18.0);
         grid.setVgap(12.0);
@@ -125,7 +126,7 @@ public final class RXLrcLineViewSamples {
         addRow(grid, 1, "AnimSlide vertical", new AnimSlide(Orientation.VERTICAL), clock);
         addRow(grid, 2, "AnimBounce vertical", new AnimBounce(Orientation.VERTICAL), clock);
         addRow(grid, 3, "AnimFlip vertical", new AnimFlip(Orientation.VERTICAL), clock);
-        clock.attach(grid, true);
+        clock.attach(life, true);
         return grid;
     }
 
@@ -140,11 +141,11 @@ public final class RXLrcLineViewSamples {
 
     // ==================== Desktop lyric ====================
 
-    private static Node desktop() {
+    private static Node desktop(SampleLifecycle life) {
         RXLrcLineView line = lineView(new AnimGaussianBlur());
         line.getStyleClass().add("desktop");
         line.setPrefSize(400.0, 40.0);
-        PlaybackClock clock = new PlaybackClock(SONG_LENGTH).attach(line, true);
+        PlaybackClock clock = new PlaybackClock(SONG_LENGTH).attach(life, true);
         clock.seek(Duration.seconds(19.0));
         line.currentTimeProperty().bind(clock.timeProperty());
         StackPane screen = new StackPane(line);

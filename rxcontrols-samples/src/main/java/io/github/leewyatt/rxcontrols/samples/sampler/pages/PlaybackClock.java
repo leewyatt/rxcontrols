@@ -8,12 +8,11 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.scene.Node;
 import javafx.util.Duration;
 
 /**
  * A pretend media player clock for the lyric pages: it advances a playback time while
- * playing, loops at the end of the track and pauses when its card leaves the scene.
+ * playing, loops at the end of the track and pauses when its page is hidden.
  */
 final class PlaybackClock {
 
@@ -31,15 +30,15 @@ final class PlaybackClock {
         ticker.setCycleCount(Animation.INDEFINITE);
     }
 
-    /** Pauses the clock whenever the anchor leaves the scene; with autoplay, resumes when it returns. */
-    PlaybackClock attach(Node anchor, boolean autoplay) {
-        anchor.sceneProperty().addListener((obs, old, scene) -> {
-            if (scene == null) {
-                pause();
-            } else if (autoplay) {
-                play();
-            }
-        });
+    /**
+     * Pauses the clock whenever the page is hidden, which also stops it for good when
+     * the page is disposed; with autoplay, plays it whenever the page is shown.
+     */
+    PlaybackClock attach(SampleLifecycle life, boolean autoplay) {
+        if (autoplay) {
+            life.whenShown(this::play);
+        }
+        life.whenHidden(this::pause);
         return this;
     }
 

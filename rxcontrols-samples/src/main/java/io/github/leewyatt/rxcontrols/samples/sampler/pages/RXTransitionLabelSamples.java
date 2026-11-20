@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Random;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.icon;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.playWhileShowing;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.solid;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.text;
 
@@ -49,9 +48,10 @@ public final class RXTransitionLabelSamples {
     /**
      * Builds the page content.
      *
+     * @param life the lifecycle of the page
      * @return the content
      */
-    public static SampleContent create() {
+    public static SampleContent create(SampleLifecycle life) {
         return new SampleContent(
                 "A text display that animates from the old text to the new one each time its text changes.",
                 List.of("Values and messages that change in place: prices, counters, statuses, rotating banners.",
@@ -59,10 +59,10 @@ public final class RXTransitionLabelSamples {
                 List.of(
                         SampleCard.wide("Announcement bar",
                                 "A new message slides in every three seconds; a fixed width keeps the bar steady.",
-                                announcements()),
+                                announcements(life)),
                         SampleCard.medium("Live price",
                                 "The price slides up when it rises and down when it falls: direction picks the way.",
-                                price()),
+                                price(life)),
                         SampleCard.medium("Counter",
                                 "Plus and minus set FORWARD or BACKWARD before the text changes, so the digits roll both ways.",
                                 counter()),
@@ -71,13 +71,13 @@ public final class RXTransitionLabelSamples {
                                 saveStatus()),
                         SampleCard.medium("Animations",
                                 "The same changing word with AnimSlide, AnimBox and AnimFlip; any PageAnimation works.",
-                                animations())),
+                                animations(life))),
                 MediaKit.STYLESHEET);
     }
 
     // ==================== Announcement bar ====================
 
-    private static Node announcements() {
+    private static Node announcements(SampleLifecycle life) {
         RXTransitionLabel message = new RXTransitionLabel(ANNOUNCEMENTS.get(0));
         message.setAnimation(new AnimSlide(Orientation.VERTICAL));
         message.setAlignment(Pos.CENTER_LEFT);
@@ -89,7 +89,7 @@ public final class RXTransitionLabelSamples {
             message.setText(ANNOUNCEMENTS.get(index[0]));
         }));
         timeline.setCycleCount(Animation.INDEFINITE);
-        playWhileShowing(message, timeline);
+        life.playWhileShown(timeline);
         HBox bar = new HBox(12.0, icon("megaphone-icon"), message);
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.getStyleClass().add("announcement-bar");
@@ -99,7 +99,7 @@ public final class RXTransitionLabelSamples {
 
     // ==================== Live price ====================
 
-    private static Node price() {
+    private static Node price(SampleLifecycle life) {
         RXTransitionLabel value = new RXTransitionLabel(String.format("$%.2f", START_PRICE));
         value.setAnimation(new AnimSlide(Orientation.VERTICAL));
         value.setAnimationDuration(Duration.millis(350.0));
@@ -128,7 +128,7 @@ public final class RXTransitionLabelSamples {
             change.setText(String.format("%+.2f", current[0] - START_PRICE));
         }));
         timeline.setCycleCount(Animation.INDEFINITE);
-        playWhileShowing(value, timeline);
+        life.playWhileShown(timeline);
 
         VBox texts = new VBox(2.0, text("ACME Corp  ·  ACM", "muted"), value, change);
         HBox box = new HBox(14.0, icon("chart-icon", "tile-icon"), texts);
@@ -193,7 +193,7 @@ public final class RXTransitionLabelSamples {
 
     // ==================== Animations ====================
 
-    private static Node animations() {
+    private static Node animations(SampleLifecycle life) {
         RXTransitionLabel slide = word(new AnimSlide());
         RXTransitionLabel box3d = word(new AnimBox(Orientation.VERTICAL));
         RXTransitionLabel flip = word(new AnimFlip(Orientation.VERTICAL));
@@ -206,7 +206,7 @@ public final class RXTransitionLabelSamples {
             flip.setText(next);
         }));
         timeline.setCycleCount(Animation.INDEFINITE);
-        playWhileShowing(slide, timeline);
+        life.playWhileShown(timeline);
         VBox box = new VBox(8.0, sentence("AnimSlide", slide), sentence("AnimBox", box3d), sentence("AnimFlip", flip));
         box.setAlignment(Pos.CENTER_LEFT);
         return box;
