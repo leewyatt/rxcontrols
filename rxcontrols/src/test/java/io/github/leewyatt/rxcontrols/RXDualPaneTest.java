@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
+import io.github.leewyatt.rxcontrols.animation.page.AnimNone;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
@@ -20,11 +21,13 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -36,6 +39,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -281,6 +286,252 @@ public class RXDualPaneTest {
         } finally {
             pane.getSkin().dispose();
         }
+    }
+
+    // ==================== Changes From Listeners ====================
+
+    @Test
+    public void flipRequestedWhenAnInterruptedFlipEndsIsTheFaceShown() throws Exception {
+        RXDualPane[] pane = new RXDualPane[1];
+        TrackingFade fade = new TrackingFade();
+        onFx(() -> {
+            pane[0] = laidOutPane(new Label("First"), new Label("Second"));
+            pane[0].setAnimation(fade);
+            pane[0].setAnimationDuration(Duration.millis(80.0));
+            pane[0].setShowingSecond(true);
+            runOnce(pane[0], false, () -> pane[0].setShowingSecond(true));
+
+            pane[0].setShowingSecond(false);
+
+            assertTrue(pane[0].isShowingSecond());
+        });
+        awaitStopped(fade.animations);
+        onFx(() -> {
+            assertSame(pane[0].getSecondContent(), visibleContent(pane[0]));
+            assertFalse(pane[0].isTransitioning());
+            pane[0].getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void skinRemovedWhenAnInterruptedFlipEndsLeavesNoAnimationRunning() throws Exception {
+        TrackingFade fade = new TrackingFade();
+        List<Throwable> errors = new ArrayList<>();
+        onFx(() -> {
+            Thread thread = Thread.currentThread();
+            Thread.UncaughtExceptionHandler saved = thread.getUncaughtExceptionHandler();
+            thread.setUncaughtExceptionHandler((t, e) -> errors.add(e));
+            try {
+                RXDualPane pane = laidOutPane(new Label("First"), new Label("Second"));
+                pane.setAnimation(fade);
+                pane.setAnimationDuration(Duration.seconds(30.0));
+                pane.setShowingSecond(true);
+                runOnce(pane, false, () -> pane.setSkin(null));
+
+                pane.setShowingSecond(false);
+
+                for (Animation animation : fade.animations) {
+                    assertEquals(Animation.Status.STOPPED, animation.getStatus());
+                }
+            } finally {
+                fade.animations.forEach(Animation::stop);
+                thread.setUncaughtExceptionHandler(saved);
+            }
+        });
+        assertEquals(List.of(), errors);
+    }
+
+    @Test
+    public void flipStartedAfterAnExternalStopCanBeInterrupted() throws Exception {
+        RXDualPane[] pane = new RXDualPane[1];
+        TrackingFade fade = new TrackingFade();
+        List<Boolean> flags = new ArrayList<>();
+        boolean[] earlierRunning = new boolean[1];
+        onFx(() -> {
+            pane[0] = laidOutPane(new Label("First"), new Label("Second"));
+            pane[0].setAnimation(fade);
+            pane[0].setAnimationDuration(Duration.millis(400.0));
+            pane[0].transitioningProperty().addListener((observable, was, is) -> flags.add(is));
+            pane[0].setShowingSecond(true);
+            runOnce(pane[0], false, () -> pane[0].setShowingSecond(false));
+
+            // A resize guard or the application stops the animation directly
+            fade.jumpToEnd();
+
+            assertEquals(List.of(true), flags);
+            assertEquals(1, fade.animations.size());
+        });
+        onFx(() -> {
+            assertEquals(List.of(true, false, true), flags);
+            // Shorter, so a transition left running would end after this one
+            pane[0].setAnimationDuration(Duration.millis(50.0));
+            pane[0].setShowingSecond(true);
+            List<Animation> animations = fade.animations;
+            for (Animation animation : animations.subList(0, animations.size() - 1)) {
+                earlierRunning[0] |= animation.getStatus() != Animation.Status.STOPPED;
+            }
+        });
+        awaitStopped(fade.animations);
+        onFx(() -> {
+            assertSame(pane[0].getSecondContent(), visibleContent(pane[0]));
+            assertFalse(pane[0].isTransitioning());
+            pane[0].getSkin().dispose();
+        });
+        assertFalse(earlierRunning[0], "an interrupted transition kept running");
+    }
+
+    // ==================== Focus ====================
+
+    @Test
+    public void flipMovesFocusOutOfTheFaceBeingLeft() {
+        TextField editor = new TextField();
+        RXDualPane pane = new RXDualPane(new Label("view"), editor);
+        pane.setAnimated(false);
+        pane.setShowingSecond(true);
+        layOut(pane);
+        editor.requestFocus();
+        assertSame(editor, focusOwner(pane));
+
+        try {
+            pane.setShowingSecond(false);
+
+            assertSame(pane, focusOwner(pane));
+        } finally {
+            pane.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void flipMovesFocusToTheFirstFocusableNodeOfTheShownFace() {
+        TextField viewField = new TextField();
+        TextField hidden = new TextField();
+        hidden.setVisible(false);
+        TextField disabled = new TextField();
+        disabled.setDisable(true);
+        TextField editField = new TextField();
+        VBox second = new VBox(new Label("caption"), hidden, disabled, editField);
+        RXDualPane pane = laidOutPane(viewField, second);
+        pane.setAnimation(new RecordingAnimation(Duration.seconds(30.0)));
+        viewField.requestFocus();
+
+        try {
+            pane.setShowingSecond(true);
+
+            assertTrue(pane.isTransitioning());
+            assertSame(editField, focusOwner(pane));
+        } finally {
+            pane.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void flipLeavesFocusOutsideThePaneAlone() {
+        TextField outside = new TextField();
+        RXDualPane pane = new RXDualPane(new TextField(), new TextField());
+        pane.setAnimated(false);
+        VBox root = new VBox(outside, pane);
+        new Scene(root, 320.0, 200.0);
+        root.applyCss();
+        root.layout();
+        outside.requestFocus();
+
+        try {
+            pane.setShowingSecond(true);
+
+            assertSame(outside, focusOwner(pane));
+        } finally {
+            pane.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void flipWithAZeroLengthAnimationMovesFocusIntoTheShownFace() {
+        TextField first = new TextField();
+        TextField second = new TextField();
+        RXDualPane pane = laidOutPane(first, second);
+        pane.setAnimation(new AnimNone());
+        first.requestFocus();
+
+        try {
+            pane.setShowingSecond(true);
+
+            assertSame(second, focusOwner(pane));
+        } finally {
+            pane.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void focusWaitsInThePaneUntilALateShownFaceAppears() throws Exception {
+        RXDualPane[] pane = new RXDualPane[1];
+        TextField second = new TextField();
+        RecordingAnimation late = new RecordingAnimation(Duration.millis(60.0));
+        late.revealIncomingAtEnd = true;
+        onFx(() -> {
+            TextField first = new TextField();
+            pane[0] = laidOutPane(first, second);
+            pane[0].setAnimation(late);
+            first.requestFocus();
+
+            pane[0].setShowingSecond(true);
+
+            assertTrue(pane[0].isTransitioning());
+            assertSame(pane[0], focusOwner(pane[0]));
+        });
+        awaitStopped(late.animations);
+        onFx(() -> {
+            assertSame(second, focusOwner(pane[0]));
+            pane[0].getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void focusHandedOffAfterAFlipBackGoesToTheFaceFinallyShown() throws Exception {
+        RXDualPane[] pane = new RXDualPane[1];
+        TextField first = new TextField();
+        RecordingAnimation late = new RecordingAnimation(Duration.millis(60.0));
+        late.revealIncomingAtEnd = true;
+        onFx(() -> {
+            pane[0] = laidOutPane(first, new TextField());
+            pane[0].setAnimation(late);
+            first.requestFocus();
+            pane[0].setShowingSecond(true);
+
+            pane[0].setShowingSecond(false);
+
+            assertSame(pane[0], focusOwner(pane[0]));
+        });
+        awaitStopped(late.animations);
+        onFx(() -> {
+            assertSame(first, focusOwner(pane[0]));
+            pane[0].getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void focusMovedElsewhereDuringALateFlipStaysThere() throws Exception {
+        RXDualPane[] pane = new RXDualPane[1];
+        TextField outside = new TextField();
+        RecordingAnimation late = new RecordingAnimation(Duration.millis(60.0));
+        late.revealIncomingAtEnd = true;
+        onFx(() -> {
+            TextField first = new TextField();
+            pane[0] = new RXDualPane(first, new TextField());
+            pane[0].setAnimation(late);
+            VBox root = new VBox(outside, pane[0]);
+            new Scene(root, 320.0, 200.0);
+            root.applyCss();
+            root.layout();
+            first.requestFocus();
+            pane[0].setShowingSecond(true);
+
+            outside.requestFocus();
+        });
+        awaitStopped(late.animations);
+        onFx(() -> {
+            assertSame(outside, focusOwner(pane[0]));
+            pane[0].getSkin().dispose();
+        });
     }
 
     // ==================== Persistence ====================
@@ -544,20 +795,25 @@ public class RXDualPaneTest {
     // ==================== Transitioning mirror ====================
 
     @Test
-    public void transitioningMirrorsRunningTransition() {
-        RXDualPane pane = laidOutPane(new Label("First"), new Label("Second"));
+    public void transitioningMirrorsRunningTransition() throws Exception {
+        RXDualPane[] pane = new RXDualPane[1];
         RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
-        pane.setAnimation(recording);
+        onFx(() -> {
+            pane[0] = laidOutPane(new Label("First"), new Label("Second"));
+            pane[0].setAnimation(recording);
+            assertFalse(pane[0].isTransitioning());
+            pane[0].setShowingSecond(true);
+            assertTrue(pane[0].isTransitioning());
 
-        try {
-            assertFalse(pane.isTransitioning());
-            pane.setShowingSecond(true);
-            assertTrue(pane.isTransitioning());
+            // An external stop is completed on the next turn, once the
+            // animation's finish action has run.
             recording.jumpToEnd();
-            assertFalse(pane.isTransitioning());
-        } finally {
-            pane.getSkin().dispose();
-        }
+            assertTrue(pane[0].isTransitioning());
+        });
+        onFx(() -> {
+            assertFalse(pane[0].isTransitioning());
+            pane[0].getSkin().dispose();
+        });
     }
 
     // ==================== Dispose ====================
@@ -757,6 +1013,44 @@ public class RXDualPaneTest {
         return node.localToScene(0.0, 0.0).getY() + node.getBaselineOffset();
     }
 
+    private static Node focusOwner(RXDualPane pane) {
+        return pane.getScene().getFocusOwner();
+    }
+
+    private static void runOnce(RXDualPane pane, boolean transitioning, Runnable action) {
+        boolean[] armed = {true};
+        pane.transitioningProperty().addListener((observable, was, is) -> {
+            if (armed[0] && is == transitioning) {
+                armed[0] = false;
+                action.run();
+            }
+        });
+    }
+
+    private static void onFx(Runnable body) throws Exception {
+        FutureTask<Void> task = new FutureTask<>(body, null);
+        Platform.runLater(task);
+        try {
+            task.get(5, TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof Error error) {
+                throw error;
+            }
+            throw e;
+        }
+    }
+
+    private static void awaitStopped(List<Animation> animations) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        boolean[] running = new boolean[1];
+        do {
+            Thread.sleep(20L);
+            onFx(() -> running[0] = animations.stream()
+                    .anyMatch(animation -> animation.getStatus() != Animation.Status.STOPPED));
+        } while (running[0] && System.nanoTime() < deadline);
+        assertFalse(running[0], "animations did not stop");
+    }
+
     // A baseline-aligned row takes more than one pass to settle: it reads the
     // pane's baseline before the pane has laid out its faces.
     private static void layOutUntilStable(Parent root) {
@@ -806,6 +1100,18 @@ public class RXDualPaneTest {
 
     // ==================== Recording animation ====================
 
+    private static final class TrackingFade extends AnimFade {
+
+        final List<Animation> animations = new ArrayList<>();
+
+        @Override
+        public Animation getAnimation(TransitionContext context) {
+            Animation animation = super.getAnimation(context);
+            animations.add(animation);
+            return animation;
+        }
+    }
+
     private static class RecordingAnimation implements PageAnimation {
 
         final List<TransitionContext> contexts = new ArrayList<>();
@@ -814,6 +1120,8 @@ public class RXDualPaneTest {
         int disposeCalls;
         int minimumPageCount = 2;
         boolean multiPageDisplay;
+        // Like AnimFlip / AnimFlash: the incoming page shows only at the end.
+        boolean revealIncomingAtEnd;
 
         private final Duration playDuration;
         private Animation running;
@@ -828,7 +1136,9 @@ public class RXDualPaneTest {
             contexts.add(context);
             Node outgoing = context.getCurrentPage();
             Node incoming = context.getNextPage();
-            incoming.setVisible(true);
+            if (!revealIncomingAtEnd) {
+                incoming.setVisible(true);
+            }
 
             Runnable finish = () -> {
                 if (outgoing != null) {
