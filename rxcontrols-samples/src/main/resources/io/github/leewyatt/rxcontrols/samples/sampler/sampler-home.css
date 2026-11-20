@@ -1,0 +1,583 @@
+/*
+ * Sampler home page. Like the rest of the sampler chrome, colors come from the Modena
+ * looked-up vars, which the shell maps to AtlantaFX -color-* while the AtlantaFX bridge is
+ * installed. The page, card and stage surfaces get their own -home-* vars: under
+ * AtlantaFX the page is the darker of the two background roles and the cards the
+ * lighter one, so a dark and a light theme both read as cards on a page.
+ */
+
+.sampler-home {
+    -home-page: derive(-fx-background, 60%);
+    -home-card: -fx-control-inner-background;
+    -home-stage: -fx-background;
+    -home-line: -fx-text-box-border;
+    -home-text: -fx-text-base-color;
+    -home-muted: -showcase-caption-color;
+    -home-accent: -fx-accent;
+    -home-on-accent: white;
+    -home-violet: ladder(-fx-background, #a371f7 49%, #8250df 50%);
+    -home-pink: ladder(-fx-background, #db61a2 49%, #bf3989 50%);
+    -home-green: ladder(-fx-background, #3fb950 49%, #1a7f37 50%);
+    -home-cyan: ladder(-fx-background, #39c5cf 49%, #1b7c83 50%);
+}
+
+.root.rx-theme-atlantafx .sampler-home {
+    -home-page: ladder(-color-bg-default, -color-bg-default 49%, -color-bg-subtle 50%);
+    -home-card: ladder(-color-bg-default, -color-bg-subtle 49%, -color-bg-default 50%);
+    -home-stage: ladder(-color-bg-default, derive(-color-bg-subtle, 5%) 49%, derive(-color-bg-subtle, -3%) 50%);
+    -home-line: -color-border-default;
+    -home-on-accent: -color-fg-emphasis;
+    -home-violet: ladder(-color-bg-default, #a371f7 49%, #8250df 50%);
+    -home-pink: ladder(-color-bg-default, #db61a2 49%, #bf3989 50%);
+    -home-green: ladder(-color-bg-default, #3fb950 49%, #1a7f37 50%);
+    -home-cyan: ladder(-color-bg-default, #39c5cf 49%, #1b7c83 50%);
+}
+
+.sampler-home {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.sampler-home > .viewport {
+    -fx-background-color: -home-page;
+}
+
+.sampler-home .home-content {
+    -fx-padding: 36px 28px 56px 28px;
+}
+
+.sampler-home .glyph {
+    -fx-background-color: -home-muted;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Text                                                                        *
+ *                                                                             *
+ ******************************************************************************/
+.sampler-home .home-title {
+    -fx-font-size: 52px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -home-text;
+}
+
+.sampler-home .home-lead {
+    -fx-font-size: 17px;
+    -fx-line-spacing: 4px;
+    -fx-text-fill: -home-muted;
+}
+
+.sampler-home .home-heading {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -home-text;
+}
+
+.sampler-home .card-heading {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -home-text;
+}
+
+.sampler-home .stat-value {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -home-text;
+}
+
+.sampler-home .caption {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: -home-muted;
+}
+
+.sampler-home .lead {
+    -fx-font-size: 13.5px;
+    -fx-text-fill: -home-muted;
+}
+
+.sampler-home .strong {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -home-text;
+}
+
+.sampler-home .copy {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: -home-text;
+}
+
+.sampler-home .code {
+    -fx-font-family: monospace;
+    -fx-font-size: 12.5px;
+    -fx-text-fill: -home-text;
+}
+
+.sampler-home .code.prompt {
+    -fx-text-fill: -home-muted;
+}
+
+.sampler-home .hyperlink {
+    -fx-font-size: 12.5px;
+    -fx-padding: 0;
+    -fx-border-color: transparent;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Buttons                                                                     *
+ *                                                                             *
+ ******************************************************************************/
+.sampler-home .accent-button,
+.sampler-home .outline-button,
+.sampler-home .violet-button {
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 8px, 7px;
+    -fx-padding: 9px 16px;
+    -fx-graphic-text-gap: 8px;
+    -fx-cursor: hand;
+}
+
+.sampler-home .accent-button {
+    -fx-background-color: -home-accent, -home-accent;
+    -fx-text-fill: -home-on-accent;
+    -fx-font-weight: bold;
+}
+
+.sampler-home .accent-button:hover {
+    -fx-background-color: derive(-home-accent, -10%), derive(-home-accent, -10%);
+}
+
+.sampler-home .accent-button .glyph {
+    -fx-background-color: -home-on-accent;
+}
+
+.sampler-home .outline-button {
+    -fx-background-color: -home-line, -home-card;
+    -fx-text-fill: -home-text;
+}
+
+.sampler-home .outline-button:hover {
+    -fx-background-color: -home-line, -home-stage;
+}
+
+.sampler-home .outline-button .glyph {
+    -fx-background-color: -home-text;
+}
+
+.sampler-home .violet-button {
+    -fx-background-color: -home-violet, -home-violet;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.sampler-home .violet-button:hover {
+    -fx-background-color: derive(-home-violet, -10%), derive(-home-violet, -10%);
+}
+
+.sampler-home .icon-button {
+    -fx-background-color: -home-line, -home-card;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 8px, 7px;
+    -fx-padding: 0;
+    -fx-min-width: 38px;
+    -fx-min-height: 38px;
+    -fx-pref-width: 38px;
+    -fx-pref-height: 38px;
+    -fx-cursor: hand;
+}
+
+.sampler-home .home-spotlight .icon-button {
+    -fx-min-width: 28px;
+    -fx-min-height: 28px;
+    -fx-pref-width: 28px;
+    -fx-pref-height: 28px;
+}
+
+.sampler-home .icon-button:hover {
+    -fx-background-color: -home-line, -home-stage;
+}
+
+.sampler-home .icon-button .glyph,
+.sampler-home .icon-button:hover .glyph {
+    -fx-background-color: -home-text;
+}
+
+.sampler-home .accent-button:focused,
+.sampler-home .outline-button:focused,
+.sampler-home .violet-button:focused,
+.sampler-home .icon-button:focused {
+    -fx-background-color: -fx-focus-color, -home-card;
+    -fx-text-fill: -home-text;
+}
+
+.sampler-home .accent-button:focused .glyph {
+    -fx-background-color: -home-text;
+}
+
+.sampler-home .link-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 6px;
+    -fx-padding: 4px 8px;
+    -fx-graphic-text-gap: 6px;
+    -fx-text-fill: -sampler-accent-text;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.sampler-home .link-button:hover {
+    -fx-background-color: -sampler-accent-soft;
+}
+
+.sampler-home .link-button:focused {
+    -fx-background-color: -fx-focus-color, -home-card;
+    -fx-background-insets: 0, 1.5px;
+    -fx-background-radius: 6px, 4.5px;
+}
+
+.sampler-home .link-button .glyph {
+    -fx-background-color: -sampler-accent-text;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Glyphs                                                                      *
+ *                                                                             *
+ ******************************************************************************/
+.sampler-home .arrow-right-glyph {
+    -fx-pref-width: 12px;
+    -fx-pref-height: 10px;
+    -fx-shape: "M0 4.25H8.6L5.6 1.25L6.7 0.15L11.6 5L6.7 9.85L5.6 8.75L8.6 5.75H0Z";
+}
+
+.sampler-home .github-glyph {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+    -fx-shape: "M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 0-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.3-3.1-.2-.4-.6-1.6 0-3.2 0 0 1-.3 3.4 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.2.8.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.5.4.9 1 .9 2.2v3.3c0 .3.1.7.8.6A12 12 0 0 0 12 .3";
+}
+
+.sampler-home .home-spotlight .github-glyph {
+    -fx-pref-width: 13px;
+    -fx-pref-height: 13px;
+}
+
+.sampler-home .x-glyph {
+    -fx-pref-width: 14px;
+    -fx-pref-height: 13px;
+    -fx-shape: "M18.2 2.3h3.3l-7.2 8.3 8.5 11.2h-6.7l-5.2-6.8-6 6.8H1.7l7.7-8.8L1.3 2.3h6.8l4.7 6.2zm-1.2 17.5h1.8L7.1 4.1H5.1z";
+}
+
+.sampler-home .play-glyph {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 14px;
+    -fx-shape: "M0 3H16V14H0Z M2 5V12H14V5Z M6.5 6.5V10.5L10 8.5Z M3.5 0.4L4.6 -0.4L6.6 2.4L5.5 3.2Z M12.5 0.4L11.4 -0.4L9.4 2.4L10.5 3.2Z";
+}
+
+.sampler-home .check-glyph {
+    -fx-pref-width: 11px;
+    -fx-pref-height: 9px;
+    -fx-background-color: -home-green;
+    -fx-shape: "M0 4.6L1.4 3.2L4 5.8L9.6 0.2L11 1.6L4 8.6Z";
+}
+
+.sampler-home .gift-glyph {
+    -fx-pref-width: 18px;
+    -fx-pref-height: 18px;
+    -fx-background-color: white;
+    -fx-shape: "M1 5H8V9H1Z M10 5H17V9H10Z M2 10H8V17H2Z M10 10H16V17H10Z M4 1.5C5.5 0.5 7.5 2 9 5C6 5 3.5 4 4 1.5Z M14 1.5C12.5 0.5 10.5 2 9 5C12 5 14.5 4 14 1.5Z";
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Hero                                                                        *
+ *                                                                             *
+ ******************************************************************************/
+.sampler-home .facts .rx-chip {
+    -fx-font-size: 12px;
+    -fx-padding: 3px 10px;
+    -fx-background-color: -home-line, -home-card;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 999px;
+    -fx-text-fill: -home-muted;
+}
+
+.sampler-home .install-bar {
+    -fx-background-color: -home-line, -home-card;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 9px, 8px;
+    -fx-padding: 6px 6px 6px 14px;
+}
+
+.sampler-home .spotlight-well {
+    -fx-background-color: -home-line, -home-stage;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 20px, 19px;
+    -fx-padding: 24px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Spotlight                                                                   *
+ *                                                                             *
+ ******************************************************************************/
+.sampler-home .spotlight-card {
+    -fx-background-color: -home-line, -home-card;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 14px, 13px;
+    -fx-padding: 14px 16px;
+}
+
+.sampler-home .library-card {
+    -fx-padding: 18px;
+}
+
+.sampler-home .brand {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -home-violet;
+}
+
+.sampler-home .big-number {
+    -fx-font-size: 30px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -home-text;
+}
+
+.sampler-home .violet-beam {
+    -rx-beam-fill: linear-gradient(to right, -home-violet, -home-pink);
+}
+
+.sampler-home .green-beam {
+    -rx-beam-fill: linear-gradient(to right, -home-green, -home-cyan);
+}
+
+.sampler-home .violet-ribbon {
+    -rx-ribbon-fill: -home-violet;
+    -rx-ribbon-on-fill: white;
+}
+
+.sampler-home .name-pill {
+    -fx-font-size: 12.5px;
+    -fx-font-weight: bold;
+    -fx-padding: 2px 10px;
+    -fx-background-color: -home-accent;
+    -fx-background-radius: 999px;
+    -fx-text-fill: -home-on-accent;
+}
+
+.sampler-home .author-card .rx-chip,
+.sampler-home .roles .rx-chip {
+    -fx-font-size: 11.5px;
+    -fx-padding: 1px 8px;
+}
+
+.sampler-home .reaction-bar {
+    -fx-padding: 8px 12px;
+}
+
+.sampler-home .reaction-bar .rx-chip {
+    -fx-font-size: 12px;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Tiles                                                                       *
+ *                                                                             *
+ ******************************************************************************/
+.sampler-home .home-tile {
+    -fx-background-color: -home-line, -home-card;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 16px, 15px;
+}
+
+.sampler-home .home-tile > .stage {
+    -fx-background-color: -home-stage;
+    -fx-background-insets: 1px 1px 0 1px;
+    -fx-background-radius: 15px 15px 0 0;
+    -fx-padding: 16px;
+}
+
+.sampler-home .home-tile > .footer {
+    -fx-padding: 12px 12px 14px 16px;
+    -fx-cursor: hand;
+}
+
+.sampler-home .home-tile > .footer .title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -home-text;
+}
+
+.sampler-home .home-tile > .footer:hover .title {
+    -fx-text-fill: -sampler-accent-text;
+}
+
+.sampler-home .home-tile .tag {
+    -fx-font-size: 10.5px;
+    -fx-font-weight: bold;
+    -fx-padding: 1px 7px;
+    -fx-background-radius: 999px;
+    -fx-text-fill: white;
+}
+
+.sampler-home .home-tile .task-title {
+    -fx-font-size: 12px;
+    -fx-text-fill: -home-text;
+}
+
+.sampler-home .home-tile .points,
+.sampler-home .home-tile .time {
+    -fx-font-size: 11px;
+    -fx-text-fill: -home-muted;
+}
+
+.sampler-home .home-tile .initials {
+    -fx-pref-width: 20px;
+    -fx-pref-height: 20px;
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 50%;
+    -fx-text-fill: white;
+}
+
+.sampler-home .home-tile .rose { -fx-background-color: #e11d48; }
+.sampler-home .home-tile .orange { -fx-background-color: #ea580c; }
+.sampler-home .home-tile .amber { -fx-background-color: #b45309; }
+.sampler-home .home-tile .teal { -fx-background-color: #0f766e; }
+.sampler-home .home-tile .sky { -fx-background-color: #0369a1; }
+.sampler-home .home-tile .indigo { -fx-background-color: #4f46e5; }
+.sampler-home .home-tile .violet { -fx-background-color: #7c3aed; }
+
+.sampler-home .home-tile .rx-masonry-view,
+.sampler-home .home-tile .rx-kanban-view {
+    -fx-background-color: transparent;
+}
+
+.sampler-home .home-tile .rx-date-range-view.violet {
+    -fx-background-color: transparent;
+    -rx-primary: -home-violet;
+    -rx-primary-bg: ladder(-fx-background, derive(-rx-primary, -60%) 45%, derive(derive(-rx-primary, 70%), 70%) 46%);
+}
+
+.sampler-home .colon-dot {
+    -fx-pref-width: 5px;
+    -fx-pref-height: 5px;
+    -fx-background-color: -home-text;
+    -fx-background-radius: 50%;
+}
+
+.sampler-home .app-icon {
+    -fx-pref-width: 36px;
+    -fx-pref-height: 36px;
+    -fx-background-color: #e5534b;
+    -fx-background-radius: 9px;
+}
+
+.sampler-home .promo-card {
+    -fx-background-color: -home-line, -home-card;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 12px, 11px;
+    -fx-padding: 12px 14px;
+    -fx-cursor: hand;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Categories                                                                  *
+ *                                                                             *
+ ******************************************************************************/
+.sampler-home .category-card {
+    -fx-background-color: -home-line, -home-card;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 12px, 11px;
+    -fx-padding: 14px;
+    -fx-cursor: hand;
+}
+
+.sampler-home .category-card:hover {
+    -fx-background-color: -home-accent, -home-card;
+}
+
+.sampler-home .category-card:focused {
+    -fx-background-color: -fx-focus-color, -home-card;
+    -fx-background-insets: 0, 1.5px;
+}
+
+.sampler-home .category-card .glyph-badge {
+    -fx-background-color: -sampler-accent-soft;
+    -fx-background-radius: 7px;
+    -fx-padding: 6px;
+}
+
+.sampler-home .category-card .category-glyph {
+    -fx-pref-width: 14px;
+    -fx-pref-height: 14px;
+    -fx-background-color: -sampler-accent-text;
+}
+
+.sampler-home .card-title {
+    -fx-font-size: 13.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -home-text;
+}
+
+.sampler-home .category-card .count {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -home-muted;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Get started, what's new and author                                          *
+ *                                                                             *
+ ******************************************************************************/
+.sampler-home .home-card {
+    -fx-background-color: -home-line, -home-card;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 16px, 15px;
+    -fx-padding: 18px 20px;
+}
+
+.sampler-home .build-switch {
+    -fx-font-size: 12px;
+}
+
+.sampler-home .snippet-box {
+    -fx-background-color: -home-stage;
+    -fx-background-radius: 10px;
+    -fx-padding: 14px 16px;
+}
+
+.sampler-home .snippet {
+    -fx-line-spacing: 3px;
+}
+
+.sampler-home .news-row {
+    -fx-background-color: -home-line, -home-card;
+    -fx-background-insets: 0, 0 0 1px 0;
+    -fx-background-radius: 0;
+    -fx-padding: 10px 4px;
+    -fx-cursor: hand;
+}
+
+.sampler-home .news-row:hover {
+    -fx-background-color: -home-line, -home-stage;
+}
+
+.sampler-home .news-row:focused {
+    -fx-background-color: -fx-focus-color, -home-card;
+    -fx-background-insets: 0, 1.5px;
+}
+
+.sampler-home .news-row.last {
+    -fx-background-insets: 0, 0;
+}
+
+.sampler-home .news-name {
+    -fx-font-size: 13.5px;
+    -fx-text-fill: -home-text;
+}
+
+.sampler-home .author-band {
+    -fx-padding: 20px 22px;
+}

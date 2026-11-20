@@ -273,7 +273,8 @@ public class RXSampler extends Application {
 
     private Node createPage(SamplerEntry entry) {
         if (entry.isHome()) {
-            return new SamplerHome(entries, this::show, RXSampler::openThemeGallery);
+            return new SamplerHome(entries, this::show, RXSampler::openThemeGallery,
+                    getHostServices()::showDocument);
         }
         return new SamplerPage(entry);
     }
@@ -281,6 +282,8 @@ public class RXSampler extends Application {
     private static void dispose(Node page) {
         if (page instanceof SamplerPage samplerPage) {
             samplerPage.dispose();
+        } else if (page instanceof SamplerHome home) {
+            home.dispose();
         }
     }
 
