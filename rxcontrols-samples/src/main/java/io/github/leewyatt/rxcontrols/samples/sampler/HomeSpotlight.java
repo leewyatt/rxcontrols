@@ -15,7 +15,9 @@ import io.github.leewyatt.rxcontrols.layout.RXRow;
 import javafx.animation.PauseTransition;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -44,6 +46,7 @@ final class HomeSpotlight {
             .build();
 
     private static final Duration STAR_LINK_DELAY = Duration.seconds(2.0);
+    private static final String STAR_HINT = "A star helps others find it.";
 
     private HomeSpotlight() {
     }
@@ -70,7 +73,7 @@ final class HomeSpotlight {
                 half(libraryCard(controls, transitions, browse)),
                 half(side));
         row.getStyleClass().add("home-spotlight");
-        return row;
+        return HomeKit.bleed(row);
     }
 
     private static RXCol half(Node content) {
@@ -125,27 +128,33 @@ final class HomeSpotlight {
     // ==================== Star ====================
 
     private static Node starCard(Consumer<String> openLink) {
-        Label hint = wrapped("A star helps others find it.", "caption");
+        Label hint = wrapped("", "caption");
+        VBox card = new VBox(10.0, wrapped("Enjoying RXControls?", "strong"), starButton(openLink, hint), hint);
+        card.setAlignment(Pos.CENTER);
+        card.getStyleClass().add("spotlight-card");
+        return card;
+    }
+
+    /** A star toggle that thanks the user in the hint and then opens the repository. */
+    private static RXReactionButton starButton(Consumer<String> openLink, Label hint) {
         RXReactionButton star = new RXReactionButton("Star on GitHub");
         star.getStyleClass().addAll(RXReactionButton.STYLE_CLASS_STAR, "star-button");
         star.setBurstAnimation(BurstAnimation.SPARKLES);
+        star.setMinWidth(Region.USE_PREF_SIZE);
+        hint.setText(STAR_HINT);
         // The browser opens once the burst has played; un-starring before then cancels it.
         PauseTransition delay = new PauseTransition(STAR_LINK_DELAY);
         delay.setOnFinished(event -> openLink.accept(SamplerHome.REPO_URL));
         star.selectedProperty().addListener((obs, was, starred) -> {
             star.setText(starred ? "Starred" : "Star on GitHub");
-            hint.setText(starred ? "Thank you!" : "A star helps others find it.");
+            hint.setText(starred ? "Thank you!" : STAR_HINT);
             if (starred) {
                 delay.playFromStart();
             } else {
                 delay.stop();
             }
         });
-
-        VBox card = new VBox(10.0, wrapped("Enjoying RXControls?", "strong"), star, hint);
-        card.setAlignment(Pos.CENTER);
-        card.getStyleClass().add("spotlight-card");
-        return card;
+        return star;
     }
 
     // ==================== Author ====================
@@ -167,5 +176,48 @@ final class HomeSpotlight {
         beam.setBeamSize(60.0);
         beam.setCycleDuration(Duration.seconds(3.0));
         return beam;
+    }
+
+    // ==================== Compact strip ====================
+
+    /**
+     * Builds the one-line strip that stands in for the panel where the hero is too narrow
+     * for it: the star on the leading side, the author and contact on the trailing side.
+     *
+     * @param openLink opens a web address in the browser
+     * @return the strip
+     */
+    static Node strip(Consumer<String> openLink) {
+        Label hint = text("", "caption");
+        RXReactionButton star = starButton(openLink, hint);
+        star.getStyleClass().add("solid-star");
+        FlowPane starHead = new FlowPane(8.0, 4.0, text("Enjoying RXControls?", "strong"),
+                text("Open source · Apache 2.0", "caption"));
+        HBox starLine = new HBox(12.0, star, hint);
+        starLine.setAlignment(Pos.CENTER_LEFT);
+        VBox starSide = new VBox(10.0, starHead, starLine);
+
+        Label name = text(SamplerHome.AUTHOR, "name-pill");
+        name.setMinWidth(Region.USE_PREF_SIZE);
+        HBox authorHead = new HBox(8.0, name, text("Author", "caption"), spacer(),
+                iconButton("github-glyph", "GitHub profile", () -> openLink.accept(SamplerHome.GITHUB_URL)),
+                iconButton("mail-glyph", "Email " + SamplerHome.EMAIL,
+                        () -> openLink.accept("mailto:" + SamplerHome.EMAIL)));
+        authorHead.setAlignment(Pos.CENTER_LEFT);
+        Hyperlink available = new Hyperlink("Available for projects");
+        available.getStyleClass().add("available");
+        available.setOnAction(event -> openLink.accept("mailto:" + SamplerHome.EMAIL));
+        FlowPane roles = new FlowPane(6.0, 6.0, new RXChip("Freelancer"), new RXChip("JavaFX consultant"),
+                available);
+        roles.setAlignment(Pos.CENTER_LEFT);
+        VBox authorSide = new VBox(10.0, authorHead, roles);
+        // The divider is the author side's leading border, dropped once the halves stack.
+        authorSide.getStyleClass().add("author-side");
+
+        RXRow row = HomeKit.row(24.0, 12.0);
+        row.setAlign(RXRow.Align.CENTER);
+        row.getChildren().addAll(HomeKit.col(starSide, 24, 11, 11), HomeKit.col(authorSide, 24, 13, 13));
+        row.getStyleClass().addAll("spotlight-card", "spotlight-strip");
+        return row;
     }
 }

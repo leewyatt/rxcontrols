@@ -31,6 +31,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -85,8 +86,8 @@ final class HomeTiles {
         RXRow left = HomeKit.row(16.0, 16.0);
         left.setAlign(RXRow.Align.STRETCH);
         VBox small = new VBox(16.0,
-                tile("RXWaveProgressIndicator", "Wave progress", "Fill as a wave.", wave(), openType, true),
-                tile("RXDigit", "RXDigit", "Seven-segment glyphs.", clock(life), openType, true));
+                tile("RXWaveProgressIndicator", "Wave progress", "Fill as a wave.", wave(), openType),
+                tile("RXDigit", "RXDigit", "Seven-segment glyphs.", clock(life), openType));
         small.getChildren().forEach(child -> VBox.setVgrow(child, Priority.ALWAYS));
         left.getChildren().addAll(
                 col(tile("RXKanbanView", "Drag cards within and between columns.", kanban(), openType), 24, 24, 24),
@@ -101,30 +102,28 @@ final class HomeTiles {
         grid.getStyleClass().add("home-tiles");
         grid.setAlign(RXRow.Align.STRETCH);
         grid.getChildren().addAll(
-                col(left, 24, 24, 16),
+                col(HomeKit.bleed(left), 24, 24, 16),
                 wall,
                 col(tile("RXTimelineView", "Events on a vertical or horizontal line.", timeline(), openType),
                         24, 12, 8),
                 col(tile("RXSegmentedControl", "One of many, with a sliding indicator.", segmented(), openType),
                         24, 12, 8),
                 col(tile("RXRibbonBadge", "RXRibbonBadge and RXBadge", "Mark one card among many.", badges(),
-                        openType, false), 24, 24, 8));
-        return grid;
+                        openType), 24, 24, 8));
+        return HomeKit.bleed(grid);
     }
 
     // ==================== Tile ====================
 
     private static VBox tile(String type, String caption, Node content, Consumer<String> openType) {
-        return tile(type, type, caption, content, openType, false);
+        return tile(type, type, caption, content, openType);
     }
 
     /**
-     * A tile: the live component on a stage, and its name and purpose below. The footer
-     * opens the component's page; a wide tile also shows an Open button for the keyboard,
-     * which a compact tile has no room for.
+     * A tile: the live component on a stage, and its name and purpose below. Only the
+     * Open button opens the component's page.
      */
-    private static VBox tile(String type, String title, String caption, Node content, Consumer<String> openType,
-                             boolean compact) {
+    private static VBox tile(String type, String title, String caption, Node content, Consumer<String> openType) {
         StackPane stage = new StackPane(content);
         stage.getStyleClass().add("stage");
         VBox.setVgrow(stage, Priority.ALWAYS);
@@ -132,19 +131,16 @@ final class HomeTiles {
         VBox words = new VBox(2.0, text(title, "title"), wrapped(caption, "caption"));
         words.setMinWidth(0.0);
         HBox.setHgrow(words, Priority.ALWAYS);
-        HBox footer = new HBox(10.0, words);
+        RXButton open = new RXButton("Open", glyph("arrow-right-glyph"));
+        open.getStyleClass().add("link-button");
+        open.setContentDisplay(ContentDisplay.RIGHT);
+        open.setMinWidth(Region.USE_PREF_SIZE);
+        open.setTooltip(new Tooltip("Open the " + type + " page"));
+        open.setAccessibleText("Open the " + type + " page");
+        open.setOnAction(event -> openType.accept(type));
+        HBox footer = new HBox(10.0, words, open);
         footer.getStyleClass().add("footer");
         footer.setAlignment(Pos.CENTER_LEFT);
-        footer.setOnMouseClicked(event -> openType.accept(type));
-        if (!compact) {
-            RXButton open = new RXButton("Open", glyph("arrow-right-glyph"));
-            open.getStyleClass().add("link-button");
-            open.setContentDisplay(ContentDisplay.RIGHT);
-            open.setMinWidth(Region.USE_PREF_SIZE);
-            open.setAccessibleText("Open the " + type + " page");
-            open.setOnAction(event -> openType.accept(type));
-            footer.getChildren().add(open);
-        }
 
         VBox tile = new VBox(stage, footer);
         tile.getStyleClass().add("home-tile");

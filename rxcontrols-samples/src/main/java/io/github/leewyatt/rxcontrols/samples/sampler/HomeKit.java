@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
 import io.github.leewyatt.rxcontrols.layout.RXCol;
 import io.github.leewyatt.rxcontrols.layout.RXColSpec;
 import io.github.leewyatt.rxcontrols.layout.RXRow;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
@@ -14,6 +15,8 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -76,6 +79,19 @@ final class HomeKit {
         row.setBreakpointProfile(PROFILE);
         row.setGutter(gutter);
         row.setRowGap(rowGap);
+        return row;
+    }
+
+    /**
+     * Pulls a row out by half its gutter on each side. Every column keeps half the gutter
+     * on both sides, so without this the outer columns sit half a gutter in from the
+     * container's edge, and a row nested in a column sits a whole gutter in.
+     */
+    static <T extends RXRow> T bleed(T row) {
+        double half = row.getGutter() / 2.0;
+        Insets margin = new Insets(0.0, -half, 0.0, -half);
+        VBox.setMargin(row, margin);
+        StackPane.setMargin(row, margin);
         return row;
     }
 

@@ -9,6 +9,10 @@ import io.github.leewyatt.rxcontrols.RXCopyButton;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.RXSmoothScrollSupport;
+import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
+import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
+import io.github.leewyatt.rxcontrols.layout.RXCol;
+import io.github.leewyatt.rxcontrols.layout.RXColSpec;
 import io.github.leewyatt.rxcontrols.layout.RXRow;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleLifecycle;
 import io.github.leewyatt.rxcontrols.samples.support.PageAnimationPresets;
@@ -51,6 +55,7 @@ final class SamplerHome extends ScrollPane {
     static final String AUTHOR = "Lee Wyatt";
     static final String GITHUB_URL = "https://github.com/leewyatt";
     static final String REPO_URL = GITHUB_URL + "/rxcontrols";
+    static final String EMAIL = "leewyatt7788@gmail.com";
     private static final String ISSUES_URL = REPO_URL + "/issues";
     private static final String RELEASES_URL = REPO_URL + "/releases";
     private static final String X_HANDLE = "LeeWyatt_7788";
@@ -69,6 +74,13 @@ final class SamplerHome extends ScrollPane {
     private static final String GRADLE = "dependencies {\n"
             + "    implementation(\"" + COORDINATES + "\")\n"
             + "}";
+
+    // Side by side needs room for the panel's two columns of cards next to the text.
+    private static final RXBreakpointProfile HERO_PROFILE = RXBreakpointProfile.builder()
+            .columns(24)
+            .breakpoint(RXBreakpoint.XS, 0.0)
+            .breakpoint(RXBreakpoint.MD, 1000.0)
+            .build();
 
     private static final int SAMPLE_NAMES = 3;
     private static final double CONTENT_MAX_WIDTH = 1180.0;
@@ -107,9 +119,9 @@ final class SamplerHome extends ScrollPane {
         }
         Runnable browse = () -> open.accept(byCategory.values().iterator().next().get(0));
 
-        VBox column = new VBox(56.0,
+        VBox column = new VBox(32.0,
                 hero(byCategory, controls, browse, openGallery),
-                section("See them working", "Real components from the sampler. Open any one to try it.",
+                section("See them working", "A few of the " + controls + " controls, live. Browse them all below.",
                         galleryLink(openGallery), HomeTiles.create(lifecycle, this::openType)),
                 section("Browse by category", null, null, categories(byCategory)),
                 resources(),
@@ -168,27 +180,32 @@ final class SamplerHome extends ScrollPane {
                 iconButton("x-glyph", AUTHOR + " on X", () -> openLink.accept(X_URL)));
         actions.setAlignment(Pos.CENTER_LEFT);
 
-        RXCopyButton copy = new RXCopyButton("Copy");
-        copy.setContentFactory(() -> RXCopyButton.textContent(COORDINATES));
-        Label coordinates = text(COORDINATES, "code");
-        coordinates.setMinWidth(0.0);
-        HBox.setHgrow(coordinates, Priority.ALWAYS);
-        coordinates.setMaxWidth(Double.MAX_VALUE);
-        HBox install = new HBox(8.0, text("$", "code", "prompt"), coordinates, copy);
-        install.getStyleClass().add("install-bar");
-        install.setAlignment(Pos.CENTER_LEFT);
-        install.setMaxWidth(460.0);
-
-        VBox text = new VBox(20.0, facts, title, lead, stats, actions, install);
+        VBox text = new VBox(20.0, facts, title, lead, stats, actions);
         VBox.setMargin(title, new Insets(-4.0, 0.0, -8.0, 0.0));
 
         StackPane well = new StackPane(HomeSpotlight.create(controls, transitionCount(), browse, openLink));
         well.getStyleClass().add("spotlight-well");
 
-        RXRow row = HomeKit.row(40.0, 32.0);
+        // The panel shows only beside the text; where the hero is too narrow for that, a
+        // one-line strip stands in for it, so the tiles below show sooner.
+        RXRow row = new RXRow();
+        row.setBreakpointProfile(HERO_PROFILE);
+        row.setGutter(40.0);
+        row.setRowGap(24.0);
         row.setAlign(RXRow.Align.CENTER);
-        row.getChildren().addAll(col(text, 24, 24, 12), col(well, 24, 24, 12));
-        return row;
+        row.getChildren().addAll(
+                heroCol(text, 12, true, true),
+                heroCol(well, 12, false, true),
+                heroCol(HomeSpotlight.strip(openLink), 24, true, false));
+        return HomeKit.bleed(row);
+    }
+
+    /** A hero column: full width when narrow, {@code wideSpan} when wide, shown where asked. */
+    private static RXCol heroCol(Node content, int wideSpan, boolean narrow, boolean wide) {
+        RXCol col = new RXCol(content);
+        col.setXs(RXColSpec.builder().span(24).hidden(!narrow).build());
+        col.setMd(RXColSpec.builder().span(wideSpan).hidden(!wide).build());
+        return col;
     }
 
     private static Node stat(int value, String name) {
@@ -246,7 +263,7 @@ final class SamplerHome extends ScrollPane {
         RXRow row = HomeKit.row(12.0, 12.0);
         row.setAlign(RXRow.Align.STRETCH);
         byCategory.forEach((category, list) -> row.getChildren().add(col(categoryCard(category, list), 24, 12, 6)));
-        return row;
+        return HomeKit.bleed(row);
     }
 
     private Button categoryCard(SamplerCategory category, List<SamplerEntry> list) {
@@ -289,7 +306,7 @@ final class SamplerHome extends ScrollPane {
         RXRow row = HomeKit.row(16.0, 16.0);
         row.setAlign(RXRow.Align.STRETCH);
         row.getChildren().addAll(col(getStarted(), 24, 24, 12), col(whatsNew(), 24, 24, 12));
-        return row;
+        return HomeKit.bleed(row);
     }
 
     private Node getStarted() {

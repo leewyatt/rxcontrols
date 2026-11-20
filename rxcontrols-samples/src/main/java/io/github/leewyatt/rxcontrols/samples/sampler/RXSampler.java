@@ -99,7 +99,7 @@ public class RXSampler extends Application {
         root.getStyleClass().add("sampler");
         root.setLeft(nav);
 
-        Scene scene = new Scene(root, 1230.0, 880.0);
+        Scene scene = new Scene(root, 1360, 860);
         scene.getStylesheets().addAll(RXShowcaseApplication.shellStylesheet(),
                 RXSampler.class.getResource("rx-sampler.css").toExternalForm());
         // Some page animations of the carousel showcase rotate in 3D.
