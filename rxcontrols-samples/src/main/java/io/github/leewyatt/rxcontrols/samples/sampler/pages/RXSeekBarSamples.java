@@ -38,9 +38,10 @@ public final class RXSeekBarSamples {
     /**
      * Builds the page content.
      *
+     * @param life the lifecycle of the page
      * @return the content
      */
-    public static SampleContent create() {
+    public static SampleContent create(SampleLifecycle life) {
         return new SampleContent(
                 "A media seek bar with played and buffered progress, a hover preview and a draggable thumb.",
                 List.of("The timeline of a video, a song or a podcast, where users jump to a point and see what has loaded.",
@@ -48,7 +49,7 @@ public final class RXSeekBarSamples {
                 List.of(
                         SampleCard.wide("Video player",
                                 "Press play: the bar follows playback, the buffer runs ahead, and dragging seeks; the hover bubble shows the time.",
-                                videoPlayer()),
+                                videoPlayer(life)),
                         SampleCard.large("Music player",
                                 "A compact player with elapsed and remaining time on both sides of the bar.",
                                 musicPlayer()),
@@ -64,7 +65,7 @@ public final class RXSeekBarSamples {
                 SelectionIcons.STYLESHEET);
     }
 
-    private static Node videoPlayer() {
+    private static Node videoPlayer(SampleLifecycle life) {
         RXImageView frame = new RXImageView(SampleImages.scenery(2));
         frame.setPrefSize(520.0, 240.0);
         frame.setImageRadius(12.0);
@@ -103,12 +104,10 @@ public final class RXSeekBarSamples {
             glyph.getStyleClass().removeAll("play-icon", "pause-icon");
             glyph.getStyleClass().add(playing ? "play-icon" : "pause-icon");
         });
-        frame.sceneProperty().addListener((obs, old, scene) -> {
-            if (scene == null) {
-                playback.pause();
-                glyph.getStyleClass().removeAll("play-icon", "pause-icon");
-                glyph.getStyleClass().add("play-icon");
-            }
+        life.whenHidden(() -> {
+            playback.pause();
+            glyph.getStyleClass().removeAll("play-icon", "pause-icon");
+            glyph.getStyleClass().add("play-icon");
         });
 
         HBox controls = new HBox(12.0, play, seek, elapsed);

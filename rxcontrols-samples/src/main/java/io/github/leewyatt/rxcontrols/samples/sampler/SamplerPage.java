@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.layout.RXRow;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleCard;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleContent;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleGallery;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleLifecycle;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
 import javafx.application.Application;
@@ -41,6 +42,10 @@ import java.util.logging.Logger;
  * and showcase open in their own windows. A page without it still hosts each variant's
  * showcase, with a switch between the variants. A variant's playground is built the first
  * time it is shown and then kept for the life of the page.
+ *
+ * <p>The page is shown while it is in a scene: the sampler adds it when the transition
+ * to it starts and removes it when the transition away from it ends. The sampler
+ * disposes the page when it drops the page from its cache or closes.</p>
  */
 final class SamplerPage extends BorderPane {
 
@@ -53,6 +58,7 @@ final class SamplerPage extends BorderPane {
     private final Map<SamplerVariant, String> descriptions = new HashMap<>();
 
     private final SamplerEntry entry;
+    private final SampleLifecycle lifecycle = new SampleLifecycle();
     private final SampleContent samples;
     // Selectable, so a page name can be copied as easily as it is read.
     private final RXTextView title = new RXTextView();
@@ -67,7 +73,7 @@ final class SamplerPage extends BorderPane {
 
     SamplerPage(SamplerEntry entry) {
         this.entry = entry;
-        this.samples = loadSamples(entry);
+        this.samples = loadSamples(entry, lifecycle);
         getStyleClass().add("sampler-page");
         title.getStyleClass().add("page-title");
         // On a narrow page the base-class chip gives up its room before the title does.
@@ -115,6 +121,21 @@ final class SamplerPage extends BorderPane {
         setTop(headerBand);
         setCenter(body);
         showVariant(entry.variants().get(0));
+
+        sceneProperty().addListener((obs, old, scene) -> {
+            if (scene == null) {
+                lifecycle.hide();
+            } else {
+                lifecycle.show();
+            }
+        });
+    }
+
+    /**
+     * Ends the life of the page; its examples stop for good.
+     */
+    void dispose() {
+        lifecycle.dispose();
     }
 
     private Node buildVariantSwitch(SamplerEntry entry) {
@@ -134,14 +155,16 @@ final class SamplerPage extends BorderPane {
 
     // ==================== Examples ====================
 
-    private static SampleContent loadSamples(SamplerEntry entry) {
+    private static SampleContent loadSamples(SamplerEntry entry, SampleLifecycle life) {
         if (entry.samples() == null) {
             return null;
         }
         try {
-            return entry.samples().get();
+            return entry.samples().apply(life);
         } catch (RuntimeException e) {
             LOG.log(Level.WARNING, "Could not build the examples of " + entry.name(), e);
+            // Nothing the failed build registered may run behind the fallback page.
+            life.dispose();
             return null;
         }
     }

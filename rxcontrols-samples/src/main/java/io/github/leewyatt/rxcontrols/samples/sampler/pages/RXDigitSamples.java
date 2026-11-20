@@ -19,7 +19,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.playWhileShowing;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.solid;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.text;
 
@@ -42,9 +41,10 @@ public final class RXDigitSamples {
     /**
      * Builds the page content.
      *
+     * @param life the lifecycle of the page
      * @return the content
      */
-    public static SampleContent create() {
+    public static SampleContent create(SampleLifecycle life) {
         return new SampleContent(
                 "One seven-segment digit; put several in a row for clocks, timers and counters.",
                 List.of("Retro or hardware-style readouts: clocks, scoreboards, timers, meters and dashboards.",
@@ -53,10 +53,10 @@ public final class RXDigitSamples {
                         SampleCard.wide("Desk clock",
                                 "An LCD clock: large hours and minutes, small seconds, AM or PM and today's weekday; "
                                         + "unlitFill leaves the dark segments faintly visible, and a timeline ticks every second.",
-                                clock()),
+                                clock(life)),
                         SampleCard.medium("Stopwatch",
                                 "Minutes, seconds and tenths; start, stop and reset with the buttons.",
-                                stopwatch()),
+                                stopwatch(life)),
                         SampleCard.medium("Scoreboard",
                                 "Click a team's +1 to add a point; litFill colors each side.",
                                 scoreboard()),
@@ -65,7 +65,7 @@ public final class RXDigitSamples {
                                 lcd()),
                         SampleCard.medium("Countdown",
                                 "A five-minute timer counting down in amber; it starts over at zero.",
-                                countdown()),
+                                countdown(life)),
                         SampleCard.wide("All ten digits",
                                 "setDigit takes 0 to 9; each value lights its own set of the seven segments.",
                                 allDigits())),
@@ -74,7 +74,7 @@ public final class RXDigitSamples {
 
     // ==================== Digital clock ====================
 
-    private static Node clock() {
+    private static Node clock(SampleLifecycle life) {
         List<Label> days = new ArrayList<>();
         HBox week = new HBox(20.0);
         week.setAlignment(Pos.CENTER);
@@ -110,7 +110,7 @@ public final class RXDigitSamples {
         update.run();
         Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(1.0), event -> update.run()));
         timeline.setCycleCount(Animation.INDEFINITE);
-        playWhileShowing(reading, timeline);
+        life.playWhileShown(timeline);
 
         VBox screen = new VBox(10.0, week, reading);
         screen.getStyleClass().add("lcd-screen");
@@ -122,7 +122,7 @@ public final class RXDigitSamples {
 
     // ==================== Stopwatch ====================
 
-    private static Node stopwatch() {
+    private static Node stopwatch(SampleLifecycle life) {
         List<RXDigit> digits = digits(5, 26.0, "teal");
         HBox row = new HBox(5.0, digits.get(0), digits.get(1), colon("teal", 52.0),
                 digits.get(2), digits.get(3), dot("teal"), digits.get(4));
@@ -156,11 +156,9 @@ public final class RXDigitSamples {
             tenths[0] = 0;
             update.run();
         });
-        row.sceneProperty().addListener((obs, old, scene) -> {
-            if (scene == null) {
-                timeline.pause();
-                start.setText("Start");
-            }
+        life.whenHidden(() -> {
+            timeline.pause();
+            start.setText("Start");
         });
         HBox buttons = new HBox(10.0, reset, start);
         buttons.setAlignment(Pos.CENTER);
@@ -210,7 +208,7 @@ public final class RXDigitSamples {
 
     // ==================== Countdown ====================
 
-    private static Node countdown() {
+    private static Node countdown(SampleLifecycle life) {
         List<RXDigit> digits = digits(4, 30.0, "amber");
         HBox row = new HBox(5.0, digits.get(0), digits.get(1), colon("amber", 60.0), digits.get(2), digits.get(3));
         row.setAlignment(Pos.CENTER);
@@ -225,7 +223,7 @@ public final class RXDigitSamples {
             update.run();
         }));
         timeline.setCycleCount(Animation.INDEFINITE);
-        playWhileShowing(row, timeline);
+        life.playWhileShown(timeline);
         VBox box = new VBox(8.0, led(row), text("Break ends in", "muted"));
         box.setAlignment(Pos.CENTER);
         return box;

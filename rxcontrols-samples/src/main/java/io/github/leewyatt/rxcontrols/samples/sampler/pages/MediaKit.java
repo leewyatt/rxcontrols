@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXButton;
-import javafx.animation.Animation;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
@@ -13,8 +12,8 @@ import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
 /**
- * Icons, text helpers, animation lifecycle and the stylesheet shared by
- * the media and display pages. Each icon is a shape-backed region whose shape comes from
+ * Icons, text helpers and the stylesheet shared by the media and display
+ * pages. Each icon is a shape-backed region whose shape comes from
  * its style class in the stylesheet.
  */
 final class MediaKit {
@@ -128,19 +127,5 @@ final class MediaKit {
         clip.heightProperty().bind(region.heightProperty());
         region.setClip(clip);
         return region;
-    }
-
-    /**
-     * Plays an endless animation while the anchor is in a scene and pauses it when the
-     * anchor leaves, so a page that is not shown costs nothing.
-     */
-    static void playWhileShowing(Node anchor, Animation animation) {
-        anchor.sceneProperty().addListener((obs, old, scene) -> {
-            if (scene == null) {
-                animation.pause();
-            } else {
-                animation.play();
-            }
-        });
     }
 }

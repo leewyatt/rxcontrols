@@ -79,9 +79,10 @@ public final class RXTransitionPaneSamples {
     /**
      * Builds the page content.
      *
+     * @param life the lifecycle of the page
      * @return the content
      */
-    public static SampleContent create() {
+    public static SampleContent create(SampleLifecycle life) {
         return new SampleContent(
                 "A container that plays an animation whenever its content is replaced.",
                 List.of("Steps of a wizard, a loading state turning into a result, any content that is swapped in place.",
@@ -90,7 +91,7 @@ public final class RXTransitionPaneSamples {
                         SampleCard.wide("Notification bar",
                                 "Each notice is a whole row with its own controls at the end, so the content swaps "
                                         + "as one node; the bar holds still while the pointer is on it.",
-                                notifications()),
+                                notifications(life)),
                         SampleCard.large("Sign-up wizard",
                                 "transitionTo(page, FORWARD) on Next and BACKWARD on Back, so AnimSlide moves "
                                         + "the right way.",
@@ -110,7 +111,7 @@ public final class RXTransitionPaneSamples {
 
     // ==================== Notification bar ====================
 
-    private static Node notifications() {
+    private static Node notifications(SampleLifecycle life) {
         List<Node> notices = List.of(
                 notice("truck-icon", "Your order #1042 has shipped", track()),
                 notice("person-icon", "Mia Chen started following you", followBack()),
@@ -142,13 +143,14 @@ public final class RXTransitionPaneSamples {
         // The controls in a notice are live, so the bar holds still while the pointer is on
         // it, and rests while the page is not shown.
         Runnable rotate = () -> {
-            if (bar.getScene() != null && !bar.isHover()) {
+            if (life.isShown() && !bar.isHover()) {
                 timeline.play();
             } else {
                 timeline.pause();
             }
         };
-        bar.sceneProperty().addListener(obs -> rotate.run());
+        life.whenShown(rotate);
+        life.whenHidden(rotate);
         bar.hoverProperty().addListener(obs -> rotate.run());
         return bar;
     }

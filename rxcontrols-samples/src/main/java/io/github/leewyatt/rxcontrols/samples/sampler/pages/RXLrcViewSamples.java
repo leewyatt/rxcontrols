@@ -42,9 +42,10 @@ public final class RXLrcViewSamples {
     /**
      * Builds the page content.
      *
+     * @param life the lifecycle of the page
      * @return the content
      */
-    public static SampleContent create() {
+    public static SampleContent create(SampleLifecycle life) {
         return new SampleContent(
                 "Scrolling song lyrics in LRC format that follow a playback time and highlight the current line.",
                 List.of("Music players and karaoke screens that show the words as the song plays.",
@@ -52,16 +53,16 @@ public final class RXLrcViewSamples {
                 List.of(
                         SampleCard.wide("Music player",
                                 "Press play: the lyrics follow currentTime; click a line or drag the bar to jump, scroll to browse.",
-                                player()),
+                                player(life)),
                         SampleCard.large("Karaoke",
                                 "currentLineScale enlarges the line being sung; CSS colors the current line and the others.",
-                                karaoke()),
+                                karaoke(life)),
                         SampleCard.large("Top anchored",
                                 "currentLinePosition 0.2 keeps the current line near the top, so more of what comes next shows.",
-                                topAnchored()),
+                                topAnchored(life)),
                         SampleCard.medium("Time offset",
                                 "A positive timeOffset shows every line earlier, a negative one later, for files that do not match the audio.",
-                                offset()),
+                                offset(life)),
                         SampleCard.medium("No lyrics",
                                 "Without a document the placeholder node shows instead.",
                                 noLyrics())),
@@ -70,12 +71,12 @@ public final class RXLrcViewSamples {
 
     // ==================== Music player ====================
 
-    private static Node player() {
+    private static Node player(SampleLifecycle life) {
         RXLrcView lyrics = lyricView();
         lyrics.setPrefSize(320.0, 230.0);
         HBox.setHgrow(lyrics, Priority.ALWAYS);
 
-        PlaybackClock clock = new PlaybackClock(SONG_LENGTH).attach(lyrics, false);
+        PlaybackClock clock = new PlaybackClock(SONG_LENGTH).attach(life, false);
         lyrics.currentTimeProperty().bind(clock.timeProperty());
         lyrics.setOnLineClicked(event -> clock.seek(event.getTime()));
         clock.seek(Duration.seconds(9.0));
@@ -125,13 +126,13 @@ public final class RXLrcViewSamples {
 
     // ==================== Karaoke ====================
 
-    private static Node karaoke() {
+    private static Node karaoke(SampleLifecycle life) {
         RXLrcView lyrics = lyricView();
         lyrics.getStyleClass().add("karaoke");
         lyrics.setCurrentLineScale(1.35);
         lyrics.setLineSpacing(12.0);
         lyrics.setPrefSize(300.0, 200.0);
-        PlaybackClock clock = new PlaybackClock(SONG_LENGTH).attach(lyrics, true);
+        PlaybackClock clock = new PlaybackClock(SONG_LENGTH).attach(life, true);
         clock.seek(Duration.seconds(16.5));
         lyrics.currentTimeProperty().bind(clock.timeProperty());
         StackPane screen = new StackPane(lyrics);
@@ -142,12 +143,12 @@ public final class RXLrcViewSamples {
 
     // ==================== Top anchored ====================
 
-    private static Node topAnchored() {
+    private static Node topAnchored(SampleLifecycle life) {
         RXLrcView lyrics = lyricView();
         lyrics.setCurrentLinePosition(0.2);
         lyrics.getStyleClass().add("compact");
         lyrics.setPrefSize(300.0, 200.0);
-        PlaybackClock clock = new PlaybackClock(SONG_LENGTH).attach(lyrics, true);
+        PlaybackClock clock = new PlaybackClock(SONG_LENGTH).attach(life, true);
         clock.seek(Duration.seconds(5.0));
         lyrics.currentTimeProperty().bind(clock.timeProperty());
         StackPane sheet = new StackPane(lyrics);
@@ -158,11 +159,11 @@ public final class RXLrcViewSamples {
 
     // ==================== Time offset ====================
 
-    private static Node offset() {
+    private static Node offset(SampleLifecycle life) {
         RXLrcView lyrics = lyricView();
         lyrics.getStyleClass().add("compact");
         lyrics.setPrefSize(236.0, 110.0);
-        PlaybackClock clock = new PlaybackClock(SONG_LENGTH).attach(lyrics, true);
+        PlaybackClock clock = new PlaybackClock(SONG_LENGTH).attach(life, true);
         clock.seek(Duration.seconds(26.0));
         lyrics.currentTimeProperty().bind(clock.timeProperty());
 

@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Random;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.iconButton;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.playWhileShowing;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.setIcon;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.spacer;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.text;
@@ -47,9 +46,10 @@ public final class RXAudioSpectrumSamples {
     /**
      * Builds the page content.
      *
+     * @param life the lifecycle of the page
      * @return the content
      */
-    public static SampleContent create() {
+    public static SampleContent create(SampleLifecycle life) {
         return new SampleContent(
                 "An audio visualizer that draws the magnitude frames you feed it as bars, a line or a ring.",
                 List.of("Music and podcast players, voice recorders and any screen that shows sound as it plays.",
@@ -57,25 +57,25 @@ public final class RXAudioSpectrumSamples {
                 List.of(
                         SampleCard.wide("Music player",
                                 "The default VisBars with peak caps; pause and the bars settle to silence on their own.",
-                                player()),
+                                player(life)),
                         SampleCard.medium("Mirrored bars",
                                 "VisBarsMirror reflects the bars below the middle line; -rx-bar-fill sets the gradient.",
-                                screen(mirrored())),
+                                screen(mirrored(life))),
                         SampleCard.medium("Line",
                                 "VisLine draws one smooth curve through the band levels.",
-                                screen(line())),
+                                screen(line(life))),
                         SampleCard.medium("Radial ring",
                                 "VisRadial grows bars outwards around a hole, here filled with the album cover.",
-                                screen(radial())),
+                                screen(radial(life))),
                         SampleCard.medium("Centered with glow",
                                 "BandLayout.CENTER_FOLD puts the bass in the middle; glow adds a soft light.",
-                                screen(centered()))),
+                                screen(centered(life)))),
                 MediaKit.STYLESHEET);
     }
 
     // ==================== Music player ====================
 
-    private static Node player() {
+    private static Node player(SampleLifecycle life) {
         RXAudioSpectrum spectrum = new RXAudioSpectrum();
         spectrum.setBandCount(64);
         spectrum.setPrefHeight(150.0);
@@ -92,7 +92,7 @@ public final class RXAudioSpectrumSamples {
         head.setAlignment(Pos.CENTER_LEFT);
 
         Feed feed = new Feed(spectrum, 7L);
-        playWhileShowing(spectrum, feed.timeline);
+        life.playWhileShown(feed.timeline);
         boolean[] playing = {true};
         play.setOnMouseClicked(event -> {
             playing[0] = !playing[0];
@@ -109,23 +109,23 @@ public final class RXAudioSpectrumSamples {
 
     // ==================== Variants ====================
 
-    private static Node mirrored() {
-        RXAudioSpectrum spectrum = spectrum(48, 11L);
+    private static Node mirrored(SampleLifecycle life) {
+        RXAudioSpectrum spectrum = spectrum(48, 11L, life);
         spectrum.setVisualization(new VisBarsMirror());
         spectrum.getStyleClass().add("sunset");
         spectrum.setShowPeaks(false);
         return spectrum;
     }
 
-    private static Node line() {
-        RXAudioSpectrum spectrum = spectrum(64, 23L);
+    private static Node line(SampleLifecycle life) {
+        RXAudioSpectrum spectrum = spectrum(64, 23L, life);
         spectrum.setVisualization(new VisLine(2.5));
         spectrum.getStyleClass().add("aqua");
         return spectrum;
     }
 
-    private static Node radial() {
-        RXAudioSpectrum spectrum = spectrum(72, 31L);
+    private static Node radial(SampleLifecycle life) {
+        RXAudioSpectrum spectrum = spectrum(72, 31L, life);
         VisRadial ring = new VisRadial();
         ring.setInnerRadiusRatio(0.5);
         spectrum.setVisualization(ring);
@@ -138,8 +138,8 @@ public final class RXAudioSpectrumSamples {
         return stack;
     }
 
-    private static Node centered() {
-        RXAudioSpectrum spectrum = spectrum(40, 47L);
+    private static Node centered(SampleLifecycle life) {
+        RXAudioSpectrum spectrum = spectrum(40, 47L, life);
         spectrum.setBandLayout(BandLayout.CENTER_FOLD);
         spectrum.setGlow(true);
         spectrum.setBarGapRatio(0.35);
@@ -147,12 +147,12 @@ public final class RXAudioSpectrumSamples {
         return spectrum;
     }
 
-    private static RXAudioSpectrum spectrum(int bands, long seed) {
+    private static RXAudioSpectrum spectrum(int bands, long seed, SampleLifecycle life) {
         RXAudioSpectrum spectrum = new RXAudioSpectrum();
         spectrum.setBandCount(bands);
         spectrum.setPrefSize(240.0, 130.0);
         Feed feed = new Feed(spectrum, seed);
-        playWhileShowing(spectrum, feed.timeline);
+        life.playWhileShown(feed.timeline);
         return spectrum;
     }
 

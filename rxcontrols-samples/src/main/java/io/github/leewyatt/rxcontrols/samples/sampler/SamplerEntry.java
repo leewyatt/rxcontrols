@@ -1,9 +1,11 @@
 package io.github.leewyatt.rxcontrols.samples.sampler;
 
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleContent;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleLifecycle;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -13,17 +15,22 @@ import java.util.function.Supplier;
  * @param name     the navigation label
  * @param category the navigation group
  * @param variants the controls shown on the page, in switch order
- * @param samples  builds the page's example cards, or {@code null} for a page that still
- *                 hosts the showcase of each variant
+ * @param samples  builds the page's example cards for the lifecycle of the page, or
+ *                 {@code null} for a page that still hosts the showcase of each variant
  */
 record SamplerEntry(String name, SamplerCategory category, List<SamplerVariant> variants,
-                    Supplier<SampleContent> samples) {
+                    Function<SampleLifecycle, SampleContent> samples) {
 
     SamplerEntry(String name, SamplerCategory category, List<SamplerVariant> variants) {
         this(name, category, variants, null);
     }
 
+    // For examples that need nothing from the life of the page.
     SamplerEntry withSamples(Supplier<SampleContent> value) {
+        return withSamples(life -> value.get());
+    }
+
+    SamplerEntry withSamples(Function<SampleLifecycle, SampleContent> value) {
         return new SamplerEntry(name, category, variants, value);
     }
 
