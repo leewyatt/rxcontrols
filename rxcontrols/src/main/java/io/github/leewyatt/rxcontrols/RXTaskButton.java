@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.internal.TaskButtonAccess;
+import io.github.leewyatt.rxcontrols.internal.TaskButtonAccess.Activation;
 import io.github.leewyatt.rxcontrols.internal.feedback.FeedbackDurations;
 import io.github.leewyatt.rxcontrols.skins.RXTaskButtonSkin;
 import javafx.animation.Animation;
@@ -164,7 +165,11 @@ import java.util.concurrent.atomic.AtomicReference;
  * {@code pendingMinDuration}: the second click of a double click never
  * cancels a run that has just started. Activating the button on a result
  * face reaches {@code onAction} again, which is how a failed run is
- * retried.</p>
+ * retried. A mouse press or key stroke does only what it would have done
+ * when it began: if the run ends while the button is held down to cancel
+ * it, the release does nothing, rather than reach {@code onAction} and
+ * start the work again; and a press that began as an action does not
+ * cancel a run started meanwhile.</p>
  *
  * <p>The run belongs to the application, not to the button: disabling the
  * button, hiding it or removing it from the scene changes nothing about a run
@@ -212,9 +217,9 @@ public class RXTaskButton extends RXButton {
     private static final String DEFAULT_STYLE_CLASS = "rx-task-button";
 
     static {
-        // The skin is in another package and has to know when an activation
-        // would be swallowed; the answer depends on a private timer.
-        TaskButtonAccess.setActivationProbe(RXTaskButton::isActivationEffective);
+        // The skin is in another package and has to know what an activation
+        // would do; the answer depends on a private timer.
+        TaskButtonAccess.setActivationProbe(RXTaskButton::activation);
     }
 
     private static final PseudoClass RUNNING_PSEUDO_CLASS = PseudoClass.getPseudoClass("running");
@@ -715,10 +720,15 @@ public class RXTaskButton extends RXButton {
         return isRunning() || getState() == State.PENDING;
     }
 
-    // Whether an activation would reach onAction or cancel the run, instead
-    // of being swallowed. The skin only arms the button while this holds.
-    private boolean isActivationEffective() {
-        return !isBusy() || isActivationCancelling();
+    // What an activation would do right now, null while it would be
+    // swallowed. The skin arms the button only for an activation that does
+    // something, and lets a press fire only while it would still do what it
+    // would have done when the press began.
+    private Activation activation() {
+        if (!isBusy()) {
+            return Activation.ACTION;
+        }
+        return isActivationCancelling() ? Activation.CANCEL : null;
     }
 
     // The pending face has to have shown for its minimum duration before a
@@ -1326,8 +1336,10 @@ public class RXTaskButton extends RXButton {
      * {@link #pendingDelayProperty() pendingDelay}, are still swallowed, so
      * a double click does not cancel what it started. A
      * {@code pendingMinDuration} of {@code Duration.ZERO} gives that
-     * protection up. {@link #cancel()} itself works at any time, whatever
-     * this property says.
+     * protection up. A press or key stroke that began as a cancel does
+     * nothing when the run has ended by the time it is released.
+     * {@link #cancel()} itself works at any time, whatever this property
+     * says.
      *
      * @return the cancellable property
      */

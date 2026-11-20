@@ -882,6 +882,71 @@ public class RXTaskButtonSkinTest {
         });
     }
 
+    @Test
+    public void pressDoesOnlyWhatItMeantWhenItBegan() throws InterruptedException {
+        onFx(() -> {
+            RXTaskButton button = laidOut(button());
+            AtomicInteger actions = countActions(button);
+            button.setCancellable(true);
+
+            // Armed to cancel, the run ends first: the release is no action.
+            Run run = button.start();
+            Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+            assertTrue(button.isArmed());
+            run.succeed();
+            Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+            assertFalse(button.isArmed());
+            assertEquals(0, actions.get());
+            assertEquals(State.SUCCEEDED, button.getState());
+
+            // The same for a key stroke.
+            run = button.start();
+            Event.fireEvent(button, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.SPACE));
+            assertTrue(button.isArmed());
+            run.fail();
+            Event.fireEvent(button, keyEvent(KeyEvent.KEY_RELEASED, KeyCode.SPACE));
+            assertEquals(0, actions.get());
+            assertEquals(State.FAILED, button.getState());
+
+            // Armed to act, a run starts meanwhile: the release does not cancel it.
+            Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+            assertTrue(button.isArmed());
+            button.start();
+            Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+            assertTrue(button.isRunning());
+            assertEquals(0, actions.get());
+            button.getSkin().dispose();
+        });
+    }
+
+    @Test
+    public void pressStillFiresWhenItMeansTheSameOnAnotherFaceOrRun() throws InterruptedException {
+        onFx(() -> {
+            RXTaskButton button = laidOut(button());
+            AtomicInteger actions = countActions(button);
+            button.setCancellable(true);
+
+            // A result face that gives way to the normal face: an action on both.
+            button.start().fail();
+            Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+            button.resetFeedback();
+            assertEquals(State.IDLE, button.getState());
+            Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+            assertEquals(1, actions.get());
+
+            // A run replaced while the pending face stays up: a cancel of
+            // whichever run the ring stands for at the release.
+            button.start();
+            Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+            Run second = button.start();
+            Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+            assertFalse(second.isCurrent());
+            assertFalse(button.isRunning());
+            assertEquals(1, actions.get());
+            button.getSkin().dispose();
+        });
+    }
+
     // The accelerators only fire for a button in a showing window, so this
     // test needs a real stage.
     @Test

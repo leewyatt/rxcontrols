@@ -2,17 +2,27 @@ package io.github.leewyatt.rxcontrols.internal;
 
 import io.github.leewyatt.rxcontrols.RXTaskButton;
 
-import java.util.function.Predicate;
+import java.util.function.Function;
 
 /**
  * Lets the skin of a task button, which lives in another package, ask the
- * one thing the button keeps to itself: whether an activation would do
- * something right now. The answer depends on a timer of the button, so the
- * skin cannot work it out from the public properties.
+ * one thing the button keeps to itself: what an activation would do right
+ * now. The answer depends on a timer of the button, so the skin cannot work
+ * it out from the public properties.
  */
 public final class TaskButtonAccess {
 
-    private static Predicate<RXTaskButton> activationProbe;
+    /**
+     * What an activation of a task button does.
+     */
+    public enum Activation {
+        /** It reaches the action handler. */
+        ACTION,
+        /** It cancels the run in flight. */
+        CANCEL
+    }
+
+    private static Function<RXTaskButton, Activation> activationProbe;
 
     private TaskButtonAccess() {
     }
@@ -20,22 +30,21 @@ public final class TaskButtonAccess {
     /**
      * Installs the probe. Called once, when the button class is loaded.
      *
-     * @param probe answers whether an activation of the given button would
-     *              reach its action handler or cancel its run
+     * @param probe answers what an activation of the given button would do,
+     *              {@code null} while the button would swallow it
      */
-    public static void setActivationProbe(Predicate<RXTaskButton> probe) {
+    public static void setActivationProbe(Function<RXTaskButton, Activation> probe) {
         activationProbe = probe;
     }
 
     /**
-     * Returns whether an activation of the button would do something: reach
-     * its action handler, or cancel its run. It is {@code false} while the
-     * button would swallow the activation.
+     * Returns what an activation of the button would do right now.
      *
      * @param button the button
-     * @return {@code true} when an activation would have an effect
+     * @return what an activation would do, or {@code null} while the button
+     *         would swallow it
      */
-    public static boolean isActivationEffective(RXTaskButton button) {
-        return activationProbe.test(button);
+    public static Activation activationOf(RXTaskButton button) {
+        return activationProbe.apply(button);
     }
 }

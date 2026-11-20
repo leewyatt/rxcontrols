@@ -13,7 +13,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 
-import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 /**
  * Standard button behavior for a skin that does not extend
@@ -28,6 +28,11 @@ import java.util.function.BooleanSupplier;
  * load-bearing: scene accelerators only run for unconsumed events, so the
  * focused button must consume ENTER or a default button would also fire.
  * Other keys are left alone, so the scene still handles focus traversal.</p>
+ *
+ * <p>A mouse press or key stroke is armed for what an activation would do
+ * at that moment, and fires only if an activation would still do the same
+ * when it ends. A button whose activation changes its meaning while it is
+ * held down, from "cancel" to "start" for example, then does neither.</p>
  */
 public final class ClickBehavior {
 
@@ -36,7 +41,7 @@ public final class ClickBehavior {
     private static final KeyCombination CANCEL_BUTTON_COMBO = new KeyCodeCombination(KeyCode.ESCAPE);
 
     private final Button button;
-    private final BooleanSupplier canArm;
+    private final Supplier<?> activation;
 
     private boolean keyDown;
     // A key stroke that began while the button could not be armed stays
@@ -45,6 +50,10 @@ public final class ClickBehavior {
     private boolean keyRefused;
     // The same for a mouse press: dragging out and back in must not arm it.
     private boolean mouseRefused;
+    // What an activation would have done when the key stroke or the mouse
+    // press under way armed the button.
+    private Object keyIntent;
+    private Object mouseIntent;
 
     // Two objects: an accelerator is only removed while it is still the one
     // this behavior installed, and the two combinations are told apart.
@@ -54,14 +63,18 @@ public final class ClickBehavior {
     /**
      * Creates the behavior for the given button.
      *
-     * @param button the button to drive
-     * @param canArm asked before every arm; while it answers {@code false}
-     *               a press does not arm the button, so nothing fires on
-     *               release and no pressed feedback shows
+     * @param button     the button to drive
+     * @param activation asked what an activation would do at that moment:
+     *                   {@code null} for nothing, any other value stands
+     *                   for an effect, and equal values for the same one.
+     *                   While it answers {@code null} a press does not arm
+     *                   the button, so nothing fires on release and no
+     *                   pressed feedback shows; an armed press fires only
+     *                   while the answer equals the one it was armed for
      */
-    public ClickBehavior(Button button, BooleanSupplier canArm) {
+    public ClickBehavior(Button button, Supplier<?> activation) {
         this.button = button;
-        this.canArm = canArm;
+        this.activation = activation;
     }
 
     /**
@@ -157,11 +170,15 @@ public final class ClickBehavior {
         if (button.isFocusTraversable()) {
             button.requestFocus();
         }
-        if (!button.isArmed() && RXMouse.isPlainPrimaryPress(event)) {
-            // Judged afresh on every press: the release of a refused press
-            // may never have arrived.
-            mouseRefused = !canArm.getAsBoolean();
-            if (!mouseRefused) {
+        if (!keyDown && RXMouse.isPlainPrimaryPress(event)) {
+            // Judged on its own: the release of the press before it may
+            // never have arrived, and neither a refusal nor an armed button
+            // left behind by that one decides this one.
+            mouseIntent = activation.get();
+            mouseRefused = mouseIntent == null;
+            if (mouseRefused) {
+                button.disarm();
+            } else {
                 button.arm();
             }
         }
@@ -169,14 +186,18 @@ public final class ClickBehavior {
     }
 
     private void mouseReleased(MouseEvent event) {
+        Object intent = mouseIntent;
         if (event.getButton() == MouseButton.PRIMARY) {
             mouseRefused = false;
+            mouseIntent = null;
         }
         if (!keyDown && button.isArmed()) {
             // An action handler that throws propagates out of fire(); the
             // button must not stay armed behind it.
             try {
-                button.fire();
+                if (stillMeans(intent)) {
+                    button.fire();
+                }
             } finally {
                 button.disarm();
             }
@@ -185,8 +206,14 @@ public final class ClickBehavior {
     }
 
     private void mouseEntered(MouseEvent event) {
-        if (!keyDown && !mouseRefused && button.isPressed() && canArm.getAsBoolean()) {
-            button.arm();
+        if (!keyDown && !mouseRefused && button.isPressed()) {
+            Object now = activation.get();
+            // A press that armed the button before arms it again only for
+            // the same effect; one that never did is armed for what it finds.
+            if (now != null && (mouseIntent == null || mouseIntent.equals(now))) {
+                mouseIntent = now;
+                button.arm();
+            }
         }
         event.consume();
     }
@@ -198,6 +225,12 @@ public final class ClickBehavior {
         event.consume();
     }
 
+    // Whether an activation would still do what the press was armed for. A
+    // button armed by other means has no such record and fires as usual.
+    private boolean stillMeans(Object intent) {
+        return intent == null || intent.equals(activation.get());
+    }
+
     // ==================== Keys ====================
 
     private void keyPressed(KeyEvent event) {
@@ -207,7 +240,8 @@ public final class ClickBehavior {
             return;
         }
         if (!keyRefused && !button.isPressed() && !button.isArmed()) {
-            if (canArm.getAsBoolean()) {
+            keyIntent = activation.get();
+            if (keyIntent != null) {
                 keyDown = true;
                 button.arm();
             } else {
@@ -226,7 +260,9 @@ public final class ClickBehavior {
             keyDown = false;
             if (button.isArmed()) {
                 button.disarm();
-                button.fire();
+                if (stillMeans(keyIntent)) {
+                    button.fire();
+                }
             }
             event.consume();
             return;

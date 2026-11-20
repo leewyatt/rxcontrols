@@ -33,8 +33,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests the standard button behavior wired onto a button whose skin brings
- * none: mouse and key activation, the arming veto, event consumption, focus
- * loss and the default and cancel accelerators.
+ * none: mouse and key activation, the arming veto, a press that only does
+ * what it was armed for, event consumption, focus loss and the default and
+ * cancel accelerators.
  */
 public class ClickBehaviorTest {
 
@@ -133,7 +134,6 @@ public class ClickBehaviorTest {
         BareButton button = fixture.button;
 
         Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
-        button.press(true);
         Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_EXITED, MouseButton.PRIMARY));
         assertFalse(button.isArmed());
         Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_ENTERED, MouseButton.PRIMARY));
@@ -159,7 +159,6 @@ public class ClickBehaviorTest {
         fixture.canArm.set(false);
 
         Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
-        button.press(true);
         fixture.canArm.set(true);
         Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_EXITED, MouseButton.PRIMARY));
         Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_ENTERED, MouseButton.PRIMARY));
@@ -186,7 +185,6 @@ public class ClickBehaviorTest {
         fixture.canArm.set(true);
 
         Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
-        button.press(true);
         assertTrue(button.isArmed());
         Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_EXITED, MouseButton.PRIMARY));
         assertFalse(button.isArmed());
@@ -197,12 +195,176 @@ public class ClickBehaviorTest {
     }
 
     @Test
+    public void pressFiresOnlyForTheEffectItWasArmedFor() {
+        Fixture fixture = new Fixture();
+        BareButton button = fixture.button;
+        fixture.effect.set("cancel");
+
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+        assertTrue(button.isArmed());
+        fixture.effect.set("start");
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+        assertFalse(button.isArmed());
+        assertEquals(0, fixture.actions.get());
+
+        // The next press is judged on its own.
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+        assertEquals(1, fixture.actions.get());
+
+        // Compared at the release only, and by equality.
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+        fixture.effect.set("cancel");
+        fixture.effect.set(new String("start"));
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+        assertEquals(2, fixture.actions.get());
+    }
+
+    @Test
+    public void keyStrokeFiresOnlyForTheEffectItWasArmedFor() {
+        Fixture fixture = new Fixture();
+        BareButton button = fixture.button;
+        fixture.effect.set("cancel");
+
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.SPACE, false));
+        assertTrue(button.isArmed());
+        fixture.effect.set("start");
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_RELEASED, KeyCode.SPACE, false));
+        assertFalse(button.isArmed());
+        assertEquals(0, fixture.actions.get());
+        assertEquals(0, fixture.unconsumedKeyReleases.get());
+
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.SPACE, false));
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_RELEASED, KeyCode.SPACE, false));
+        assertEquals(1, fixture.actions.get());
+    }
+
+    @Test
+    public void draggingBackInArmsOnlyForTheEffectThePressWasArmedFor() {
+        Fixture fixture = new Fixture();
+        BareButton button = fixture.button;
+        fixture.effect.set("cancel");
+
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_EXITED, MouseButton.PRIMARY));
+        fixture.effect.set("start");
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_ENTERED, MouseButton.PRIMARY));
+        assertFalse(button.isArmed());
+        // Coming back in vain does not make the new effect the one it is armed for.
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_EXITED, MouseButton.PRIMARY));
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_ENTERED, MouseButton.PRIMARY));
+        assertFalse(button.isArmed());
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+        assertEquals(0, fixture.actions.get());
+    }
+
+    @Test
+    public void releasingAnotherButtonKeepsWhatThePressWasArmedFor() {
+        Fixture fixture = new Fixture();
+        BareButton button = fixture.button;
+        fixture.effect.set("cancel");
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+
+        // A click of the secondary button while the primary one stays down
+        // fires, like any release over an armed button.
+        Event.fireEvent(button, secondaryWhilePrimaryIsDown(MouseEvent.MOUSE_PRESSED));
+        Event.fireEvent(button, secondaryWhilePrimaryIsDown(MouseEvent.MOUSE_RELEASED));
+        assertEquals(1, fixture.actions.get());
+        fixture.effect.set("start");
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_EXITED, MouseButton.PRIMARY));
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_ENTERED, MouseButton.PRIMARY));
+
+        assertFalse(button.isArmed());
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+        assertEquals(1, fixture.actions.get());
+    }
+
+    @Test
+    public void pressAfterAnArmedOneWhoseReleaseNeverArrivedIsJudgedOnItsOwn() {
+        Fixture fixture = new Fixture();
+        BareButton button = fixture.button;
+        fixture.effect.set("cancel");
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+        assertTrue(button.isArmed());
+        fixture.effect.set("start");
+
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+        assertEquals(1, fixture.actions.get());
+
+        // A press that may not arm ends what a lost one left armed.
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+        fixture.canArm.set(false);
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+        assertFalse(button.isArmed());
+        fixture.canArm.set(true);
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+        assertEquals(1, fixture.actions.get());
+    }
+
+    @Test
+    public void modifiedPressDraggedBackInIsArmedForWhatItFindsThen() {
+        Fixture fixture = new Fixture();
+        BareButton button = fixture.button;
+        // An earlier click for another effect leaves nothing behind.
+        fixture.effect.set("cancel");
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+        fixture.effect.set("start");
+
+        // Not a plain press: it neither arms nor counts as refused.
+        Event.fireEvent(button, controlPress());
+        assertFalse(button.isArmed());
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_EXITED, MouseButton.PRIMARY));
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_ENTERED, MouseButton.PRIMARY));
+        assertTrue(button.isArmed());
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+        assertEquals(2, fixture.actions.get());
+
+        // Once armed it is a press like any other.
+        Event.fireEvent(button, controlPress());
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_EXITED, MouseButton.PRIMARY));
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_ENTERED, MouseButton.PRIMARY));
+        fixture.effect.set("cancel");
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+        assertEquals(2, fixture.actions.get());
+    }
+
+    @Test
+    public void buttonArmedByOtherMeansFiresOnRelease() {
+        Fixture fixture = new Fixture();
+        BareButton button = fixture.button;
+
+        button.arm();
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+
+        assertFalse(button.isArmed());
+        assertEquals(1, fixture.actions.get());
+    }
+
+    @Test
+    public void mousePressWhileAKeyHoldsTheButtonLeavesTheStrokeAlone() {
+        Fixture fixture = new Fixture();
+        BareButton button = fixture.button;
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_PRESSED, KeyCode.SPACE, false));
+        fixture.canArm.set(false);
+
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+        assertTrue(button.isArmed());
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+        assertEquals(0, fixture.actions.get());
+        fixture.canArm.set(true);
+        Event.fireEvent(button, keyEvent(KeyEvent.KEY_RELEASED, KeyCode.SPACE, false));
+
+        assertEquals(1, fixture.actions.get());
+    }
+
+    @Test
     public void releasingAnotherButtonDoesNotEndARefusedPress() {
         Fixture fixture = new Fixture();
         BareButton button = fixture.button;
         fixture.canArm.set(false);
         Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
-        button.press(true);
 
         // A click of the secondary button while the primary one stays down,
         // which keeps the button pressed.
@@ -368,7 +530,7 @@ public class ClickBehaviorTest {
             button.setDefaultButton(true);
             Scene first = new Scene(new StackPane(button), 200.0, 100.0);
             SkinDisposer disposer = new SkinDisposer();
-            new ClickBehavior(button, () -> true).install(disposer);
+            new ClickBehavior(button, () -> "fire").install(disposer);
             Stage stage = new Stage();
             stage.setScene(first);
             stage.show();
@@ -413,6 +575,13 @@ public class ClickBehaviorTest {
     }
 
     // ==================== Helpers ====================
+
+    private static MouseEvent controlPress() {
+        return new MouseEvent(MouseEvent.MOUSE_PRESSED, 0.0, 0.0, 0.0, 0.0, MouseButton.PRIMARY, 1,
+                false, true, false, false,
+                true, false, false,
+                false, false, false, null);
+    }
 
     private static MouseEvent secondaryWhilePrimaryIsDown(EventType<MouseEvent> type) {
         return new MouseEvent(type, 0.0, 0.0, 0.0, 0.0, MouseButton.SECONDARY, 1,
@@ -462,6 +631,8 @@ public class ClickBehaviorTest {
         final BareButton button = new BareButton();
         final SkinDisposer disposer = new SkinDisposer();
         final AtomicBoolean canArm = new AtomicBoolean(true);
+        // What an activation does while it may arm; equal values, same effect.
+        final AtomicReference<String> effect = new AtomicReference<>("start");
         final AtomicInteger actions = new AtomicInteger();
         final AtomicInteger unconsumedMouseEvents = new AtomicInteger();
         final AtomicInteger unconsumedKeyPresses = new AtomicInteger();
@@ -474,7 +645,7 @@ public class ClickBehaviorTest {
             parent.addEventHandler(KeyEvent.KEY_PRESSED, event -> unconsumedKeyPresses.incrementAndGet());
             parent.addEventHandler(KeyEvent.KEY_RELEASED, event -> unconsumedKeyReleases.incrementAndGet());
             button.setOnAction(event -> actions.incrementAndGet());
-            new ClickBehavior(button, canArm::get).install(disposer);
+            new ClickBehavior(button, () -> canArm.get() ? effect.get() : null).install(disposer);
         }
     }
 
@@ -497,8 +668,8 @@ public class ClickBehaviorTest {
             setFocused(value);
         }
 
-        // Node.pressed is set by the scene's mouse handling, which a
-        // synthetic event fired at the button does not go through.
+        // A press or release fired at the button sets Node.pressed from the
+        // event itself; this is for a state no such event leaves behind.
         void press(boolean value) {
             setPressed(value);
         }

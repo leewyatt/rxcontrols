@@ -131,7 +131,7 @@ public class RXTaskButtonSkin extends RXSkinBase<RXTaskButton> {
         rippleTrigger.installPointerTracking(disposer);
         rippleTrigger.installPlayRipple(disposer);
         disposer.registerListener(button.armedProperty(), rippleTrigger::handleArmedChanged);
-        new ClickBehavior(button, () -> TaskButtonAccess.isActivationEffective(button))
+        new ClickBehavior(button, () -> TaskButtonAccess.activationOf(button))
                 .install(disposer);
 
         // A button that is already past idle starts on the face that is due.
