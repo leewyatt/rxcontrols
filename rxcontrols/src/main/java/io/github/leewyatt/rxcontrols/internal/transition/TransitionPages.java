@@ -193,6 +193,20 @@ public final class TransitionPages {
     }
 
     /**
+     * Hides the page and makes sure it is parented to the content pane, so its
+     * content is part of the scene graph before a later
+     * {@link #transitionTo} plays it in.
+     *
+     * @param page the page to attach hidden
+     */
+    public void attachHidden(StackPane page) {
+        page.setVisible(false);
+        if (!contentPane.getChildren().contains(page)) {
+            contentPane.getChildren().add(page);
+        }
+    }
+
+    /**
      * Shows the target page with a direct cut: it becomes the current page,
      * is made visible, and every other page is hidden ({@code setVisible(false)}
      * in keep-both mode, removed from the content pane in detach mode). In
