@@ -159,10 +159,12 @@ public class RXTransitionLabelSkin extends RXSkinBase<RXTransitionLabel> {
         currentLabel().setText(safeText(control.getText()));
         applyAlignment();
 
-        // Bind both pages so whichever is current or spare wraps consistently;
-        // the control's wrapText is the single source of the labels' wrapText.
+        // Bind both pages so whichever is current or spare wraps and aligns
+        // its lines consistently; the control is the single source of both.
         disposer.registerBinding(labelA.wrapTextProperty(), control.wrapTextProperty());
         disposer.registerBinding(labelB.wrapTextProperty(), control.wrapTextProperty());
+        disposer.registerBinding(labelA.textAlignmentProperty(), control.textAlignmentProperty());
+        disposer.registerBinding(labelB.textAlignmentProperty(), control.textAlignmentProperty());
 
         disposer.registerListener(control.textProperty(), textListener);
         disposer.registerListener(control.alignmentProperty(), alignmentListener);

@@ -32,6 +32,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
 
 import java.util.LinkedHashMap;
@@ -49,13 +50,14 @@ import java.util.function.Supplier;
 public class RXTransitionLabelShowcase extends RXShowcaseApplication {
 
     private static final String DEFAULT_ANIMATION = "Slide (vertical)";
+    // Two lines of differing length, so text alignment has a visible effect
     private static final List<String> MESSAGES = List.of(
-            "Build finished in 42 s",
-            "3 new comments on your post",
-            "Deploy to production succeeded",
-            "Battery low: 15% remaining",
-            "Meeting starts in 10 minutes",
-            "Backup completed without errors");
+            "Build finished in 42 s\n3 warnings, 0 errors",
+            "3 new comments on your post\nLatest: Looks good to me",
+            "Deploy to production succeeded\nAll 12 services healthy",
+            "Battery low: 15% remaining\nConnect a charger",
+            "Meeting starts in 10 minutes\nRoom 4B, design review",
+            "Backup completed without errors\n18.4 GB copied");
 
     private final Map<String, Supplier<PageAnimation>> animationPresets = animationPresets();
 
@@ -141,6 +143,7 @@ public class RXTransitionLabelShowcase extends RXShowcaseApplication {
     protected List<Section> createSections() {
         return List.of(
                 section("Messages", buildMessageGrid()),
+                section("Text", buildTextGrid()),
                 section("Animation", buildAnimationGrid()));
     }
 
@@ -174,6 +177,29 @@ public class RXTransitionLabelShowcase extends RXShowcaseApplication {
                 row(hint));
     }
 
+    private Node buildTextGrid() {
+        ComboBox<Pos> alignmentBox = new ComboBox<>();
+        alignmentBox.getItems().setAll(Pos.CENTER_LEFT, Pos.CENTER, Pos.CENTER_RIGHT);
+        alignmentBox.setValue(messageLabel.getAlignment());
+        alignmentBox.setMaxWidth(Double.MAX_VALUE);
+        messageLabel.alignmentProperty().bind(alignmentBox.valueProperty());
+
+        ComboBox<TextAlignment> textAlignmentBox = new ComboBox<>();
+        textAlignmentBox.getItems().setAll(TextAlignment.values());
+        textAlignmentBox.setValue(messageLabel.getTextAlignment());
+        textAlignmentBox.setMaxWidth(Double.MAX_VALUE);
+        messageLabel.textAlignmentProperty().bind(textAlignmentBox.valueProperty());
+
+        Label hint = new Label("Alignment places the text block; text alignment aligns its lines.");
+        hint.getStyleClass().add("hint-label");
+        hint.setWrapText(true);
+
+        return createGrid(
+                row("Alignment", alignmentBox),
+                row("Text alignment", textAlignmentBox),
+                row(hint));
+    }
+
     private Node buildAnimationGrid() {
         CheckBox animatedBox = new CheckBox("Animate text changes");
         animatedBox.setSelected(messageLabel.isAnimated());
@@ -196,12 +222,6 @@ public class RXTransitionLabelShowcase extends RXShowcaseApplication {
         directionBox.setMaxWidth(Double.MAX_VALUE);
         messageLabel.directionProperty().bind(directionBox.valueProperty());
 
-        ComboBox<Pos> alignmentBox = new ComboBox<>();
-        alignmentBox.getItems().setAll(Pos.CENTER_LEFT, Pos.CENTER, Pos.CENTER_RIGHT);
-        alignmentBox.setValue(messageLabel.getAlignment());
-        alignmentBox.setMaxWidth(Double.MAX_VALUE);
-        messageLabel.alignmentProperty().bind(alignmentBox.valueProperty());
-
         Slider durationSlider = createSlider(100.0, 1500.0,
                 messageLabel.getAnimationDuration().toMillis());
         messageLabel.animationDurationProperty().bind(Bindings.createObjectBinding(
@@ -212,7 +232,6 @@ public class RXTransitionLabelShowcase extends RXShowcaseApplication {
                 row(animatedBox),
                 row("Animation", animationBox),
                 row("Direction", directionBox),
-                row("Alignment", alignmentBox),
                 row("Duration", durationSlider, createValueLabel(durationSlider, "%.0f ms")));
     }
 

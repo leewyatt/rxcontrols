@@ -21,6 +21,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
 import javafx.scene.layout.StackPane;
+import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -375,6 +376,44 @@ public class RXTransitionLabelTest {
             for (Label internal : internalLabels(label)) {
                 assertEquals(Pos.CENTER, StackPane.getAlignment(internal));
             }
+        } finally {
+            label.getSkin().dispose();
+        }
+    }
+
+    // ==================== Text Alignment ====================
+
+    @Test
+    public void textAlignmentDefaultsLeftAndIsStyleable() {
+        RXTransitionLabel label = laidOutLabelShowing("A");
+
+        try {
+            assertEquals(TextAlignment.LEFT, label.getTextAlignment());
+            label.setStyle("-fx-text-alignment: right;");
+            label.applyCss();
+            assertEquals(TextAlignment.RIGHT, label.getTextAlignment());
+        } finally {
+            label.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void textAlignmentAppliesToBothInternalLabelsIndependentOfAlignment() {
+        RXTransitionLabel label = laidOutLabelShowing("A");
+        label.setAnimation(new RecordingAnimation(Duration.seconds(30.0)));
+
+        try {
+            label.setTextAlignment(TextAlignment.CENTER);
+            label.setAlignment(Pos.CENTER_LEFT);
+            // Keep a transition running so both pages are attached
+            label.setText("B");
+
+            List<Label> labels = internalLabels(label);
+            assertEquals(2, labels.size());
+            for (Label internal : labels) {
+                assertEquals(TextAlignment.CENTER, internal.getTextAlignment());
+            }
+            assertEquals(TextAlignment.CENTER, label.getTextAlignment());
         } finally {
             label.getSkin().dispose();
         }
