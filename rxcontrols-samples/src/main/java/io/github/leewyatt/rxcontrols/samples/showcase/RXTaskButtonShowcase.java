@@ -47,8 +47,8 @@ import java.util.function.Supplier;
  * <p>Clicking the button starts a run. The run ends on its own after the work
  * time, or waits for the control pane: Succeed and Fail report through the
  * handle of the newest run, Cancel and Reset call the button. The preview shows
- * {@code running}, {@code state} and {@code progress} as they change. The
- * control pane covers the four durations including zero and indefinite, the
+ * {@code running} and {@code state} as they change, and how often
+ * {@code onAction} fired. The control pane covers the four durations including zero and indefinite, the
  * progress, {@code cancellable}, the text of every face, the pending indicator,
  * the swap animation, the disabled state and right-to-left orientation.</p>
  */

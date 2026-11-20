@@ -178,6 +178,25 @@ public class ClickBehaviorTest {
     }
 
     @Test
+    public void pressAfterARefusedOneWhoseReleaseNeverArrivedWorksInFull() {
+        Fixture fixture = new Fixture();
+        BareButton button = fixture.button;
+        fixture.canArm.set(false);
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+        fixture.canArm.set(true);
+
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_PRESSED, MouseButton.PRIMARY));
+        button.press(true);
+        assertTrue(button.isArmed());
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_EXITED, MouseButton.PRIMARY));
+        assertFalse(button.isArmed());
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_ENTERED, MouseButton.PRIMARY));
+        assertTrue(button.isArmed());
+        Event.fireEvent(button, mouseEvent(MouseEvent.MOUSE_RELEASED, MouseButton.PRIMARY));
+        assertEquals(1, fixture.actions.get());
+    }
+
+    @Test
     public void releasingAnotherButtonDoesNotEndARefusedPress() {
         Fixture fixture = new Fixture();
         BareButton button = fixture.button;

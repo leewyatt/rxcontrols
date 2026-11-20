@@ -98,7 +98,8 @@ import java.util.concurrent.atomic.AtomicReference;
  *     });
  * });
  *
- * // A quick synchronous operation: Save -> Saved, with no pending face
+ * // A quick synchronous operation: from the normal face, Save -> Saved
+ * // with no pending face
  * save.setOnAction(event -> {
  *     RXTaskButton.Run run = save.start();
  *     if (store.save(document)) {
@@ -119,9 +120,9 @@ import java.util.concurrent.atomic.AtomicReference;
  * report both outcomes: a run that never gets one keeps the button busy.</p>
  *
  * <p>For work that already is a {@code CompletionStage} or a JavaFX
- * {@code Worker}, {@link #track(CompletionStage) track} starts a run and
- * reports its outcome for you. The verb is deliberate: the button follows
- * the work, it never starts it.</p>
+ * {@code Worker}, prefer {@link #track(CompletionStage) track}: it starts a
+ * run and reports its outcome for you. The verb is deliberate: the button
+ * follows the work, it never starts it.</p>
  *
  * <pre>{@code
  * // A CompletionStage, completed on any thread
@@ -171,7 +172,8 @@ import java.util.concurrent.atomic.AtomicReference;
  * control, so it also survives a skin replacement.</p>
  *
  * <p>The accessible name of the button follows the face shown: the text of
- * that face when it has one, the button's own text otherwise, unless an
+ * that face when it has one, the button's own text otherwise, and the
+ * accessible text of its graphic when it has no text either, unless an
  * {@code accessibleText} is set, which always wins. A screen reader is not
  * guaranteed to announce the change on its own, so a failure that matters
  * should also be conveyed another way, for example with a dialog or by
@@ -258,8 +260,9 @@ public class RXTaskButton extends RXButton {
 
     // ==================== Run state ====================
 
-    // Every start and every cancellation is a new generation; a handle or a
-    // timer callback from an older one is ignored.
+    // Every start and every cancellation is a new generation. A handle from
+    // an older one is ignored, and a transition that notified a listener
+    // sees from it whether that listener started or cancelled a run.
     private int generation;
 
     // The handle the button is waiting on, null while not running. Volatile
@@ -1056,8 +1059,9 @@ public class RXTaskButton extends RXButton {
      * {@link #pendingGraphicProperty() pendingGraphic}, which sits inside the
      * caption next to the pending text. A focus traversable indicator should
      * have its {@code focusTraversable} turned off, or the Tab key stops on
-     * it. Like a graphic, the indicator cannot be shown anywhere else at the
-     * same time.</p>
+     * it, and an indicator that is a control should be mouse transparent, or
+     * a click that lands on it does not reach the button. Like a graphic,
+     * the indicator cannot be shown anywhere else at the same time.</p>
      *
      * @return the pending indicator property
      */

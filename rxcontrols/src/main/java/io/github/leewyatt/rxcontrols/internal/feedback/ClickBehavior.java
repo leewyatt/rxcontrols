@@ -158,10 +158,11 @@ public final class ClickBehavior {
             button.requestFocus();
         }
         if (!button.isArmed() && RXMouse.isPlainPrimaryPress(event)) {
-            if (canArm.getAsBoolean()) {
+            // Judged afresh on every press: the release of a refused press
+            // may never have arrived.
+            mouseRefused = !canArm.getAsBoolean();
+            if (!mouseRefused) {
                 button.arm();
-            } else {
-                mouseRefused = true;
             }
         }
         event.consume();
