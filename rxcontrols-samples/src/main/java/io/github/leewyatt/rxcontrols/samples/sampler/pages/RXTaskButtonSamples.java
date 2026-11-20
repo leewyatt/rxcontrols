@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 import io.github.leewyatt.rxcontrols.RXBarSpinner;
 import io.github.leewyatt.rxcontrols.RXDotPulse;
 import io.github.leewyatt.rxcontrols.RXSnackbars;
-import io.github.leewyatt.rxcontrols.RXSwitchButton;
 import io.github.leewyatt.rxcontrols.RXTaskButton;
 import io.github.leewyatt.rxcontrols.animation.page.AnimBounce;
 import io.github.leewyatt.rxcontrols.animation.page.AnimCube;
@@ -15,21 +14,27 @@ import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
+import javafx.beans.binding.Bindings;
 import javafx.concurrent.Task;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 
 /**
- * The RXTaskButton page: a save button that can succeed or fail, work of different
- * lengths, a progress ring that fills, texts and icons, retry, cancelling, the
- * pending state on its own, custom indicators, colored buttons and swap animations.
+ * The RXTaskButton page: the four faces side by side, work of different lengths, a
+ * progress ring that fills, texts and icons, retry, cancelling, the pending state
+ * on its own, custom indicators, colored buttons and swap animations.
  * All work is a timer or a sleeping thread; nothing is sent anywhere.
  */
 public final class RXTaskButtonSamples {
@@ -53,10 +58,12 @@ public final class RXTaskButtonSamples {
                         "The button does not run the work; the application tells it when the work starts"
                                 + " and how it ends."),
                 List.of(
-                        SampleCard.wide("Save",
-                                "Click to start: the ring shows while the work runs, then the result, then Save"
-                                        + " again. The switch decides how this run ends.",
-                                save()),
+                        SampleCard.wide("States",
+                                "The four faces, with the state under each button. Every one can be clicked:"
+                                        + " the first runs once; the second takes five seconds and ends either"
+                                        + " way, by chance; the third fails every time and the fourth succeeds"
+                                        + " every time, and both keep their result.",
+                                states()),
                         SampleCard.medium("Fast and slow",
                                 "Started from the normal face, work that ends within 200 ms never shows the ring,"
                                         + " and a ring that shows stays at least 400 ms, so nothing flashes.",
@@ -124,26 +131,64 @@ public final class RXTaskButtonSamples {
         return button;
     }
 
-    // ==================== Save ====================
+    // ==================== States ====================
 
-    private static Node save() {
-        RXSwitchButton fail = new RXSwitchButton("Fail this time");
-        RXTaskButton save = new RXTaskButton("Save");
-        save.setSucceededText("Saved");
-        save.setFailedText("Not saved");
-        save.setOnAction(event -> {
-            RXTaskButton.Run run = save.start();
-            after(WORK_MILLIS, () -> {
-                if (fail.isSelected()) {
-                    run.fail();
-                } else {
-                    run.succeed();
-                }
-            });
-        });
-        HBox row = new HBox(24.0, save, fail);
+    private static Node states() {
+        RXTaskButton idle = saveButton();
+        runOnClick(idle, WORK_MILLIS, () -> true);
+
+        // Longer work, so the pending face can be looked at; chance decides
+        // how it ends. One run is under way when the page opens.
+        RXTaskButton pending = saveButton();
+        runOnClick(pending, 5000.0, () -> ThreadLocalRandom.current().nextBoolean());
+        pending.fire();
+
+        // An indefinite duration keeps a result face until the next run.
+        RXTaskButton failed = saveButton();
+        failed.setFailedDuration(Duration.INDEFINITE);
+        runOnClick(failed, WORK_MILLIS, () -> false);
+        failed.start().fail();
+
+        RXTaskButton succeeded = saveButton();
+        succeeded.setSucceededDuration(Duration.INDEFINITE);
+        runOnClick(succeeded, WORK_MILLIS, () -> true);
+        succeeded.start().succeed();
+
+        HBox row = new HBox(32.0, withState(idle), withState(pending), withState(failed), withState(succeeded));
         row.setAlignment(Pos.CENTER);
         return row;
+    }
+
+    private static RXTaskButton saveButton() {
+        RXTaskButton button = new RXTaskButton("Save");
+        button.setPendingText("Saving…");
+        button.setSucceededText("Saved");
+        button.setFailedText("Not saved");
+        return button;
+    }
+
+    // Every click runs the work once more; the supplier says how that run ends.
+    private static void runOnClick(RXTaskButton button, double millis, BooleanSupplier succeeds) {
+        button.setOnAction(event -> {
+            RXTaskButton.Run run = button.start();
+            after(millis, succeeds.getAsBoolean() ? run::succeed : run::fail);
+        });
+    }
+
+    private static Node withState(RXTaskButton button) {
+        Label state = new Label();
+        state.getStyleClass().add("caption");
+        state.textProperty().bind(Bindings.createStringBinding(() -> title(button.getState()),
+                button.stateProperty()));
+        VBox box = new VBox(8.0, button, state);
+        box.setAlignment(Pos.CENTER);
+        return box;
+    }
+
+    // PENDING -> "Pending"
+    private static String title(RXTaskButton.State state) {
+        String name = state.name();
+        return name.charAt(0) + name.substring(1).toLowerCase(Locale.ROOT);
     }
 
     // ==================== Fast and slow ====================

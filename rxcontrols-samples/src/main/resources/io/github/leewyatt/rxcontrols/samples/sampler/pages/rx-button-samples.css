@@ -15,7 +15,8 @@
     -fx-background-color: -fx-text-base-color;
 }
 
-.example-card .result {
+.example-card .result,
+.example-card .caption {
     -fx-font-size: 12px;
     -fx-text-fill: -showcase-caption-color;
 }

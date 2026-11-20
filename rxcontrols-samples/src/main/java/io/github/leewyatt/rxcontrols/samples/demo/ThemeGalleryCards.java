@@ -106,6 +106,7 @@ import io.github.leewyatt.rxcontrols.RXStatePane;
 import io.github.leewyatt.rxcontrols.RXSwitchButton;
 import io.github.leewyatt.rxcontrols.RXTab;
 import io.github.leewyatt.rxcontrols.RXTabPane;
+import io.github.leewyatt.rxcontrols.RXTaskButton;
 import io.github.leewyatt.rxcontrols.RXTemporalViewBase;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.RXTextView;
@@ -154,6 +155,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import javafx.animation.KeyFrame;
+import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -298,6 +300,8 @@ final class ThemeGalleryCards {
         list.add(card("RXStatePane", "Loading overlay over content.", buildRXStatePane()));
         list.add(card("RXSwitchButton", "On / off switch.", buildRXSwitchButton()));
         list.add(wide("RXTabPane", "Tabs with a sliding underline indicator.", buildRXTabPane()));
+        list.add(card("RXTaskButton", "Shows a task running, then whether it succeeded or failed.",
+                buildRXTaskButton()));
         list.add(card("RXTextField", "Text field with leading and trailing slots.", buildRXTextField()));
         list.add(card("RXTextView", "Wrapping text the user can select and copy.", buildRXTextView()));
         list.add(wide("RXTileView", "Virtualized grid of uniform tiles.", buildRXTileView()));
@@ -1642,6 +1646,33 @@ final class ThemeGalleryCards {
         HBox row = new HBox(16.0, like, favorite, bookmark);
         row.setAlignment(Pos.CENTER);
         return row;
+    }
+
+    private static Node buildRXTaskButton() {
+        RXTaskButton save = new RXTaskButton("Save");
+        save.setPendingText("Saving…");
+        save.setSucceededText("Saved");
+        save.setOnAction(event -> {
+            RXTaskButton.Run run = save.start();
+            afterWork(run::succeed);
+        });
+        RXTaskButton sync = new RXTaskButton("Sync");
+        sync.setPendingText("Syncing…");
+        sync.setFailedText("Failed");
+        sync.setOnAction(event -> {
+            RXTaskButton.Run run = sync.start();
+            afterWork(run::fail);
+        });
+        HBox row = new HBox(16.0, save, sync);
+        row.setAlignment(Pos.CENTER);
+        return row;
+    }
+
+    // Stands in for the callback of real work.
+    private static void afterWork(Runnable outcome) {
+        PauseTransition work = new PauseTransition(Duration.millis(1500.0));
+        work.setOnFinished(event -> outcome.run());
+        work.play();
     }
 
     // ==================== Overlays ====================
