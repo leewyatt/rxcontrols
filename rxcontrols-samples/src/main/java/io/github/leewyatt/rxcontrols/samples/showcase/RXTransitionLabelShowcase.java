@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
+import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXTransitionLabel;
 import io.github.leewyatt.rxcontrols.animation.page.AnimBlinds;
 import io.github.leewyatt.rxcontrols.animation.page.AnimDissolve;
@@ -43,9 +44,10 @@ import java.util.function.Supplier;
 /**
  * Showcase application for {@link RXTransitionLabel}.
  *
- * <p>Exercises the two flagship use cases: a message banner fed manually or
- * by a periodic auto-push, and a live numeric display — plus the transition
- * presets shared with the other page-animation hosts.</p>
+ * <p>Exercises the flagship use cases: a message banner fed manually or by a
+ * periodic auto-push, a live numeric display, and a stepper whose digits roll
+ * up or down with the direction — plus the transition presets shared with the
+ * other page-animation hosts.</p>
  */
 public class RXTransitionLabelShowcase extends RXShowcaseApplication {
 
@@ -67,6 +69,7 @@ public class RXTransitionLabelShowcase extends RXShowcaseApplication {
     private Timeline counterTimeline;
     private int messageIndex;
     private int counter;
+    private int stepperValue = 12;
 
     // ==================== Showcase wiring ====================
 
@@ -122,10 +125,13 @@ public class RXTransitionLabelShowcase extends RXShowcaseApplication {
         messageCaption.getStyleClass().add("preview-caption");
         Label counterCaption = new Label("Live value (independent instance)");
         counterCaption.getStyleClass().add("preview-caption");
+        Label stepperCaption = new Label("Stepper (independent instance)");
+        stepperCaption.getStyleClass().add("preview-caption");
 
         VBox preview = new VBox(10.0,
                 messageCaption, messageLabel,
-                counterCaption, counterLabel);
+                counterCaption, counterLabel,
+                stepperCaption, createStepper());
         preview.getStyleClass().add("transition-label-preview");
         preview.setAlignment(Pos.CENTER);
 
@@ -236,6 +242,35 @@ public class RXTransitionLabelShowcase extends RXShowcaseApplication {
     }
 
     // ==================== Helpers ====================
+
+    // Plus and minus set the direction before the text changes, so the
+    // digits roll up or down with the step.
+    private Node createStepper() {
+        RXTransitionLabel value = new RXTransitionLabel(Integer.toString(stepperValue));
+        value.getStyleClass().add("showcase-stepper-label");
+        value.setAnimation(new AnimSlide(Orientation.VERTICAL));
+        value.setAnimationDuration(Duration.millis(300.0));
+        value.setPrefSize(80.0, 56.0);
+
+        RXButton minus = new RXButton("−");
+        minus.getStyleClass().add("step-button");
+        minus.setOnAction(event -> {
+            stepperValue--;
+            value.setDirection(TransitionDirection.BACKWARD);
+            value.setText(Integer.toString(stepperValue));
+        });
+        RXButton plus = new RXButton("+");
+        plus.getStyleClass().add("step-button");
+        plus.setOnAction(event -> {
+            stepperValue++;
+            value.setDirection(TransitionDirection.FORWARD);
+            value.setText(Integer.toString(stepperValue));
+        });
+
+        HBox stepper = new HBox(12.0, minus, value, plus);
+        stepper.setAlignment(Pos.CENTER);
+        return stepper;
+    }
 
     private void pushNextMessage() {
         messageIndex = (messageIndex + 1) % MESSAGES.size();

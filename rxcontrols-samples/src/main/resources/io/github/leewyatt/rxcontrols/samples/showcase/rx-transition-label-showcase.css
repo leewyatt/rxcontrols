@@ -35,6 +35,26 @@
     -fx-text-fill: #15803d;
 }
 
+.transition-label-preview .showcase-stepper-label {
+    -fx-background-color: #fff7ed;
+    -fx-border-color: #fed7aa;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+
+.transition-label-preview .showcase-stepper-label .label {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f97316;
+}
+
+.transition-label-preview .step-button {
+    -fx-font-size: 18px;
+    -fx-pref-width: 40px;
+    -fx-pref-height: 40px;
+    -fx-background-radius: 999px;
+}
+
 .hint-label {
     -fx-text-fill: -showcase-caption-color;
     -fx-font-size: 12px;
