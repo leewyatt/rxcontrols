@@ -157,15 +157,16 @@ public final class RXBoxSamples {
         }
 
         RXBox box = frame(200.0, top, center, bottom);
-        box.setAlignment(Pos.CENTER_LEFT);
+        box.setAlignment(Pos.CENTER);
         box.setFillCrossAxis(false);
-        RXBox.setAlignment(top, Pos.TOP_LEFT);
-        RXBox.setAlignment(center, Pos.CENTER_LEFT);
-        RXBox.setAlignment(bottom, Pos.BOTTOM_LEFT);
+        RXBox.setAlignment(top, Pos.TOP_CENTER);
+        RXBox.setAlignment(center, Pos.CENTER);
+        RXBox.setAlignment(bottom, Pos.BOTTOM_CENTER);
 
         RXSegmentedControl<CrossMode> mode = picker(
                 value -> box.setFillCrossAxis(value == CrossMode.FILL),
                 CrossMode.INTRINSIC, CrossMode.FILL);
+        mode.setEqualSegmentWidth(true);
         return column(mode, box);
     }
 
@@ -174,9 +175,10 @@ public final class RXBoxSamples {
     private static Node baselineAlignment() {
         RXBox box = frame(180.0,
                 baselineBlock("Layout", "amber", "size-l"),
+                baselineBlock("Css", "sky", "size-xl"),
                 baselineBlock("JavaFX", "indigo", "size-m"),
                 baselineBlock("RXBox", "rose", "size-xl"),
-                baselineBlock("Pane", "violet", "size-l"));
+                baselineBlock("Pane", "violet", "size-s"));
         box.setFillCrossAxis(false);
         box.setAlignment(Pos.CENTER);
 
