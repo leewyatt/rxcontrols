@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.layout;
 import io.github.leewyatt.rxcontrols.ItemsJustify;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.geometry.Insets;
@@ -14,15 +15,18 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -907,6 +911,522 @@ public class RXTilePaneTest {
         });
     }
 
+    /**
+     * Verifies a pane laid out at its own preferred width shows its preferred column count
+     * at any render scale: 60 px tiles with the default gap sum with floating-point noise
+     * at 125%, and a 128.5 px tile snapped twice at 175% would need a device pixel more.
+     * The preferred height follows the rows actually laid out, and a width 0.01 px short of
+     * four columns still loses one.
+     */
+    @Test
+    public void ownPreferredWidthShowsThePreferredColumnsAtAnyScale() throws Exception {
+        onFx(() -> {
+            double[][] cases = {{1.0, 60.0}, {1.25, 60.0}, {1.5, 60.0}, {1.75, 128.5}, {2.0, 60.0}};
+            for (double[] scaleAndTile : cases) {
+                double scale = scaleAndTile[0];
+                RXTilePane pane = new RXTilePane();
+                pane.setPrefTileWidth(scaleAndTile[1]);
+                pane.setPrefColumns(4);
+                pane.setAnimated(false);
+                for (int i = 0; i < 8; i++) {
+                    pane.getChildren().add(card(50.0, 40.0));
+                }
+                HBox box = new HBox(pane);
+                Stage stage = new Stage();
+                stage.setScene(new Scene(box));
+                stage.setRenderScaleX(scale);
+                stage.setRenderScaleY(scale);
+                box.applyCss();
+                box.resize(1200.0, 400.0);
+                box.layout();
+                box.layout();
+                String at = "scale " + scale + ", tile " + scaleAndTile[1];
+
+                assertEquals(4, pane.getActualColumnCount(), at + ": columns at its own preferred width");
+                double twoRows = pane.snapSizeY(2 * 40.0 + pane.snapSpaceY(10.0));
+                assertEquals(twoRows, pane.prefHeight(pane.getWidth()), 1.0e-9, at + ": preferred height of two rows");
+
+                // Four slots and three gaps, each snapped once: the width four columns need.
+                double fourColumns = 4 * pane.snapSizeX(scaleAndTile[1]) + 3 * pane.snapSpaceX(10.0);
+                pane.resize(fourColumns - 0.01, 400.0);
+                pane.layout();
+                assertEquals(3, pane.getActualColumnCount(), at + ": a row 0.01 px short loses a column");
+            }
+        });
+    }
+
+    /**
+     * Verifies a stretchable child fills exactly its slot at any render scale, and the
+     * preferred size is exactly the slots and gaps. At 175% a 128.5 px slot (225 device
+     * pixels) computed a hair above its grid line inside layoutInArea, which snapped the
+     * child a device pixel larger, overlapping the next tile or running past the content
+     * edge; a child margin brings the same noise at 125%, and a baseline-aligned child is
+     * sized the same way. Extents are compared in device pixels.
+     */
+    @Test
+    public void filledTilesEndAtTheirSlotEdgeAtAnyScale() throws Exception {
+        onFx(() -> {
+            assertFilledTiles(1.0, 128.5, 0.0, 0.0, Pos.TOP_LEFT, -1.0);
+            assertFilledTiles(1.25, 128.5, 10.0, 0.0, Pos.TOP_LEFT, -1.0);
+            assertFilledTiles(1.5, 128.5, 10.0, 0.0, Pos.TOP_LEFT, -1.0);
+            assertFilledTiles(1.75, 128.5, 0.0, 0.0, Pos.TOP_LEFT, -1.0);
+            assertFilledTiles(1.75, 128.5, 10.0, 0.0, Pos.CENTER, -1.0);
+            assertFilledTiles(2.0, 128.5, 0.0, 0.0, Pos.TOP_LEFT, -1.0);
+            assertFilledTiles(1.25, 150.0, 0.0, 3.0, Pos.TOP_LEFT, -1.0);
+            assertFilledTiles(1.75, 128.5, 0.0, 4.0, Pos.BOTTOM_RIGHT, -1.0);
+            assertFilledTiles(1.75, 128.5, 0.0, 0.0, Pos.BASELINE_LEFT, 20.0);
+        });
+    }
+
+    /**
+     * Verifies a child whose height depends on its width is measured at the width it gets:
+     * a FlowPane whose two children take exactly the 225 device pixel slot at 175% fits
+     * them on one 20 px row there, and must not be measured a hair narrower and grow to
+     * two rows over the tile below.
+     */
+    @Test
+    public void widthDependentChildIsMeasuredAtTheWidthItGets() throws Exception {
+        onFx(() -> {
+            FlowPane flow = new FlowPane(card(12.5, 20.0), card(115.75, 20.0));
+            Region below = card(50.0, 20.0);
+            RXTilePane pane = new RXTilePane(flow, below);
+            pane.setPrefTileWidth(128.5);
+            pane.setPrefTileHeight(20.0);
+            pane.setVgap(0.0);
+            pane.setPrefColumns(1);
+            pane.setTileAlignment(Pos.TOP_LEFT);
+            pane.setAnimated(false);
+            stageFor(pane, 1.75);
+            pane.applyCss();
+            layoutUntilClean(pane, 225.0 / 1.75, 200.0);
+            assertEquals(1, pane.getActualColumnCount(), "setup: one column");
+            assertEquals(225.0, flow.getLayoutBounds().getWidth() * 1.75, 1.0e-6, "the flow fills its slot");
+            assertEquals(20.0, flow.getLayoutBounds().getHeight(), 1.0e-9, "the flow keeps one row");
+            assertEquals(20.0, below.getLayoutY(), 1.0e-9, "the next tile starts below it");
+        });
+    }
+
+    /**
+     * Verifies a child whose minimum width is exactly the slot still fills just the slot:
+     * an HBox holding a 128.5 px minimum reports 225 device pixels at 175%, and Region's
+     * own snapping of that value would add one.
+     */
+    @Test
+    public void childWhoseMinimumIsTheSlotStaysInIt() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane();
+            pane.setPrefTileWidth(128.5);
+            pane.setPrefTileHeight(40.0);
+            pane.setHgap(0.0);
+            pane.setPrefColumns(4);
+            pane.setTileAlignment(Pos.TOP_LEFT);
+            pane.setAnimated(false);
+            for (int i = 0; i < 4; i++) {
+                Region content = new Region();
+                content.setMinWidth(128.5);
+                HBox card = new HBox(content);
+                pane.getChildren().add(card);
+            }
+            stageFor(pane, 1.75);
+            pane.applyCss();
+            layoutUntilClean(pane, 900.0 / 1.75, 200.0);
+            assertEquals(4, pane.getActualColumnCount(), "setup: four columns");
+            for (int i = 0; i < 4; i++) {
+                Node card = pane.getChildren().get(i);
+                assertEquals(i * 225.0, card.getLayoutX() * 1.75, 1.0e-6, "card " + i + " left");
+                assertEquals(225.0, card.getLayoutBounds().getWidth() * 1.75, 1.0e-6, "card " + i + " width");
+            }
+        });
+    }
+
+    /**
+     * Verifies narrow centred children sit alike in every slot: placed by the slot itself,
+     * a 56 device pixel child centres 85 device pixels into each 225 device pixel slot at
+     * 175%, the first one included.
+     */
+    @Test
+    public void centredNarrowChildrenSitAlikeInEverySlot() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane();
+            pane.setPrefTileWidth(128.5);
+            pane.setPrefTileHeight(40.0);
+            pane.setHgap(0.0);
+            pane.setPrefColumns(4);
+            pane.setTileAlignment(Pos.CENTER);
+            pane.setAnimated(false);
+            for (int i = 0; i < 4; i++) {
+                Region card = card(50.0, 40.0);
+                card.setMaxWidth(32.0);
+                pane.getChildren().add(card);
+            }
+            stageFor(pane, 1.75);
+            pane.applyCss();
+            layoutUntilClean(pane, 900.0 / 1.75, 200.0);
+            for (int i = 0; i < 4; i++) {
+                Node card = pane.getChildren().get(i);
+                assertEquals(56.0, card.getLayoutBounds().getWidth() * 1.75, 1.0e-6, "card " + i + " width");
+                assertEquals(i * 225.0 + 85.0, card.getLayoutX() * 1.75, 1.0e-6, "card " + i + " left");
+            }
+        });
+    }
+
+    /**
+     * Verifies a tile width far below a device pixel still takes one, as Region snaps any
+     * positive size, whether set or worked out from the children: four such tiles sit
+     * side by side under maxColumns 4.
+     */
+    @Test
+    public void tinyExplicitTileWidthTakesADevicePixel() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane();
+            pane.setPrefTileWidth(1.0e-10);
+            pane.setPrefTileHeight(40.0);
+            pane.setHgap(0.0);
+            pane.setMaxColumns(4);
+            pane.setTileAlignment(Pos.TOP_LEFT);
+            pane.setAnimated(false);
+            for (int i = 0; i < 4; i++) {
+                pane.getChildren().add(card(50.0, 40.0));
+            }
+            stageFor(pane, 1.75);
+            pane.applyCss();
+            layoutUntilClean(pane, 100.0, 200.0);
+            assertEquals(4, pane.getActualColumnCount(), "four columns");
+            assertEquals(1.0, pane.getChildren().get(1).getLayoutX() * 1.75, 1.0e-6, "the second slot starts one device pixel in");
+            assertEquals(1.0, pane.getChildren().get(0).getLayoutBounds().getWidth() * 1.75, 1.0e-6, "each slot is one device pixel");
+
+            // The same with the tile width worked out from children that small.
+            RXTilePane computed = new RXTilePane();
+            computed.setPrefTileHeight(40.0);
+            computed.setHgap(0.0);
+            computed.setMaxColumns(4);
+            computed.setTileAlignment(Pos.TOP_LEFT);
+            computed.setAnimated(false);
+            for (int i = 0; i < 4; i++) {
+                computed.getChildren().add(card(1.0e-10, 40.0));
+            }
+            stageFor(computed, 1.75);
+            computed.applyCss();
+            layoutUntilClean(computed, 100.0, 200.0);
+            assertEquals(4, computed.getActualColumnCount(), "computed: four columns");
+            assertEquals(1.0, computed.getChildren().get(1).getLayoutX() * 1.75, 1.0e-6, "computed: one device pixel per slot");
+        });
+    }
+
+    /**
+     * Verifies a tile height worked out from the children measures a child whose height
+     * depends on its width at the width it gets: a FlowPane 225 device pixels wide at 175%
+     * needs two 20 px rows there (one at 226), so each tile is 40 high, the second tile
+     * starts below the first, and the two rows prefer 80.
+     */
+    @Test
+    public void computedTileHeightMeasuresAtTheWidthTheChildGets() throws Exception {
+        onFx(() -> {
+            FlowPane flow = new FlowPane(card(12.5, 20.0), card(116.5, 20.0));
+            flow.setPrefWidth(128.5);
+            Region below = card(50.0, 20.0);
+            RXTilePane pane = new RXTilePane(flow, below);
+            pane.setVgap(0.0);
+            pane.setPrefColumns(1);
+            pane.setTileAlignment(Pos.TOP_LEFT);
+            pane.setAnimated(false);
+            stageFor(pane, 1.75);
+            pane.applyCss();
+            layoutUntilClean(pane, 225.0 / 1.75, 100.0);
+            assertEquals(1, pane.getActualColumnCount(), "setup: one column");
+            assertEquals(225.0, flow.getLayoutBounds().getWidth() * 1.75, 1.0e-6, "the flow is 225 device pixels wide");
+            assertEquals(40.0, flow.getLayoutBounds().getHeight(), 1.0e-9, "it needs two rows there");
+            assertEquals(40.0, below.getLayoutY(), 1.0e-9, "the second tile starts below it");
+            assertEquals(80.0, pane.prefHeight(225.0 / 1.75), 1.0e-9, "two 40 px rows");
+        });
+    }
+
+    /**
+     * Verifies a tile width worked out from container children is not snapped up again:
+     * four HBoxes reporting 225 device pixels each at 175% need exactly 900, and fit four
+     * to a row there.
+     */
+    @Test
+    public void computedTileWidthKeepsTheChildrensSnappedWidth() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane();
+            pane.setHgap(0.0);
+            pane.setPrefColumns(4);
+            pane.setTileAlignment(Pos.TOP_LEFT);
+            pane.setAnimated(false);
+            for (int i = 0; i < 4; i++) {
+                Region content = new Region();
+                content.setMinWidth(128.5);
+                content.setPrefSize(128.5, 20.0);
+                pane.getChildren().add(new HBox(content));
+            }
+            stageFor(pane, 1.75);
+            pane.applyCss();
+            assertEquals(900.0, pane.prefWidth(-1.0) * 1.75, 1.0e-6, "four 225 device pixel tiles");
+            layoutUntilClean(pane, 900.0 / 1.75, 200.0);
+            assertEquals(4, pane.getActualColumnCount(), "four columns fit 900 device pixels");
+            Node last = pane.getChildren().get(3);
+            assertEquals(225.0, pane.getChildren().get(0).getLayoutBounds().getWidth() * 1.75, 1.0e-6, "each fills 225");
+            assertEquals(675.0, last.getLayoutX() * 1.75, 1.0e-6, "the last tile stays on the first row (x)");
+            assertEquals(0.0, last.getLayoutY(), 1.0e-9, "the last tile stays on the first row (y)");
+        });
+    }
+
+    /**
+     * Verifies margins that fill the tile leave a child with no minimum size nothing: a
+     * 6 px tile is 8 device pixels at 125%, margins of 4 and 2 px take 5 and 3, and the
+     * 4.4e-16 their subtraction leaves must not turn into a device pixel.
+     */
+    @Test
+    public void marginsThatFillTheTileLeaveTheChildNothing() throws Exception {
+        onFx(() -> {
+            Region child = card(50.0, 50.0);
+            RXTilePane.setMargin(child, new Insets(4.0, 2.0, 2.0, 4.0));
+            RXTilePane pane = new RXTilePane(child);
+            pane.setPrefTileWidth(6.0);
+            pane.setPrefTileHeight(6.0);
+            pane.setTileAlignment(Pos.TOP_LEFT);
+            pane.setAnimated(false);
+            stageFor(pane, 1.25);
+            pane.applyCss();
+            layoutUntilClean(pane, 100.0, 100.0);
+            assertEquals(0.0, child.getLayoutBounds().getWidth(), 0.0, "no width left");
+            assertEquals(0.0, child.getLayoutBounds().getHeight(), 0.0, "no height left");
+            assertEquals(5.0, child.getLayoutX() * 1.25, 1.0e-6, "it sits inside the left margin");
+            assertEquals(5.0, child.getLayoutY() * 1.25, 1.0e-6, "it sits inside the top margin");
+        });
+    }
+
+    /**
+     * Verifies a baseline-aligned child whose baseline is its height keeps exactly its
+     * snapped preferred height at 175%: layoutInArea sizes it from the tile less the space
+     * below the row baseline, which computed a hair above the grid line (175 device pixels
+     * for a 100 px child) and came out a device pixel taller.
+     */
+    @Test
+    public void baselineSizedChildKeepsItsSnappedHeight() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane();
+            pane.setPrefTileWidth(128.5);
+            pane.setPrefTileHeight(128.5);
+            pane.setHgap(0.0);
+            pane.setVgap(0.0);
+            pane.setPrefColumns(2);
+            pane.setTileAlignment(Pos.BASELINE_LEFT);
+            pane.setAnimated(false);
+            for (int i = 0; i < 4; i++) {
+                Region child = new Region();
+                child.setPrefSize(50.0, 100.0);
+                child.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+                pane.getChildren().add(child);
+            }
+            stageFor(pane, 1.75);
+            pane.applyCss();
+            double prefWidth = pane.prefWidth(-1.0);
+            layoutUntilClean(pane, prefWidth, pane.prefHeight(prefWidth));
+            for (int i = 0; i < 4; i++) {
+                Node child = pane.getChildren().get(i);
+                assertEquals(175.0, child.getLayoutBounds().getHeight() * 1.75, 1.0e-6, "child " + i + " height");
+                assertEquals((i / 2) * 225.0, child.getLayoutY() * 1.75, 1.0e-6, "child " + i + " top");
+                assertEquals(225.0, child.getLayoutBounds().getWidth() * 1.75, 1.0e-6, "child " + i + " width");
+            }
+        });
+    }
+
+    /**
+     * Verifies a tile size computed from the children is snapped once: a 128.5 px child
+     * gets a 225 device pixel slot at 175%, not the 226 a second snap would give.
+     */
+    @Test
+    public void tileSizeFromTheChildrenIsSnappedOnce() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane(card(128.5, 128.5), card(128.5, 128.5));
+            pane.setPrefColumns(2);
+            pane.setHgap(0.0);
+            pane.setAnimated(false);
+            stageFor(pane, 1.75);
+            pane.applyCss();
+            layoutUntilClean(pane, pane.prefWidth(-1.0), 400.0);
+            Node second = pane.getChildren().get(1);
+            assertEquals(450.0, pane.prefWidth(-1.0) * 1.75, 1.0e-6, "two 225 device pixel slots");
+            assertEquals(225.0, second.getLayoutX() * 1.75, 1.0e-6, "the second slot starts at 225");
+            assertEquals(225.0, second.getLayoutBounds().getWidth() * 1.75, 1.0e-6, "the child fills its slot");
+            assertEquals(225.0, second.getLayoutBounds().getHeight() * 1.75, 1.0e-6, "the slot is as high as the child");
+        });
+    }
+
+    /**
+     * Verifies a tile so narrow that the width-to-tile ratio exceeds any int still lays out
+     * within the column cap, an explicit maxColumns or the default one.
+     */
+    @Test
+    public void tinyTilesStayWithinTheColumnCap() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane(new Region(), new Region());
+            pane.setSnapToPixel(false);
+            pane.setPrefTileWidth(1.0e-7);
+            pane.setPrefTileHeight(40.0);
+            pane.setHgap(0.0);
+            pane.setMaxColumns(4);
+            pane.setAnimated(false);
+            layout(pane, 400.0, 200.0);
+            assertEquals(4, pane.getActualColumnCount(), "maxColumns caps the count");
+            assertEquals(40.0, pane.prefHeight(400.0), 1.0e-9, "two tiles take one row");
+
+            pane.setMaxColumns(0);
+            layout(pane, 400.0, 200.0);
+            assertEquals(4096, pane.getActualColumnCount(), "the default cap applies");
+            assertEquals(40.0, pane.prefHeight(400.0), 1.0e-9, "still one row");
+        });
+    }
+
+    // Eight stretchable children in two rows of four slots, laid out at the preferred size.
+    // A non-negative baseline gives the children that baseline offset; -1 leaves Region's.
+    private static void assertFilledTiles(double scale, double tile, double gap, double margin,
+                                          Pos alignment, double baseline) {
+        RXTilePane pane = new RXTilePane();
+        pane.setPrefTileWidth(tile);
+        pane.setPrefTileHeight(tile);
+        pane.setHgap(gap);
+        pane.setVgap(gap);
+        pane.setPrefColumns(4);
+        pane.setTileAlignment(alignment);
+        pane.setAnimated(false);
+        for (int i = 0; i < 8; i++) {
+            Region child = baseline < 0.0 ? new Region() : new BaselineRegion(baseline);
+            child.setPrefSize(50.0, 50.0);
+            child.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+            RXTilePane.setMargin(child, new Insets(margin));
+            pane.getChildren().add(child);
+        }
+        stageFor(pane, scale);
+        pane.applyCss();
+        double prefWidth = pane.prefWidth(-1.0);
+        layoutUntilClean(pane, prefWidth, pane.prefHeight(prefWidth));
+        String at = "scale " + scale + ", tile " + tile + ", gap " + gap + ", margin " + margin + ", " + alignment
+                + (baseline < 0.0 ? "" : ", baseline " + baseline);
+
+        // Device pixels: Region ceils sizes and rounds gaps and margins.
+        double slot = Math.ceil(tile * scale);
+        double gapPixels = Math.round(gap * scale);
+        double marginPixels = Math.round(margin * scale);
+        double content = slot - 2 * marginPixels;
+        assertEquals(4, pane.getActualColumnCount(), at + ": columns");
+        assertEquals(4 * slot + 3 * gapPixels, prefWidth * scale, 1.0e-6, at + ": preferred width");
+        assertEquals(2 * slot + gapPixels, pane.prefHeight(prefWidth) * scale, 1.0e-6, at + ": preferred height");
+        for (int i = 0; i < 8; i++) {
+            Node child = pane.getChildren().get(i);
+            String which = at + ": child " + i;
+            assertEquals((i % 4) * (slot + gapPixels) + marginPixels, child.getLayoutX() * scale, 1.0e-6, which + " left");
+            assertEquals((i / 4) * (slot + gapPixels) + marginPixels, child.getLayoutY() * scale, 1.0e-6, which + " top");
+            assertEquals(content, child.getLayoutBounds().getWidth() * scale, 1.0e-6, which + " width");
+            assertEquals(content, child.getLayoutBounds().getHeight() * scale, 1.0e-6, which + " height");
+        }
+    }
+
+    /**
+     * Verifies turning snapToPixel off re-measures the tiles from a settled pane: Region
+     * only requests the parent's layout on that change.
+     */
+    @Test
+    public void snapToPixelChangeRemeasuresTheTiles() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane(fixedCard(10.2, 10.0), fixedCard(10.2, 10.0));
+            pane.setHgap(0.0);
+            pane.setAnimated(false);
+            new Scene(new StackPane(pane));
+            pane.applyCss();
+            layoutUntilClean(pane, 21.0, 100.0);
+            // Snapped, each tile takes 11: two do not fit 21.
+            assertEquals(1, pane.getActualColumnCount(), "snapped: one column");
+
+            pane.setSnapToPixel(false);
+            pane.layout();
+            // Unsnapped, 10.2 + 10.2 fits 21.
+            assertEquals(2, pane.getActualColumnCount(), "unsnapped: two columns");
+            assertEquals(10.0, pane.prefHeight(21.0), 1.0e-9, "preferred height of one row");
+        });
+    }
+
+    /**
+     * Verifies a change of the horizontal render scale alone re-measures a settled pane:
+     * the slot width snapped at 125% (60.8) is snapped again at 200% (60.5), so four
+     * slots fit 242 px, and the cached prefWidth(-1) follows.
+     */
+    @Test
+    public void horizontalRenderScaleChangeRemeasuresTheSlots() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = renderScaledPane();
+            Stage stage = stageFor(pane, 1.25);
+            pane.applyCss();
+            layoutUntilClean(pane, 240.0, 120.0);
+            assertEquals(3, pane.getActualColumnCount(), "setup: 60.8 px slots, three in 240 px");
+            assertEquals(pane.snapSizeX(3 * pane.snapSizeX(60.3)), pane.prefWidth(-1.0), 1.0e-9,
+                    "setup: cached preferred width at 125% (60.8 px slots)");
+
+            stage.setRenderScaleX(2.0);
+            pane.resize(242.0, 120.0);
+            pane.layout();
+            Node fourth = pane.getChildren().get(3);
+            assertEquals(4, pane.getActualColumnCount(), "four 60.5 px slots fit 242 px");
+            assertEquals(181.5, fourth.getLayoutX(), 1.0e-9, "the fourth tile stays on the first row (x)");
+            assertEquals(0.0, fourth.getLayoutY(), 1.0e-9, "the fourth tile stays on the first row (y)");
+            assertEquals(40.0, pane.prefHeight(242.0), 1.0e-9, "one row high at 242 px");
+            assertEquals(pane.snapSizeX(3 * pane.snapSizeX(60.3)), pane.prefWidth(-1.0), 1.0e-9,
+                    "the cached preferred width is measured again (60.5 px slots)");
+            assertEquals(181.5, pane.prefWidth(-1.0), 1.0e-9, "three 60.5 px slots");
+        });
+    }
+
+    /**
+     * Verifies a change of the vertical render scale alone re-measures a settled pane: the
+     * slot height snapped at 125% (40.8) is snapped again at 200% (40.5), and the cached
+     * prefHeight(-1) follows.
+     */
+    @Test
+    public void verticalRenderScaleChangeRemeasuresTheSlots() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = renderScaledPane();
+            pane.setPrefTileHeight(40.3);
+            pane.setVgap(0.0);
+            Stage stage = stageFor(pane, 1.25);
+            pane.applyCss();
+            layoutUntilClean(pane, 240.0, 120.0);
+            // Three columns of the default preferred width: four tiles take two rows.
+            assertEquals(pane.snapSizeY(2 * pane.snapSizeY(40.3)), pane.prefHeight(-1.0), 1.0e-9,
+                    "setup: cached preferred height at 125% (40.8 px slots)");
+
+            stage.setRenderScaleY(2.0);
+            pane.layout();
+            Node fourth = pane.getChildren().get(3);
+            assertEquals(40.5, fourth.getLayoutY(), 1.0e-9, "the second row starts one 40.5 px slot down");
+            assertEquals(81.0, pane.prefHeight(-1.0), 1.0e-9, "the cached preferred height is measured again (2 x 40.5)");
+        });
+    }
+
+    // Four 50 x 30 rectangles in 60.3 x 40 slots without gaps, pinned top-left.
+    private static RXTilePane renderScaledPane() {
+        RXTilePane pane = new RXTilePane();
+        pane.setPrefTileWidth(60.3);
+        pane.setPrefTileHeight(40.0);
+        pane.setHgap(0.0);
+        pane.setTileAlignment(Pos.TOP_LEFT);
+        pane.setAnimated(false);
+        for (int i = 0; i < 4; i++) {
+            pane.getChildren().add(new Rectangle(50.0, 30.0));
+        }
+        return pane;
+    }
+
+    // The stage is never shown: it only supplies the render scale the pane snaps to.
+    private static Stage stageFor(Region pane, double scale) {
+        Stage stage = new Stage();
+        stage.setScene(new Scene(new StackPane(pane)));
+        stage.setRenderScaleX(scale);
+        stage.setRenderScaleY(scale);
+        return stage;
+    }
+
     @Test
     public void resizeWithinColumnCountDoesNotGlide() throws Exception {
         onFx(() -> {
@@ -988,6 +1508,301 @@ public class RXTilePaneTest {
 
             pane.setAnimated(false);
             assertEquals(20.0, tile.getTranslateX(), EPSILON, "settles at its own translate");
+        });
+    }
+
+    /**
+     * Verifies a child the previous layout did not place snaps into its slot: one managed
+     * for the first time (still at the pane origin) and one back after missing a layout
+     * (still at a stale slot).
+     */
+    @Test
+    public void childNotLaidOutOnThePreviousPassSnaps() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = filledPane(6);
+            Node late = pane.getChildren().get(5);
+            late.setManaged(false);
+            new Scene(pane, 340, 400);
+            pane.applyCss();
+            layout(pane, 340, 400);
+
+            late.setManaged(true);
+            layout(pane, 340, 400);
+            assertFalse(translated(late), "a child managed for the first time snaps, not gliding from the origin");
+
+            Node returning = pane.getChildren().get(1);
+            returning.setManaged(false);
+            layout(pane, 340, 400);
+            // A wider gap moves its slot away from the stale position it still holds.
+            pane.setHgap(30);
+            returning.setManaged(true);
+            layout(pane, 340, 400);
+            assertFalse(translated(returning), "a child back after missing a layout snaps");
+        });
+    }
+
+    /**
+     * Verifies the first layout after the pane enters a scene snaps every child: back in
+     * the same scene, back after a layout outside any scene, and moved to another scene.
+     */
+    @Test
+    public void firstLayoutInASceneSnaps() throws Exception {
+        onFx(() -> {
+            RXTilePane sameScene = filledPane(6);
+            StackPane root = new StackPane(sameScene);
+            new Scene(root, 340, 400);
+            root.applyCss();
+            layout(root, 340, 400);
+            root.getChildren().clear();
+            root.getChildren().add(sameScene);
+            layout(root, 560, 400);
+            assertFalse(anyTranslated(sameScene), "back in the same scene at a new width: snaps");
+
+            RXTilePane offScreen = filledPane(6);
+            StackPane offScreenRoot = new StackPane(offScreen);
+            new Scene(offScreenRoot, 340, 400);
+            offScreenRoot.applyCss();
+            layout(offScreenRoot, 340, 400);
+            offScreenRoot.getChildren().clear();
+            layout(offScreen, 450, 400);
+            offScreenRoot.getChildren().add(offScreen);
+            layout(offScreenRoot, 560, 400);
+            assertFalse(anyTranslated(offScreen), "back after a layout outside any scene: snaps");
+
+            RXTilePane moved = filledPane(6);
+            StackPane firstRoot = new StackPane(moved);
+            new Scene(firstRoot, 340, 400);
+            firstRoot.applyCss();
+            layout(firstRoot, 340, 400);
+            StackPane secondRoot = new StackPane();
+            new Scene(secondRoot, 560, 400);
+            secondRoot.getChildren().add(moved);
+            secondRoot.applyCss();
+            layout(secondRoot, 560, 400);
+            assertFalse(anyTranslated(moved), "moved to another scene: snaps");
+        });
+    }
+
+    /**
+     * Verifies a pane taken out of its scene by a listener while its own layout pass runs
+     * starts no glide from that pass and, put back into the same scene, snaps on its first
+     * layout there. The listener is reached from publishing the column count, from laying
+     * a child out, and from starting a glide.
+     */
+    @Test
+    public void paneDetachedDuringItsLayoutSnapsWhenPutBack() throws Exception {
+        onFx(() -> {
+            for (String trigger : new String[] {"column count", "layoutX", "translateX"}) {
+                RXTilePane pane = filledPane(6);
+                StackPane root = new StackPane(pane);
+                new Scene(root, 340, 400);
+                root.applyCss();
+                layout(root, 340, 400);
+                // Three columns at 340 px, five at 560: the fourth tile moves up a row.
+                Node fourth = pane.getChildren().get(3);
+                ChangeListener<Number> detach = (obs, oldValue, newValue) -> root.getChildren().remove(pane);
+                switch (trigger) {
+                    case "column count" -> pane.actualColumnCountProperty().addListener(detach);
+                    case "layoutX" -> fourth.layoutXProperty().addListener(detach);
+                    default -> fourth.translateXProperty().addListener(detach);
+                }
+
+                layout(pane, 560, 400);
+                assertNull(pane.getScene(), trigger + ": setup, the pass took the pane out of its scene");
+                assertFalse(anyTranslated(pane), trigger + ": the abandoned pass leaves no glide behind");
+
+                pane.actualColumnCountProperty().removeListener(detach);
+                fourth.layoutXProperty().removeListener(detach);
+                fourth.translateXProperty().removeListener(detach);
+                root.getChildren().add(pane);
+                layout(root, 340, 400);
+                assertFalse(anyTranslated(pane), trigger + ": the first layout back in the scene snaps");
+            }
+        });
+    }
+
+    /**
+     * Verifies moving the last tile to the front glides when the tile is put back before
+     * the next layout, whether through setAll or remove and add, and snaps when a layout
+     * ran without it in between.
+     */
+    @Test
+    public void reorderGlidesOnlyWithoutALayoutInBetween() throws Exception {
+        onFx(() -> {
+            // Three columns at 340 px: the last of six sits at (220, 110) and moves to (0, 0).
+            RXTilePane viaSetAll = reorderPane();
+            Node tile = viaSetAll.getChildren().get(5);
+            List<Node> reordered = new ArrayList<>(viaSetAll.getChildren());
+            reordered.remove(tile);
+            reordered.add(0, tile);
+            viaSetAll.getChildren().setAll(reordered);
+            layout(viaSetAll, 340, 400);
+            assertTrue(translated(tile), "setAll with no layout in between: glides");
+
+            RXTilePane viaRemoveAdd = reorderPane();
+            tile = viaRemoveAdd.getChildren().get(5);
+            viaRemoveAdd.getChildren().remove(tile);
+            viaRemoveAdd.getChildren().add(0, tile);
+            layout(viaRemoveAdd, 340, 400);
+            assertTrue(translated(tile), "remove and add with no layout in between: glides");
+
+            RXTilePane removedForAPass = reorderPane();
+            tile = removedForAPass.getChildren().get(5);
+            removedForAPass.getChildren().remove(tile);
+            layout(removedForAPass, 340, 400);
+            removedForAPass.getChildren().add(0, tile);
+            layout(removedForAPass, 340, 400);
+            assertFalse(translated(tile), "remove, layout, add: snaps");
+
+            RXTilePane setAllForAPass = reorderPane();
+            tile = setAllForAPass.getChildren().get(5);
+            List<Node> without = new ArrayList<>(setAllForAPass.getChildren());
+            without.remove(tile);
+            setAllForAPass.getChildren().setAll(without);
+            layout(setAllForAPass, 340, 400);
+            List<Node> withFirst = new ArrayList<>(without);
+            withFirst.add(0, tile);
+            setAllForAPass.getChildren().setAll(withFirst);
+            layout(setAllForAPass, 340, 400);
+            assertFalse(translated(tile), "setAll without it, layout, setAll with it: snaps");
+            assertTrue(translated(setAllForAPass.getChildren().get(1)), "the tiles it pushed along still glide");
+        });
+    }
+
+    /**
+     * Verifies reordering while tiles glide goes on from where each tile shows, through
+     * setAll and through remove and add alike: neither the moved tile nor the tiles it
+     * shifts jump to their earlier glide targets first.
+     */
+    @Test
+    public void reorderMidGlideGoesOnFromWhereTilesShow() throws Exception {
+        onFx(() -> {
+            for (boolean viaSetAll : new boolean[] {true, false}) {
+                String how = viaSetAll ? "setAll" : "remove and add";
+                Region a = card(100, 40);
+                Region b = card(100, 40);
+                Region c = card(100, 40);
+                RXTilePane pane = new RXTilePane(a, b, c);
+                pane.setHgap(0);
+                new Scene(pane, 600, 300);
+                pane.applyCss();
+                layout(pane, 600, 300);
+                pane.setHgap(20);
+                layout(pane, 600, 300);
+                assertEquals(100.0, shownX(b), 1.0e-9, how + ": setup, B glides toward 120 from 100");
+                assertEquals(200.0, shownX(c), 1.0e-9, how + ": setup, C glides toward 240 from 200");
+
+                if (viaSetAll) {
+                    pane.getChildren().setAll(c, a, b);
+                } else {
+                    pane.getChildren().remove(c);
+                    pane.getChildren().add(0, c);
+                }
+                layout(pane, 600, 300);
+                assertEquals(0.0, shownX(a), 1.0e-9, how + ": A goes on from where it shows");
+                assertEquals(100.0, shownX(b), 1.0e-9, how + ": B goes on from where it shows");
+                assertEquals(200.0, shownX(c), 1.0e-9, how + ": C goes on from where it shows");
+
+                pane.setAnimated(false);
+                assertEquals(120.0, shownX(a), 1.0e-9, how + ": A settles in its new slot");
+                assertEquals(240.0, shownX(b), 1.0e-9, how + ": B settles in its new slot");
+                assertEquals(0.0, shownX(c), 1.0e-9, how + ": C settles in its new slot");
+            }
+        });
+    }
+
+    /**
+     * Verifies a tile removed for good mid-glide gets its own translate back at once,
+     * though the pane keeps where it showed in case it is put back.
+     */
+    @Test
+    public void tileRemovedMidGlideGetsItsOwnTranslateBack() throws Exception {
+        onFx(() -> {
+            Region a = card(100, 40);
+            Region b = card(100, 40);
+            RXTilePane pane = new RXTilePane(a, b);
+            pane.setHgap(0);
+            new Scene(pane, 600, 300);
+            pane.applyCss();
+            layout(pane, 600, 300);
+            b.setTranslateY(-4);
+            pane.setHgap(20);
+            layout(pane, 600, 300);
+            assertTrue(translated(b), "setup: B glides");
+
+            pane.getChildren().remove(b);
+            assertEquals(0.0, b.getTranslateX(), 1.0e-9, "the glide offset is dropped");
+            assertEquals(-4.0, b.getTranslateY(), 1.0e-9, "its own translate is back");
+        });
+    }
+
+    // Six tiles laid out once in a scene at 340 px, ready to animate.
+    private static RXTilePane reorderPane() {
+        RXTilePane pane = filledPane(6);
+        new Scene(pane, 340, 400);
+        pane.applyCss();
+        layout(pane, 340, 400);
+        return pane;
+    }
+
+    /**
+     * Verifies a height change imposed from outside settles at once when the rows are
+     * centred, so dragging the bottom window edge does not leave the tiles trailing.
+     */
+    @Test
+    public void heightResizeOfCentredRowsDoesNotGlide() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = filledPane(3);
+            pane.setContentVAlignment(VPos.CENTER);
+            new Scene(pane, 400, 400);
+            pane.applyCss();
+            layout(pane, 400, 400);
+            layout(pane, 400, 402);
+            assertFalse(anyTranslated(pane), "the centred row block follows the height at once");
+        });
+    }
+
+    /**
+     * Verifies a pane squeezed below its content follows a height drag at once, even with
+     * the rows at the top: the squeezed tile height changes with every drag, but the
+     * preferred height the drag is judged by does not.
+     */
+    @Test
+    public void heightResizeOfASqueezedPaneDoesNotGlide() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane(card(60, 80), card(60, 80));
+            pane.setPrefTileWidth(60);
+            pane.setPrefTileHeight(80);
+            pane.setVgap(0);
+            new Scene(pane, 60, 400);
+            pane.applyCss();
+            layout(pane, 60, 20);
+            Node second = pane.getChildren().get(1);
+            double before = second.getLayoutY();
+            layout(pane, 60, 22);
+            assertTrue(second.getLayoutY() != before, "setup: the squeezed second row moves with the height");
+            assertFalse(anyTranslated(pane), "the squeezed rows follow the height at once");
+        });
+    }
+
+    /**
+     * Verifies a height growth that follows the pane's own preferred size still glides:
+     * padding added in a VBox that sizes the pane to its preferred height moves the tiles
+     * down, and that move animates.
+     */
+    @Test
+    public void heightGrowthFromOwnPaddingStillGlides() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = filledPane(3);
+            VBox box = new VBox(pane);
+            new Scene(box, 400, 600);
+            box.applyCss();
+            layout(box, 400, 600);
+            Node first = pane.getChildren().get(0);
+
+            pane.setPadding(new Insets(20, 0, 0, 0));
+            box.layout();
+            assertEquals(-20.0, first.getTranslateY(), 1.0e-9, "the tiles glide down from where they were");
         });
     }
 
@@ -1116,6 +1931,14 @@ public class RXTilePaneTest {
 
     // ==================== Helpers ====================
 
+    private static double shownX(Node node) {
+        return node.getLayoutX() + node.getTranslateX();
+    }
+
+    private static boolean translated(Node node) {
+        return Math.abs(node.getTranslateX()) > EPSILON || Math.abs(node.getTranslateY()) > EPSILON;
+    }
+
     private static boolean anyTranslated(RXTilePane pane) {
         return pane.getChildren().stream()
                 .anyMatch(n -> Math.abs(n.getTranslateX()) > EPSILON || Math.abs(n.getTranslateY()) > EPSILON);
@@ -1150,6 +1973,25 @@ public class RXTilePaneTest {
                 .filter(scrollBar -> scrollBar.getOrientation() == orientation)
                 .findFirst()
                 .orElseThrow();
+    }
+
+    // A card that keeps its preferred size, so the tile size is what is measured.
+    private static Region fixedCard(double width, double height) {
+        Region region = new Region();
+        region.setPrefSize(width, height);
+        region.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        region.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return region;
+    }
+
+    // Lays the pane out until it is clean, so a later change alone decides whether it
+    // lays out again.
+    private static void layoutUntilClean(Region region, double width, double height) {
+        region.resize(width, height);
+        for (int i = 0; i < 5 && (i == 0 || region.isNeedsLayout()); i++) {
+            region.layout();
+        }
+        assertFalse(region.isNeedsLayout(), "setup: the pane settles");
     }
 
     private static Region card() {

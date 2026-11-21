@@ -24,11 +24,13 @@ import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.DurationConverter;
 import javafx.css.converter.EnumConverter;
 import javafx.css.converter.SizeConverter;
+import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.util.Duration;
@@ -37,8 +39,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.WeakHashMap;
 
 /**
  * A responsive, animated tile layout pane — the node-based sibling of
@@ -192,21 +196,35 @@ public class RXTilePane extends Pane {
     // children are real and persistent, so no recycler pin-set is needed.
     private final PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
     private final ResizeGate resizeGate = new ResizeGate();
-    private boolean firstLayoutDone;
-    // Children added after the first layout: they snap into their slot rather than
-    // gliding in from the pane origin (no enter animation in V1).
-    private final Set<Node> enteringNodes = new HashSet<>();
+    // A glide needs a position the child was last shown at. Only a pass in the scene the
+    // pane was last laid out in animates, and only a child that pass laid out glides;
+    // any other child (newly added, newly managed, back after missing a pass) snaps into
+    // its slot instead of gliding in from a stale position or the pane origin.
+    private Scene layoutScene;
+    // Bumped on every scene change. A listener reached from a layout pass can take the
+    // pane out of its scene while that pass is still running; the pass then sees the
+    // count change and leaves what the scene listener cleared alone.
+    private int sceneChanges;
+    private Set<Node> laidOutLastPass = new HashSet<>();
+    private Set<Node> laidOutThisPass = new HashSet<>();
+    // Children of the last pass removed since, with where each showed when it was
+    // removed (layout plus translate, read before the animator gives the translate back),
+    // so one put back before the next pass glides on from there. Weak keys: a removed
+    // child must not stay reachable from the pane when no further pass comes; the
+    // values hold no node.
+    private final Map<Node, double[]> removedSinceLastPass = new WeakHashMap<>();
 
     private final ListChangeListener<Node> childrenListener = change -> {
         while (change.next()) {
-            if (change.wasAdded() && firstLayoutDone) {
-                enteringNodes.addAll(change.getAddedSubList());
-            }
             if (change.wasRemoved()) {
                 // The recorded structure would otherwise keep removed children alive.
                 resizeGate.reset();
                 for (Node removed : change.getRemoved()) {
-                    enteringNodes.remove(removed);
+                    if (laidOutLastPass.remove(removed)) {
+                        removedSinceLastPass.put(removed, new double[] {
+                                removed.getLayoutX() + removed.getTranslateX(),
+                                removed.getLayoutY() + removed.getTranslateY()});
+                    }
                     animator.forget(removed);
                 }
             }
@@ -221,10 +239,18 @@ public class RXTilePane extends Pane {
     public RXTilePane() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         getChildren().addListener(childrenListener);
+        // Region only re-lays out the parent on a snapToPixel change, and the tile size is
+        // cached snapped, so without this the tiles would keep the old snapped size.
+        snapToPixelProperty().addListener((obs, oldValue, newValue) -> requestLayout());
+        // Neither is Region re-laid out when the render scale changes; the snapped tile size
+        // and Region's cached preferred size would keep the old scale.
+        new RenderScaleWatch(this, this::requestLayout);
         sceneProperty().addListener((obs, oldScene, newScene) -> {
+            sceneChanges++;
             if (newScene == null) {
                 animator.stopAll();
                 resizeGate.reset();
+                forgetLaidOutChildren();
             }
         });
     }
@@ -830,14 +856,18 @@ public class RXTilePane extends Pane {
     };
 
     /**
-     * Whether existing children glide to their new positions after relayout. On
-     * by default; turning it off mid-flight snaps every child to its final
-     * position. A width change imposed by the parent that keeps the column count
-     * applies immediately, so dragging a window edge sideways never leaves children
-     * trailing; a glide already in flight keeps its clock while its target follows
-     * the resize. An explicit {@code prefWidth}, even one bound to the parent's width,
-     * counts as imposed by the parent; a width that follows the pane's own computed
-     * preferred width still glides.
+     * Whether existing children glide to their new positions after relayout. On by
+     * default; turning it off mid-flight snaps every child to its final position. A size
+     * change imposed by the parent that keeps the column count applies immediately, in
+     * width or in height (a pane squeezed below its content included), so dragging a
+     * window edge never leaves children trailing; a glide already in flight keeps its
+     * clock while its target follows the resize. An explicit {@code prefWidth}, even one
+     * bound to the parent's width, counts as imposed by the parent; a width that follows
+     * the pane's own computed preferred width still glides. Only a child the previous
+     * layout placed glides; one that is newly added, newly managed or back after missing a
+     * layout snaps into place, and so does every child on the first layout after the pane
+     * enters a scene or is laid out outside one. A child removed and put back before the
+     * next layout glides on from where it showed when it was removed, even mid-glide.
      *
      * <p>While a child glides, the pane drives its {@code translateX} /
      * {@code translateY}; it never touches {@code opacity}. A translate the child had
@@ -1020,7 +1050,7 @@ public class RXTilePane extends Pane {
 
     @Override
     protected double computeMinWidth(double height) {
-        return snappedLeftInset() + nominalTileWidth() + snappedRightInset();
+        return PixelGrid.ceilX(this, snappedLeftInset() + nominalTileWidth() + snappedRightInset());
     }
 
     @Override
@@ -1034,7 +1064,9 @@ public class RXTilePane extends Pane {
         double tileWidth = nominalTileWidth();
         double gap = snapSpaceX(gapOrZero(getHgap()));
         double content = rowWidth(columns, tileWidth, gap);
-        return snappedLeftInset() + snapSizeX(content) + snappedRightInset();
+        // Slots and gaps are on the grid already; snapping their sum again can add a
+        // device pixel at a fractional render scale.
+        return PixelGrid.ceilX(this, snappedLeftInset() + content + snappedRightInset());
     }
 
     @Override
@@ -1049,14 +1081,18 @@ public class RXTilePane extends Pane {
         int columns = computeColumns(contentWidth, tileWidth);
         int count = getManagedChildren().size();
         int rows = count == 0 ? 0 : (count + columns - 1) / columns;
-        double tileHeight = nominalTileHeight();
         double vgapValue = snapSpaceY(gapOrZero(getVgap()));
-        double content = rows == 0 ? 0.0 : rows * tileHeight + (rows - 1) * vgapValue;
-        return snappedTopInset() + snapSizeY(content) + snappedBottomInset();
+        return heightOfRows(rows, nominalTileHeight(), vgapValue);
     }
 
     @Override
     protected void layoutChildren() {
+        // Sampled before anything below can reach a listener: publishing the column count
+        // notifies its listeners, and one of them may take the pane out of its scene.
+        int sceneChangesAtStart = sceneChanges;
+        Scene scene = getScene();
+        // A pass that threw midway may have left members behind.
+        laidOutThisPass.clear();
         double left = snappedLeftInset();
         double top = snappedTopInset();
         double bottom = snappedBottomInset();
@@ -1143,7 +1179,7 @@ public class RXTilePane extends Pane {
             }
         }
 
-        boolean animate = isAnimated() && firstLayoutDone && getScene() != null && isAnimationDurationPositive();
+        boolean animate = isAnimated() && scene != null && scene == layoutScene && isAnimationDurationPositive();
         // With animation off and nothing in flight the animator pass would be a
         // no-op; skip the move bookkeeping entirely on this hot path.
         boolean collectMoves = animate || animator.hasActiveState();
@@ -1153,8 +1189,12 @@ public class RXTilePane extends Pane {
         // next pass always has a baseline to compare against.
         boolean resizeOnly = false;
         if (isAnimated()) {
-            resizeOnly = resizeGate.isResizeOnly(getWidth(), ownPrefWidth(),
-                    layoutStructure(columns, managed));
+            // The cross preferred extent uses the nominal tile height: the tile height a
+            // short pane squeezes its rows to follows every drag of the window edge, while
+            // padding added in a parent that sizes the pane to its pref changes this value,
+            // so that growth still animates.
+            resizeOnly = resizeGate.isResizeOnly(getWidth(), ownPrefWidth(), getHeight(),
+                    heightOfRows(rows, nominalTileHeight, vgapValue), layoutStructure(columns, managed));
         } else {
             resizeGate.reset();
         }
@@ -1165,17 +1205,24 @@ public class RXTilePane extends Pane {
             double x = left + snapPositionX(startX + column * (tileWidth + effectiveHgap));
             double y = top + snapPositionY(startY + row * (tileHeight + vgapValue));
             // FLIP: capture the current on-screen position before relocating so the
-            // animator can invert the move and tween translate back to its resting
-            // value. An entering child has no meaningful previous position, so it snaps
-            // in with its own translate untouched.
+            // animator can invert the move and tween translate back to its resting value.
             double oldVisualX = 0.0;
             double oldVisualY = 0.0;
+            // A child removed and put back since the last pass has had its translate given
+            // back; where it showed when removed is where its glide goes on from.
+            double[] shownWhenRemoved = null;
             if (collectMoves) {
-                oldVisualX = child.getLayoutX() + child.getTranslateX();
-                oldVisualY = child.getLayoutY() + child.getTranslateY();
+                shownWhenRemoved = removedSinceLastPass.get(child);
+                oldVisualX = shownWhenRemoved != null
+                        ? shownWhenRemoved[0] : child.getLayoutX() + child.getTranslateX();
+                oldVisualY = shownWhenRemoved != null
+                        ? shownWhenRemoved[1] : child.getLayoutY() + child.getTranslateY();
             }
             Pos childAlignment = childTileAlignment(child, tileAlignmentValue);
-            layoutInArea(child, x, y, tileWidth, tileHeight, baselineOffset, getMargin(child),
+            // Recorded before any skip: every pass in a scene, the first and the
+            // resize-only ones included, sets who the next pass may glide.
+            laidOutThisPass.add(child);
+            layoutInTile(child, x, y, tileWidth, tileHeight, baselineOffset, getMargin(child),
                     childAlignment.getHpos(), childAlignment.getVpos());
             if (!collectMoves) {
                 continue;
@@ -1184,16 +1231,43 @@ public class RXTilePane extends Pane {
                 animator.keepInFlight(moves, child);
                 continue;
             }
-            if (enteringNodes.contains(child)) {
+            // Checked before any motion: an entering child's old layout position belongs to
+            // wherever it was before, and its own translate stays as it is.
+            if (shownWhenRemoved == null && !laidOutLastPass.contains(child)) {
                 continue;
             }
             animator.addRelayoutMove(moves, child, oldVisualX, oldVisualY);
         }
-        if (collectMoves) {
+        if (collectMoves && sceneChanges == sceneChangesAtStart) {
             animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
         }
-        enteringNodes.clear();
-        firstLayoutDone = true;
+        // Publishing the column count, laying a child out, or starting a glide (which writes
+        // translate) can reach a listener that takes the pane out of its scene while this
+        // pass runs. The scene listener stops only what it can see then: stop what this
+        // pass started after it, and let nothing from the pass count as laid out there.
+        if (sceneChanges != sceneChangesAtStart) {
+            animator.stopAll();
+            forgetLaidOutChildren();
+            return;
+        }
+        if (scene != null) {
+            Set<Node> previous = laidOutLastPass;
+            laidOutLastPass = laidOutThisPass;
+            laidOutThisPass = previous;
+            laidOutThisPass.clear();
+            removedSinceLastPass.clear();
+            layoutScene = scene;
+        } else {
+            // An off-screen pass shows nothing, so the next pass in a scene snaps.
+            forgetLaidOutChildren();
+        }
+    }
+
+    private void forgetLaidOutChildren() {
+        layoutScene = null;
+        laidOutLastPass.clear();
+        laidOutThisPass.clear();
+        removedSinceLastPass.clear();
     }
 
     // The preferred width the pane computes from its own inputs. An explicit prefWidth
@@ -1202,6 +1276,13 @@ public class RXTilePane extends Pane {
     // value and comes from the layout cache.
     private double ownPrefWidth() {
         return getPrefWidth() == USE_COMPUTED_SIZE ? prefWidth(-1.0) : computePrefWidth(-1.0);
+    }
+
+    // The preferred height of the given rows plus the vertical insets, ceiled as
+    // computePrefWidth explains.
+    private double heightOfRows(int rows, double tileHeight, double vgap) {
+        double content = rows == 0 ? 0.0 : rows * tileHeight + (rows - 1) * vgap;
+        return PixelGrid.ceilY(this, snappedTopInset() + content + snappedBottomInset());
     }
 
     // Column count plus the child sequence fix every child's row and column; tile size,
@@ -1215,18 +1296,28 @@ public class RXTilePane extends Pane {
 
     // ==================== Helpers ====================
 
+    // tileWidth is the snapped slot width the tiles are laid out with (nominalTileWidth()).
+    // Snapping it again can add a device pixel at a fractional render scale (175% turns
+    // 128.571 into 129.143), so the count would disagree with the slots it lays out.
     private int computeColumns(double availableWidth, double tileWidth) {
-        double track = snapSizeX(tileWidth);
         double gap = snapSpaceX(gapOrZero(getHgap()));
-        int columns = (availableWidth <= 0.0 || track <= 0.0)
-                ? 1
-                : (int) Math.floor((availableWidth + gap) / (track + gap));
-        columns = Math.max(1, columns);
         int max = getMaxColumns();
-        if (max > 0 && columns > max) {
-            columns = max;
+        int limit = max > 0 ? Math.min(max, MAX_RESOLVED_COLUMNS) : MAX_RESOLVED_COLUMNS;
+        int columns = 1;
+        if (availableWidth > 0.0 && tileWidth > 0.0) {
+            // Capped while still a double: the ratio of a tiny tile can exceed any int.
+            double fit = Math.floor((availableWidth + gap) / (tileWidth + gap));
+            columns = (int) Math.max(1.0, Math.min(fit, limit));
+            // The division carries floating-point noise at a fractional render scale: a row
+            // that exactly fits must keep its last column, and one a fraction of a pixel too
+            // wide must still lose it. The candidate rows are summed like computePrefWidth.
+            if (columns < limit && !PixelGrid.exceedsX(this, rowWidth(columns + 1, tileWidth, gap), availableWidth)) {
+                columns++;
+            } else if (columns > 1 && PixelGrid.exceedsX(this, rowWidth(columns, tileWidth, gap), availableWidth)) {
+                columns--;
+            }
         }
-        return Math.min(columns, MAX_RESOLVED_COLUMNS);
+        return columns;
     }
 
     private int prefWidthColumns() {
@@ -1246,9 +1337,75 @@ public class RXTilePane extends Pane {
         return columns * tileWidth + (columns - 1) * hgap;
     }
 
+    // Lays a child out in its tile as layoutInArea does with both fills, except for the
+    // final snap of a resizable child's size. A size worked out from the tile, or a child
+    // minimum summed from snapped sizes, can compute a hair above its grid line, and
+    // JavaFX 17 ceils that to a whole device pixel more: the child would overlap its
+    // neighbour or run past the content edge. Measuring and placing go by the tile itself,
+    // as layoutInArea does; a child whose height depends on its width is asked at the
+    // width it then gets.
+    private void layoutInTile(Node child, double areaX, double areaY, double areaWidth, double areaHeight,
+                              double areaBaselineOffset, Insets margin, HPos hpos, VPos vpos) {
+        if (child.isResizable()) {
+            double top = margin == null ? 0.0 : snapSpaceY(margin.getTop());
+            double bottom = margin == null ? 0.0 : snapSpaceY(margin.getBottom());
+            double left = margin == null ? 0.0 : snapSpaceX(margin.getLeft());
+            double right = margin == null ? 0.0 : snapSpaceX(margin.getRight());
+            // A baseline-aligned child is sized from the tile less its baseline shift.
+            if (vpos == VPos.BASELINE) {
+                double baseline = child.getBaselineOffset();
+                if (baseline == BASELINE_OFFSET_SAME_AS_HEIGHT) {
+                    bottom += snapSpaceY(areaHeight - areaBaselineOffset);
+                } else {
+                    top = snapSpaceY(areaBaselineOffset - baseline);
+                }
+            }
+            double width = areaWidth - left - right;
+            double height = areaHeight - top - bottom;
+            double childWidth;
+            double childHeight;
+            if (child.getContentBias() == Orientation.VERTICAL) {
+                childHeight = fitY(height, child.minHeight(-1.0), child.maxHeight(-1.0));
+                childWidth = fitX(width, child.minWidth(childHeight), child.maxWidth(childHeight));
+            } else {
+                childWidth = fittedWidth(child, width);
+                double heightHint = child.getContentBias() == Orientation.HORIZONTAL ? childWidth : -1.0;
+                childHeight = fitY(height, child.minHeight(heightHint), child.maxHeight(heightHint));
+            }
+            child.resize(childWidth, childHeight);
+        }
+        positionInArea(child, areaX, areaY, areaWidth, areaHeight, areaBaselineOffset, margin, hpos, vpos,
+                isSnapToPixel());
+    }
+
+    // The width layoutInTile gives a resizable child in content this wide. A tile height
+    // worked out from children whose height depends on their width measures them at
+    // exactly this width, so the rows are as high as the children laid out in them.
+    private double fittedWidth(Node child, double contentWidth) {
+        return fitX(contentWidth, child.minWidth(-1.0), child.maxWidth(-1.0));
+    }
+
+    // A size worked out from the tile, clamped to a child's own bounds on the pixel grid.
+    // Ceiling then clamping equals clamping then ceiling, but each side ceils its own way:
+    // what margins filling the tile leave is noise and comes out as zero, while a positive
+    // bound of the child's own takes at least a device pixel.
+    private double fitX(double fromTile, double min, double max) {
+        return RXMath.clamp(PixelGrid.ceilX(this, fromTile), PixelGrid.ceilSizeX(this, min),
+                PixelGrid.ceilSizeX(this, max));
+    }
+
+    private double fitY(double fromTile, double min, double max) {
+        return RXMath.clamp(PixelGrid.ceilY(this, fromTile), PixelGrid.ceilSizeY(this, min),
+                PixelGrid.ceilSizeY(this, max));
+    }
+
     private double nominalTileWidth() {
         if (!nominalTileWidthValid) {
-            cachedNominalTileWidth = snapSizeX(resolveNominalTileWidth());
+            double value = getPrefTileWidth();
+            // A size computed from the children is on the grid already; snapping it again
+            // could add a device pixel. An explicit size is snapped as Region snaps any.
+            cachedNominalTileWidth = isExplicitTileSize(value)
+                    ? snapSizeX(value) : PixelGrid.ceilX(this, computeTileWidthFromChildren());
             nominalTileWidthValid = true;
         }
         return cachedNominalTileWidth;
@@ -1256,26 +1413,16 @@ public class RXTilePane extends Pane {
 
     private double nominalTileHeight() {
         if (!nominalTileHeightValid) {
-            cachedNominalTileHeight = snapSizeY(resolveNominalTileHeight());
+            double value = getPrefTileHeight();
+            cachedNominalTileHeight = isExplicitTileSize(value)
+                    ? snapSizeY(value) : PixelGrid.ceilY(this, computeTileHeightFromChildren());
             nominalTileHeightValid = true;
         }
         return cachedNominalTileHeight;
     }
 
-    private double resolveNominalTileWidth() {
-        double value = getPrefTileWidth();
-        if (value == USE_COMPUTED_SIZE || !Double.isFinite(value) || value <= 0.0) {
-            return computeTileWidthFromChildren();
-        }
-        return value;
-    }
-
-    private double resolveNominalTileHeight() {
-        double value = getPrefTileHeight();
-        if (value == USE_COMPUTED_SIZE || !Double.isFinite(value) || value <= 0.0) {
-            return computeTileHeightFromChildren();
-        }
-        return value;
+    private static boolean isExplicitTileSize(double value) {
+        return value != USE_COMPUTED_SIZE && Double.isFinite(value) && value > 0.0;
     }
 
     private double computeTileWidthFromChildren() {
@@ -1315,8 +1462,8 @@ public class RXTilePane extends Pane {
                 Insets margin = marginOrEmpty(child);
                 double childWidth = width == -1.0
                         ? -1.0
-                        : Math.max(0.0, width - snapSpaceX(margin.getLeft()) - snapSpaceX(margin.getRight()));
-                double childHeight = snapSizeY(child.prefHeight(childWidth));
+                        : fittedWidth(child, Math.max(0.0, width - snapSpaceX(margin.getLeft()) - snapSpaceX(margin.getRight())));
+                double childHeight = PixelGrid.ceilSizeY(this, child.prefHeight(childWidth));
                 double baseline = child.getBaselineOffset();
                 if (baseline == BASELINE_OFFSET_SAME_AS_HEIGHT) {
                     baselineMaxAbove = Math.max(baselineMaxAbove, childHeight + snapSpaceY(margin.getTop()));
@@ -1349,16 +1496,18 @@ public class RXTilePane extends Pane {
         if (height != -1.0 && child.isResizable() && child.getContentBias() == Orientation.VERTICAL) {
             double childHeight = Math.max(0.0, height - marginHeight);
             if (fillHeight) {
-                alt = snapSizeY(RXMath.clamp(childHeight, child.minHeight(-1.0), child.maxHeight(-1.0)));
+                alt = fitY(childHeight, child.minHeight(-1.0), child.maxHeight(-1.0));
             } else {
-                alt = snapSizeY(RXMath.clamp(
+                alt = PixelGrid.ceilSizeY(this, RXMath.clamp(
                         child.prefHeight(-1.0),
                         child.minHeight(-1.0),
                         Math.min(child.maxHeight(-1.0), childHeight)));
             }
         }
         double childWidth = RXMath.clamp(child.prefWidth(alt), child.minWidth(alt), child.maxWidth(alt));
-        return snapSizeX(childWidth) + marginWidth;
+        // A container child reports a sum of snapped sizes; Region's snapping of that sum
+        // can add a device pixel, and the tile would then be one wider than the child.
+        return PixelGrid.ceilSizeX(this, childWidth) + marginWidth;
     }
 
     private double computeChildPrefAreaHeight(Node child, double width) {
@@ -1367,13 +1516,13 @@ public class RXTilePane extends Pane {
         double marginHeight = snapSpaceY(margin.getTop()) + snapSpaceY(margin.getBottom());
         double alt = -1.0;
         if (child.isResizable() && child.getContentBias() == Orientation.HORIZONTAL) {
-            double targetWidth = width == -1.0
-                    ? child.prefWidth(-1.0)
-                    : Math.max(0.0, width - marginWidth);
-            alt = snapSizeX(RXMath.clamp(targetWidth, child.minWidth(-1.0), child.maxWidth(-1.0)));
+            alt = width == -1.0
+                    ? PixelGrid.ceilSizeX(this,
+                            RXMath.clamp(child.prefWidth(-1.0), child.minWidth(-1.0), child.maxWidth(-1.0)))
+                    : fittedWidth(child, Math.max(0.0, width - marginWidth));
         }
         double childHeight = RXMath.clamp(child.prefHeight(alt), child.minHeight(alt), child.maxHeight(alt));
-        return snapSizeY(childHeight) + marginHeight;
+        return PixelGrid.ceilSizeY(this, childHeight) + marginHeight;
     }
 
     private double computeBaselineOffset(List<Node> managed, Pos defaultAlignment, double tileWidth, double tileHeight) {
