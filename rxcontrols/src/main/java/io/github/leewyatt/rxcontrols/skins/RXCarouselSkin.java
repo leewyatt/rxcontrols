@@ -1038,9 +1038,10 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             page = new Page(index, node, factory);
             // Wrapped before it is cached: should a listener of the node
             // dispose this skin, the page, which has had no event yet, is not
-            // handed on.
+            // handed on, and the dispose never saw its node to release it.
             page.wrap();
             if (disposed) {
+                page.wrapper.getChildren().clear();
                 return null;
             }
             pageCache.put(index, page);

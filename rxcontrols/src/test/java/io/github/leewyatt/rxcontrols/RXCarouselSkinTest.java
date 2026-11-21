@@ -353,6 +353,27 @@ public class RXCarouselSkinTest {
     }
 
     @Test
+    public void skinRemovedByTheListenerOfANewPageNodeReleasesTheNode() throws Exception {
+        onFx(() -> {
+            Label third = new Label("P2");
+            RXCarousel carousel = new RXCarousel();
+            carousel.setPageCount(5);
+            carousel.setPageFactory(index -> index == 2 ? third : new Label("P" + index));
+            layOut(carousel);
+            third.parentProperty().addListener((observable, was, is) -> {
+                if (is != null) {
+                    carousel.setSkin(null);
+                }
+            });
+
+            carousel.goToPage(2, false);
+
+            assertNull(carousel.getSkin());
+            assertNull(third.getParent());
+        });
+    }
+
+    @Test
     public void skinReplacedByAFactoryListenerDropsThePagesOfTheOldFactory() throws Exception {
         onFx(() -> {
             RXCarousel carousel = new RXCarousel();
