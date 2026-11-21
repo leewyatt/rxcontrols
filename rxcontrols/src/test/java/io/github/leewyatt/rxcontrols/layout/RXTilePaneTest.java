@@ -24,6 +24,7 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -1249,6 +1250,130 @@ public class RXTilePaneTest {
         });
     }
 
+    /**
+     * Verifies moving the last tile to the front glides when the tile is put back before
+     * the next layout, whether through setAll or remove and add, and snaps when a layout
+     * ran without it in between.
+     */
+    @Test
+    public void reorderGlidesOnlyWithoutALayoutInBetween() throws Exception {
+        onFx(() -> {
+            // Three columns at 340 px: the last of six sits at (220, 110) and moves to (0, 0).
+            RXTilePane viaSetAll = reorderPane();
+            Node tile = viaSetAll.getChildren().get(5);
+            List<Node> reordered = new ArrayList<>(viaSetAll.getChildren());
+            reordered.remove(tile);
+            reordered.add(0, tile);
+            viaSetAll.getChildren().setAll(reordered);
+            layout(viaSetAll, 340, 400);
+            assertTrue(translated(tile), "setAll with no layout in between: glides");
+
+            RXTilePane viaRemoveAdd = reorderPane();
+            tile = viaRemoveAdd.getChildren().get(5);
+            viaRemoveAdd.getChildren().remove(tile);
+            viaRemoveAdd.getChildren().add(0, tile);
+            layout(viaRemoveAdd, 340, 400);
+            assertTrue(translated(tile), "remove and add with no layout in between: glides");
+
+            RXTilePane removedForAPass = reorderPane();
+            tile = removedForAPass.getChildren().get(5);
+            removedForAPass.getChildren().remove(tile);
+            layout(removedForAPass, 340, 400);
+            removedForAPass.getChildren().add(0, tile);
+            layout(removedForAPass, 340, 400);
+            assertFalse(translated(tile), "remove, layout, add: snaps");
+
+            RXTilePane setAllForAPass = reorderPane();
+            tile = setAllForAPass.getChildren().get(5);
+            List<Node> without = new ArrayList<>(setAllForAPass.getChildren());
+            without.remove(tile);
+            setAllForAPass.getChildren().setAll(without);
+            layout(setAllForAPass, 340, 400);
+            List<Node> withFirst = new ArrayList<>(without);
+            withFirst.add(0, tile);
+            setAllForAPass.getChildren().setAll(withFirst);
+            layout(setAllForAPass, 340, 400);
+            assertFalse(translated(tile), "setAll without it, layout, setAll with it: snaps");
+            assertTrue(translated(setAllForAPass.getChildren().get(1)), "the tiles it pushed along still glide");
+        });
+    }
+
+    /**
+     * Verifies reordering while tiles glide goes on from where each tile shows, through
+     * setAll and through remove and add alike: neither the moved tile nor the tiles it
+     * shifts jump to their earlier glide targets first.
+     */
+    @Test
+    public void reorderMidGlideGoesOnFromWhereTilesShow() throws Exception {
+        onFx(() -> {
+            for (boolean viaSetAll : new boolean[] {true, false}) {
+                String how = viaSetAll ? "setAll" : "remove and add";
+                Region a = card(100, 40);
+                Region b = card(100, 40);
+                Region c = card(100, 40);
+                RXTilePane pane = new RXTilePane(a, b, c);
+                pane.setHgap(0);
+                new Scene(pane, 600, 300);
+                pane.applyCss();
+                layout(pane, 600, 300);
+                pane.setHgap(20);
+                layout(pane, 600, 300);
+                assertEquals(100.0, shownX(b), 1.0e-9, how + ": setup, B glides toward 120 from 100");
+                assertEquals(200.0, shownX(c), 1.0e-9, how + ": setup, C glides toward 240 from 200");
+
+                if (viaSetAll) {
+                    pane.getChildren().setAll(c, a, b);
+                } else {
+                    pane.getChildren().remove(c);
+                    pane.getChildren().add(0, c);
+                }
+                layout(pane, 600, 300);
+                assertEquals(0.0, shownX(a), 1.0e-9, how + ": A goes on from where it shows");
+                assertEquals(100.0, shownX(b), 1.0e-9, how + ": B goes on from where it shows");
+                assertEquals(200.0, shownX(c), 1.0e-9, how + ": C goes on from where it shows");
+
+                pane.setAnimated(false);
+                assertEquals(120.0, shownX(a), 1.0e-9, how + ": A settles in its new slot");
+                assertEquals(240.0, shownX(b), 1.0e-9, how + ": B settles in its new slot");
+                assertEquals(0.0, shownX(c), 1.0e-9, how + ": C settles in its new slot");
+            }
+        });
+    }
+
+    /**
+     * Verifies a tile removed for good mid-glide gets its own translate back at once,
+     * though the pane keeps where it showed in case it is put back.
+     */
+    @Test
+    public void tileRemovedMidGlideGetsItsOwnTranslateBack() throws Exception {
+        onFx(() -> {
+            Region a = card(100, 40);
+            Region b = card(100, 40);
+            RXTilePane pane = new RXTilePane(a, b);
+            pane.setHgap(0);
+            new Scene(pane, 600, 300);
+            pane.applyCss();
+            layout(pane, 600, 300);
+            b.setTranslateY(-4);
+            pane.setHgap(20);
+            layout(pane, 600, 300);
+            assertTrue(translated(b), "setup: B glides");
+
+            pane.getChildren().remove(b);
+            assertEquals(0.0, b.getTranslateX(), 1.0e-9, "the glide offset is dropped");
+            assertEquals(-4.0, b.getTranslateY(), 1.0e-9, "its own translate is back");
+        });
+    }
+
+    // Six tiles laid out once in a scene at 340 px, ready to animate.
+    private static RXTilePane reorderPane() {
+        RXTilePane pane = filledPane(6);
+        new Scene(pane, 340, 400);
+        pane.applyCss();
+        layout(pane, 340, 400);
+        return pane;
+    }
+
     @Test
     public void addedChildPopsInWithoutGliding() throws Exception {
         onFx(() -> {
@@ -1373,6 +1498,10 @@ public class RXTilePaneTest {
     }
 
     // ==================== Helpers ====================
+
+    private static double shownX(Node node) {
+        return node.getLayoutX() + node.getTranslateX();
+    }
 
     private static boolean translated(Node node) {
         return Math.abs(node.getTranslateX()) > EPSILON || Math.abs(node.getTranslateY()) > EPSILON;

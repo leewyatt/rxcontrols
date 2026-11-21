@@ -38,8 +38,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.WeakHashMap;
 
 /**
  * A responsive, animated tile layout pane — the node-based sibling of
@@ -204,6 +206,12 @@ public class RXTilePane extends Pane {
     private int sceneChanges;
     private Set<Node> laidOutLastPass = new HashSet<>();
     private Set<Node> laidOutThisPass = new HashSet<>();
+    // Children of the last pass removed since, with where each showed when it was
+    // removed (layout plus translate, read before the animator gives the translate back),
+    // so one put back before the next pass glides on from there. Weak keys: a removed
+    // child must not stay reachable from the pane when no further pass comes; the
+    // values hold no node.
+    private final Map<Node, double[]> removedSinceLastPass = new WeakHashMap<>();
 
     private final ListChangeListener<Node> childrenListener = change -> {
         while (change.next()) {
@@ -211,7 +219,11 @@ public class RXTilePane extends Pane {
                 // The recorded structure would otherwise keep removed children alive.
                 resizeGate.reset();
                 for (Node removed : change.getRemoved()) {
-                    laidOutLastPass.remove(removed);
+                    if (laidOutLastPass.remove(removed)) {
+                        removedSinceLastPass.put(removed, new double[] {
+                                removed.getLayoutX() + removed.getTranslateX(),
+                                removed.getLayoutY() + removed.getTranslateY()});
+                    }
                     animator.forget(removed);
                 }
             }
@@ -853,7 +865,8 @@ public class RXTilePane extends Pane {
      * preferred width still glides. Only a child the previous layout placed glides; one
      * that is newly added, newly managed or back after missing a layout snaps into place,
      * and so does every child on the first layout after the pane enters a scene or is
-     * laid out outside one.
+     * laid out outside one. A child removed and put back before the next layout glides on
+     * from where it showed when it was removed, even mid-glide.
      *
      * <p>While a child glides, the pane drives its {@code translateX} /
      * {@code translateY}; it never touches {@code opacity}. A translate the child had
@@ -1190,9 +1203,15 @@ public class RXTilePane extends Pane {
             // animator can invert the move and tween translate back to its resting value.
             double oldVisualX = 0.0;
             double oldVisualY = 0.0;
+            // A child removed and put back since the last pass has had its translate given
+            // back; where it showed when removed is where its glide goes on from.
+            double[] shownWhenRemoved = null;
             if (collectMoves) {
-                oldVisualX = child.getLayoutX() + child.getTranslateX();
-                oldVisualY = child.getLayoutY() + child.getTranslateY();
+                shownWhenRemoved = removedSinceLastPass.get(child);
+                oldVisualX = shownWhenRemoved != null
+                        ? shownWhenRemoved[0] : child.getLayoutX() + child.getTranslateX();
+                oldVisualY = shownWhenRemoved != null
+                        ? shownWhenRemoved[1] : child.getLayoutY() + child.getTranslateY();
             }
             Pos childAlignment = childTileAlignment(child, tileAlignmentValue);
             // Recorded before any skip: every pass in a scene, the first and the
@@ -1209,7 +1228,7 @@ public class RXTilePane extends Pane {
             }
             // Checked before any motion: an entering child's old layout position belongs to
             // wherever it was before, and its own translate stays as it is.
-            if (!laidOutLastPass.contains(child)) {
+            if (shownWhenRemoved == null && !laidOutLastPass.contains(child)) {
                 continue;
             }
             animator.addRelayoutMove(moves, child, oldVisualX, oldVisualY);
@@ -1231,6 +1250,7 @@ public class RXTilePane extends Pane {
             laidOutLastPass = laidOutThisPass;
             laidOutThisPass = previous;
             laidOutThisPass.clear();
+            removedSinceLastPass.clear();
             layoutScene = scene;
         } else {
             // An off-screen pass shows nothing, so the next pass in a scene snaps.
@@ -1242,6 +1262,7 @@ public class RXTilePane extends Pane {
         layoutScene = null;
         laidOutLastPass.clear();
         laidOutThisPass.clear();
+        removedSinceLastPass.clear();
     }
 
     // The preferred width the pane computes from its own inputs. An explicit prefWidth
