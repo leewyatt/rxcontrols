@@ -248,6 +248,7 @@ public class RXMasonryPane extends Pane {
     // ==================== Animation state ====================
 
     private final PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+    private final ResizeGate resizeGate = new ResizeGate();
     private final Set<Node> enteringNodes = new HashSet<>();
     // leaving node -> its managed state before the exit animation, restored on finish
     private final Map<Node, Boolean> leavingNodes = new HashMap<>();
@@ -259,12 +260,14 @@ public class RXMasonryPane extends Pane {
                 enteringNodes.addAll(change.getAddedSubList());
             }
             if (change.wasRemoved()) {
+                // The recorded structure would otherwise keep removed children alive.
+                resizeGate.reset();
                 for (Node removed : change.getRemoved()) {
                     enteringNodes.remove(removed);
                     // A node removed externally mid-exit never reaches finishLeaving,
                     // so restore its original managed state here.
                     Boolean wasManaged = leavingNodes.remove(removed);
-                    if (wasManaged != null) {
+                    if (wasManaged != null && !removed.managedProperty().isBound()) {
                         removed.setManaged(wasManaged);
                     }
                     animator.forget(removed);
@@ -292,6 +295,7 @@ public class RXMasonryPane extends Pane {
         sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene == null) {
                 animator.stopAll();
+                resizeGate.reset();
             }
         });
     }
@@ -788,8 +792,25 @@ public class RXMasonryPane extends Pane {
      * Whether children animate to their new positions on relayout, fade in on
      * insertion, and fade out via {@link #removeAnimated(Node)}. On by default;
      * turning this off while an animation is running snaps every child to its
-     * final state. While enabled, the pane drives each child's {@code translateX}
-     * / {@code translateY} (and {@code opacity} during fades) for the animation.
+     * final state. A width change imposed by the parent that keeps the column count
+     * and every child's column applies immediately, so dragging a window edge sideways
+     * never leaves children trailing; a glide already in flight keeps its clock while
+     * its target follows the resize. An explicit {@code prefWidth}, even one bound to
+     * the parent's width, counts as imposed by the parent; a width that follows the
+     * pane's own computed preferred width (say, after a gap change in an
+     * {@code HBox}) still glides. Other changes, such as a child growing, still glide,
+     * unless they land in the same layout pass as such a resize. While enabled,
+     * the pane drives each child's {@code translateX} / {@code translateY} (and
+     * {@code opacity} during fades) for the animation. A
+     * child whose {@code translateX} or {@code translateY} is bound snaps into place,
+     * whether moving or entering; one whose {@code opacity} is bound moves and enters
+     * without fading; and either binding, or a bound {@code managed}, makes
+     * {@link #removeAnimated(Node)} and {@link #clearAnimated()} remove the child at
+     * once. Binding these properties
+     * while the child is animating is not supported. Neither is turning animation off
+     * from a listener on the children list while children are fading out: finishing
+     * their exits removes children, which JavaFX forbids during that list's change
+     * notification.
      *
      * @return the animated property
      */
@@ -920,14 +941,12 @@ public class RXMasonryPane extends Pane {
         if (child == null || !getChildren().contains(child)) {
             return false;
         }
-        if (!animationsActive()) {
+        if (!animationsActive() || !canLeaveAnimated(child)) {
             getChildren().remove(child);
             return true;
         }
-        markLeaving(child);
+        startLeaving(child);
         requestLayout();
-        animator.runExit(child, true, getAnimationDuration(), interpolatorOrDefault(),
-                -enterTranslateY(), () -> finishLeaving(child));
         return true;
     }
 
@@ -940,17 +959,60 @@ public class RXMasonryPane extends Pane {
             getChildren().clear();
             return;
         }
-        List<Node> snapshot = new ArrayList<>(getChildren());
-        for (Node child : snapshot) {
-            markLeaving(child);
+        // Removing a child notifies listeners synchronously, and one that turns animation
+        // off finishes the running exits, which removes children inside that very
+        // notification; JavaFX forbids that. So the children that cannot fade out go
+        // first, before this call starts any exit.
+        List<Node> immediate = new ArrayList<>();
+        for (Node child : getChildren()) {
+            if (!canLeaveAnimated(child)) {
+                immediate.add(child);
+            }
         }
+        getChildren().removeAll(immediate);
+        // Listeners may have moved, bound or removed children or turned animation off,
+        // so each remaining child is checked again when it is reached.
+        List<Node> late = new ArrayList<>();
+        for (Node child : new ArrayList<>(getChildren())) {
+            if (child.getParent() != this || leavingNodes.containsKey(child)) {
+                continue;
+            }
+            if (animationsActive() && canLeaveAnimated(child)) {
+                startLeaving(child);
+            } else {
+                late.add(child);
+            }
+        }
+        getChildren().removeAll(late);
         requestLayout();
-        for (Node child : snapshot) {
-            animator.runExit(child, true, getAnimationDuration(), interpolatorOrDefault(),
-                    -enterTranslateY(), () -> finishLeaving(child));
-        }
     }
 
+    // Leaving unmanages the child and fades its translate and opacity; a binding on any
+    // of them would throw.
+    private static boolean canLeaveAnimated(Node child) {
+        return !child.managedProperty().isBound() && !child.translateXProperty().isBound()
+                && !child.translateYProperty().isBound() && !child.opacityProperty().isBound();
+    }
+
+    // Unmanaging the child notifies listeners synchronously; one may move the child to
+    // another parent or turn animation off, so both are checked again before the exit
+    // starts. A child moved away is no longer this pane's to touch (the children
+    // listener already restored its managed state); one left behind with animation
+    // off finishes leaving at once.
+    private void startLeaving(Node child) {
+        markLeaving(child);
+        if (child.getParent() != this) {
+            return;
+        }
+        if (!animationsActive()) {
+            finishLeaving(child);
+            return;
+        }
+        animator.runExit(child, true, getAnimationDuration(), interpolatorOrDefault(),
+                -enterTranslateY(), () -> finishLeaving(child));
+    }
+
+    // Callers check canLeaveAnimated first: unmanaging a bound managed would throw.
     private void markLeaving(Node child) {
         // Remember the original managed state and unmanage the node so survivors
         // reflow into the freed space; restored verbatim in finishLeaving.
@@ -961,7 +1023,7 @@ public class RXMasonryPane extends Pane {
 
     private void finishLeaving(Node child) {
         Boolean wasManaged = leavingNodes.remove(child);
-        if (wasManaged != null) {
+        if (wasManaged != null && !child.managedProperty().isBound()) {
             child.setManaged(wasManaged);
         }
         getChildren().remove(child);
@@ -1408,6 +1470,15 @@ public class RXMasonryPane extends Pane {
         int[] startColumns = metrics.result().startColumns();
         double[] tops = metrics.result().tops();
         List<PaneRelayoutAnimator.Move> moves = collectMoves ? new ArrayList<>() : null;
+        // Recorded on every animated-pane pass, the first layout included, so the
+        // next pass always has a baseline to compare against.
+        boolean resizeOnly = false;
+        if (isAnimated()) {
+            resizeOnly = resizeGate.isResizeOnly(getWidth(), ownPrefWidth(),
+                    layoutStructure(metrics.columns(), managed, startColumns));
+        } else {
+            resizeGate.reset();
+        }
         for (int i = 0, size = managed.size(); i < size; i++) {
             Node child = managed.get(i);
             Insets margin = getMargin(child);
@@ -1431,7 +1502,9 @@ public class RXMasonryPane extends Pane {
             if (!collectMoves) {
                 continue;
             }
-            if (enteringNodes.contains(child)) {
+            if (resizeOnly) {
+                animator.keepInFlight(moves, child);
+            } else if (enteringNodes.contains(child)) {
                 moves.add(new PaneRelayoutAnimator.Move(child, 0.0, enterOffset, true));
             } else {
                 double fromDx = oldVisualX - child.getLayoutX();
@@ -1451,6 +1524,27 @@ public class RXMasonryPane extends Pane {
         }
         enteringNodes.clear();
         firstLayoutDone = true;
+    }
+
+    // The preferred width the pane computes from its own inputs. An explicit prefWidth
+    // is left out: one bound to the parent's width follows a resize and must not
+    // count as the pane changing itself. Without one, prefWidth(-1) is the computed
+    // value and comes from the layout cache.
+    private double ownPrefWidth() {
+        return getPrefWidth() == USE_COMPUTED_SIZE ? prefWidth(-1.0) : computePrefWidth(-1.0);
+    }
+
+    // Column count plus each child's start column: widths, gaps and heights are left
+    // out, so a pure resize leaves it equal while a column change or a card moving to
+    // another column does not.
+    private static List<Object> layoutStructure(int columns, List<Node> managed, int[] startColumns) {
+        List<Object> structure = new ArrayList<>(2 * managed.size() + 1);
+        structure.add(columns);
+        for (int i = 0; i < managed.size(); i++) {
+            structure.add(managed.get(i));
+            structure.add(startColumns[i]);
+        }
+        return structure;
     }
 
     private LayoutMetrics computeMetrics(double contentWidth) {

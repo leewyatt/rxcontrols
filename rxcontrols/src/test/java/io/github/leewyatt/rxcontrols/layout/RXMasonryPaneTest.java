@@ -2,12 +2,17 @@ package io.github.leewyatt.rxcontrols.layout;
 
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
@@ -472,6 +477,338 @@ public class RXMasonryPaneTest {
         });
         assertTrue(settled.await(5, TimeUnit.SECONDS), "the fade settles at the user opacity");
         runOnFx(() -> assertClose(0.7, entering.getOpacity(), "the user's own opacity is restored, not 1.0"));
+    }
+
+    /**
+     * Verifies bound channels never throw: a bound-translate child snaps through a
+     * reflow, a bound-opacity child enters without fading, and removeAnimated removes
+     * a bound child at once instead of fading it.
+     */
+    @Test
+    public void boundChannelsSkipTheirAnimation() throws Exception {
+        runOnFx(() -> {
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0,
+                    card(80.0, 50.0), card(80.0, 60.0), card(80.0, 40.0), card(80.0, 70.0));
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+            Region translateBound = (Region) pane.getChildren().get(3);
+            translateBound.translateXProperty().bind(new SimpleDoubleProperty(3.0));
+
+            layout(pane, 500.0, 400.0); // reflow: must not throw "A bound value cannot be set"
+            assertClose(3.0, translateBound.getTranslateX(), "translate binding left untouched");
+
+            Region opacityBound = card(80.0, 50.0);
+            opacityBound.opacityProperty().bind(new SimpleDoubleProperty(0.6));
+            pane.getChildren().add(opacityBound);
+            layout(pane, 500.0, 400.0);
+            assertClose(0.6, opacityBound.getOpacity(), "enters without fading");
+            assertTrue(Math.abs(opacityBound.getTranslateY()) > EPSILON, "still slides in");
+
+            pane.removeAnimated(opacityBound);
+            pane.removeAnimated(translateBound);
+            assertFalse(pane.getChildren().contains(opacityBound), "removed at once");
+            assertFalse(pane.getChildren().contains(translateBound), "removed at once");
+            assertTrue(opacityBound.isManaged() && translateBound.isManaged(), "managed restored");
+        });
+    }
+
+    /**
+     * Verifies a resize that keeps every card in its column starts no glide (filled
+     * columns shift on every pixel of width), while a card height change at the same
+     * width still glides the cards below it.
+     */
+    @Test
+    public void resizeOnlyPassDoesNotGlideButHeightChangeDoes() throws Exception {
+        runOnFx(() -> {
+            Region tall = card(80.0, 50.0);
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0,
+                    tall, card(80.0, 60.0), card(80.0, 40.0), card(80.0, 70.0));
+            pane.setColumnCount(2);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+
+            layout(pane, 340.0, 400.0);
+            assertFalse(anyTranslated(pane), "a pure resize applies immediately");
+
+            tall.setPrefHeight(90.0);
+            layout(pane, 340.0, 400.0);
+            assertTrue(anyTranslated(pane), "a height change still glides");
+        });
+    }
+
+    /**
+     * Verifies a width change that follows the pane's own preferred width (here a gap
+     * change in a parent that sizes the pane to its pref) still glides: it is not a
+     * resize from outside.
+     */
+    @Test
+    public void prefDrivenWidthChangeStillGlides() throws Exception {
+        runOnFx(() -> {
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0,
+                    card(80.0, 50.0), card(80.0, 60.0), card(80.0, 40.0));
+            pane.setColumnCount(2);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            HBox parent = new HBox(pane);
+            new Scene(parent);
+            layout(parent, 600.0, 400.0);
+
+            pane.setHgap(40.0);
+            layout(parent, 600.0, 400.0);
+
+            assertTrue(anyTranslated(pane), "the gap change glides");
+        });
+    }
+
+    /**
+     * Verifies a child with a bound managed is removed at once by removeAnimated and
+     * clearAnimated instead of throwing, and does not stop the other children's exits.
+     */
+    @Test
+    public void boundManagedChildIsRemovedAtOnce() throws Exception {
+        runOnFx(() -> {
+            Region plain = card(80.0, 50.0);
+            Region bound = card(80.0, 60.0);
+            bound.managedProperty().bind(new SimpleBooleanProperty(true));
+            bound.opacityProperty().bind(new SimpleDoubleProperty(0.6));
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, plain, bound);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+
+            pane.clearAnimated();
+
+            assertFalse(pane.getChildren().contains(bound), "bound managed: removed at once");
+            assertTrue(bound.isManaged(), "binding left untouched");
+            assertTrue(pane.getChildren().contains(plain), "the other child still fades out");
+            assertFalse(plain.isManaged(), "the other child left the layout for its exit");
+
+            Region single = card(80.0, 40.0);
+            single.managedProperty().bind(new SimpleBooleanProperty(true));
+            pane.getChildren().add(single);
+            pane.removeAnimated(single);
+            assertFalse(pane.getChildren().contains(single), "removeAnimated removes it at once");
+        });
+    }
+
+    /**
+     * Verifies clearAnimated checks each child's managed binding when it reaches the
+     * child, so a listener binding one while an earlier child leaves does not throw.
+     */
+    @Test
+    public void clearAnimatedRechecksBindingsAsItGoes() throws Exception {
+        runOnFx(() -> {
+            Region first = card(80.0, 50.0);
+            Region second = card(80.0, 60.0);
+            first.managedProperty().addListener((obs, oldValue, managed) -> {
+                if (!managed) {
+                    second.managedProperty().bind(new SimpleBooleanProperty(true));
+                }
+            });
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, first, second);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+
+            assertNoListenerException(pane::clearAnimated);
+
+            assertFalse(pane.getChildren().contains(second), "bound on the way: removed at once");
+            assertTrue(pane.getChildren().contains(first), "the first child still fades out");
+        });
+    }
+
+    /**
+     * Verifies that when removing the bound-managed children turns animation off (here
+     * through a binding on the child count), the exits already started finish at once
+     * instead of leaving children waiting on an animation that is now disabled.
+     */
+    @Test
+    public void clearAnimatedThatDisablesAnimationFinishesEveryExit() throws Exception {
+        runOnFx(() -> {
+            Region plain = card(80.0, 50.0);
+            Region bound = card(80.0, 60.0);
+            bound.managedProperty().bind(new SimpleBooleanProperty(true));
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, plain, bound);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            pane.animatedProperty().bind(Bindings.size(pane.getChildren()).greaterThan(1));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+
+            assertNoListenerException(pane::clearAnimated);
+
+            assertFalse(pane.isAnimated(), "precondition: removal disabled animation");
+            assertTrue(pane.getChildren().isEmpty(), "every child is gone");
+            assertTrue(plain.isManaged(), "managed restored");
+        });
+    }
+
+    /**
+     * Same as above with a child whose only binding is opacity: it too is removed
+     * before any exit starts, and the child after it is not left fading out once the
+     * removal has turned animation off.
+     */
+    @Test
+    public void clearAnimatedWithBoundOpacityThatDisablesAnimation() throws Exception {
+        runOnFx(() -> {
+            Region bound = card(80.0, 60.0);
+            bound.opacityProperty().bind(new SimpleDoubleProperty(0.6));
+            Region plain = card(80.0, 50.0);
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, bound, plain);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            pane.animatedProperty().bind(Bindings.size(pane.getChildren()).greaterThan(1));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+
+            assertNoListenerException(pane::clearAnimated);
+
+            assertTrue(pane.getChildren().isEmpty(), "every child is gone");
+            assertTrue(plain.isManaged(), "managed restored");
+        });
+    }
+
+    /**
+     * Verifies clearAnimated leaves alone a child that a listener moved to another
+     * parent while earlier children were processed.
+     */
+    @Test
+    public void clearAnimatedSkipsChildMovedAway() throws Exception {
+        runOnFx(() -> {
+            Region first = card(80.0, 50.0);
+            Region second = card(80.0, 60.0);
+            Pane elsewhere = new Pane();
+            first.managedProperty().addListener((obs, oldValue, managed) -> {
+                if (!managed) {
+                    elsewhere.getChildren().add(second);
+                }
+            });
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, first, second);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+
+            assertNoListenerException(pane::clearAnimated);
+
+            assertSame(elsewhere, second.getParent(), "moved away");
+            assertTrue(second.isManaged(), "not unmanaged by the old pane");
+            assertClose(1.0, second.getOpacity(), "no exit started on it");
+            assertTrue(pane.getChildren().contains(first), "the first child still fades out");
+        });
+    }
+
+    /**
+     * Verifies a leaving child that its own managed listener moves to another parent is
+     * left alone: no exit fades it inside its new parent, through either entry point.
+     */
+    @Test
+    public void childMovedAwayByItsOwnManagedListenerIsLeftAlone() throws Exception {
+        Region removed = card(80.0, 50.0);
+        Region cleared = card(80.0, 60.0);
+        Pane elsewhere = new Pane();
+        runOnFx(() -> {
+            for (Region card : List.of(removed, cleared)) {
+                card.managedProperty().addListener((obs, oldValue, managed) -> {
+                    if (!managed) {
+                        elsewhere.getChildren().add(card);
+                    }
+                });
+            }
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, removed, cleared);
+            pane.setAnimationDuration(Duration.seconds(1.0));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+
+            assertNoListenerException(() -> pane.removeAnimated(removed));
+            assertNoListenerException(pane::clearAnimated);
+        });
+        Thread.sleep(200); // an exit started by mistake would have faded them by now
+
+        runOnFx(() -> {
+            for (Region card : List.of(removed, cleared)) {
+                assertSame(elsewhere, card.getParent(), "moved away");
+                assertTrue(card.isManaged(), "managed restored");
+                assertClose(1.0, card.getOpacity(), "not faded in its new parent");
+                assertClose(0.0, card.getTranslateY(), "not drifted in its new parent");
+            }
+        });
+    }
+
+    /**
+     * Verifies a child whose managed listener turns animation off finishes leaving at
+     * once instead of waiting on an exit the disabled pane should not play.
+     */
+    @Test
+    public void animationTurnedOffByManagedListenerFinishesAtOnce() throws Exception {
+        runOnFx(() -> {
+            Region removed = card(80.0, 50.0);
+            Region cleared = card(80.0, 60.0);
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, removed, cleared);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+
+            pane.animatedProperty().bind(removed.managedProperty());
+            assertNoListenerException(() -> pane.removeAnimated(removed));
+            assertFalse(pane.getChildren().contains(removed), "removed at once");
+            assertTrue(removed.isManaged(), "managed restored");
+
+            pane.animatedProperty().bind(cleared.managedProperty());
+            assertNoListenerException(pane::clearAnimated);
+            assertTrue(pane.getChildren().isEmpty(), "cleared at once");
+            assertTrue(cleared.isManaged(), "managed restored");
+        });
+    }
+
+    /**
+     * Verifies a prefWidth bound to the parent's width still counts as a resize from
+     * outside: the pref follows the resize, it is not the pane changing itself.
+     */
+    @Test
+    public void prefWidthBoundToParentResizesWithoutGliding() throws Exception {
+        runOnFx(() -> {
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0,
+                    card(80.0, 50.0), card(80.0, 60.0), card(80.0, 40.0));
+            pane.setColumnCount(2);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            StackPane parent = new StackPane(pane);
+            pane.prefWidthProperty().bind(parent.widthProperty());
+            new Scene(parent);
+            layout(parent, 300.0, 400.0);
+
+            layout(parent, 340.0, 400.0);
+
+            assertFalse(anyTranslated(pane), "the resize applies immediately");
+        });
+    }
+
+    /**
+     * Verifies a resize-only pass keeps an in-flight glide's offset (no re-arm) while
+     * its layout target follows the resize.
+     */
+    @Test
+    public void resizeOnlyPassKeepsInFlightGlide() throws Exception {
+        runOnFx(() -> {
+            Region tall = card(80.0, 50.0);
+            Region below = card(80.0, 40.0);
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, tall, card(80.0, 60.0), below);
+            pane.setColumnCount(2);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+            tall.setPrefHeight(90.0);
+            layout(pane, 300.0, 400.0);
+            // The taller card pushes "below" into the second column, whose x follows the width.
+            double translateX = below.getTranslateX();
+            double translateY = below.getTranslateY();
+            double layoutX = below.getLayoutX();
+            assertTrue(Math.abs(translateX) > EPSILON, "precondition: the card below glides sideways");
+
+            layout(pane, 340.0, 400.0);
+
+            assertClose(translateX, below.getTranslateX(), "x offset is not re-armed");
+            assertClose(translateY, below.getTranslateY(), "y offset is not re-armed");
+            assertTrue(Math.abs(below.getLayoutX() - layoutX) > EPSILON, "the target follows the resize");
+        });
     }
 
     /**
@@ -1180,6 +1517,27 @@ public class RXMasonryPaneTest {
     }
 
     // ==================== Helpers ====================
+
+    // JavaFX hands an exception thrown inside a listener to the thread's uncaught
+    // exception handler rather than to the caller, so checking only the final state
+    // would miss it.
+    private static void assertNoListenerException(Runnable action) {
+        Thread thread = Thread.currentThread();
+        Thread.UncaughtExceptionHandler previous = thread.getUncaughtExceptionHandler();
+        AtomicReference<Throwable> reported = new AtomicReference<>();
+        thread.setUncaughtExceptionHandler((t, error) -> reported.compareAndSet(null, error));
+        try {
+            action.run();
+        } finally {
+            thread.setUncaughtExceptionHandler(previous);
+        }
+        assertNull(reported.get(), () -> "a listener threw: " + reported.get());
+    }
+
+    private static boolean anyTranslated(RXMasonryPane pane) {
+        return pane.getChildren().stream()
+                .anyMatch(n -> Math.abs(n.getTranslateX()) > EPSILON || Math.abs(n.getTranslateY()) > EPSILON);
+    }
 
     private static RXMasonryPane pane(double columnWidth, double hgap, double vgap, Region... cards) {
         RXMasonryPane pane = new RXMasonryPane(cards);
