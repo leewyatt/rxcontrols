@@ -241,6 +241,33 @@ public class RXCarouselLifecycleTest {
     }
 
     @Test
+    public void pagesReplacedFromAClosingHandlerNeverOpenTheReplacedPage() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = laidOutCarousel(4);
+            manual(carousel);
+            List<String> opened = new ArrayList<>();
+            carousel.addEventHandler(RXPageLifecycleEvent.ANY, e -> {
+                if (e.getEventType() == RXPageLifecycleEvent.OPENING
+                        || e.getEventType() == RXPageLifecycleEvent.OPENED) {
+                    opened.add(describe(e) + "=" + ((Label) e.getPage()).getText());
+                }
+            });
+            boolean[] armed = {true};
+            carousel.addEventHandler(RXPageLifecycleEvent.CLOSING, e -> {
+                if (armed[0]) {
+                    armed[0] = false;
+                    carousel.setPages(new Label("N0"), new Label("N1"), new Label("N2"), new Label("N3"));
+                }
+            });
+
+            carousel.goToPage(1);
+
+            assertEquals(List.of("OPENING:1=N1", "OPENED:1=N1"), opened);
+            assertEquals(List.of("N1"), shownPages(carousel));
+        });
+    }
+
+    @Test
     public void closingHandlerReturningToThePageReopensItWithoutAnimation() throws Exception {
         onFx(() -> {
             RXCarousel carousel = laidOutCarousel(4);

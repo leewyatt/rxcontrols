@@ -250,6 +250,69 @@ public class RXCarouselPagesTest {
     }
 
     @Test
+    public void pageListChangedFromTheFirstOpenedHandlerIsFollowed() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = laidOutCarousel(labels(2));
+            ObservableList<Node> list = FXCollections.observableArrayList(new Label("A0"), new Label("A1"));
+            Label updated = new Label("U0");
+            boolean[] armed = {true};
+            carousel.addEventHandler(RXPageLifecycleEvent.OPENED, e -> {
+                if (armed[0] && e.getPage() == list.get(0)) {
+                    armed[0] = false;
+                    list.set(0, updated);
+                }
+            });
+
+            carousel.setPages(list);
+
+            assertEquals(List.of("U0"), shownPages(carousel));
+        });
+    }
+
+    @Test
+    public void factoryReplacedWhileItMakesAPageIsAskedAgain() throws Exception {
+        onFx(() -> {
+            List<Label> former = List.of(new Label("F0"), new Label("F1"), new Label("F2"));
+            List<Label> latest = List.of(new Label("L0"), new Label("L1"), new Label("L2"));
+            RXCarousel carousel = new RXCarousel();
+            boolean[] armed = {true};
+            carousel.setPageCount(3);
+            carousel.setPageFactory(index -> {
+                if (armed[0] && index == 0) {
+                    armed[0] = false;
+                    carousel.setPageFactory(latest::get);
+                }
+                return former.get(index);
+            });
+
+            layOut(carousel);
+
+            assertEquals(List.of("L0"), shownPages(carousel));
+            assertNull(former.get(0).getParent());
+        });
+    }
+
+    @Test
+    public void clearingASidePageOfAMultiPageLayoutShowsItAgain() throws Exception {
+        onFx(() -> {
+            List<Label> pages = labels(4);
+            RXCarousel carousel = new RXCarousel();
+            carousel.setPages(pages.toArray(new Node[0]));
+            carousel.setAnimation(new AnimAround(true));
+            layOut(carousel);
+            assertTrue(pages.get(1).getParent().isVisible());
+            List<String> events = record(carousel);
+
+            carousel.clearPageCache(1);
+
+            assertEquals(List.of("EVICTED:1", "CACHED:1"), events);
+            Parent wrapper = pages.get(1).getParent();
+            assertTrue(wrapper != null && wrapper.isVisible(), "the side page did not come back");
+            assertEquals(0.5, wrapper.getScaleX());
+        });
+    }
+
+    @Test
     public void pageListDoesNotKeepTheCarouselAlive() throws Exception {
         ObservableList<Node> list = FXCollections.observableArrayList(labels(3));
         List<WeakReference<RXCarousel>> carousel = new ArrayList<>();

@@ -813,6 +813,9 @@ public class RXCarousel extends Control {
 
     private ObservableList<Node> observablePages;
     private Callback<Integer, Node> observablePagesFactory;
+    // Page updates in progress, a listener of one may start another; the skin
+    // holds off until the outermost one ends.
+    private int pagesUpdates;
 
     // Weak: a page list that outlives the carousel must not keep it reachable.
     private final ListChangeListener<Node> pagesListener = change -> onPagesChanged();
@@ -826,28 +829,32 @@ public class RXCarousel extends Control {
         }
     }
 
-    // The list keeps driving the pages only while its factory is the carousel's.
+    // The list keeps driving the pages only while its factory is the
+    // carousel's. Before setPages has set the factory, setPages reads the
+    // list again itself.
     private void onPagesChanged() {
         if (getPageFactory() != observablePagesFactory) {
             return;
         }
-        getProperties().put(CarouselSignals.PAGES_UPDATING, Boolean.TRUE);
+        beginPagesUpdate();
         try {
             setPageCount(observablePages.size());
             getProperties().put(CarouselSignals.PAGES_CHANGED, Boolean.TRUE);
         } finally {
-            getProperties().remove(CarouselSignals.PAGES_UPDATING);
+            endPagesUpdate();
         }
     }
 
     // The count, the factory and the selected index the count may move
     // change together: the skin updates the pages once all are set.
-    private void applyPages(int count, Callback<Integer, Node> factory) {
-        getProperties().put(CarouselSignals.PAGES_UPDATING, Boolean.TRUE);
-        try {
-            setPageCount(count);
-            setPageFactory(factory);
-        } finally {
+    private void beginPagesUpdate() {
+        if (pagesUpdates++ == 0) {
+            getProperties().put(CarouselSignals.PAGES_UPDATING, Boolean.TRUE);
+        }
+    }
+
+    private void endPagesUpdate() {
+        if (--pagesUpdates == 0) {
             getProperties().remove(CarouselSignals.PAGES_UPDATING);
         }
     }
@@ -861,7 +868,13 @@ public class RXCarousel extends Control {
     public void setPages(Node... pages) {
         clearPagesListener();
         List<Node> list = Arrays.asList(pages);
-        applyPages(list.size(), list::get);
+        beginPagesUpdate();
+        try {
+            setPageCount(list.size());
+            setPageFactory(list::get);
+        } finally {
+            endPagesUpdate();
+        }
     }
 
     /**
@@ -876,10 +889,21 @@ public class RXCarousel extends Control {
     public void setPages(ObservableList<Node> pages) {
         clearPagesListener();
         Callback<Integer, Node> factory = pages::get;
-        applyPages(pages.size(), factory);
+        // Listening before the pages apply: the skin applies them when the
+        // update ends, and a handler of the events it fires then may already
+        // change the list.
         observablePages = pages;
         observablePagesFactory = factory;
         pages.addListener(weakPagesListener);
+        beginPagesUpdate();
+        try {
+            setPageCount(pages.size());
+            setPageFactory(factory);
+            // A count listener may have changed the list before the factory was set.
+            setPageCount(pages.size());
+        } finally {
+            endPagesUpdate();
+        }
     }
 
     // ==================== Page Lifecycle Event Handlers ====================

@@ -211,6 +211,77 @@ public class RXCarouselSkinTest {
     }
 
     @Test
+    public void factoryReplacedWhileAReplacedSkinCompletesItsPairsReachesTheNewSkin() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = laidOutCarousel(labels(4));
+            List<Label> fresh = List.of(new Label("N0"), new Label("N1"), new Label("N2"), new Label("N3"));
+            carousel.setAnimation(new AnimFade());
+            carousel.setAnimationDuration(Duration.seconds(30.0));
+            carousel.goToPage(1);
+            boolean[] armed = {true};
+            carousel.addEventHandler(RXPageLifecycleEvent.OPENED, e -> {
+                if (armed[0] && e.getPageIndex() == 1) {
+                    armed[0] = false;
+                    carousel.setPageFactory(fresh::get);
+                }
+            });
+
+            carousel.setSkin(new RXCarouselSkin(carousel) {
+            });
+            layOutAgain(carousel);
+
+            assertEquals(List.of("N1"), shownPages(carousel));
+            carousel.setSkin(null);
+        });
+    }
+
+    @Test
+    public void cacheClearedJustBeforeTheSkinIsReplacedIsClearedByTheNewSkin() throws Exception {
+        onFx(() -> {
+            List<Label> pages = labels(3);
+            RXCarousel carousel = laidOutCarousel(pages);
+            carousel.setAnimationDuration(Duration.ZERO);
+            List<String> events = record(carousel);
+            boolean[] armed = {true};
+            carousel.addEventHandler(RXPageLifecycleEvent.OPENED, e -> {
+                if (armed[0] && e.getPageIndex() == 1) {
+                    armed[0] = false;
+                    carousel.clearPageCache();
+                    carousel.setSkin(new RXCarouselSkin(carousel) {
+                    });
+                }
+            });
+
+            carousel.goToPage(1);
+            layOutAgain(carousel);
+
+            List<String> afterOpened = events.subList(events.indexOf("OPENED:1") + 1, events.size());
+            assertTrue(afterOpened.containsAll(List.of("EVICTED:0", "EVICTED:1", "EVICTED:2")), afterOpened::toString);
+            assertEquals(List.of("CLOSING:1", "CLOSED:1", "OPENING:1", "OPENED:1"), openClose(afterOpened));
+            assertEquals(List.of("P1"), shownPages(carousel));
+            carousel.setSkin(null);
+        });
+    }
+
+    @Test
+    public void replacingTheSkinWhileIdleKeepsTheNextPageChangeAnimated() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = laidOutCarousel(labels(3));
+            ManualAnimation animation = new ManualAnimation();
+            carousel.setAnimation(animation);
+            carousel.setSkin(new RXCarouselSkin(carousel) {
+            });
+            layOutAgain(carousel);
+
+            carousel.goToPage(1);
+
+            assertEquals(1, animation.contexts.size());
+            assertTrue(carousel.isPageTransitioning());
+            carousel.setSkin(null);
+        });
+    }
+
+    @Test
     public void pageChangedWhileTheSkinIsReplacedIsCutToByTheNewSkin() throws Exception {
         onFx(() -> {
             List<Label> pages = labels(3);

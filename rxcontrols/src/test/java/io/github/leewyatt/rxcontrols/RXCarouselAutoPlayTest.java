@@ -190,6 +190,56 @@ public class RXCarouselAutoPlayTest {
         }
     }
 
+    @Test
+    public void lastPageStopsCountingDownWhenTheCarouselStopsWrapping() throws Exception {
+        RXCarousel[] carousel = new RXCarousel[1];
+        onFx(() -> {
+            carousel[0] = showingCarousel(3);
+            carousel[0].setAnimationDuration(Duration.ZERO);
+            carousel[0].goToPage(2);
+            carousel[0].setAutoPlayInterval(Duration.seconds(2.0));
+            carousel[0].setAutoPlay(true);
+        });
+        Thread.sleep(150L);
+        try {
+            onFx(() -> {
+                assertTrue(carousel[0].getAutoPlayProgress() > 0.0);
+                carousel[0].setCircular(false);
+                assertEquals(0.0, carousel[0].getAutoPlayProgress());
+            });
+            Thread.sleep(200L);
+            onFx(() -> assertEquals(0.0, carousel[0].getAutoPlayProgress()));
+        } finally {
+            onFx(() -> carousel[0].getScene().getRoot().setVisible(false));
+        }
+    }
+
+    @Test
+    public void hoverPauseTurnedOffWhileHoveredResumesTheCountdown() throws Exception {
+        RXCarousel[] carousel = new RXCarousel[1];
+        double[] paused = new double[1];
+        onFx(() -> {
+            carousel[0] = showingCarousel(4);
+            carousel[0].setHoverPause(true);
+            carousel[0].setAutoPlayInterval(Duration.seconds(2.0));
+            carousel[0].setAutoPlay(true);
+            Event.fireEvent(carousel[0], mouse(MouseEvent.MOUSE_ENTERED));
+            carousel[0].setHoverPause(false);
+        });
+        Thread.sleep(200L);
+        try {
+            onFx(() -> {
+                assertTrue(carousel[0].getAutoPlayProgress() > 0.0);
+                carousel[0].setHoverPause(true);
+                paused[0] = carousel[0].getAutoPlayProgress();
+            });
+            Thread.sleep(200L);
+            onFx(() -> assertEquals(paused[0], carousel[0].getAutoPlayProgress()));
+        } finally {
+            onFx(() -> carousel[0].getScene().getRoot().setVisible(false));
+        }
+    }
+
     // ==================== Helpers ====================
 
     private static MouseEvent mouse(EventType<MouseEvent> type) {

@@ -254,8 +254,13 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             }
             if (handover.factory != carousel.getPageFactory()) {
                 doomed.addAll(pageCache.values());
-            } else if (pagesChanged) {
-                checkPages(carousel);
+            } else {
+                for (int index : handover.stale) {
+                    doomed.add(pageCache.get(index));
+                }
+                if (pagesChanged) {
+                    checkPages(carousel);
+                }
             }
         }
         cutNext = true;
@@ -417,14 +422,23 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                 return;
             }
             updateArrowDisabledState(carousel);
-            // Switching back to circular resumes an auto-play the last page
-            // of a non-circular carousel had stopped.
-            if (canRunAutoplay(carousel)) {
-                startAutoplay(carousel);
-            }
+            // Back to circular resumes an auto-play the last page had
+            // stopped; away from it on the last page stops one running.
+            refreshAutoplay(carousel);
             // The neighbours to prefetch change with the wrap-around.
             idlePending = true;
             sync();
+        });
+
+        disposer.registerListener(carousel.hoverPauseProperty(), () -> {
+            if (disposed) {
+                return;
+            }
+            if (mouseHovering && carousel.isHoverPause()) {
+                pauseAutoplay();
+            } else if (canRunAutoplay(carousel)) {
+                startAutoplay(carousel);
+            }
         });
 
         // Arrow display mode
@@ -528,6 +542,8 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         } finally {
             busy = false;
         }
+        // The cut is for the take-over only, also when its page was already shown.
+        cutNext = false;
     }
 
     // Returns false once nothing is left to do.
@@ -595,6 +611,15 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                 // A CACHED handler moved on; the page stays cached, unannounced.
                 continue;
             }
+            if (isStale(from) || isStale(to)) {
+                // A handler replaced pages: the shown page closes without
+                // animation, and the loop evicts the stale pages before it
+                // opens the target, so a replaced page never opens.
+                if (from != null) {
+                    closeShown(from);
+                }
+                return;
+            }
             PageAnimation animation = animationOrNone(carousel);
             Duration duration = carousel.getAnimationDuration();
             boolean animate = !cut && requestAnimated && from != null && to != null && to != from
@@ -611,7 +636,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             if (!announce(RXPageLifecycleEvent.OPENING, to)) {
                 return;
             }
-            if (targetIndex() != to.index) {
+            if (targetIndex() != to.index || isStale(to)) {
                 // Replaced before the animation started: never show it, and
                 // try again from the same outgoing page.
                 if (!abandon(to)) {
@@ -641,6 +666,11 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             if (targetIndex() != target) {
                 continue;
             }
+            if (isStale(page)) {
+                // A handler replaced the page: the loop evicts it first.
+                shownIndex = -1;
+                return;
+            }
             if (page == null) {
                 // The factory gave no node: nothing shows until the pages change.
                 shownIndex = target;
@@ -653,7 +683,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             if (!announce(RXPageLifecycleEvent.OPENING, page)) {
                 return;
             }
-            if (targetIndex() != target) {
+            if (targetIndex() != target || isStale(page)) {
                 shown = null;
                 shownIndex = -1;
                 if (!abandon(page)) {
@@ -903,9 +933,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         }
         // The countdown restarts once the page has settled, so the interval
         // is the time a page shows.
-        if (canRunAutoplay(carousel)) {
-            startAutoplay(carousel);
-        }
+        refreshAutoplay(carousel);
     }
 
     // Lays the idle pages out for the configured animation: a multi-page
@@ -936,26 +964,35 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     // Not computeIfAbsent: the factory and the CACHED handlers are the
     // application's code and may change the cache themselves.
     private Page getOrCreatePage(int index, RXCarousel carousel) {
-        Page page = pageCache.get(index);
-        if (page != null || disposed) {
+        while (true) {
+            Page page = pageCache.get(index);
+            if (page != null || disposed) {
+                return page;
+            }
+            Callback<Integer, Node> factory = carousel.getPageFactory();
+            if (factory == null || index < 0 || index >= carousel.getPageCount()) {
+                return null;
+            }
+            Node node = callFactory(factory, index);
+            if (disposed) {
+                return null;
+            }
+            if (carousel.getPageFactory() != factory) {
+                // Replaced while it ran: the node belongs to no page; ask the new factory.
+                continue;
+            }
+            if (node == null || index >= carousel.getPageCount()) {
+                return null;
+            }
+            page = new Page(index, node);
+            pageCache.put(index, page);
+            if (deferCached) {
+                pendingCached.add(page);
+            } else {
+                announce(RXPageLifecycleEvent.CACHED, page);
+            }
             return page;
         }
-        Callback<Integer, Node> factory = carousel.getPageFactory();
-        if (factory == null || index < 0 || index >= carousel.getPageCount()) {
-            return null;
-        }
-        Node node = callFactory(factory, index);
-        if (node == null || disposed) {
-            return null;
-        }
-        page = new Page(index, node);
-        pageCache.put(index, page);
-        if (deferCached) {
-            pendingCached.add(page);
-        } else {
-            announce(RXPageLifecycleEvent.CACHED, page);
-        }
-        return page;
     }
 
     private void announcePendingCached() {
@@ -1048,6 +1085,10 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     // wrapper before EVICTED, so a handler can put it somewhere else.
     private void evict(Page page) {
         doomed.remove(page);
+        if (page != shown && page.wrapper.isVisible() && page.wrapper.getParent() == contentPane) {
+            // A side page of a multi-page layout: lay the pages out again.
+            idlePending = true;
+        }
         if (page == shown) {
             if (page.phase == Phase.OPENED && !announce(RXPageLifecycleEvent.CLOSING, page)) {
                 return;
@@ -1428,7 +1469,22 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                 && treeShowing.get()
                 && !transitioning
                 && !(mouseHovering && carousel.isHoverPause())
-                && (carousel.isCircular() || carousel.getSelectedIndex() < carousel.getPageCount() - 1);
+                && hasNextPage(carousel);
+    }
+
+    private static boolean hasNextPage(RXCarousel carousel) {
+        return carousel.isCircular() || carousel.getSelectedIndex() < carousel.getPageCount() - 1;
+    }
+
+    // Starts the countdown when it may run; stops one running once no next
+    // page exists, as on the last page of a carousel that stopped wrapping or
+    // lost pages. A countdown paused for another reason stays paused.
+    private void refreshAutoplay(RXCarousel carousel) {
+        if (canRunAutoplay(carousel)) {
+            startAutoplay(carousel);
+        } else if (!hasNextPage(carousel)) {
+            stopAutoplay(carousel);
+        }
     }
 
     /**
@@ -1559,6 +1615,12 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         boolean replaced = installed instanceof RXCarouselSkin
                 && installed != this
                 && ((RXCarouselSkin) installed).getSkinnable() == carousel;
+        // Read before any event below: a handler may replace the factory
+        // while this skin no longer listens, and the replacement must know
+        // which factory made these pages and which were already due for
+        // eviction.
+        Callback<Integer, Node> cacheFactory = carousel.getPageFactory();
+        Set<Page> stalePages = new HashSet<>(doomed);
 
         // The stop runs the animation's finish action; the transition
         // callbacks see this skin disposed and do nothing.
@@ -1578,7 +1640,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
 
         List<Page> pages = sortedPages();
         if (replaced) {
-            carousel.getProperties().put(HANDOVER_KEY, new Handover(pages, openPage(), carousel.getPageFactory()));
+            carousel.getProperties().put(HANDOVER_KEY, new Handover(pages, openPage(), cacheFactory, stalePages));
         } else {
             carousel.getProperties().remove(HANDOVER_KEY);
         }
@@ -1688,12 +1750,18 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     private static final class Handover {
 
         final Map<Integer, Node> pages = new HashMap<>();
+        // Pages the replaced skin had yet to evict.
+        final Set<Integer> stale = new HashSet<>();
         final int openIndex;
+        // The factory that made the pages.
         final Callback<Integer, Node> factory;
 
-        Handover(List<Page> cached, Page open, Callback<Integer, Node> factory) {
+        Handover(List<Page> cached, Page open, Callback<Integer, Node> factory, Set<Page> stalePages) {
             for (Page page : cached) {
                 pages.put(page.index, page.node);
+                if (stalePages.contains(page)) {
+                    stale.add(page.index);
+                }
             }
             this.openIndex = open == null ? -1 : open.index;
             this.factory = factory;
