@@ -41,13 +41,14 @@ final class PassMembership {
 
     /**
      * How a removed child of the last pass showed: layout plus translate, and opacity,
-     * read before the animator gives them back.
+     * read before the animator gives them back, and whether it was fading in then.
      *
      * @param x       the x it showed at
      * @param y       the y it showed at
      * @param opacity the opacity it showed at
+     * @param fading  whether the pane's animator was fading it in
      */
-    record Shown(double x, double y, double opacity) {
+    record Shown(double x, double y, double opacity, boolean fading) {
     }
 
     // How a child stood when it was removed: laid out by the last pass (shown is where it
@@ -139,11 +140,12 @@ final class PassMembership {
 
     /**
      * Notes that a child really left the children list; called before the animator gives
-     * its translate back.
+     * its translate and opacity back.
      *
-     * @param child the child removed
+     * @param child  the child removed
+     * @param fading whether the pane's animator is fading the child in
      */
-    void removed(Node child) {
+    void removed(Node child, boolean fading) {
         boolean laidOut = laidOutLastPass.remove(child);
         boolean entering = addedSinceLastPass.remove(child);
         // Taken out again after being put back: how it stood is recorded already.
@@ -152,7 +154,7 @@ final class PassMembership {
         }
         Shown shown = laidOut
                 ? new Shown(child.getLayoutX() + child.getTranslateX(), child.getLayoutY() + child.getTranslateY(),
-                        child.getOpacity())
+                        child.getOpacity(), fading)
                 : null;
         departures.put(child, new Departure(shown, entering));
     }

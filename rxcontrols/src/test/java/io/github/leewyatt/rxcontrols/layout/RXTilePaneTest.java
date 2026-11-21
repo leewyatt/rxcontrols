@@ -2349,6 +2349,27 @@ public class RXTilePaneTest {
         });
     }
 
+    /**
+     * Verifies a settled tile whose opacity is changed while it is out of the list keeps
+     * that opacity when put back, in its slot or another: only a tile the pane was fading
+     * in when it was removed resumes a fade.
+     */
+    @Test
+    public void settledTileChangedWhileOutKeepsItsOpacity() throws Exception {
+        onFx(() -> {
+            for (boolean sameSlot : new boolean[] {true, false}) {
+                String where = sameSlot ? "same slot" : "another slot";
+                RXTilePane pane = shownPane(3);
+                Node settled = pane.getChildren().get(2);
+                pane.getChildren().remove(settled);
+                settled.setOpacity(0.3);
+                pane.getChildren().add(sameSlot ? 2 : 0, settled);
+                layout(pane, 700, 400);
+                assertTileClose(0.3, settled.getOpacity(), where + ": its new opacity stands");
+            }
+        });
+    }
+
     // Tiles of 100 px, three to a row at 700 px with a 10 px vgap, laid out once in a scene.
     private static RXTilePane shownPane(int count) {
         RXTilePane pane = filledPane(count);

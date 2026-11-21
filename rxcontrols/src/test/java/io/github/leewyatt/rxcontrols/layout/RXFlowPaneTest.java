@@ -1934,6 +1934,27 @@ public class RXFlowPaneTest {
         });
     }
 
+    /**
+     * Verifies a settled card whose opacity is changed while it is out of the list keeps
+     * that opacity when put back, in its slot or another: only a card the pane was fading
+     * in when it was removed resumes a fade.
+     */
+    @Test
+    public void settledCardChangedWhileOutKeepsItsOpacity() throws Exception {
+        onFx(() -> {
+            for (boolean sameSlot : new boolean[] {true, false}) {
+                String where = sameSlot ? "same slot" : "another slot";
+                RXFlowPane pane = shownFlow(3);
+                Node settled = pane.getChildren().get(2);
+                pane.getChildren().remove(settled);
+                settled.setOpacity(0.3);
+                pane.getChildren().add(sameSlot ? 2 : 0, settled);
+                layout(pane, 400.0, 400.0);
+                assertClose(0.3, settled.getOpacity(), where + ": its new opacity stands");
+            }
+        });
+    }
+
     // 100 x 40 cards with 10 px gaps, laid out once in a 400 px scene.
     private static RXFlowPane shownFlow(int count) {
         RXFlowPane pane = flowPane(10.0, 10.0, cards(count, 100.0, 40.0));

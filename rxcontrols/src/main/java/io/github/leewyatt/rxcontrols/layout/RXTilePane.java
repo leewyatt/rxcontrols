@@ -211,7 +211,7 @@ public class RXTilePane extends Pane {
         // the rest once.
         animator.inBatch(() -> {
             for (Node removed : children.removed()) {
-                membership.removed(removed);
+                membership.removed(removed, animator.isFading(removed));
                 exits.removed(removed);
                 animator.forget(removed);
             }
@@ -1241,7 +1241,7 @@ public class RXTilePane extends Pane {
                 }
                 continue;
             }
-            if (shownWhenRemoved != null && shownWhenRemoved.opacity() != child.getOpacity()) {
+            if (shownWhenRemoved != null && shownWhenRemoved.fading()) {
                 // Removed mid-fade and put back: the removal gave the opacity back, so the
                 // fade goes on from where it showed.
                 animator.addResumedMove(moves, child, oldVisualX, oldVisualY, shownWhenRemoved.opacity());

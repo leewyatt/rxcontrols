@@ -426,6 +426,17 @@ final class PaneRelayoutAnimator {
     }
 
     /**
+     * Returns whether a relayout move is fading the node in now.
+     *
+     * @param node the node to query
+     * @return whether the node is fading in
+     */
+    boolean isFading(Node node) {
+        MoveState tracked = activeMoves.get(node);
+        return tracked != null && tracked.fade();
+    }
+
+    /**
      * Resubmits a tracked node at its live offset, so its in-flight tween keeps its
      * clock while its end point follows the node's freshly written layout position.
      * Does nothing for an untracked node. Used on passes that must not start motion.
