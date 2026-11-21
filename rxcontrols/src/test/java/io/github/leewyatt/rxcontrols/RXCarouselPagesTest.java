@@ -377,6 +377,57 @@ public class RXCarouselPagesTest {
         });
     }
 
+    @Test
+    public void setPagesCalledWhileAnotherSetPagesSetsTheCountWins() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = laidOutCarousel(labels(3));
+            List<Label> outer = List.of(new Label("A0"), new Label("A1"));
+            List<Label> inner = List.of(new Label("B0"), new Label("B1"), new Label("B2"), new Label("B3"));
+            boolean[] armed = {true};
+            carousel.pageCountProperty().addListener((observable, was, is) -> {
+                if (armed[0] && is.intValue() == 2) {
+                    armed[0] = false;
+                    carousel.setPages(inner.toArray(new Node[0]));
+                }
+            });
+            List<Throwable> errors = new ArrayList<>();
+
+            withUncaughtHandler(errors, () -> carousel.setPages(outer.toArray(new Node[0])));
+
+            assertEquals(List.of(), errors);
+            assertEquals(4, carousel.getPageCount());
+            assertSame(inner.get(3), carousel.getPageFactory().call(3));
+            assertEquals(List.of("B0"), shownPages(carousel));
+        });
+    }
+
+    @Test
+    public void pageListSetWhileAnotherPageListSetsTheFactoryWins() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = laidOutCarousel(labels(3));
+            ObservableList<Node> outer = FXCollections.observableArrayList(new Label("A0"), new Label("A1"));
+            ObservableList<Node> inner = FXCollections.observableArrayList(
+                    new Label("B0"), new Label("B1"), new Label("B2"), new Label("B3"));
+            boolean[] armed = {true};
+            carousel.pageFactoryProperty().addListener((observable, was, is) -> {
+                if (armed[0]) {
+                    armed[0] = false;
+                    carousel.setPages(inner);
+                }
+            });
+            List<Throwable> errors = new ArrayList<>();
+
+            withUncaughtHandler(errors, () -> carousel.setPages(outer));
+
+            assertEquals(List.of(), errors);
+            assertEquals(4, carousel.getPageCount());
+            assertSame(inner.get(3), carousel.getPageFactory().call(3));
+            assertEquals(List.of("B0"), shownPages(carousel));
+            outer.add(new Label("A2"));
+            assertEquals(4, carousel.getPageCount());
+        });
+    }
+
     // ==================== Selected index ====================
 
     @Test

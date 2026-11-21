@@ -236,6 +236,86 @@ public class RXCarouselSkinTest {
     }
 
     @Test
+    public void skinReplacedByAFactoryListenerDropsThePagesOfTheOldFactory() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = new RXCarousel();
+            carousel.setPages(labels(3).toArray(new Node[0]));
+            List<Label> fresh = List.of(new Label("N0"), new Label("N1"), new Label("N2"));
+            boolean[] armed = {true};
+            // Registered before the skin exists, so it runs before the skin's own factory listener.
+            carousel.pageFactoryProperty().addListener(observable -> {
+                if (armed[0]) {
+                    armed[0] = false;
+                    carousel.setSkin(new RXCarouselSkin(carousel) {
+                    });
+                }
+            });
+            layOut(carousel);
+
+            carousel.setPageFactory(fresh::get);
+            layOutAgain(carousel);
+
+            assertEquals(List.of("N0"), shownPages(carousel));
+            carousel.setSkin(null);
+        });
+    }
+
+    @Test
+    public void cacheClearRequestedWhileAnEvictionClosesThePageSurvivesASkinReplacement() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = new RXCarousel();
+            carousel.setPageCount(3);
+            carousel.setPageFactory(index -> new Label("P" + index));
+            layOut(carousel);
+            Node first = shownNode(carousel);
+            List<String> events = record(carousel);
+            boolean[] armed = {true};
+            carousel.addEventHandler(RXPageLifecycleEvent.CLOSING, e -> {
+                if (armed[0]) {
+                    armed[0] = false;
+                    carousel.setSkin(new RXCarouselSkin(carousel) {
+                    });
+                }
+            });
+
+            carousel.clearPageCache(0);
+            layOutAgain(carousel);
+
+            assertTrue(events.contains("EVICTED:0"), events::toString);
+            assertNotSame(first, shownNode(carousel));
+            carousel.setSkin(null);
+        });
+    }
+
+    @Test
+    public void cacheClearRequestedWhileTheReplacedSkinCompletesItsPairsReachesTheNewSkin() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = laidOutCarousel(labels(3));
+            carousel.setAnimation(new AnimFade());
+            carousel.setAnimationDuration(Duration.seconds(30.0));
+            carousel.goToPage(1);
+            List<String> events = record(carousel);
+            boolean[] armed = {true};
+            carousel.addEventHandler(RXPageLifecycleEvent.CLOSED, e -> {
+                if (armed[0]) {
+                    armed[0] = false;
+                    carousel.clearPageCache();
+                }
+            });
+
+            carousel.setSkin(new RXCarouselSkin(carousel) {
+            });
+            layOutAgain(carousel);
+
+            assertTrue(events.containsAll(List.of("EVICTED:0", "EVICTED:1", "EVICTED:2")), events::toString);
+            assertEquals(List.of("CLOSED:0", "OPENED:1", "CLOSING:1", "CLOSED:1", "OPENING:1", "OPENED:1"),
+                    openClose(events));
+            assertEquals(List.of("P1"), shownPages(carousel));
+            carousel.setSkin(null);
+        });
+    }
+
+    @Test
     public void cacheClearedJustBeforeTheSkinIsReplacedIsClearedByTheNewSkin() throws Exception {
         onFx(() -> {
             List<Label> pages = labels(3);
@@ -431,6 +511,17 @@ public class RXCarouselSkinTest {
             }
         }
         return filtered;
+    }
+
+    private static Node shownNode(RXCarousel carousel) {
+        for (Node pane : carousel.lookupAll(".content-pane")) {
+            for (Node wrapper : ((Parent) pane).getChildrenUnmodifiable()) {
+                if (wrapper.isVisible() && !((Parent) wrapper).getChildrenUnmodifiable().isEmpty()) {
+                    return ((Parent) wrapper).getChildrenUnmodifiable().get(0);
+                }
+            }
+        }
+        return null;
     }
 
     // Texts of the page nodes whose wrapper shows in the content pane.

@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
+import io.github.leewyatt.rxcontrols.skins.RXCarouselSkin;
 import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -9,6 +10,7 @@ import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventType;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
@@ -240,7 +242,52 @@ public class RXCarouselAutoPlayTest {
         }
     }
 
+    @Test
+    public void factoryReplacedWhenTheReplacedSkinStopsTheCountdownReachesTheNewSkin() throws Exception {
+        RXCarousel[] carousel = new RXCarousel[1];
+        onFx(() -> {
+            carousel[0] = showingCarousel(3);
+            carousel[0].setAutoPlayInterval(Duration.seconds(2.0));
+            carousel[0].setAutoPlay(true);
+        });
+        Thread.sleep(150L);
+        try {
+            onFx(() -> {
+                assertTrue(carousel[0].getAutoPlayProgress() > 0.0);
+                List<Label> fresh = List.of(new Label("N0"), new Label("N1"), new Label("N2"));
+                boolean[] armed = {true};
+                carousel[0].autoPlayProgressProperty().addListener((observable, was, is) -> {
+                    if (armed[0] && is.doubleValue() == 0.0) {
+                        armed[0] = false;
+                        carousel[0].setPageFactory(fresh::get);
+                    }
+                });
+
+                carousel[0].setSkin(new RXCarouselSkin(carousel[0]) {
+                });
+                carousel[0].getScene().getRoot().applyCss();
+                carousel[0].getScene().getRoot().layout();
+
+                assertEquals(List.of("N0"), shownPages(carousel[0]));
+            });
+        } finally {
+            onFx(() -> carousel[0].getScene().getRoot().setVisible(false));
+        }
+    }
+
     // ==================== Helpers ====================
+
+    private static List<String> shownPages(RXCarousel carousel) {
+        List<String> shown = new ArrayList<>();
+        for (Node wrapper : ((Parent) carousel.lookup(".content-pane")).getChildrenUnmodifiable()) {
+            if (wrapper.isVisible()) {
+                for (Node node : ((Parent) wrapper).getChildrenUnmodifiable()) {
+                    shown.add(((Label) node).getText());
+                }
+            }
+        }
+        return shown;
+    }
 
     private static MouseEvent mouse(EventType<MouseEvent> type) {
         return new MouseEvent(type, 1.0, 1.0, 1.0, 1.0, MouseButton.NONE, 0,

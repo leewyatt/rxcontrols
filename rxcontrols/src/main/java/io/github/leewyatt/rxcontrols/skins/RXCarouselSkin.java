@@ -155,6 +155,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     private boolean activated;
     private boolean disposed;
     private final InvalidationListener skinListener = observable -> activate();
+    // Cache clears requested between installation and take-over.
+    private boolean clearAllOnTakeOver;
+    private final Set<Integer> clearOnTakeOver = new HashSet<>();
 
     /**
      * Creates the default skin for the given carousel. The skin starts showing
@@ -239,12 +242,17 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     // Continues the pages a replaced skin handed over: the page it left open
     // stays open without events while it is still the selected page;
     // otherwise the first step closes it and cuts to the selected page.
-    // Without a hand-over the selected page is opened from scratch.
+    // Pages of another factory than the carousel's are stale, so the loop
+    // evicts them first. Without a hand-over the selected page is opened from
+    // scratch.
     private void takeOver(RXCarousel carousel, Handover handover, boolean pagesChanged) {
         if (handover != null) {
-            for (Map.Entry<Integer, Node> entry : handover.pages.entrySet()) {
-                Page page = new Page(entry.getKey(), entry.getValue());
+            for (HandedPage handed : handover.pages) {
+                Page page = new Page(handed.index(), handed.node(), handed.factory());
                 pageCache.put(page.index, page);
+                if (handed.stale()) {
+                    doomed.add(page);
+                }
                 if (page.index == handover.openIndex) {
                     page.phase = Phase.OPENED;
                     showOnly(page);
@@ -252,17 +260,21 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                     shownIndex = page.index;
                 }
             }
-            if (handover.factory != carousel.getPageFactory()) {
-                doomed.addAll(pageCache.values());
-            } else {
-                for (int index : handover.stale) {
-                    doomed.add(pageCache.get(index));
-                }
-                if (pagesChanged) {
-                    checkPages(carousel);
-                }
+            if (pagesChanged) {
+                checkPages(carousel);
             }
         }
+        if (clearAllOnTakeOver) {
+            doomed.addAll(pageCache.values());
+        }
+        for (int index : clearOnTakeOver) {
+            Page page = pageCache.get(index);
+            if (page != null) {
+                doomed.add(page);
+            }
+        }
+        clearAllOnTakeOver = false;
+        clearOnTakeOver.clear();
         cutNext = true;
         idlePending = true;
         sync();
@@ -984,7 +996,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             if (node == null || index >= carousel.getPageCount()) {
                 return null;
             }
-            page = new Page(index, node);
+            page = new Page(index, node, factory);
             pageCache.put(index, page);
             if (deferCached) {
                 pendingCached.add(page);
@@ -1076,15 +1088,23 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         return next;
     }
 
+    // A page is stale when asked for, past the page count, or made by another
+    // factory than the carousel's.
     private boolean isStale(Page page) {
-        return page != null && (doomed.contains(page) || page.index >= getSkinnable().getPageCount());
+        if (page == null) {
+            return false;
+        }
+        RXCarousel carousel = getSkinnable();
+        return doomed.contains(page) || page.index >= carousel.getPageCount()
+                || page.factory != carousel.getPageFactory();
     }
 
     // Evicts a page after completing what it started: the open page closes
     // first (CLOSING, CLOSED), then EVICTED. The node leaves the skin's
-    // wrapper before EVICTED, so a handler can put it somewhere else.
+    // wrapper before EVICTED, so a handler can put it somewhere else. The
+    // page stays marked until it has left the cache, so a skin replaced from
+    // a CLOSING handler still hands the eviction over.
     private void evict(Page page) {
-        doomed.remove(page);
         if (page != shown && page.wrapper.isVisible() && page.wrapper.getParent() == contentPane) {
             // A side page of a multi-page layout: lay the pages out again.
             idlePending = true;
@@ -1100,20 +1120,22 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         if (pageCache.get(page.index) == page) {
             pageCache.remove(page.index);
         }
+        doomed.remove(page);
         detach(page);
         page.wrapper.getChildren().clear();
         announce(RXPageLifecycleEvent.EVICTED, page);
     }
 
     // The nodes behind the indices may have changed: a cached page whose
-    // index is past the pages is evicted anyway; one whose node the factory
-    // no longer gives for its index is evicted too. The index is checked
-    // first, as a shorter list cannot be asked for it.
+    // index is past the pages, or that another factory made, is evicted
+    // anyway; one whose node the factory no longer gives for its index is
+    // evicted too. The index is checked first, as a shorter list cannot be
+    // asked for it.
     private void checkPages(RXCarousel carousel) {
         Callback<Integer, Node> factory = carousel.getPageFactory();
         int count = carousel.getPageCount();
         for (Page page : sortedPages()) {
-            if (page.index < count && (factory == null || callFactory(factory, page.index) != page.node)) {
+            if (page.index < count && page.factory == factory && callFactory(factory, page.index) != page.node) {
                 doomed.add(page);
             }
         }
@@ -1134,7 +1156,15 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
      * {@link RXCarousel#clearPageCache()}.
      */
     public void clearPageCache() {
-        if (!activated || disposed) {
+        if (disposed) {
+            return;
+        }
+        if (!activated) {
+            // Installed while the replaced skin fires its last events: the
+            // take-over clears what it is handed.
+            if (isInstalled()) {
+                clearAllOnTakeOver = true;
+            }
             return;
         }
         doomed.addAll(pageCache.values());
@@ -1150,7 +1180,13 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
      * @param index the page index to clear
      */
     public void clearPageCache(int index) {
-        if (!activated || disposed) {
+        if (disposed) {
+            return;
+        }
+        if (!activated) {
+            if (isInstalled()) {
+                clearOnTakeOver.add(index);
+            }
             return;
         }
         Page page = pageCache.get(index);
@@ -1159,6 +1195,11 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             forgetMissingPage();
             sync();
         }
+    }
+
+    private boolean isInstalled() {
+        RXCarousel carousel = getSkinnable();
+        return carousel != null && carousel.getSkin() == this;
     }
 
     // ==================== Pages in the Content Pane ====================
@@ -1615,13 +1656,6 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         boolean replaced = installed instanceof RXCarouselSkin
                 && installed != this
                 && ((RXCarouselSkin) installed).getSkinnable() == carousel;
-        // Read before any event below: a handler may replace the factory
-        // while this skin no longer listens, and the replacement must know
-        // which factory made these pages and which were already due for
-        // eviction.
-        Callback<Integer, Node> cacheFactory = carousel.getPageFactory();
-        Set<Page> stalePages = new HashSet<>(doomed);
-
         // The stop runs the animation's finish action; the transition
         // callbacks see this skin disposed and do nothing.
         engine.interrupt();
@@ -1640,7 +1674,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
 
         List<Page> pages = sortedPages();
         if (replaced) {
-            carousel.getProperties().put(HANDOVER_KEY, new Handover(pages, openPage(), cacheFactory, stalePages));
+            carousel.getProperties().put(HANDOVER_KEY, new Handover(pages, openPage(), doomed));
         } else {
             carousel.getProperties().remove(HANDOVER_KEY);
         }
@@ -1729,17 +1763,21 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
 
     // A cached page: the application's node inside a wrapper the skin owns.
     // Animations and the skin change the wrapper only, so the node keeps its
-    // own visibility, opacity, transforms and effect.
+    // own visibility, opacity, transforms and effect. The page remembers the
+    // factory that made it: once the carousel has another factory, it is
+    // stale whatever happened in between.
     private static final class Page {
 
         final int index;
         final Node node;
+        final Callback<Integer, Node> factory;
         final StackPane wrapper = new StackPane();
         Phase phase = Phase.CLOSED;
 
-        Page(int index, Node node) {
+        Page(int index, Node node, Callback<Integer, Node> factory) {
             this.index = index;
             this.node = node;
+            this.factory = factory;
             wrapper.getStyleClass().add("page");
             wrapper.getChildren().add(node);
         }
@@ -1749,22 +1787,18 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     // them without events.
     private static final class Handover {
 
-        final Map<Integer, Node> pages = new HashMap<>();
-        // Pages the replaced skin had yet to evict.
-        final Set<Integer> stale = new HashSet<>();
+        final List<HandedPage> pages = new ArrayList<>();
         final int openIndex;
-        // The factory that made the pages.
-        final Callback<Integer, Node> factory;
 
-        Handover(List<Page> cached, Page open, Callback<Integer, Node> factory, Set<Page> stalePages) {
+        Handover(List<Page> cached, Page open, Set<Page> stalePages) {
             for (Page page : cached) {
-                pages.put(page.index, page.node);
-                if (stalePages.contains(page)) {
-                    stale.add(page.index);
-                }
+                pages.add(new HandedPage(page.index, page.node, page.factory, stalePages.contains(page)));
             }
             this.openIndex = open == null ? -1 : open.index;
-            this.factory = factory;
         }
+    }
+
+    // A handed-over page; stale when the replaced skin had yet to evict it.
+    private record HandedPage(int index, Node node, Callback<Integer, Node> factory, boolean stale) {
     }
 }

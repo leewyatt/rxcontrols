@@ -816,6 +816,9 @@ public class RXCarousel extends Control {
     // Page updates in progress, a listener of one may start another; the skin
     // holds off until the outermost one ends.
     private int pagesUpdates;
+    // Counts setPages calls: one that a listener started inside another wins,
+    // and the outer call sets nothing more once it returns.
+    private int pagesCalls;
 
     // Weak: a page list that outlives the carousel must not keep it reachable.
     private final ListChangeListener<Node> pagesListener = change -> onPagesChanged();
@@ -866,12 +869,15 @@ public class RXCarousel extends Control {
      * @param pages the page nodes
      */
     public void setPages(Node... pages) {
+        int call = ++pagesCalls;
         clearPagesListener();
         List<Node> list = Arrays.asList(pages);
         beginPagesUpdate();
         try {
             setPageCount(list.size());
-            setPageFactory(list::get);
+            if (call == pagesCalls) {
+                setPageFactory(list::get);
+            }
         } finally {
             endPagesUpdate();
         }
@@ -887,6 +893,7 @@ public class RXCarousel extends Control {
      * @param pages the observable list of page nodes
      */
     public void setPages(ObservableList<Node> pages) {
+        int call = ++pagesCalls;
         clearPagesListener();
         Callback<Integer, Node> factory = pages::get;
         // Listening before the pages apply: the skin applies them when the
@@ -898,9 +905,13 @@ public class RXCarousel extends Control {
         beginPagesUpdate();
         try {
             setPageCount(pages.size());
-            setPageFactory(factory);
-            // A count listener may have changed the list before the factory was set.
-            setPageCount(pages.size());
+            if (call == pagesCalls) {
+                setPageFactory(factory);
+            }
+            if (call == pagesCalls) {
+                // A count listener may have changed the list before the factory was set.
+                setPageCount(pages.size());
+            }
         } finally {
             endPagesUpdate();
         }
