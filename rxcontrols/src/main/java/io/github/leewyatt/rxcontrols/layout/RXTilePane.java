@@ -207,6 +207,9 @@ public class RXTilePane extends Pane {
             membership.removed(removed);
             animator.forget(removed);
         }
+        for (Node added : children.added()) {
+            membership.added(added);
+        }
     };
 
     // ==================== Constructors ====================
@@ -836,28 +839,34 @@ public class RXTilePane extends Pane {
     };
 
     /**
-     * Whether existing children glide to their new positions after relayout. On by
-     * default; turning it off mid-flight snaps every child to its final position. A size
+     * Whether children animate on relayout: existing children glide to their new
+     * positions, and a child added while the pane shows fades in, rising a few pixels into
+     * place with the same duration and interpolator. On by default; turning it off
+     * mid-flight snaps every child to its final position. A size
      * change imposed by the parent that keeps the column count applies immediately, in
      * width or in height (a pane squeezed below its content included), so dragging a
      * window edge never leaves children trailing; a glide already in flight keeps its
      * clock while its target follows the resize. An explicit {@code prefWidth}, even one
      * bound to the parent's width, counts as imposed by the parent; a width that follows
      * the pane's own computed preferred width still glides. Only a child the previous
-     * layout placed glides; one that is newly added, newly managed or back after missing a
-     * layout snaps into place, and so does every child on the first layout after the pane
-     * enters a scene or is laid out outside one. A child removed and put back before the
-     * next layout glides on from where it showed when it was removed, even mid-glide.
+     * layout placed glides, and only a child added to the list since enters; one that is
+     * newly managed or back after missing a layout snaps into place, and so does every
+     * child on the first layout after the pane enters a scene or is laid out outside one.
+     * A child removed and put back before the next layout goes on as it stood when it was
+     * removed: it glides on from where it showed, even mid-glide, or still enters if it
+     * was added since; one that {@code setAll} keeps in the list goes on as it was.
      *
-     * <p>While a child glides, the pane drives its {@code translateX} /
-     * {@code translateY}; it never touches {@code opacity}. A translate the child had
-     * before the glide is kept: the glide ends there. Writing translate from elsewhere
-     * while the child glides, by one assignment or a running animation, is not
-     * supported: the pane may overwrite it, and when the glide settles it puts back the
-     * value from before the glide, which a still-running animation may then change
-     * again. Keep independent effects on a node inside the child. A child with
-     * {@code translateX} or {@code translateY} bound snaps instead; binding them while
-     * the child is gliding is not supported.</p>
+     * <p>While a child animates, the pane drives its {@code translateX} /
+     * {@code translateY}, and its {@code opacity} while it fades in. Values the child had
+     * before are kept: a glide ends at the earlier translate, an entrance starts offset
+     * from it, and a fade returns to the earlier opacity. Writing these from elsewhere
+     * while the child animates, by one assignment or a running animation, is not
+     * supported: the pane may overwrite them, and when the animation settles it puts back
+     * the values from before, which a still-running animation may then change again. Keep
+     * independent effects on a node inside the child. A child with {@code translateX} or
+     * {@code translateY} bound snaps instead, whether moving or entering, and one with
+     * {@code opacity} bound enters without fading; binding these while the child is
+     * animating is not supported.</p>
      *
      * @return the animated property
      */
@@ -1163,13 +1172,13 @@ public class RXTilePane extends Pane {
             double oldVisualY = 0.0;
             // A child removed and put back since the last pass has had its translate given
             // back; where it showed when removed is where its glide goes on from.
-            double[] shownWhenRemoved = null;
+            PassMembership.Shown shownWhenRemoved = null;
             if (collectMoves) {
                 shownWhenRemoved = membership.shownWhenRemoved(child);
                 oldVisualX = shownWhenRemoved != null
-                        ? shownWhenRemoved[0] : child.getLayoutX() + child.getTranslateX();
+                        ? shownWhenRemoved.x() : child.getLayoutX() + child.getTranslateX();
                 oldVisualY = shownWhenRemoved != null
-                        ? shownWhenRemoved[1] : child.getLayoutY() + child.getTranslateY();
+                        ? shownWhenRemoved.y() : child.getLayoutY() + child.getTranslateY();
             }
             Pos childAlignment = childTileAlignment(child, tileAlignmentValue);
             // Recorded before any skip: every pass in a scene, the first and the
@@ -1184,9 +1193,13 @@ public class RXTilePane extends Pane {
                 animator.keepInFlight(moves, child);
                 continue;
             }
-            // Checked before any motion: an entering child's old layout position belongs to
-            // wherever it was before, and its own translate stays as it is.
+            // Checked before any motion: a child with no shown position to glide from has an
+            // old layout position that belongs to wherever it was before. A new child rises
+            // into its slot from its own translate; any other snaps, its translate untouched.
             if (shownWhenRemoved == null && !membership.wasLaidOut(child)) {
+                if (membership.isEntering(child)) {
+                    animator.addEnterMove(moves, child, 0.0, PaneRelayoutAnimator.enterOffset(vgapValue), true);
+                }
                 continue;
             }
             animator.addRelayoutMove(moves, child, oldVisualX, oldVisualY);

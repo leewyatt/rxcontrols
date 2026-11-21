@@ -69,6 +69,21 @@ final class PaneRelayoutAnimator {
 
     static final double MOVE_EPSILON = 0.5;
 
+    // The rise of an entrance, in pixels: the pane's gap clamped to this range.
+    private static final double ENTER_OFFSET_MIN = 4.0;
+    private static final double ENTER_OFFSET_MAX = 12.0;
+
+    /**
+     * Returns how far below its slot an entering child starts: the given gap, clamped
+     * to a few pixels so the rise reads as a settle rather than a slide.
+     *
+     * @param gap the pane's gap between rows
+     * @return the entrance offset
+     */
+    static double enterOffset(double gap) {
+        return Math.max(ENTER_OFFSET_MIN, Math.min(ENTER_OFFSET_MAX, gap));
+    }
+
     // targetOpacity is the opacity the fade tween ends at (the value the node had
     // before the animator wrote 0); NaN for pure-translate moves, whose opacity is
     // never touched. restX / restY is the translate the node had when first taken over.

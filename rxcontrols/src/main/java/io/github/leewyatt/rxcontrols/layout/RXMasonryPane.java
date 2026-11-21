@@ -157,8 +157,6 @@ public class RXMasonryPane extends Pane {
      */
     private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
 
-    private static final double ENTER_TRANSLATE_MIN = 4.0;
-    private static final double ENTER_TRANSLATE_MAX = 12.0;
 
     // ==================== Constraints ====================
 
@@ -1067,7 +1065,7 @@ public class RXMasonryPane extends Pane {
     }
 
     private double enterTranslateY() {
-        return RXMath.clamp(sanitizedVgap(), ENTER_TRANSLATE_MIN, ENTER_TRANSLATE_MAX);
+        return PaneRelayoutAnimator.enterOffset(sanitizedVgap());
     }
 
     // ==================== RXBreakpoint Profile ====================

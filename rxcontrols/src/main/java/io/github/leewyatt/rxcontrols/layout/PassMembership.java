@@ -9,15 +9,17 @@ import java.util.Set;
 import java.util.WeakHashMap;
 
 /**
- * Records which children a pane laid out on its previous layout pass, so the pane can
- * tell a child it showed (which may glide from where it showed) from one it did not.
+ * Records which children a pane laid out on its previous layout pass and which joined
+ * it since, so the pane can tell a child it showed (which may glide from where it
+ * showed) from one that is new (which enters) and from one that is neither.
  *
  * <p>A glide needs a position the child was last shown at. Only a pass in the scene the
- * pane was last laid out in animates, and only a child that pass laid out glides; any
- * other child (newly added, newly managed, back after missing a pass) snaps into its
- * slot instead of gliding in from a stale position or the pane origin. A child removed
- * and put back before the next pass glides on from where it showed when it was
- * removed.</p>
+ * pane was last laid out in animates, and only a child that pass laid out glides. A
+ * child added to the list since enters; any other child (newly managed, back after
+ * missing a pass) snaps into its slot instead of gliding in from a stale position or the
+ * pane origin. A child removed and put back before the next pass goes on as it stood
+ * when it was removed: one the last pass laid out glides on from where it showed, one
+ * added since still enters, and one that was in the list but not laid out snaps.</p>
  *
  * <p>A listener reached from a layout pass can take the pane out of its scene while the
  * pass is still running. The pane samples {@link #sceneChanges()} when the pass starts;
@@ -30,11 +32,27 @@ final class PassMembership {
     private int sceneChanges;
     private Set<Node> laidOutLastPass = new HashSet<>();
     private Set<Node> laidOutThisPass = new HashSet<>();
-    // Children of the last pass removed since, with where each showed when it was
-    // removed (layout plus translate, read before the animator gives the translate back).
-    // Weak keys: a removed child must not stay reachable from the pane when no further
-    // pass comes; the values hold no node.
-    private final Map<Node, double[]> removedSinceLastPass = new WeakHashMap<>();
+    // Children added since the last pass; all are in the list, so they are held anyway.
+    private final Set<Node> addedSinceLastPass = new HashSet<>();
+    // Children removed since the last pass, with how each stood. Weak keys: a removed
+    // child must not stay reachable from the pane when no further pass comes; the
+    // values hold no node.
+    private final Map<Node, Departure> departures = new WeakHashMap<>();
+
+    /**
+     * Where a removed child of the last pass showed: layout plus translate, read before
+     * the animator gives the translate back.
+     *
+     * @param x the x it showed at
+     * @param y the y it showed at
+     */
+    record Shown(double x, double y) {
+    }
+
+    // How a child stood when it was removed: laid out by the last pass (shown is where it
+    // showed), added since (entering), or neither (shown and entering both unset).
+    private record Departure(Shown shown, boolean entering) {
+    }
 
     /**
      * Notes that the pane moved to another scene or out of one; leaving a scene forgets
@@ -97,27 +115,56 @@ final class PassMembership {
     }
 
     /**
-     * Returns where a child of the last pass showed when it was removed since, as
-     * {@code {x, y}} in layout plus translate, or {@code null} when it was not removed.
+     * Returns whether the child joined the list since the last pass, and so enters.
      *
      * @param child the child
-     * @return the position it showed at when removed, or {@code null}
+     * @return whether it enters
      */
-    double[] shownWhenRemoved(Node child) {
-        return removedSinceLastPass.get(child);
+    boolean isEntering(Node child) {
+        return addedSinceLastPass.contains(child);
     }
 
     /**
-     * Notes that a child left the children list; called before the animator gives its
-     * translate back.
+     * Returns where a child of the last pass showed when it was removed since, or
+     * {@code null} when it was not, or the last pass did not lay it out.
+     *
+     * @param child the child
+     * @return where it showed when removed, or {@code null}
+     */
+    Shown shownWhenRemoved(Node child) {
+        Departure departure = departures.get(child);
+        return departure == null ? null : departure.shown();
+    }
+
+    /**
+     * Notes that a child really left the children list; called before the animator gives
+     * its translate back.
      *
      * @param child the child removed
      */
     void removed(Node child) {
-        if (laidOutLastPass.remove(child)) {
-            removedSinceLastPass.put(child, new double[] {
-                    child.getLayoutX() + child.getTranslateX(),
-                    child.getLayoutY() + child.getTranslateY()});
+        boolean laidOut = laidOutLastPass.remove(child);
+        boolean entering = addedSinceLastPass.remove(child);
+        // Taken out again after being put back: how it stood is recorded already.
+        if (departures.containsKey(child)) {
+            return;
+        }
+        Shown shown = laidOut
+                ? new Shown(child.getLayoutX() + child.getTranslateX(), child.getLayoutY() + child.getTranslateY())
+                : null;
+        departures.put(child, new Departure(shown, entering));
+    }
+
+    /**
+     * Notes that a child really joined the children list: a new child enters, and one
+     * put back goes on as it stood when it was removed.
+     *
+     * @param child the child added
+     */
+    void added(Node child) {
+        Departure departure = departures.get(child);
+        if (departure == null || departure.entering()) {
+            addedSinceLastPass.add(child);
         }
     }
 
@@ -136,7 +183,8 @@ final class PassMembership {
         laidOutLastPass = laidOutThisPass;
         laidOutThisPass = previous;
         laidOutThisPass.clear();
-        removedSinceLastPass.clear();
+        addedSinceLastPass.clear();
+        departures.clear();
         layoutScene = scene;
     }
 
@@ -147,6 +195,7 @@ final class PassMembership {
         layoutScene = null;
         laidOutLastPass.clear();
         laidOutThisPass.clear();
-        removedSinceLastPass.clear();
+        addedSinceLastPass.clear();
+        departures.clear();
     }
 }
