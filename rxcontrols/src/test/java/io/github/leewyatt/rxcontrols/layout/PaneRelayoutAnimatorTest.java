@@ -714,7 +714,7 @@ public class PaneRelayoutAnimatorTest {
             Region fadeBound = new Region();
             fadeBound.opacityProperty().bind(new SimpleDoubleProperty(0.6));
             Region driftBound = new Region();
-            driftBound.translateYProperty().bind(new SimpleDoubleProperty(4.0));
+            driftBound.translateXProperty().bind(new SimpleDoubleProperty(4.0));
             AtomicBoolean fadeFinished = new AtomicBoolean(false);
             AtomicBoolean driftFinished = new AtomicBoolean(false);
 
@@ -726,6 +726,30 @@ public class PaneRelayoutAnimatorTest {
             assertTrue(fadeFinished.get(), "bound opacity: completed immediately");
             assertTrue(driftFinished.get(), "bound translate: completed immediately");
             assertFalse(animator.hasActiveState(), "nothing left animating");
+        });
+    }
+
+    /**
+     * Verifies a node bound while gliding (unsupported) does not make the next
+     * relayout pass throw when it drops and settles the node.
+     */
+    @Test
+    public void bindingMidGlideDoesNotBreakTheNextPass() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            Region node = new Region();
+            node.setOpacity(0.8);
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 30.0, 0.0, true)),
+                    true, DURATION, Interpolator.EASE_BOTH);
+            node.translateXProperty().bind(new SimpleDoubleProperty(5.0));
+            node.opacityProperty().bind(new SimpleDoubleProperty(0.4));
+
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 5.0, 0.0, false)),
+                    true, DURATION, Interpolator.EASE_BOTH);
+
+            assertFalse(animator.isTracked(node), "dropped from the animation");
+            assertEquals(5.0, node.getTranslateX(), EPSILON, "translate binding left untouched");
+            assertEquals(0.4, node.getOpacity(), EPSILON, "opacity binding left untouched");
         });
     }
 

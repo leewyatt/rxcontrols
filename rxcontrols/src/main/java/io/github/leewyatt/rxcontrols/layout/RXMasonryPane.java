@@ -790,10 +790,11 @@ public class RXMasonryPane extends Pane {
      * turning this off while an animation is running snaps every child to its
      * final state. While enabled, the pane drives each child's {@code translateX}
      * / {@code translateY} (and {@code opacity} during fades) for the animation. A
-     * child whose {@code translateX} or {@code translateY} is bound snaps instead of
-     * moving, one whose {@code opacity} is bound moves without fading, and either
-     * binding makes {@link #removeAnimated(Node)} remove the child at once. Binding
-     * these properties while the child is animating is not supported.
+     * child whose {@code translateX} or {@code translateY} is bound snaps into place,
+     * whether moving or entering; one whose {@code opacity} is bound moves and enters
+     * without fading; and either binding makes {@link #removeAnimated(Node)} and
+     * {@link #clearAnimated()} remove the child at once. Binding these properties
+     * while the child is animating is not supported.
      *
      * @return the animated property
      */

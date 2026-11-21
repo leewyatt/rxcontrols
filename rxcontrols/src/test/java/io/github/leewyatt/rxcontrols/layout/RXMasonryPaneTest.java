@@ -499,6 +499,7 @@ public class RXMasonryPaneTest {
             pane.getChildren().add(opacityBound);
             layout(pane, 500.0, 400.0);
             assertClose(0.6, opacityBound.getOpacity(), "enters without fading");
+            assertTrue(Math.abs(opacityBound.getTranslateY()) > EPSILON, "still slides in");
 
             pane.removeAnimated(opacityBound);
             pane.removeAnimated(translateBound);
@@ -509,7 +510,6 @@ public class RXMasonryPaneTest {
     }
 
     /**
-     * Verifies removing a leaving child externally (mid-exit) restores its    /**
      * Verifies removing a leaving child externally (mid-exit) restores its
      * original managed state instead of leaving it stuck unmanaged.
      */

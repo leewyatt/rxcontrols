@@ -43,7 +43,8 @@ import java.util.Set;
  * skipped (the node simply snaps), a fade whose node has a bound {@code opacity}
  * becomes a pure glide, and an exit whose node has either bound completes at once
  * without animating. Binding these properties while the node is animating is not
- * supported.</p>
+ * supported: the running timeline keeps writing the node until the next pass drops
+ * it, though settling never writes a bound channel.</p>
  */
 final class PaneRelayoutAnimator {
 
@@ -231,12 +232,11 @@ final class PaneRelayoutAnimator {
             // Settle anything this animator wrote before detaching, since forget
             // will no longer see the node as tracked.
             if (tracked != null || existing != null) {
-                node.setTranslateX(0.0);
-                node.setTranslateY(0.0);
+                resetTranslate(node);
                 if (existing != null) {
-                    node.setOpacity(existing.baseOpacity());
+                    restoreOpacity(node, existing.baseOpacity());
                 } else if (tracked.fade()) {
-                    node.setOpacity(tracked.targetOpacity());
+                    restoreOpacity(node, tracked.targetOpacity());
                 }
             }
             onFinished.run();
@@ -300,12 +300,11 @@ final class PaneRelayoutAnimator {
         if (tracked == null && exit == null) {
             return;
         }
-        node.setTranslateX(0.0);
-        node.setTranslateY(0.0);
+        resetTranslate(node);
         if (tracked != null && tracked.fade()) {
-            node.setOpacity(tracked.targetOpacity());
+            restoreOpacity(node, tracked.targetOpacity());
         } else if (exit != null) {
-            node.setOpacity(exit.baseOpacity());
+            restoreOpacity(node, exit.baseOpacity());
         }
     }
 
@@ -400,9 +399,8 @@ final class PaneRelayoutAnimator {
             return;
         }
         state.timeline().stop();
-        node.setTranslateX(0.0);
-        node.setTranslateY(0.0);
-        node.setOpacity(state.baseOpacity());
+        resetTranslate(node);
+        restoreOpacity(node, state.baseOpacity());
         state.onFinished().run();
     }
 
@@ -417,10 +415,26 @@ final class PaneRelayoutAnimator {
         if (exits.containsKey(node)) {
             return;
         }
-        node.setTranslateX(0.0);
-        node.setTranslateY(0.0);
+        resetTranslate(node);
         if (state.fade()) {
-            node.setOpacity(state.targetOpacity());
+            restoreOpacity(node, state.targetOpacity());
+        }
+    }
+
+    // Settling skips a channel bound since the node was armed. Binding mid-animation
+    // is unsupported, but it must not make the settle throw inside a layout pass.
+    private static void resetTranslate(Node node) {
+        if (!node.translateXProperty().isBound()) {
+            node.setTranslateX(0.0);
+        }
+        if (!node.translateYProperty().isBound()) {
+            node.setTranslateY(0.0);
+        }
+    }
+
+    private static void restoreOpacity(Node node, double value) {
+        if (!node.opacityProperty().isBound()) {
+            node.setOpacity(value);
         }
     }
 

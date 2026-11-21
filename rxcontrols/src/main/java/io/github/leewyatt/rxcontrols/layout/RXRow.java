@@ -856,13 +856,10 @@ public class RXRow extends Pane {
         }
     }
 
-    // previousSlots is non-null only on a structural pass. A column whose translate is
-    // bound is left to its binding: the animator writes translate even for a pure fade.
+    // previousSlots is non-null only on a structural pass. Bound translate or opacity
+    // needs no check here: the animator skips or downgrades such moves itself.
     private void addMove(List<PaneRelayoutAnimator.Move> moves, Node child,
                          double oldVisualX, double oldVisualY, Map<Node, SlotKey> previousSlots) {
-        if (child.translateXProperty().isBound() || child.translateYProperty().isBound()) {
-            return;
-        }
         if (reclaimedColumns.contains(child)) {
             // Shown again mid fade-out: its visual position was folded into layoutX when
             // the fade began, so it glides back from there and resumes fading in from its
@@ -885,10 +882,7 @@ public class RXRow extends Pane {
         if (!previousSlots.containsKey(child)) {
             // An entering column has no meaningful previous position (a newly added
             // node's layoutX belongs to its old parent), so it fades in where it lands.
-            boolean fade = !child.opacityProperty().isBound();
-            if (fade || tracked) {
-                moves.add(new PaneRelayoutAnimator.Move(child, 0.0, 0.0, fade));
-            }
+            moves.add(new PaneRelayoutAnimator.Move(child, 0.0, 0.0, true));
             return;
         }
         double fromX = oldVisualX - child.getLayoutX();
