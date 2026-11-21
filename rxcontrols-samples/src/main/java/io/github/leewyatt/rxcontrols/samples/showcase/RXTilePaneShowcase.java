@@ -202,13 +202,29 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
         add.setOnAction(e -> tiles.getChildren().add(card(nextCard++)));
         Button remove = new Button("Remove card");
         remove.setOnAction(e -> {
-            if (!tiles.getChildren().isEmpty()) {
-                tiles.getChildren().remove(tiles.getChildren().size() - 1);
+            Node last = managedChild(tiles.getChildren(), true);
+            if (last != null) {
+                tiles.removeAnimated(last);
             }
         });
-        HBox box = new HBox(8.0, add, remove);
+        Button clear = new Button("Clear");
+        clear.setOnAction(e -> tiles.clearAnimated());
+        HBox box = new HBox(8.0, add, remove, clear);
         box.setAlignment(Pos.CENTER_LEFT);
         return createGrid(row(box));
+    }
+
+    // A child fading out stays in the children list until its exit ends, so the buttons
+    // pick among the managed children: rapid clicks then fade out one more each time
+    // rather than the one already leaving.
+    private static Node managedChild(List<Node> children, boolean last) {
+        for (int i = 0; i < children.size(); i++) {
+            Node child = children.get(last ? children.size() - 1 - i : i);
+            if (child.isManaged()) {
+                return child;
+            }
+        }
+        return null;
     }
 
     private Node metricsGrid() {
