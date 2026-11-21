@@ -523,6 +523,29 @@ public class RXCarouselLifecycleTest {
         });
     }
 
+    @Test
+    public void factoryListenerGoingToTheFirstPageOpensTheNewFirstPageOnce() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = new RXCarousel();
+            carousel.setPageCount(3);
+            carousel.setPageFactory(index -> new Label("P" + index));
+            // Registered before the skin exists, so it runs before the skin's own factory listener.
+            carousel.pageFactoryProperty().addListener(observable -> carousel.goToPage(0, false));
+            StackPane root = new StackPane(carousel);
+            new Scene(root, 320.0, 200.0);
+            root.resize(320.0, 200.0);
+            root.applyCss();
+            root.layout();
+            carousel.goToPage(1, false);
+            Recorder recorder = new Recorder(carousel);
+
+            carousel.setPageFactory(index -> new Label("N" + index));
+
+            assertEquals(List.of("CLOSING:1", "CLOSED:1", "OPENING:0", "OPENED:0"), openClose(recorder.take()));
+            assertEquals(List.of("N0"), shownPages(carousel));
+        });
+    }
+
     // ==================== Dispatch scope ====================
 
     @Test

@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
+import io.github.leewyatt.rxcontrols.carousel.CarouselNavigator;
 import io.github.leewyatt.rxcontrols.carousel.RXPageLifecycleEvent;
 import io.github.leewyatt.rxcontrols.carousel.SegmentedProgressNavigator;
 import io.github.leewyatt.rxcontrols.skins.RXCarouselSkin;
@@ -31,6 +32,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -231,6 +233,51 @@ public class RXCarouselSkinTest {
             layOutAgain(carousel);
 
             assertEquals(List.of("N1"), shownPages(carousel));
+            carousel.setSkin(null);
+        });
+    }
+
+    @Test
+    public void navigatorCodeRunDuringATakeOverOpensNoPageOfItsOwn() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = new RXCarousel();
+            carousel.setPageCount(3);
+            carousel.setPageFactory(index -> new Label("P" + index));
+            ScriptedNavigator navigator = new ScriptedNavigator();
+            carousel.setNavigator(navigator);
+            layOut(carousel);
+            Node first = shownNode(carousel);
+            List<String> events = record(carousel);
+            navigator.onCreate = (owner, node) -> owner.getProperties().put("navigator-node", node);
+
+            carousel.setSkin(new RXCarouselSkin(carousel) {
+            });
+            layOutAgain(carousel);
+
+            assertEquals(List.of(), events);
+            assertSame(first, shownNode(carousel));
+            carousel.setSkin(null);
+            assertEquals(List.of("CLOSING:0", "CLOSED:0"), openClose(events));
+        });
+    }
+
+    @Test
+    public void cacheClearRequestedByNavigatorCodeDuringATakeOverIsCarriedOut() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = new RXCarousel();
+            carousel.setPageCount(3);
+            carousel.setPageFactory(index -> new Label("P" + index));
+            ScriptedNavigator navigator = new ScriptedNavigator();
+            carousel.setNavigator(navigator);
+            layOut(carousel);
+            List<String> events = record(carousel);
+            navigator.onCreate = (owner, node) -> owner.clearPageCache(1);
+
+            carousel.setSkin(new RXCarouselSkin(carousel) {
+            });
+            layOutAgain(carousel);
+
+            assertEquals(List.of("EVICTED:1", "CACHED:1"), events);
             carousel.setSkin(null);
         });
     }
@@ -565,6 +612,28 @@ public class RXCarouselSkinTest {
                 throw error;
             }
             throw e;
+        }
+    }
+
+    /** A navigator that runs the test's code whenever a skin creates its node. */
+    private static final class ScriptedNavigator implements CarouselNavigator {
+
+        BiConsumer<RXCarousel, Node> onCreate = (carousel, node) -> {
+        };
+
+        @Override
+        public Node createNode(RXCarousel carousel) {
+            StackPane node = new StackPane();
+            onCreate.accept(carousel, node);
+            return node;
+        }
+
+        @Override
+        public void onPageChanged(int oldIndex, int newIndex, int pageCount) {
+        }
+
+        @Override
+        public void dispose() {
         }
     }
 
