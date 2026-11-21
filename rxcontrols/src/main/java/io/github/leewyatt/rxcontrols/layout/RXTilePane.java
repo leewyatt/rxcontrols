@@ -1299,23 +1299,23 @@ public class RXTilePane extends Pane {
     // 128.571 into 129.143), so the count would disagree with the slots it lays out.
     private int computeColumns(double availableWidth, double tileWidth) {
         double gap = snapSpaceX(gapOrZero(getHgap()));
+        int max = getMaxColumns();
+        int limit = max > 0 ? Math.min(max, MAX_RESOLVED_COLUMNS) : MAX_RESOLVED_COLUMNS;
         int columns = 1;
         if (availableWidth > 0.0 && tileWidth > 0.0) {
-            columns = Math.max(1, (int) Math.floor((availableWidth + gap) / (tileWidth + gap)));
+            // Capped while still a double: the ratio of a tiny tile can exceed any int.
+            double fit = Math.floor((availableWidth + gap) / (tileWidth + gap));
+            columns = (int) Math.max(1.0, Math.min(fit, limit));
             // The division carries floating-point noise at a fractional render scale: a row
             // that exactly fits must keep its last column, and one a fraction of a pixel too
             // wide must still lose it. The candidate rows are summed like computePrefWidth.
-            if (!PixelGrid.exceedsX(this, rowWidth(columns + 1, tileWidth, gap), availableWidth)) {
+            if (columns < limit && !PixelGrid.exceedsX(this, rowWidth(columns + 1, tileWidth, gap), availableWidth)) {
                 columns++;
             } else if (columns > 1 && PixelGrid.exceedsX(this, rowWidth(columns, tileWidth, gap), availableWidth)) {
                 columns--;
             }
         }
-        int max = getMaxColumns();
-        if (max > 0 && columns > max) {
-            columns = max;
-        }
-        return Math.min(columns, MAX_RESOLVED_COLUMNS);
+        return columns;
     }
 
     private int prefWidthColumns() {

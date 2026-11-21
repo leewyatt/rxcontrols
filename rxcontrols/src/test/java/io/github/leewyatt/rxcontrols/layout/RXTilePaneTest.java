@@ -955,6 +955,31 @@ public class RXTilePaneTest {
     }
 
     /**
+     * Verifies a tile so narrow that the width-to-tile ratio exceeds any int still lays out
+     * within the column cap, an explicit maxColumns or the default one.
+     */
+    @Test
+    public void tinyTilesStayWithinTheColumnCap() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane(new Region(), new Region());
+            pane.setSnapToPixel(false);
+            pane.setPrefTileWidth(1.0e-7);
+            pane.setPrefTileHeight(40.0);
+            pane.setHgap(0.0);
+            pane.setMaxColumns(4);
+            pane.setAnimated(false);
+            layout(pane, 400.0, 200.0);
+            assertEquals(4, pane.getActualColumnCount(), "maxColumns caps the count");
+            assertEquals(40.0, pane.prefHeight(400.0), 1.0e-9, "two tiles take one row");
+
+            pane.setMaxColumns(0);
+            layout(pane, 400.0, 200.0);
+            assertEquals(4096, pane.getActualColumnCount(), "the default cap applies");
+            assertEquals(40.0, pane.prefHeight(400.0), 1.0e-9, "still one row");
+        });
+    }
+
+    /**
      * Verifies turning snapToPixel off re-measures the tiles from a settled pane: Region
      * only requests the parent's layout on that change.
      */
