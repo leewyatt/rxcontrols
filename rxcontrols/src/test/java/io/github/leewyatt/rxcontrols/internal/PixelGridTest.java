@@ -84,4 +84,43 @@ public class PixelGridTest {
         }
         assertTrue(PixelGrid.exceeds(1.0 + 5.0e-10, 1.0, 4.0), "5e-10 is 2e-9 device pixels at 4x");
     }
+
+    /**
+     * Verifies ceil returns a grid value that JavaFX 17's snapping, ceil(v * s - 1e-14),
+     * keeps: 900 device pixels at 1.75 divides to 514.2857142857143, which multiplies back
+     * to 900.0000000000001 and would snap to 901.
+     */
+    @Test
+    public void ceilReturnsAGridValueThatSnappingKeeps() {
+        assertTrue(900.0 / 1.75 * 1.75 > 900.0, "the fixture must carry the rounding noise");
+        double value = PixelGrid.ceil(900.0 / 1.75, 1.75);
+        assertEquals(900.0, Math.ceil(value * 1.75 - 1.0e-14), 0.0, "snapped again, it stays at 900 device pixels");
+        assertEquals(900.0 / 1.75, value, 1.0e-12, "it is the grid value, a few ulps at most below");
+        assertEquals(161.0 / 1.25, PixelGrid.ceil(128.5, 1.25), 1.0e-12, "an off-grid value ceils");
+        assertEquals(128.0, PixelGrid.ceil(128.0 + 1.0e-12, 1.0), 0.0, "noise above a line counts as on it");
+        assertEquals(129.0, PixelGrid.ceil(128.0 + 1.0e-6, 1.0), 0.0, "more than noise ceils to the next line");
+        assertEquals(100.3, PixelGrid.ceil(100.3, 0.0), 0.0, "an invalid scale disables snapping");
+    }
+
+    /**
+     * Verifies fillExtent lowers an area just enough that layoutInArea's arithmetic on its
+     * content, (extent - before - after) * scale, lands on the content's grid line, and
+     * leaves an area whose content is off the grid alone.
+     */
+    @Test
+    public void fillExtentLandsTheContentOnItsGridLine() {
+        double slot = 225.0 / 1.75;
+        assertTrue(slot * 1.75 > 225.0, "the fixture must carry the rounding noise");
+        double extent = PixelGrid.fillExtent(slot, 0.0, 0.0, 1.75);
+        assertTrue(extent * 1.75 <= 225.0, "the content no longer computes above 225");
+        assertEquals(slot, extent, 1.0e-12, "lowered by a few ulps at most");
+
+        double margin = Math.round(4.0 * 1.75) / 1.75;
+        double withMargins = PixelGrid.fillExtent(slot, margin, margin, 1.75);
+        assertTrue((withMargins - margin - margin) * 1.75 <= 211.0, "margins are taken off as layoutInArea does");
+
+        assertEquals(100.0, PixelGrid.fillExtent(100.0, 0.0, 0.0, 1.0), 0.0, "content on its line is kept");
+        assertEquals(50.0, PixelGrid.fillExtent(50.0, 0.0, 0.0, 1.75), 0.0, "off-grid content (87.5) is kept");
+        assertEquals(slot, PixelGrid.fillExtent(slot, 0.0, 0.0, Double.NaN), 0.0, "an invalid scale disables it");
+    }
 }

@@ -955,6 +955,87 @@ public class RXTilePaneTest {
     }
 
     /**
+     * Verifies a stretchable child fills exactly its slot at any render scale, and the
+     * preferred size is exactly the slots and gaps. At 175% a 128.5 px slot (225 device
+     * pixels) computed a hair above its grid line inside layoutInArea, which snapped the
+     * child a device pixel larger, overlapping the next tile or running past the content
+     * edge; a child margin brings the same noise at 125%, and a baseline-aligned child is
+     * sized the same way. Extents are compared in device pixels.
+     */
+    @Test
+    public void filledTilesEndAtTheirSlotEdgeAtAnyScale() throws Exception {
+        onFx(() -> {
+            assertFilledTiles(1.0, 128.5, 0.0, 0.0, Pos.TOP_LEFT, -1.0);
+            assertFilledTiles(1.25, 128.5, 10.0, 0.0, Pos.TOP_LEFT, -1.0);
+            assertFilledTiles(1.5, 128.5, 10.0, 0.0, Pos.TOP_LEFT, -1.0);
+            assertFilledTiles(1.75, 128.5, 0.0, 0.0, Pos.TOP_LEFT, -1.0);
+            assertFilledTiles(1.75, 128.5, 10.0, 0.0, Pos.CENTER, -1.0);
+            assertFilledTiles(2.0, 128.5, 0.0, 0.0, Pos.TOP_LEFT, -1.0);
+            assertFilledTiles(1.25, 150.0, 0.0, 3.0, Pos.TOP_LEFT, -1.0);
+            assertFilledTiles(1.75, 128.5, 0.0, 4.0, Pos.BOTTOM_RIGHT, -1.0);
+            assertFilledTiles(1.75, 128.5, 0.0, 0.0, Pos.BASELINE_LEFT, 20.0);
+        });
+    }
+
+    /**
+     * Verifies a baseline-aligned child whose baseline is its height keeps exactly its
+     * snapped preferred height at 175%: layoutInArea sizes it from the tile less the space
+     * below the row baseline, which computed a hair above the grid line (175 device pixels
+     * for a 100 px child) and came out a device pixel taller.
+     */
+    @Test
+    public void baselineSizedChildKeepsItsSnappedHeight() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane();
+            pane.setPrefTileWidth(128.5);
+            pane.setPrefTileHeight(128.5);
+            pane.setHgap(0.0);
+            pane.setVgap(0.0);
+            pane.setPrefColumns(2);
+            pane.setTileAlignment(Pos.BASELINE_LEFT);
+            pane.setAnimated(false);
+            for (int i = 0; i < 4; i++) {
+                Region child = new Region();
+                child.setPrefSize(50.0, 100.0);
+                child.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+                pane.getChildren().add(child);
+            }
+            stageFor(pane, 1.75);
+            pane.applyCss();
+            double prefWidth = pane.prefWidth(-1.0);
+            layoutUntilClean(pane, prefWidth, pane.prefHeight(prefWidth));
+            for (int i = 0; i < 4; i++) {
+                Node child = pane.getChildren().get(i);
+                assertEquals(175.0, child.getLayoutBounds().getHeight() * 1.75, 1.0e-6, "child " + i + " height");
+                assertEquals((i / 2) * 225.0, child.getLayoutY() * 1.75, 1.0e-6, "child " + i + " top");
+                assertEquals(225.0, child.getLayoutBounds().getWidth() * 1.75, 1.0e-6, "child " + i + " width");
+            }
+        });
+    }
+
+    /**
+     * Verifies a tile size computed from the children is snapped once: a 128.5 px child
+     * gets a 225 device pixel slot at 175%, not the 226 a second snap would give.
+     */
+    @Test
+    public void tileSizeFromTheChildrenIsSnappedOnce() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane(card(128.5, 128.5), card(128.5, 128.5));
+            pane.setPrefColumns(2);
+            pane.setHgap(0.0);
+            pane.setAnimated(false);
+            stageFor(pane, 1.75);
+            pane.applyCss();
+            layoutUntilClean(pane, pane.prefWidth(-1.0), 400.0);
+            Node second = pane.getChildren().get(1);
+            assertEquals(450.0, pane.prefWidth(-1.0) * 1.75, 1.0e-6, "two 225 device pixel slots");
+            assertEquals(225.0, second.getLayoutX() * 1.75, 1.0e-6, "the second slot starts at 225");
+            assertEquals(225.0, second.getLayoutBounds().getWidth() * 1.75, 1.0e-6, "the child fills its slot");
+            assertEquals(225.0, second.getLayoutBounds().getHeight() * 1.75, 1.0e-6, "the slot is as high as the child");
+        });
+    }
+
+    /**
      * Verifies a tile so narrow that the width-to-tile ratio exceeds any int still lays out
      * within the column cap, an explicit maxColumns or the default one.
      */
@@ -977,6 +1058,50 @@ public class RXTilePaneTest {
             assertEquals(4096, pane.getActualColumnCount(), "the default cap applies");
             assertEquals(40.0, pane.prefHeight(400.0), 1.0e-9, "still one row");
         });
+    }
+
+    // Eight stretchable children in two rows of four slots, laid out at the preferred size.
+    // A non-negative baseline gives the children that baseline offset; -1 leaves Region's.
+    private static void assertFilledTiles(double scale, double tile, double gap, double margin,
+                                          Pos alignment, double baseline) {
+        RXTilePane pane = new RXTilePane();
+        pane.setPrefTileWidth(tile);
+        pane.setPrefTileHeight(tile);
+        pane.setHgap(gap);
+        pane.setVgap(gap);
+        pane.setPrefColumns(4);
+        pane.setTileAlignment(alignment);
+        pane.setAnimated(false);
+        for (int i = 0; i < 8; i++) {
+            Region child = baseline < 0.0 ? new Region() : new BaselineRegion(baseline);
+            child.setPrefSize(50.0, 50.0);
+            child.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+            RXTilePane.setMargin(child, new Insets(margin));
+            pane.getChildren().add(child);
+        }
+        stageFor(pane, scale);
+        pane.applyCss();
+        double prefWidth = pane.prefWidth(-1.0);
+        layoutUntilClean(pane, prefWidth, pane.prefHeight(prefWidth));
+        String at = "scale " + scale + ", tile " + tile + ", gap " + gap + ", margin " + margin + ", " + alignment
+                + (baseline < 0.0 ? "" : ", baseline " + baseline);
+
+        // Device pixels: Region ceils sizes and rounds gaps and margins.
+        double slot = Math.ceil(tile * scale);
+        double gapPixels = Math.round(gap * scale);
+        double marginPixels = Math.round(margin * scale);
+        double content = slot - 2 * marginPixels;
+        assertEquals(4, pane.getActualColumnCount(), at + ": columns");
+        assertEquals(4 * slot + 3 * gapPixels, prefWidth * scale, 1.0e-6, at + ": preferred width");
+        assertEquals(2 * slot + gapPixels, pane.prefHeight(prefWidth) * scale, 1.0e-6, at + ": preferred height");
+        for (int i = 0; i < 8; i++) {
+            Node child = pane.getChildren().get(i);
+            String which = at + ": child " + i;
+            assertEquals((i % 4) * (slot + gapPixels) + marginPixels, child.getLayoutX() * scale, 1.0e-6, which + " left");
+            assertEquals((i / 4) * (slot + gapPixels) + marginPixels, child.getLayoutY() * scale, 1.0e-6, which + " top");
+            assertEquals(content, child.getLayoutBounds().getWidth() * scale, 1.0e-6, which + " width");
+            assertEquals(content, child.getLayoutBounds().getHeight() * scale, 1.0e-6, which + " height");
+        }
     }
 
     /**
