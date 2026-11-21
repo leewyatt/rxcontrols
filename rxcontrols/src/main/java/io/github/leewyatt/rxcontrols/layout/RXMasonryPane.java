@@ -945,10 +945,8 @@ public class RXMasonryPane extends Pane {
             getChildren().remove(child);
             return true;
         }
-        markLeaving(child);
+        startLeaving(child);
         requestLayout();
-        animator.runExit(child, true, getAnimationDuration(), interpolatorOrDefault(),
-                -enterTranslateY(), () -> finishLeaving(child));
         return true;
     }
 
@@ -980,9 +978,7 @@ public class RXMasonryPane extends Pane {
                 continue;
             }
             if (animationsActive() && canLeaveAnimated(child)) {
-                markLeaving(child);
-                animator.runExit(child, true, getAnimationDuration(), interpolatorOrDefault(),
-                        -enterTranslateY(), () -> finishLeaving(child));
+                startLeaving(child);
             } else {
                 late.add(child);
             }
@@ -996,6 +992,24 @@ public class RXMasonryPane extends Pane {
     private static boolean canLeaveAnimated(Node child) {
         return !child.managedProperty().isBound() && !child.translateXProperty().isBound()
                 && !child.translateYProperty().isBound() && !child.opacityProperty().isBound();
+    }
+
+    // Unmanaging the child notifies listeners synchronously; one may move the child to
+    // another parent or turn animation off, so both are checked again before the exit
+    // starts. A child moved away is no longer this pane's to touch (the children
+    // listener already restored its managed state); one left behind with animation
+    // off finishes leaving at once.
+    private void startLeaving(Node child) {
+        markLeaving(child);
+        if (child.getParent() != this) {
+            return;
+        }
+        if (!animationsActive()) {
+            finishLeaving(child);
+            return;
+        }
+        animator.runExit(child, true, getAnimationDuration(), interpolatorOrDefault(),
+                -enterTranslateY(), () -> finishLeaving(child));
     }
 
     // Callers check canLeaveAnimated first: unmanaging a bound managed would throw.

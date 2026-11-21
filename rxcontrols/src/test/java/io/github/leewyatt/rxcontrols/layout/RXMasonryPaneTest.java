@@ -697,6 +697,69 @@ public class RXMasonryPaneTest {
     }
 
     /**
+     * Verifies a leaving child that its own managed listener moves to another parent is
+     * left alone: no exit fades it inside its new parent, through either entry point.
+     */
+    @Test
+    public void childMovedAwayByItsOwnManagedListenerIsLeftAlone() throws Exception {
+        Region removed = card(80.0, 50.0);
+        Region cleared = card(80.0, 60.0);
+        Pane elsewhere = new Pane();
+        runOnFx(() -> {
+            for (Region card : List.of(removed, cleared)) {
+                card.managedProperty().addListener((obs, oldValue, managed) -> {
+                    if (!managed) {
+                        elsewhere.getChildren().add(card);
+                    }
+                });
+            }
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, removed, cleared);
+            pane.setAnimationDuration(Duration.seconds(1.0));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+
+            assertNoListenerException(() -> pane.removeAnimated(removed));
+            assertNoListenerException(pane::clearAnimated);
+        });
+        Thread.sleep(200); // an exit started by mistake would have faded them by now
+
+        runOnFx(() -> {
+            for (Region card : List.of(removed, cleared)) {
+                assertSame(elsewhere, card.getParent(), "moved away");
+                assertTrue(card.isManaged(), "managed restored");
+                assertClose(1.0, card.getOpacity(), "not faded in its new parent");
+                assertClose(0.0, card.getTranslateY(), "not drifted in its new parent");
+            }
+        });
+    }
+
+    /**
+     * Verifies a child whose managed listener turns animation off finishes leaving at
+     * once instead of waiting on an exit the disabled pane should not play.
+     */
+    @Test
+    public void animationTurnedOffByManagedListenerFinishesAtOnce() throws Exception {
+        runOnFx(() -> {
+            Region removed = card(80.0, 50.0);
+            Region cleared = card(80.0, 60.0);
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, removed, cleared);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+
+            pane.animatedProperty().bind(removed.managedProperty());
+            assertNoListenerException(() -> pane.removeAnimated(removed));
+            assertFalse(pane.getChildren().contains(removed), "removed at once");
+            assertTrue(removed.isManaged(), "managed restored");
+
+            pane.animatedProperty().bind(cleared.managedProperty());
+            assertNoListenerException(pane::clearAnimated);
+            assertTrue(pane.getChildren().isEmpty(), "cleared at once");
+            assertTrue(cleared.isManaged(), "managed restored");
+        });
+    }
+
+    /**
      * Verifies a prefWidth bound to the parent's width still counts as a resize from
      * outside: the pref follows the resize, it is not the pane changing itself.
      */
