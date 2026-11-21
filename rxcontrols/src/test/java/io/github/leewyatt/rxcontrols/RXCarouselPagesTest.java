@@ -22,6 +22,8 @@ import org.junit.jupiter.api.Test;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -428,6 +430,56 @@ public class RXCarouselPagesTest {
         });
     }
 
+    // ==================== Cache distance ====================
+
+    @Test
+    public void largestCacheDistanceKeepsEveryPageAndStillPages() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = laidOutCarousel(labels(3));
+            carousel.setCacheDistance(Integer.MAX_VALUE);
+            List<String> events = record(carousel);
+
+            carousel.goToPage(1, false);
+            carousel.goToPage(2, false);
+
+            assertEquals(2, carousel.getSelectedIndex());
+            assertEquals(List.of("P2"), shownPages(carousel));
+            assertFalse(events.stream().anyMatch(event -> event.startsWith("EVICTED")), events::toString);
+        });
+    }
+
+    @Test
+    public void cacheDistanceKeepsTheNearestPagesWhetherOrNotTheCarouselWraps() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = new RXCarousel();
+            carousel.setPages(labels(6).toArray(new Node[0]));
+            carousel.setCacheDistance(1);
+            List<String> events = record(carousel);
+            layOut(carousel);
+
+            assertEquals(Set.of(5, 0, 1), cachedPages(events));
+            carousel.goToPage(3, false);
+            assertEquals(Set.of(2, 3, 4), cachedPages(events));
+            carousel.goToPage(5, false);
+            assertEquals(Set.of(4, 5, 0), cachedPages(events));
+
+            carousel.setCircular(false);
+            assertEquals(Set.of(4, 5), cachedPages(events));
+            carousel.goToPage(0, false);
+            assertEquals(Set.of(0, 1), cachedPages(events));
+
+            carousel.setCircular(true);
+            carousel.setCacheDistance(2);
+            carousel.goToPage(1, false);
+            assertEquals(Set.of(5, 0, 1, 2), cachedPages(events));
+            carousel.goToPage(3, false);
+            assertEquals(Set.of(1, 2, 3, 4, 5), cachedPages(events));
+            carousel.setCacheDistance(3);
+            carousel.goToPage(0, false);
+            assertEquals(Set.of(0, 1, 2, 3, 4, 5), cachedPages(events));
+        });
+    }
+
     // ==================== Selected index ====================
 
     @Test
@@ -464,6 +516,20 @@ public class RXCarouselPagesTest {
         carousel.addEventHandler(RXPageLifecycleEvent.ANY, e -> events.add(
                 e.getEventType().getName().substring("RX_PAGE_".length()) + ":" + e.getPageIndex()));
         return events;
+    }
+
+    // The indices cached according to the recorded CACHED and EVICTED events.
+    private static Set<Integer> cachedPages(List<String> events) {
+        Set<Integer> cached = new TreeSet<>();
+        for (String event : events) {
+            int index = Integer.parseInt(event.substring(event.indexOf(':') + 1));
+            if (event.startsWith("CACHED")) {
+                cached.add(index);
+            } else if (event.startsWith("EVICTED")) {
+                cached.remove(index);
+            }
+        }
+        return cached;
     }
 
     private static List<String> shownPages(RXCarousel carousel) {

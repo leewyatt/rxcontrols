@@ -40,7 +40,6 @@ import javafx.util.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -1005,7 +1004,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         }
     }
 
-    // Pages a multi-page layout shows stay cached whatever the distance.
+    // Pages a multi-page layout shows stay cached whatever the distance. The
+    // cached pages are measured, not the indices within the distance, so the
+    // cost follows the cache size whatever the distance.
     private void evictDistantPages(int currentIndex, RXCarousel carousel) {
         int distance = carousel.getCacheDistance();
         if (distance < 0) {
@@ -1013,23 +1014,14 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         }
 
         int count = carousel.getPageCount();
-        Set<Integer> keep = new HashSet<>();
-        for (int d = -distance; d <= distance; d++) {
-            int idx;
-            if (carousel.isCircular()) {
-                idx = ((currentIndex + d) % count + count) % count;
-            } else {
-                idx = currentIndex + d;
-                if (idx < 0 || idx >= count) {
-                    continue;
-                }
-            }
-            keep.add(idx);
-        }
-
+        boolean circular = carousel.isCircular();
         for (Page page : sortedPages()) {
+            int gap = Math.abs(page.index - currentIndex);
+            if (circular) {
+                gap = Math.min(gap, count - gap);
+            }
             boolean onDisplay = page.wrapper.isVisible() && page.wrapper.getParent() == contentPane;
-            if (!keep.contains(page.index) && page != shown && !onDisplay
+            if (gap > distance && page != shown && !onDisplay
                     && pageCache.get(page.index) == page) {
                 evict(page);
                 if (disposed) {
