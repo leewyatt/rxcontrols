@@ -191,6 +191,7 @@ public class RXTilePane extends Pane {
     // Reuses the same FLIP relayout animator as RXMasonryPane (same package). All
     // children are real and persistent, so no recycler pin-set is needed.
     private final PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+    private final ResizeGate resizeGate = new ResizeGate();
     private boolean firstLayoutDone;
     // Children added after the first layout: they snap into their slot rather than
     // gliding in from the pane origin (no enter animation in V1).
@@ -828,7 +829,9 @@ public class RXTilePane extends Pane {
     /**
      * Whether existing children glide to their new positions after relayout. On
      * by default; turning it off mid-flight snaps every child to its final
-     * position. While enabled, the pane drives each child's {@code translateX} /
+     * position. Resizing the pane without changing the column count applies
+     * immediately, so dragging a window edge never leaves children trailing; a glide
+     * already in flight keeps its clock while its target follows the resize. While enabled, the pane drives each child's {@code translateX} /
      * {@code translateY} during the glide; a child with either one bound snaps
      * instead. Binding them while the child is gliding is not supported.
      *
@@ -1131,7 +1134,15 @@ public class RXTilePane extends Pane {
         // no-op; skip the move bookkeeping entirely on this hot path.
         boolean collectMoves = animate || animator.hasActiveState();
         double baselineOffset = computeBaselineOffset(managed, tileAlignmentValue, tileWidth, tileHeight);
-        List<PaneRelayoutAnimator.Move> moves = null;
+        List<PaneRelayoutAnimator.Move> moves = collectMoves ? new ArrayList<>() : null;
+        // Recorded on every animated-pane pass, the first layout included, so the
+        // next pass always has a baseline to compare against.
+        boolean resizeOnly = false;
+        if (isAnimated()) {
+            resizeOnly = resizeGate.isResizeOnly(getWidth(), layoutStructure(columns, managed));
+        } else {
+            resizeGate.reset();
+        }
         for (int i = 0; i < managed.size(); i++) {
             Node child = managed.get(i);
             int column = i % columns;
@@ -1153,6 +1164,10 @@ public class RXTilePane extends Pane {
             if (!collectMoves) {
                 continue;
             }
+            if (resizeOnly) {
+                animator.keepInFlight(moves, child);
+                continue;
+            }
             double fromDx = enteringNodes.contains(child) ? 0.0 : oldVisualX - child.getLayoutX();
             double fromDy = enteringNodes.contains(child) ? 0.0 : oldVisualY - child.getLayoutY();
             // A node the animator still tracks stays submitted even when static
@@ -1160,18 +1175,23 @@ public class RXTilePane extends Pane {
             if (Math.abs(fromDx) >= PaneRelayoutAnimator.MOVE_EPSILON
                     || Math.abs(fromDy) >= PaneRelayoutAnimator.MOVE_EPSILON
                     || animator.isTracked(child)) {
-                if (moves == null) {
-                    moves = new ArrayList<>();
-                }
                 moves.add(new PaneRelayoutAnimator.Move(child, fromDx, fromDy, false));
             }
         }
         if (collectMoves) {
-            animator.runRelayout(moves == null ? List.of() : moves, animate,
-                    getAnimationDuration(), interpolatorOrDefault());
+            animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
         }
         enteringNodes.clear();
         firstLayoutDone = true;
+    }
+
+    // Column count plus the child sequence fix every child's row and column; tile size,
+    // gaps and justify offsets are left out, so a pure resize leaves it equal.
+    private static List<Object> layoutStructure(int columns, List<Node> managed) {
+        List<Object> structure = new ArrayList<>(managed.size() + 1);
+        structure.add(columns);
+        structure.addAll(managed);
+        return structure;
     }
 
     // ==================== Helpers ====================

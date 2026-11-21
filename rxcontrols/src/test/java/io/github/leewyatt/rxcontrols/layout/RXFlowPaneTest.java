@@ -1261,6 +1261,25 @@ public class RXFlowPaneTest {
     }
 
     @Test
+    public void resizeWithoutReflowDoesNotGlideButGapChangeDoes() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = flowPane(10.0, 10.0, cards(3, 100.0, 40.0));
+            pane.setAlignment(Pos.TOP_CENTER);
+            pane.setAnimated(true);
+            new Scene(pane, 400.0, 400.0);
+            pane.applyCss();
+            layout(pane, 400.0, 400.0);
+
+            layout(pane, 460.0, 400.0); // one run either way; centring shifts every item
+            assertFalse(anyTranslated(pane), "a resize that keeps the runs applies immediately");
+
+            pane.setHgap(30.0);
+            layout(pane, 460.0, 400.0);
+            assertTrue(anyTranslated(pane), "a gap change at the same width still glides");
+        });
+    }
+
+    @Test
     public void addedChildSnapsWithoutGliding() throws Exception {
         onFx(() -> {
             RXFlowPane pane = flowPane(10.0, 10.0, cards(3, 100.0, 40.0));

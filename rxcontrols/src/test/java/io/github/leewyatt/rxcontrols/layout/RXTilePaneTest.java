@@ -906,6 +906,26 @@ public class RXTilePaneTest {
     }
 
     @Test
+    public void resizeWithinColumnCountDoesNotGlide() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = filledPane(6);
+            pane.setPrefTileWidth(100);
+            pane.setMaxColumns(3);
+            pane.setItemsJustify(ItemsJustify.CENTER);
+            pane.setAnimated(true);
+            new Scene(pane, 400, 400);
+            pane.applyCss();
+            layout(pane, 400, 400);
+
+            layout(pane, 460, 400); // still 3 columns; centring shifts every tile
+            assertFalse(anyTranslated(pane), "a resize that keeps the column count applies immediately");
+
+            layout(pane, 250, 400); // 2 columns: tiles change row and column
+            assertTrue(anyTranslated(pane), "a column-count change still glides");
+        });
+    }
+
+    @Test
     public void addedChildPopsInWithoutGliding() throws Exception {
         onFx(() -> {
             RXTilePane pane = filledPane(5);

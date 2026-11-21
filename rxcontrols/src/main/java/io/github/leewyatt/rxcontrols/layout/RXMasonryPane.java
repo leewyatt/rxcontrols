@@ -248,6 +248,7 @@ public class RXMasonryPane extends Pane {
     // ==================== Animation state ====================
 
     private final PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+    private final ResizeGate resizeGate = new ResizeGate();
     private final Set<Node> enteringNodes = new HashSet<>();
     // leaving node -> its managed state before the exit animation, restored on finish
     private final Map<Node, Boolean> leavingNodes = new HashMap<>();
@@ -788,7 +789,10 @@ public class RXMasonryPane extends Pane {
      * Whether children animate to their new positions on relayout, fade in on
      * insertion, and fade out via {@link #removeAnimated(Node)}. On by default;
      * turning this off while an animation is running snaps every child to its
-     * final state. While enabled, the pane drives each child's {@code translateX}
+     * final state. Resizing the pane without changing the column count or moving a
+     * child to another column applies immediately, so dragging a window edge never
+     * leaves children trailing; a glide already in flight keeps its clock while its
+     * target follows the resize. Other changes, such as a child growing, still glide. While enabled, the pane drives each child's {@code translateX}
      * / {@code translateY} (and {@code opacity} during fades) for the animation. A
      * child whose {@code translateX} or {@code translateY} is bound snaps into place,
      * whether moving or entering; one whose {@code opacity} is bound moves and enters
@@ -1413,6 +1417,15 @@ public class RXMasonryPane extends Pane {
         int[] startColumns = metrics.result().startColumns();
         double[] tops = metrics.result().tops();
         List<PaneRelayoutAnimator.Move> moves = collectMoves ? new ArrayList<>() : null;
+        // Recorded on every animated-pane pass, the first layout included, so the
+        // next pass always has a baseline to compare against.
+        boolean resizeOnly = false;
+        if (isAnimated()) {
+            resizeOnly = resizeGate.isResizeOnly(getWidth(),
+                    layoutStructure(metrics.columns(), managed, startColumns));
+        } else {
+            resizeGate.reset();
+        }
         for (int i = 0, size = managed.size(); i < size; i++) {
             Node child = managed.get(i);
             Insets margin = getMargin(child);
@@ -1436,7 +1449,9 @@ public class RXMasonryPane extends Pane {
             if (!collectMoves) {
                 continue;
             }
-            if (enteringNodes.contains(child)) {
+            if (resizeOnly) {
+                animator.keepInFlight(moves, child);
+            } else if (enteringNodes.contains(child)) {
                 moves.add(new PaneRelayoutAnimator.Move(child, 0.0, enterOffset, true));
             } else {
                 double fromDx = oldVisualX - child.getLayoutX();
@@ -1456,6 +1471,19 @@ public class RXMasonryPane extends Pane {
         }
         enteringNodes.clear();
         firstLayoutDone = true;
+    }
+
+    // Column count plus each child's start column: widths, gaps and heights are left
+    // out, so a pure resize leaves it equal while a column change or a card moving to
+    // another column does not.
+    private static List<Object> layoutStructure(int columns, List<Node> managed, int[] startColumns) {
+        List<Object> structure = new ArrayList<>(2 * managed.size() + 1);
+        structure.add(columns);
+        for (int i = 0; i < managed.size(); i++) {
+            structure.add(managed.get(i));
+            structure.add(startColumns[i]);
+        }
+        return structure;
     }
 
     private LayoutMetrics computeMetrics(double contentWidth) {

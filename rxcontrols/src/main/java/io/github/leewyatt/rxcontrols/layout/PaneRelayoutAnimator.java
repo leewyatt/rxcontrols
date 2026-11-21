@@ -322,6 +322,20 @@ final class PaneRelayoutAnimator {
     }
 
     /**
+     * Resubmits a tracked node at its live offset, so its in-flight tween keeps its
+     * clock while its end point follows the node's freshly written layout position.
+     * Does nothing for an untracked node. Used on passes that must not start motion.
+     *
+     * @param moves the pass's moves
+     * @param node  the node just laid out
+     */
+    void keepInFlight(List<Move> moves, Node node) {
+        if (isTracked(node)) {
+            moves.add(new Move(node, node.getTranslateX(), node.getTranslateY(), false));
+        }
+    }
+
+    /**
      * Returns whether any relayout move or exit is in flight. When nothing is
      * tracked, a non-animated pass may skip move bookkeeping entirely — there is
      * no state left for the snap path to settle.

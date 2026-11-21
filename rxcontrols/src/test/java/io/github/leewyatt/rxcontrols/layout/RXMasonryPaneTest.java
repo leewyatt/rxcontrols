@@ -510,6 +510,61 @@ public class RXMasonryPaneTest {
     }
 
     /**
+     * Verifies a resize that keeps every card in its column starts no glide (filled
+     * columns shift on every pixel of width), while a card height change at the same
+     * width still glides the cards below it.
+     */
+    @Test
+    public void resizeOnlyPassDoesNotGlideButHeightChangeDoes() throws Exception {
+        runOnFx(() -> {
+            Region tall = card(80.0, 50.0);
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0,
+                    tall, card(80.0, 60.0), card(80.0, 40.0), card(80.0, 70.0));
+            pane.setColumnCount(2);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+
+            layout(pane, 340.0, 400.0);
+            assertFalse(anyTranslated(pane), "a pure resize applies immediately");
+
+            tall.setPrefHeight(90.0);
+            layout(pane, 340.0, 400.0);
+            assertTrue(anyTranslated(pane), "a height change still glides");
+        });
+    }
+
+    /**
+     * Verifies a resize-only pass keeps an in-flight glide's offset (no re-arm) while
+     * its layout target follows the resize.
+     */
+    @Test
+    public void resizeOnlyPassKeepsInFlightGlide() throws Exception {
+        runOnFx(() -> {
+            Region tall = card(80.0, 50.0);
+            Region below = card(80.0, 40.0);
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, tall, card(80.0, 60.0), below);
+            pane.setColumnCount(2);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+            tall.setPrefHeight(90.0);
+            layout(pane, 300.0, 400.0);
+            // The taller card pushes "below" into the second column, whose x follows the width.
+            double translateX = below.getTranslateX();
+            double translateY = below.getTranslateY();
+            double layoutX = below.getLayoutX();
+            assertTrue(Math.abs(translateX) > EPSILON, "precondition: the card below glides sideways");
+
+            layout(pane, 340.0, 400.0);
+
+            assertClose(translateX, below.getTranslateX(), "x offset is not re-armed");
+            assertClose(translateY, below.getTranslateY(), "y offset is not re-armed");
+            assertTrue(Math.abs(below.getLayoutX() - layoutX) > EPSILON, "the target follows the resize");
+        });
+    }
+
+    /**
      * Verifies removing a leaving child externally (mid-exit) restores its
      * original managed state instead of leaving it stuck unmanaged.
      */
@@ -1215,6 +1270,11 @@ public class RXMasonryPaneTest {
     }
 
     // ==================== Helpers ====================
+
+    private static boolean anyTranslated(RXMasonryPane pane) {
+        return pane.getChildren().stream()
+                .anyMatch(n -> Math.abs(n.getTranslateX()) > EPSILON || Math.abs(n.getTranslateY()) > EPSILON);
+    }
 
     private static RXMasonryPane pane(double columnWidth, double hgap, double vgap, Region... cards) {
         RXMasonryPane pane = new RXMasonryPane(cards);

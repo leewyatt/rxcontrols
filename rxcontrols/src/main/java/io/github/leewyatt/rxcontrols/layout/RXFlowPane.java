@@ -202,6 +202,7 @@ public class RXFlowPane extends Pane {
     // The same FLIP relayout animator RXTilePane / RXMasonryPane use (same package).
     // All children are real and persistent, so no recycler pin-set is needed.
     private final PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+    private final ResizeGate resizeGate = new ResizeGate();
     private boolean firstLayoutDone;
     // Children added after the first layout snap into their slot rather than gliding
     // in from the pane origin (no enter animation, matching RXTilePane).
@@ -907,8 +908,11 @@ public class RXFlowPane extends Pane {
     /**
      * Whether existing children glide to their new positions when a relayout (a resize
      * that reflows the runs, a gap or alignment change) moves them. On by default;
-     * turning it off mid-flight snaps every child to its final position. Children added
-     * after the first layout snap into place rather than gliding in. While enabled, the
+     * turning it off mid-flight snaps every child to its final position. Resizing the
+     * pane along its wrapping axis without moving an item to another run applies
+     * immediately, so dragging a window edge never leaves children trailing; a glide
+     * already in flight keeps its clock while its target follows the resize. Children
+     * added after the first layout snap into place rather than gliding in. While enabled, the
      * pane drives each child's {@code translateX} / {@code translateY} during the glide;
      * a child with either one bound snaps instead. Binding them while the child is
      * gliding is not supported.
@@ -1316,6 +1320,15 @@ public class RXFlowPane extends Pane {
         // no-op; a null list tells layoutItem to skip the move bookkeeping.
         List<PaneRelayoutAnimator.Move> moves =
                 animate || animator.hasActiveState() ? new ArrayList<>() : null;
+        // Recorded on every animated-pane pass, the first layout included, so the
+        // next pass always has a baseline to compare against.
+        boolean resizeOnly = false;
+        if (isAnimated()) {
+            resizeOnly = resizeGate.isResizeOnly(horizontal ? getWidth() : getHeight(),
+                    layoutStructure(horizontal, lines));
+        } else {
+            resizeGate.reset();
+        }
 
         if (horizontal) {
             // Runs stack down the cross (Y) axis. Each run is aligned along the main (X)
@@ -1330,7 +1343,7 @@ public class RXFlowPane extends Pane {
                 double x = lineX;
                 for (LayoutRect lrect : run.rects) {
                     layoutItem(lrect.node, x, y, lrect.main, run.cross, baselineOffset,
-                            HPos.LEFT, rowV, moves);
+                            HPos.LEFT, rowV, moves, resizeOnly);
                     x += lrect.main + hgap;
                 }
                 y += run.cross + vgap;
@@ -1348,7 +1361,7 @@ public class RXFlowPane extends Pane {
                 double y = lineY;
                 for (LayoutRect lrect : run.rects) {
                     layoutItem(lrect.node, x, y, run.cross, lrect.main, -1.0,
-                            colH, VPos.TOP, moves);
+                            colH, VPos.TOP, moves, resizeOnly);
                     y += lrect.main + vgap;
                 }
                 x += run.cross + hgap;
@@ -1366,9 +1379,24 @@ public class RXFlowPane extends Pane {
     // from the old on-screen position for the relayout animator; a null moves list
     // skips the bookkeeping. An entering child has no meaningful previous position,
     // so it snaps to its slot (fromD* = 0).
+    // Orientation plus the children of each run in order: item sizes, gaps and
+    // alignment offsets are left out, so a pure resize leaves it equal while a resize
+    // that moves an item to another run does not.
+    private static List<Object> layoutStructure(boolean horizontal, List<Run> lines) {
+        List<Object> structure = new ArrayList<>();
+        structure.add(horizontal);
+        for (Run run : lines) {
+            structure.add(run.rects.size());
+            for (LayoutRect rect : run.rects) {
+                structure.add(rect.node);
+            }
+        }
+        return structure;
+    }
+
     private void layoutItem(Node node, double x, double y, double width, double height,
                             double baselineOffset, HPos hpos, VPos vpos,
-                            List<PaneRelayoutAnimator.Move> moves) {
+                            List<PaneRelayoutAnimator.Move> moves, boolean resizeOnly) {
         if (moves == null) {
             layoutInArea(node, x, y, width, height, baselineOffset, getMargin(node),
                     false, false, hpos, vpos);
@@ -1378,6 +1406,10 @@ public class RXFlowPane extends Pane {
         double oldVisualY = node.getLayoutY() + node.getTranslateY();
         layoutInArea(node, x, y, width, height, baselineOffset, getMargin(node),
                 false, false, hpos, vpos);
+        if (resizeOnly) {
+            animator.keepInFlight(moves, node);
+            return;
+        }
         double fromDx = enteringNodes.contains(node) ? 0.0 : oldVisualX - node.getLayoutX();
         double fromDy = enteringNodes.contains(node) ? 0.0 : oldVisualY - node.getLayoutY();
         // A node the animator still tracks stays submitted even when static this
