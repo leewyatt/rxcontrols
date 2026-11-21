@@ -21,6 +21,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 /**
@@ -183,6 +184,76 @@ public class RXCarouselNavigatorTest {
         });
     }
 
+    @Test
+    public void navigatorCreatedAfterSetPagesHearsOfThePagesOnceItsNodeIsUp() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = new RXCarousel();
+            carousel.setPages(new Label("old0"));
+            layOut(carousel);
+            ReadingNavigator navigator = new ReadingNavigator();
+            navigator.onCreate = () -> carousel.getProperties().put("app-navigator", navigator);
+            boolean[] armed = {true};
+            carousel.pageCountProperty().addListener((observable, was, is) -> {
+                if (armed[0]) {
+                    armed[0] = false;
+                    carousel.setNavigator(navigator);
+                }
+            });
+
+            carousel.setPages(labels("new", 3));
+
+            assertEquals(List.of("[new0, new1, new2]"), navigator.created);
+            assertEquals(List.of("-1->0/3[new0, new1, new2]"), navigator.calls);
+        });
+    }
+
+    @Test
+    public void navigatorReplacedWhileTheOldNodeLeavesIsMounted() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = new RXCarousel();
+            carousel.setPages(labels("P", 3));
+            ReadingNavigator replaced = install(carousel);
+            carousel.getProperties().put("app-key", replaced);
+            replaced.node.parentProperty().addListener((observable, was, is) -> {
+                if (is == null) {
+                    carousel.getProperties().remove("app-key");
+                }
+            });
+            ReadingNavigator next = new ReadingNavigator();
+            List<Throwable> errors = new ArrayList<>();
+
+            withUncaughtHandler(errors, () -> carousel.setNavigator(next));
+
+            assertEquals(List.of(), errors);
+            assertEquals(1, replaced.disposals);
+            assertNull(replaced.node.getParent());
+            assertEquals(List.of("[P0, P1, P2]"), next.created);
+            assertEquals(List.of("-1->0/3[P0, P1, P2]"), next.calls);
+            assertSame(carousel, next.node.getParent());
+        });
+    }
+
+    @Test
+    public void navigatorSetFromTheReplacedNavigatorsDisposeStaysUntilRemoved() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = new RXCarousel();
+            carousel.setPages(labels("P", 3));
+            ReadingNavigator replaced = install(carousel);
+            ReadingNavigator skipped = new ReadingNavigator();
+            ReadingNavigator latest = new ReadingNavigator();
+            replaced.onDispose = () -> carousel.setNavigator(latest);
+
+            carousel.setNavigator(skipped);
+
+            assertEquals(List.of(), skipped.created);
+            assertSame(carousel, latest.node.getParent());
+            assertEquals(List.of("-1->0/3[P0, P1, P2]"), latest.calls);
+            carousel.setNavigator(null);
+            assertNull(latest.node.getParent());
+            assertEquals(1, latest.disposals);
+        });
+    }
+
     // ==================== Count and factory ====================
 
     @Test
@@ -294,11 +365,17 @@ public class RXCarouselNavigatorTest {
         final List<String> created = new ArrayList<>();
         int disposals;
         Node node;
+        // Application code run at the start of createNode and in dispose.
+        Runnable onCreate = () -> {
+        };
+        Runnable onDispose = () -> {
+        };
         private RXCarousel carousel;
 
         @Override
         public Node createNode(RXCarousel owner) {
             carousel = owner;
+            onCreate.run();
             List<String> seen = new ArrayList<>();
             try {
                 read(owner.getPageCount(), seen);
@@ -315,7 +392,8 @@ public class RXCarouselNavigatorTest {
             try {
                 read(pageCount, seen);
             } finally {
-                calls.add(oldIndex + "->" + newIndex + "/" + pageCount + seen);
+                boolean nodeUp = node != null && node.getParent() == carousel;
+                calls.add(oldIndex + "->" + newIndex + "/" + pageCount + seen + (nodeUp ? "" : " before its node"));
             }
         }
 
@@ -333,6 +411,7 @@ public class RXCarouselNavigatorTest {
         @Override
         public void dispose() {
             disposals++;
+            onDispose.run();
         }
     }
 

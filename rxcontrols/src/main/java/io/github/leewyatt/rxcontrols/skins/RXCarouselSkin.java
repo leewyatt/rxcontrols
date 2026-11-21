@@ -85,6 +85,10 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     private Node navigatorNode;
     // The navigator whose createNode this skin has called; the skin disposes it.
     private CarouselNavigator installedNavigator;
+    // The carousel's navigator is to be created once the page update ends.
+    private boolean navigatorCreationPending;
+    // createNode is running: the navigator hears of the pages once its node is up.
+    private boolean creatingNavigator;
     // A change of the pages the navigator is still to hear of: it is told
     // once the count, the factory and the selected index are consistent.
     private boolean navigatorRefreshPending;
@@ -399,7 +403,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                 checkPages(carousel);
                 navigatorRefreshPending = true;
             }
-            updateNavigator(carousel);
+            if (navigatorCreationPending) {
+                updateNavigator(carousel);
+            }
             refreshNavigator(carousel);
             sync();
         });
@@ -1362,6 +1368,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     // waits for the update to end, so createNode reads consistent pages too;
     // a navigator replaced before then is never created.
     private void updateNavigator(RXCarousel carousel) {
+        navigatorCreationPending = false;
         CarouselNavigator old = installedNavigator;
         if (old != null && old != carousel.getNavigator()) {
             // The node goes first: code dispose runs may install another.
@@ -1374,13 +1381,23 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             old.dispose();
         }
         CarouselNavigator current = carousel.getNavigator();
-        if (current == null || current == installedNavigator || disposed || pagesUpdating(carousel)) {
+        if (current == null || current == installedNavigator || disposed) {
+            return;
+        }
+        if (pagesUpdating(carousel)) {
+            navigatorCreationPending = true;
             return;
         }
         // Recorded before createNode: should its code remove this skin, the
         // navigator may hold resources already, and the skin disposes it.
         installedNavigator = current;
-        Node node = current.createNode(carousel);
+        Node node;
+        creatingNavigator = true;
+        try {
+            node = current.createNode(carousel);
+        } finally {
+            creatingNavigator = false;
+        }
         // Code the navigator ran may have disposed this skin or replaced
         // the navigator; the node then has no place here.
         if (node != null && !disposed && carousel.getNavigator() == current) {
@@ -1428,6 +1445,10 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     }
 
     private void notifyNavigator(int oldIndex, RXCarousel carousel) {
+        if (creatingNavigator) {
+            navigatorRefreshPending = true;
+            return;
+        }
         navigatorPageCount = carousel.getPageCount();
         CarouselNavigator nav = installedNavigator;
         if (nav != null) {
