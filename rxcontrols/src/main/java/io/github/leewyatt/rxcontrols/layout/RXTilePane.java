@@ -24,6 +24,7 @@ import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.DurationConverter;
 import javafx.css.converter.EnumConverter;
 import javafx.css.converter.SizeConverter;
+import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -1064,8 +1065,7 @@ public class RXTilePane extends Pane {
         double gap = snapSpaceX(gapOrZero(getHgap()));
         double content = rowWidth(columns, tileWidth, gap);
         // Slots and gaps are on the grid already; snapping their sum again can add a
-        // device pixel at a fractional render scale, and so can the parent's snapping of
-        // the value returned unless it comes in a form that snapping keeps.
+        // device pixel at a fractional render scale.
         return PixelGrid.ceilX(this, snappedLeftInset() + content + snappedRightInset());
     }
 
@@ -1222,14 +1222,7 @@ public class RXTilePane extends Pane {
             // Recorded before any skip: every pass in a scene, the first and the
             // resize-only ones included, sets who the next pass may glide.
             laidOutThisPass.add(child);
-            Insets margin = getMargin(child);
-            double areaWidth = tileWidth;
-            double areaHeight = tileHeight;
-            if (child.isResizable()) {
-                areaWidth = fillAreaWidth(tileWidth, margin);
-                areaHeight = fillAreaHeight(child, tileHeight, baselineOffset, margin, childAlignment.getVpos());
-            }
-            layoutInArea(child, x, y, areaWidth, areaHeight, baselineOffset, margin,
+            layoutInTile(child, x, y, tileWidth, tileHeight, baselineOffset, getMargin(child),
                     childAlignment.getHpos(), childAlignment.getVpos());
             if (!collectMoves) {
                 continue;
@@ -1285,7 +1278,7 @@ public class RXTilePane extends Pane {
         return getPrefWidth() == USE_COMPUTED_SIZE ? prefWidth(-1.0) : computePrefWidth(-1.0);
     }
 
-    // The preferred height of the given rows plus the vertical insets, in the form
+    // The preferred height of the given rows plus the vertical insets, ceiled as
     // computePrefWidth explains.
     private double heightOfRows(int rows, double tileHeight, double vgap) {
         double content = rows == 0 ? 0.0 : rows * tileHeight + (rows - 1) * vgap;
@@ -1344,39 +1337,58 @@ public class RXTilePane extends Pane {
         return columns * tileWidth + (columns - 1) * hgap;
     }
 
-    // layoutInArea fills the tile with a resizable child and snaps the size it computes.
-    // At some fractional render scales its arithmetic puts the tile's content a hair above
-    // the content's grid line, and JavaFX 17 snaps that up to a whole device pixel more:
-    // the child would overlap its neighbour or run past the content edge. The width handed
-    // over is lowered by a few ulps so the child ends at the tile's edge; the margins are
-    // the ones layoutInArea takes off.
-    private double fillAreaWidth(double tileWidth, Insets margin) {
-        double left = margin == null ? 0.0 : snapSpaceX(margin.getLeft());
-        double right = margin == null ? 0.0 : snapSpaceX(margin.getRight());
-        return PixelGrid.fillWidth(this, tileWidth, left, right);
-    }
-
-    // As fillAreaWidth. A baseline-aligned child is sized from the tile less its baseline
-    // shift, which layoutInArea takes off as computed here.
-    private double fillAreaHeight(Node child, double tileHeight, double baselineOffset, Insets margin, VPos vpos) {
-        double top = margin == null ? 0.0 : snapSpaceY(margin.getTop());
-        double bottom = margin == null ? 0.0 : snapSpaceY(margin.getBottom());
-        if (vpos == VPos.BASELINE) {
-            double baseline = child.getBaselineOffset();
-            if (baseline == BASELINE_OFFSET_SAME_AS_HEIGHT) {
-                bottom += snapSpaceY(tileHeight - baselineOffset);
-            } else {
-                top = snapSpaceY(baselineOffset - baseline);
+    // Lays a child out in its tile as layoutInArea does with both fills, except for the
+    // final snap of a resizable child's size. A size worked out from the tile, or a child
+    // minimum summed from snapped sizes, can compute a hair above its grid line, and
+    // JavaFX 17 ceils that to a whole device pixel more: the child would overlap its
+    // neighbour or run past the content edge. Measuring and placing go by the tile itself,
+    // as layoutInArea does; a child whose height depends on its width is asked at the
+    // width it then gets.
+    private void layoutInTile(Node child, double areaX, double areaY, double areaWidth, double areaHeight,
+                              double areaBaselineOffset, Insets margin, HPos hpos, VPos vpos) {
+        if (child.isResizable()) {
+            double top = margin == null ? 0.0 : snapSpaceY(margin.getTop());
+            double bottom = margin == null ? 0.0 : snapSpaceY(margin.getBottom());
+            double left = margin == null ? 0.0 : snapSpaceX(margin.getLeft());
+            double right = margin == null ? 0.0 : snapSpaceX(margin.getRight());
+            // A baseline-aligned child is sized from the tile less its baseline shift.
+            if (vpos == VPos.BASELINE) {
+                double baseline = child.getBaselineOffset();
+                if (baseline == BASELINE_OFFSET_SAME_AS_HEIGHT) {
+                    bottom += snapSpaceY(areaHeight - areaBaselineOffset);
+                } else {
+                    top = snapSpaceY(areaBaselineOffset - baseline);
+                }
             }
+            double width = areaWidth - left - right;
+            double height = areaHeight - top - bottom;
+            double childWidth;
+            double childHeight;
+            if (child.getContentBias() == Orientation.VERTICAL) {
+                childHeight = PixelGrid.ceilY(this,
+                        RXMath.clamp(height, child.minHeight(-1.0), child.maxHeight(-1.0)));
+                childWidth = PixelGrid.ceilX(this,
+                        RXMath.clamp(width, child.minWidth(childHeight), child.maxWidth(childHeight)));
+            } else {
+                childWidth = PixelGrid.ceilX(this,
+                        RXMath.clamp(width, child.minWidth(-1.0), child.maxWidth(-1.0)));
+                double heightHint = child.getContentBias() == Orientation.HORIZONTAL ? childWidth : -1.0;
+                childHeight = PixelGrid.ceilY(this,
+                        RXMath.clamp(height, child.minHeight(heightHint), child.maxHeight(heightHint)));
+            }
+            child.resize(childWidth, childHeight);
         }
-        return PixelGrid.fillHeight(this, tileHeight, top, bottom);
+        positionInArea(child, areaX, areaY, areaWidth, areaHeight, areaBaselineOffset, margin, hpos, vpos,
+                isSnapToPixel());
     }
 
     private double nominalTileWidth() {
         if (!nominalTileWidthValid) {
+            double value = getPrefTileWidth();
             // A size computed from the children is on the grid already; snapping it again
-            // could add a device pixel.
-            cachedNominalTileWidth = PixelGrid.ceilX(this, resolveNominalTileWidth());
+            // could add a device pixel. An explicit size is snapped as Region snaps any.
+            cachedNominalTileWidth = isExplicitTileSize(value)
+                    ? snapSizeX(value) : PixelGrid.ceilX(this, computeTileWidthFromChildren());
             nominalTileWidthValid = true;
         }
         return cachedNominalTileWidth;
@@ -1384,26 +1396,16 @@ public class RXTilePane extends Pane {
 
     private double nominalTileHeight() {
         if (!nominalTileHeightValid) {
-            cachedNominalTileHeight = PixelGrid.ceilY(this, resolveNominalTileHeight());
+            double value = getPrefTileHeight();
+            cachedNominalTileHeight = isExplicitTileSize(value)
+                    ? snapSizeY(value) : PixelGrid.ceilY(this, computeTileHeightFromChildren());
             nominalTileHeightValid = true;
         }
         return cachedNominalTileHeight;
     }
 
-    private double resolveNominalTileWidth() {
-        double value = getPrefTileWidth();
-        if (value == USE_COMPUTED_SIZE || !Double.isFinite(value) || value <= 0.0) {
-            return computeTileWidthFromChildren();
-        }
-        return value;
-    }
-
-    private double resolveNominalTileHeight() {
-        double value = getPrefTileHeight();
-        if (value == USE_COMPUTED_SIZE || !Double.isFinite(value) || value <= 0.0) {
-            return computeTileHeightFromChildren();
-        }
-        return value;
+    private static boolean isExplicitTileSize(double value) {
+        return value != USE_COMPUTED_SIZE && Double.isFinite(value) && value > 0.0;
     }
 
     private double computeTileWidthFromChildren() {

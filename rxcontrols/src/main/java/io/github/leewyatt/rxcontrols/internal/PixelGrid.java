@@ -9,12 +9,11 @@ import javafx.stage.Window;
  * budget (stretched tiles, filled columns, equal tab strips), and compares sums of grid
  * sizes against such a budget without counting rounding noise as overflow.
  *
- * <p>It also hands grid values to Region in a form its own snapping keeps. JavaFX 17
- * snaps a size with {@code ceil(value * scale - 1e-14)}, and the double nearest a grid
- * value can multiply back a hair above its line (900 device pixels at 1.75 is
- * 514.2857142857143, and 514.2857142857143 * 1.75 is 900.0000000000001), so snapping
- * such a value again, as a parent does with a preferred size and layoutInArea with the
- * size of a child it fills an area with, adds a whole device pixel.</p>
+ * <p>It also ceils sizes worked out from grid values. JavaFX 17 snaps a size with
+ * {@code ceil(value * scale - 1e-14)}, and a sum or difference of grid values can
+ * compute a hair above its grid line (a 225 device pixel slot at 1.75 is
+ * 128.57142857142858, which times 1.75 is 225.00000000000003), which that ceiling turns
+ * into a whole extra device pixel.</p>
  */
 public final class PixelGrid {
 
@@ -22,10 +21,6 @@ public final class PixelGrid {
     // additions, subtractions and a division; that error can exceed one ulp, and a floor
     // would then drop a whole pixel, or a fit test report an overflow that is not there.
     private static final double GRID_TOLERANCE = 1.0e-9;
-
-    // Ulps a grid value can need to come down before Region's snapping keeps it on its
-    // line; the noise of a few additions and a division takes one or two.
-    private static final int MAX_LOWERING_STEPS = 16;
 
     private PixelGrid() {
     }
@@ -47,46 +42,20 @@ public final class PixelGrid {
     }
 
     /**
-     * Ceils a value to the grid of the given render scale, counting a value at most 1e-9
-     * device pixels above a grid line as on it, and returns the grid value lowered by a
-     * few ulps where needed, so that Region snapping it again keeps it on that line.
+     * Ceils a value worked out from grid values (snapped sizes and gaps added up, a
+     * snapped area less snapped margins) to the grid of the given render scale, counting
+     * a value at most 1e-9 device pixels above a grid line as on it. A raw size belongs to
+     * Region's own snapping instead: a positive size that small would come out as zero.
      *
      * @param value the value in layout coordinates
      * @param scale the render scale; zero, negative or non-finite disables snapping
-     * @return the grid value, or {@code value} itself when snapping is disabled
+     * @return the ceiled value, or {@code value} itself when snapping is disabled
      */
     public static double ceil(double value, double scale) {
         if (!Double.isFinite(scale) || scale <= 0.0) {
             return value;
         }
-        double pixels = Math.ceil(value * scale - GRID_TOLERANCE);
-        return lowerOntoLine(pixels / scale, 0.0, 0.0, pixels, scale);
-    }
-
-    /**
-     * Returns the extent to hand Region.layoutInArea for an area whose content, the
-     * extent less the two margins as layoutInArea snaps them, lies on the grid, so that a
-     * child filling the area gets exactly that content size. layoutInArea snaps the size
-     * it computes, and content computing a hair above its grid line would come out a whole
-     * device pixel larger; the extent is lowered by a few ulps until the content computes
-     * onto the line. Content off the grid leaves the extent as it is.
-     *
-     * @param extent the area extent in layout coordinates
-     * @param before the snapped margin before the content
-     * @param after  the snapped margin after the content
-     * @param scale  the render scale; zero, negative or non-finite disables snapping
-     * @return the extent, at most a few ulps lower
-     */
-    public static double fillExtent(double extent, double before, double after, double scale) {
-        if (!Double.isFinite(scale) || scale <= 0.0) {
-            return extent;
-        }
-        double content = (extent - before - after) * scale;
-        double pixels = Math.rint(content);
-        if (content - pixels > GRID_TOLERANCE) {
-            return extent;
-        }
-        return lowerOntoLine(extent, before, after, pixels, scale);
+        return Math.ceil(value * scale - GRID_TOLERANCE) / scale;
     }
 
     /**
@@ -163,67 +132,27 @@ public final class PixelGrid {
     }
 
     /**
-     * Ceils a horizontal value to the pixel grid of the region's window, in a form the
-     * region's own snapping keeps; see {@link #ceil(double, double)}.
+     * Ceils a horizontal value worked out from grid values to the pixel grid of the
+     * region's window; see {@link #ceil(double, double)}.
      *
      * @param region the region whose {@code snapToPixel} and window decide the grid
      * @param value  the value in layout coordinates
-     * @return the grid value, or {@code value} when the region does not snap to pixels
+     * @return the ceiled value, or {@code value} when the region does not snap to pixels
      */
     public static double ceilX(Region region, double value) {
         return ceil(value, snappingScale(region, true));
     }
 
     /**
-     * Ceils a vertical value to the pixel grid of the region's window, in a form the
-     * region's own snapping keeps; see {@link #ceil(double, double)}.
+     * Ceils a vertical value worked out from grid values to the pixel grid of the
+     * region's window; see {@link #ceil(double, double)}.
      *
      * @param region the region whose {@code snapToPixel} and window decide the grid
      * @param value  the value in layout coordinates
-     * @return the grid value, or {@code value} when the region does not snap to pixels
+     * @return the ceiled value, or {@code value} when the region does not snap to pixels
      */
     public static double ceilY(Region region, double value) {
         return ceil(value, snappingScale(region, false));
-    }
-
-    /**
-     * Returns the width to hand the region's layoutInArea for an area that a child
-     * should fill to exactly its content width; see
-     * {@link #fillExtent(double, double, double, double)}.
-     *
-     * @param region the region laying the child out
-     * @param width  the area width in layout coordinates
-     * @param left   the snapped left margin
-     * @param right  the snapped right margin
-     * @return the width, at most a few ulps lower
-     */
-    public static double fillWidth(Region region, double width, double left, double right) {
-        return fillExtent(width, left, right, snappingScale(region, true));
-    }
-
-    /**
-     * Returns the height to hand the region's layoutInArea for an area that a child
-     * should fill to exactly its content height; see
-     * {@link #fillExtent(double, double, double, double)}.
-     *
-     * @param region the region laying the child out
-     * @param height the area height in layout coordinates
-     * @param top    the snapped space layoutInArea takes off above the child
-     * @param bottom the snapped space layoutInArea takes off below the child
-     * @return the height, at most a few ulps lower
-     */
-    public static double fillHeight(Region region, double height, double top, double bottom) {
-        return fillExtent(height, top, bottom, snappingScale(region, false));
-    }
-
-    // Computed as layoutInArea and Region's snapping compute it, left to right, so the
-    // check sees the exact double they will ceil.
-    private static double lowerOntoLine(double value, double before, double after, double pixels, double scale) {
-        double lowered = value;
-        for (int i = 0; i < MAX_LOWERING_STEPS && (lowered - before - after) * scale > pixels; i++) {
-            lowered = Math.nextDown(lowered);
-        }
-        return lowered;
     }
 
     // The scale the region snaps to, or 0 (no snapping) when it does not snap to pixels.

@@ -15,6 +15,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -974,6 +975,124 @@ public class RXTilePaneTest {
             assertFilledTiles(1.25, 150.0, 0.0, 3.0, Pos.TOP_LEFT, -1.0);
             assertFilledTiles(1.75, 128.5, 0.0, 4.0, Pos.BOTTOM_RIGHT, -1.0);
             assertFilledTiles(1.75, 128.5, 0.0, 0.0, Pos.BASELINE_LEFT, 20.0);
+        });
+    }
+
+    /**
+     * Verifies a child whose height depends on its width is measured at the width it gets:
+     * a FlowPane whose two children take exactly the 225 device pixel slot at 175% fits
+     * them on one 20 px row there, and must not be measured a hair narrower and grow to
+     * two rows over the tile below.
+     */
+    @Test
+    public void widthDependentChildIsMeasuredAtTheWidthItGets() throws Exception {
+        onFx(() -> {
+            FlowPane flow = new FlowPane(card(12.5, 20.0), card(115.75, 20.0));
+            Region below = card(50.0, 20.0);
+            RXTilePane pane = new RXTilePane(flow, below);
+            pane.setPrefTileWidth(128.5);
+            pane.setPrefTileHeight(20.0);
+            pane.setVgap(0.0);
+            pane.setPrefColumns(1);
+            pane.setTileAlignment(Pos.TOP_LEFT);
+            pane.setAnimated(false);
+            stageFor(pane, 1.75);
+            pane.applyCss();
+            layoutUntilClean(pane, 225.0 / 1.75, 200.0);
+            assertEquals(1, pane.getActualColumnCount(), "setup: one column");
+            assertEquals(225.0, flow.getLayoutBounds().getWidth() * 1.75, 1.0e-6, "the flow fills its slot");
+            assertEquals(20.0, flow.getLayoutBounds().getHeight(), 1.0e-9, "the flow keeps one row");
+            assertEquals(20.0, below.getLayoutY(), 1.0e-9, "the next tile starts below it");
+        });
+    }
+
+    /**
+     * Verifies a child whose minimum width is exactly the slot still fills just the slot:
+     * an HBox holding a 128.5 px minimum reports 225 device pixels at 175%, and Region's
+     * own snapping of that value would add one.
+     */
+    @Test
+    public void childWhoseMinimumIsTheSlotStaysInIt() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane();
+            pane.setPrefTileWidth(128.5);
+            pane.setPrefTileHeight(40.0);
+            pane.setHgap(0.0);
+            pane.setPrefColumns(4);
+            pane.setTileAlignment(Pos.TOP_LEFT);
+            pane.setAnimated(false);
+            for (int i = 0; i < 4; i++) {
+                Region content = new Region();
+                content.setMinWidth(128.5);
+                HBox card = new HBox(content);
+                pane.getChildren().add(card);
+            }
+            stageFor(pane, 1.75);
+            pane.applyCss();
+            layoutUntilClean(pane, 900.0 / 1.75, 200.0);
+            assertEquals(4, pane.getActualColumnCount(), "setup: four columns");
+            for (int i = 0; i < 4; i++) {
+                Node card = pane.getChildren().get(i);
+                assertEquals(i * 225.0, card.getLayoutX() * 1.75, 1.0e-6, "card " + i + " left");
+                assertEquals(225.0, card.getLayoutBounds().getWidth() * 1.75, 1.0e-6, "card " + i + " width");
+            }
+        });
+    }
+
+    /**
+     * Verifies narrow centred children sit alike in every slot: placed by the slot itself,
+     * a 56 device pixel child centres 85 device pixels into each 225 device pixel slot at
+     * 175%, the first one included.
+     */
+    @Test
+    public void centredNarrowChildrenSitAlikeInEverySlot() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane();
+            pane.setPrefTileWidth(128.5);
+            pane.setPrefTileHeight(40.0);
+            pane.setHgap(0.0);
+            pane.setPrefColumns(4);
+            pane.setTileAlignment(Pos.CENTER);
+            pane.setAnimated(false);
+            for (int i = 0; i < 4; i++) {
+                Region card = card(50.0, 40.0);
+                card.setMaxWidth(32.0);
+                pane.getChildren().add(card);
+            }
+            stageFor(pane, 1.75);
+            pane.applyCss();
+            layoutUntilClean(pane, 900.0 / 1.75, 200.0);
+            for (int i = 0; i < 4; i++) {
+                Node card = pane.getChildren().get(i);
+                assertEquals(56.0, card.getLayoutBounds().getWidth() * 1.75, 1.0e-6, "card " + i + " width");
+                assertEquals(i * 225.0 + 85.0, card.getLayoutX() * 1.75, 1.0e-6, "card " + i + " left");
+            }
+        });
+    }
+
+    /**
+     * Verifies an explicit tile width far below a device pixel still takes one, as Region
+     * snaps any positive size: four such tiles sit side by side under maxColumns 4.
+     */
+    @Test
+    public void tinyExplicitTileWidthTakesADevicePixel() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane();
+            pane.setPrefTileWidth(1.0e-10);
+            pane.setPrefTileHeight(40.0);
+            pane.setHgap(0.0);
+            pane.setMaxColumns(4);
+            pane.setTileAlignment(Pos.TOP_LEFT);
+            pane.setAnimated(false);
+            for (int i = 0; i < 4; i++) {
+                pane.getChildren().add(card(50.0, 40.0));
+            }
+            stageFor(pane, 1.75);
+            pane.applyCss();
+            layoutUntilClean(pane, 100.0, 200.0);
+            assertEquals(4, pane.getActualColumnCount(), "four columns");
+            assertEquals(1.0, pane.getChildren().get(1).getLayoutX() * 1.75, 1.0e-6, "the second slot starts one device pixel in");
+            assertEquals(1.0, pane.getChildren().get(0).getLayoutBounds().getWidth() * 1.75, 1.0e-6, "each slot is one device pixel");
         });
     }
 
