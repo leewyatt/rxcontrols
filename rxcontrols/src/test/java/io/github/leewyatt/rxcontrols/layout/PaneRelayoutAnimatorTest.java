@@ -10,6 +10,7 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -50,21 +51,31 @@ public class PaneRelayoutAnimatorTest {
     }
 
     /**
-     * Verifies an exit resets a residual horizontal FLIP offset instead of fading
-     * out shifted sideways.
+     * Verifies an exit drops a residual glide offset instead of fading out shifted
+     * sideways, and starts from the node's resting translate: zero for a node the
+     * relayout armed from rest, the node's own translate for one it never armed.
      */
     @Test
     public void exitResetsTranslateX() throws Exception {
         runOnFx(() -> {
             PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
-            Region node = new Region();
-            node.setTranslateX(50.0);
-            node.setTranslateY(8.0);
+            Region gliding = new Region();
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(gliding, 50.0, 8.0, false)),
+                    true, Duration.seconds(30.0), Interpolator.LINEAR);
 
-            animator.runExit(node, true, DURATION, Interpolator.EASE_BOTH, -10.0, () -> { });
+            animator.runExit(gliding, true, DURATION, Interpolator.EASE_BOTH, -10.0, () -> { });
 
-            assertEquals(0.0, node.getTranslateX(), EPSILON, "translateX reset");
-            assertEquals(0.0, node.getTranslateY(), EPSILON, "translateY reset");
+            assertEquals(0.0, gliding.getTranslateX(), EPSILON, "glide offset dropped on x");
+            assertEquals(0.0, gliding.getTranslateY(), EPSILON, "glide offset dropped on y");
+
+            Region offset = new Region();
+            offset.setTranslateX(50.0);
+            offset.setTranslateY(8.0);
+
+            animator.runExit(offset, true, DURATION, Interpolator.EASE_BOTH, -10.0, () -> { });
+
+            assertEquals(50.0, offset.getTranslateX(), EPSILON, "its own translateX kept");
+            assertEquals(8.0, offset.getTranslateY(), EPSILON, "its own translateY kept");
         });
     }
 
@@ -273,9 +284,9 @@ public class PaneRelayoutAnimatorTest {
     }
 
     /**
-     * Verifies a tracked node resubmitted with a sub-epsilon delta — the shape a
-     * caller-side isTracked guard produces near the end of a tween — neither
-     * finalizes the node nor rearms the timeline.
+     * Verifies a tracked node resubmitted at its live offset — the shape a caller-side
+     * isTracked guard produces near the end of a tween, where that offset is already under
+     * the epsilon — neither finalizes the node nor rearms the timeline.
      */
     @Test
     public void subEpsilonResubmissionKeepsTrackedTween() throws Exception {
@@ -285,11 +296,124 @@ public class PaneRelayoutAnimatorTest {
         runOnFx(() -> {
             animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 200.0, 0.0, false)),
                     true, Duration.millis(400.0), Interpolator.LINEAR);
+            // Stands in for a tween that has almost arrived; its next frame overwrites it.
+            node.setTranslateX(0.2);
             animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 0.2, 0.0, false)),
                     true, Duration.millis(400.0), Interpolator.LINEAR);
-            assertTrue(node.getTranslateX() > 100.0, "in-flight tween untouched by the resubmission");
+            // A rearm would settle a sub-epsilon offset at once.
+            assertTrue(animator.isTracked(node), "the resubmission did not finalize the node");
+            assertEquals(0.2, node.getTranslateX(), EPSILON, "nor re-arm it");
         });
         waitUntil(() -> Math.abs(node.getTranslateX()) < EPSILON);
+    }
+
+    /**
+     * Verifies a tracked node whose target moves back under it before its tween advances
+     * is settled in place: the pass resubmits no offset while the live translate still
+     * holds the whole move, and the superseded tween must not keep writing it.
+     */
+    @Test
+    public void retargetBackUnderTheNodeSettlesItInPlace() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            Region node = new Region();
+            // Layout x 0 -> 100: the node starts 100 back.
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, -100.0, 0.0, false)),
+                    true, Duration.seconds(30.0), Interpolator.LINEAR);
+            // Layout x 100 -> 0 before any frame: the node already shows at its target.
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 0.0, 0.0, false)),
+                    true, Duration.seconds(30.0), Interpolator.LINEAR);
+
+            assertEquals(0.0, node.getTranslateX(), EPSILON, "the visible position holds");
+            assertFalse(animator.isTracked(node), "settled, not left to the superseded tween");
+        });
+    }
+
+    /**
+     * Verifies a tracked node retargeted onto the position it shows at mid-glide is
+     * settled there, however far the glide had come, instead of being pushed away by the
+     * superseded tween.
+     */
+    @Test
+    public void retargetOntoTheShownPositionMidGlideSettlesThere() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            Region node = new Region();
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, -100.0, 0.0, false)),
+                    true, Duration.seconds(30.0), Interpolator.LINEAR);
+            // Stands in for a glide 38 px along.
+            node.setTranslateX(-61.83);
+            // The new layout position is exactly where the node shows: no offset left.
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 0.0, 0.0, false)),
+                    true, Duration.seconds(30.0), Interpolator.LINEAR);
+
+            assertEquals(0.0, node.getTranslateX(), EPSILON, "stays where it showed");
+            assertFalse(animator.isTracked(node), "settled");
+        });
+    }
+
+    /**
+     * Verifies a retarget in one node rebuilds the shared timeline without moving its
+     * siblings: they continue from their live translate and still arrive, possibly later
+     * than their original tween would have.
+     */
+    @Test
+    public void retargetKeepsSiblingsContinuous() throws Exception {
+        PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+        Region moving = new Region();
+        Region sibling = new Region();
+
+        runOnFx(() -> {
+            animator.runRelayout(List.of(
+                    new PaneRelayoutAnimator.Move(moving, -100.0, 0.0, false),
+                    new PaneRelayoutAnimator.Move(sibling, -100.0, 0.0, false)),
+                    true, Duration.seconds(30.0), Interpolator.LINEAR);
+            // Stands in for both glides being 40 px along.
+            moving.setTranslateX(-60.0);
+            sibling.setTranslateX(-60.0);
+
+            animator.runRelayout(List.of(
+                    new PaneRelayoutAnimator.Move(moving, 0.0, 0.0, false),
+                    new PaneRelayoutAnimator.Move(sibling, -60.0, 0.0, false)),
+                    true, SHORT, Interpolator.LINEAR);
+
+            assertEquals(0.0, moving.getTranslateX(), EPSILON, "the retargeted node stays where it showed");
+            assertEquals(-60.0, sibling.getTranslateX(), EPSILON, "the sibling does not jump");
+            assertTrue(animator.isTracked(sibling), "the sibling keeps gliding");
+        });
+        waitUntil(() -> Math.abs(sibling.getTranslateX()) < EPSILON);
+    }
+
+    /**
+     * Verifies a reclaimed node with no offset to glide still resumes its fade-in when
+     * every other node in the pass resubmits its same target: the fade alone must rebuild
+     * the timeline, and the node fades on from its live opacity instead of settling.
+     */
+    @Test
+    public void reclaimedFadeWithoutOffsetResumesBesideASameTargetSibling() throws Exception {
+        PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+        Region fading = new Region();
+        Region sibling = new Region();
+
+        runOnFx(() -> {
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(sibling, -100.0, 0.0, false)),
+                    true, Duration.seconds(30.0), Interpolator.LINEAR);
+            animator.runExit(fading, true, Duration.seconds(30.0), Interpolator.LINEAR, 0.0, () -> { });
+            // Stands in for the exit having faded the node part way.
+            fading.setOpacity(0.4);
+            assertTrue(animator.reclaimExit(fading), "setup: the exit was in flight");
+
+            animator.runRelayout(List.of(
+                    new PaneRelayoutAnimator.Move(sibling, sibling.getTranslateX(), 0.0, false),
+                    new PaneRelayoutAnimator.Move(fading, 0.0, 0.0, true)),
+                    true, SHORT, Interpolator.LINEAR);
+
+            assertTrue(animator.isTracked(fading), "the reclaimed node fades on");
+            assertEquals(0.4, fading.getOpacity(), EPSILON, "from its live opacity");
+            assertEquals(-100.0, sibling.getTranslateX(), EPSILON, "the sibling does not jump");
+        });
+        waitUntil(() -> Math.abs(fading.getOpacity() - 1.0) < EPSILON
+                && Math.abs(sibling.getTranslateX()) < EPSILON);
     }
 
     /**
@@ -430,7 +554,8 @@ public class PaneRelayoutAnimatorTest {
     }
 
     /**
-     * Verifies an animated exit runs to completion: the node is removed and reset.
+     * Verifies an animated exit runs to completion: the completion action runs and the
+     * node is back at the translate and opacity it had before the exit.
      */
     @Test
     public void exitFinishRemovesAndResets() throws Exception {
@@ -445,8 +570,8 @@ public class PaneRelayoutAnimatorTest {
         waitUntil(removed::get);
 
         runOnFx(() -> {
-            assertEquals(0.0, node.getTranslateX(), EPSILON, "translateX");
-            assertEquals(0.0, node.getTranslateY(), EPSILON, "translateY");
+            assertEquals(10.0, node.getTranslateX(), EPSILON, "translateX back at its resting value");
+            assertEquals(0.0, node.getTranslateY(), EPSILON, "translateY back after the drift");
             assertEquals(1.0, node.getOpacity(), EPSILON, "opacity restored");
         });
     }
@@ -460,9 +585,9 @@ public class PaneRelayoutAnimatorTest {
         Region node = new Region();
 
         runOnFx(() -> {
-            node.setTranslateX(30.0);
             animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 30.0, 0.0, false)),
                     true, Duration.millis(120.0), Interpolator.EASE_BOTH);
+            // Stands in for the first tween being half way.
             node.setTranslateX(15.0);
             animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 15.0, 0.0, false)),
                     true, SHORT, Interpolator.EASE_BOTH);
@@ -485,8 +610,6 @@ public class PaneRelayoutAnimatorTest {
             Region dropped = new Region();
             Duration glide = Duration.seconds(30.0);
 
-            kept.setTranslateX(40.0);
-            dropped.setTranslateX(60.0);
             animator.runRelayout(List.of(
                     new PaneRelayoutAnimator.Move(kept, 40.0, 0.0, false),
                     new PaneRelayoutAnimator.Move(dropped, 60.0, 0.0, false)),
@@ -517,10 +640,10 @@ public class PaneRelayoutAnimatorTest {
             Region node = new Region();
             Duration glide = Duration.seconds(30.0);
 
-            node.setTranslateX(100.0);
             animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 100.0, 0.0, false)),
                     true, glide, Interpolator.LINEAR);
-            assertEquals(100.0, node.getTranslateX(), 1.0, "setup: the first tween armed");
+            assertTrue(animator.isTracked(node), "setup: the first tween armed");
+            assertEquals(100.0, node.getTranslateX(), 1.0, "setup: from its start");
 
             // The pane relaid out again and captured a flipped FLIP delta. The live
             // translate still sits near the old value, so the rearm check sees a real
@@ -546,8 +669,6 @@ public class PaneRelayoutAnimatorTest {
         AtomicBoolean removed = new AtomicBoolean(false);
 
         runOnFx(() -> {
-            survivor.setTranslateX(20.0);
-            leaving.setTranslateX(25.0);
             animator.runRelayout(List.of(
                     new PaneRelayoutAnimator.Move(survivor, 20.0, 0.0, false),
                     new PaneRelayoutAnimator.Move(leaving, 25.0, 0.0, false)),
@@ -578,7 +699,6 @@ public class PaneRelayoutAnimatorTest {
         Duration longTween = Duration.millis(1000.0);
 
         runOnFx(() -> {
-            node.setTranslateX(200.0);
             animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 200.0, 0.0, false)),
                     true, longTween, Interpolator.EASE_BOTH);
             Timeline pulse = new Timeline(new KeyFrame(Duration.millis(16.0), e ->
@@ -751,6 +871,250 @@ public class PaneRelayoutAnimatorTest {
             assertEquals(5.0, node.getTranslateX(), EPSILON, "translate binding left untouched");
             assertEquals(0.4, node.getOpacity(), EPSILON, "opacity binding left untouched");
         });
+    }
+
+    // ==================== Resting translate ====================
+
+    /**
+     * Verifies a node taken over with a translate of its own glides back to that
+     * translate, not to zero.
+     */
+    @Test
+    public void armedNodeGlidesBackToItsRestingTranslate() throws Exception {
+        PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+        Region node = rested();
+
+        runOnFx(() -> {
+            // Its layout x moved 100 left: it starts 100 right of where it rests.
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 96.0, 6.0, false)),
+                    true, SHORT, Interpolator.LINEAR);
+            assertTrue(animator.isTracked(node), "armed");
+            assertEquals(96.0, node.getTranslateX(), EPSILON, "starts from where it showed");
+        });
+        waitUntil(() -> !animator.isTracked(node));
+
+        runOnFx(() -> assertRested(node, "after the glide"));
+    }
+
+    /**
+     * Verifies a move that starts at the node's own translate is static: the node is
+     * neither armed nor written.
+     */
+    @Test
+    public void moveStartingAtTheRestingTranslateIsNotArmed() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            Region node = rested();
+
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, -4.0, 6.0, false)),
+                    true, DURATION, Interpolator.EASE_BOTH);
+
+            assertFalse(animator.isTracked(node), "not armed");
+            assertRested(node, "untouched");
+        });
+    }
+
+    /**
+     * Verifies every way out of tracking writes the resting translate back, and a retarget
+     * keeps the value recorded when the node was first taken over.
+     */
+    @Test
+    public void everySettlePathRestoresTheRestingTranslate() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            Duration glide = Duration.seconds(30.0);
+
+            Region retargeted = rested();
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(retargeted, 96.0, 6.0, false)),
+                    true, glide, Interpolator.LINEAR);
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(retargeted, 46.0, 6.0, false)),
+                    true, glide, Interpolator.LINEAR);
+            assertEquals(-4.0, animator.restingTranslateX(retargeted), EPSILON, "a retarget keeps the resting x");
+            assertEquals(6.0, animator.restingTranslateY(retargeted), EPSILON, "a retarget keeps the resting y");
+            animator.stopAll();
+            assertRested(retargeted, "stopAll");
+
+            Region snapped = rested();
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(snapped, 96.0, 6.0, false)),
+                    true, glide, Interpolator.LINEAR);
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(snapped, 96.0, 6.0, false)),
+                    false, glide, Interpolator.LINEAR);
+            assertRested(snapped, "snap path");
+
+            Region dropped = rested();
+            Region kept = new Region();
+            animator.runRelayout(List.of(
+                    new PaneRelayoutAnimator.Move(dropped, 96.0, 6.0, false),
+                    new PaneRelayoutAnimator.Move(kept, 50.0, 0.0, false)),
+                    true, glide, Interpolator.LINEAR);
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(kept, kept.getTranslateX(), 0.0, false)),
+                    true, glide, Interpolator.LINEAR);
+            assertRested(dropped, "left out of a pass");
+
+            Region forgotten = rested();
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(forgotten, 96.0, 6.0, false)),
+                    true, glide, Interpolator.LINEAR);
+            animator.forget(forgotten);
+            assertRested(forgotten, "forgotten mid-glide");
+
+            Region forgottenMidExit = rested();
+            animator.runExit(forgottenMidExit, true, glide, Interpolator.LINEAR, -10.0, () -> { });
+            // Stands in for the drift being part way.
+            forgottenMidExit.setTranslateY(1.0);
+            animator.forget(forgottenMidExit);
+            assertRested(forgottenMidExit, "forgotten mid-exit");
+
+            Region exitedAtOnce = rested();
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(exitedAtOnce, 96.0, 6.0, false)),
+                    true, glide, Interpolator.LINEAR);
+            animator.runExit(exitedAtOnce, false, glide, Interpolator.LINEAR, -10.0, () -> { });
+            assertRested(exitedAtOnce, "non-animated exit");
+        });
+    }
+
+    /**
+     * Verifies a timeline rebuilt after one node leaves ends every remaining node at its
+     * own resting translate.
+     */
+    @Test
+    public void rebuiltTimelineEndsEachNodeAtItsOwnRest() throws Exception {
+        PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+        Region first = rested();
+        Region second = new Region();
+        second.setTranslateX(7.0);
+        second.setTranslateY(-3.0);
+        Region leaving = new Region();
+
+        runOnFx(() -> {
+            animator.runRelayout(List.of(
+                    new PaneRelayoutAnimator.Move(first, 96.0, 6.0, false),
+                    new PaneRelayoutAnimator.Move(second, 107.0, -3.0, false),
+                    new PaneRelayoutAnimator.Move(leaving, 50.0, 0.0, false)),
+                    true, SHORT, Interpolator.LINEAR);
+            animator.forget(leaving);
+        });
+        waitUntil(() -> !animator.isTracked(first) && !animator.isTracked(second));
+
+        runOnFx(() -> {
+            assertRested(first, "first");
+            assertEquals(7.0, second.getTranslateX(), EPSILON, "second x");
+            assertEquals(-3.0, second.getTranslateY(), EPSILON, "second y");
+        });
+    }
+
+    /**
+     * Verifies an exit drops the glide offset, fades out from the resting translate, and
+     * has the resting translate back before its completion action runs.
+     */
+    @Test
+    public void exitStartsAndEndsAtTheRestingTranslate() throws Exception {
+        PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+        Region node = rested();
+        AtomicReference<double[]> atCompletion = new AtomicReference<>();
+
+        runOnFx(() -> {
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 96.0, 6.0, false)),
+                    true, Duration.seconds(30.0), Interpolator.LINEAR);
+            animator.runExit(node, true, SHORT, Interpolator.LINEAR, -10.0,
+                    () -> atCompletion.set(new double[] {node.getTranslateX(), node.getTranslateY()}));
+            assertRested(node, "the exit starts");
+        });
+        waitUntil(() -> atCompletion.get() != null);
+
+        assertEquals(-4.0, atCompletion.get()[0], EPSILON, "x restored before the completion action");
+        assertEquals(6.0, atCompletion.get()[1], EPSILON, "y restored before the completion action");
+    }
+
+    /**
+     * Verifies a reclaimed exit fades back in and settles at the translate the node had
+     * before the exit.
+     */
+    @Test
+    public void reclaimedExitSettlesAtTheRestingTranslate() throws Exception {
+        PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+        Region node = rested();
+
+        runOnFx(() -> {
+            animator.runExit(node, true, Duration.seconds(30.0), Interpolator.LINEAR, -10.0, () -> { });
+            assertTrue(animator.reclaimExit(node), "setup: the exit was in flight");
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, -4.0, 6.0, true)),
+                    true, SHORT, Interpolator.LINEAR);
+        });
+        waitUntil(() -> !animator.isTracked(node));
+
+        runOnFx(() -> {
+            assertRested(node, "after the reclaimed fade");
+            assertEquals(1.0, node.getOpacity(), EPSILON, "opacity back");
+        });
+    }
+
+    /**
+     * Verifies addRelayoutMove measures motion against the resting translate: a static
+     * node with its own translate is left out, a real move whose start happens to be zero
+     * is kept, and a tracked node is always resubmitted.
+     */
+    @Test
+    public void addRelayoutMoveMeasuresMotionAgainstTheRestingTranslate() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            List<PaneRelayoutAnimator.Move> moves = new ArrayList<>();
+
+            Region still = new Region();
+            still.setTranslateX(20.0);
+            animator.addRelayoutMove(moves, still, still.getLayoutX() + 20.0, still.getLayoutY());
+            assertTrue(moves.isEmpty(), "a static node with its own translate is left out");
+
+            Region shifted = new Region();
+            shifted.setTranslateX(20.0);
+            double oldVisualX = shifted.getLayoutX() + shifted.getTranslateX();
+            // The pass moved it 20 to the right: it starts where it showed, at offset 0.
+            shifted.setLayoutX(20.0);
+            animator.addRelayoutMove(moves, shifted, oldVisualX, shifted.getLayoutY());
+            assertEquals(1, moves.size(), "a move whose start is zero still moves off a resting 20");
+            assertEquals(0.0, moves.get(0).fromTranslateX(), EPSILON, "it starts where it showed");
+
+            moves.clear();
+            Region tracked = new Region();
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(tracked, 30.0, 0.0, false)),
+                    true, Duration.seconds(30.0), Interpolator.LINEAR);
+            // Stands in for a tween that has almost arrived.
+            tracked.setTranslateX(0.2);
+            animator.addRelayoutMove(moves, tracked, tracked.getLayoutX() + 0.2, tracked.getLayoutY());
+            assertEquals(1, moves.size(), "a tracked node is always resubmitted");
+        });
+    }
+
+    /**
+     * Verifies addEnterMove starts the entrance at the given offset from the node's own
+     * translate.
+     */
+    @Test
+    public void addEnterMoveStartsOffsetFromTheRestingTranslate() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            List<PaneRelayoutAnimator.Move> moves = new ArrayList<>();
+            Region node = rested();
+
+            animator.addEnterMove(moves, node, 0.0, 15.0, true);
+
+            PaneRelayoutAnimator.Move move = moves.get(0);
+            assertEquals(-4.0, move.fromTranslateX(), EPSILON, "x starts at the resting x");
+            assertEquals(21.0, move.fromTranslateY(), EPSILON, "y starts offset from the resting y");
+            assertTrue(move.fade(), "fades in");
+        });
+    }
+
+    // A node with a translate of its own, (-4, 6), before the animator takes it over.
+    private static Region rested() {
+        Region node = new Region();
+        node.setTranslateX(-4.0);
+        node.setTranslateY(6.0);
+        return node;
+    }
+
+    private static void assertRested(Region node, String when) {
+        assertEquals(-4.0, node.getTranslateX(), EPSILON, when + ": resting translateX");
+        assertEquals(6.0, node.getTranslateY(), EPSILON, when + ": resting translateY");
     }
 
     private static void waitUntil(Callable<Boolean> conditionOnFx) throws Exception {

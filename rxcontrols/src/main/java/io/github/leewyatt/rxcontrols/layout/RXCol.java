@@ -55,9 +55,13 @@ import java.util.List;
  * inside the column or on an outer wrapper instead.</p>
  *
  * <p>When the parent row is {@link RXRow#animatedProperty() animated}, the row
- * drives this column's {@code translateX} / {@code translateY} and temporarily its
- * {@code opacity}. Do not set or bind those on the column; apply offsets or
- * transparency to the content inside it instead. While a hidden column fades out,
+ * temporarily drives this column's {@code translateX} / {@code translateY}, and its
+ * {@code opacity} while it fades in or out. A static translate or opacity set on the
+ * column is kept: each animation ends at the value the column had before it. A channel
+ * already bound when an animation starts makes the column skip that part of it (see
+ * {@link RXRow#animatedProperty()}); binding one while the column animates, or writing
+ * it from an animation of your own, is not supported. Put independent effects on the
+ * content inside the column instead. While a hidden column fades out,
  * the row also makes it mouse transparent and restores the previous
  * {@code mouseTransparent} value afterwards; a {@code mouseTransparent} bound to
  * {@code false} makes the column hide immediately instead of fading.</p>

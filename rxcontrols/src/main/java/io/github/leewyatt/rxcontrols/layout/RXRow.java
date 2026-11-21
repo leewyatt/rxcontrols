@@ -636,11 +636,17 @@ public class RXRow extends Pane {
      * animate.
      *
      * <p>While a column animates, the row drives its {@code translateX} /
-     * {@code translateY}; a fade-in borrows its {@code opacity} and restores the value
-     * it had when the fade started, overwriting any value written during the fade. A
-     * column whose {@code translateX} or {@code translateY} is bound does not animate,
-     * and one whose {@code opacity} is bound glides without fading. Binding these
-     * properties while an animation is in flight is not supported.</p>
+     * {@code translateY}, and its {@code opacity} while it fades in or out. Values the
+     * column had before the animation are kept: a glide ends at the earlier translate, a
+     * new column fades in where it lands at its own translate, and a fade returns to the
+     * earlier opacity. Writing these from elsewhere while the column animates, by one
+     * assignment or a running animation, is not supported: the row may overwrite them,
+     * and when the animation settles it puts back the values from before, which a
+     * still-running animation may then change again. Keep independent effects on the
+     * content inside the column. A column whose {@code translateX} or
+     * {@code translateY} is bound does not animate, and one whose {@code opacity} is
+     * bound glides without fading. Binding these properties while an animation is in
+     * flight is not supported.</p>
      *
      * <p>A column hidden by its spec leaves the layout at once but stays visible while
      * it fades out; for that time it is mouse transparent, and its previous
@@ -881,17 +887,12 @@ public class RXRow extends Pane {
         }
         if (!previousSlots.containsKey(child)) {
             // An entering column has no meaningful previous position (a newly added
-            // node's layoutX belongs to its old parent), so it fades in where it lands.
-            moves.add(new PaneRelayoutAnimator.Move(child, 0.0, 0.0, true));
+            // node's layoutX belongs to its old parent), so it fades in where it lands,
+            // at its own translate.
+            animator.addEnterMove(moves, child, 0.0, 0.0, true);
             return;
         }
-        double fromX = oldVisualX - child.getLayoutX();
-        double fromY = oldVisualY - child.getLayoutY();
-        if (Math.abs(fromX) >= PaneRelayoutAnimator.MOVE_EPSILON
-                || Math.abs(fromY) >= PaneRelayoutAnimator.MOVE_EPSILON
-                || tracked) {
-            moves.add(new PaneRelayoutAnimator.Move(child, fromX, fromY, false));
-        }
+        animator.addRelayoutMove(moves, child, oldVisualX, oldVisualY);
     }
 
     // Pixel quantities (x, width, line height, y, gutter, row gap, insets) are left out
@@ -1052,10 +1053,11 @@ public class RXRow extends Pane {
     // size until the fade ends.
     private void startResponsiveFadeOut(RXCol col, ResponsiveHiddenState hiddenState) {
         col.setManaged(false);
-        // The exit resets translate to 0; folding the live glide offset into layoutX first
-        // keeps the column where it is on screen. Unmanaged, its layoutX is ours alone.
-        col.setLayoutX(col.getLayoutX() + col.getTranslateX());
-        col.setLayoutY(col.getLayoutY() + col.getTranslateY());
+        // The exit returns translate to its resting value; folding the glide offset left
+        // on top of it into layoutX first keeps the column where it is on screen.
+        // Unmanaged, its layoutX is ours alone.
+        col.setLayoutX(col.getLayoutX() + col.getTranslateX() - animator.restingTranslateX(col));
+        col.setLayoutY(col.getLayoutY() + col.getTranslateY() - animator.restingTranslateY(col));
         if (!col.mouseTransparentProperty().isBound()) {
             hiddenState.borrowMouseTransparent(col.isMouseTransparent());
             col.setMouseTransparent(true);

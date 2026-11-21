@@ -799,9 +799,16 @@ public class RXMasonryPane extends Pane {
      * the parent's width, counts as imposed by the parent; a width that follows the
      * pane's own computed preferred width (say, after a gap change in an
      * {@code HBox}) still glides. Other changes, such as a child growing, still glide,
-     * unless they land in the same layout pass as such a resize. While enabled,
-     * the pane drives each child's {@code translateX} / {@code translateY} (and
-     * {@code opacity} during fades) for the animation. A
+     * unless they land in the same layout pass as such a resize.
+     *
+     * <p>While a child animates, the pane drives its {@code translateX} /
+     * {@code translateY}, and its {@code opacity} while it fades in or out. Values the
+     * child had before the animation are kept: a glide ends at the earlier translate, an
+     * entrance starts offset from it, and a fade returns to the earlier opacity. Writing
+     * these from elsewhere while the child animates, by one assignment or a running
+     * animation, is not supported: the pane may overwrite them, and when the animation
+     * settles it puts back the values from before, which a still-running animation may
+     * then change again. Keep independent effects on a node inside the child. A
      * child whose {@code translateX} or {@code translateY} is bound snaps into place,
      * whether moving or entering; one whose {@code opacity} is bound moves and enters
      * without fading; and either binding, or a bound {@code managed}, makes
@@ -810,7 +817,7 @@ public class RXMasonryPane extends Pane {
      * while the child is animating is not supported. Neither is turning animation off
      * from a listener on the children list while children are fading out: finishing
      * their exits removes children, which JavaFX forbids during that list's change
-     * notification.
+     * notification.</p>
      *
      * @return the animated property
      */
@@ -1488,7 +1495,7 @@ public class RXMasonryPane extends Pane {
             double y = top + yOffset + tops[i];
 
             // FLIP: record the current on-screen position before relocating, so the
-            // animator can invert the move and tween translate back to zero.
+            // animator can invert the move and tween translate back to its resting value.
             double oldVisualX = 0.0;
             double oldVisualY = 0.0;
             if (collectMoves) {
@@ -1505,18 +1512,9 @@ public class RXMasonryPane extends Pane {
             if (resizeOnly) {
                 animator.keepInFlight(moves, child);
             } else if (enteringNodes.contains(child)) {
-                moves.add(new PaneRelayoutAnimator.Move(child, 0.0, enterOffset, true));
+                animator.addEnterMove(moves, child, 0.0, enterOffset, true);
             } else {
-                double fromDx = oldVisualX - child.getLayoutX();
-                double fromDy = oldVisualY - child.getLayoutY();
-                // Static nodes are pre-filtered like the sibling panes, but a node
-                // the animator still tracks must stay submitted — dropping it from
-                // the pass would finalize its in-flight tween (fade or glide).
-                if (Math.abs(fromDx) >= PaneRelayoutAnimator.MOVE_EPSILON
-                        || Math.abs(fromDy) >= PaneRelayoutAnimator.MOVE_EPSILON
-                        || animator.isTracked(child)) {
-                    moves.add(new PaneRelayoutAnimator.Move(child, fromDx, fromDy, false));
-                }
+                animator.addRelayoutMove(moves, child, oldVisualX, oldVisualY);
             }
         }
         if (collectMoves) {

@@ -27,12 +27,19 @@ import java.util.Set;
  * <p>When a node leaves relayout ownership (an exit starts, or the node is removed
  * externally) the shared relayout timeline is rebuilt for the remaining nodes from
  * their current transforms, so no two timelines ever write the same node and a
- * removed node is not retained by a running timeline. Opacity is only ever
- * borrowed: a faded node returns to the opacity it had before the fade, and the
- * opacity of nodes the animator never tracked is never written, so caller-set
- * opacity survives layout passes. The translate channel, by contrast, belongs to
- * the FLIP mechanism: armed nodes return to translate {@code 0}, and an exit
- * re-homes the node to its layout position before fading out.</p>
+ * removed node is not retained by a running timeline.</p>
+ *
+ * <p>Both channels are only borrowed. When the animator first takes a node over it
+ * records the node's translate as its resting translate; every glide ends there, and
+ * every way out of tracking (finishing, settling, dropping, forgetting, an exit ending)
+ * writes it back, as an exit starts by re-homing the node to it before fading out. A
+ * faded node likewise returns to the opacity it had before the fade, and nodes the
+ * animator never tracked are never written, so caller-set values survive layout
+ * passes. While the animator holds a node, a caller write to the same channel (one
+ * assignment or a running animation of its own) is not supported: the animator may
+ * overwrite it, and settling restores the value recorded before. Callers submit moves
+ * through {@link #addRelayoutMove} and {@link #addEnterMove}, which measure motion
+ * against the resting translate rather than against zero.</p>
  *
  * <p>A {@code null}, zero, negative, unknown or indefinite duration — or a
  * {@code null} interpolator — degrades an animated call to the snap path instead
@@ -52,8 +59,9 @@ final class PaneRelayoutAnimator {
      * One node move within a relayout pass.
      *
      * @param node           the moving node
-     * @param fromTranslateX the starting {@code translateX} (relative to the new layout position)
-     * @param fromTranslateY the starting {@code translateY}
+     * @param fromTranslateX the {@code translateX} the node starts from at its new layout
+     *                       position; the glide ends at its resting translate
+     * @param fromTranslateY the {@code translateY} the node starts from
      * @param fade           whether the node fades in from {@code 0} toward its current opacity
      */
     record Move(Node node, double fromTranslateX, double fromTranslateY, boolean fade) {
@@ -63,13 +71,14 @@ final class PaneRelayoutAnimator {
 
     // targetOpacity is the opacity the fade tween ends at (the value the node had
     // before the animator wrote 0); NaN for pure-translate moves, whose opacity is
-    // never touched.
-    private record MoveState(boolean fade, double targetOpacity) {
+    // never touched. restX / restY is the translate the node had when first taken over.
+    private record MoveState(boolean fade, double targetOpacity, double restX, double restY) {
     }
 
     // baseOpacity is the opacity restored when the exit ends, so a node pulled out
-    // mid-exit keeps its caller-set value.
-    private record ExitState(Timeline timeline, Runnable onFinished, double baseOpacity) {
+    // mid-exit keeps its caller-set value; restX / restY likewise for translate.
+    private record ExitState(Timeline timeline, Runnable onFinished, double baseOpacity,
+                             double restX, double restY) {
     }
 
     private final Map<Node, MoveState> activeMoves = new HashMap<>();
@@ -144,8 +153,11 @@ final class PaneRelayoutAnimator {
             // rebuilds; its new move only carries fade on the pass it entered.
             boolean continuedFade = previous != null && previous.fade();
             boolean fade = move.fade() || continuedFade;
-            boolean hasTranslation = Math.abs(move.fromTranslateX()) >= MOVE_EPSILON
-                    || Math.abs(move.fromTranslateY()) >= MOVE_EPSILON;
+            // Read before the first write: a node taken over now rests where it is.
+            double restX = previous != null ? previous.restX() : node.getTranslateX();
+            double restY = previous != null ? previous.restY() : node.getTranslateY();
+            boolean hasTranslation = Math.abs(move.fromTranslateX() - restX) >= MOVE_EPSILON
+                    || Math.abs(move.fromTranslateY() - restY) >= MOVE_EPSILON;
             if (!fade && !hasTranslation) {
                 finalizeMove(node);
                 continue;
@@ -164,9 +176,9 @@ final class PaneRelayoutAnimator {
                 }
                 keyValues.add(new KeyValue(node.opacityProperty(), targetOpacity, interpolator));
             }
-            keyValues.add(new KeyValue(node.translateXProperty(), 0.0, interpolator));
-            keyValues.add(new KeyValue(node.translateYProperty(), 0.0, interpolator));
-            activeMoves.put(node, new MoveState(fade, targetOpacity));
+            keyValues.add(new KeyValue(node.translateXProperty(), restX, interpolator));
+            keyValues.add(new KeyValue(node.translateYProperty(), restY, interpolator));
+            activeMoves.put(node, new MoveState(fade, targetOpacity, restX, restY));
             animated.add(node);
         }
         if (keyValues.isEmpty()) {
@@ -176,11 +188,14 @@ final class PaneRelayoutAnimator {
     }
 
     // True when this pass introduces a move the running timeline does not already
-    // cover: a fading-in node, or a node whose layout target shifted since its tween
-    // was armed. A node still tweening toward the same target — its from-translate
-    // (offset from the freshly written layout position) equals its live translate —
-    // is left to its existing timeline, so a per-pulse relayout does not reset the
-    // tween clock.
+    // cover: a fading-in node, a static node that starts to move, or a tracked node
+    // whose layout target shifted since its tween was armed. A tracked node still
+    // tweening toward the same target — its from-translate (offset from the freshly
+    // written layout position) equals its live translate — is left to its existing
+    // timeline, so a per-pulse relayout does not reset the tween clock. Any other
+    // from-translate of a tracked node is a new target, even one with no offset left:
+    // the node then sits at its new layout position while the old timeline would keep
+    // pushing it away.
     private boolean needsRearm(List<Move> moves) {
         for (Move move : moves) {
             Node node = move.node();
@@ -190,15 +205,16 @@ final class PaneRelayoutAnimator {
             if (move.fade()) {
                 return true;
             }
-            boolean hasTranslation = Math.abs(move.fromTranslateX()) >= MOVE_EPSILON
-                    || Math.abs(move.fromTranslateY()) >= MOVE_EPSILON;
-            if (!hasTranslation) {
+            if (activeMoves.containsKey(node)) {
+                if (Math.abs(move.fromTranslateX() - node.getTranslateX()) >= MOVE_EPSILON
+                        || Math.abs(move.fromTranslateY() - node.getTranslateY()) >= MOVE_EPSILON) {
+                    return true;
+                }
                 continue;
             }
-            boolean tweeningToSameTarget = activeMoves.containsKey(node)
-                    && Math.abs(move.fromTranslateX() - node.getTranslateX()) < MOVE_EPSILON
-                    && Math.abs(move.fromTranslateY() - node.getTranslateY()) < MOVE_EPSILON;
-            if (!tweeningToSameTarget) {
+            // An untracked node rests at its current translate.
+            if (Math.abs(move.fromTranslateX() - node.getTranslateX()) >= MOVE_EPSILON
+                    || Math.abs(move.fromTranslateY() - node.getTranslateY()) >= MOVE_EPSILON) {
                 return true;
             }
         }
@@ -228,11 +244,23 @@ final class PaneRelayoutAnimator {
         if (existing != null) {
             existing.timeline().stop();
         }
+        double restX;
+        double restY;
+        if (existing != null) {
+            restX = existing.restX();
+            restY = existing.restY();
+        } else if (tracked != null) {
+            restX = tracked.restX();
+            restY = tracked.restY();
+        } else {
+            restX = node.getTranslateX();
+            restY = node.getTranslateY();
+        }
         if (!animate) {
             // Settle anything this animator wrote before detaching, since forget
             // will no longer see the node as tracked.
             if (tracked != null || existing != null) {
-                resetTranslate(node);
+                restoreTranslate(node, restX, restY);
                 if (existing != null) {
                     restoreOpacity(node, existing.baseOpacity());
                 } else if (tracked.fade()) {
@@ -251,23 +279,24 @@ final class PaneRelayoutAnimator {
         } else {
             baseOpacity = node.getOpacity();
         }
-        node.setTranslateX(0.0);
-        node.setTranslateY(0.0);
+        // Any glide offset left is dropped: the exit fades out from the resting position.
+        node.setTranslateX(restX);
+        node.setTranslateY(restY);
         Timeline timeline = new Timeline(new KeyFrame(duration,
                 new KeyValue(node.opacityProperty(), 0.0, interpolator),
-                new KeyValue(node.translateYProperty(), exitTranslateY, interpolator)));
+                new KeyValue(node.translateYProperty(), restY + exitTranslateY, interpolator)));
         timeline.setOnFinished(event -> finishExit(node));
-        exits.put(node, new ExitState(timeline, onFinished, baseOpacity));
+        exits.put(node, new ExitState(timeline, onFinished, baseOpacity, restX, restY));
         timeline.play();
     }
 
     /**
      * Turns an in-flight exit back into a fade-in: the exit stops without running
      * its completion action and without writing opacity, and the node is tracked as
-     * fading toward the exit's base opacity. The caller must submit the node in the
-     * next {@link #runRelayout} with {@code fade=true}; the fade then resumes from the
-     * live mid-exit opacity. A reclaimed node left out of that pass is settled at its
-     * base opacity like any dropped move.
+     * fading toward the exit's base opacity and resting translate. The caller must
+     * submit the node in the next {@link #runRelayout} with {@code fade=true}; the fade
+     * then resumes from the live mid-exit opacity. A reclaimed node left out of that pass
+     * is settled at its base opacity and resting translate like any dropped move.
      *
      * @param node the node whose exit to reclaim
      * @return whether the node had an exit in flight
@@ -278,7 +307,7 @@ final class PaneRelayoutAnimator {
             return false;
         }
         exit.timeline().stop();
-        activeMoves.put(node, new MoveState(true, exit.baseOpacity()));
+        activeMoves.put(node, new MoveState(true, exit.baseOpacity(), exit.restX(), exit.restY()));
         return true;
     }
 
@@ -300,7 +329,11 @@ final class PaneRelayoutAnimator {
         if (tracked == null && exit == null) {
             return;
         }
-        resetTranslate(node);
+        if (tracked != null) {
+            restoreTranslate(node, tracked.restX(), tracked.restY());
+        } else {
+            restoreTranslate(node, exit.restX(), exit.restY());
+        }
         if (tracked != null && tracked.fade()) {
             restoreOpacity(node, tracked.targetOpacity());
         } else if (exit != null) {
@@ -333,6 +366,74 @@ final class PaneRelayoutAnimator {
         if (isTracked(node)) {
             moves.add(new Move(node, node.getTranslateX(), node.getTranslateY(), false));
         }
+    }
+
+    /**
+     * Returns the {@code translateX} a node rests at: the value recorded when the
+     * animator took the node over while it glides or exits, its current
+     * {@code translateX} otherwise.
+     *
+     * @param node the node to query
+     * @return the resting {@code translateX}
+     */
+    double restingTranslateX(Node node) {
+        MoveState tracked = activeMoves.get(node);
+        if (tracked != null) {
+            return tracked.restX();
+        }
+        ExitState exit = exits.get(node);
+        return exit != null ? exit.restX() : node.getTranslateX();
+    }
+
+    /**
+     * Returns the {@code translateY} a node rests at; see {@link #restingTranslateX}.
+     *
+     * @param node the node to query
+     * @return the resting {@code translateY}
+     */
+    double restingTranslateY(Node node) {
+        MoveState tracked = activeMoves.get(node);
+        if (tracked != null) {
+            return tracked.restY();
+        }
+        ExitState exit = exits.get(node);
+        return exit != null ? exit.restY() : node.getTranslateY();
+    }
+
+    /**
+     * Adds the move of a node the pass has just laid out, when it moved or is still in
+     * flight. The start is the node's old on-screen position seen from its new layout
+     * position, and the node moved when that start is off its resting translate: a move
+     * whose start happens to be zero still glides back to a non-zero resting translate,
+     * and a static node with a translate of its own is left alone.
+     *
+     * @param moves      the pass's moves
+     * @param node       the node, already at its new layout position
+     * @param oldVisualX the node's {@code layoutX + translateX} before the pass laid it out
+     * @param oldVisualY the node's {@code layoutY + translateY} before the pass laid it out
+     */
+    void addRelayoutMove(List<Move> moves, Node node, double oldVisualX, double oldVisualY) {
+        double fromX = oldVisualX - node.getLayoutX();
+        double fromY = oldVisualY - node.getLayoutY();
+        if (isTracked(node)
+                || Math.abs(fromX - restingTranslateX(node)) >= MOVE_EPSILON
+                || Math.abs(fromY - restingTranslateY(node)) >= MOVE_EPSILON) {
+            moves.add(new Move(node, fromX, fromY, false));
+        }
+    }
+
+    /**
+     * Adds the entrance of a node with no earlier position to glide from: it starts at
+     * the given offset from its resting translate and, when fading, at opacity 0.
+     *
+     * @param moves   the pass's moves
+     * @param node    the entering node, already at its layout position
+     * @param offsetX the horizontal offset the entrance starts at
+     * @param offsetY the vertical offset the entrance starts at
+     * @param fade    whether the node fades in
+     */
+    void addEnterMove(List<Move> moves, Node node, double offsetX, double offsetY, boolean fade) {
+        moves.add(new Move(node, restingTranslateX(node) + offsetX, restingTranslateY(node) + offsetY, fade));
     }
 
     /**
@@ -384,8 +485,8 @@ final class PaneRelayoutAnimator {
         List<Node> animated = new ArrayList<>(activeMoves.keySet());
         for (Node remaining : animated) {
             MoveState state = activeMoves.get(remaining);
-            keyValues.add(new KeyValue(remaining.translateXProperty(), 0.0, lastInterpolator));
-            keyValues.add(new KeyValue(remaining.translateYProperty(), 0.0, lastInterpolator));
+            keyValues.add(new KeyValue(remaining.translateXProperty(), state.restX(), lastInterpolator));
+            keyValues.add(new KeyValue(remaining.translateYProperty(), state.restY(), lastInterpolator));
             if (state.fade()) {
                 keyValues.add(new KeyValue(remaining.opacityProperty(), state.targetOpacity(), lastInterpolator));
             }
@@ -413,14 +514,14 @@ final class PaneRelayoutAnimator {
             return;
         }
         state.timeline().stop();
-        resetTranslate(node);
+        restoreTranslate(node, state.restX(), state.restY());
         restoreOpacity(node, state.baseOpacity());
         state.onFinished().run();
     }
 
-    // Settles a tracked node: translate returns to 0, and opacity returns to its
-    // fade target only when this animator wrote opacity. A node that was never
-    // tracked is not ours to touch.
+    // Settles a tracked node: translate returns to its resting value, and opacity
+    // returns to its fade target only when this animator wrote opacity. A node that
+    // was never tracked is not ours to touch.
     private void finalizeMove(Node node) {
         MoveState state = activeMoves.remove(node);
         if (state == null) {
@@ -429,7 +530,7 @@ final class PaneRelayoutAnimator {
         if (exits.containsKey(node)) {
             return;
         }
-        resetTranslate(node);
+        restoreTranslate(node, state.restX(), state.restY());
         if (state.fade()) {
             restoreOpacity(node, state.targetOpacity());
         }
@@ -437,12 +538,12 @@ final class PaneRelayoutAnimator {
 
     // Settling skips a channel bound since the node was armed. Binding mid-animation
     // is unsupported, but it must not make the settle throw inside a layout pass.
-    private static void resetTranslate(Node node) {
+    private static void restoreTranslate(Node node, double x, double y) {
         if (!node.translateXProperty().isBound()) {
-            node.setTranslateX(0.0);
+            node.setTranslateX(x);
         }
         if (!node.translateYProperty().isBound()) {
-            node.setTranslateY(0.0);
+            node.setTranslateY(y);
         }
     }
 
