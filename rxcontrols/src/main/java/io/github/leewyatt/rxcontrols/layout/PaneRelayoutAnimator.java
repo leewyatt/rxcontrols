@@ -125,6 +125,10 @@ final class PaneRelayoutAnimator {
     // Counts stopAll calls, so a pass can tell that a listener reached from one of its
     // writes stopped everything (animation turned off, say).
     private int stops;
+    // The nodes forgotten while a pass arms its moves, so one a listener reached from an
+    // earlier node's writes moved away is not armed when its turn comes; null between
+    // passes.
+    private Set<Node> letGoInPass;
     private Duration lastDuration = Duration.ZERO;
     private Interpolator lastInterpolator = Interpolator.LINEAR;
 
@@ -185,20 +189,46 @@ final class PaneRelayoutAnimator {
 
         lastDuration = duration;
         lastInterpolator = interpolator;
+        Set<Node> outerLetGo = letGoInPass;
+        letGoInPass = new HashSet<>();
+        try {
+            armAndPlay(moves, duration, interpolator, stopsAtStart);
+        } finally {
+            // A pass run from a listener inside this one lets its forgotten nodes count here.
+            if (outerLetGo != null) {
+                outerLetGo.addAll(letGoInPass);
+            }
+            letGoInPass = outerLetGo;
+        }
+    }
+
+    // Takes each move's node over and plays the timeline. Each node is checked again when
+    // its turn comes and after every write: a listener reached from an earlier write may
+    // have let it go (forgotten it or started its exit), bound one of its channels, or
+    // stopped everything. A node is taken over before its first write, so a listener
+    // reached from that write finds it to give its values back.
+    private void armAndPlay(List<Move> moves, Duration duration, Interpolator interpolator, int stopsAtStart) {
         List<Node> armedNodes = new ArrayList<>();
         List<MoveState> armedStates = new ArrayList<>();
         for (Move move : moves) {
             Node node = move.node();
             // The exit timeline owns a leaving node's transforms; arming it here
             // would have two timelines writing the same node.
-            if (exits.containsKey(node)) {
+            if (exits.containsKey(node) || letGoInPass.contains(node)) {
                 continue;
             }
             MoveState previous = activeMoves.get(node);
+            // Bound since the pass began: a bound translate drops the move, a bound
+            // opacity leaves a pure glide.
+            if (isTranslateBound(node)) {
+                finalizeMove(node);
+                continue;
+            }
+            boolean opacityBound = node.opacityProperty().isBound();
             // A node whose fade-in is still in flight keeps fading across timeline
             // rebuilds; its new move only carries fade on the pass it entered.
-            boolean continuedFade = previous != null && previous.fade();
-            boolean fade = move.fade() || continuedFade || move.resumesFade();
+            boolean continuedFade = !opacityBound && previous != null && previous.fade();
+            boolean fade = !opacityBound && (move.fade() || continuedFade || move.resumesFade());
             // Read before the first write: a node taken over now rests where it is.
             double restX = previous != null ? previous.restX() : node.getTranslateX();
             double restY = previous != null ? previous.restY() : node.getTranslateY();
@@ -212,23 +242,24 @@ final class PaneRelayoutAnimator {
             // write, the timeline interpolates from the current value at play time.
             double targetOpacity = !fade ? Double.NaN : continuedFade ? previous.targetOpacity() : node.getOpacity();
             MoveState state = new MoveState(fade, targetOpacity, restX, restY);
-            // Taken over before the first write: a listener reached from a write may
-            // forget the node (moving it to another parent) or stop everything, and must
-            // find it then to give its values back. After each write the node is only
-            // written on while it is still this pass's.
             activeMoves.put(node, state);
             node.setTranslateX(move.fromTranslateX());
             if (stops != stopsAtStart) {
                 return;
             }
-            if (activeMoves.get(node) == state) {
+            if (ownsStill(node, state) && !node.translateYProperty().isBound()) {
                 node.setTranslateY(move.fromTranslateY());
             }
             if (stops != stopsAtStart) {
                 return;
             }
-            if (fade && !continuedFade && activeMoves.get(node) == state) {
-                node.setOpacity(move.resumesFade() ? move.fromOpacity() : 0.0);
+            if (fade && !continuedFade && ownsStill(node, state)) {
+                if (node.opacityProperty().isBound()) {
+                    state = new MoveState(false, Double.NaN, restX, restY);
+                    activeMoves.put(node, state);
+                } else {
+                    node.setOpacity(move.resumesFade() ? move.fromOpacity() : 0.0);
+                }
             }
             if (stops != stopsAtStart) {
                 return;
@@ -236,16 +267,21 @@ final class PaneRelayoutAnimator {
             armedNodes.add(node);
             armedStates.add(state);
         }
-        // A listener reached from a later write may still have let an earlier node go.
+        // A listener reached from a later write may still have let an earlier node go or
+        // bound one of its channels.
         List<KeyValue> keyValues = new ArrayList<>();
         List<Node> animated = new ArrayList<>();
         for (int i = 0; i < armedNodes.size(); i++) {
             Node node = armedNodes.get(i);
             MoveState state = armedStates.get(i);
-            if (activeMoves.get(node) != state) {
+            if (!ownsStill(node, state)) {
                 continue;
             }
-            if (state.fade()) {
+            if (isTranslateBound(node)) {
+                finalizeMove(node);
+                continue;
+            }
+            if (state.fade() && !node.opacityProperty().isBound()) {
                 keyValues.add(new KeyValue(node.opacityProperty(), state.targetOpacity(), interpolator));
             }
             keyValues.add(new KeyValue(node.translateXProperty(), state.restX(), interpolator));
@@ -256,6 +292,10 @@ final class PaneRelayoutAnimator {
             return;
         }
         relayoutTimeline = playRelayout(keyValues, animated, duration);
+    }
+
+    private boolean ownsStill(Node node, MoveState state) {
+        return activeMoves.get(node) == state && !letGoInPass.contains(node);
     }
 
     // True when this pass introduces a move the running timeline does not already
@@ -391,6 +431,9 @@ final class PaneRelayoutAnimator {
      * @param node the node to forget
      */
     void forget(Node node) {
+        if (letGoInPass != null) {
+            letGoInPass.add(node);
+        }
         MoveState tracked = activeMoves.get(node);
         releaseFromRelayout(node);
         ExitState exit = exits.remove(node);

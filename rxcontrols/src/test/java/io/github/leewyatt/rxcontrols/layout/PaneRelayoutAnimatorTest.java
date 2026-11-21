@@ -149,6 +149,40 @@ public class PaneRelayoutAnimatorTest {
     }
 
     /**
+     * Verifies each node of a pass is checked again when its turn comes: a later node
+     * whose opacity a listener on an earlier node's write binds only moves, keeping its
+     * binding, and a later node the listener lets go is not taken over; the earlier node
+     * goes on.
+     */
+    @Test
+    public void laterNodeChangedFromAnEarlierWriteIsCheckedAgain() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            Region first = new Region();
+            Region bound = new Region();
+            Region letGo = new Region();
+            letGo.setOpacity(0.8);
+            letGo.setTranslateY(-3.0);
+            first.opacityProperty().addListener((obs, oldValue, newValue) -> {
+                if (newValue.doubleValue() == 0.0) {
+                    bound.opacityProperty().bind(new SimpleDoubleProperty(0.6));
+                    animator.forget(letGo);
+                }
+            });
+            animator.runRelayout(List.of(
+                    new PaneRelayoutAnimator.Move(first, 0.0, 10.0, true),
+                    new PaneRelayoutAnimator.Move(bound, 0.0, 10.0, true),
+                    new PaneRelayoutAnimator.Move(letGo, 0.0, 7.0, true)), true, SHORT, Interpolator.LINEAR);
+            assertTrue(animator.isTracked(first), "the earlier node goes on");
+            assertEquals(0.6, bound.getOpacity(), EPSILON, "the bound node keeps its binding");
+            assertEquals(10.0, bound.getTranslateY(), EPSILON, "and still moves");
+            assertFalse(animator.isTracked(letGo), "the node let go is not taken over");
+            assertEquals(0.8, letGo.getOpacity(), EPSILON, "it keeps its opacity");
+            assertEquals(-3.0, letGo.getTranslateY(), EPSILON, "and its translate");
+        });
+    }
+
+    /**
      * Verifies a non-animated exit removes the node immediately.
      */
     @Test

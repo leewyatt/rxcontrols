@@ -2387,6 +2387,40 @@ public class RXTilePaneTest {
         });
     }
 
+    /**
+     * Verifies a listener reached from one new tile's entrance can bind or take away
+     * other tiles added with it: the bound one keeps its binding, the one moved to
+     * another parent keeps its own opacity and translate there, and the first enters and
+     * settles as usual.
+     */
+    @Test
+    public void listenerOnOneEntranceCanChangeTheNextNewTiles() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = shownPane(2);
+            StackPane elsewhere = new StackPane();
+            Region first = card();
+            Region bound = card();
+            Region moved = card();
+            moved.setOpacity(0.8);
+            moved.setTranslateY(-3.0);
+            first.opacityProperty().addListener((obs, oldValue, newValue) -> {
+                if (newValue.doubleValue() == 0.0 && moved.getParent() == pane) {
+                    bound.opacityProperty().bind(new SimpleDoubleProperty(0.6));
+                    elsewhere.getChildren().add(moved);
+                }
+            });
+            pane.getChildren().addAll(first, bound, moved);
+            layout(pane, 700, 400);
+            assertTileClose(0.0, first.getOpacity(), "the first enters");
+            assertTileClose(0.6, bound.getOpacity(), "the bound one keeps its binding");
+            assertSame(elsewhere, moved.getParent(), "setup: the listener moved one away");
+            assertTileClose(0.8, moved.getOpacity(), "the one moved away keeps its opacity");
+            assertTileClose(-3.0, moved.getTranslateY(), "and its translate");
+            pane.setAnimated(false);
+            assertTileClose(1.0, first.getOpacity(), "the first settles");
+        });
+    }
+
     // Tiles of 100 px, three to a row at 700 px with a 10 px vgap, laid out once in a scene.
     private static RXTilePane shownPane(int count) {
         RXTilePane pane = filledPane(count);
