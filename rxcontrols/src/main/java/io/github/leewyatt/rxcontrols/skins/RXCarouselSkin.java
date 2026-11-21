@@ -17,6 +17,7 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.event.EventHandler;
+import javafx.event.EventType;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
@@ -30,7 +31,7 @@ import javafx.util.Duration;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -57,7 +58,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     private Node navigatorNode;
 
     // Page cache
-    private final Map<Integer, Node> pageCache = new HashMap<>();
+    private final Map<Integer, Page> pageCache = new HashMap<>();
 
     // Animation state
     private final PageTransitionEngine engine = new PageTransitionEngine();
@@ -365,15 +366,13 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         if (index >= count) {
             index = 0;
         }
-        Node page = getOrCreatePage(index, carousel);
+        Page page = getOrCreatePage(index, carousel);
         if (page != null) {
-            if (!contentPane.getChildren().contains(page)) {
-                contentPane.getChildren().add(page);
-            }
-            page.setVisible(true);
+            attach(page);
+            page.wrapper.setVisible(true);
             // Hide all other pages
             for (Node child : contentPane.getChildren()) {
-                if (child != page) {
+                if (child != page.wrapper) {
                     child.setVisible(false);
                 }
             }
@@ -386,25 +385,49 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             }
 
             // Fire lifecycle events for the initial page (no animation, so both fire immediately)
-            carousel.fireEvent(new RXPageLifecycleEvent(RXPageLifecycleEvent.OPENING, index, page));
-            carousel.fireEvent(new RXPageLifecycleEvent(RXPageLifecycleEvent.OPENED, index, page));
+            carousel.fireEvent(new RXPageLifecycleEvent(RXPageLifecycleEvent.OPENING, index, page.node));
+            carousel.fireEvent(new RXPageLifecycleEvent(RXPageLifecycleEvent.OPENED, index, page.node));
         }
         notifyNavigator(-1, carousel);
     }
 
-    Node getOrCreatePage(int index, RXCarousel carousel) {
-        return pageCache.computeIfAbsent(index, i -> {
-            Callback<Integer, Node> factory = carousel.getPageFactory();
-            if (factory == null) {
-                return null;
-            }
-            Node page = factory.call(i);
-            if (page != null) {
-                carousel.fireEvent(new RXPageLifecycleEvent(
-                        RXPageLifecycleEvent.CACHED, i, page));
-            }
+    // Not computeIfAbsent: the factory and the CACHED handlers are the
+    // application's code and may change the cache themselves.
+    private Page getOrCreatePage(int index, RXCarousel carousel) {
+        Page page = pageCache.get(index);
+        if (page != null) {
             return page;
-        });
+        }
+        Callback<Integer, Node> factory = carousel.getPageFactory();
+        if (factory == null) {
+            return null;
+        }
+        Node node = factory.call(index);
+        if (node == null) {
+            return null;
+        }
+        page = new Page(index, node);
+        pageCache.put(index, page);
+        carousel.fireEvent(new RXPageLifecycleEvent(RXPageLifecycleEvent.CACHED, index, node));
+        return page;
+    }
+
+    private void attach(Page page) {
+        if (!contentPane.getChildren().contains(page.wrapper)) {
+            contentPane.getChildren().add(page.wrapper);
+        }
+    }
+
+    // The node stays the application's: an evicted page leaves the skin's
+    // wrapper before EVICTED, so a handler can put it somewhere else.
+    private void evict(Page page, RXCarousel carousel) {
+        contentPane.getChildren().remove(page.wrapper);
+        page.wrapper.getChildren().clear();
+        carousel.fireEvent(new RXPageLifecycleEvent(RXPageLifecycleEvent.EVICTED, page.index, page.node));
+    }
+
+    private static Node wrapperOf(Page page) {
+        return page == null ? null : page.wrapper;
     }
 
     private void ensureAdjacentPages(int currentIndex, RXCarousel carousel) {
@@ -447,15 +470,10 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             keep.add(idx);
         }
 
-        Iterator<Map.Entry<Integer, Node>> it = pageCache.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Integer, Node> entry = it.next();
-            if (!keep.contains(entry.getKey())) {
-                Node removed = entry.getValue();
-                contentPane.getChildren().remove(removed);
-                carousel.fireEvent(new RXPageLifecycleEvent(
-                        RXPageLifecycleEvent.EVICTED, entry.getKey(), removed));
-                it.remove();
+        for (Page page : List.copyOf(pageCache.values())) {
+            if (!keep.contains(page.index) && pageCache.get(page.index) == page) {
+                pageCache.remove(page.index);
+                evict(page, carousel);
             }
         }
     }
@@ -465,15 +483,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
      */
     public void clearPageCache() {
         RXCarousel carousel = getSkinnable();
-        Iterator<Map.Entry<Integer, Node>> it = pageCache.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Integer, Node> entry = it.next();
-            Node removed = entry.getValue();
-            contentPane.getChildren().remove(removed);
-            carousel.fireEvent(new RXPageLifecycleEvent(
-                    RXPageLifecycleEvent.EVICTED, entry.getKey(), removed));
-            it.remove();
-        }
+        clearAllPagesFromCache(carousel);
         initializeCurrentPage(carousel);
     }
 
@@ -484,11 +494,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
      */
     public void clearPageCache(int index) {
         RXCarousel carousel = getSkinnable();
-        Node removed = pageCache.remove(index);
+        Page removed = pageCache.remove(index);
         if (removed != null) {
-            contentPane.getChildren().remove(removed);
-            carousel.fireEvent(new RXPageLifecycleEvent(
-                    RXPageLifecycleEvent.EVICTED, index, removed));
+            evict(removed, carousel);
             if (index == carousel.getSelectedIndex()) {
                 initializeCurrentPage(carousel);
             }
@@ -496,14 +504,11 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     }
 
     private void clearAllPagesFromCache(RXCarousel carousel) {
-        Iterator<Map.Entry<Integer, Node>> it = pageCache.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Integer, Node> entry = it.next();
-            Node removed = entry.getValue();
-            contentPane.getChildren().remove(removed);
-            carousel.fireEvent(new RXPageLifecycleEvent(
-                    RXPageLifecycleEvent.EVICTED, entry.getKey(), removed));
-            it.remove();
+        for (Page page : List.copyOf(pageCache.values())) {
+            if (pageCache.get(page.index) == page) {
+                pageCache.remove(page.index);
+                evict(page, carousel);
+            }
         }
     }
 
@@ -527,17 +532,17 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             // CLOSING/OPENING in getAnimation() and CLOSED/OPENED in
             // onFinished(), so CLOSED and OPENED are always the missing pair.
             if (closedIndex >= 0) {
-                Node fromPage = pageCache.get(closedIndex);
+                Page fromPage = pageCache.get(closedIndex);
                 if (fromPage != null) {
                     carousel.fireEvent(new RXPageLifecycleEvent(
-                            RXPageLifecycleEvent.CLOSED, closedIndex, fromPage));
+                            RXPageLifecycleEvent.CLOSED, closedIndex, fromPage.node));
                 }
             }
             if (openedIndex >= 0) {
-                Node toPage = pageCache.get(openedIndex);
+                Page toPage = pageCache.get(openedIndex);
                 if (toPage != null) {
                     carousel.fireEvent(new RXPageLifecycleEvent(
-                            RXPageLifecycleEvent.OPENED, openedIndex, toPage));
+                            RXPageLifecycleEvent.OPENED, openedIndex, toPage.node));
                 }
             }
 
@@ -561,12 +566,12 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             // mirrors the cleanup in animationListener (idle path) and
             // prevents leftover visible side pages from interfering
             // with the new animation and causing depth buffer artifacts.
-            Node oldCurrent = pageCache.get(oldIndex);
+            Node oldCurrent = wrapperOf(pageCache.get(oldIndex));
             contentPane.getChildren().removeIf(child -> child != oldCurrent);
         }
 
-        Node currentPage = pageCache.get(oldIndex);
-        Node nextPage = getOrCreatePage(newIndex, carousel);
+        Page currentPage = pageCache.get(oldIndex);
+        Page nextPage = getOrCreatePage(newIndex, carousel);
 
         if (nextPage == null) {
             return;
@@ -574,15 +579,15 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
 
         // Ensure current page is in the scene graph (it may have been removed
         // by a previous hideNonCurrentPages call)
-        if (currentPage != null && !contentPane.getChildren().contains(currentPage)) {
-            contentPane.getChildren().add(currentPage);
-            currentPage.setVisible(true);
+        if (currentPage != null && !contentPane.getChildren().contains(currentPage.wrapper)) {
+            contentPane.getChildren().add(currentPage.wrapper);
+            currentPage.wrapper.setVisible(true);
         }
 
         // Ensure next page is in the scene graph
-        if (!contentPane.getChildren().contains(nextPage)) {
-            nextPage.setVisible(false);
-            contentPane.getChildren().add(nextPage);
+        if (!contentPane.getChildren().contains(nextPage.wrapper)) {
+            nextPage.wrapper.setVisible(false);
+            contentPane.getChildren().add(nextPage.wrapper);
         }
 
         // Notify navigator immediately so dots update before animation starts
@@ -633,21 +638,21 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                 });
     }
 
-    private void directCut(Node currentPage, Node nextPage, int oldIndex, int newIndex,
+    private void directCut(Page currentPage, Page nextPage, int oldIndex, int newIndex,
                            RXCarousel carousel) {
         stopAutoplay(carousel);
         if (currentPage != null) {
             carousel.fireEvent(new RXPageLifecycleEvent(
-                    RXPageLifecycleEvent.CLOSING, oldIndex, currentPage));
-            currentPage.setVisible(false);
+                    RXPageLifecycleEvent.CLOSING, oldIndex, currentPage.node));
+            currentPage.wrapper.setVisible(false);
             carousel.fireEvent(new RXPageLifecycleEvent(
-                    RXPageLifecycleEvent.CLOSED, oldIndex, currentPage));
+                    RXPageLifecycleEvent.CLOSED, oldIndex, currentPage.node));
         }
         carousel.fireEvent(new RXPageLifecycleEvent(
-                RXPageLifecycleEvent.OPENING, newIndex, nextPage));
-        nextPage.setVisible(true);
+                RXPageLifecycleEvent.OPENING, newIndex, nextPage.node));
+        nextPage.wrapper.setVisible(true);
         carousel.fireEvent(new RXPageLifecycleEvent(
-                RXPageLifecycleEvent.OPENED, newIndex, nextPage));
+                RXPageLifecycleEvent.OPENED, newIndex, nextPage.node));
 
         PageAnimation anim = carousel.getAnimation();
         if (anim != null && anim.isMultiPageDisplay()) {
@@ -675,7 +680,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     }
 
     private void hideNonCurrentPages(RXCarousel carousel) {
-        Node currentPage = pageCache.get(carousel.getSelectedIndex());
+        Node currentPage = wrapperOf(pageCache.get(carousel.getSelectedIndex()));
 
         // Remove all non-current pages from contentPane entirely.
         // They remain in pageCache and will be re-added when needed.
@@ -686,9 +691,10 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         contentPane.getChildren().removeIf(child -> child != currentPage);
     }
 
+    // Animations get the wrappers, never the application's page nodes.
     private TransitionContext buildContext(int oldIndex, int newIndex, RXCarousel carousel) {
-        Node currentPage = pageCache.get(oldIndex);
-        Node nextPage = getOrCreatePage(newIndex, carousel);
+        Node currentPage = wrapperOf(pageCache.get(oldIndex));
+        Node nextPage = wrapperOf(getOrCreatePage(newIndex, carousel));
         TransitionDirection direction = computeDirection(oldIndex, newIndex, carousel);
         Duration duration = carousel.getAnimationDuration();
 
@@ -699,48 +705,45 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                 direction, duration,
                 contentPane,
                 index -> {
-                    Node page = getOrCreatePage(index, carousel);
-                    if (page != null && !contentPane.getChildren().contains(page)) {
-                        page.setVisible(false);
-                        contentPane.getChildren().add(page);
+                    Page page = getOrCreatePage(index, carousel);
+                    if (page == null) {
+                        return null;
                     }
-                    return page;
+                    if (!contentPane.getChildren().contains(page.wrapper)) {
+                        page.wrapper.setVisible(false);
+                        contentPane.getChildren().add(page.wrapper);
+                    }
+                    return page.wrapper;
                 },
                 new TransitionContext.LifecycleCallback() {
                     @Override
                     public void fireOpening(int pageIndex) {
-                        Node page = pageCache.get(pageIndex);
-                        if (page != null) {
-                            carousel.fireEvent(new RXPageLifecycleEvent(
-                                    RXPageLifecycleEvent.OPENING, pageIndex, page));
-                        }
+                        fireFor(RXPageLifecycleEvent.OPENING, pageIndex, carousel);
                     }
+
                     @Override
                     public void fireOpened(int pageIndex) {
-                        Node page = pageCache.get(pageIndex);
-                        if (page != null) {
-                            carousel.fireEvent(new RXPageLifecycleEvent(
-                                    RXPageLifecycleEvent.OPENED, pageIndex, page));
-                        }
+                        fireFor(RXPageLifecycleEvent.OPENED, pageIndex, carousel);
                     }
+
                     @Override
                     public void fireClosing(int pageIndex) {
-                        Node page = pageCache.get(pageIndex);
-                        if (page != null) {
-                            carousel.fireEvent(new RXPageLifecycleEvent(
-                                    RXPageLifecycleEvent.CLOSING, pageIndex, page));
-                        }
+                        fireFor(RXPageLifecycleEvent.CLOSING, pageIndex, carousel);
                     }
+
                     @Override
                     public void fireClosed(int pageIndex) {
-                        Node page = pageCache.get(pageIndex);
-                        if (page != null) {
-                            carousel.fireEvent(new RXPageLifecycleEvent(
-                                    RXPageLifecycleEvent.CLOSED, pageIndex, page));
-                        }
+                        fireFor(RXPageLifecycleEvent.CLOSED, pageIndex, carousel);
                     }
                 }
         );
+    }
+
+    private void fireFor(EventType<RXPageLifecycleEvent> type, int pageIndex, RXCarousel carousel) {
+        Page page = pageCache.get(pageIndex);
+        if (page != null) {
+            carousel.fireEvent(new RXPageLifecycleEvent(type, pageIndex, page.node));
+        }
     }
 
     private TransitionDirection computeDirection(int oldIndex, int newIndex, RXCarousel carousel) {
@@ -1067,6 +1070,31 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         // A disposed engine reports neither a stop nor a settle: clear the
         // mirror here, as no callback will.
         carousel.setPageTransitioning(false);
+        // The page nodes belong to the application: release them, or they
+        // would keep this skin's wrappers reachable.
+        for (Page page : pageCache.values()) {
+            page.wrapper.getChildren().clear();
+        }
         pageCache.clear();
+        contentPane.getChildren().clear();
+    }
+
+    // ==================== Page ====================
+
+    // A cached page: the application's node inside a wrapper the skin owns.
+    // Animations and the skin change the wrapper only, so the node keeps its
+    // own visibility, opacity, transforms and effect.
+    private static final class Page {
+
+        final int index;
+        final Node node;
+        final StackPane wrapper = new StackPane();
+
+        Page(int index, Node node) {
+            this.index = index;
+            this.node = node;
+            wrapper.getStyleClass().add("page");
+            wrapper.getChildren().add(node);
+        }
     }
 }

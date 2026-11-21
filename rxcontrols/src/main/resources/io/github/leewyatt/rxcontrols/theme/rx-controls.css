@@ -2432,7 +2432,7 @@
  *                                                                             *
  * Scene-graph structure:                                                      *
  *   .rx-carousel                                                              *
- *    +-- > .content-pane                                                      *
+ *    +-- > .content-pane > .page (one per cached page, wraps the page node)   *
  *    +-- > .placeholder                                                       *
  *    +-- > .prev-button > .arrow                                              *
  *    +-- > .next-button > .arrow                                              *
