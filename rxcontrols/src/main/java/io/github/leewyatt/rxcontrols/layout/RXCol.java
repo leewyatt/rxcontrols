@@ -56,9 +56,11 @@ import java.util.List;
  *
  * <p>When the parent row is {@link RXRow#animatedProperty() animated}, the row
  * drives this column's {@code translateX} / {@code translateY} and temporarily its
- * {@code opacity} (and, while a hidden column fades out, its
- * {@code mouseTransparent}). Do not set or bind those on the column; apply offsets or
- * transparency to the content inside it instead.</p>
+ * {@code opacity}. Do not set or bind those on the column; apply offsets or
+ * transparency to the content inside it instead. While a hidden column fades out,
+ * the row also makes it mouse transparent and restores the previous
+ * {@code mouseTransparent} value afterwards; a {@code mouseTransparent} bound to
+ * {@code false} makes the column hide immediately instead of fading.</p>
  */
 public class RXCol extends StackPane {
 
