@@ -216,16 +216,17 @@ public class RXFlowPane extends Pane {
     // Who the previous pass laid out: only those children glide.
     private final PassMembership membership = new PassMembership();
 
+    // A child the change keeps in the list (setAll keeping it) never left: its glide goes
+    // on untouched.
     private final ListChangeListener<Node> childrenListener = change -> {
-        while (change.next()) {
-            if (change.wasRemoved()) {
-                // The recorded structure would otherwise keep removed children alive.
-                resizeGate.reset();
-                for (Node removed : change.getRemoved()) {
-                    membership.removed(removed);
-                    animator.forget(removed);
-                }
-            }
+        ChildrenChange children = ChildrenChange.of(change);
+        if (!children.removed().isEmpty()) {
+            // The recorded structure would otherwise keep removed children alive.
+            resizeGate.reset();
+        }
+        for (Node removed : children.removed()) {
+            membership.removed(removed);
+            animator.forget(removed);
         }
     };
 

@@ -1720,6 +1720,31 @@ public class RXFlowPaneTest {
     }
 
     /**
+     * Verifies a child that setAll keeps in the list is left alone by the change: JavaFX
+     * reports it removed and added at once, but it never left, so its glide is not
+     * handed back before the next layout.
+     */
+    @Test
+    public void childKeptBySetAllKeepsItsGlide() throws Exception {
+        onFx(() -> {
+            Region a = card(100.0, 40.0);
+            Region b = card(100.0, 40.0);
+            Region c = card(100.0, 40.0);
+            RXFlowPane pane = flowPane(0.0, 0.0, a, b, c);
+            new Scene(pane, 600.0, 300.0);
+            pane.applyCss();
+            layout(pane, 600.0, 300.0);
+            pane.setHgap(20.0);
+            layout(pane, 600.0, 300.0);
+            double gliding = b.getTranslateX();
+            assertTrue(Math.abs(gliding) > 0.5, "setup: B glides");
+
+            pane.getChildren().setAll(c, a, b);
+            assertClose(gliding, b.getTranslateX(), "B keeps its glide through the change");
+        });
+    }
+
+    /**
      * Verifies a child removed for good mid-glide gets its own translate back at once,
      * though the pane keeps where it showed in case it is put back.
      */

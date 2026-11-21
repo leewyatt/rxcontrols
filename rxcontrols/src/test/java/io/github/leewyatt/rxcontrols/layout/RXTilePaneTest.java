@@ -1823,6 +1823,32 @@ public class RXTilePaneTest {
     }
 
     /**
+     * Verifies a tile that setAll keeps in the list is left alone by the change: JavaFX
+     * reports it removed and added at once, but it never left, so its glide is not
+     * handed back before the next layout.
+     */
+    @Test
+    public void tileKeptBySetAllKeepsItsGlide() throws Exception {
+        onFx(() -> {
+            Region a = card(100, 40);
+            Region b = card(100, 40);
+            Region c = card(100, 40);
+            RXTilePane pane = new RXTilePane(a, b, c);
+            pane.setHgap(0);
+            new Scene(pane, 600, 300);
+            pane.applyCss();
+            layout(pane, 600, 300);
+            pane.setHgap(20);
+            layout(pane, 600, 300);
+            double gliding = b.getTranslateX();
+            assertTrue(Math.abs(gliding) > EPSILON, "setup: B glides");
+
+            pane.getChildren().setAll(c, a, b);
+            assertEquals(gliding, b.getTranslateX(), 1.0e-9, "B keeps its glide through the change");
+        });
+    }
+
+    /**
      * Verifies a tile removed for good mid-glide gets its own translate back at once,
      * though the pane keeps where it showed in case it is put back.
      */
