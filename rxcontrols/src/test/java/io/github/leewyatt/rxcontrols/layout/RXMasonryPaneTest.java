@@ -716,6 +716,49 @@ public class RXMasonryPaneTest {
     }
 
     /**
+     * Verifies removeAnimated on a child mid-glide starts the fade where the child shows,
+     * glide offset included, both at once and after the next layout, and the child has
+     * its own translate and opacity back when it leaves.
+     */
+    @Test
+    public void childRemovedMidGlideFadesOutWhereItShows() throws Exception {
+        Runnable body = () -> {
+            Region a = card(80.0, 50.0);
+            Region b = card(80.0, 60.0);
+            Region c = card(80.0, 40.0);
+            b.setTranslateY(-4.0);
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, a, b, c);
+            pane.setColumnCount(3);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 600.0, 400.0);
+            pane.setHgap(40.0);
+            layout(pane, 600.0, 400.0);
+            double shownX = b.getLayoutX() + b.getTranslateX();
+            double shownY = b.getLayoutY() + b.getTranslateY();
+            assertTrue(Math.abs(b.getTranslateX()) > 0.5, "setup: B glides");
+
+            pane.removeAnimated(b);
+            assertMasonryClose(shownX, b.getLayoutX() + b.getTranslateX(), "the fade starts where it shows (x)");
+            assertMasonryClose(shownY, b.getLayoutY() + b.getTranslateY(), "the fade starts where it shows (y)");
+            layout(pane, 600.0, 400.0);
+            assertMasonryClose(shownX, b.getLayoutX() + b.getTranslateX(), "the next layout leaves it there (x)");
+            assertMasonryClose(shownY, b.getLayoutY() + b.getTranslateY(), "the next layout leaves it there (y)");
+
+            pane.setAnimated(false);
+            assertFalse(pane.getChildren().contains(b), "it leaves when the exit ends");
+            assertMasonryClose(0.0, b.getTranslateX(), "its own translateX is back");
+            assertMasonryClose(-4.0, b.getTranslateY(), "its own translateY is back");
+            assertMasonryClose(1.0, b.getOpacity(), "its own opacity is back");
+        };
+        runOnFx(body);
+    }
+
+    private static void assertMasonryClose(double expected, double actual, String label) {
+        assertEquals(expected, actual, 1.0e-9, label);
+    }
+
+    /**
      * Verifies a child with a bound managed is removed at once by removeAnimated and
      * clearAnimated instead of throwing, and does not stop the other children's exits.
      */

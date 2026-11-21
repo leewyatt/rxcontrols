@@ -51,12 +51,12 @@ public class PaneRelayoutAnimatorTest {
     }
 
     /**
-     * Verifies an exit drops a residual glide offset instead of fading out shifted
-     * sideways, and starts from the node's resting translate: zero for a node the
-     * relayout armed from rest, the node's own translate for one it never armed.
+     * Verifies an exit starts where the node shows: a node mid-glide keeps its glide
+     * offset rather than jumping to its resting translate, and a node the relayout never
+     * armed keeps its own translate.
      */
     @Test
-    public void exitResetsTranslateX() throws Exception {
+    public void exitStartsWhereTheNodeShows() throws Exception {
         runOnFx(() -> {
             PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
             Region gliding = new Region();
@@ -65,8 +65,8 @@ public class PaneRelayoutAnimatorTest {
 
             animator.runExit(gliding, true, DURATION, Interpolator.EASE_BOTH, -10.0, () -> { });
 
-            assertEquals(0.0, gliding.getTranslateX(), EPSILON, "glide offset dropped on x");
-            assertEquals(0.0, gliding.getTranslateY(), EPSILON, "glide offset dropped on y");
+            assertEquals(50.0, gliding.getTranslateX(), EPSILON, "glide offset kept on x");
+            assertEquals(8.0, gliding.getTranslateY(), EPSILON, "glide offset kept on y");
 
             Region offset = new Region();
             offset.setTranslateX(50.0);
@@ -1003,11 +1003,11 @@ public class PaneRelayoutAnimatorTest {
     }
 
     /**
-     * Verifies an exit drops the glide offset, fades out from the resting translate, and
+     * Verifies an exit fades out from where the node shows, glide offset included, and
      * has the resting translate back before its completion action runs.
      */
     @Test
-    public void exitStartsAndEndsAtTheRestingTranslate() throws Exception {
+    public void exitStartsWhereItShowsAndEndsAtTheRestingTranslate() throws Exception {
         PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
         Region node = rested();
         AtomicReference<double[]> atCompletion = new AtomicReference<>();
@@ -1017,7 +1017,8 @@ public class PaneRelayoutAnimatorTest {
                     true, Duration.seconds(30.0), Interpolator.LINEAR);
             animator.runExit(node, true, SHORT, Interpolator.LINEAR, -10.0,
                     () -> atCompletion.set(new double[] {node.getTranslateX(), node.getTranslateY()}));
-            assertRested(node, "the exit starts");
+            assertEquals(96.0, node.getTranslateX(), EPSILON, "the exit starts where it shows (x)");
+            assertEquals(6.0, node.getTranslateY(), EPSILON, "the exit starts where it shows (y)");
         });
         waitUntil(() -> atCompletion.get() != null);
 

@@ -32,7 +32,7 @@ import java.util.Set;
  * <p>Both channels are only borrowed. When the animator first takes a node over it
  * records the node's translate as its resting translate; every glide ends there, and
  * every way out of tracking (finishing, settling, dropping, forgetting, an exit ending)
- * writes it back, as an exit starts by re-homing the node to it before fading out. A
+ * writes it back; an exit starts where the node shows and gets it back when it ends. A
  * faded node likewise returns to the opacity it had before the fade, and nodes the
  * animator never tracked are never written, so caller-set values survive layout
  * passes. While the animator holds a node, a caller write to the same channel (one
@@ -264,7 +264,8 @@ final class PaneRelayoutAnimator {
      * @param animate        whether to animate or finish immediately
      * @param duration       the animation duration
      * @param interpolator   the animation interpolator
-     * @param exitTranslateY the {@code translateY} the node drifts to while fading out
+     * @param exitTranslateY how far the node drifts along y while it fades out, from where
+     *                       it shows
      * @param onFinished     the completion action, run once the node's transforms are restored
      */
     void runExit(Node node, boolean animate, Duration duration, Interpolator interpolator,
@@ -313,12 +314,11 @@ final class PaneRelayoutAnimator {
         } else {
             baseOpacity = node.getOpacity();
         }
-        // Any glide offset left is dropped: the exit fades out from the resting position.
-        node.setTranslateX(restX);
-        node.setTranslateY(restY);
+        // The exit starts where the node shows: a glide offset left stays, and the node
+        // drifts from there. Its resting translate comes back when the exit ends.
         Timeline timeline = new Timeline(new KeyFrame(duration,
                 new KeyValue(node.opacityProperty(), 0.0, interpolator),
-                new KeyValue(node.translateYProperty(), restY + exitTranslateY, interpolator)));
+                new KeyValue(node.translateYProperty(), node.getTranslateY() + exitTranslateY, interpolator)));
         timeline.setOnFinished(event -> finishExit(node));
         exits.put(node, new ExitState(timeline, onFinished, baseOpacity, restX, restY));
         timeline.play();

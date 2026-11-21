@@ -1816,6 +1816,44 @@ public class RXFlowPaneTest {
         });
     }
 
+    /**
+     * Verifies removeAnimated on a card mid-glide starts the fade where the card shows,
+     * glide offset included, both at once and after the next layout, and the card has
+     * its own translate and opacity back when it leaves.
+     */
+    @Test
+    public void childRemovedMidGlideFadesOutWhereItShows() throws Exception {
+        Runnable body = () -> {
+            Region a = card(100.0, 40.0);
+            Region b = card(100.0, 40.0);
+            Region c = card(100.0, 40.0);
+            b.setTranslateY(-4.0);
+            RXFlowPane pane = flowPane(0.0, 0.0, a, b, c);
+            new Scene(pane, 600.0, 300.0);
+            pane.applyCss();
+            layout(pane, 600.0, 300.0);
+            pane.setHgap(20.0);
+            layout(pane, 600.0, 300.0);
+            double shownX = b.getLayoutX() + b.getTranslateX();
+            double shownY = b.getLayoutY() + b.getTranslateY();
+            assertTrue(Math.abs(b.getTranslateX()) > 0.5, "setup: B glides");
+
+            pane.removeAnimated(b);
+            assertClose(shownX, b.getLayoutX() + b.getTranslateX(), "the fade starts where it shows (x)");
+            assertClose(shownY, b.getLayoutY() + b.getTranslateY(), "the fade starts where it shows (y)");
+            layout(pane, 600.0, 300.0);
+            assertClose(shownX, b.getLayoutX() + b.getTranslateX(), "the next layout leaves it there (x)");
+            assertClose(shownY, b.getLayoutY() + b.getTranslateY(), "the next layout leaves it there (y)");
+
+            pane.setAnimated(false);
+            assertFalse(pane.getChildren().contains(b), "it leaves when the exit ends");
+            assertClose(0.0, b.getTranslateX(), "its own translateX is back");
+            assertClose(-4.0, b.getTranslateY(), "its own translateY is back");
+            assertClose(1.0, b.getOpacity(), "its own opacity is back");
+        };
+        onFx(body);
+    }
+
     // 100 x 40 cards with 10 px gaps, laid out once in a 400 px scene.
     private static RXFlowPane shownFlow(int count) {
         RXFlowPane pane = flowPane(10.0, 10.0, cards(count, 100.0, 40.0));

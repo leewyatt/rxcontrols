@@ -2226,6 +2226,49 @@ public class RXTilePaneTest {
         });
     }
 
+    /**
+     * Verifies removeAnimated on a tile mid-glide starts the fade where the tile shows,
+     * glide offset included, both at once and after the next layout, and the tile has
+     * its own translate and opacity back when it leaves.
+     */
+    @Test
+    public void tileRemovedMidGlideFadesOutWhereItShows() throws Exception {
+        Runnable body = () -> {
+            Region a = card(100, 40);
+            Region b = card(100, 40);
+            Region c = card(100, 40);
+            b.setTranslateY(-4.0);
+            RXTilePane pane = new RXTilePane(a, b, c);
+            pane.setHgap(0);
+            new Scene(pane, 600, 300);
+            pane.applyCss();
+            layout(pane, 600, 300);
+            pane.setHgap(20);
+            layout(pane, 600, 300);
+            double shownX = b.getLayoutX() + b.getTranslateX();
+            double shownY = b.getLayoutY() + b.getTranslateY();
+            assertTrue(Math.abs(b.getTranslateX()) > 0.5, "setup: B glides");
+
+            pane.removeAnimated(b);
+            assertTileClose(shownX, b.getLayoutX() + b.getTranslateX(), "the fade starts where it shows (x)");
+            assertTileClose(shownY, b.getLayoutY() + b.getTranslateY(), "the fade starts where it shows (y)");
+            layout(pane, 600, 300);
+            assertTileClose(shownX, b.getLayoutX() + b.getTranslateX(), "the next layout leaves it there (x)");
+            assertTileClose(shownY, b.getLayoutY() + b.getTranslateY(), "the next layout leaves it there (y)");
+
+            pane.setAnimated(false);
+            assertFalse(pane.getChildren().contains(b), "it leaves when the exit ends");
+            assertTileClose(0.0, b.getTranslateX(), "its own translateX is back");
+            assertTileClose(-4.0, b.getTranslateY(), "its own translateY is back");
+            assertTileClose(1.0, b.getOpacity(), "its own opacity is back");
+        };
+        onFx(body);
+    }
+
+    private static void assertTileClose(double expected, double actual, String label) {
+        assertEquals(expected, actual, 1.0e-9, label);
+    }
+
     // Tiles of 100 px, three to a row at 700 px with a 10 px vgap, laid out once in a scene.
     private static RXTilePane shownPane(int count) {
         RXTilePane pane = filledPane(count);
