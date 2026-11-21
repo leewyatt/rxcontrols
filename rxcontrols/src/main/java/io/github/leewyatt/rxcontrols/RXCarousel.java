@@ -186,7 +186,16 @@ public class RXCarousel extends Control {
     }
 
     private final ObjectProperty<Callback<Integer, Node>> pageFactory =
-            new SimpleObjectProperty<>(this, "pageFactory");
+            new SimpleObjectProperty<>(this, "pageFactory") {
+                @Override
+                protected void invalidated() {
+                    // A page list drives the pages only through its own
+                    // factory: once another is set, let go of the list.
+                    if (observablePages != null && get() != observablePagesFactory) {
+                        clearPagesListener();
+                    }
+                }
+            };
 
     /**
      * A factory that creates page nodes on demand. The factory receives a page
@@ -832,11 +841,22 @@ public class RXCarousel extends Control {
         }
     }
 
+    private void listenTo(ObservableList<Node> pages, Callback<Integer, Node> factory) {
+        if (observablePages == pages && observablePagesFactory == factory) {
+            return;
+        }
+        clearPagesListener();
+        observablePages = pages;
+        observablePagesFactory = factory;
+        pages.addListener(weakPagesListener);
+    }
+
     // The list keeps driving the pages only while its factory is the
     // carousel's. Before setPages has set the factory, setPages reads the
-    // list again itself.
+    // list again itself. A list let go of during its own change notification
+    // may still call in.
     private void onPagesChanged() {
-        if (getPageFactory() != observablePagesFactory) {
+        if (observablePages == null || getPageFactory() != observablePagesFactory) {
             return;
         }
         beginPagesUpdate();
@@ -888,7 +908,8 @@ public class RXCarousel extends Control {
      * list: the page count changes with its size, and a page whose node the
      * list no longer has at that index is replaced, the current one with a
      * direct cut. The carousel keeps no strong reference from the list, so
-     * the list may outlive it.
+     * the list may outlive it. Setting another page factory, or other pages,
+     * ends this: the carousel lets go of the list.
      *
      * @param pages the observable list of page nodes
      */
@@ -899,9 +920,7 @@ public class RXCarousel extends Control {
         // Listening before the pages apply: the skin applies them when the
         // update ends, and a handler of the events it fires then may already
         // change the list.
-        observablePages = pages;
-        observablePagesFactory = factory;
-        pages.addListener(weakPagesListener);
+        listenTo(pages, factory);
         beginPagesUpdate();
         try {
             setPageCount(pages.size());
@@ -909,7 +928,11 @@ public class RXCarousel extends Control {
                 setPageFactory(factory);
             }
             if (call == pagesCalls) {
-                // A count listener may have changed the list before the factory was set.
+                // A count listener may have set another factory, which let go
+                // of the list, or changed the list before the factory was set.
+                if (getPageFactory() == factory) {
+                    listenTo(pages, factory);
+                }
                 setPageCount(pages.size());
             }
         } finally {

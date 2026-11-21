@@ -354,6 +354,54 @@ public class RXCarouselPagesTest {
         assertEquals(3, list.size());
     }
 
+    @Test
+    public void pageListReplacedByAFactoryCanBeCollected() throws Exception {
+        List<RXCarousel> keep = new ArrayList<>();
+        List<WeakReference<ObservableList<Node>>> lists = new ArrayList<>();
+        onFx(() -> {
+            ObservableList<Node> first = FXCollections.observableArrayList(labels(3));
+            RXCarousel bySetter = laidOutCarousel(first);
+            bySetter.setPageFactory(index -> new Label("F" + index));
+            lists.add(new WeakReference<>(first));
+
+            ObservableList<Node> second = FXCollections.observableArrayList(labels(3));
+            RXCarousel byProperty = laidOutCarousel(second);
+            byProperty.pageFactoryProperty().set(index -> new Label("F" + index));
+            lists.add(new WeakReference<>(second));
+
+            keep.add(bySetter);
+            keep.add(byProperty);
+        });
+        for (int i = 0; i < 50 && (lists.get(0).get() != null || lists.get(1).get() != null); i++) {
+            System.gc();
+            Thread.sleep(10L);
+        }
+        assertNull(lists.get(0).get(), "a page list replaced through the setter must not stay reachable");
+        assertNull(lists.get(1).get(), "a page list replaced through the property must not stay reachable");
+        assertEquals(2, keep.size());
+    }
+
+    @Test
+    public void factorySetWhileSetPagesSetsTheCountLeavesThePageListDriving() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = laidOutCarousel(labels(2));
+            ObservableList<Node> list = FXCollections.observableArrayList(labels(3));
+            boolean[] armed = {true};
+            carousel.pageCountProperty().addListener((observable, was, is) -> {
+                if (armed[0]) {
+                    armed[0] = false;
+                    carousel.setPageFactory(index -> new Label("F" + index));
+                }
+            });
+
+            carousel.setPages(list);
+            list.add(new Label("P3"));
+
+            assertEquals(4, carousel.getPageCount());
+            assertSame(list.get(3), carousel.getPageFactory().call(3));
+        });
+    }
+
     // ==================== setPages ====================
 
     @Test
