@@ -21,7 +21,13 @@ import javafx.scene.Node;
 public interface CarouselNavigator {
 
     /**
-     * Creates the visual node for this navigator.
+     * Creates the visual node for this navigator. A navigator set while the
+     * carousel updates its pages, for example from a listener that runs
+     * during {@link RXCarousel#setPages(Node...) setPages}, is created once
+     * the update has ended, so it reads consistent pages here too; one
+     * replaced before then is never created. Once this method has been
+     * called, the carousel's skin calls {@link #dispose()} when it lets the
+     * navigator go.
      *
      * @param carousel the carousel this navigator belongs to
      * @return the navigator node

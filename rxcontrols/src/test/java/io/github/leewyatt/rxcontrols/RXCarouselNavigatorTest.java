@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.carousel.CarouselNavigator;
+import io.github.leewyatt.rxcontrols.skins.RXCarouselSkin;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -19,6 +20,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 /**
  * Tests when the carousel tells its navigator about a page change: paging at
@@ -98,7 +100,7 @@ public class RXCarouselNavigatorTest {
     }
 
     @Test
-    public void navigatorSetWhileSetPagesRunsHearsOnlyTheNewPages() throws Exception {
+    public void navigatorSetWhileSetPagesRunsIsCreatedWithTheNewPages() throws Exception {
         onFx(() -> {
             RXCarousel carousel = new RXCarousel();
             carousel.setPages(new Label("old0"));
@@ -116,7 +118,67 @@ public class RXCarouselNavigatorTest {
             withUncaughtHandler(errors, () -> carousel.setPages(labels("new", 3)));
 
             assertEquals(List.of(), errors);
+            assertEquals(List.of("[new0, new1, new2]"), navigator.created);
             assertEquals(List.of("-1->0/3[new0, new1, new2]"), navigator.calls);
+            assertSame(carousel, navigator.node.getParent());
+        });
+    }
+
+    @Test
+    public void navigatorReplacedWhileSetPagesRunsIsNeverCreated() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = new RXCarousel();
+            carousel.setPages(new Label("old0"));
+            layOut(carousel);
+            ReadingNavigator replaced = new ReadingNavigator();
+            ReadingNavigator kept = new ReadingNavigator();
+            boolean[] armed = {true};
+            carousel.pageCountProperty().addListener((observable, was, is) -> {
+                if (armed[0]) {
+                    armed[0] = false;
+                    carousel.setNavigator(replaced);
+                    carousel.setNavigator(kept);
+                }
+            });
+            List<Throwable> errors = new ArrayList<>();
+
+            withUncaughtHandler(errors, () -> carousel.setPages(labels("new", 3)));
+
+            assertEquals(List.of(), errors);
+            assertEquals(List.of(), replaced.created);
+            assertEquals(0, replaced.disposals);
+            assertEquals(List.of(), replaced.calls);
+            assertEquals(List.of("[new0, new1, new2]"), kept.created);
+            assertEquals(List.of("-1->0/3[new0, new1, new2]"), kept.calls);
+            assertSame(carousel, kept.node.getParent());
+        });
+    }
+
+    @Test
+    public void skinInstalledWhileSetPagesRunsCreatesTheNavigatorOnceWithTheNewPages() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = new RXCarousel();
+            carousel.setPages(new Label("old0"));
+            layOut(carousel);
+            ReadingNavigator navigator = new ReadingNavigator();
+            boolean[] armed = {true};
+            carousel.pageCountProperty().addListener((observable, was, is) -> {
+                if (armed[0]) {
+                    armed[0] = false;
+                    carousel.setNavigator(navigator);
+                    carousel.setSkin(null);
+                    carousel.setSkin(new RXCarouselSkin(carousel));
+                }
+            });
+            List<Throwable> errors = new ArrayList<>();
+
+            withUncaughtHandler(errors, () -> carousel.setPages(labels("new", 3)));
+
+            assertEquals(List.of(), errors);
+            assertEquals(List.of("[new0, new1, new2]"), navigator.created);
+            assertEquals(0, navigator.disposals);
+            assertEquals(List.of("-1->0/3[new0, new1, new2]"), navigator.calls);
+            assertSame(carousel, navigator.node.getParent());
         });
     }
 
@@ -197,21 +259,42 @@ public class RXCarouselNavigatorTest {
         return navigator;
     }
 
-    /** Records each call together with the text of every page it can read. */
+    /**
+     * Reads every page when it creates its node, like a thumbnail strip, and
+     * records each call together with the text of every page it can read.
+     */
     private static final class ReadingNavigator implements CarouselNavigator {
 
         final List<String> calls = new ArrayList<>();
+        final List<String> created = new ArrayList<>();
+        int disposals;
+        Node node;
         private RXCarousel carousel;
 
         @Override
         public Node createNode(RXCarousel owner) {
             carousel = owner;
-            return new StackPane();
+            List<String> seen = new ArrayList<>();
+            try {
+                read(owner.getPageCount(), seen);
+            } finally {
+                created.add(seen.toString());
+            }
+            node = new StackPane();
+            return node;
         }
 
         @Override
         public void onPageChanged(int oldIndex, int newIndex, int pageCount) {
             List<String> seen = new ArrayList<>();
+            try {
+                read(pageCount, seen);
+            } finally {
+                calls.add(oldIndex + "->" + newIndex + "/" + pageCount + seen);
+            }
+        }
+
+        private void read(int pageCount, List<String> seen) {
             try {
                 for (int i = 0; i < pageCount; i++) {
                     seen.add(((Label) carousel.getPageFactory().call(i)).getText());
@@ -219,13 +302,12 @@ public class RXCarouselNavigatorTest {
             } catch (RuntimeException e) {
                 seen.add(e.getClass().getSimpleName());
                 throw e;
-            } finally {
-                calls.add(oldIndex + "->" + newIndex + "/" + pageCount + seen);
             }
         }
 
         @Override
         public void dispose() {
+            disposals++;
         }
     }
 
