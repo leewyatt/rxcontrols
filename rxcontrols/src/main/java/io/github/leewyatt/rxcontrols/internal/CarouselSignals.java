@@ -9,7 +9,8 @@ public final class CarouselSignals {
     /**
      * Present while the carousel replaces its pages: the page count, the page
      * factory and the selected index change one after another, and the skin
-     * updates the pages once the key is removed, not for each step. Always
+     * updates the pages and tells the navigator once the key is removed, not
+     * for each step. Always
      * {@code Boolean.TRUE}.
      */
     public static final String PAGES_UPDATING = "rx-carousel-pages-updating";

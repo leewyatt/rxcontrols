@@ -80,6 +80,12 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
 
     // Navigator node (managed by CarouselNavigator)
     private Node navigatorNode;
+    // A change of the pages the navigator is still to hear of: it is told
+    // once the count, the factory and the selected index are consistent.
+    private boolean navigatorRefreshPending;
+    // The page count the navigator was last told. A selected index moving
+    // while the count differs is part of a change of the pages.
+    private int navigatorPageCount;
 
     private StackPane placeholderRegion;
 
@@ -220,6 +226,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         disposer.registerListener(autoPlayProgressInternal,
                 () -> carousel.setAutoPlayProgress(autoPlayProgressInternal.get()));
 
+        navigatorPageCount = carousel.getPageCount();
         setupListeners(carousel);
         updateNavigator(null, carousel.getNavigator(), carousel);
         if (disposed) {
@@ -353,7 +360,13 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             // only; the change itself may be processed after the call.
             requestAnimated = carousel.isAnimateTransition();
             requestDirection = carousel.getDirectionHint();
-            notifyNavigator(oldVal.intValue(), carousel);
+            if (pagesUpdating(carousel) || carousel.getPageCount() != navigatorPageCount) {
+                // Moved by a change of the pages, whose listener tells the
+                // navigator once the pages are consistent.
+                navigatorRefreshPending = true;
+            } else {
+                notifyNavigator(oldVal.intValue(), carousel);
+            }
             updateArrowDisabledState(carousel);
             sync();
         });
@@ -367,17 +380,21 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             forgetMissingPage();
             idlePending = true;
             updateArrowDisabledState(carousel);
-            notifyNavigator(-1, carousel);
+            navigatorRefreshPending = true;
+            refreshNavigator(carousel);
             sync();
         });
 
+        // The end of a page update arrives here too, as the removal of its key.
         disposer.registerListener(carousel.getProperties(), () -> {
             if (disposed) {
                 return;
             }
             if (carousel.getProperties().remove(CarouselSignals.PAGES_CHANGED) != null) {
                 checkPages(carousel);
+                navigatorRefreshPending = true;
             }
+            refreshNavigator(carousel);
             sync();
         });
 
@@ -390,6 +407,8 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             }
             forgetMissingPage();
             idlePending = true;
+            navigatorRefreshPending = true;
+            refreshNavigator(carousel);
             sync();
         });
 
@@ -507,8 +526,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     // a further call returns at once: the loop re-reads the state after the
     // step.
     private void sync() {
-        if (!takenOver || disposed || busy
-                || getSkinnable().getProperties().containsKey(CarouselSignals.PAGES_UPDATING)) {
+        if (!takenOver || disposed || busy || pagesUpdating(getSkinnable())) {
             return;
         }
         busy = true;
@@ -1326,7 +1344,8 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                 navigatorNode.addEventHandler(MouseEvent.MOUSE_CLICKED, navigatorFocusHandler);
                 getChildren().add(navigatorNode);
                 updateNavigatorVisibility(carousel);
-                newNav.onPageChanged(-1, carousel.getSelectedIndex(), carousel.getPageCount());
+                navigatorRefreshPending = true;
+                refreshNavigator(carousel);
             }
         }
     }
@@ -1354,11 +1373,27 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         }
     }
 
+    // Tells the navigator to read the pages again, with -1 as the old index,
+    // once no page update is setting the count, the factory and the selected
+    // index one after another.
+    private void refreshNavigator(RXCarousel carousel) {
+        if (!navigatorRefreshPending || pagesUpdating(carousel)) {
+            return;
+        }
+        navigatorRefreshPending = false;
+        notifyNavigator(-1, carousel);
+    }
+
     private void notifyNavigator(int oldIndex, RXCarousel carousel) {
+        navigatorPageCount = carousel.getPageCount();
         CarouselNavigator nav = carousel.getNavigator();
         if (nav != null) {
             nav.onPageChanged(oldIndex, carousel.getSelectedIndex(), carousel.getPageCount());
         }
+    }
+
+    private static boolean pagesUpdating(RXCarousel carousel) {
+        return carousel.getProperties().containsKey(CarouselSignals.PAGES_UPDATING);
     }
 
     // ==================== Mouse Hover ====================

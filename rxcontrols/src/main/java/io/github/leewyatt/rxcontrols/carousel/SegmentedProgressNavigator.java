@@ -175,10 +175,10 @@ public class SegmentedProgressNavigator implements CarouselNavigator {
     }
 
     /**
-     * Updates the navigator after the carousel selected page changes.
+     * Updates the navigator after the carousel's selected page or pages change.
      *
-     * @param oldIndex  the previous page index, or -1 if no previous page
-     * @param newIndex  the new page index
+     * @param oldIndex  the page left, or -1 when the pages may have changed
+     * @param newIndex  the selected page index
      * @param pageCount the total number of pages
      */
     @Override

@@ -29,10 +29,20 @@ public interface CarouselNavigator {
     Node createNode(RXCarousel carousel);
 
     /**
-     * Called when the selected page changes.
+     * Called when the selected page changes, and when the pages change.
      *
-     * @param oldIndex  the previous page index, or -1 if no previous page
-     * @param newIndex  the new page index
+     * <p>Paging calls it at once, with the page left as {@code oldIndex}. A
+     * change of the page count, of the page factory or of the content of a
+     * page list calls it once, with {@code oldIndex} -1, after the carousel's
+     * pages are consistent again: {@link RXCarousel#setPages(Node...) setPages}
+     * has set both the count and the factory, and a selected index the change
+     * moved is reported in the same call. Replacing an item of a page list
+     * calls it even when the count and the selected index stay the same. The
+     * call that follows {@link #createNode(RXCarousel) createNode} also has
+     * {@code oldIndex} -1. On -1, read the pages again from the carousel.</p>
+     *
+     * @param oldIndex  the page left, or -1 when the pages may have changed
+     * @param newIndex  the selected page index
      * @param pageCount the total number of pages
      */
     void onPageChanged(int oldIndex, int newIndex, int pageCount);
