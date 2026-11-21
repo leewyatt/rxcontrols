@@ -59,9 +59,9 @@ final class PaneRelayoutAnimator {
     private record MoveState(boolean fade, double targetOpacity) {
     }
 
-    // baseOpacity is the opacity restored after the node is detached, so a node
-    // pulled out mid-exit keeps its caller-set value.
-    private record ExitState(Timeline timeline, Runnable onRemoved, double baseOpacity) {
+    // baseOpacity is the opacity restored when the exit ends, so a node pulled out
+    // mid-exit keeps its caller-set value.
+    private record ExitState(Timeline timeline, Runnable onFinished, double baseOpacity) {
     }
 
     private final Map<Node, MoveState> activeMoves = new HashMap<>();
@@ -197,18 +197,19 @@ final class PaneRelayoutAnimator {
     }
 
     /**
-     * Runs (or skips) an exit animation, removing the node when it finishes.
-     * Invalid animation inputs (see the class documentation) remove immediately.
+     * Runs (or skips) an exit animation, running the exit's completion action when
+     * it finishes (for example detaching or hiding the node). Invalid animation
+     * inputs (see the class documentation) run the completion action immediately.
      *
      * @param node           the leaving node
-     * @param animate        whether to animate or remove immediately
+     * @param animate        whether to animate or finish immediately
      * @param duration       the animation duration
      * @param interpolator   the animation interpolator
      * @param exitTranslateY the {@code translateY} the node drifts to while fading out
-     * @param onRemoved      the action that detaches the node once the exit completes
+     * @param onFinished     the completion action, run once the node's transforms are restored
      */
     void runExit(Node node, boolean animate, Duration duration, Interpolator interpolator,
-                 double exitTranslateY, Runnable onRemoved) {
+                 double exitTranslateY, Runnable onFinished) {
         animate = animate && isAnimatable(duration, interpolator);
         // The exit takes ownership of this node's transforms away from any relayout.
         MoveState tracked = activeMoves.get(node);
@@ -229,7 +230,7 @@ final class PaneRelayoutAnimator {
                     node.setOpacity(tracked.targetOpacity());
                 }
             }
-            onRemoved.run();
+            onFinished.run();
             return;
         }
 
@@ -247,8 +248,29 @@ final class PaneRelayoutAnimator {
                 new KeyValue(node.opacityProperty(), 0.0, interpolator),
                 new KeyValue(node.translateYProperty(), exitTranslateY, interpolator)));
         timeline.setOnFinished(event -> finishExit(node));
-        exits.put(node, new ExitState(timeline, onRemoved, baseOpacity));
+        exits.put(node, new ExitState(timeline, onFinished, baseOpacity));
         timeline.play();
+    }
+
+    /**
+     * Turns an in-flight exit back into a fade-in: the exit stops without running
+     * its completion action and without writing opacity, and the node is tracked as
+     * fading toward the exit's base opacity. The caller must submit the node in the
+     * next {@link #runRelayout} with {@code fade=true}; the fade then resumes from the
+     * live mid-exit opacity. A reclaimed node left out of that pass is settled at its
+     * base opacity like any dropped move.
+     *
+     * @param node the node whose exit to reclaim
+     * @return whether the node had an exit in flight
+     */
+    boolean reclaimExit(Node node) {
+        ExitState exit = exits.remove(node);
+        if (exit == null) {
+            return false;
+        }
+        exit.timeline().stop();
+        activeMoves.put(node, new MoveState(true, exit.baseOpacity()));
+        return true;
     }
 
     /**
@@ -304,7 +326,8 @@ final class PaneRelayoutAnimator {
 
     /**
      * Stops every animation, leaving moved nodes at their final layout state and
-     * completing pending exits so no detached-but-unmanaged ghosts remain.
+     * completing pending exits (running their completion actions) so no
+     * detached-but-unmanaged ghosts remain.
      */
     void stopAll() {
         if (relayoutTimeline != null) {
@@ -371,7 +394,7 @@ final class PaneRelayoutAnimator {
         node.setTranslateX(0.0);
         node.setTranslateY(0.0);
         node.setOpacity(state.baseOpacity());
-        state.onRemoved().run();
+        state.onFinished().run();
     }
 
     // Settles a tracked node: translate returns to 0, and opacity returns to its

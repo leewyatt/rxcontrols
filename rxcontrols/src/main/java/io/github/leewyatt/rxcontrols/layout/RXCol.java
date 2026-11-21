@@ -53,6 +53,14 @@ import java.util.List;
  * this wrapper. Do not bind this column's {@code visible} or {@code managed}
  * properties for responsive visibility; put business visibility on content
  * inside the column or on an outer wrapper instead.</p>
+ *
+ * <p>When the parent row is {@link RXRow#animatedProperty() animated}, the row
+ * drives this column's {@code translateX} / {@code translateY} and temporarily its
+ * {@code opacity}. Do not set or bind those on the column; apply offsets or
+ * transparency to the content inside it instead. While a hidden column fades out,
+ * the row also makes it mouse transparent and restores the previous
+ * {@code mouseTransparent} value afterwards; a {@code mouseTransparent} bound to
+ * {@code false} makes the column hide immediately instead of fading.</p>
  */
 public class RXCol extends StackPane {
 

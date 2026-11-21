@@ -27,6 +27,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
+import javafx.util.Duration;
 
 import java.util.List;
 
@@ -34,8 +35,8 @@ import java.util.List;
  * Showcase application for {@link RXRow} and {@link RXCol}.
  *
  * <p>Exercises the Row/Col layout surface: profile, columns, width, gutter,
- * row gap, justify, align, base span, offset, order, responsive order, and
- * responsive hidden. The preview keeps the row in a horizontally scrollable
+ * row gap, justify, align, base span, offset, order, responsive order,
+ * responsive hidden, and the structural layout animation. The preview keeps the row in a horizontally scrollable
  * viewport so breakpoint boundaries can be tested without resizing the window.</p>
  *
  * <p>For a compact standalone demo see {@link io.github.leewyatt.rxcontrols.samples.demo.RXRowDemo}.</p>
@@ -159,6 +160,7 @@ public class RXRowShowcase extends RXShowcaseApplication {
         return List.of(
                 section("Profile", buildProfileGrid()),
                 section("Row", buildRowGrid()),
+                section("Animation", buildAnimationControls()),
                 section("Base span card", buildBaseSpanControls()),
                 section("Image card", buildImageControls()),
                 section("Shape card", buildShapeControls()));
@@ -253,6 +255,24 @@ public class RXRowShowcase extends RXShowcaseApplication {
                 row("Row gap", rowGapSlider, rowGapValue),
                 row("Justify", justifyBox),
                 row("Align", alignBox));
+    }
+
+    private Node buildAnimationControls() {
+        CheckBox animatedBox = new CheckBox("Animate structural changes");
+        animatedBox.setSelected(row.isAnimated());
+        row.animatedProperty().bind(animatedBox.selectedProperty());
+
+        Slider durationSlider = createSlider(0.0, 1000.0, row.getAnimationDuration().toMillis());
+        durationSlider.valueProperty().addListener((obs, oldV, newV) ->
+                row.setAnimationDuration(Duration.millis(newV.doubleValue())));
+        Label durationValue = createValueLabel(durationSlider, "%.0f ms");
+
+        Label hint = createHint("Breakpoint, span, offset, order and justify changes glide, and "
+                + "hidden cards fade out in place; resizing within a breakpoint, gutter and row gap "
+                + "apply immediately.");
+        return new VBox(10.0,
+                createGrid(row(animatedBox), row("Duration", durationSlider, durationValue)),
+                hint);
     }
 
     private Node buildBaseSpanControls() {
