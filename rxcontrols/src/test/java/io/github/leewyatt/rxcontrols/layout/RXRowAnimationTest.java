@@ -668,10 +668,13 @@ public class RXRowAnimationTest {
             layout(row, WIDE);
 
             assertFading(second);
-            assertEquals(0.0, second.getTranslateX(), EPSILON, "offset folded into layoutX");
-            assertEquals(0.0, second.getTranslateY(), EPSILON);
-            assertEquals(visualX, second.getLayoutX(), EPSILON, "no x jump");
-            assertEquals(visualY, second.getLayoutY(), EPSILON, "no y jump");
+            assertEquals(visualX, second.getLayoutX() + second.getTranslateX(), EPSILON, "hiding: no x jump");
+            assertEquals(visualY, second.getLayoutY() + second.getTranslateY(), EPSILON, "hiding: no y jump");
+
+            ((RXCol) second).setHidden(false);
+            layout(row, WIDE);
+            assertEquals(visualX, second.getLayoutX() + second.getTranslateX(), EPSILON, "shown again: no x jump");
+            assertEquals(visualY, second.getLayoutY() + second.getTranslateY(), EPSILON, "shown again: no y jump");
         });
     }
 

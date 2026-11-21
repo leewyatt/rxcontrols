@@ -1053,11 +1053,6 @@ public class RXRow extends Pane {
     // size until the fade ends.
     private void startResponsiveFadeOut(RXCol col, ResponsiveHiddenState hiddenState) {
         col.setManaged(false);
-        // The exit returns translate to its resting value; folding the glide offset left
-        // on top of it into layoutX first keeps the column where it is on screen.
-        // Unmanaged, its layoutX is ours alone.
-        col.setLayoutX(col.getLayoutX() + col.getTranslateX() - animator.restingTranslateX(col));
-        col.setLayoutY(col.getLayoutY() + col.getTranslateY() - animator.restingTranslateY(col));
         if (!col.mouseTransparentProperty().isBound()) {
             hiddenState.borrowMouseTransparent(col.isMouseTransparent());
             col.setMouseTransparent(true);

@@ -238,21 +238,40 @@ public class RXFlowPaneShowcase extends RXShowcaseApplication {
         // Removing the first chip shifts every other chip, so its glide shows the removal reflow.
         Button removeFirstButton = new Button("Remove first");
         removeFirstButton.setOnAction(e -> {
-            if (!flow.getChildren().isEmpty()) {
-                flow.getChildren().remove(0);
+            Node first = managedChild(flow.getChildren(), false);
+            if (first != null) {
+                flow.removeAnimated(first);
             }
         });
 
         Button removeButton = new Button("Remove last");
         removeButton.setOnAction(e -> {
-            if (!flow.getChildren().isEmpty()) {
-                flow.getChildren().remove(flow.getChildren().size() - 1);
+            Node last = managedChild(flow.getChildren(), true);
+            if (last != null) {
+                flow.removeAnimated(last);
             }
         });
 
+        Button clearButton = new Button("Clear");
+        clearButton.setOnAction(e -> flow.clearAnimated());
+
         return createGrid(
-                row("Chips", new HBox(8.0, addButton, removeFirstButton, removeButton)));
+                row("Chips", new HBox(8.0, addButton, removeFirstButton, removeButton, clearButton)));
     }
+
+    // A child fading out stays in the children list until its exit ends, so the buttons
+    // pick among the managed children: rapid clicks then fade out one more each time
+    // rather than the one already leaving.
+    private static Node managedChild(List<Node> children, boolean last) {
+        for (int i = 0; i < children.size(); i++) {
+            Node child = children.get(last ? children.size() - 1 - i : i);
+            if (child.isManaged()) {
+                return child;
+            }
+        }
+        return null;
+    }
+
 
     // ==================== Helpers ====================
 

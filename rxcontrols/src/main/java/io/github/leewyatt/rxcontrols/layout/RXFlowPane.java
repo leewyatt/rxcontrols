@@ -34,12 +34,8 @@ import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.WeakHashMap;
 
 /**
  * An enhanced {@link javafx.scene.layout.FlowPane} that lays managed children out in runs
@@ -217,38 +213,32 @@ public class RXFlowPane extends Pane {
     // All children are real and persistent, so no recycler pin-set is needed.
     private final PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
     private final ResizeGate resizeGate = new ResizeGate();
-    // A glide needs a position the child was last shown at. Only a pass in the scene the
-    // pane was last laid out in animates, and only a child that pass laid out glides;
-    // any other child (newly added, newly managed, back after missing a pass) snaps into
-    // its slot instead of gliding in from a stale position or the pane origin.
-    private Scene layoutScene;
-    // Bumped on every scene change. A listener reached from a layout pass can take the
-    // pane out of its scene while that pass is still running; the pass then sees the
-    // count change and leaves what the scene listener cleared alone.
-    private int sceneChanges;
-    private Set<Node> laidOutLastPass = new HashSet<>();
-    private Set<Node> laidOutThisPass = new HashSet<>();
-    // Children of the last pass removed since, with where each showed when it was
-    // removed (layout plus translate, read before the animator gives the translate back),
-    // so one put back before the next pass glides on from there. Weak keys: a removed
-    // child must not stay reachable from the pane when no further pass comes; the
-    // values hold no node.
-    private final Map<Node, double[]> removedSinceLastPass = new WeakHashMap<>();
+    // Who the previous pass laid out: only those children glide.
+    private final PassMembership membership = new PassMembership();
+    // A leaving child drifts up by the entrance offset while it fades.
+    private final ChildExits exits = new ChildExits(this, animator, this::animationsActive,
+            this::getAnimationDuration, this::interpolatorOrDefault,
+            () -> -PaneRelayoutAnimator.enterOffset(snapSpaceY(vgapOrDefault())));
 
+    // A child the change keeps in the list (setAll keeping it) never left: its glide goes
+    // on untouched.
     private final ListChangeListener<Node> childrenListener = change -> {
-        while (change.next()) {
-            if (change.wasRemoved()) {
-                // The recorded structure would otherwise keep removed children alive.
-                resizeGate.reset();
-                for (Node removed : change.getRemoved()) {
-                    if (laidOutLastPass.remove(removed)) {
-                        removedSinceLastPass.put(removed, new double[] {
-                                removed.getLayoutX() + removed.getTranslateX(),
-                                removed.getLayoutY() + removed.getTranslateY()});
-                    }
-                    animator.forget(removed);
-                }
+        ChildrenChange children = ChildrenChange.of(change);
+        if (!children.removed().isEmpty()) {
+            // The recorded structure would otherwise keep removed children alive.
+            resizeGate.reset();
+        }
+        // Forgotten in one batch: clearing many gliding children reworks the glide of
+        // the rest once.
+        animator.inBatch(() -> {
+            for (Node removed : children.removed()) {
+                membership.removed(removed, animator.isFading(removed));
+                exits.removed(removed);
+                animator.forget(removed);
             }
+        });
+        for (Node added : children.added()) {
+            membership.added(added, animationsActive());
         }
     };
 
@@ -264,11 +254,10 @@ public class RXFlowPane extends Pane {
         // cached per wrap length, so without this they would keep the old snapped sizes.
         snapToPixelProperty().addListener((obs, oldValue, newValue) -> requestLayout());
         sceneProperty().addListener((obs, oldScene, newScene) -> {
-            sceneChanges++;
+            membership.sceneChanged(newScene);
             if (newScene == null) {
                 animator.stopAll();
                 resizeGate.reset();
-                forgetLaidOutChildren();
             }
         });
     }
@@ -943,29 +932,49 @@ public class RXFlowPane extends Pane {
     };
 
     /**
-     * Whether existing children glide to their new positions when a relayout (a resize
-     * that reflows the runs, a gap or alignment change) moves them. On by default;
-     * turning it off mid-flight snaps every child to its final position. A change of the
-     * pane's size imposed by the parent that keeps every item in its run applies
-     * immediately, along the wrapping axis or across it, so dragging a window edge never
-     * leaves children trailing; a glide already in flight keeps its clock while its
-     * target follows the resize. An explicit pref size, even one bound to the parent's size,
-     * counts as imposed by the parent; an extent that follows the pane's own computed
-     * preferred size still glides. Only a child the previous layout placed glides; one
-     * that is newly added, newly managed or back after missing a layout snaps into
-     * place, and so does every child on the first layout after the pane enters a scene
-     * or is laid out outside one. A child removed and put back before the next layout
-     * glides on from where it showed when it was removed, even mid-glide.
+     * Whether children animate on relayout: existing children glide to their new positions
+     * when a relayout (a resize that reflows the runs, a gap or alignment change) moves
+     * them, and a child added while the pane shows fades in, rising a few pixels into
+     * place with the same duration and interpolator; {@link #removeAnimated(Node)} and
+     * {@link #clearAnimated()} fade a child out, drifting up, while the others reflow. On
+     * by default; turning it off mid-flight snaps every child to its final position. A
+     * change of the pane's size imposed by the parent that keeps every item in its run
+     * applies immediately, along the wrapping axis or across it, so dragging a window edge
+     * never leaves children trailing; a glide already in flight keeps its clock while its
+     * target follows the resize. An explicit pref size, even one bound to the parent's
+     * size, counts as imposed by the parent; an extent that follows the pane's own
+     * computed preferred size still glides. Only a child the previous layout placed
+     * glides, and only a child added to the list since, with animation on, enters; one
+     * that is newly managed or back after missing a layout snaps into place, and so does
+     * every child on the first layout after the pane enters a scene or is laid out outside
+     * one. A child removed and put back before the next layout goes on as it stood when it
+     * was removed: it glides on from where it showed, even mid-glide, or still enters if
+     * it was added since; one that {@code setAll} keeps in the list goes on as it was.
      *
-     * <p>While a child glides, the pane drives its {@code translateX} /
-     * {@code translateY}; it never touches {@code opacity}. A translate the child had
-     * before the glide is kept: the glide ends there. Writing translate from elsewhere
-     * while the child glides, by one assignment or a running animation, is not
-     * supported: the pane may overwrite it, and when the glide settles it puts back the
-     * value from before the glide, which a still-running animation may then change
-     * again. Keep independent effects on a node inside the child. A child with
-     * {@code translateX} or {@code translateY} bound snaps instead; binding them while
-     * the child is gliding is not supported.</p>
+     * <p>While a child animates, the pane drives its {@code translateX} /
+     * {@code translateY}, and its {@code opacity} while it fades in or out. Values the
+     * child had before are kept: a glide ends at the earlier translate, an entrance starts
+     * offset from it, and a fade returns to the earlier opacity. Writing these from
+     * elsewhere while the child animates, by one assignment or a running animation, is not
+     * supported: the pane may overwrite them, and when the animation settles it puts back
+     * the values from before, which a still-running animation may then change again. Keep
+     * independent effects on a node inside the child. A child with {@code translateX} or
+     * {@code translateY} bound snaps instead, whether moving or entering, and one with
+     * {@code opacity} bound enters without fading; either binding, or a bound
+     * {@code managed}, makes {@link #removeAnimated(Node)} and {@link #clearAnimated()}
+     * remove the child at once. Binding these while the child is animating is not
+     * supported. Neither is turning animation off from a listener on the children list
+     * while children are fading out: finishing their exits removes children, which JavaFX
+     * forbids during that list's change notification.</p>
+     *
+     * <p>A listener the pane's own layout reaches (one on a child's position or size, say)
+     * may change the children or turn animation off while that layout runs. The pane then
+     * throws nothing, keeps no reference to a child it no longer holds, does not lay out a
+     * child that left it or was unmanaged before its turn, stops driving a child that
+     * moved to another parent, and writes no animation once animation is off. Where the
+     * transitions of that layout start from, and how smoothly they go on, is best effort,
+     * and a child that leaves while its own layout is under way may still be placed by
+     * that layout.</p>
      *
      * @return the animated property
      */
@@ -1077,6 +1086,35 @@ public class RXFlowPane extends Pane {
      */
     public final void setAnimationInterpolator(Interpolator value) {
         animationInterpolator.set(value);
+    }
+
+    // ==================== Animated removal ====================
+
+    /**
+     * Removes a child with a fade-out: the child leaves the layout at once, so the other
+     * children reflow into the space it frees while it fades out drifting up, and it
+     * leaves the children list when the fade ends. If animation is off or the pane is not
+     * in a scene, or the child's {@code managed}, {@code translateX}, {@code translateY} or
+     * {@code opacity} is bound, the child is removed at once. Removing it from the
+     * children list directly always removes it at once.
+     *
+     * @param child the child to remove
+     * @return whether the child was a child of this pane
+     */
+    public boolean removeAnimated(Node child) {
+        return exits.removeAnimated(child);
+    }
+
+    /**
+     * Removes every child with a fade-out, as {@link #removeAnimated(Node)} does with one.
+     * If animation is off or the pane is not in a scene, the children are cleared at once.
+     */
+    public void clearAnimated() {
+        exits.clearAnimated();
+    }
+
+    private boolean animationsActive() {
+        return isAnimated() && getScene() != null && isAnimationDurationPositive();
     }
 
     private boolean isAnimationDurationPositive() {
@@ -1342,6 +1380,9 @@ public class RXFlowPane extends Pane {
      */
     @Override
     protected void layoutChildren() {
+        // Begun before the runs are taken, so a child added from here on counts as added
+        // while the pass runs.
+        membership.beginPass();
         double top = snappedTopInset();
         double left = snappedLeftInset();
         // Inside extents are kept unsnapped here so the run-cache key
@@ -1369,12 +1410,9 @@ public class RXFlowPane extends Pane {
         double hgap = snapSpaceX(hgapOrDefault());
         double vgap = snapSpaceY(vgapOrDefault());
 
-        // A pass that threw midway may have left members behind.
-        laidOutThisPass.clear();
-        int sceneChangesAtStart = sceneChanges;
+        int sceneChangesAtStart = membership.sceneChanges();
         Scene scene = getScene();
-        boolean animate = isAnimated() && scene != null && scene == layoutScene
-                && isAnimationDurationPositive();
+        boolean animate = isAnimated() && membership.continuesIn(scene) && isAnimationDurationPositive();
         // With animation off and nothing in flight the animator pass would be a
         // no-op; a null list tells layoutItem to skip the move bookkeeping.
         List<PaneRelayoutAnimator.Move> moves =
@@ -1440,36 +1478,24 @@ public class RXFlowPane extends Pane {
             }
         }
 
-        if (moves != null && sceneChanges == sceneChangesAtStart) {
-            animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
+        if (moves != null && membership.sceneChanges() == sceneChangesAtStart) {
+            // Laying a child out can reach a listener that moves another child away or
+            // turns animation off while this pass runs: only children still laid out here
+            // move, and only while the pane still animates.
+            moves.removeIf(move -> move.node().getParent() != this || !move.node().isManaged());
+            animator.runRelayout(moves, animate && animationsActive(), getAnimationDuration(),
+                    interpolatorOrDefault());
         }
         // Laying a child out, or starting a glide (which writes translate), can reach a
         // listener that takes the pane out of its scene while this pass runs. The scene
         // listener stops only what it can see then: stop what this pass started after
         // it, and let nothing from the pass count as laid out there.
-        if (sceneChanges != sceneChangesAtStart) {
+        if (membership.sceneChanges() != sceneChangesAtStart) {
             animator.stopAll();
-            forgetLaidOutChildren();
+            membership.forget();
             return;
         }
-        if (scene != null) {
-            Set<Node> previous = laidOutLastPass;
-            laidOutLastPass = laidOutThisPass;
-            laidOutThisPass = previous;
-            laidOutThisPass.clear();
-            removedSinceLastPass.clear();
-            layoutScene = scene;
-        } else {
-            // An off-screen pass shows nothing, so the next pass in a scene snaps.
-            forgetLaidOutChildren();
-        }
-    }
-
-    private void forgetLaidOutChildren() {
-        layoutScene = null;
-        laidOutLastPass.clear();
-        laidOutThisPass.clear();
-        removedSinceLastPass.clear();
+        membership.endPass(scene);
     }
 
     // The preferred wrapping-axis extent the pane computes from its own inputs. An
@@ -1518,13 +1544,18 @@ public class RXFlowPane extends Pane {
     // from the old on-screen position for the relayout animator; a null moves list
     // skips the bookkeeping, and a resize-only pass only keeps in-flight moves running.
     // A child the previous pass did not lay out has no position on screen to glide
-    // from, so it snaps into its slot.
+    // from: a new one enters, any other snaps into its slot.
     private void layoutItem(Node node, double x, double y, double width, double height,
                             double baselineOffset, HPos hpos, VPos vpos,
                             List<PaneRelayoutAnimator.Move> moves, boolean resizeOnly) {
+        // The runs were taken when the pass began; a listener reached from laying an
+        // earlier child out may have moved this one away or unmanaged it since.
+        if (node.getParent() != this || !node.isManaged()) {
+            return;
+        }
         // Recorded before any early return: every pass in a scene, the first and the
         // resize-only ones included, sets who the next pass may glide.
-        laidOutThisPass.add(node);
+        membership.laidOut(node);
         if (moves == null) {
             layoutInArea(node, x, y, width, height, baselineOffset, getMargin(node),
                     false, false, hpos, vpos);
@@ -1532,23 +1563,33 @@ public class RXFlowPane extends Pane {
         }
         // A child removed and put back since the last pass has had its translate given
         // back; where it showed when removed is where its glide goes on from.
-        double[] shownWhenRemoved = removedSinceLastPass.get(node);
+        PassMembership.Shown shownWhenRemoved = membership.shownWhenRemoved(node);
         double oldVisualX = shownWhenRemoved != null
-                ? shownWhenRemoved[0] : node.getLayoutX() + node.getTranslateX();
+                ? shownWhenRemoved.x() : node.getLayoutX() + node.getTranslateX();
         double oldVisualY = shownWhenRemoved != null
-                ? shownWhenRemoved[1] : node.getLayoutY() + node.getTranslateY();
+                ? shownWhenRemoved.y() : node.getLayoutY() + node.getTranslateY();
         layoutInArea(node, x, y, width, height, baselineOffset, getMargin(node),
                 false, false, hpos, vpos);
         if (resizeOnly) {
             animator.keepInFlight(moves, node);
             return;
         }
-        // Checked before any motion: an entering child's old layout position belongs to
-        // wherever it was before, and its own translate stays as it is.
-        if (shownWhenRemoved == null && !laidOutLastPass.contains(node)) {
+        // Checked before any motion: a child with no shown position to glide from has an
+        // old layout position that belongs to wherever it was before. A new child rises
+        // into its slot from its own translate; any other snaps, its translate untouched.
+        if (shownWhenRemoved == null && !membership.wasLaidOut(node)) {
+            if (membership.isEntering(node)) {
+                animator.addEnterMove(moves, node, 0.0, PaneRelayoutAnimator.enterOffset(snapSpaceY(vgapOrDefault())), true);
+            }
             return;
         }
-        animator.addRelayoutMove(moves, node, oldVisualX, oldVisualY);
+        if (shownWhenRemoved != null && shownWhenRemoved.fading()) {
+            // Removed mid-fade and put back: the removal gave the opacity back, so the fade
+            // goes on from where it showed.
+            animator.addResumedMove(moves, node, oldVisualX, oldVisualY, shownWhenRemoved.opacity());
+        } else {
+            animator.addRelayoutMove(moves, node, oldVisualX, oldVisualY);
+        }
     }
 
     // ==================== Layout helpers ====================

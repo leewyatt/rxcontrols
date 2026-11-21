@@ -646,6 +646,119 @@ public class RXMasonryPaneTest {
     }
 
     /**
+     * Verifies a child fading out stays on its way out when setAll keeps it in the list,
+     * and really leaves the list once, when its exit ends. Before, the reorder handed it
+     * back as if it had been removed: it was managed again and stayed in the pane.
+     */
+    @Test
+    public void leavingChildKeptBySetAllLeavesOnce() throws Exception {
+        runOnFx(() -> {
+            Region a = card(80.0, 50.0);
+            Region b = card(80.0, 60.0);
+            Region c = card(80.0, 40.0);
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, a, b, c);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 300.0, 300.0);
+            int[] departures = {0};
+            pane.getChildren().addListener((ListChangeListener<Node>) change -> {
+                boolean removed = false;
+                boolean added = false;
+                while (change.next()) {
+                    removed |= change.wasRemoved() && change.getRemoved().contains(b);
+                    added |= change.wasAdded() && change.getAddedSubList().contains(b);
+                }
+                if (removed && !added) {
+                    departures[0]++;
+                }
+            });
+
+            pane.removeAnimated(b);
+            pane.getChildren().setAll(c, b, a);
+            assertFalse(b.isManaged(), "kept by setAll, it is still leaving");
+            layout(pane, 300.0, 300.0);
+            pane.setAnimated(false);
+            assertFalse(pane.getChildren().contains(b), "it leaves when its exit ends");
+            assertTrue(b.isManaged(), "with its managed state back");
+            assertEquals(1, departures[0], "it leaves the list once");
+        });
+    }
+
+    /**
+     * Verifies a child that setAll keeps in the list goes on with what it was doing: a
+     * gliding child keeps its glide and an entering child its fade through the change.
+     */
+    @Test
+    public void childKeptBySetAllGoesOn() throws Exception {
+        runOnFx(() -> {
+            Region a = card(80.0, 50.0);
+            Region b = card(80.0, 60.0);
+            Region c = card(80.0, 40.0);
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, a, b, c);
+            pane.setColumnCount(3);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 600.0, 400.0);
+            pane.setHgap(40.0);
+            layout(pane, 600.0, 400.0);
+            double gliding = b.getTranslateX();
+            assertTrue(Math.abs(gliding) > 0.5, "setup: B glides");
+
+            Region entering = card(80.0, 30.0);
+            pane.getChildren().add(entering);
+            layout(pane, 600.0, 400.0);
+            assertEquals(0.0, entering.getOpacity(), 1.0e-9, "setup: the new child fades in from 0");
+
+            pane.getChildren().setAll(entering, c, b, a);
+            assertEquals(gliding, b.getTranslateX(), 1.0e-9, "B keeps its glide through the change");
+            assertEquals(0.0, entering.getOpacity(), 1.0e-9, "the new child keeps its fade through the change");
+        });
+    }
+
+    /**
+     * Verifies removeAnimated on a child mid-glide starts the fade where the child shows,
+     * glide offset included, both at once and after the next layout, and the child has
+     * its own translate and opacity back when it leaves.
+     */
+    @Test
+    public void childRemovedMidGlideFadesOutWhereItShows() throws Exception {
+        Runnable body = () -> {
+            Region a = card(80.0, 50.0);
+            Region b = card(80.0, 60.0);
+            Region c = card(80.0, 40.0);
+            b.setTranslateY(-4.0);
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, a, b, c);
+            pane.setColumnCount(3);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 600.0, 400.0);
+            pane.setHgap(40.0);
+            layout(pane, 600.0, 400.0);
+            double shownX = b.getLayoutX() + b.getTranslateX();
+            double shownY = b.getLayoutY() + b.getTranslateY();
+            assertTrue(Math.abs(b.getTranslateX()) > 0.5, "setup: B glides");
+
+            pane.removeAnimated(b);
+            assertMasonryClose(shownX, b.getLayoutX() + b.getTranslateX(), "the fade starts where it shows (x)");
+            assertMasonryClose(shownY, b.getLayoutY() + b.getTranslateY(), "the fade starts where it shows (y)");
+            layout(pane, 600.0, 400.0);
+            assertMasonryClose(shownX, b.getLayoutX() + b.getTranslateX(), "the next layout leaves it there (x)");
+            assertMasonryClose(shownY, b.getLayoutY() + b.getTranslateY(), "the next layout leaves it there (y)");
+
+            pane.setAnimated(false);
+            assertFalse(pane.getChildren().contains(b), "it leaves when the exit ends");
+            assertMasonryClose(0.0, b.getTranslateX(), "its own translateX is back");
+            assertMasonryClose(-4.0, b.getTranslateY(), "its own translateY is back");
+            assertMasonryClose(1.0, b.getOpacity(), "its own opacity is back");
+        };
+        runOnFx(body);
+    }
+
+    private static void assertMasonryClose(double expected, double actual, String label) {
+        assertEquals(expected, actual, 1.0e-9, label);
+    }
+
+    /**
      * Verifies a child with a bound managed is removed at once by removeAnimated and
      * clearAnimated instead of throwing, and does not stop the other children's exits.
      */
