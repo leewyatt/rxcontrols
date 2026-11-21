@@ -211,7 +211,12 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         // The pages come first: the activation runs application code (the
         // navigator, listeners of the page nodes), and whatever that code asks
         // of the pages must find them here. The loop waits for the take-over.
+        // That code may also replace or remove this skin: the activation then
+        // ends where it is, and the dispose has completed the pages.
         adopt((Handover) carousel.getProperties().remove(HANDOVER_KEY));
+        if (disposed) {
+            return;
+        }
         treeShowing = controlTreeShowingProperty();
 
         // Like a button, the arrows answer the primary button only.
@@ -228,6 +233,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             }
         });
         getChildren().addAll(contentPane, prevButton, nextButton);
+        if (disposed) {
+            return;
+        }
 
         // Sync internal progress property to the public read-only property on RXCarousel
         disposer.registerListener(autoPlayProgressInternal,
@@ -235,6 +243,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
 
         setupListeners(carousel);
         updateNavigator(null, carousel.getNavigator(), carousel);
+        if (disposed) {
+            return;
+        }
         updateNavigatorVisibility(carousel);
         updateArrowVisibility(carousel);
         updateArrowDisabledState(carousel);
@@ -243,13 +254,18 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
 
     // Continues the pages a replaced skin handed over: the page it left open
     // stays open without events. Pages it had yet to evict stay marked, and
-    // pages of another factory than the carousel's are stale anyway.
+    // pages of another factory than the carousel's are stale anyway. Every
+    // page is recorded before the first node moves into its wrapper: a
+    // listener of a node may replace this skin, which then hands all of them
+    // on and stops.
     private void adopt(Handover handover) {
         if (handover == null) {
             return;
         }
+        List<Page> pages = new ArrayList<>();
         for (HandedPage handed : handover.pages) {
             Page page = new Page(handed.index(), handed.node(), handed.factory());
+            pages.add(page);
             pageCache.put(page.index, page);
             if (handed.stale()) {
                 doomed.add(page);
@@ -259,6 +275,12 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                 showOnly(page);
                 shown = page;
                 shownIndex = page.index;
+            }
+        }
+        for (Page page : pages) {
+            page.wrap();
+            if (disposed) {
+                return;
             }
         }
     }
@@ -1014,6 +1036,13 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                 return null;
             }
             page = new Page(index, node, factory);
+            // Wrapped before it is cached: should a listener of the node
+            // dispose this skin, the page, which has had no event yet, is not
+            // handed on.
+            page.wrap();
+            if (disposed) {
+                return null;
+            }
             pageCache.put(index, page);
             if (deferCached) {
                 pendingCached.add(page);
@@ -1393,8 +1422,11 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             }
         }
         if (newNav != null) {
-            navigatorNode = newNav.createNode(carousel);
-            if (navigatorNode != null) {
+            Node node = newNav.createNode(carousel);
+            // Code the navigator ran may have disposed this skin or replaced
+            // the navigator; the node then has no place here.
+            if (node != null && !disposed && carousel.getNavigator() == newNav) {
+                navigatorNode = node;
                 navigatorNode.addEventHandler(MouseEvent.MOUSE_CLICKED, navigatorFocusHandler);
                 getChildren().add(navigatorNode);
                 updateNavigatorVisibility(carousel);
@@ -1800,6 +1832,10 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             this.node = node;
             this.factory = factory;
             wrapper.getStyleClass().add("page");
+        }
+
+        // Moves the node into the wrapper; listeners of the node run here.
+        void wrap() {
             wrapper.getChildren().add(node);
         }
     }

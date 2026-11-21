@@ -283,6 +283,76 @@ public class RXCarouselSkinTest {
     }
 
     @Test
+    public void skinRemovedWhileTheNavigatorCreatesItsNodeLeavesNoNodeBehind() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = laidOutCarousel(labels(3));
+            ScriptedNavigator navigator = new ScriptedNavigator();
+            carousel.setNavigator(navigator);
+            navigator.onCreate = (owner, node) -> owner.setSkin(null);
+
+            carousel.setSkin(new RXCarouselSkin(carousel) {
+            });
+
+            assertNull(carousel.getSkin());
+            assertEquals(List.of(), carousel.getChildrenUnmodifiable());
+        });
+    }
+
+    @Test
+    public void skinReplacedWhileTheNavigatorCreatesItsNodeKeepsOneNavigatorNode() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = laidOutCarousel(labels(3));
+            ScriptedNavigator navigator = new ScriptedNavigator();
+            carousel.setNavigator(navigator);
+            List<Node> created = new ArrayList<>();
+            navigator.onCreate = (owner, node) -> {
+                created.add(node);
+                if (created.size() == 1) {
+                    owner.setSkin(new RXCarouselSkin(owner) {
+                    });
+                }
+            };
+
+            carousel.setSkin(new RXCarouselSkin(carousel) {
+            });
+            layOutAgain(carousel);
+
+            assertEquals(2, created.size());
+            assertEquals(List.of(created.get(1)), carousel.getChildrenUnmodifiable().filtered(created::contains));
+            assertEquals(List.of("P0"), shownPages(carousel));
+            carousel.setSkin(null);
+        });
+    }
+
+    @Test
+    public void skinReplacedByAPageNodeListenerDuringATakeOverHandsOnEveryPage() throws Exception {
+        onFx(() -> {
+            List<Label> pages = labels(3);
+            RXCarousel carousel = laidOutCarousel(pages);
+            List<String> events = record(carousel);
+            boolean[] armed = {true};
+            pages.get(0).parentProperty().addListener((observable, was, is) -> {
+                if (is != null && armed[0]) {
+                    armed[0] = false;
+                    carousel.setSkin(new RXCarouselSkin(carousel) {
+                    });
+                }
+            });
+            List<Throwable> errors = new ArrayList<>();
+
+            withUncaughtHandler(errors, () -> carousel.setSkin(new RXCarouselSkin(carousel) {
+            }));
+            layOutAgain(carousel);
+
+            assertEquals(List.of(), errors);
+            assertEquals(List.of(), events);
+            assertEquals(List.of("P0"), shownPages(carousel));
+            carousel.setSkin(null);
+            assertEquals(List.of("CLOSING:0", "CLOSED:0", "EVICTED:0", "EVICTED:1", "EVICTED:2"), events);
+        });
+    }
+
+    @Test
     public void skinReplacedByAFactoryListenerDropsThePagesOfTheOldFactory() throws Exception {
         onFx(() -> {
             RXCarousel carousel = new RXCarousel();
@@ -558,6 +628,17 @@ public class RXCarouselSkinTest {
             }
         }
         return filtered;
+    }
+
+    private static void withUncaughtHandler(List<Throwable> errors, Runnable body) {
+        Thread thread = Thread.currentThread();
+        Thread.UncaughtExceptionHandler previous = thread.getUncaughtExceptionHandler();
+        thread.setUncaughtExceptionHandler((t, e) -> errors.add(e));
+        try {
+            body.run();
+        } finally {
+            thread.setUncaughtExceptionHandler(previous);
+        }
     }
 
     private static Node shownNode(RXCarousel carousel) {
