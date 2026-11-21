@@ -855,18 +855,18 @@ public class RXTilePane extends Pane {
     };
 
     /**
-     * Whether existing children glide to their new positions after relayout. On
-     * by default; turning it off mid-flight snaps every child to its final
-     * position. A size change imposed by the parent that keeps the column count applies
-     * immediately, in width or in height (a pane squeezed below its content included), so
-     * dragging a window edge never leaves children trailing; a glide already in flight
-     * keeps its clock while its target follows the resize. An explicit {@code prefWidth}, even one bound to the parent's width,
-     * counts as imposed by the parent; a width that follows the pane's own computed
-     * preferred width still glides. Only a child the previous layout placed glides; one
-     * that is newly added, newly managed or back after missing a layout snaps into place,
-     * and so does every child on the first layout after the pane enters a scene or is
-     * laid out outside one. A child removed and put back before the next layout glides on
-     * from where it showed when it was removed, even mid-glide.
+     * Whether existing children glide to their new positions after relayout. On by
+     * default; turning it off mid-flight snaps every child to its final position. A size
+     * change imposed by the parent that keeps the column count applies immediately, in
+     * width or in height (a pane squeezed below its content included), so dragging a
+     * window edge never leaves children trailing; a glide already in flight keeps its
+     * clock while its target follows the resize. An explicit {@code prefWidth}, even one
+     * bound to the parent's width, counts as imposed by the parent; a width that follows
+     * the pane's own computed preferred width still glides. Only a child the previous
+     * layout placed glides; one that is newly added, newly managed or back after missing a
+     * layout snaps into place, and so does every child on the first layout after the pane
+     * enters a scene or is laid out outside one. A child removed and put back before the
+     * next layout glides on from where it showed when it was removed, even mid-glide.
      *
      * <p>While a child glides, the pane drives its {@code translateX} /
      * {@code translateY}; it never touches {@code opacity}. A translate the child had
