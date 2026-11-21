@@ -8,13 +8,20 @@ import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.event.EventType;
+import javafx.geometry.NodeOrientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.input.PickResult;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -32,9 +39,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Pins the transition scheduling contract of the carousel skin: animation
- * gating, the AnimNone fallback for a null animation, lifecycle event
- * supplementation when a running transition is interrupted, and the scope of
- * arrow-key paging.
+ * gating, the AnimNone fallback for a null animation, the lifecycle events of
+ * an interrupted transition, and the input: arrow keys and their reading
+ * direction, the arrow buttons, and where the focus goes when a page holding
+ * it is left.
  */
 public class RXCarouselTest {
 
@@ -223,7 +231,179 @@ public class RXCarouselTest {
         }
     }
 
+    @Test
+    public void arrowKeysFollowTheReadingDirection() {
+        RXCarousel carousel = createLaidOutCarousel(3);
+        carousel.setAnimationDuration(Duration.ZERO);
+        carousel.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
+
+        try {
+            Event.fireEvent(carousel, keyPressed(KeyCode.LEFT));
+            assertEquals(1, carousel.getSelectedIndex());
+
+            Event.fireEvent(carousel, keyPressed(KeyCode.KP_LEFT));
+            assertEquals(2, carousel.getSelectedIndex());
+
+            Event.fireEvent(carousel, keyPressed(KeyCode.RIGHT));
+            assertEquals(1, carousel.getSelectedIndex());
+
+            Event.fireEvent(carousel, keyPressed(KeyCode.KP_RIGHT));
+            assertEquals(0, carousel.getSelectedIndex());
+        } finally {
+            carousel.getSkin().dispose();
+        }
+    }
+
+    // ==================== Arrow Buttons ====================
+
+    @Test
+    public void arrowButtonsPageOnThePrimaryButtonOnly() {
+        RXCarousel carousel = createLaidOutCarousel(3);
+        carousel.setAnimationDuration(Duration.ZERO);
+        Node next = carousel.lookup(".next-button");
+        Node previous = carousel.lookup(".prev-button");
+
+        try {
+            Event.fireEvent(next, click(next, MouseButton.SECONDARY));
+            Event.fireEvent(next, click(next, MouseButton.MIDDLE));
+            assertEquals(0, carousel.getSelectedIndex());
+
+            Event.fireEvent(next, click(next, MouseButton.PRIMARY));
+            assertEquals(1, carousel.getSelectedIndex());
+
+            Event.fireEvent(previous, click(previous, MouseButton.SECONDARY));
+            assertEquals(1, carousel.getSelectedIndex());
+
+            Event.fireEvent(previous, click(previous, MouseButton.PRIMARY));
+            assertEquals(0, carousel.getSelectedIndex());
+        } finally {
+            carousel.getSkin().dispose();
+        }
+    }
+
+    // ==================== Focus ====================
+
+    @Test
+    public void pagingFromAFocusedNodeMovesTheFocusIntoTheNewPage() {
+        Button nextButton = new Button("Next");
+        TextField hidden = new TextField();
+        hidden.setVisible(false);
+        TextField disabled = new TextField();
+        disabled.setDisable(true);
+        TextField field = new TextField();
+        RXCarousel carousel = createLaidOutCarousel(3, index -> index == 0 ? new VBox(nextButton)
+                : index == 1 ? new VBox(new Label("caption"), hidden, disabled, field) : new Label("P2"));
+        carousel.setAnimationDuration(Duration.ZERO);
+        nextButton.requestFocus();
+        assertSame(nextButton, carousel.getScene().getFocusOwner());
+
+        try {
+            carousel.next();
+
+            assertSame(field, carousel.getScene().getFocusOwner());
+        } finally {
+            carousel.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void animatedPagingMovesTheFocusOnceThePageShows() throws InterruptedException {
+        Button nextButton = new Button("Next");
+        TextField field = new TextField();
+        RXCarousel carousel = createLaidOutCarousel(3,
+                index -> index == 0 ? new VBox(nextButton) : index == 1 ? new VBox(field) : new Label("P2"));
+        RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
+        carousel.setAnimation(recording);
+
+        try {
+            runOnFx(() -> {
+                nextButton.requestFocus();
+                carousel.next();
+
+                assertTrue(carousel.isPageTransitioning());
+                assertSame(field, carousel.getScene().getFocusOwner());
+            });
+        } finally {
+            runOnFx(() -> carousel.getSkin().dispose());
+        }
+    }
+
+    @Test
+    public void pageWithoutAFocusableNodeLeavesTheFocusWithTheCarousel() {
+        Button nextButton = new Button("Next");
+        RXCarousel carousel = createLaidOutCarousel(3,
+                index -> index == 0 ? new VBox(nextButton) : new Label("P" + index));
+        carousel.setAnimationDuration(Duration.ZERO);
+        nextButton.requestFocus();
+
+        try {
+            carousel.next();
+
+            assertSame(carousel, carousel.getScene().getFocusOwner());
+        } finally {
+            carousel.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void pagingLeavesTheFocusOutsideTheCarouselAlone() {
+        TextField outside = new TextField();
+        RXCarousel carousel = new RXCarousel();
+        carousel.setPages(new VBox(new TextField()), new VBox(new TextField()));
+        carousel.setAnimationDuration(Duration.ZERO);
+        VBox root = new VBox(outside, carousel);
+        new Scene(root, 320.0, 260.0);
+        root.applyCss();
+        root.layout();
+        outside.requestFocus();
+
+        try {
+            carousel.next();
+
+            assertSame(outside, carousel.getScene().getFocusOwner());
+        } finally {
+            carousel.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void focusWaitsInTheCarouselUntilALateShownPageAppears() throws InterruptedException {
+        Button nextButton = new Button("Next");
+        TextField field = new TextField();
+        RXCarousel carousel = createLaidOutCarousel(3,
+                index -> index == 0 ? new VBox(nextButton) : index == 1 ? new VBox(field) : new Label("P2"));
+        RecordingAnimation late = new RecordingAnimation(Duration.millis(60.0));
+        late.revealIncomingAtEnd = true;
+        carousel.setAnimation(late);
+        CountDownLatch settled = new CountDownLatch(1);
+        carousel.pageTransitioningProperty().addListener((observable, was, is) -> {
+            if (!is) {
+                settled.countDown();
+            }
+        });
+
+        try {
+            runOnFx(() -> {
+                nextButton.requestFocus();
+                carousel.next();
+
+                assertSame(carousel, carousel.getScene().getFocusOwner());
+            });
+            assertTrue(settled.await(3, TimeUnit.SECONDS));
+            runOnFx(() -> assertSame(field, carousel.getScene().getFocusOwner()));
+        } finally {
+            runOnFx(() -> carousel.getSkin().dispose());
+        }
+    }
+
     // ==================== Helpers ====================
+
+    private static MouseEvent click(Node target, MouseButton button) {
+        return new MouseEvent(MouseEvent.MOUSE_CLICKED, 1.0, 1.0, 1.0, 1.0, button, 1,
+                false, false, false, false,
+                button == MouseButton.PRIMARY, button == MouseButton.MIDDLE, button == MouseButton.SECONDARY,
+                false, false, true, new PickResult(target, 1.0, 1.0));
+    }
 
     private static RXCarousel createLaidOutCarousel(int pageCount) {
         return createLaidOutCarousel(pageCount, index -> new Label("Page " + index));
@@ -268,17 +448,27 @@ public class RXCarouselTest {
         carousel.addEventHandler(type, event -> events.add(name + ":" + event.getPageIndex()));
     }
 
+    // Rethrows on the test thread what the action threw on the FX thread.
     private static void runOnFx(Runnable action) throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
+        Throwable[] failure = new Throwable[1];
         Platform.runLater(() -> {
             try {
                 action.run();
+            } catch (Throwable e) {
+                failure[0] = e;
             } finally {
                 latch.countDown();
             }
         });
         if (!latch.await(3, TimeUnit.SECONDS)) {
             throw new AssertionError("Timed out waiting for FX action");
+        }
+        if (failure[0] instanceof Error error) {
+            throw error;
+        }
+        if (failure[0] != null) {
+            throw new AssertionError(failure[0]);
         }
     }
 
@@ -301,6 +491,8 @@ public class RXCarouselTest {
         final List<TransitionContext> contexts = new ArrayList<>();
         int jumpToEndCalls;
         int minimumPageCount = 2;
+        // Some animations show the incoming page only once they finish.
+        boolean revealIncomingAtEnd;
 
         private final Duration playDuration;
         private Animation running;
@@ -315,7 +507,9 @@ public class RXCarouselTest {
             contexts.add(context);
             Node outgoing = context.getCurrentPage();
             Node incoming = context.getNextPage();
-            incoming.setVisible(true);
+            if (!revealIncomingAtEnd) {
+                incoming.setVisible(true);
+            }
 
             Runnable finish = () -> {
                 if (outgoing != null) {

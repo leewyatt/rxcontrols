@@ -22,11 +22,15 @@ import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
+import javafx.geometry.NodeOrientation;
 import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.Skin;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -122,6 +126,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     // until that code has returned, so no handler runs inside it.
     private boolean deferCached;
     private final List<Page> pendingCached = new ArrayList<>();
+    // The carousel holds the focus taken from a page it left before the
+    // shown page became visible.
+    private boolean focusHandOff;
 
     // ==================== Auto play state ====================
 
@@ -202,13 +209,18 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         boolean pagesChanged = carousel.getProperties().remove(CarouselSignals.PAGES_CHANGED) != null;
         treeShowing = controlTreeShowingProperty();
 
+        // Like a button, the arrows answer the primary button only.
         disposer.registerEventHandler(prevButton, MouseEvent.MOUSE_CLICKED, e -> {
-            carousel.previous();
-            carousel.requestFocus();
+            if (e.getButton() == MouseButton.PRIMARY) {
+                carousel.previous();
+                carousel.requestFocus();
+            }
         });
         disposer.registerEventHandler(nextButton, MouseEvent.MOUSE_CLICKED, e -> {
-            carousel.next();
-            carousel.requestFocus();
+            if (e.getButton() == MouseButton.PRIMARY) {
+                carousel.next();
+                carousel.requestFocus();
+            }
         });
         getChildren().addAll(contentPane, prevButton, nextButton);
 
@@ -467,15 +479,25 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         // arrow key bubbling up from a focused node inside a page targets that
         // node, and consuming it here would flip the page and block the scene's
         // arrow-key focus traversal for controls that leave the key unhandled.
+        // Right to left, the arrow keys swap like the mirrored arrows.
         disposer.registerEventHandler(carousel, KeyEvent.KEY_PRESSED, e -> {
             if (e.getTarget() != carousel) {
                 return;
             }
+            boolean rtl = carousel.getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT;
             if (e.getCode() == KeyCode.LEFT || e.getCode() == KeyCode.KP_LEFT) {
-                carousel.previous();
+                if (rtl) {
+                    carousel.next();
+                } else {
+                    carousel.previous();
+                }
                 e.consume();
             } else if (e.getCode() == KeyCode.RIGHT || e.getCode() == KeyCode.KP_RIGHT) {
-                carousel.next();
+                if (rtl) {
+                    carousel.previous();
+                } else {
+                    carousel.next();
+                }
                 e.consume();
             }
         });
@@ -637,6 +659,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                 continue;
             }
             showOnly(page);
+            if (focusHandOff) {
+                moveFocusOutOf(null);
+            }
             if (!announce(RXPageLifecycleEvent.OPENED, page)) {
                 return;
             }
@@ -651,6 +676,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         page.wrapper.setVisible(false);
         shown = null;
         shownIndex = -1;
+        moveFocusOutOf(page);
         if (page.phase == Phase.CLOSING && !announce(RXPageLifecycleEvent.CLOSED, page)) {
             return false;
         }
@@ -714,12 +740,16 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         announcePendingCached();
     }
 
-    // Runs once the animation plays.
+    // Runs once the animation plays, so the incoming page has usually been
+    // made visible by then.
     private void onTransitionStarted(int id) {
         if (id != transitionId || disposed) {
             return;
         }
         getSkinnable().setPageTransitioning(true);
+        if (!disposed) {
+            moveFocusOutOf(leaving);
+        }
     }
 
     // Natural end: in a pulse, or inside play() for a zero-length animation,
@@ -781,6 +811,63 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         if (!multiPage) {
             detachAllBut(to);
         }
+        if (focusHandOff) {
+            moveFocusOutOf(null);
+        }
+    }
+
+    // ==================== Focus ====================
+
+    // Focus left on a hidden or detached page would be replaced by the
+    // scene's first focusable node at the next pulse. Focus inside the page
+    // being left moves to the first focusable node of the shown page, or to
+    // the carousel while that page is not visible yet (some animations reveal
+    // it late, a zero-length one only when it settles); the carousel passes
+    // it on once the page shows. Focus elsewhere is left alone.
+    private void moveFocusOutOf(Page leaving) {
+        RXCarousel carousel = getSkinnable();
+        Scene scene = carousel.getScene();
+        Node owner = scene == null ? null : scene.getFocusOwner();
+        boolean inLeavingPage = owner != null && leaving != null && isInside(owner, leaving.wrapper);
+        boolean heldForHandOff = focusHandOff && owner == carousel;
+        focusHandOff = false;
+        if (!inLeavingPage && !heldForHandOff) {
+            return;
+        }
+        if (shown == null || !shown.wrapper.isVisible() || shown.wrapper.getParent() != contentPane) {
+            focusHandOff = true;
+            carousel.requestFocus();
+            return;
+        }
+        Node target = firstFocusableIn(shown.node);
+        (target == null ? carousel : target).requestFocus();
+    }
+
+    private static boolean isInside(Node node, Node ancestor) {
+        for (Node current = node; current != null; current = current.getParent()) {
+            if (current == ancestor) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Node firstFocusableIn(Node root) {
+        if (root == null || !root.isVisible() || root.isDisabled()) {
+            return null;
+        }
+        if (root.isFocusTraversable()) {
+            return root;
+        }
+        if (root instanceof Parent parent) {
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                Node found = firstFocusableIn(child);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
     }
 
     // ==================== Housekeeping ====================
