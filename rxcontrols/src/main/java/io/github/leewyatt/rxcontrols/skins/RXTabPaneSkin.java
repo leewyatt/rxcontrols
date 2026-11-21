@@ -1570,6 +1570,7 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
             closeGraphic.setMouseTransparent(true);
             closeGraphic.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
             closeButton.getStyleClass().add("close-button");
+            closeButton.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
             closeButton.setGraphic(closeGraphic);
             closeButton.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
             // Not a keyboard focus stop (that would break the single-focus tablist);

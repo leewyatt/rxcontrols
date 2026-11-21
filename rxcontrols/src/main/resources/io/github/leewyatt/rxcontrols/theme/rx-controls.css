@@ -3453,10 +3453,17 @@
     -fx-text-fill: -rx-on-surface-disabled;
 }
 
-.rx-tab-pane > .header > .tab .close-button {
+.rx-tab-pane > .header > .tab > .container > .close-button {
+    -fx-pref-width: 20px;
+    -fx-pref-height: 20px;
     -fx-background-color: transparent;
-    -fx-background-radius: 999px;
+    -fx-background-radius: 50%;
     -fx-padding: 3px;
+}
+
+.rx-tab-pane > .header > .tab > .container > .close-button > .ripple-layer > .state-overlay {
+    -rx-state-overlay-hover-opacity: 0.16;
+    -rx-state-overlay-pressed-opacity: 0.20;
 }
 
 .rx-tab-pane > .header > .tab .close-button .graphic {
