@@ -883,6 +883,15 @@ public class RXTilePane extends Pane {
      * while children are fading out: finishing their exits removes children, which JavaFX
      * forbids during that list's change notification.</p>
      *
+     * <p>A listener the pane's own layout reaches (one on a child's position or size, say)
+     * may change the children or turn animation off while that layout runs. The pane then
+     * throws nothing, keeps no reference to a child it no longer holds, does not lay out a
+     * child that left it or was unmanaged before its turn, stops driving a child that
+     * moved to another parent, and writes no animation once animation is off. Where the
+     * transitions of that layout start from, and how smoothly they go on, is best effort,
+     * and a child that leaves while its own layout is under way may still be placed by
+     * that layout.</p>
+     *
      * @return the animated property
      */
     public final BooleanProperty animatedProperty() {
