@@ -417,10 +417,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                 return;
             }
             updateArrowDisabledState(carousel);
-            // When switching back to circular while autoPlay is on and
-            // the timer was stopped (e.g., at the last page in non-circular
-            // mode), restart it so auto-play resumes.
-            if (newVal && carousel.isAutoPlay() && treeShowing.get() && !transitioning) {
+            // Switching back to circular resumes an auto-play the last page
+            // of a non-circular carousel had stopped.
+            if (canRunAutoplay(carousel)) {
                 startAutoplay(carousel);
             }
             // The neighbours to prefetch change with the wrap-around.
@@ -449,16 +448,20 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
 
         // Auto play properties
         disposer.registerListener(carousel.autoPlayProperty(), (obs, oldVal, newVal) -> {
-            if (newVal && treeShowing.get()) {
-                startAutoplay(carousel);
-            } else {
+            if (!newVal) {
                 stopAutoplay(carousel);
+            } else if (canRunAutoplay(carousel)) {
+                startAutoplay(carousel);
             }
         });
 
+        // A new interval counts from zero, from when the auto-play may run.
         disposer.registerListener(carousel.autoPlayIntervalProperty(), (obs, oldVal, newVal) -> {
             if (carousel.isAutoPlay()) {
-                restartAutoplay(carousel);
+                stopAutoplay(carousel);
+                if (canRunAutoplay(carousel)) {
+                    startAutoplay(carousel);
+                }
             }
         });
 
@@ -898,8 +901,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                 return;
             }
         }
-        if (carousel.isAutoPlay() && treeShowing.get()
-                && !(mouseHovering && carousel.isHoverPause())) {
+        // The countdown restarts once the page has settled, so the interval
+        // is the time a page shows.
+        if (canRunAutoplay(carousel)) {
             startAutoplay(carousel);
         }
     }
@@ -1356,10 +1360,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     private void onMouseExited(RXCarousel carousel) {
         mouseHovering = false;
 
-        // Resume autoplay only if no animation is in progress.
-        // If transitioning, autoplay will be restarted once the pages settle.
-        if (carousel.isAutoPlay() && carousel.isHoverPause()
-                && treeShowing.get() && !transitioning) {
+        // A countdown the pointer paused resumes; during a page change it
+        // restarts once the pages settle.
+        if (canRunAutoplay(carousel)) {
             startAutoplay(carousel);
         }
 
@@ -1409,16 +1412,25 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     }
 
     private void onTreeShowingChanged(RXCarousel carousel, boolean showing) {
-        if (showing) {
-            if (carousel.isAutoPlay()) {
-                startAutoplay(carousel);
-            }
-        } else {
+        if (!showing) {
             pauseAutoplay();
+        } else if (canRunAutoplay(carousel)) {
+            startAutoplay(carousel);
         }
     }
 
     // ==================== Auto Play ====================
+
+    // The one condition every start of the countdown checks: auto-play is on,
+    // the carousel is showing, no page change is in progress, the pointer
+    // does not pause it, and a next page exists.
+    private boolean canRunAutoplay(RXCarousel carousel) {
+        return carousel.isAutoPlay()
+                && treeShowing.get()
+                && !transitioning
+                && !(mouseHovering && carousel.isHoverPause())
+                && (carousel.isCircular() || carousel.getSelectedIndex() < carousel.getPageCount() - 1);
+    }
 
     /**
      * Starts (or resumes) the auto-play countdown. Creates a new Timeline
@@ -1426,12 +1438,6 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
      * the remaining duration. When it reaches 1.0, the next page is shown.
      */
     private void startAutoplay(RXCarousel carousel) {
-        // Non-circular, already at last page: don't start
-        if (!carousel.isCircular()
-                && carousel.getSelectedIndex() >= carousel.getPageCount() - 1) {
-            return;
-        }
-
         Duration interval = carousel.getAutoPlayInterval();
         // isUnknown()/isIndefinite() pass the lessThan clamp (NaN compares
         // false, infinity is not less) and would feed NaN / a never-firing
@@ -1465,14 +1471,6 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             }
         });
         autoPlayTimeline.play();
-    }
-
-    /**
-     * Restarts auto-play from the beginning (progress = 0).
-     */
-    private void restartAutoplay(RXCarousel carousel) {
-        stopAutoplay(carousel);
-        startAutoplay(carousel);
     }
 
     /**

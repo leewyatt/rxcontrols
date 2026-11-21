@@ -6,9 +6,13 @@ import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
+import javafx.event.Event;
+import javafx.event.EventType;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -28,8 +32,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests when the carousel's auto-play counts down, in a showing window: never
  * while a page change is in progress, including one a listener started as a
- * transition ended. A test ends by hiding the window's root rather than the
- * window, which stops the auto-play the same way.
+ * transition ended, or while the pointer pauses it, and on the last page only
+ * when the carousel wraps around. A test ends by hiding the window's root
+ * rather than the window, which stops the auto-play the same way.
  */
 public class RXCarouselAutoPlayTest {
 
@@ -84,7 +89,113 @@ public class RXCarouselAutoPlayTest {
         }
     }
 
+    @Test
+    public void autoPlayTurnedOnWhileHoveredWaitsForThePointerToLeave() throws Exception {
+        RXCarousel[] carousel = new RXCarousel[1];
+        onFx(() -> {
+            carousel[0] = showingCarousel(4);
+            carousel[0].setHoverPause(true);
+            Event.fireEvent(carousel[0], mouse(MouseEvent.MOUSE_ENTERED));
+            carousel[0].setAutoPlay(true);
+        });
+        Thread.sleep(200L);
+        try {
+            onFx(() -> {
+                assertEquals(0.0, carousel[0].getAutoPlayProgress());
+                Event.fireEvent(carousel[0], mouse(MouseEvent.MOUSE_EXITED));
+            });
+            Thread.sleep(200L);
+            onFx(() -> assertTrue(carousel[0].getAutoPlayProgress() > 0.0));
+        } finally {
+            onFx(() -> carousel[0].getScene().getRoot().setVisible(false));
+        }
+    }
+
+    @Test
+    public void intervalChangedWhileHoveredRestartsTheCountdownOnlyOnceThePointerLeaves() throws Exception {
+        RXCarousel[] carousel = new RXCarousel[1];
+        onFx(() -> {
+            carousel[0] = showingCarousel(4);
+            carousel[0].setHoverPause(true);
+            carousel[0].setAutoPlayInterval(Duration.seconds(2.0));
+            carousel[0].setAutoPlay(true);
+        });
+        Thread.sleep(150L);
+        try {
+            onFx(() -> {
+                assertTrue(carousel[0].getAutoPlayProgress() > 0.0);
+                Event.fireEvent(carousel[0], mouse(MouseEvent.MOUSE_ENTERED));
+                carousel[0].setAutoPlayInterval(Duration.seconds(3.0));
+                assertEquals(0.0, carousel[0].getAutoPlayProgress());
+            });
+            Thread.sleep(200L);
+            onFx(() -> assertEquals(0.0, carousel[0].getAutoPlayProgress()));
+        } finally {
+            onFx(() -> carousel[0].getScene().getRoot().setVisible(false));
+        }
+    }
+
+    @Test
+    public void intervalChangedOrShownAgainDuringATransitionWaitsForTheTransition() throws Exception {
+        RXCarousel[] carousel = new RXCarousel[1];
+        ManualAnimation animation = new ManualAnimation();
+        onFx(() -> {
+            carousel[0] = showingCarousel(4);
+            carousel[0].setAnimation(animation);
+            carousel[0].setAutoPlayInterval(Duration.millis(400.0));
+            carousel[0].setAutoPlay(true);
+            carousel[0].goToPage(1);
+            assertTrue(carousel[0].isPageTransitioning());
+
+            carousel[0].setAutoPlayInterval(Duration.millis(500.0));
+            Node root = carousel[0].getScene().getRoot();
+            root.setVisible(false);
+            root.setVisible(true);
+        });
+        Thread.sleep(200L);
+        try {
+            onFx(() -> {
+                assertEquals(0.0, carousel[0].getAutoPlayProgress());
+                animation.finishNaturally();
+            });
+            Thread.sleep(200L);
+            onFx(() -> assertTrue(carousel[0].getAutoPlayProgress() > 0.0));
+        } finally {
+            onFx(() -> carousel[0].getScene().getRoot().setVisible(false));
+        }
+    }
+
+    @Test
+    public void lastPageCountsDownOnlyWhenTheCarouselWrapsAround() throws Exception {
+        RXCarousel[] carousel = new RXCarousel[1];
+        onFx(() -> {
+            carousel[0] = showingCarousel(3);
+            carousel[0].setAnimationDuration(Duration.ZERO);
+            carousel[0].goToPage(2);
+            carousel[0].setAutoPlayInterval(Duration.seconds(2.0));
+            carousel[0].setAutoPlay(true);
+        });
+        Thread.sleep(150L);
+        try {
+            onFx(() -> {
+                assertTrue(carousel[0].getAutoPlayProgress() > 0.0);
+                carousel[0].setAutoPlay(false);
+                carousel[0].setCircular(false);
+                carousel[0].setAutoPlay(true);
+            });
+            Thread.sleep(150L);
+            onFx(() -> assertEquals(0.0, carousel[0].getAutoPlayProgress()));
+        } finally {
+            onFx(() -> carousel[0].getScene().getRoot().setVisible(false));
+        }
+    }
+
     // ==================== Helpers ====================
+
+    private static MouseEvent mouse(EventType<MouseEvent> type) {
+        return new MouseEvent(type, 1.0, 1.0, 1.0, 1.0, MouseButton.NONE, 0,
+                false, false, false, false, false, false, false, false, false, false, null);
+    }
 
     private static RXCarousel showingCarousel(int count) {
         List<Node> pages = new ArrayList<>();
