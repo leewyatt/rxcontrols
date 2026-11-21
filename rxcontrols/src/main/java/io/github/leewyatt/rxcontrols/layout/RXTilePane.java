@@ -857,10 +857,10 @@ public class RXTilePane extends Pane {
     /**
      * Whether existing children glide to their new positions after relayout. On
      * by default; turning it off mid-flight snaps every child to its final
-     * position. A width change imposed by the parent that keeps the column count
-     * applies immediately, so dragging a window edge sideways never leaves children
-     * trailing; a glide already in flight keeps its clock while its target follows
-     * the resize. An explicit {@code prefWidth}, even one bound to the parent's width,
+     * position. A size change imposed by the parent that keeps the column count applies
+     * immediately, in width or in height (a pane squeezed below its content included), so
+     * dragging a window edge never leaves children trailing; a glide already in flight
+     * keeps its clock while its target follows the resize. An explicit {@code prefWidth}, even one bound to the parent's width,
      * counts as imposed by the parent; a width that follows the pane's own computed
      * preferred width still glides. Only a child the previous layout placed glides; one
      * that is newly added, newly managed or back after missing a layout snaps into place,
@@ -1188,8 +1188,8 @@ public class RXTilePane extends Pane {
         // next pass always has a baseline to compare against.
         boolean resizeOnly = false;
         if (isAnimated()) {
-            resizeOnly = resizeGate.isResizeOnly(getWidth(), ownPrefWidth(),
-                    layoutStructure(columns, managed));
+            resizeOnly = resizeGate.isResizeOnly(getWidth(), ownPrefWidth(), getHeight(),
+                    ownPrefHeight(rows, nominalTileHeight, vgapValue), layoutStructure(columns, managed));
         } else {
             resizeGate.reset();
         }
@@ -1271,6 +1271,16 @@ public class RXTilePane extends Pane {
     // value and comes from the layout cache.
     private double ownPrefWidth() {
         return getPrefWidth() == USE_COMPUTED_SIZE ? prefWidth(-1.0) : computePrefWidth(-1.0);
+    }
+
+    // The preferred height at the current column count, as computePrefHeight(width) reports
+    // it: rows of the nominal tile height plus the vertical insets. The tile height a short
+    // pane squeezes its rows to is left out, since it follows every drag of the window
+    // edge; padding added in a parent that sizes the pane to its pref changes this value,
+    // so that growth still animates.
+    private double ownPrefHeight(int rows, double nominalTileHeight, double vgap) {
+        double content = rows == 0 ? 0.0 : rows * nominalTileHeight + (rows - 1) * vgap;
+        return snappedTopInset() + snapSizeY(content) + snappedBottomInset();
     }
 
     // Column count plus the child sequence fix every child's row and column; tile size,

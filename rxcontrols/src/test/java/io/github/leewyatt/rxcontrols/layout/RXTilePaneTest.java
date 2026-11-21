@@ -18,6 +18,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -1372,6 +1373,67 @@ public class RXTilePaneTest {
         pane.applyCss();
         layout(pane, 340, 400);
         return pane;
+    }
+
+    /**
+     * Verifies a height change imposed from outside settles at once when the rows are
+     * centred, so dragging the bottom window edge does not leave the tiles trailing.
+     */
+    @Test
+    public void heightResizeOfCentredRowsDoesNotGlide() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = filledPane(3);
+            pane.setContentVAlignment(VPos.CENTER);
+            new Scene(pane, 400, 400);
+            pane.applyCss();
+            layout(pane, 400, 400);
+            layout(pane, 400, 402);
+            assertFalse(anyTranslated(pane), "the centred row block follows the height at once");
+        });
+    }
+
+    /**
+     * Verifies a pane squeezed below its content follows a height drag at once, even with
+     * the rows at the top: the squeezed tile height changes with every drag, but the
+     * preferred height the drag is judged by does not.
+     */
+    @Test
+    public void heightResizeOfASqueezedPaneDoesNotGlide() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane(card(60, 80), card(60, 80));
+            pane.setPrefTileWidth(60);
+            pane.setPrefTileHeight(80);
+            pane.setVgap(0);
+            new Scene(pane, 60, 400);
+            pane.applyCss();
+            layout(pane, 60, 20);
+            Node second = pane.getChildren().get(1);
+            double before = second.getLayoutY();
+            layout(pane, 60, 22);
+            assertTrue(second.getLayoutY() != before, "setup: the squeezed second row moves with the height");
+            assertFalse(anyTranslated(pane), "the squeezed rows follow the height at once");
+        });
+    }
+
+    /**
+     * Verifies a height growth that follows the pane's own preferred size still glides:
+     * padding added in a VBox that sizes the pane to its preferred height moves the tiles
+     * down, and that move animates.
+     */
+    @Test
+    public void heightGrowthFromOwnPaddingStillGlides() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = filledPane(3);
+            VBox box = new VBox(pane);
+            new Scene(box, 400, 600);
+            box.applyCss();
+            layout(box, 400, 600);
+            Node first = pane.getChildren().get(0);
+
+            pane.setPadding(new Insets(20, 0, 0, 0));
+            box.layout();
+            assertEquals(-20.0, first.getTranslateY(), 1.0e-9, "the tiles glide down from where they were");
+        });
     }
 
     @Test
