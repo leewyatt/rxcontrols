@@ -1273,6 +1273,9 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
             // width, so a wrapped label's second line is included in the header height.
             thick = Math.max(thick, vertical ? clampedWidth : cell.prefHeight(clampedWidth));
         }
+        if (vertical) {
+            thick += headerArea.snappedLeftInset() + headerArea.snappedRightInset();
+        }
         return Math.max(DEFAULT_HEADER_MIN_HEIGHT, thick);
     }
 

@@ -155,6 +155,26 @@ public class RXTabPaneVerticalTest {
     // ==================== Wrapped label ====================
 
     @Test
+    public void verticalHeaderInsetsPreserveNaturalAndCappedTabWidths() throws Exception {
+        runOnFx(() -> {
+            for (Side side : new Side[]{Side.LEFT, Side.RIGHT}) {
+                RXTabPane pane = new RXTabPane(tab("Profile"), tab("Privacy settings"));
+                pane.setSide(side);
+                laidOut(pane);
+
+                Region cell = (Region) cellAt(pane, 1);
+                assertEquals(cell.prefWidth(-1), cell.getWidth(), side.toString());
+                double singleLineHeight = cell.getHeight();
+
+                pane.setTabMaxWidth(80.0);
+                pane.getParent().layout();
+                assertEquals(pane.getTabMaxWidth(), cell.getWidth(), side.toString());
+                assertTrue(cell.getHeight() > singleLineHeight, side.toString());
+            }
+        });
+    }
+
+    @Test
     public void longLabelWrapsToTallerHeaderWhenWidthCapped() throws Exception {
         runOnFx(() -> {
             RXTabPane wide = new RXTabPane(new RXTab("A very long tab label that must wrap"));
