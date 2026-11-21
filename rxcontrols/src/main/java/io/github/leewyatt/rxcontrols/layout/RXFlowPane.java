@@ -222,6 +222,10 @@ public class RXFlowPane extends Pane {
     // any other child (newly added, newly managed, back after missing a pass) snaps into
     // its slot instead of gliding in from a stale position or the pane origin.
     private Scene layoutScene;
+    // Bumped on every scene change. A listener reached from a layout pass can take the
+    // pane out of its scene while that pass is still running; the pass then sees the
+    // count change and leaves what the scene listener cleared alone.
+    private int sceneChanges;
     private Set<Node> laidOutLastPass = new HashSet<>();
     private Set<Node> laidOutThisPass = new HashSet<>();
     // Children of the last pass removed since, with where each showed when it was
@@ -260,6 +264,7 @@ public class RXFlowPane extends Pane {
         // cached per wrap length, so without this they would keep the old snapped sizes.
         snapToPixelProperty().addListener((obs, oldValue, newValue) -> requestLayout());
         sceneProperty().addListener((obs, oldScene, newScene) -> {
+            sceneChanges++;
             if (newScene == null) {
                 animator.stopAll();
                 resizeGate.reset();
@@ -1366,6 +1371,7 @@ public class RXFlowPane extends Pane {
 
         // A pass that threw midway may have left members behind.
         laidOutThisPass.clear();
+        int sceneChangesAtStart = sceneChanges;
         Scene scene = getScene();
         boolean animate = isAnimated() && scene != null && scene == layoutScene
                 && isAnimationDurationPositive();
@@ -1434,6 +1440,13 @@ public class RXFlowPane extends Pane {
             }
         }
 
+        if (sceneChanges != sceneChangesAtStart) {
+            // Laying a child out took the pane out of its scene (and maybe back): the
+            // scene listener has stopped every animation, and nothing from this pass may
+            // start one or count as laid out there.
+            forgetLaidOutChildren();
+            return;
+        }
         if (moves != null) {
             animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
         }

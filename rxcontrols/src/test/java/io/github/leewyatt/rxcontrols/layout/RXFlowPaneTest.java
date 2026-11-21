@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.layout;
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -1739,6 +1740,39 @@ public class RXFlowPaneTest {
             pane.getChildren().remove(b);
             assertClose(0.0, b.getTranslateX(), "the glide offset is dropped");
             assertClose(-4.0, b.getTranslateY(), "its own translate is back");
+        });
+    }
+
+    /**
+     * Verifies a pane taken out of its scene by a listener while its own layout pass runs
+     * starts no glide from that pass and, put back into the same scene, snaps on its first
+     * layout there.
+     */
+    @Test
+    public void paneDetachedDuringItsLayoutSnapsWhenPutBack() throws Exception {
+        onFx(() -> {
+            Region a = card(100.0, 40.0);
+            Region b = card(100.0, 40.0);
+            Region c = card(100.0, 40.0);
+            RXFlowPane pane = flowPane(0.0, 0.0, a, b, c);
+            StackPane root = new StackPane(pane);
+            new Scene(root, 600.0, 300.0);
+            root.applyCss();
+            layout(root, 600.0, 300.0);
+            ChangeListener<Number> detach = (obs, oldX, newX) -> root.getChildren().remove(pane);
+            b.layoutXProperty().addListener(detach);
+
+            pane.setHgap(20.0);
+            layout(pane, 600.0, 300.0);
+            assertNull(pane.getScene(), "setup: laying B out took the pane out of its scene");
+            assertFalse(anyTranslated(pane), "the abandoned pass starts no glide");
+
+            b.layoutXProperty().removeListener(detach);
+            root.getChildren().add(pane);
+            pane.setHgap(0.0);
+            layout(root, 600.0, 300.0);
+            assertClose(200.0, shownX(c), "back in the same scene, C shows in its slot at once");
+            assertFalse(anyTranslated(pane), "the first layout back in the scene snaps");
         });
     }
 
