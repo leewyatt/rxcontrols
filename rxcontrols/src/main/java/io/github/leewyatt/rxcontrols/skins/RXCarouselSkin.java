@@ -13,6 +13,8 @@ import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
+import javafx.beans.InvalidationListener;
+import javafx.beans.WeakInvalidationListener;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
@@ -20,6 +22,7 @@ import javafx.event.EventHandler;
 import javafx.event.EventType;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.control.Skin;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
@@ -29,6 +32,8 @@ import javafx.scene.shape.Rectangle;
 import javafx.util.Callback;
 import javafx.util.Duration;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -77,21 +82,25 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     // Mouse hover state (for hoverPause interaction with keyboard navigation)
     private boolean mouseHovering;
 
-    // Tree-showing state
-    private final ReadOnlyBooleanProperty treeShowing;
+    // Tree-showing state, created once the skin is installed
+    private ReadOnlyBooleanProperty treeShowing;
 
     // Handlers for dynamic nodes
     private final EventHandler<MouseEvent> navigatorFocusHandler = e -> getSkinnable().requestFocus();
 
+    // Skin lifecycle
+    private boolean activated;
+    private boolean disposed;
+    private final InvalidationListener skinListener = observable -> activate();
+
     /**
-     * Creates the default skin for the given carousel.
+     * Creates the default skin for the given carousel. The skin starts showing
+     * the pages once it is installed as the carousel's skin.
      *
      * @param carousel the carousel control
      */
     public RXCarouselSkin(RXCarousel carousel) {
         super(carousel);
-
-        treeShowing = controlTreeShowingProperty();
 
         contentPane = new StackPane();
         contentPane.getStyleClass().add("content-pane");
@@ -104,33 +113,98 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         prevArrow.getStyleClass().add("arrow");
         prevButton = new StackPane(prevArrow);
         prevButton.getStyleClass().add("prev-button");
-        disposer.registerEventHandler(prevButton, MouseEvent.MOUSE_CLICKED, e -> {
-            carousel.previous();
-            carousel.requestFocus();
-        });
 
         nextArrow = new Region();
         nextArrow.getStyleClass().add("arrow");
         nextButton = new StackPane(nextArrow);
         nextButton.getStyleClass().add("next-button");
+
+        // Weak: setSkin drops a skin of the installed class without disposing
+        // it, and nothing else may keep such a skin reachable from the carousel.
+        WeakInvalidationListener weakSkinListener = new WeakInvalidationListener(skinListener);
+        carousel.skinProperty().addListener(weakSkinListener);
+        disposer.registerDisposeTask(() -> carousel.skinProperty().removeListener(weakSkinListener));
+    }
+
+    // ==================== Activation ====================
+
+    // A skin is constructed before setSkin installs it, and setSkin ignores a
+    // second skin of the installed class. Taking the carousel over only once
+    // installed keeps a skin that never gets installed from adding nodes,
+    // moving the pages, firing events or running the auto-play, and runs after
+    // the replaced skin has been disposed: the shared navigator is disposed by
+    // the old skin before this one creates its node.
+    private void activate() {
+        RXCarousel carousel = getSkinnable();
+        if (activated || disposed || carousel == null || carousel.getSkin() != this) {
+            return;
+        }
+        activated = true;
+        treeShowing = controlTreeShowingProperty();
+
+        disposer.registerEventHandler(prevButton, MouseEvent.MOUSE_CLICKED, e -> {
+            carousel.previous();
+            carousel.requestFocus();
+        });
         disposer.registerEventHandler(nextButton, MouseEvent.MOUSE_CLICKED, e -> {
             carousel.next();
             carousel.requestFocus();
         });
-
         getChildren().addAll(contentPane, prevButton, nextButton);
 
         // Sync internal progress property to the public read-only property on RXCarousel
-        autoPlayProgressInternal.addListener((obs, oldVal, newVal) ->
-                carousel.setAutoPlayProgress(newVal.doubleValue()));
+        disposer.registerListener(autoPlayProgressInternal,
+                () -> carousel.setAutoPlayProgress(autoPlayProgressInternal.get()));
 
         setupListeners(carousel);
-        initAutoPlayTimer(carousel);
         updateNavigator(null, carousel.getNavigator(), carousel);
         updateNavigatorVisibility(carousel);
         updateArrowVisibility(carousel);
         updateArrowDisabledState(carousel);
+        takeOver(carousel);
+        initAutoPlayTimer(carousel);
+    }
 
+    // Continues the pages a replaced skin handed over: the page it left open
+    // stays open without events when it is still the selected page; otherwise
+    // it is closed and the selected page is opened. Without a hand-over the
+    // selected page is opened from scratch.
+    private void takeOver(RXCarousel carousel) {
+        Handover handover = (Handover) carousel.getProperties().remove(HANDOVER_KEY);
+        Page open = null;
+        if (handover != null) {
+            for (Map.Entry<Integer, Node> entry : handover.pages.entrySet()) {
+                Page page = new Page(entry.getKey(), entry.getValue());
+                if (page.index == handover.openIndex) {
+                    page.phase = Phase.OPENED;
+                    open = page;
+                }
+                pageCache.put(page.index, page);
+            }
+            boolean sameFactory = handover.factory == carousel.getPageFactory();
+            if (open != null && sameFactory && !shouldShowPlaceholder(carousel)
+                    && open.index == carousel.getSelectedIndex()) {
+                attach(open);
+                open.wrapper.setVisible(true);
+                evictOutOfRange(carousel);
+                ensureAdjacentPages(open.index, carousel);
+                PageAnimation anim = carousel.getAnimation();
+                if (anim != null && anim.isMultiPageDisplay()) {
+                    anim.setupInitialLayout(buildContext(open.index, open.index, carousel));
+                }
+                notifyNavigator(-1, carousel);
+                return;
+            }
+            if (open != null) {
+                fire(RXPageLifecycleEvent.CLOSING, open, carousel);
+                fire(RXPageLifecycleEvent.CLOSED, open, carousel);
+            }
+            if (sameFactory) {
+                evictOutOfRange(carousel);
+            } else {
+                clearAllPagesFromCache(carousel);
+            }
+        }
         if (shouldShowPlaceholder(carousel)) {
             showPlaceholder(carousel);
         } else {
@@ -138,10 +212,22 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         }
     }
 
+    private void evictOutOfRange(RXCarousel carousel) {
+        for (Page page : List.copyOf(pageCache.values())) {
+            if (page.index >= carousel.getPageCount() && pageCache.get(page.index) == page) {
+                pageCache.remove(page.index);
+                evict(page, carousel);
+            }
+        }
+    }
+
     // ==================== Layout ====================
 
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
+        if (!activated || disposed) {
+            return;
+        }
         contentPane.resizeRelocate(x, y, w, h);
         contentClip.setWidth(w);
         contentClip.setHeight(h);
@@ -229,6 +315,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
 
         // Page count change
         disposer.registerListener(carousel.pageCountProperty(), (obs, oldVal, newVal) -> {
+            if (disposed) {
+                return;
+            }
             int count = newVal.intValue();
             if (shouldShowPlaceholder(carousel)) {
                 showPlaceholder(carousel);
@@ -245,6 +334,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
 
         // Page factory change -> clear cache and reinitialize
         disposer.registerListener(carousel.pageFactoryProperty(), (obs, oldVal, newVal) -> {
+            if (disposed) {
+                return;
+            }
             clearAllPagesFromCache(carousel);
             if (shouldShowPlaceholder(carousel)) {
                 showPlaceholder(carousel);
@@ -307,7 +399,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         // animation plays to completion and onSelectedIndexChanged handles
         // the cleanup on the next page change (anim != usedAnimation check).
         disposer.registerListener(carousel.animationProperty(), (obs, oldAnim, newAnim) -> {
-            if (engine.isTransitioning()) {
+            if (disposed || engine.isTransitioning()) {
                 return;
             }
 
@@ -385,8 +477,10 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             }
 
             // Fire lifecycle events for the initial page (no animation, so both fire immediately)
-            carousel.fireEvent(new RXPageLifecycleEvent(RXPageLifecycleEvent.OPENING, index, page.node));
-            carousel.fireEvent(new RXPageLifecycleEvent(RXPageLifecycleEvent.OPENED, index, page.node));
+            if (page.phase != Phase.OPENED) {
+                fire(RXPageLifecycleEvent.OPENING, page, carousel);
+                fire(RXPageLifecycleEvent.OPENED, page, carousel);
+            }
         }
         notifyNavigator(-1, carousel);
     }
@@ -395,7 +489,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     // application's code and may change the cache themselves.
     private Page getOrCreatePage(int index, RXCarousel carousel) {
         Page page = pageCache.get(index);
-        if (page != null) {
+        if (page != null || disposed) {
             return page;
         }
         Callback<Integer, Node> factory = carousel.getPageFactory();
@@ -408,7 +502,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         }
         page = new Page(index, node);
         pageCache.put(index, page);
-        carousel.fireEvent(new RXPageLifecycleEvent(RXPageLifecycleEvent.CACHED, index, node));
+        fire(RXPageLifecycleEvent.CACHED, page, carousel);
         return page;
     }
 
@@ -423,7 +517,22 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     private void evict(Page page, RXCarousel carousel) {
         contentPane.getChildren().remove(page.wrapper);
         page.wrapper.getChildren().clear();
-        carousel.fireEvent(new RXPageLifecycleEvent(RXPageLifecycleEvent.EVICTED, page.index, page.node));
+        fire(RXPageLifecycleEvent.EVICTED, page, carousel);
+    }
+
+    // Records the event on the page before handlers can see it, so a handler
+    // that removes the skin finds the pairs it has to complete.
+    private void fire(EventType<RXPageLifecycleEvent> type, Page page, RXCarousel carousel) {
+        if (type == RXPageLifecycleEvent.OPENING) {
+            page.phase = Phase.OPENING;
+        } else if (type == RXPageLifecycleEvent.OPENED) {
+            page.phase = Phase.OPENED;
+        } else if (type == RXPageLifecycleEvent.CLOSING) {
+            page.phase = Phase.CLOSING;
+        } else if (type == RXPageLifecycleEvent.CLOSED) {
+            page.phase = Phase.CLOSED;
+        }
+        carousel.fireEvent(new RXPageLifecycleEvent(type, page.index, page.node));
     }
 
     private static Node wrapperOf(Page page) {
@@ -483,6 +592,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
      */
     public void clearPageCache() {
         RXCarousel carousel = getSkinnable();
+        if (!activated || disposed) {
+            return;
+        }
         clearAllPagesFromCache(carousel);
         initializeCurrentPage(carousel);
     }
@@ -494,6 +606,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
      */
     public void clearPageCache(int index) {
         RXCarousel carousel = getSkinnable();
+        if (!activated || disposed) {
+            return;
+        }
         Page removed = pageCache.remove(index);
         if (removed != null) {
             evict(removed, carousel);
@@ -515,7 +630,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     // ==================== Animation Scheduling ====================
 
     private void onSelectedIndexChanged(int oldIndex, int newIndex, RXCarousel carousel) {
-        if (carousel.getPageFactory() == null || carousel.getPageCount() == 0) {
+        if (disposed || carousel.getPageFactory() == null || carousel.getPageCount() == 0) {
             return;
         }
 
@@ -534,15 +649,13 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             if (closedIndex >= 0) {
                 Page fromPage = pageCache.get(closedIndex);
                 if (fromPage != null) {
-                    carousel.fireEvent(new RXPageLifecycleEvent(
-                            RXPageLifecycleEvent.CLOSED, closedIndex, fromPage.node));
+                    fire(RXPageLifecycleEvent.CLOSED, fromPage, carousel);
                 }
             }
             if (openedIndex >= 0) {
                 Page toPage = pageCache.get(openedIndex);
                 if (toPage != null) {
-                    carousel.fireEvent(new RXPageLifecycleEvent(
-                            RXPageLifecycleEvent.OPENED, openedIndex, toPage.node));
+                    fire(RXPageLifecycleEvent.OPENED, toPage, carousel);
                 }
             }
 
@@ -608,6 +721,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
 
         engine.play(anim, context,
                 () -> {
+                    if (disposed) {
+                        return;
+                    }
                     carousel.setPageTransitioning(true);
                     animatingFromIndex = oldIndex;
                     animatingToIndex = newIndex;
@@ -616,6 +732,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                     stopAutoplay(carousel);
                 },
                 () -> {
+                    if (disposed) {
+                        return;
+                    }
                     carousel.setPageTransitioning(false);
                     animatingFromIndex = -1;
                     animatingToIndex = -1;
@@ -625,6 +744,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                     onTransitionFinished(oldIndex, newIndex, carousel);
                 },
                 () -> {
+                    if (disposed) {
+                        return;
+                    }
                     // External stop (e.g. a resize guard calling jumpToEnd):
                     // reset the mirror state and restart autoplay, which the
                     // skipped onFinished path would otherwise have done.
@@ -642,17 +764,13 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                            RXCarousel carousel) {
         stopAutoplay(carousel);
         if (currentPage != null) {
-            carousel.fireEvent(new RXPageLifecycleEvent(
-                    RXPageLifecycleEvent.CLOSING, oldIndex, currentPage.node));
+            fire(RXPageLifecycleEvent.CLOSING, currentPage, carousel);
             currentPage.wrapper.setVisible(false);
-            carousel.fireEvent(new RXPageLifecycleEvent(
-                    RXPageLifecycleEvent.CLOSED, oldIndex, currentPage.node));
+            fire(RXPageLifecycleEvent.CLOSED, currentPage, carousel);
         }
-        carousel.fireEvent(new RXPageLifecycleEvent(
-                RXPageLifecycleEvent.OPENING, newIndex, nextPage.node));
+        fire(RXPageLifecycleEvent.OPENING, nextPage, carousel);
         nextPage.wrapper.setVisible(true);
-        carousel.fireEvent(new RXPageLifecycleEvent(
-                RXPageLifecycleEvent.OPENED, newIndex, nextPage.node));
+        fire(RXPageLifecycleEvent.OPENED, nextPage, carousel);
 
         PageAnimation anim = carousel.getAnimation();
         if (anim != null && anim.isMultiPageDisplay()) {
@@ -741,8 +859,8 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
 
     private void fireFor(EventType<RXPageLifecycleEvent> type, int pageIndex, RXCarousel carousel) {
         Page page = pageCache.get(pageIndex);
-        if (page != null) {
-            carousel.fireEvent(new RXPageLifecycleEvent(type, pageIndex, page.node));
+        if (page != null && !disposed) {
+            fire(type, page, carousel);
         }
     }
 
@@ -1053,33 +1171,133 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
 
     // ==================== Dispose ====================
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected void disposeSkin() {
+        if (disposed) {
+            return;
+        }
+        disposed = true;
         RXCarousel carousel = getSkinnable();
+        if (!activated) {
+            // Never installed: the animation and the navigator belong to the
+            // installed skin.
+            engine.dispose(null);
+            return;
+        }
         stopAutoplay(carousel);
+        stopFade(prevButtonFade);
+        stopFade(nextButtonFade);
+        stopFade(navigatorFade);
+
+        // setSkin has already stored the replacement when it disposes this
+        // skin. A replacement continues the pages without events; without
+        // one the open page is closed and the cache emptied.
+        Skin<?> installed = carousel.getSkin();
+        boolean replaced = installed instanceof RXCarouselSkin
+                && installed != this
+                && ((RXCarouselSkin) installed).getSkinnable() == carousel;
+
+        // The stop runs the animation's finish action; the transition
+        // callbacks see this skin disposed and do nothing.
+        engine.interrupt();
+        carousel.setPageTransitioning(false);
+        finishPairs(carousel, !replaced);
+
+        List<Page> pages = sortedPages();
+        if (replaced) {
+            carousel.getProperties().put(HANDOVER_KEY, new Handover(pages, openPage(), carousel.getPageFactory()));
+        } else {
+            carousel.getProperties().remove(HANDOVER_KEY);
+        }
+        pageCache.clear();
+        // The page nodes belong to the application: release them, or they
+        // would keep this skin's wrappers reachable.
+        for (Page page : pages) {
+            contentPane.getChildren().remove(page.wrapper);
+            page.wrapper.getChildren().clear();
+        }
+        if (!replaced) {
+            for (Page page : pages) {
+                fire(RXPageLifecycleEvent.EVICTED, page, carousel);
+            }
+        }
+        contentPane.getChildren().clear();
 
         if (navigatorNode != null) {
             navigatorNode.removeEventHandler(MouseEvent.MOUSE_CLICKED, navigatorFocusHandler);
+            getChildren().remove(navigatorNode);
+            navigatorNode = null;
         }
-
         CarouselNavigator nav = carousel.getNavigator();
         if (nav != null) {
             nav.dispose();
         }
-        engine.dispose(carousel.getAnimation());
-        // A disposed engine reports neither a stop nor a settle: clear the
-        // mirror here, as no callback will.
-        carousel.setPageTransitioning(false);
-        // The page nodes belong to the application: release them, or they
-        // would keep this skin's wrappers reachable.
-        for (Page page : pageCache.values()) {
-            page.wrapper.getChildren().clear();
+        getChildren().removeAll(contentPane, prevButton, nextButton);
+        if (placeholderRegion != null) {
+            placeholderRegion.getChildren().clear();
+            getChildren().remove(placeholderRegion);
         }
-        pageCache.clear();
-        contentPane.getChildren().clear();
+        engine.dispose(carousel.getAnimation());
+    }
+
+    // Completes every started pair: closing pages get CLOSED, opening pages
+    // OPENED. A skin that is removed rather than replaced closes the open
+    // page as well.
+    private void finishPairs(RXCarousel carousel, boolean closeOpenPage) {
+        for (Page page : sortedPages()) {
+            if (page.phase == Phase.CLOSING) {
+                page.wrapper.setVisible(false);
+                fire(RXPageLifecycleEvent.CLOSED, page, carousel);
+            }
+        }
+        for (Page page : sortedPages()) {
+            if (page.phase == Phase.OPENING) {
+                page.wrapper.setVisible(true);
+                fire(RXPageLifecycleEvent.OPENED, page, carousel);
+            }
+        }
+        if (closeOpenPage) {
+            for (Page page : sortedPages()) {
+                if (page.phase == Phase.OPENED) {
+                    fire(RXPageLifecycleEvent.CLOSING, page, carousel);
+                    page.wrapper.setVisible(false);
+                    fire(RXPageLifecycleEvent.CLOSED, page, carousel);
+                }
+            }
+        }
+    }
+
+    private List<Page> sortedPages() {
+        List<Page> pages = new ArrayList<>(pageCache.values());
+        pages.sort(Comparator.comparingInt(page -> page.index));
+        return pages;
+    }
+
+    private Page openPage() {
+        for (Page page : pageCache.values()) {
+            if (page.phase == Phase.OPENED) {
+                return page;
+            }
+        }
+        return null;
+    }
+
+    private static void stopFade(FadeTransition fade) {
+        if (fade != null) {
+            fade.stop();
+        }
     }
 
     // ==================== Page ====================
+
+    // Which of the opening and closing events a page has received since it
+    // was cached or last closed.
+    private enum Phase {
+        CLOSED, OPENING, OPENED, CLOSING
+    }
 
     // A cached page: the application's node inside a wrapper the skin owns.
     // Animations and the skin change the wrapper only, so the node keeps its
@@ -1089,12 +1307,36 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         final int index;
         final Node node;
         final StackPane wrapper = new StackPane();
+        Phase phase = Phase.CLOSED;
 
         Page(int index, Node node) {
             this.index = index;
             this.node = node;
             wrapper.getStyleClass().add("page");
             wrapper.getChildren().add(node);
+        }
+    }
+
+    // ==================== Hand-over ====================
+
+    // Kept in the carousel's properties from the dispose of a replaced skin
+    // until its replacement takes the carousel over.
+    private static final Object HANDOVER_KEY = new Object();
+
+    // The pages a replaced skin leaves to its replacement, which continues
+    // them without events.
+    private static final class Handover {
+
+        final Map<Integer, Node> pages = new HashMap<>();
+        final int openIndex;
+        final Callback<Integer, Node> factory;
+
+        Handover(List<Page> cached, Page open, Callback<Integer, Node> factory) {
+            for (Page page : cached) {
+                pages.put(page.index, page.node);
+            }
+            this.openIndex = open == null ? -1 : open.index;
+            this.factory = factory;
         }
     }
 }
