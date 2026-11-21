@@ -252,20 +252,21 @@ public class RXMasonryPane extends Pane {
             this::getAnimationDuration, this::interpolatorOrDefault, () -> -enterTranslateY());
     private boolean firstLayoutDone;
 
+    // A child the change keeps in the list (setAll keeping it) never left: whatever it is
+    // doing (a glide, an entrance, an exit) goes on untouched.
     private final ListChangeListener<Node> childrenListener = change -> {
-        while (change.next()) {
-            if (change.wasAdded() && firstLayoutDone) {
-                enteringNodes.addAll(change.getAddedSubList());
-            }
-            if (change.wasRemoved()) {
-                // The recorded structure would otherwise keep removed children alive.
-                resizeGate.reset();
-                for (Node removed : change.getRemoved()) {
-                    enteringNodes.remove(removed);
-                    exits.removed(removed);
-                    animator.forget(removed);
-                }
-            }
+        ChildrenChange children = ChildrenChange.of(change);
+        if (firstLayoutDone) {
+            enteringNodes.addAll(children.added());
+        }
+        if (!children.removed().isEmpty()) {
+            // The recorded structure would otherwise keep removed children alive.
+            resizeGate.reset();
+        }
+        for (Node removed : children.removed()) {
+            enteringNodes.remove(removed);
+            exits.removed(removed);
+            animator.forget(removed);
         }
     };
 
