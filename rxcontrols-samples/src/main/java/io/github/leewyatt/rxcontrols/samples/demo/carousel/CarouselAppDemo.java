@@ -87,12 +87,10 @@ public class CarouselAppDemo extends Application {
             }
         });
 
-        // Page entrance animations via lifecycle events.
-        // Filter by event target to ignore events bubbling up from nested carousels.
+        // Page entrance animations via lifecycle events. Events of the nested
+        // carousels stop at those carousels, so these handlers only see the
+        // main carousel's pages.
         mainCarousel.setOnPageOpened(e -> {
-            if (e.getTarget() != mainCarousel) {
-                return;
-            }
             switch (e.getPageIndex()) {
                 case 0:
                     // Home page: first OPENED fires before inner carousel is laid out,
@@ -108,9 +106,6 @@ public class CarouselAppDemo extends Application {
             }
         });
         mainCarousel.setOnPageClosed(e -> {
-            if (e.getTarget() != mainCarousel) {
-                return;
-            }
             switch (e.getPageIndex()) {
                 case 0:
                     resetNodes(homeAnimNodes);

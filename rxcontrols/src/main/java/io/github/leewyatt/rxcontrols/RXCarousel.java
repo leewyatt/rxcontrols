@@ -87,6 +87,15 @@ public class RXCarousel extends Control {
         selectedIndex.addListener((obs, oldVal, newVal) -> updatePseudoClassStates());
         pageCount.addListener((obs, oldVal, newVal) -> updatePseudoClassStates());
         pageFactory.addListener((obs, oldVal, newVal) -> updatePseudoClassStates());
+
+        // A carousel's page events end at the carousel: the handlers of a
+        // parent, or of an enclosing carousel, never see a nested carousel's
+        // pages. Its own handlers still get them, as do filters above it.
+        addEventHandler(RXPageLifecycleEvent.ANY, event -> {
+            if (event.getTarget() == this) {
+                event.consume();
+            }
+        });
     }
 
     private void updatePseudoClassStates() {

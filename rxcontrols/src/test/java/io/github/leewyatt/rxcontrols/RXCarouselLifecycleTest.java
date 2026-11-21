@@ -496,6 +496,56 @@ public class RXCarouselLifecycleTest {
         });
     }
 
+    // ==================== Dispatch scope ====================
+
+    @Test
+    public void eventsReachTheCarouselsHandlersAndOnlyFiltersAbove() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = laidOutCarousel(3);
+            carousel.setAnimationDuration(Duration.ZERO);
+            Parent root = carousel.getParent();
+            List<String> own = new ArrayList<>();
+            List<String> property = new ArrayList<>();
+            List<String> ancestorHandler = new ArrayList<>();
+            List<String> ancestorFilter = new ArrayList<>();
+            carousel.addEventHandler(RXPageLifecycleEvent.OPENED, e -> own.add(describe(e)));
+            carousel.setOnPageOpened(e -> property.add(describe(e)));
+            root.addEventHandler(RXPageLifecycleEvent.ANY, e -> ancestorHandler.add(describe(e)));
+            root.addEventFilter(RXPageLifecycleEvent.OPENED, e -> ancestorFilter.add(describe(e)));
+
+            carousel.goToPage(1);
+
+            assertEquals(List.of("OPENED:1"), own);
+            assertEquals(List.of("OPENED:1"), property);
+            assertEquals(List.of(), ancestorHandler);
+            assertEquals(List.of("OPENED:1"), ancestorFilter);
+        });
+    }
+
+    @Test
+    public void nestedCarouselEventsStayWithTheInnerCarousel() throws Exception {
+        onFx(() -> {
+            RXCarousel inner = new RXCarousel();
+            inner.setPages(new Label("I0"), new Label("I1"));
+            RXCarousel outer = new RXCarousel();
+            outer.setPages(new StackPane(inner), new Label("P1"));
+            StackPane root = new StackPane(outer);
+            new Scene(root, 320.0, 200.0);
+            root.resize(320.0, 200.0);
+            root.applyCss();
+            root.layout();
+            List<String> outerSaw = new ArrayList<>();
+            List<String> innerSaw = new ArrayList<>();
+            outer.addEventHandler(RXPageLifecycleEvent.ANY, e -> outerSaw.add(describe(e)));
+            inner.addEventHandler(RXPageLifecycleEvent.ANY, e -> innerSaw.add(describe(e)));
+
+            inner.goToPage(1, false);
+
+            assertEquals(List.of(), outerSaw);
+            assertEquals(List.of("CLOSING:0", "CLOSED:0", "OPENING:1", "OPENED:1"), openClose(innerSaw));
+        });
+    }
+
     // ==================== Skin removal ====================
 
     @Test
