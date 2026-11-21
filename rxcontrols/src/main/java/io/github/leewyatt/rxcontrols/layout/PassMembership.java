@@ -40,13 +40,14 @@ final class PassMembership {
     private final Map<Node, Departure> departures = new WeakHashMap<>();
 
     /**
-     * Where a removed child of the last pass showed: layout plus translate, read before
-     * the animator gives the translate back.
+     * How a removed child of the last pass showed: layout plus translate, and opacity,
+     * read before the animator gives them back.
      *
-     * @param x the x it showed at
-     * @param y the y it showed at
+     * @param x       the x it showed at
+     * @param y       the y it showed at
+     * @param opacity the opacity it showed at
      */
-    record Shown(double x, double y) {
+    record Shown(double x, double y, double opacity) {
     }
 
     // How a child stood when it was removed: laid out by the last pass (shown is where it
@@ -150,7 +151,8 @@ final class PassMembership {
             return;
         }
         Shown shown = laidOut
-                ? new Shown(child.getLayoutX() + child.getTranslateX(), child.getLayoutY() + child.getTranslateY())
+                ? new Shown(child.getLayoutX() + child.getTranslateX(), child.getLayoutY() + child.getTranslateY(),
+                        child.getOpacity())
                 : null;
         departures.put(child, new Departure(shown, entering));
     }

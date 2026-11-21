@@ -63,8 +63,27 @@ final class PaneRelayoutAnimator {
      *                       position; the glide ends at its resting translate
      * @param fromTranslateY the {@code translateY} the node starts from
      * @param fade           whether the node fades in from {@code 0} toward its current opacity
+     * @param fromOpacity    the opacity a fade resumes from toward the node's current
+     *                       opacity, or {@code NaN} for none; a move with one fades even
+     *                       when it does not move
      */
-    record Move(Node node, double fromTranslateX, double fromTranslateY, boolean fade) {
+    record Move(Node node, double fromTranslateX, double fromTranslateY, boolean fade, double fromOpacity) {
+
+        /**
+         * Creates a move that resumes no fade.
+         *
+         * @param node           the moving node
+         * @param fromTranslateX the {@code translateX} the node starts from
+         * @param fromTranslateY the {@code translateY} the node starts from
+         * @param fade           whether the node fades in from {@code 0}
+         */
+        Move(Node node, double fromTranslateX, double fromTranslateY, boolean fade) {
+            this(node, fromTranslateX, fromTranslateY, fade, Double.NaN);
+        }
+
+        private boolean resumesFade() {
+            return !Double.isNaN(fromOpacity);
+        }
     }
 
     static final double MOVE_EPSILON = 0.5;
@@ -167,7 +186,7 @@ final class PaneRelayoutAnimator {
             // A node whose fade-in is still in flight keeps fading across timeline
             // rebuilds; its new move only carries fade on the pass it entered.
             boolean continuedFade = previous != null && previous.fade();
-            boolean fade = move.fade() || continuedFade;
+            boolean fade = move.fade() || continuedFade || move.resumesFade();
             // Read before the first write: a node taken over now rests where it is.
             double restX = previous != null ? previous.restX() : node.getTranslateX();
             double restY = previous != null ? previous.restY() : node.getTranslateY();
@@ -187,7 +206,7 @@ final class PaneRelayoutAnimator {
                     targetOpacity = previous.targetOpacity();
                 } else {
                     targetOpacity = node.getOpacity();
-                    node.setOpacity(0.0);
+                    node.setOpacity(move.resumesFade() ? move.fromOpacity() : 0.0);
                 }
                 keyValues.add(new KeyValue(node.opacityProperty(), targetOpacity, interpolator));
             }
@@ -217,7 +236,7 @@ final class PaneRelayoutAnimator {
             if (exits.containsKey(node)) {
                 continue;
             }
-            if (move.fade()) {
+            if (move.fade() || move.resumesFade()) {
                 return true;
             }
             if (activeMoves.containsKey(node)) {
@@ -438,6 +457,21 @@ final class PaneRelayoutAnimator {
     }
 
     /**
+     * Adds the move of a node put back after it was removed mid-fade: it glides on from
+     * where it showed, like {@link #addRelayoutMove}, and its fade goes on from the
+     * opacity it showed at toward the opacity it has now, which the removal gave back.
+     *
+     * @param moves       the pass's moves
+     * @param node        the node, already at its new layout position
+     * @param oldVisualX  where the node showed, {@code layoutX + translateX}, when removed
+     * @param oldVisualY  where the node showed, {@code layoutY + translateY}, when removed
+     * @param fromOpacity the opacity the node showed at when removed
+     */
+    void addResumedMove(List<Move> moves, Node node, double oldVisualX, double oldVisualY, double fromOpacity) {
+        moves.add(new Move(node, oldVisualX - node.getLayoutX(), oldVisualY - node.getLayoutY(), false, fromOpacity));
+    }
+
+    /**
      * Adds the entrance of a node with no earlier position to glide from: it starts at
      * the given offset from its resting translate and, when fading, at opacity 0.
      *
@@ -575,7 +609,7 @@ final class PaneRelayoutAnimator {
             Move move = moves.get(i);
             Node node = move.node();
             boolean translateBound = isTranslateBound(node);
-            boolean opacityBound = move.fade() && node.opacityProperty().isBound();
+            boolean opacityBound = (move.fade() || move.resumesFade()) && node.opacityProperty().isBound();
             if (!translateBound && !opacityBound) {
                 if (result != null) {
                     result.add(move);

@@ -1519,7 +1519,13 @@ public class RXFlowPane extends Pane {
             }
             return;
         }
-        animator.addRelayoutMove(moves, node, oldVisualX, oldVisualY);
+        if (shownWhenRemoved != null && shownWhenRemoved.opacity() != node.getOpacity()) {
+            // Removed mid-fade and put back: the removal gave the opacity back, so the fade
+            // goes on from where it showed.
+            animator.addResumedMove(moves, node, oldVisualX, oldVisualY, shownWhenRemoved.opacity());
+        } else {
+            animator.addRelayoutMove(moves, node, oldVisualX, oldVisualY);
+        }
     }
 
     // ==================== Layout helpers ====================

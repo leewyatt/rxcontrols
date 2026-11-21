@@ -1202,7 +1202,13 @@ public class RXTilePane extends Pane {
                 }
                 continue;
             }
-            animator.addRelayoutMove(moves, child, oldVisualX, oldVisualY);
+            if (shownWhenRemoved != null && shownWhenRemoved.opacity() != child.getOpacity()) {
+                // Removed mid-fade and put back: the removal gave the opacity back, so the
+                // fade goes on from where it showed.
+                animator.addResumedMove(moves, child, oldVisualX, oldVisualY, shownWhenRemoved.opacity());
+            } else {
+                animator.addRelayoutMove(moves, child, oldVisualX, oldVisualY);
+            }
         }
         if (collectMoves && membership.sceneChanges() == sceneChangesAtStart) {
             animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());

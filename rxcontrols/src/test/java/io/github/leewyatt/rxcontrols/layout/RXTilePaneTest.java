@@ -2083,6 +2083,46 @@ public class RXTilePaneTest {
         });
     }
 
+    /**
+     * Verifies a tile removed while it fades in and put back before the next layout,
+     * through remove and add, fades on from the opacity it showed: in another slot, and
+     * in the same slot where it does not move at all. Removed, it gets its own opacity
+     * back at once; with its opacity bound by the time it is put back, it only moves.
+     */
+    @Test
+    public void tilePutBackMidEntranceFadesOn() throws Exception {
+        onFx(() -> {
+            for (boolean sameSlot : new boolean[] {false, true}) {
+                String where = sameSlot ? "same slot" : "another slot";
+                RXTilePane pane = shownPane(3);
+                Region entering = card();
+                entering.setOpacity(0.7);
+                pane.getChildren().add(entering);
+                layout(pane, 700, 400);
+                assertEquals(0.0, entering.getOpacity(), 1.0e-9, where + ": setup, it fades in from 0");
+
+                pane.getChildren().remove(entering);
+                assertEquals(0.7, entering.getOpacity(), 1.0e-9, where + ": removed, its own opacity is back");
+                pane.getChildren().add(sameSlot ? pane.getChildren().size() : 0, entering);
+                layout(pane, 700, 400);
+                assertEquals(0.0, entering.getOpacity(), 1.0e-9, where + ": put back, it fades on from where it showed");
+                pane.setAnimated(false);
+                assertEquals(0.7, entering.getOpacity(), 1.0e-9, where + ": it settles at its own opacity");
+            }
+
+            RXTilePane pane = shownPane(3);
+            Region bound = card();
+            pane.getChildren().add(bound);
+            layout(pane, 700, 400);
+            pane.getChildren().remove(bound);
+            bound.opacityProperty().bind(new SimpleDoubleProperty(0.5));
+            pane.getChildren().add(0, bound);
+            layout(pane, 700, 400);
+            assertEquals(0.5, bound.getOpacity(), 1.0e-9, "bound by then: its opacity is left alone");
+            assertTrue(translated(bound), "bound by then: it still glides to its new slot");
+        });
+    }
+
     // Tiles of 100 px, three to a row at 700 px with a 10 px vgap, laid out once in a scene.
     private static RXTilePane shownPane(int count) {
         RXTilePane pane = filledPane(count);

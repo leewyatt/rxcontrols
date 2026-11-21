@@ -1673,6 +1673,46 @@ public class RXFlowPaneTest {
         });
     }
 
+    /**
+     * Verifies a card removed while it fades in and put back before the next layout,
+     * through remove and add, fades on from the opacity it showed: in another slot, and
+     * in the same slot where it does not move at all. Removed, it gets its own opacity
+     * back at once; with its opacity bound by the time it is put back, it only moves.
+     */
+    @Test
+    public void childPutBackMidEntranceFadesOn() throws Exception {
+        onFx(() -> {
+            for (boolean sameSlot : new boolean[] {false, true}) {
+                String where = sameSlot ? "same slot" : "another slot";
+                RXFlowPane pane = shownFlow(3);
+                Region entering = card(100.0, 40.0);
+                entering.setOpacity(0.7);
+                pane.getChildren().add(entering);
+                layout(pane, 400.0, 400.0);
+                assertClose(0.0, entering.getOpacity(), where + ": setup, it fades in from 0");
+
+                pane.getChildren().remove(entering);
+                assertClose(0.7, entering.getOpacity(), where + ": removed, its own opacity is back");
+                pane.getChildren().add(sameSlot ? pane.getChildren().size() : 0, entering);
+                layout(pane, 400.0, 400.0);
+                assertClose(0.0, entering.getOpacity(), where + ": put back, it fades on from where it showed");
+                pane.setAnimated(false);
+                assertClose(0.7, entering.getOpacity(), where + ": it settles at its own opacity");
+            }
+
+            RXFlowPane pane = shownFlow(3);
+            Region bound = card(100.0, 40.0);
+            pane.getChildren().add(bound);
+            layout(pane, 400.0, 400.0);
+            pane.getChildren().remove(bound);
+            bound.opacityProperty().bind(new SimpleDoubleProperty(0.5));
+            pane.getChildren().add(0, bound);
+            layout(pane, 400.0, 400.0);
+            assertClose(0.5, bound.getOpacity(), "bound by then: its opacity is left alone");
+            assertTrue(translated(bound), "bound by then: it still glides to its new slot");
+        });
+    }
+
     // 100 x 40 cards with 10 px gaps, laid out once in a 400 px scene.
     private static RXFlowPane shownFlow(int count) {
         RXFlowPane pane = flowPane(10.0, 10.0, cards(count, 100.0, 40.0));
