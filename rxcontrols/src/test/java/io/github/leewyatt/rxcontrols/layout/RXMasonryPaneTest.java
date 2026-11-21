@@ -21,6 +21,8 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.lang.ref.WeakReference;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -1946,6 +1948,77 @@ public class RXMasonryPaneTest {
             assertNull(detached.getScene(), "setup: the column count listener took the pane out");
             assertFalse(anyTranslated(detached), "the abandoned layout leaves no glide behind");
         });
+    }
+
+    /**
+     * Verifies a child that a column count listener removes while the layout runs is not
+     * kept by the pane afterwards, with no further layout. Taken out of its scene by the
+     * same listener, the pane holds nothing that keeps the child from being collected.
+     * Kept in its scene, the child cannot be collected yet (JavaFX keeps a parent's
+     * removed children until its next render sync, which a scene that is not shown never
+     * runs), so the resize record the pane keeps is checked for the child instead.
+     */
+    @Test
+    public void childRemovedByAColumnCountListenerIsNotKept() throws Exception {
+        List<WeakReference<Node>> removed = new ArrayList<>();
+        List<RXMasonryPane> kept = new ArrayList<>();
+        runOnFx(() -> {
+            RXMasonryPane pane = columnCountRemovalPane(true);
+            removed.add(new WeakReference<>(pane.getChildren().get(2)));
+            layout(pane, 100.0, 600.0);
+            assertEquals(2, pane.getChildren().size(), "setup: the listener removed a card");
+            assertNull(pane.getScene(), "setup: and took the pane out of its scene");
+            kept.add(pane);
+        });
+        for (int i = 0; i < 50 && removed.get(0).get() != null; i++) {
+            System.gc();
+            Thread.sleep(20);
+        }
+        assertNull(removed.get(0).get(), "taken out of its scene: the removed card is not kept");
+        assertEquals(1, kept.size(), "the pane itself is still reachable");
+
+        runOnFx(() -> {
+            RXMasonryPane pane = columnCountRemovalPane(false);
+            Node card = pane.getChildren().get(2);
+            layout(pane, 100.0, 600.0);
+            assertEquals(2, pane.getChildren().size(), "setup: the listener removed a card");
+            assertFalse(recordedStructure(pane).contains(card), "kept in its scene: the resize record does not hold it");
+        });
+    }
+
+    // Three cards laid out in two columns; dropping to one column, a listener removes the
+    // last card and, if asked, takes the pane out of its scene.
+    private static RXMasonryPane columnCountRemovalPane(boolean detach) {
+        RXMasonryPane pane = pane(80.0, 10.0, 10.0, card(80.0, 50.0), card(80.0, 50.0), card(80.0, 50.0));
+        StackPane root = new StackPane(pane);
+        new Scene(root, 300.0, 600.0);
+        layout(pane, 200.0, 600.0);
+        assertEquals(2, pane.getActualColumnCount(), "setup: two columns");
+        pane.actualColumnCountProperty().addListener((obs, oldValue, newValue) -> {
+            if (newValue.intValue() == 1 && pane.getChildren().size() == 3) {
+                pane.getChildren().remove(2);
+                if (detach) {
+                    root.getChildren().clear();
+                }
+            }
+        });
+        return pane;
+    }
+
+    // The structure the pane's resize gate last recorded, read reflectively: the test only
+    // needs to see whether a node is still referenced there.
+    private static List<?> recordedStructure(RXMasonryPane pane) {
+        try {
+            Field gateField = RXMasonryPane.class.getDeclaredField("resizeGate");
+            gateField.setAccessible(true);
+            Object gate = gateField.get(pane);
+            Field structureField = gate.getClass().getDeclaredField("lastStructure");
+            structureField.setAccessible(true);
+            Object structure = structureField.get(gate);
+            return structure == null ? List.of() : (List<?>) structure;
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("the resize record could not be read", e);
+        }
     }
 
     /**

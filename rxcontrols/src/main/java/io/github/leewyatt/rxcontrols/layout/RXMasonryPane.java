@@ -1513,11 +1513,17 @@ public class RXMasonryPane extends Pane {
     // Column count plus each child's start column: widths, gaps and heights are left
     // out, so a pure resize leaves it equal while a column change or a card moving to
     // another column does not.
-    private static List<Object> layoutStructure(int columns, List<Node> managed, int[] startColumns) {
+    private List<Object> layoutStructure(int columns, List<Node> managed, int[] startColumns) {
         List<Object> structure = new ArrayList<>(2 * managed.size() + 1);
         structure.add(columns);
         for (int i = 0; i < managed.size(); i++) {
-            structure.add(managed.get(i));
+            Node child = managed.get(i);
+            // The children were taken before the column count was published; a listener
+            // may have removed one since, and the gate keeps what it records.
+            if (child.getParent() != this || !child.isManaged()) {
+                continue;
+            }
+            structure.add(child);
             structure.add(startColumns[i]);
         }
         return structure;
