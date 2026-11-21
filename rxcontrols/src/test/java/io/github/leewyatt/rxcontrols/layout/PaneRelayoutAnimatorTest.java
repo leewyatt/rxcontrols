@@ -80,6 +80,33 @@ public class PaneRelayoutAnimatorTest {
     }
 
     /**
+     * Verifies nodes left after a batch keep gliding: letting others go inside the batch
+     * stops the shared timeline, and it is rebuilt for the rest when the batch ends.
+     */
+    @Test
+    public void nodesLeftAfterABatchKeepGliding() throws Exception {
+        PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+        Region forgotten = new Region();
+        Region leaving = new Region();
+        Region left = new Region();
+        runOnFx(() -> {
+            animator.runRelayout(List.of(
+                    new PaneRelayoutAnimator.Move(forgotten, 30.0, 0.0, false),
+                    new PaneRelayoutAnimator.Move(leaving, 30.0, 0.0, false),
+                    new PaneRelayoutAnimator.Move(left, 30.0, 0.0, false)), true, SHORT, Interpolator.LINEAR);
+            animator.inBatch(() -> {
+                animator.forget(forgotten);
+                animator.runExit(leaving, true, SHORT, Interpolator.LINEAR, -10.0, () -> { });
+            });
+            assertFalse(animator.isTracked(forgotten), "the forgotten node is let go");
+            assertEquals(0.0, forgotten.getTranslateX(), EPSILON, "with its translate back");
+            assertTrue(animator.isTracked(left), "the node left still glides");
+        });
+        waitUntil(() -> !animator.isTracked(left));
+        runOnFx(() -> assertEquals(0.0, left.getTranslateX(), EPSILON, "and settles at rest"));
+    }
+
+    /**
      * Verifies a non-animated exit removes the node immediately.
      */
     @Test

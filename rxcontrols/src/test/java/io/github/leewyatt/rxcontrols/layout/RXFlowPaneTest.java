@@ -1854,6 +1854,48 @@ public class RXFlowPaneTest {
         onFx(body);
     }
 
+    /**
+     * Verifies clearing many cards that are still entering costs about as much as
+     * clearing as many settled ones, through clearAnimated and through the children list:
+     * the glide of the rest is reworked once for the whole batch, not once per card.
+     * Before, 800 entering cards took over a second.
+     */
+    @Test
+    public void clearingEnteringCardsCostsAboutAsMuchAsSettledOnes() throws Exception {
+        onFx(() -> {
+            for (boolean viaClearAnimated : new boolean[] {true, false}) {
+                String how = viaClearAnimated ? "clearAnimated" : "getChildren().clear()";
+                clearNanos(false, viaClearAnimated);
+                clearNanos(true, viaClearAnimated);
+                long settled = Math.min(clearNanos(false, viaClearAnimated), clearNanos(false, viaClearAnimated));
+                long entering = Math.min(clearNanos(true, viaClearAnimated), clearNanos(true, viaClearAnimated));
+                assertTrue(entering < 5 * settled + 100_000_000L,
+                        how + ": entering " + entering / 1_000_000 + " ms, settled " + settled / 1_000_000 + " ms");
+            }
+        });
+    }
+
+    // Times clearing 800 cards that were added and laid out, entering or (added with
+    // animation off) settled.
+    private static long clearNanos(boolean entering, boolean viaClearAnimated) {
+        RXFlowPane pane = shownFlow(1);
+        pane.setAnimated(entering);
+        for (int i = 0; i < 800; i++) {
+            pane.getChildren().add(card(100.0, 40.0));
+        }
+        layout(pane, 400.0, 400.0);
+        pane.setAnimated(true);
+        long start = System.nanoTime();
+        if (viaClearAnimated) {
+            pane.clearAnimated();
+        } else {
+            pane.getChildren().clear();
+        }
+        long elapsed = System.nanoTime() - start;
+        pane.setAnimated(false);
+        return elapsed;
+    }
+
     // 100 x 40 cards with 10 px gaps, laid out once in a 400 px scene.
     private static RXFlowPane shownFlow(int count) {
         RXFlowPane pane = flowPane(10.0, 10.0, cards(count, 100.0, 40.0));

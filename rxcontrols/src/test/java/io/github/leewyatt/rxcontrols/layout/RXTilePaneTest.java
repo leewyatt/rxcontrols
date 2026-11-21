@@ -2269,6 +2269,48 @@ public class RXTilePaneTest {
         assertEquals(expected, actual, 1.0e-9, label);
     }
 
+    /**
+     * Verifies clearing many tiles that are still entering costs about as much as
+     * clearing as many settled ones, through clearAnimated and through the children list:
+     * the glide of the rest is reworked once for the whole batch, not once per tile.
+     * Before, 800 entering tiles took over a second.
+     */
+    @Test
+    public void clearingEnteringTilesCostsAboutAsMuchAsSettledOnes() throws Exception {
+        onFx(() -> {
+            for (boolean viaClearAnimated : new boolean[] {true, false}) {
+                String how = viaClearAnimated ? "clearAnimated" : "getChildren().clear()";
+                clearNanos(false, viaClearAnimated);
+                clearNanos(true, viaClearAnimated);
+                long settled = Math.min(clearNanos(false, viaClearAnimated), clearNanos(false, viaClearAnimated));
+                long entering = Math.min(clearNanos(true, viaClearAnimated), clearNanos(true, viaClearAnimated));
+                assertTrue(entering < 5 * settled + 100_000_000L,
+                        how + ": entering " + entering / 1_000_000 + " ms, settled " + settled / 1_000_000 + " ms");
+            }
+        });
+    }
+
+    // Times clearing 800 tiles that were added and laid out, entering or (added with
+    // animation off) settled.
+    private static long clearNanos(boolean entering, boolean viaClearAnimated) {
+        RXTilePane pane = shownPane(1);
+        pane.setAnimated(entering);
+        for (int i = 0; i < 800; i++) {
+            pane.getChildren().add(card());
+        }
+        layout(pane, 700, 400);
+        pane.setAnimated(true);
+        long start = System.nanoTime();
+        if (viaClearAnimated) {
+            pane.clearAnimated();
+        } else {
+            pane.getChildren().clear();
+        }
+        long elapsed = System.nanoTime() - start;
+        pane.setAnimated(false);
+        return elapsed;
+    }
+
     // Tiles of 100 px, three to a row at 700 px with a 10 px vgap, laid out once in a scene.
     private static RXTilePane shownPane(int count) {
         RXTilePane pane = filledPane(count);

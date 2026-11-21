@@ -228,11 +228,15 @@ public class RXFlowPane extends Pane {
             // The recorded structure would otherwise keep removed children alive.
             resizeGate.reset();
         }
-        for (Node removed : children.removed()) {
-            membership.removed(removed);
-            exits.removed(removed);
-            animator.forget(removed);
-        }
+        // Forgotten in one batch: clearing many gliding children reworks the glide of
+        // the rest once.
+        animator.inBatch(() -> {
+            for (Node removed : children.removed()) {
+                membership.removed(removed);
+                exits.removed(removed);
+                animator.forget(removed);
+            }
+        });
         for (Node added : children.added()) {
             membership.added(added);
         }

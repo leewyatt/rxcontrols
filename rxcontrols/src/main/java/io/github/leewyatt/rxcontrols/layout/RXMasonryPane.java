@@ -263,11 +263,15 @@ public class RXMasonryPane extends Pane {
             // The recorded structure would otherwise keep removed children alive.
             resizeGate.reset();
         }
-        for (Node removed : children.removed()) {
-            enteringNodes.remove(removed);
-            exits.removed(removed);
-            animator.forget(removed);
-        }
+        // Forgotten in one batch: clearing many gliding children reworks the glide of
+        // the rest once.
+        animator.inBatch(() -> {
+            for (Node removed : children.removed()) {
+                enteringNodes.remove(removed);
+                exits.removed(removed);
+                animator.forget(removed);
+            }
+        });
     };
 
     // ==================== Constructors ====================

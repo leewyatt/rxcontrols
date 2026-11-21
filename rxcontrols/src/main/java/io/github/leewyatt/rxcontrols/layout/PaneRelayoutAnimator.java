@@ -118,6 +118,10 @@ final class PaneRelayoutAnimator {
     private final Map<Node, MoveState> activeMoves = new HashMap<>();
     private final Map<Node, ExitState> exits = new HashMap<>();
     private Timeline relayoutTimeline;
+    // Inside inBatch, letting a node go only stops the shared timeline; it is rebuilt for
+    // the nodes left once, when the outermost batch ends.
+    private int batchDepth;
+    private boolean rebuildPending;
     private Duration lastDuration = Duration.ZERO;
     private Interpolator lastInterpolator = Interpolator.LINEAR;
 
@@ -515,6 +519,30 @@ final class PaneRelayoutAnimator {
         }
     }
 
+    /**
+     * Runs an action that may let many nodes go at once, starting their exits or
+     * forgetting them, and rebuilds the shared relayout timeline for the nodes left once
+     * when the action ends rather than once per node. The nodes left hold still until
+     * then, within the same event, so nothing shows it.
+     *
+     * @param action the action
+     */
+    void inBatch(Runnable action) {
+        batchDepth++;
+        try {
+            action.run();
+        } finally {
+            batchDepth--;
+            if (batchDepth == 0 && rebuildPending) {
+                rebuildPending = false;
+                // A pass run inside the batch may have built a timeline of its own.
+                if (relayoutTimeline == null) {
+                    rebuildRelayout();
+                }
+            }
+        }
+    }
+
     // Removes a node from the shared relayout timeline by stopping it and rebuilding
     // it for the remaining nodes from their current transforms, so the released node
     // is no longer written or retained while the others keep animating smoothly.
@@ -527,6 +555,14 @@ final class PaneRelayoutAnimator {
         }
         relayoutTimeline.stop();
         relayoutTimeline = null;
+        if (batchDepth > 0) {
+            rebuildPending = true;
+            return;
+        }
+        rebuildRelayout();
+    }
+
+    private void rebuildRelayout() {
         if (activeMoves.isEmpty()) {
             return;
         }

@@ -84,6 +84,12 @@ final class ChildExits {
             pane.getChildren().clear();
             return;
         }
+        // Every exit takes its child out of the shared glide; done one by one, the glide
+        // of the children left would be rebuilt once per child.
+        animator.inBatch(this::startClearing);
+    }
+
+    private void startClearing() {
         // Removing a child notifies listeners synchronously, and one that turns animation
         // off finishes the running exits, which removes children inside that very
         // notification; JavaFX forbids that. So the children that cannot fade out go
