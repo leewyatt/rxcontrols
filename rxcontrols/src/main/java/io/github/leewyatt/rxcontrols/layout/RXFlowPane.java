@@ -1078,6 +1078,10 @@ public class RXFlowPane extends Pane {
     private List<Run> runs;
     private double lastMaxRunLength = -1;
     private boolean computingRuns;
+    // Cached like the runs: the pane's own inputs only change through requestLayout, a
+    // resize does not, so a drag computes it once instead of rebuilding the runs for
+    // prefWrapLength on every pass.
+    private double cachedOwnPrefExtent = Double.NaN;
 
     /**
      * {@inheritDoc}
@@ -1086,6 +1090,7 @@ public class RXFlowPane extends Pane {
     public void requestLayout() {
         if (!computingRuns) {
             runs = null;
+            cachedOwnPrefExtent = Double.NaN;
         }
         super.requestLayout();
     }
@@ -1386,10 +1391,16 @@ public class RXFlowPane extends Pane {
     // and must not count as the pane changing itself. Without one, prefWidth(-1) or
     // prefHeight(-1) is the computed value and comes from the layout cache.
     private double ownPrefExtent(boolean horizontal) {
-        if (horizontal) {
-            return getPrefWidth() == USE_COMPUTED_SIZE ? prefWidth(-1.0) : computePrefWidth(-1.0);
+        if (horizontal && getPrefWidth() == USE_COMPUTED_SIZE) {
+            return prefWidth(-1.0);
         }
-        return getPrefHeight() == USE_COMPUTED_SIZE ? prefHeight(-1.0) : computePrefHeight(-1.0);
+        if (!horizontal && getPrefHeight() == USE_COMPUTED_SIZE) {
+            return prefHeight(-1.0);
+        }
+        if (Double.isNaN(cachedOwnPrefExtent)) {
+            cachedOwnPrefExtent = horizontal ? computePrefWidth(-1.0) : computePrefHeight(-1.0);
+        }
+        return cachedOwnPrefExtent;
     }
 
     // Orientation plus the children of each run in order: item sizes, gaps and

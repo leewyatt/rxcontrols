@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.layout;
 
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.ListChangeListener;
@@ -587,6 +588,57 @@ public class RXMasonryPaneTest {
             pane.getChildren().add(single);
             pane.removeAnimated(single);
             assertFalse(pane.getChildren().contains(single), "removeAnimated removes it at once");
+        });
+    }
+
+    /**
+     * Verifies clearAnimated checks each child's managed binding when it reaches the
+     * child, so a listener binding one while an earlier child leaves does not throw.
+     */
+    @Test
+    public void clearAnimatedRechecksBindingsAsItGoes() throws Exception {
+        runOnFx(() -> {
+            Region first = card(80.0, 50.0);
+            Region second = card(80.0, 60.0);
+            first.managedProperty().addListener((obs, oldValue, managed) -> {
+                if (!managed) {
+                    second.managedProperty().bind(new SimpleBooleanProperty(true));
+                }
+            });
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, first, second);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+
+            pane.clearAnimated();
+
+            assertFalse(pane.getChildren().contains(second), "bound on the way: removed at once");
+            assertTrue(pane.getChildren().contains(first), "the first child still fades out");
+        });
+    }
+
+    /**
+     * Verifies that when removing the bound-managed children turns animation off (here
+     * through a binding on the child count), the exits already started finish at once
+     * instead of leaving children waiting on an animation that is now disabled.
+     */
+    @Test
+    public void clearAnimatedThatDisablesAnimationFinishesEveryExit() throws Exception {
+        runOnFx(() -> {
+            Region plain = card(80.0, 50.0);
+            Region bound = card(80.0, 60.0);
+            bound.managedProperty().bind(new SimpleBooleanProperty(true));
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, plain, bound);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            pane.animatedProperty().bind(Bindings.size(pane.getChildren()).greaterThan(1));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+
+            pane.clearAnimated();
+
+            assertFalse(pane.isAnimated(), "precondition: removal disabled animation");
+            assertTrue(pane.getChildren().isEmpty(), "every child is gone");
+            assertTrue(plain.isManaged(), "managed restored");
         });
     }
 

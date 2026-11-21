@@ -267,7 +267,7 @@ public class RXMasonryPane extends Pane {
                     // A node removed externally mid-exit never reaches finishLeaving,
                     // so restore its original managed state here.
                     Boolean wasManaged = leavingNodes.remove(removed);
-                    if (wasManaged != null) {
+                    if (wasManaged != null && !removed.managedProperty().isBound()) {
                         removed.setManaged(wasManaged);
                     }
                     animator.forget(removed);
@@ -958,24 +958,25 @@ public class RXMasonryPane extends Pane {
             getChildren().clear();
             return;
         }
+        // Each binding is checked when its child is reached, since a listener may bind
+        // one while earlier children are processed. The bound children are removed
+        // last: removal notifies listeners synchronously, and by then every exit runs.
         List<Node> leaving = new ArrayList<>();
         List<Node> immediate = new ArrayList<>();
-        for (Node child : getChildren()) {
+        for (Node child : new ArrayList<>(getChildren())) {
             if (child.managedProperty().isBound()) {
                 immediate.add(child);
             } else {
+                markLeaving(child);
                 leaving.add(child);
             }
-        }
-        getChildren().removeAll(immediate);
-        for (Node child : leaving) {
-            markLeaving(child);
         }
         requestLayout();
         for (Node child : leaving) {
             animator.runExit(child, true, getAnimationDuration(), interpolatorOrDefault(),
                     -enterTranslateY(), () -> finishLeaving(child));
         }
+        getChildren().removeAll(immediate);
     }
 
     // Callers remove a child whose managed is bound at once instead: unmanaging it
@@ -990,7 +991,7 @@ public class RXMasonryPane extends Pane {
 
     private void finishLeaving(Node child) {
         Boolean wasManaged = leavingNodes.remove(child);
-        if (wasManaged != null) {
+        if (wasManaged != null && !child.managedProperty().isBound()) {
             child.setManaged(wasManaged);
         }
         getChildren().remove(child);
