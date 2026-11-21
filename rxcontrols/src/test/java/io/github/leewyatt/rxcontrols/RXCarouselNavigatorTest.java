@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.carousel.CarouselNavigator;
 import io.github.leewyatt.rxcontrols.skins.RXCarouselSkin;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -243,6 +244,30 @@ public class RXCarouselNavigatorTest {
 
             assertEquals(1, carousel.getSelectedIndex());
             assertEquals(List.of("-1->1/2[L0, L1]"), navigator.calls);
+        });
+    }
+
+    @Test
+    public void changeOfAPageListLetGoOfWhileItNotifiesIsIgnored() throws Exception {
+        onFx(() -> {
+            ObservableList<Node> first = FXCollections.observableArrayList(labels("A", 2));
+            ObservableList<Node> second = FXCollections.observableArrayList(labels("B", 3));
+            RXCarousel carousel = new RXCarousel();
+            boolean[] armed = {false};
+            // Added before the carousel's listener, so it runs first.
+            first.addListener((ListChangeListener<Node>) change -> {
+                if (armed[0]) {
+                    armed[0] = false;
+                    carousel.setPages(second);
+                }
+            });
+            carousel.setPages(first);
+            ReadingNavigator navigator = install(carousel);
+            armed[0] = true;
+
+            first.set(0, new Label("A0b"));
+
+            assertEquals(List.of("-1->0/3[B0, B1, B2]"), navigator.calls);
         });
     }
 

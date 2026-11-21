@@ -835,7 +835,7 @@ public class RXCarousel extends Control {
     private int pagesCalls;
 
     // Weak: a page list that outlives the carousel must not keep it reachable.
-    private final ListChangeListener<Node> pagesListener = change -> onPagesChanged();
+    private final ListChangeListener<Node> pagesListener = this::onPagesChanged;
     private final WeakListChangeListener<Node> weakPagesListener = new WeakListChangeListener<>(pagesListener);
 
     private void clearPagesListener() {
@@ -858,10 +858,10 @@ public class RXCarousel extends Control {
 
     // The list keeps driving the pages only while its factory is the
     // carousel's. Before setPages has set the factory, setPages reads the
-    // list again itself. A list let go of during its own change notification
-    // may still call in.
-    private void onPagesChanged() {
-        if (observablePages == null || getPageFactory() != observablePagesFactory) {
+    // list again itself. A list let go of while it notifies its listeners
+    // still delivers the rest of that notification, here included.
+    private void onPagesChanged(ListChangeListener.Change<? extends Node> change) {
+        if (change.getList() != observablePages || getPageFactory() != observablePagesFactory) {
             return;
         }
         beginPagesUpdate();
