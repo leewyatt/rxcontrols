@@ -1463,6 +1463,81 @@ public class RXFlowPaneTest {
         });
     }
 
+    /**
+     * Verifies a static child keeps a translate of its own through an unrelated relayout,
+     * and after the pane settles.
+     */
+    @Test
+    public void staticChildKeepsItsOwnTranslate() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = flowPane(10.0, 10.0, cards(6, 100.0, 40.0));
+            new Scene(pane, 340.0, 400.0);
+            pane.applyCss();
+            layout(pane, 340.0, 400.0);
+
+            Region still = child(pane, 0);
+            still.setTranslateY(-4.0);
+            child(pane, 5).setPrefWidth(110.0);
+            layout(pane, 340.0, 400.0);
+            assertClose(-4.0, still.getTranslateY(), "right after an unrelated relayout");
+
+            pane.setAnimated(false);
+            assertClose(-4.0, still.getTranslateY(), "after the pane settles");
+        });
+    }
+
+    /**
+     * Verifies a child the layout moves by exactly its own offset glides from where it
+     * showed and settles back at that offset: its glide starts at translate zero, which
+     * must not read as no motion.
+     */
+    @Test
+    public void childMovedByItsOwnOffsetGlidesAndKeepsIt() throws Exception {
+        onFx(() -> {
+            Region card = card(100.0, 40.0);
+            RXFlowPane pane = flowPane(10.0, 10.0, card);
+            new Scene(pane, 400.0, 300.0);
+            pane.applyCss();
+            layout(pane, 400.0, 300.0);
+
+            card.setTranslateX(20.0);
+            pane.setPadding(new Insets(0.0, 0.0, 0.0, 20.0));
+            layout(pane, 400.0, 300.0);
+            assertClose(20.0, card.getLayoutX() + card.getTranslateX(), "starts where it showed");
+            assertClose(0.0, card.getTranslateX(), "from offset zero");
+
+            pane.setAnimated(false);
+            assertClose(20.0, card.getTranslateX(), "settles at its own translate");
+            assertClose(40.0, card.getLayoutX() + card.getTranslateX(), "shown 20 right of its slot");
+        });
+    }
+
+    /**
+     * Verifies an added child keeps a translate of its own: it snaps in without being
+     * written, first frame and last.
+     */
+    @Test
+    public void enteringChildKeepsItsOwnTranslate() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = flowPane(10.0, 10.0, cards(3, 100.0, 40.0));
+            new Scene(pane, 400.0, 400.0);
+            pane.applyCss();
+            layout(pane, 400.0, 400.0);
+
+            Region added = card(100.0, 40.0);
+            added.setTranslateX(20.0);
+            added.setTranslateY(6.0);
+            pane.getChildren().add(added);
+            layout(pane, 400.0, 400.0);
+            assertClose(20.0, added.getTranslateX(), "first frame x");
+            assertClose(6.0, added.getTranslateY(), "first frame y");
+
+            pane.setAnimated(false);
+            assertClose(20.0, added.getTranslateX(), "last frame x");
+            assertClose(6.0, added.getTranslateY(), "last frame y");
+        });
+    }
+
     @Test
     public void addedChildSnapsWithoutGliding() throws Exception {
         onFx(() -> {

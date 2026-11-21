@@ -965,6 +965,32 @@ public class RXTilePaneTest {
         });
     }
 
+    /**
+     * Verifies a tile the layout moves by exactly its own offset glides from where it
+     * showed and settles back at that offset: its glide starts at translate zero, which
+     * must not read as no motion.
+     */
+    @Test
+    public void tileMovedByItsOwnOffsetGlidesAndKeepsIt() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane();
+            Region tile = card(100.0, 40.0);
+            pane.getChildren().add(tile);
+            pane.setAnimated(true);
+            new Scene(pane, 400.0, 300.0);
+            pane.applyCss();
+            layout(pane, 400.0, 300.0);
+
+            tile.setTranslateX(20.0);
+            pane.setPadding(new Insets(0.0, 0.0, 0.0, 20.0));
+            layout(pane, 400.0, 300.0);
+            assertEquals(20.0, tile.getLayoutX() + tile.getTranslateX(), EPSILON, "starts where it showed");
+
+            pane.setAnimated(false);
+            assertEquals(20.0, tile.getTranslateX(), EPSILON, "settles at its own translate");
+        });
+    }
+
     @Test
     public void addedChildPopsInWithoutGliding() throws Exception {
         onFx(() -> {

@@ -372,6 +372,133 @@ public class RXRowAnimationTest {
         });
     }
 
+    /**
+     * Verifies a column a structural change moves by exactly its own offset glides from
+     * where it showed and settles back at that offset: its glide starts at translate
+     * zero, which must not read as no motion.
+     */
+    @Test
+    public void columnMovedByItsOwnOffsetGlidesAndKeepsIt() throws Exception {
+        onFx(() -> {
+            // Measures how far the reorder moves the first column.
+            RXRow twin = fixture();
+            layout(twin, WIDE);
+            double beforeX = col(twin, 0).getLayoutX();
+            double beforeY = col(twin, 0).getLayoutY();
+            ((RXCol) col(twin, 2)).setOrder(-1);
+            layout(twin, WIDE);
+            double dx = col(twin, 0).getLayoutX() - beforeX;
+            double dy = col(twin, 0).getLayoutY() - beforeY;
+            assertTrue(Math.abs(dx) + Math.abs(dy) > 1.0, "setup: the reorder moves the first column");
+
+            RXRow row = fixture();
+            layout(row, WIDE);
+            Region first = col(row, 0);
+            first.setTranslateX(dx);
+            first.setTranslateY(dy);
+            double shownX = first.getLayoutX() + dx;
+            double shownY = first.getLayoutY() + dy;
+            ((RXCol) col(row, 2)).setOrder(-1);
+            layout(row, WIDE);
+            assertEquals(shownX, first.getLayoutX() + first.getTranslateX(), EPSILON, "starts where it showed (x)");
+            assertEquals(shownY, first.getLayoutY() + first.getTranslateY(), EPSILON, "starts where it showed (y)");
+
+            row.setAnimated(false);
+            assertEquals(dx, first.getTranslateX(), EPSILON, "settles at its own translateX");
+            assertEquals(dy, first.getTranslateY(), EPSILON, "settles at its own translateY");
+        });
+    }
+
+    /**
+     * Verifies an added column with a translate of its own fades in where it lands, at
+     * that translate, first frame and last, instead of sliding toward it.
+     */
+    @Test
+    public void addedColumnFadesInAtItsOwnTranslate() throws Exception {
+        onFx(() -> {
+            RXRow row = fixture();
+            layout(row, WIDE);
+
+            RXCol added = column(24, 24);
+            added.setTranslateX(20.0);
+            added.setTranslateY(6.0);
+            row.getChildren().add(added);
+            layout(row, WIDE);
+            assertEquals(0.0, added.getOpacity(), EPSILON, "first frame transparent");
+            assertEquals(20.0, added.getTranslateX(), EPSILON, "first frame x");
+            assertEquals(6.0, added.getTranslateY(), EPSILON, "first frame y");
+
+            row.setAnimated(false);
+            assertEquals(1.0, added.getOpacity(), EPSILON, "last frame opaque");
+            assertEquals(20.0, added.getTranslateX(), EPSILON, "last frame x");
+            assertEquals(6.0, added.getTranslateY(), EPSILON, "last frame y");
+        });
+    }
+
+    /**
+     * Verifies an added column whose opacity is bound, so it cannot fade, is not set
+     * sliding by its own translate either.
+     */
+    @Test
+    public void addedColumnWithBoundOpacityKeepsItsTranslate() throws Exception {
+        onFx(() -> {
+            RXRow row = fixture();
+            layout(row, WIDE);
+            RXCol added = column(24, 24);
+            added.opacityProperty().bind(new SimpleDoubleProperty(0.7));
+            added.setTranslateX(20.0);
+            row.getChildren().add(added);
+
+            layout(row, WIDE);
+
+            assertEquals(20.0, added.getTranslateX(), EPSILON, "translate not written");
+            assertEquals(0.7, added.getOpacity(), EPSILON, "binding left untouched");
+        });
+    }
+
+    /**
+     * Verifies a column with a translate of its own fades out from it, and when shown
+     * again mid fade-out continues from where it shows and settles back at it.
+     */
+    @Test
+    public void reclaimedColumnSettlesAtItsOwnTranslate() throws Exception {
+        AtomicReference<RXRow> rowRef = new AtomicReference<>();
+        double[] shown = new double[2];
+
+        onFx(() -> {
+            RXRow row = fixture();
+            rowRef.set(row);
+            row.setAnimationDuration(Duration.millis(1000.0));
+            layout(row, WIDE);
+            Region first = col(row, 0);
+            first.setTranslateX(-4.0);
+            first.setTranslateY(6.0);
+            ((RXCol) first).setHidden(true);
+            layout(row, WIDE);
+            assertEquals(-4.0, first.getTranslateX(), EPSILON, "fades out from its own translateX");
+            assertEquals(6.0, first.getTranslateY(), EPSILON, "fades out from its own translateY");
+        });
+        Thread.sleep(200);
+        onFx(() -> {
+            RXRow row = rowRef.get();
+            Region first = col(row, 0);
+            shown[0] = first.getLayoutX() + first.getTranslateX();
+            shown[1] = first.getLayoutY() + first.getTranslateY();
+
+            ((RXCol) first).setHidden(false);
+            layout(row, WIDE);
+
+            assertEquals(shown[0], first.getLayoutX() + first.getTranslateX(), EPSILON, "no x jump");
+            assertEquals(shown[1], first.getLayoutY() + first.getTranslateY(), EPSILON, "no y jump");
+        });
+        waitUntil(() -> {
+            Region first = col(rowRef.get(), 0);
+            return Math.abs(first.getOpacity() - 1.0) < EPSILON
+                    && Math.abs(first.getTranslateX() + 4.0) < EPSILON
+                    && Math.abs(first.getTranslateY() - 6.0) < EPSILON;
+        });
+    }
+
     @Test
     public void boundOpacityColumnDoesNotFade() throws Exception {
         onFx(() -> {

@@ -837,10 +837,17 @@ public class RXTilePane extends Pane {
      * trailing; a glide already in flight keeps its clock while its target follows
      * the resize. An explicit {@code prefWidth}, even one bound to the parent's width,
      * counts as imposed by the parent; a width that follows the pane's own computed
-     * preferred width still glides. While enabled,
-     * the pane drives each child's {@code translateX} / {@code translateY} during the
-     * glide; a child with either one bound snaps instead. Binding them while the
-     * child is gliding is not supported.
+     * preferred width still glides.
+     *
+     * <p>While a child glides, the pane drives its {@code translateX} /
+     * {@code translateY}; it never touches {@code opacity}. A translate the child had
+     * before the glide is kept: the glide ends there. Writing translate from elsewhere
+     * while the child glides, by one assignment or a running animation, is not
+     * supported: the pane may overwrite it, and when the glide settles it puts back the
+     * value from before the glide, which a still-running animation may then change
+     * again. Keep independent effects on a node inside the child. A child with
+     * {@code translateX} or {@code translateY} bound snaps instead; binding them while
+     * the child is gliding is not supported.</p>
      *
      * @return the animated property
      */
@@ -1158,8 +1165,9 @@ public class RXTilePane extends Pane {
             double x = left + snapPositionX(startX + column * (tileWidth + effectiveHgap));
             double y = top + snapPositionY(startY + row * (tileHeight + vgapValue));
             // FLIP: capture the current on-screen position before relocating so the
-            // animator can invert the move and tween translate back to zero. An
-            // entering child has no meaningful previous position, so it snaps in.
+            // animator can invert the move and tween translate back to its resting
+            // value. An entering child has no meaningful previous position, so it snaps
+            // in with its own translate untouched.
             double oldVisualX = 0.0;
             double oldVisualY = 0.0;
             if (collectMoves) {
@@ -1176,15 +1184,10 @@ public class RXTilePane extends Pane {
                 animator.keepInFlight(moves, child);
                 continue;
             }
-            double fromDx = enteringNodes.contains(child) ? 0.0 : oldVisualX - child.getLayoutX();
-            double fromDy = enteringNodes.contains(child) ? 0.0 : oldVisualY - child.getLayoutY();
-            // A node the animator still tracks stays submitted even when static
-            // this pass — dropping it would finalize its in-flight tween.
-            if (Math.abs(fromDx) >= PaneRelayoutAnimator.MOVE_EPSILON
-                    || Math.abs(fromDy) >= PaneRelayoutAnimator.MOVE_EPSILON
-                    || animator.isTracked(child)) {
-                moves.add(new PaneRelayoutAnimator.Move(child, fromDx, fromDy, false));
+            if (enteringNodes.contains(child)) {
+                continue;
             }
+            animator.addRelayoutMove(moves, child, oldVisualX, oldVisualY);
         }
         if (collectMoves) {
             animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());

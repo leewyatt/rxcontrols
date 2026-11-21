@@ -945,10 +945,17 @@ public class RXFlowPane extends Pane {
      * that is newly added, newly managed or back after missing a layout snaps into
      * place, and so does every child on the first layout after the pane enters a scene
      * or is laid out outside one. A child removed and put back before the next layout
-     * glides from where it was. While enabled, the pane
-     * drives each child's {@code translateX} / {@code translateY} during the glide; a
-     * child with either one bound snaps instead. Binding them while the child is
-     * gliding is not supported.
+     * glides from where it was.
+     *
+     * <p>While a child glides, the pane drives its {@code translateX} /
+     * {@code translateY}; it never touches {@code opacity}. A translate the child had
+     * before the glide is kept: the glide ends there. Writing translate from elsewhere
+     * while the child glides, by one assignment or a running animation, is not
+     * supported: the pane may overwrite it, and when the glide settles it puts back the
+     * value from before the glide, which a still-running animation may then change
+     * again. Keep independent effects on a node inside the child. A child with
+     * {@code translateX} or {@code translateY} bound snaps instead; binding them while
+     * the child is gliding is not supported.</p>
      *
      * @return the animated property
      */
@@ -1511,18 +1518,12 @@ public class RXFlowPane extends Pane {
             animator.keepInFlight(moves, node);
             return;
         }
+        // Checked before any motion: an entering child's old layout position belongs to
+        // wherever it was before, and its own translate stays as it is.
         if (!laidOutLastPass.contains(node) && !removedSinceLastPass.contains(node)) {
             return;
         }
-        double fromDx = oldVisualX - node.getLayoutX();
-        double fromDy = oldVisualY - node.getLayoutY();
-        // A node the animator still tracks stays submitted even when static this
-        // pass — dropping it would finalize its in-flight tween.
-        if (Math.abs(fromDx) >= PaneRelayoutAnimator.MOVE_EPSILON
-                || Math.abs(fromDy) >= PaneRelayoutAnimator.MOVE_EPSILON
-                || animator.isTracked(node)) {
-            moves.add(new PaneRelayoutAnimator.Move(node, fromDx, fromDy, false));
-        }
+        animator.addRelayoutMove(moves, node, oldVisualX, oldVisualY);
     }
 
     // ==================== Layout helpers ====================

@@ -454,6 +454,90 @@ public class RXMasonryPaneTest {
      * first laid-out frame fully transparent and settles back at the user's own
      * opacity (not a hard-coded 1.0) once the fade completes.
      */
+    /**
+     * Verifies a child the layout moves by exactly its own offset glides from where it
+     * showed and settles back at that offset.
+     */
+    @Test
+    public void childMovedByItsOwnOffsetGlidesAndKeepsIt() throws Exception {
+        runOnFx(() -> {
+            RXMasonryPane pane = new RXMasonryPane();
+            Region card = card(80.0, 50.0);
+            pane.getChildren().add(card);
+            new Scene(pane);
+            layout(pane, 300.0, 300.0);
+
+            card.setTranslateX(20.0);
+            pane.setPadding(new Insets(0.0, 0.0, 0.0, 20.0));
+            layout(pane, 300.0, 300.0);
+            assertClose(20.0, card.getLayoutX() + card.getTranslateX(), "starts where it showed");
+
+            pane.setAnimated(false);
+            assertClose(20.0, card.getTranslateX(), "settles at its own translate");
+        });
+    }
+
+    /**
+     * Verifies an entering child starts its entrance offset from a translate of its own
+     * and ends there, on both axes.
+     */
+    @Test
+    public void enteringChildEntersFromItsOwnTranslate() throws Exception {
+        runOnFx(() -> {
+            RXMasonryPane pane = new RXMasonryPane();
+            pane.getChildren().add(card(80.0, 50.0));
+            new Scene(pane);
+            layout(pane, 300.0, 300.0);
+
+            Region entering = card(80.0, 50.0);
+            entering.setTranslateX(20.0);
+            entering.setTranslateY(6.0);
+            pane.getChildren().add(entering);
+            layout(pane, 300.0, 300.0);
+            // The default 8 px vgap sets the entrance offset.
+            assertClose(20.0, entering.getTranslateX(), "first frame x");
+            assertClose(14.0, entering.getTranslateY(), "first frame y, offset from its own 6");
+            assertClose(0.0, entering.getOpacity(), "first frame transparent");
+
+            pane.setAnimated(false);
+            assertClose(20.0, entering.getTranslateX(), "last frame x");
+            assertClose(6.0, entering.getTranslateY(), "last frame y");
+            assertClose(1.0, entering.getOpacity(), "last frame opaque");
+        });
+    }
+
+    /**
+     * Verifies removeAnimated gives the child back its own translate by the time it is
+     * removed.
+     */
+    @Test
+    public void removeAnimatedRestoresTheChildsOwnTranslate() throws Exception {
+        RXMasonryPane pane = new RXMasonryPane();
+        Region card = card(80.0, 50.0);
+        CountDownLatch gone = new CountDownLatch(1);
+        runOnFx(() -> {
+            pane.setAnimationDuration(Duration.millis(40.0));
+            pane.getChildren().add(card);
+            new Scene(pane);
+            layout(pane, 300.0, 300.0);
+            card.setTranslateX(20.0);
+            card.setTranslateY(6.0);
+            pane.getChildren().addListener((ListChangeListener<Node>) change -> {
+                if (!pane.getChildren().contains(card)) {
+                    gone.countDown();
+                }
+            });
+
+            pane.removeAnimated(card);
+        });
+        assertTrue(gone.await(5, TimeUnit.SECONDS), "the exit removes the child");
+        runOnFx(() -> {
+            assertClose(20.0, card.getTranslateX(), "translateX back");
+            assertClose(6.0, card.getTranslateY(), "translateY back");
+            assertClose(1.0, card.getOpacity(), "opacity back");
+        });
+    }
+
     @Test
     public void enterFadeStartsAtZeroAndRestoresUserOpacity() throws Exception {
         RXMasonryPane pane = new RXMasonryPane();
