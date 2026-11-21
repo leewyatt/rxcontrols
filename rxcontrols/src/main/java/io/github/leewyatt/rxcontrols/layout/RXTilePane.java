@@ -1028,11 +1028,16 @@ public class RXTilePane extends Pane {
     private boolean tileHeightAtWidthValid;
     private double tileHeightAtWidthKey;
     private double cachedTileHeightAtWidth;
+    // Whether any managed child's height depends on its width; a parent asks for the
+    // preferred height at many widths, and this saves a scan of the children each time.
+    private boolean widthDependenceValid;
+    private boolean cachedWidthDependence;
 
     private void invalidateTileSizeCache() {
         nominalTileWidthValid = false;
         nominalTileHeightValid = false;
         tileHeightAtWidthValid = false;
+        widthDependenceValid = false;
     }
 
     // ==================== Layout ====================
@@ -1458,12 +1463,17 @@ public class RXTilePane extends Pane {
     }
 
     private boolean hasWidthDependentChild() {
-        for (Node child : getManagedChildren()) {
-            if (child.getContentBias() == Orientation.HORIZONTAL) {
-                return true;
+        if (!widthDependenceValid) {
+            cachedWidthDependence = false;
+            for (Node child : getManagedChildren()) {
+                if (child.getContentBias() == Orientation.HORIZONTAL) {
+                    cachedWidthDependence = true;
+                    break;
+                }
             }
+            widthDependenceValid = true;
         }
-        return false;
+        return cachedWidthDependence;
     }
 
     private static boolean isExplicitTileSize(double value) {
@@ -1583,8 +1593,11 @@ public class RXTilePane extends Pane {
             double bottom = snapSpaceY(margin.getBottom());
             double baseline = child.getBaselineOffset();
             if (baseline == BASELINE_OFFSET_SAME_AS_HEIGHT) {
+                // Measured at the width layoutInTile gives it: a child narrower than its tile
+                // (a max width) can be taller there than at the tile width.
                 double alt = child.getContentBias() == Orientation.HORIZONTAL
-                        ? Math.max(0.0, tileWidth - snapSpaceX(margin.getLeft()) - snapSpaceX(margin.getRight()))
+                        ? fittedWidth(child, Math.max(0.0,
+                                tileWidth - snapSpaceX(margin.getLeft()) - snapSpaceX(margin.getRight())))
                         : -1.0;
                 double availableHeight = Math.max(0.0, tileHeight - minComplement - top - bottom);
                 double childHeight = RXMath.clamp(child.prefHeight(alt), child.minHeight(alt),

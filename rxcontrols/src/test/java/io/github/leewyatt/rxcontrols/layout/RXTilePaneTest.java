@@ -1188,6 +1188,71 @@ public class RXTilePaneTest {
     }
 
     /**
+     * Verifies repeated preferred height queries at changing widths do not scan the
+     * children again when none has a height that depends on its width: whether one does
+     * is kept with the tile size until the next layout request.
+     */
+    @Test
+    public void preferredHeightQueriesDoNotRescanTheChildren() throws Exception {
+        onFx(() -> {
+            int[] biasQueries = {0};
+            RXTilePane pane = new RXTilePane();
+            pane.setPrefTileWidth(60.0);
+            for (int i = 0; i < 50; i++) {
+                Region child = new Region() {
+                    @Override
+                    public Orientation getContentBias() {
+                        biasQueries[0]++;
+                        return null;
+                    }
+                };
+                child.setPrefSize(60.0, 20.0);
+                pane.getChildren().add(child);
+            }
+            new Scene(new StackPane(pane));
+            pane.applyCss();
+            layoutUntilClean(pane, 300.0, 400.0);
+            pane.prefHeight(300.0);
+            biasQueries[0] = 0;
+            for (int i = 0; i < 25; i++) {
+                for (double width : new double[] {100.0, 200.0, 300.0, 400.0}) {
+                    pane.prefHeight(width);
+                }
+            }
+            assertEquals(0, biasQueries[0], "no child is asked for its content bias again");
+        });
+    }
+
+    /**
+     * Verifies a baseline-aligned child whose height depends on its width sets the row
+     * baseline at the width it gets: a FlowPane with a 100 px maximum in a 120 px tile
+     * wraps its two 60 px items to two rows there, so it is 40 high, and below a 40 px
+     * first row it starts at 40 rather than reaching up into it.
+     */
+    @Test
+    public void baselineChildIsMeasuredAtTheWidthItGets() throws Exception {
+        onFx(() -> {
+            Region first = card(50.0, 20.0);
+            FlowPane flow = new FlowPane(card(60.0, 20.0), card(60.0, 20.0));
+            flow.setMaxWidth(100.0);
+            RXTilePane.setAlignment(flow, Pos.BASELINE_LEFT);
+            RXTilePane pane = new RXTilePane(first, flow);
+            pane.setPrefTileWidth(120.0);
+            pane.setPrefColumns(1);
+            pane.setVgap(0.0);
+            pane.setTileAlignment(Pos.TOP_LEFT);
+            pane.setAnimated(false);
+            new Scene(new StackPane(pane));
+            pane.applyCss();
+            layoutUntilClean(pane, 120.0, 200.0);
+            assertEquals(100.0, flow.getLayoutBounds().getWidth(), 1.0e-9, "setup: the flow is 100 wide");
+            assertEquals(40.0, flow.getLayoutBounds().getHeight(), 1.0e-9, "setup: it wraps to two rows");
+            assertEquals(80.0, pane.prefHeight(120.0), 1.0e-9, "two 40 px rows");
+            assertEquals(40.0, flow.getLayoutY(), 1.0e-9, "it starts below the first row");
+        });
+    }
+
+    /**
      * Verifies a tile width worked out from container children is not snapped up again:
      * four HBoxes reporting 225 device pixels each at 175% need exactly 900, and fit four
      * to a row there.
