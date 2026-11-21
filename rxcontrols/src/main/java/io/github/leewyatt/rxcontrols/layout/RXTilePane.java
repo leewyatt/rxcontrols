@@ -56,7 +56,7 @@ import java.util.Objects;
  * dimension is {@link Region#USE_COMPUTED_SIZE} or not a finite positive
  * value, that dimension is resolved from the largest preferred area of the
  * managed children. Tiles are separated by {@link #hgapProperty() hgap} /
- * {@link #vgapProperty() vgap};
+ * {@link #vgapProperty() vgap}, which may be negative to overlap them;
  * spare row width is distributed per {@link #itemsJustifyProperty()
  * itemsJustify}; the row block is positioned vertically by
  * {@link #contentVAlignmentProperty() contentVAlignment}. Non-stretch rows keep
@@ -467,8 +467,17 @@ public class RXTilePane extends Pane {
     };
 
     /**
-     * Horizontal gap between tiles. A negative or non-finite value is treated as
-     * zero at layout time rather than rejected.
+     * Horizontal gap between tiles. A negative gap overlaps neighbouring tiles, as in
+     * JavaFX's {@code TilePane}: the columns, positions and preferred width all account
+     * for the overlap. The column count comes from the nominal tile width and the gap;
+     * {@link #itemsJustifyProperty() itemsJustify} then places the tiles as it does for
+     * any gap, so the {@code SPACE_*} modes and {@code STRETCH} still share a row's spare
+     * width out over its gaps or tiles. A gap of exactly minus the tile width adds nothing
+     * per column, so every column fits once one tile does, and {@code START},
+     * {@code CENTER} and {@code END} pile a row's tiles on one spot ({@code TilePane}
+     * instead lays one tile a row while its width is exactly one tile); a gap beyond it
+     * lays one tile a row. A non-finite value is treated as zero at layout time rather
+     * than rejected.
      *
      * @return the hgap property
      */
@@ -519,8 +528,11 @@ public class RXTilePane extends Pane {
     };
 
     /**
-     * Vertical gap between rows. A negative or non-finite value is treated as zero
-     * at layout time rather than rejected.
+     * Vertical gap between rows. A negative gap overlaps neighbouring rows, and the
+     * preferred height accounts for it; a gap below minus the tile height is laid out as
+     * minus the tile height, piling the rows on one spot rather than placing each above
+     * the one before it, out of the pane. A non-finite value is treated as zero at layout
+     * time rather than rejected.
      *
      * @return the vgap property
      */
@@ -1112,6 +1124,11 @@ public class RXTilePane extends Pane {
         int columns = prefWidthColumns();
         double tileWidth = nominalTileWidth();
         double gap = snapSpaceX(gapOrZero(getHgap()));
+        // A gap beyond minus the tile width lays one tile a row; more columns would make
+        // the preferred width shrink below a tile.
+        if (tileWidth + gap < 0.0) {
+            columns = 1;
+        }
         double content = rowWidth(columns, tileWidth, gap);
         // Slots and gaps are on the grid already; snapping their sum again can add a
         // device pixel at a fractional render scale.
@@ -1186,7 +1203,8 @@ public class RXTilePane extends Pane {
         // its width is as high as it is laid out.
         double fullTileHeight = tileHeightAt(tileWidth);
         double tileHeight = fullTileHeight > contentHeight ? contentHeight : fullTileHeight;
-        double rowBlockHeight = rows == 0 ? 0.0 : rows * tileHeight + (rows - 1) * vgapValue;
+        double rowGapValue = rowGap(vgapValue, tileHeight);
+        double rowBlockHeight = rows == 0 ? 0.0 : rows * tileHeight + (rows - 1) * rowGapValue;
         double startY = verticalContentOffset(
                 contentHeight, rowBlockHeight, contentVAlignmentOrDefault(getContentVAlignment()));
 
@@ -1219,7 +1237,7 @@ public class RXTilePane extends Pane {
             int column = i % columns;
             int row = i / columns;
             double x = left + snapPositionX(startX + column * (tileWidth + effectiveHgap));
-            double y = top + snapPositionY(startY + row * (tileHeight + vgapValue));
+            double y = top + snapPositionY(startY + row * (tileHeight + rowGapValue));
             // FLIP: capture the current on-screen position before relocating so the
             // animator can invert the move and tween translate back to its resting value.
             double oldVisualX = 0.0;
@@ -1341,7 +1359,7 @@ public class RXTilePane extends Pane {
     // The preferred height of the given rows plus the vertical insets, ceiled as
     // computePrefWidth explains.
     private double heightOfRows(int rows, double tileHeight, double vgap) {
-        double content = rows == 0 ? 0.0 : rows * tileHeight + (rows - 1) * vgap;
+        double content = rows == 0 ? 0.0 : rows * tileHeight + (rows - 1) * rowGap(vgap, tileHeight);
         return PixelGrid.ceilY(this, snappedTopInset() + content + snappedBottomInset());
     }
 
@@ -1360,22 +1378,31 @@ public class RXTilePane extends Pane {
     // Snapping it again can add a device pixel at a fractional render scale (175% turns
     // 128.571 into 129.143), so the count would disagree with the slots it lays out.
     private int computeColumns(double availableWidth, double tileWidth) {
+        if (!(availableWidth > 0.0) || !(tileWidth > 0.0)) {
+            return 1;
+        }
         double gap = snapSpaceX(gapOrZero(getHgap()));
         int max = getMaxColumns();
         int limit = max > 0 ? Math.min(max, MAX_RESOLVED_COLUMNS) : MAX_RESOLVED_COLUMNS;
-        int columns = 1;
-        if (availableWidth > 0.0 && tileWidth > 0.0) {
-            // Capped while still a double: the ratio of a tiny tile can exceed any int.
-            double fit = Math.floor((availableWidth + gap) / (tileWidth + gap));
-            columns = (int) Math.max(1.0, Math.min(fit, limit));
-            // The division carries floating-point noise at a fractional render scale: a row
-            // that exactly fits must keep its last column, and one a fraction of a pixel too
-            // wide must still lose it. The candidate rows are summed like computePrefWidth.
-            if (columns < limit && !PixelGrid.exceedsX(this, rowWidth(columns + 1, tileWidth, gap), availableWidth)) {
-                columns++;
-            } else if (columns > 1 && PixelGrid.exceedsX(this, rowWidth(columns, tileWidth, gap), availableWidth)) {
-                columns--;
-            }
+        double step = tileWidth + gap;
+        // Told apart by the step itself: a step below the rounding tolerance still adds
+        // up along a row, so the tolerance belongs to the row widths compared below. A gap
+        // that cancels the tile width adds nothing per column, so every column fits once
+        // one tile does; one beyond it would run the row backwards, so it lays one tile a
+        // row, as JavaFX's TilePane does.
+        if (step <= 0.0) {
+            return step < 0.0 || PixelGrid.exceedsX(this, tileWidth, availableWidth) ? 1 : limit;
+        }
+        // Capped while still a double: the ratio of a tiny tile can exceed any int.
+        double fit = Math.floor((availableWidth + gap) / step);
+        int columns = (int) Math.max(1.0, Math.min(fit, limit));
+        // The division carries floating-point noise at a fractional render scale: a row
+        // that exactly fits must keep its last column, and one a fraction of a pixel too
+        // wide must still lose it. The candidate rows are summed like computePrefWidth.
+        if (columns < limit && !PixelGrid.exceedsX(this, rowWidth(columns + 1, tileWidth, gap), availableWidth)) {
+            columns++;
+        } else if (columns > 1 && PixelGrid.exceedsX(this, rowWidth(columns, tileWidth, gap), availableWidth)) {
+            columns--;
         }
         return columns;
     }
@@ -1690,8 +1717,16 @@ public class RXTilePane extends Pane {
         return value == null ? DEFAULT_ANIMATION_INTERPOLATOR : value;
     }
 
+    // A negative gap overlaps the tiles, as in JavaFX's TilePane; only a non-finite one
+    // falls back to zero.
     private static double gapOrZero(double gap) {
-        return Double.isFinite(gap) ? Math.max(0.0, gap) : 0.0;
+        return Double.isFinite(gap) ? gap : 0.0;
+    }
+
+    // The gap between rows as laid out: overlapping rows may share a top, but a gap below
+    // minus the tile height would place each row above the one before it, out of the pane.
+    private static double rowGap(double vgap, double tileHeight) {
+        return Math.max(vgap, -tileHeight);
     }
 
     private static ItemsJustify justifyOrDefault(ItemsJustify value) {

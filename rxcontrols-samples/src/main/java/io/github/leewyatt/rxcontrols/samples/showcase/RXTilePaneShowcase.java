@@ -105,9 +105,9 @@ public class RXTilePaneShowcase extends RXShowcaseApplication {
     }
 
     private Node spacingGrid() {
-        Slider hgap = createSlider(0, 40, tiles.getHgap());
+        Slider hgap = createSlider(-40, 40, tiles.getHgap());
         hgap.valueProperty().addListener((obs, old, value) -> tiles.setHgap(value.doubleValue()));
-        Slider vgap = createSlider(0, 40, tiles.getVgap());
+        Slider vgap = createSlider(-40, 40, tiles.getVgap());
         vgap.valueProperty().addListener((obs, old, value) -> tiles.setVgap(value.doubleValue()));
         return createGrid(
                 row("Hgap", hgap, createValueLabel(hgap, "%.0f px")),
