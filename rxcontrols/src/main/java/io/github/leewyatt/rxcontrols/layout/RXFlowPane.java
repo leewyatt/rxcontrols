@@ -912,10 +912,12 @@ public class RXFlowPane extends Pane {
      * Whether existing children glide to their new positions when a relayout (a resize
      * that reflows the runs, a gap or alignment change) moves them. On by default;
      * turning it off mid-flight snaps every child to its final position. A change of the
-     * wrapping-axis extent imposed by the parent (not one following the pane's own
-     * preferred size) that keeps every item in its run applies immediately, so dragging
-     * a window edge along that axis never leaves children trailing; a glide already in
-     * flight keeps its clock while its target follows the resize. Children added after
+     * wrapping-axis extent imposed by the parent that keeps every item in its run
+     * applies immediately, so dragging a window edge along that axis never leaves
+     * children trailing; a glide already in flight keeps its clock while its target
+     * follows the resize. An explicit pref size, even one bound to the parent's size,
+     * counts as imposed by the parent; an extent that follows the pane's own computed
+     * preferred size still glides. Children added after
      * the first layout snap into place rather than gliding in. While enabled, the pane
      * drives each child's {@code translateX} / {@code translateY} during the glide; a
      * child with either one bound snaps instead. Binding them while the child is
@@ -1329,7 +1331,7 @@ public class RXFlowPane extends Pane {
         boolean resizeOnly = false;
         if (isAnimated()) {
             resizeOnly = resizeGate.isResizeOnly(horizontal ? getWidth() : getHeight(),
-                    horizontal ? prefWidth(-1.0) : prefHeight(-1.0), layoutStructure(horizontal, lines));
+                    ownPrefExtent(horizontal), layoutStructure(horizontal, lines));
         } else {
             resizeGate.reset();
         }
@@ -1377,6 +1379,17 @@ public class RXFlowPane extends Pane {
         }
         enteringNodes.clear();
         firstLayoutDone = true;
+    }
+
+    // The preferred wrapping-axis extent the pane computes from its own inputs. An
+    // explicit pref size is left out: one bound to the parent's size follows a resize
+    // and must not count as the pane changing itself. Without one, prefWidth(-1) or
+    // prefHeight(-1) is the computed value and comes from the layout cache.
+    private double ownPrefExtent(boolean horizontal) {
+        if (horizontal) {
+            return getPrefWidth() == USE_COMPUTED_SIZE ? prefWidth(-1.0) : computePrefWidth(-1.0);
+        }
+        return getPrefHeight() == USE_COMPUTED_SIZE ? prefHeight(-1.0) : computePrefHeight(-1.0);
     }
 
     // Orientation plus the children of each run in order: item sizes, gaps and

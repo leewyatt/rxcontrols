@@ -16,6 +16,7 @@ import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -942,6 +943,25 @@ public class RXTilePaneTest {
             layout(parent, 800, 400);
 
             assertTrue(anyTranslated(pane), "the tile-size change glides");
+        });
+    }
+
+    @Test
+    public void prefWidthBoundToParentResizesWithoutGliding() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = filledPane(6);
+            pane.setMaxColumns(3);
+            pane.setItemsJustify(ItemsJustify.CENTER);
+            pane.setAnimated(true);
+            StackPane parent = new StackPane(pane);
+            pane.prefWidthProperty().bind(parent.widthProperty());
+            new Scene(parent);
+            parent.applyCss();
+            layout(parent, 400, 400);
+
+            layout(parent, 460, 400); // still 3 columns; centring shifts every tile
+
+            assertFalse(anyTranslated(pane), "the resize applies immediately");
         });
     }
 

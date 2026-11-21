@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.layout;
 
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Insets;
@@ -555,6 +556,59 @@ public class RXMasonryPaneTest {
             layout(parent, 600.0, 400.0);
 
             assertTrue(anyTranslated(pane), "the gap change glides");
+        });
+    }
+
+    /**
+     * Verifies a child with a bound managed is removed at once by removeAnimated and
+     * clearAnimated instead of throwing, and does not stop the other children's exits.
+     */
+    @Test
+    public void boundManagedChildIsRemovedAtOnce() throws Exception {
+        runOnFx(() -> {
+            Region plain = card(80.0, 50.0);
+            Region bound = card(80.0, 60.0);
+            bound.managedProperty().bind(new SimpleBooleanProperty(true));
+            bound.opacityProperty().bind(new SimpleDoubleProperty(0.6));
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, plain, bound);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+
+            pane.clearAnimated();
+
+            assertFalse(pane.getChildren().contains(bound), "bound managed: removed at once");
+            assertTrue(bound.isManaged(), "binding left untouched");
+            assertTrue(pane.getChildren().contains(plain), "the other child still fades out");
+            assertFalse(plain.isManaged(), "the other child left the layout for its exit");
+
+            Region single = card(80.0, 40.0);
+            single.managedProperty().bind(new SimpleBooleanProperty(true));
+            pane.getChildren().add(single);
+            pane.removeAnimated(single);
+            assertFalse(pane.getChildren().contains(single), "removeAnimated removes it at once");
+        });
+    }
+
+    /**
+     * Verifies a prefWidth bound to the parent's width still counts as a resize from
+     * outside: the pref follows the resize, it is not the pane changing itself.
+     */
+    @Test
+    public void prefWidthBoundToParentResizesWithoutGliding() throws Exception {
+        runOnFx(() -> {
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0,
+                    card(80.0, 50.0), card(80.0, 60.0), card(80.0, 40.0));
+            pane.setColumnCount(2);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            StackPane parent = new StackPane(pane);
+            pane.prefWidthProperty().bind(parent.widthProperty());
+            new Scene(parent);
+            layout(parent, 300.0, 400.0);
+
+            layout(parent, 340.0, 400.0);
+
+            assertFalse(anyTranslated(pane), "the resize applies immediately");
         });
     }
 

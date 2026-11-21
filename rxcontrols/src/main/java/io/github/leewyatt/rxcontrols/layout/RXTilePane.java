@@ -832,10 +832,12 @@ public class RXTilePane extends Pane {
     /**
      * Whether existing children glide to their new positions after relayout. On
      * by default; turning it off mid-flight snaps every child to its final
-     * position. A width change imposed by the parent (not one following the pane's
-     * own preferred width) that keeps the column count applies immediately, so
-     * dragging a window edge sideways never leaves children trailing; a glide already
-     * in flight keeps its clock while its target follows the resize. While enabled,
+     * position. A width change imposed by the parent that keeps the column count
+     * applies immediately, so dragging a window edge sideways never leaves children
+     * trailing; a glide already in flight keeps its clock while its target follows
+     * the resize. An explicit {@code prefWidth}, even one bound to the parent's width,
+     * counts as imposed by the parent; a width that follows the pane's own computed
+     * preferred width still glides. While enabled,
      * the pane drives each child's {@code translateX} / {@code translateY} during the
      * glide; a child with either one bound snaps instead. Binding them while the
      * child is gliding is not supported.
@@ -1144,7 +1146,7 @@ public class RXTilePane extends Pane {
         // next pass always has a baseline to compare against.
         boolean resizeOnly = false;
         if (isAnimated()) {
-            resizeOnly = resizeGate.isResizeOnly(getWidth(), prefWidth(-1.0),
+            resizeOnly = resizeGate.isResizeOnly(getWidth(), ownPrefWidth(),
                     layoutStructure(columns, managed));
         } else {
             resizeGate.reset();
@@ -1189,6 +1191,14 @@ public class RXTilePane extends Pane {
         }
         enteringNodes.clear();
         firstLayoutDone = true;
+    }
+
+    // The preferred width the pane computes from its own inputs. An explicit prefWidth
+    // is left out: one bound to the parent's width follows a resize and must not
+    // count as the pane changing itself. Without one, prefWidth(-1) is the computed
+    // value and comes from the layout cache.
+    private double ownPrefWidth() {
+        return getPrefWidth() == USE_COMPUTED_SIZE ? prefWidth(-1.0) : computePrefWidth(-1.0);
     }
 
     // Column count plus the child sequence fix every child's row and column; tile size,

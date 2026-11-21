@@ -792,17 +792,21 @@ public class RXMasonryPane extends Pane {
      * Whether children animate to their new positions on relayout, fade in on
      * insertion, and fade out via {@link #removeAnimated(Node)}. On by default;
      * turning this off while an animation is running snaps every child to its
-     * final state. A width change imposed by the parent (not one following the pane's
-     * own preferred width) that keeps the column count and every child's column
-     * applies immediately, so dragging a window edge sideways never leaves children
-     * trailing; a glide already in flight keeps its clock while its target follows
-     * the resize. Other changes, such as a child growing, still glide. While enabled,
+     * final state. A width change imposed by the parent that keeps the column count
+     * and every child's column applies immediately, so dragging a window edge sideways
+     * never leaves children trailing; a glide already in flight keeps its clock while
+     * its target follows the resize. An explicit {@code prefWidth}, even one bound to
+     * the parent's width, counts as imposed by the parent; a width that follows the
+     * pane's own computed preferred width (say, after a gap change in an
+     * {@code HBox}) still glides. Other changes, such as a child growing, still glide,
+     * unless they land in the same layout pass as such a resize. While enabled,
      * the pane drives each child's {@code translateX} / {@code translateY} (and
      * {@code opacity} during fades) for the animation. A
      * child whose {@code translateX} or {@code translateY} is bound snaps into place,
      * whether moving or entering; one whose {@code opacity} is bound moves and enters
-     * without fading; and either binding makes {@link #removeAnimated(Node)} and
-     * {@link #clearAnimated()} remove the child at once. Binding these properties
+     * without fading; and either binding, or a bound {@code managed}, makes
+     * {@link #removeAnimated(Node)} and {@link #clearAnimated()} remove the child at
+     * once. Binding these properties
      * while the child is animating is not supported.
      *
      * @return the animated property
@@ -934,7 +938,7 @@ public class RXMasonryPane extends Pane {
         if (child == null || !getChildren().contains(child)) {
             return false;
         }
-        if (!animationsActive()) {
+        if (!animationsActive() || child.managedProperty().isBound()) {
             getChildren().remove(child);
             return true;
         }
@@ -954,17 +958,28 @@ public class RXMasonryPane extends Pane {
             getChildren().clear();
             return;
         }
-        List<Node> snapshot = new ArrayList<>(getChildren());
-        for (Node child : snapshot) {
+        List<Node> leaving = new ArrayList<>();
+        List<Node> immediate = new ArrayList<>();
+        for (Node child : getChildren()) {
+            if (child.managedProperty().isBound()) {
+                immediate.add(child);
+            } else {
+                leaving.add(child);
+            }
+        }
+        getChildren().removeAll(immediate);
+        for (Node child : leaving) {
             markLeaving(child);
         }
         requestLayout();
-        for (Node child : snapshot) {
+        for (Node child : leaving) {
             animator.runExit(child, true, getAnimationDuration(), interpolatorOrDefault(),
                     -enterTranslateY(), () -> finishLeaving(child));
         }
     }
 
+    // Callers remove a child whose managed is bound at once instead: unmanaging it
+    // would throw.
     private void markLeaving(Node child) {
         // Remember the original managed state and unmanage the node so survivors
         // reflow into the freed space; restored verbatim in finishLeaving.
@@ -1426,7 +1441,7 @@ public class RXMasonryPane extends Pane {
         // next pass always has a baseline to compare against.
         boolean resizeOnly = false;
         if (isAnimated()) {
-            resizeOnly = resizeGate.isResizeOnly(getWidth(), prefWidth(-1.0),
+            resizeOnly = resizeGate.isResizeOnly(getWidth(), ownPrefWidth(),
                     layoutStructure(metrics.columns(), managed, startColumns));
         } else {
             resizeGate.reset();
@@ -1476,6 +1491,14 @@ public class RXMasonryPane extends Pane {
         }
         enteringNodes.clear();
         firstLayoutDone = true;
+    }
+
+    // The preferred width the pane computes from its own inputs. An explicit prefWidth
+    // is left out: one bound to the parent's width follows a resize and must not
+    // count as the pane changing itself. Without one, prefWidth(-1) is the computed
+    // value and comes from the layout cache.
+    private double ownPrefWidth() {
+        return getPrefWidth() == USE_COMPUTED_SIZE ? prefWidth(-1.0) : computePrefWidth(-1.0);
     }
 
     // Column count plus each child's start column: widths, gaps and heights are left
