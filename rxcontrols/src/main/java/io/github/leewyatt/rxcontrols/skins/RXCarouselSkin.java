@@ -440,8 +440,11 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             }
         });
 
-        // Arrow display mode
+        // A display mode stops the hover fade in progress: a fade-out ending
+        // later would hide what the new mode shows.
         disposer.registerListener(carousel.arrowDisplayModeProperty(), (obs, oldVal, newVal) -> {
+            stopFade(prevButtonFade);
+            stopFade(nextButtonFade);
             updateArrowVisibility(carousel);
         });
 
@@ -449,9 +452,10 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         disposer.registerListener(carousel.navigatorProperty(), (obs, oldVal, newVal) ->
                 updateNavigator(oldVal, newVal, carousel));
 
-        // Navigator display mode
-        disposer.registerListener(carousel.navigatorDisplayModeProperty(),
-                (obs, oldVal, newVal) -> updateNavigatorVisibility(carousel));
+        disposer.registerListener(carousel.navigatorDisplayModeProperty(), (obs, oldVal, newVal) -> {
+            stopFade(navigatorFade);
+            updateNavigatorVisibility(carousel);
+        });
 
         // Placeholder: shown by the housekeeping while the carousel has no pages
         disposer.registerListener(carousel.placeholderProperty(), () -> {
