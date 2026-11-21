@@ -1173,6 +1173,31 @@ public class RXTilePaneTest {
     }
 
     /**
+     * Verifies margins that fill the tile leave a child with no minimum size nothing: a
+     * 6 px tile is 8 device pixels at 125%, margins of 4 and 2 px take 5 and 3, and the
+     * 4.4e-16 their subtraction leaves must not turn into a device pixel.
+     */
+    @Test
+    public void marginsThatFillTheTileLeaveTheChildNothing() throws Exception {
+        onFx(() -> {
+            Region child = card(50.0, 50.0);
+            RXTilePane.setMargin(child, new Insets(4.0, 2.0, 2.0, 4.0));
+            RXTilePane pane = new RXTilePane(child);
+            pane.setPrefTileWidth(6.0);
+            pane.setPrefTileHeight(6.0);
+            pane.setTileAlignment(Pos.TOP_LEFT);
+            pane.setAnimated(false);
+            stageFor(pane, 1.25);
+            pane.applyCss();
+            layoutUntilClean(pane, 100.0, 100.0);
+            assertEquals(0.0, child.getLayoutBounds().getWidth(), 0.0, "no width left");
+            assertEquals(0.0, child.getLayoutBounds().getHeight(), 0.0, "no height left");
+            assertEquals(5.0, child.getLayoutX() * 1.25, 1.0e-6, "it sits inside the left margin");
+            assertEquals(5.0, child.getLayoutY() * 1.25, 1.0e-6, "it sits inside the top margin");
+        });
+    }
+
+    /**
      * Verifies a baseline-aligned child whose baseline is its height keeps exactly its
      * snapped preferred height at 175%: layoutInArea sizes it from the tile less the space
      * below the row baseline, which computed a hair above the grid line (175 device pixels

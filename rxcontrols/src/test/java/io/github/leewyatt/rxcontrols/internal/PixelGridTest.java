@@ -98,8 +98,24 @@ public class PixelGridTest {
         assertEquals(161.0 / 1.25, PixelGrid.ceil(128.5, 1.25), 0.0, "an off-grid value ceils");
         assertEquals(129.0, PixelGrid.ceil(128.0 + 1.0e-6, 1.0), 0.0, "more than noise ceils to the next line");
         assertEquals(100.3, PixelGrid.ceil(100.3, 0.0), 0.0, "an invalid scale disables snapping");
-        assertEquals(1.0 / 1.75, PixelGrid.ceil(1.0e-10, 1.75), 0.0, "a positive value takes at least a pixel");
-        assertEquals(0.0, PixelGrid.ceil(0.0, 1.75), 0.0, "zero stays zero");
-        assertEquals(0.0, PixelGrid.ceil(-1.0e-10, 1.75), 0.0, "noise below zero is zero");
+        // 6.4 - 4.0 - 2.4 at 1.25: margins filling an 8 device pixel area leave 4.4e-16.
+        double leftOver = 8.0 / 1.25 - 5.0 / 1.25 - 3.0 / 1.25;
+        assertTrue(leftOver > 0.0, "the fixture must leave noise above zero");
+        assertEquals(0.0, PixelGrid.ceil(leftOver, 1.25), 0.0, "noise above zero is zero");
+    }
+
+    /**
+     * Verifies ceilSize ceils as ceil does, except that a size of its own far below a
+     * pixel still takes one, as Region's snapping gives it; at or below Region's own 1e-14
+     * device pixel epsilon it is zero, as there.
+     */
+    @Test
+    public void ceilSizeGivesAPositiveSizeAPixel() {
+        double slot = 225.0 / 1.75;
+        assertEquals(slot, PixelGrid.ceilSize(slot, 1.75), 0.0, "noise above a line counts as on it");
+        assertEquals(1.0 / 1.75, PixelGrid.ceilSize(1.0e-10, 1.75), 0.0, "a size far below a pixel takes one");
+        assertEquals(0.0, PixelGrid.ceilSize(1.0e-15, 1.0), 0.0, "within Region's epsilon it is zero");
+        assertEquals(0.0, PixelGrid.ceilSize(0.0, 1.75), 0.0, "zero stays zero");
+        assertEquals(1.0e-10, PixelGrid.ceilSize(1.0e-10, Double.NaN), 0.0, "an invalid scale disables snapping");
     }
 }

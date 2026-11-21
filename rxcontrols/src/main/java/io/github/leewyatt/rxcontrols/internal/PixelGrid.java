@@ -22,6 +22,9 @@ public final class PixelGrid {
     // would then drop a whole pixel, or a fit test report an overflow that is not there.
     private static final double GRID_TOLERANCE = 1.0e-9;
 
+    // In device pixels: what Region's own snapping subtracts before ceiling a size.
+    private static final double REGION_EPSILON = 1.0e-14;
+
     private PixelGrid() {
     }
 
@@ -42,11 +45,10 @@ public final class PixelGrid {
     }
 
     /**
-     * Ceils a size to the grid of the given render scale, counting a value at most 1e-9
-     * device pixels above a grid line as on it, for sizes worked out from grid values
-     * (snapped sizes and gaps added up, a snapped area less snapped margins). A positive
-     * value never comes out as zero: like Region's snapping, it takes at least one device
-     * pixel.
+     * Ceils a value worked out from grid values (snapped sizes and gaps added up, a
+     * snapped area less snapped margins) to the grid of the given render scale, counting
+     * a value at most 1e-9 device pixels above a grid line as on it. What margins filling
+     * an area leave above zero is such noise, and comes out as zero.
      *
      * @param value the value in layout coordinates
      * @param scale the render scale; zero, negative or non-finite disables snapping
@@ -56,8 +58,25 @@ public final class PixelGrid {
         if (!Double.isFinite(scale) || scale <= 0.0) {
             return value;
         }
+        return Math.ceil(value * scale - GRID_TOLERANCE) / scale;
+    }
+
+    /**
+     * Ceils a size of a node's own (its preferred, minimum or maximum size, which for a
+     * container is itself a sum of snapped sizes) as {@link #ceil(double, double)} does,
+     * except below one device pixel: there it ceils as Region's snapping does, so a size
+     * far below a pixel still takes one.
+     *
+     * @param value the size in layout coordinates
+     * @param scale the render scale; zero, negative or non-finite disables snapping
+     * @return the ceiled size, or {@code value} itself when snapping is disabled
+     */
+    public static double ceilSize(double value, double scale) {
+        if (!Double.isFinite(scale) || scale <= 0.0) {
+            return value;
+        }
         double pixels = Math.ceil(value * scale - GRID_TOLERANCE);
-        if (pixels < 1.0 && value > 0.0) {
+        if (pixels < 1.0 && value * scale > REGION_EPSILON) {
             pixels = 1.0;
         }
         return pixels / scale;
@@ -158,6 +177,30 @@ public final class PixelGrid {
      */
     public static double ceilY(Region region, double value) {
         return ceil(value, snappingScale(region, false));
+    }
+
+    /**
+     * Ceils a horizontal size of a node's own to the pixel grid of the region's window;
+     * see {@link #ceilSize(double, double)}.
+     *
+     * @param region the region whose {@code snapToPixel} and window decide the grid
+     * @param value  the size in layout coordinates
+     * @return the ceiled size, or {@code value} when the region does not snap to pixels
+     */
+    public static double ceilSizeX(Region region, double value) {
+        return ceilSize(value, snappingScale(region, true));
+    }
+
+    /**
+     * Ceils a vertical size of a node's own to the pixel grid of the region's window;
+     * see {@link #ceilSize(double, double)}.
+     *
+     * @param region the region whose {@code snapToPixel} and window decide the grid
+     * @param value  the size in layout coordinates
+     * @return the ceiled size, or {@code value} when the region does not snap to pixels
+     */
+    public static double ceilSizeY(Region region, double value) {
+        return ceilSize(value, snappingScale(region, false));
     }
 
     // The scale the region snaps to, or 0 (no snapping) when it does not snap to pixels.

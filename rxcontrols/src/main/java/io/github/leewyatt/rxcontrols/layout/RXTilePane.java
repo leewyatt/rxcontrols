@@ -1365,15 +1365,12 @@ public class RXTilePane extends Pane {
             double childWidth;
             double childHeight;
             if (child.getContentBias() == Orientation.VERTICAL) {
-                childHeight = PixelGrid.ceilY(this,
-                        RXMath.clamp(height, child.minHeight(-1.0), child.maxHeight(-1.0)));
-                childWidth = PixelGrid.ceilX(this,
-                        RXMath.clamp(width, child.minWidth(childHeight), child.maxWidth(childHeight)));
+                childHeight = fitY(height, child.minHeight(-1.0), child.maxHeight(-1.0));
+                childWidth = fitX(width, child.minWidth(childHeight), child.maxWidth(childHeight));
             } else {
                 childWidth = fittedWidth(child, width);
                 double heightHint = child.getContentBias() == Orientation.HORIZONTAL ? childWidth : -1.0;
-                childHeight = PixelGrid.ceilY(this,
-                        RXMath.clamp(height, child.minHeight(heightHint), child.maxHeight(heightHint)));
+                childHeight = fitY(height, child.minHeight(heightHint), child.maxHeight(heightHint));
             }
             child.resize(childWidth, childHeight);
         }
@@ -1385,7 +1382,21 @@ public class RXTilePane extends Pane {
     // worked out from children whose height depends on their width measures them at
     // exactly this width, so the rows are as high as the children laid out in them.
     private double fittedWidth(Node child, double contentWidth) {
-        return PixelGrid.ceilX(this, RXMath.clamp(contentWidth, child.minWidth(-1.0), child.maxWidth(-1.0)));
+        return fitX(contentWidth, child.minWidth(-1.0), child.maxWidth(-1.0));
+    }
+
+    // A size worked out from the tile, clamped to a child's own bounds on the pixel grid.
+    // Ceiling then clamping equals clamping then ceiling, but each side ceils its own way:
+    // what margins filling the tile leave is noise and comes out as zero, while a positive
+    // bound of the child's own takes at least a device pixel.
+    private double fitX(double fromTile, double min, double max) {
+        return RXMath.clamp(PixelGrid.ceilX(this, fromTile), PixelGrid.ceilSizeX(this, min),
+                PixelGrid.ceilSizeX(this, max));
+    }
+
+    private double fitY(double fromTile, double min, double max) {
+        return RXMath.clamp(PixelGrid.ceilY(this, fromTile), PixelGrid.ceilSizeY(this, min),
+                PixelGrid.ceilSizeY(this, max));
     }
 
     private double nominalTileWidth() {
@@ -1452,7 +1463,7 @@ public class RXTilePane extends Pane {
                 double childWidth = width == -1.0
                         ? -1.0
                         : fittedWidth(child, Math.max(0.0, width - snapSpaceX(margin.getLeft()) - snapSpaceX(margin.getRight())));
-                double childHeight = PixelGrid.ceilY(this, child.prefHeight(childWidth));
+                double childHeight = PixelGrid.ceilSizeY(this, child.prefHeight(childWidth));
                 double baseline = child.getBaselineOffset();
                 if (baseline == BASELINE_OFFSET_SAME_AS_HEIGHT) {
                     baselineMaxAbove = Math.max(baselineMaxAbove, childHeight + snapSpaceY(margin.getTop()));
@@ -1485,9 +1496,9 @@ public class RXTilePane extends Pane {
         if (height != -1.0 && child.isResizable() && child.getContentBias() == Orientation.VERTICAL) {
             double childHeight = Math.max(0.0, height - marginHeight);
             if (fillHeight) {
-                alt = PixelGrid.ceilY(this, RXMath.clamp(childHeight, child.minHeight(-1.0), child.maxHeight(-1.0)));
+                alt = fitY(childHeight, child.minHeight(-1.0), child.maxHeight(-1.0));
             } else {
-                alt = PixelGrid.ceilY(this, RXMath.clamp(
+                alt = PixelGrid.ceilSizeY(this, RXMath.clamp(
                         child.prefHeight(-1.0),
                         child.minHeight(-1.0),
                         Math.min(child.maxHeight(-1.0), childHeight)));
@@ -1496,7 +1507,7 @@ public class RXTilePane extends Pane {
         double childWidth = RXMath.clamp(child.prefWidth(alt), child.minWidth(alt), child.maxWidth(alt));
         // A container child reports a sum of snapped sizes; Region's snapping of that sum
         // can add a device pixel, and the tile would then be one wider than the child.
-        return PixelGrid.ceilX(this, childWidth) + marginWidth;
+        return PixelGrid.ceilSizeX(this, childWidth) + marginWidth;
     }
 
     private double computeChildPrefAreaHeight(Node child, double width) {
@@ -1505,13 +1516,13 @@ public class RXTilePane extends Pane {
         double marginHeight = snapSpaceY(margin.getTop()) + snapSpaceY(margin.getBottom());
         double alt = -1.0;
         if (child.isResizable() && child.getContentBias() == Orientation.HORIZONTAL) {
-            double targetWidth = width == -1.0
-                    ? child.prefWidth(-1.0)
-                    : Math.max(0.0, width - marginWidth);
-            alt = fittedWidth(child, targetWidth);
+            alt = width == -1.0
+                    ? PixelGrid.ceilSizeX(this,
+                            RXMath.clamp(child.prefWidth(-1.0), child.minWidth(-1.0), child.maxWidth(-1.0)))
+                    : fittedWidth(child, Math.max(0.0, width - marginWidth));
         }
         double childHeight = RXMath.clamp(child.prefHeight(alt), child.minHeight(alt), child.maxHeight(alt));
-        return PixelGrid.ceilY(this, childHeight) + marginHeight;
+        return PixelGrid.ceilSizeY(this, childHeight) + marginHeight;
     }
 
     private double computeBaselineOffset(List<Node> managed, Pos defaultAlignment, double tileWidth, double tileHeight) {
