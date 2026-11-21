@@ -8,13 +8,17 @@ import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -1387,6 +1391,136 @@ public class RXFlowPaneTest {
         });
     }
 
+    /**
+     * Verifies a child the previous layout did not place snaps into its slot: one
+     * managed for the first time (still at the pane origin) and one back after missing a
+     * layout (still at a stale slot).
+     */
+    @Test
+    public void childNotLaidOutOnThePreviousPassSnaps() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = flowPane(10.0, 10.0, cards(6, 100.0, 40.0));
+            Region late = child(pane, 5);
+            late.setManaged(false);
+            new Scene(pane, 340.0, 400.0);
+            pane.applyCss();
+            layout(pane, 340.0, 400.0);
+
+            late.setManaged(true);
+            layout(pane, 340.0, 400.0);
+            assertFalse(translated(late), "a child managed for the first time snaps, not gliding from the origin");
+
+            Region returning = child(pane, 1);
+            returning.setManaged(false);
+            layout(pane, 340.0, 400.0);
+            // A wider gap moves its slot away from the stale position it still holds.
+            pane.setHgap(30.0);
+            returning.setManaged(true);
+            layout(pane, 340.0, 400.0);
+            assertFalse(translated(returning), "a child back after missing a layout snaps");
+        });
+    }
+
+    /**
+     * Verifies the first layout after the pane enters a scene snaps every child: back in
+     * the same scene, back after a layout outside any scene, and moved to another scene.
+     */
+    @Test
+    public void firstLayoutInASceneSnaps() throws Exception {
+        onFx(() -> {
+            RXFlowPane sameScene = flowPane(10.0, 10.0, cards(6, 100.0, 40.0));
+            StackPane root = new StackPane(sameScene);
+            new Scene(root, 340.0, 400.0);
+            root.applyCss();
+            layout(root, 340.0, 400.0);
+            root.getChildren().clear();
+            root.getChildren().add(sameScene);
+            layout(root, 560.0, 400.0);
+            assertFalse(anyTranslated(sameScene), "back in the same scene at a new width: snaps");
+
+            RXFlowPane offScreen = flowPane(10.0, 10.0, cards(6, 100.0, 40.0));
+            StackPane offScreenRoot = new StackPane(offScreen);
+            new Scene(offScreenRoot, 340.0, 400.0);
+            offScreenRoot.applyCss();
+            layout(offScreenRoot, 340.0, 400.0);
+            offScreenRoot.getChildren().clear();
+            layout(offScreen, 450.0, 400.0);
+            offScreenRoot.getChildren().add(offScreen);
+            layout(offScreenRoot, 560.0, 400.0);
+            assertFalse(anyTranslated(offScreen), "back after a layout outside any scene: snaps");
+
+            RXFlowPane moved = flowPane(10.0, 10.0, cards(6, 100.0, 40.0));
+            StackPane firstRoot = new StackPane(moved);
+            new Scene(firstRoot, 340.0, 400.0);
+            firstRoot.applyCss();
+            layout(firstRoot, 340.0, 400.0);
+            StackPane secondRoot = new StackPane();
+            new Scene(secondRoot, 560.0, 400.0);
+            secondRoot.getChildren().add(moved);
+            secondRoot.applyCss();
+            layout(secondRoot, 560.0, 400.0);
+            assertFalse(anyTranslated(moved), "moved to another scene: snaps");
+        });
+    }
+
+    /**
+     * Verifies moving the last card to the front glides when the card is put back before
+     * the next layout, whether through setAll or remove and add, and snaps when a layout
+     * ran without it in between.
+     */
+    @Test
+    public void reorderGlidesOnlyWithoutALayoutInBetween() throws Exception {
+        onFx(() -> {
+            // Three 100 px cards per 340 px row: the last of six sits at (220, 50) and
+            // moves to (0, 0).
+            RXFlowPane viaSetAll = reorderPane();
+            Region card = child(viaSetAll, 5);
+            List<Node> reordered = new ArrayList<>(viaSetAll.getChildren());
+            reordered.remove(card);
+            reordered.add(0, card);
+            viaSetAll.getChildren().setAll(reordered);
+            layout(viaSetAll, 340.0, 400.0);
+            assertTrue(translated(card), "setAll with no layout in between: glides");
+
+            RXFlowPane viaRemoveAdd = reorderPane();
+            card = child(viaRemoveAdd, 5);
+            viaRemoveAdd.getChildren().remove(card);
+            viaRemoveAdd.getChildren().add(0, card);
+            layout(viaRemoveAdd, 340.0, 400.0);
+            assertTrue(translated(card), "remove and add with no layout in between: glides");
+
+            RXFlowPane removedForAPass = reorderPane();
+            card = child(removedForAPass, 5);
+            removedForAPass.getChildren().remove(card);
+            layout(removedForAPass, 340.0, 400.0);
+            removedForAPass.getChildren().add(0, card);
+            layout(removedForAPass, 340.0, 400.0);
+            assertFalse(translated(card), "remove, layout, add: snaps");
+
+            RXFlowPane setAllForAPass = reorderPane();
+            card = child(setAllForAPass, 5);
+            List<Node> without = new ArrayList<>(setAllForAPass.getChildren());
+            without.remove(card);
+            setAllForAPass.getChildren().setAll(without);
+            layout(setAllForAPass, 340.0, 400.0);
+            List<Node> withFirst = new ArrayList<>(without);
+            withFirst.add(0, card);
+            setAllForAPass.getChildren().setAll(withFirst);
+            layout(setAllForAPass, 340.0, 400.0);
+            assertFalse(translated(card), "setAll without it, layout, setAll with it: snaps");
+            assertTrue(translated(child(setAllForAPass, 1)), "the cards it pushed along still glide");
+        });
+    }
+
+    // Six 100 x 40 cards laid out once in a scene at 340 px, ready to animate.
+    private static RXFlowPane reorderPane() {
+        RXFlowPane pane = flowPane(10.0, 10.0, cards(6, 100.0, 40.0));
+        new Scene(pane, 340.0, 400.0);
+        pane.applyCss();
+        layout(pane, 340.0, 400.0);
+        return pane;
+    }
+
     // ==================== Assertions ====================
 
     private static void assertBox(Region region, double x, double y, double width, double height,
@@ -1402,6 +1536,10 @@ public class RXFlowPaneTest {
     }
 
     // ==================== Helpers ====================
+
+    private static boolean translated(Node node) {
+        return Math.abs(node.getTranslateX()) > 0.5 || Math.abs(node.getTranslateY()) > 0.5;
+    }
 
     private static boolean anyTranslated(RXFlowPane pane) {
         return pane.getChildren().stream()
