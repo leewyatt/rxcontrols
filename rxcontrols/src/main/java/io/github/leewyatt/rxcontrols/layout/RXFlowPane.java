@@ -97,9 +97,9 @@ import java.util.Set;
  * {@code columnValignment}.</p>
  *
  * <p>The equivalence covers the alignment rules, not every coordinate. Children are never
- * stretched to fill their run (see below), and a right- or bottom-aligned block stays
- * inside an extent that is off the device pixel grid, where FlowPane can overhang it by a
- * fraction of a pixel.</p>
+ * stretched to fill their run (see below), and a right- or bottom-aligned block ends at or
+ * inside the trailing content edge even when that edge is off the device pixel grid, where
+ * FlowPane can overhang it by a fraction of a pixel.</p>
  *
  * <p>The default {@code alignment} is {@link Pos#TOP_LEFT}, matching {@code FlowPane} and
  * the wider JavaFX layout convention: at its defaults an RXFlowPane aligns runs and items
