@@ -165,6 +165,29 @@ public class RXCarouselPagesTest {
     }
 
     @Test
+    public void carouselPagedWithoutAnAnimationCanBeCollected() throws Exception {
+        List<WeakReference<RXCarousel>> carousel = new ArrayList<>();
+        onFx(() -> {
+            RXCarousel c = new RXCarousel();
+            c.setPages(labels(3).toArray(new Node[0]));
+            c.setAnimation(null);
+            StackPane root = new StackPane(c);
+            new Scene(root, 320.0, 200.0);
+            root.applyCss();
+            root.layout();
+            c.goToPage(1);
+            // The whole scene goes: it still lists the removed carousel as dirty.
+            root.getChildren().clear();
+            carousel.add(new WeakReference<>(c));
+        });
+        for (int i = 0; i < 50 && carousel.get(0).get() != null; i++) {
+            System.gc();
+            Thread.sleep(10L);
+        }
+        assertNull(carousel.get(0).get(), "the animation used for a null animation must not keep the carousel");
+    }
+
+    @Test
     public void newSkinShowsThePageWithoutTheLeftoversOfAnInterruptedTransition() throws Exception {
         onFx(() -> {
             List<Label> pages = labels(3);

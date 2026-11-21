@@ -66,8 +66,11 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
 
     private static final Duration MIN_AUTOPLAY_INTERVAL = Duration.millis(100);
     private static final Duration FADE_DURATION = Duration.millis(200);
-    private static final AnimNone FALLBACK_NONE = new AnimNone();
     private static final String EMPTY_CAROUSEL_TEXT = "No Pages";
+
+    // Used while the carousel has no animation. One per skin: an animation
+    // keeps the state of its last transition, which holds the pages.
+    private final AnimNone fallbackNone = new AnimNone();
 
     private final StackPane contentPane;
     private final Rectangle contentClip;
@@ -1225,9 +1228,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         return Math.max(0, Math.min(carousel.getSelectedIndex(), count - 1));
     }
 
-    private static PageAnimation animationOrNone(RXCarousel carousel) {
+    private PageAnimation animationOrNone(RXCarousel carousel) {
         PageAnimation animation = carousel.getAnimation();
-        return animation != null ? animation : FALLBACK_NONE;
+        return animation != null ? animation : fallbackNone;
     }
 
     // Animations get the wrappers, never the application's page nodes. Pages
