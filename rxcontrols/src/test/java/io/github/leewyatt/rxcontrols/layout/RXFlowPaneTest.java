@@ -168,6 +168,42 @@ public class RXFlowPaneTest {
     }
 
     /**
+     * Verifies a centered block with centered runs places every child where FlowPane
+     * centers it, when the block and run offsets are both half pixels: the offsets are
+     * rounded once, so the short last run does not drift by a pixel. Covers both
+     * orientations.
+     */
+    @Test
+    public void centeredRunsInCenteredBlockMatchFlowPane() {
+        for (Orientation orientation : Orientation.values()) {
+            boolean horizontal = orientation == Orientation.HORIZONTAL;
+            Region[] rxCards = cardsAlong(horizontal, 26.0, 25.0, 30.0);
+            RXFlowPane rx = new RXFlowPane(orientation, rxCards);
+            rx.setAlignment(Pos.CENTER);
+            rx.setRowHalignment(HPos.CENTER);
+            rx.setColumnValignment(VPos.CENTER);
+            Region[] fxCards = cardsAlong(horizontal, 26.0, 25.0, 30.0);
+            FlowPane fx = new FlowPane(orientation, fxCards);
+            fx.setAlignment(Pos.CENTER);
+
+            // The 51 px first run centers 7.5 px in from the 66 px extent, the 30 px last
+            // run 18 px in; rounding the block origin first would put the last run at 19.
+            double width = horizontal ? 66.0 : 100.0;
+            double height = horizontal ? 100.0 : 66.0;
+            layout(rx, width, height);
+            layout(fx, width, height);
+
+            for (int i = 0; i < rxCards.length; i++) {
+                String label = orientation + " card" + (i + 1);
+                assertClose(fxCards[i].getLayoutX(), rxCards[i].getLayoutX(), label + " x == FlowPane");
+                assertClose(fxCards[i].getLayoutY(), rxCards[i].getLayoutY(), label + " y == FlowPane");
+            }
+            double lastRunStart = horizontal ? rxCards[2].getLayoutX() : rxCards[2].getLayoutY();
+            assertClose(18.0, lastRunStart, orientation + " last run start");
+        }
+    }
+
+    /**
      * rowHalignment=RIGHT pushes each run, including the short last row, to the
      * block's right edge.
      */
@@ -1380,6 +1416,15 @@ public class RXFlowPaneTest {
         Region[] cards = new Region[count];
         for (int i = 0; i < count; i++) {
             cards[i] = card(prefWidth, prefHeight);
+        }
+        return cards;
+    }
+
+    // Cards with the given sizes along the flow's main axis and a 10 px cross size.
+    private static Region[] cardsAlong(boolean horizontal, double... mainSizes) {
+        Region[] cards = new Region[mainSizes.length];
+        for (int i = 0; i < mainSizes.length; i++) {
+            cards[i] = horizontal ? card(mainSizes[i], 10.0) : card(10.0, mainSizes[i]);
         }
         return cards;
     }

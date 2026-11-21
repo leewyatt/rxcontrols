@@ -244,6 +244,48 @@ public class RXFlowPanePixelGridTest {
         });
     }
 
+    /**
+     * Verifies trailing-aligned runs in a centred block end on the same device pixel at a
+     * fractional render scale. Every run shares the block's trailing edge; rounding the
+     * block and run offsets together would split it for the short run, which a check of
+     * the block's outer edge alone cannot see. Covers both orientations.
+     */
+    @Test
+    public void trailingRunsShareTheCentredBlockEdge() throws Exception {
+        runOnFx(() -> {
+            for (Orientation orientation : Orientation.values()) {
+                boolean horizontal = orientation == Orientation.HORIZONTAL;
+                RXFlowPane pane = new RXFlowPane(orientation);
+                pane.setAnimated(false);
+                pane.setAlignment(Pos.CENTER);
+                pane.setRowHalignment(HPos.RIGHT);
+                pane.setColumnValignment(VPos.BOTTOM);
+                Region longRun = horizontal ? box(28.0, 10.0) : box(10.0, 28.0);
+                Region shortRun = horizontal ? box(9.6, 10.0) : box(10.0, 9.6);
+                pane.getChildren().addAll(longRun, shortRun);
+                Stage stage = stageFor(pane);
+                stage.setRenderScaleX(1.25);
+                stage.setRenderScaleY(1.25);
+                // The 28 px block sits half a device pixel in from each side of the 36
+                // pixel extent; the short run's combined offset lands on that half pixel
+                // with rounding noise below it.
+                if (horizontal) {
+                    layout(pane, 28.8, 100.0);
+                } else {
+                    layout(pane, 100.0, 28.8);
+                }
+                double longEnd = horizontal
+                        ? longRun.getLayoutX() + longRun.getWidth()
+                        : longRun.getLayoutY() + longRun.getHeight();
+                double shortEnd = horizontal
+                        ? shortRun.getLayoutX() + shortRun.getWidth()
+                        : shortRun.getLayoutY() + shortRun.getHeight();
+                assertEquals(36.0, longEnd * 1.25, 1.0e-6, orientation + ": long run end in device pixels");
+                assertEquals(longEnd, shortEnd, EPSILON, orientation + ": runs share the block edge");
+            }
+        });
+    }
+
     // ==================== Assertions ====================
 
     private static long runCount(RXFlowPane pane, boolean horizontal) {

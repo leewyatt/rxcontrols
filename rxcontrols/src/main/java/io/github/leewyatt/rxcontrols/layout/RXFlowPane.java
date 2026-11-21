@@ -1344,15 +1344,23 @@ public class RXFlowPane extends Pane {
             resizeGate.reset();
         }
 
+        // When the block and its runs are both centered on the main axis, the block extent
+        // cancels: each run is centered on the inside extent with a single rounding, as
+        // FlowPane does; rounding the block origin first would shift a short run by a
+        // pixel. Every other combination rounds the block origin first, because its runs
+        // share a block edge that one combined rounding can split at fractional scales.
         if (horizontal) {
             // Runs stack down the cross (Y) axis. Each run is aligned along the main (X)
             // axis inside the block by rowHalignment; each item sits within the run's
             // cross extent (height) by rowValignment.
             HPos rowH = rowHalignmentOrDefault();
             VPos rowV = rowValignmentOrDefault();
+            boolean centerRuns = align.getHpos() == HPos.CENTER && rowH == HPos.CENTER;
             double y = blockY;
             for (Run run : lines) {
-                double lineX = snapPositionX(blockX + blockHOffset(blockWidth, run.main, rowH));
+                double lineX = centerRuns
+                        ? snapPositionX(left + blockHOffset(alignWidth, run.main, HPos.CENTER))
+                        : snapPositionX(blockX + blockHOffset(blockWidth, run.main, rowH));
                 double baselineOffset = rowV == VPos.BASELINE ? run.baselineOffset : -1.0;
                 double x = lineX;
                 for (LayoutRect lrect : run.rects) {
@@ -1369,9 +1377,12 @@ public class RXFlowPane extends Pane {
             // shared baseline, so -1 is passed for the baseline offset.
             VPos colV = columnValignmentOrDefault();
             HPos colH = columnHalignmentOrDefault();
+            boolean centerRuns = align.getVpos() == VPos.CENTER && colV == VPos.CENTER;
             double x = blockX;
             for (Run run : lines) {
-                double lineY = snapPositionY(blockY + blockVOffset(blockHeight, run.main, colV));
+                double lineY = centerRuns
+                        ? snapPositionY(top + blockVOffset(alignHeight, run.main, VPos.CENTER))
+                        : snapPositionY(blockY + blockVOffset(blockHeight, run.main, colV));
                 double y = lineY;
                 for (LayoutRect lrect : run.rects) {
                     layoutItem(lrect.node, x, y, run.cross, lrect.main, -1.0,
