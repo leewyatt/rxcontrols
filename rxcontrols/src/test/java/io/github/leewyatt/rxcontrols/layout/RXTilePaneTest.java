@@ -14,6 +14,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
@@ -922,6 +923,25 @@ public class RXTilePaneTest {
 
             layout(pane, 250, 400); // 2 columns: tiles change row and column
             assertTrue(anyTranslated(pane), "a column-count change still glides");
+        });
+    }
+
+    @Test
+    public void prefDrivenWidthChangeStillGlides() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = filledPane(6);
+            pane.setMaxColumns(3);
+            pane.setAnimated(true);
+            HBox parent = new HBox(pane);
+            new Scene(parent);
+            parent.applyCss();
+            layout(parent, 800, 400);
+
+            // A wider child widens every tile, so the pane's pref width grows with it.
+            ((Region) pane.getChildren().get(0)).setPrefWidth(140);
+            layout(parent, 800, 400);
+
+            assertTrue(anyTranslated(pane), "the tile-size change glides");
         });
     }
 

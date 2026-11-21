@@ -260,6 +260,8 @@ public class RXMasonryPane extends Pane {
                 enteringNodes.addAll(change.getAddedSubList());
             }
             if (change.wasRemoved()) {
+                // The recorded structure would otherwise keep removed children alive.
+                resizeGate.reset();
                 for (Node removed : change.getRemoved()) {
                     enteringNodes.remove(removed);
                     // A node removed externally mid-exit never reaches finishLeaving,
@@ -293,6 +295,7 @@ public class RXMasonryPane extends Pane {
         sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene == null) {
                 animator.stopAll();
+                resizeGate.reset();
             }
         });
     }
@@ -789,11 +792,13 @@ public class RXMasonryPane extends Pane {
      * Whether children animate to their new positions on relayout, fade in on
      * insertion, and fade out via {@link #removeAnimated(Node)}. On by default;
      * turning this off while an animation is running snaps every child to its
-     * final state. Resizing the pane without changing the column count or moving a
-     * child to another column applies immediately, so dragging a window edge never
-     * leaves children trailing; a glide already in flight keeps its clock while its
-     * target follows the resize. Other changes, such as a child growing, still glide. While enabled, the pane drives each child's {@code translateX}
-     * / {@code translateY} (and {@code opacity} during fades) for the animation. A
+     * final state. A width change imposed by the parent (not one following the pane's
+     * own preferred width) that keeps the column count and every child's column
+     * applies immediately, so dragging a window edge sideways never leaves children
+     * trailing; a glide already in flight keeps its clock while its target follows
+     * the resize. Other changes, such as a child growing, still glide. While enabled,
+     * the pane drives each child's {@code translateX} / {@code translateY} (and
+     * {@code opacity} during fades) for the animation. A
      * child whose {@code translateX} or {@code translateY} is bound snaps into place,
      * whether moving or entering; one whose {@code opacity} is bound moves and enters
      * without fading; and either binding makes {@link #removeAnimated(Node)} and
@@ -1421,7 +1426,7 @@ public class RXMasonryPane extends Pane {
         // next pass always has a baseline to compare against.
         boolean resizeOnly = false;
         if (isAnimated()) {
-            resizeOnly = resizeGate.isResizeOnly(getWidth(),
+            resizeOnly = resizeGate.isResizeOnly(getWidth(), prefWidth(-1.0),
                     layoutStructure(metrics.columns(), managed, startColumns));
         } else {
             resizeGate.reset();

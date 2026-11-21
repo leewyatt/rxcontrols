@@ -8,36 +8,45 @@ import java.util.List;
  * <p>While a window edge is dragged, every pulse moves most children by a pixel or
  * so. Animating those moves restarts the relayout tween on every pulse, so children
  * trail behind the pane and slide the rest of the way after the drag stops. A pass
- * whose extent along the pane's wrapping axis changed while its structure (what goes
- * in which line or column) stayed the same is therefore a pure resize: it should
- * start no new motion. Every other pass, including one whose children only grew or
- * shrank, animates as before.</p>
+ * whose extent along the pane's wrapping axis changed from outside, with its own
+ * preferred extent and its structure (what goes in which line or column) unchanged,
+ * is therefore a pure resize: it should start no new motion. Requiring the preferred
+ * extent to hold keeps a width that merely follows the pane's own inputs (a gap,
+ * padding or child-size change in a parent that sizes the pane to its pref)
+ * animating. Every other pass, including one whose children only grew or shrank,
+ * animates as before. The cross axis is not tracked.</p>
  */
 final class ResizeGate {
 
     private double lastExtent = Double.NaN;
+    private double lastPrefExtent = Double.NaN;
     private List<Object> lastStructure;
 
     /**
      * Records this pass and returns whether it only resized the pane.
      *
-     * @param extent    the pane's size along its wrapping axis
-     * @param structure the discrete layout structure; compared with {@code equals}
-     * @return whether the extent changed while the structure did not
+     * @param extent     the pane's size along its wrapping axis
+     * @param prefExtent the pane's preferred size along that axis
+     * @param structure  the discrete layout structure; compared with {@code equals}
+     * @return whether the extent changed while the preferred extent and the structure
+     *         did not
      */
-    boolean isResizeOnly(double extent, List<Object> structure) {
+    boolean isResizeOnly(double extent, double prefExtent, List<Object> structure) {
         boolean resizeOnly = lastStructure != null && extent != lastExtent
-                && lastStructure.equals(structure);
+                && prefExtent == lastPrefExtent && lastStructure.equals(structure);
         lastExtent = extent;
+        lastPrefExtent = prefExtent;
         lastStructure = structure;
         return resizeOnly;
     }
 
     /**
      * Forgets the recorded pass, so the next one is never treated as a pure resize.
+     * Also releases the children the recorded structure holds.
      */
     void reset() {
         lastExtent = Double.NaN;
+        lastPrefExtent = Double.NaN;
         lastStructure = null;
     }
 }

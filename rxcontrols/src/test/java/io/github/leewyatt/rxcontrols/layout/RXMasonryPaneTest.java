@@ -9,6 +9,7 @@ import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
@@ -531,6 +532,29 @@ public class RXMasonryPaneTest {
             tall.setPrefHeight(90.0);
             layout(pane, 340.0, 400.0);
             assertTrue(anyTranslated(pane), "a height change still glides");
+        });
+    }
+
+    /**
+     * Verifies a width change that follows the pane's own preferred width (here a gap
+     * change in a parent that sizes the pane to its pref) still glides: it is not a
+     * resize from outside.
+     */
+    @Test
+    public void prefDrivenWidthChangeStillGlides() throws Exception {
+        runOnFx(() -> {
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0,
+                    card(80.0, 50.0), card(80.0, 60.0), card(80.0, 40.0));
+            pane.setColumnCount(2);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            HBox parent = new HBox(pane);
+            new Scene(parent);
+            layout(parent, 600.0, 400.0);
+
+            pane.setHgap(40.0);
+            layout(parent, 600.0, 400.0);
+
+            assertTrue(anyTranslated(pane), "the gap change glides");
         });
     }
 

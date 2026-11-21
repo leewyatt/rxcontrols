@@ -214,6 +214,8 @@ public class RXFlowPane extends Pane {
                 enteringNodes.addAll(change.getAddedSubList());
             }
             if (change.wasRemoved()) {
+                // The recorded structure would otherwise keep removed children alive.
+                resizeGate.reset();
                 for (Node removed : change.getRemoved()) {
                     enteringNodes.remove(removed);
                     animator.forget(removed);
@@ -233,6 +235,7 @@ public class RXFlowPane extends Pane {
         sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene == null) {
                 animator.stopAll();
+                resizeGate.reset();
             }
         });
     }
@@ -908,13 +911,14 @@ public class RXFlowPane extends Pane {
     /**
      * Whether existing children glide to their new positions when a relayout (a resize
      * that reflows the runs, a gap or alignment change) moves them. On by default;
-     * turning it off mid-flight snaps every child to its final position. Resizing the
-     * pane along its wrapping axis without moving an item to another run applies
-     * immediately, so dragging a window edge never leaves children trailing; a glide
-     * already in flight keeps its clock while its target follows the resize. Children
-     * added after the first layout snap into place rather than gliding in. While enabled, the
-     * pane drives each child's {@code translateX} / {@code translateY} during the glide;
-     * a child with either one bound snaps instead. Binding them while the child is
+     * turning it off mid-flight snaps every child to its final position. A change of the
+     * wrapping-axis extent imposed by the parent (not one following the pane's own
+     * preferred size) that keeps every item in its run applies immediately, so dragging
+     * a window edge along that axis never leaves children trailing; a glide already in
+     * flight keeps its clock while its target follows the resize. Children added after
+     * the first layout snap into place rather than gliding in. While enabled, the pane
+     * drives each child's {@code translateX} / {@code translateY} during the glide; a
+     * child with either one bound snaps instead. Binding them while the child is
      * gliding is not supported.
      *
      * @return the animated property
@@ -1325,7 +1329,7 @@ public class RXFlowPane extends Pane {
         boolean resizeOnly = false;
         if (isAnimated()) {
             resizeOnly = resizeGate.isResizeOnly(horizontal ? getWidth() : getHeight(),
-                    layoutStructure(horizontal, lines));
+                    horizontal ? prefWidth(-1.0) : prefHeight(-1.0), layoutStructure(horizontal, lines));
         } else {
             resizeGate.reset();
         }
@@ -1375,10 +1379,6 @@ public class RXFlowPane extends Pane {
         firstLayoutDone = true;
     }
 
-    // Lays the node out (no fill, matching the static path) and records its FLIP delta
-    // from the old on-screen position for the relayout animator; a null moves list
-    // skips the bookkeeping. An entering child has no meaningful previous position,
-    // so it snaps to its slot (fromD* = 0).
     // Orientation plus the children of each run in order: item sizes, gaps and
     // alignment offsets are left out, so a pure resize leaves it equal while a resize
     // that moves an item to another run does not.
@@ -1394,6 +1394,11 @@ public class RXFlowPane extends Pane {
         return structure;
     }
 
+    // Lays the node out (no fill, matching the static path) and records its FLIP delta
+    // from the old on-screen position for the relayout animator; a null moves list
+    // skips the bookkeeping, and a resize-only pass only keeps in-flight moves running.
+    // An entering child has no meaningful previous position, so it snaps to its slot
+    // (fromD* = 0).
     private void layoutItem(Node node, double x, double y, double width, double height,
                             double baselineOffset, HPos hpos, VPos vpos,
                             List<PaneRelayoutAnimator.Move> moves, boolean resizeOnly) {

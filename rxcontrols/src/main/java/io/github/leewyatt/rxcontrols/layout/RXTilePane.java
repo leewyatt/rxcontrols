@@ -203,6 +203,8 @@ public class RXTilePane extends Pane {
                 enteringNodes.addAll(change.getAddedSubList());
             }
             if (change.wasRemoved()) {
+                // The recorded structure would otherwise keep removed children alive.
+                resizeGate.reset();
                 for (Node removed : change.getRemoved()) {
                     enteringNodes.remove(removed);
                     animator.forget(removed);
@@ -222,6 +224,7 @@ public class RXTilePane extends Pane {
         sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene == null) {
                 animator.stopAll();
+                resizeGate.reset();
             }
         });
     }
@@ -829,11 +832,13 @@ public class RXTilePane extends Pane {
     /**
      * Whether existing children glide to their new positions after relayout. On
      * by default; turning it off mid-flight snaps every child to its final
-     * position. Resizing the pane without changing the column count applies
-     * immediately, so dragging a window edge never leaves children trailing; a glide
-     * already in flight keeps its clock while its target follows the resize. While enabled, the pane drives each child's {@code translateX} /
-     * {@code translateY} during the glide; a child with either one bound snaps
-     * instead. Binding them while the child is gliding is not supported.
+     * position. A width change imposed by the parent (not one following the pane's
+     * own preferred width) that keeps the column count applies immediately, so
+     * dragging a window edge sideways never leaves children trailing; a glide already
+     * in flight keeps its clock while its target follows the resize. While enabled,
+     * the pane drives each child's {@code translateX} / {@code translateY} during the
+     * glide; a child with either one bound snaps instead. Binding them while the
+     * child is gliding is not supported.
      *
      * @return the animated property
      */
@@ -1139,7 +1144,8 @@ public class RXTilePane extends Pane {
         // next pass always has a baseline to compare against.
         boolean resizeOnly = false;
         if (isAnimated()) {
-            resizeOnly = resizeGate.isResizeOnly(getWidth(), layoutStructure(columns, managed));
+            resizeOnly = resizeGate.isResizeOnly(getWidth(), prefWidth(-1.0),
+                    layoutStructure(columns, managed));
         } else {
             resizeGate.reset();
         }
