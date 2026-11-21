@@ -99,10 +99,11 @@ public class RXFlowPaneTest {
     }
 
     /**
-     * Verifies RXFlowPane is a drop-in superset: at its default settings (alignment
-     * TOP_LEFT, rowHalignment LEFT, rowValignment CENTER — all matching FlowPane) it lays
-     * the same children out at the same positions as a JavaFX {@link FlowPane}. The fix is
-     * opt-in, never a default behavior change.
+     * Verifies RXFlowPane aligns like FlowPane at its default settings (alignment
+     * TOP_LEFT, rowHalignment LEFT, rowValignment CENTER — all matching FlowPane): equal-size
+     * children land at the same positions as in a JavaFX {@link FlowPane}. The fix is
+     * opt-in, never a default behavior change. Children FlowPane would stretch are covered
+     * by {@link #childrenKeepTheirPreferredSizeUnlikeFlowPane()}.
      */
     @Test
     public void defaultsMatchFlowPaneLayout() {
@@ -120,6 +121,38 @@ public class RXFlowPaneTest {
             assertClose(fxCards[i].getLayoutX(), rxCards[i].getLayoutX(), "card" + (i + 1) + " x == FlowPane");
             assertClose(fxCards[i].getLayoutY(), rxCards[i].getLayoutY(), "card" + (i + 1) + " y == FlowPane");
         }
+    }
+
+    /**
+     * Verifies children keep their preferred cross size instead of filling the run, the
+     * documented difference from FlowPane: FlowPane stretches a child whose maximum allows
+     * it to the run's cross extent, RXFlowPane aligns it in the run at its preferred size.
+     * Covers both orientations.
+     */
+    @Test
+    public void childrenKeepTheirPreferredSizeUnlikeFlowPane() {
+        // The cards' maximum size is unbounded, like a StackPane or VBox card.
+        Region shortCard = card(100.0, 40.0);
+        Region tallCard = card(100.0, 80.0);
+        RXFlowPane rx = flowPane(10.0, 10.0, shortCard, tallCard);
+        layout(rx, 400.0, 400.0);
+        assertBox(shortCard, 0.0, 20.0, 100.0, 40.0, "horizontal: short card centred in the run at its height");
+
+        Region fxShortCard = card(100.0, 40.0);
+        FlowPane fx = new FlowPane(10.0, 10.0, fxShortCard, card(100.0, 80.0));
+        layout(fx, 400.0, 400.0);
+        assertClose(80.0, fxShortCard.getHeight(), "horizontal: FlowPane stretches it to the run height");
+
+        Region narrowCard = card(40.0, 100.0);
+        Region wideCard = card(80.0, 100.0);
+        RXFlowPane rxVertical = new RXFlowPane(Orientation.VERTICAL, 10.0, 10.0, narrowCard, wideCard);
+        layout(rxVertical, 400.0, 400.0);
+        assertBox(narrowCard, 0.0, 0.0, 40.0, 100.0, "vertical: narrow card at the column's left at its width");
+
+        Region fxNarrowCard = card(40.0, 100.0);
+        FlowPane fxVertical = new FlowPane(Orientation.VERTICAL, 10.0, 10.0, fxNarrowCard, card(80.0, 100.0));
+        layout(fxVertical, 400.0, 400.0);
+        assertClose(80.0, fxNarrowCard.getWidth(), "vertical: FlowPane stretches it to the column width");
     }
 
     // ==================== Headline: last-row alignment ====================
@@ -165,6 +198,42 @@ public class RXFlowPaneTest {
         assertClose(10.0, cards[0].getLayoutX(), "card1 x");
         // Last card is centered within the block: 10 + (320-100)/2 = 120.
         assertClose(120.0, cards[6].getLayoutX(), "card7 x (centered, FlowPane look)");
+    }
+
+    /**
+     * Verifies a centered block with centered runs places every child where FlowPane
+     * centers it, when the block and run offsets are both half pixels: the offsets are
+     * rounded once, so the short last run does not drift by a pixel. Covers both
+     * orientations.
+     */
+    @Test
+    public void centeredRunsInCenteredBlockMatchFlowPane() {
+        for (Orientation orientation : Orientation.values()) {
+            boolean horizontal = orientation == Orientation.HORIZONTAL;
+            Region[] rxCards = cardsAlong(horizontal, 26.0, 25.0, 30.0);
+            RXFlowPane rx = new RXFlowPane(orientation, rxCards);
+            rx.setAlignment(Pos.CENTER);
+            rx.setRowHalignment(HPos.CENTER);
+            rx.setColumnValignment(VPos.CENTER);
+            Region[] fxCards = cardsAlong(horizontal, 26.0, 25.0, 30.0);
+            FlowPane fx = new FlowPane(orientation, fxCards);
+            fx.setAlignment(Pos.CENTER);
+
+            // The 51 px first run centers 7.5 px in from the 66 px extent, the 30 px last
+            // run 18 px in; rounding the block origin first would put the last run at 19.
+            double width = horizontal ? 66.0 : 100.0;
+            double height = horizontal ? 100.0 : 66.0;
+            layout(rx, width, height);
+            layout(fx, width, height);
+
+            for (int i = 0; i < rxCards.length; i++) {
+                String label = orientation + " card" + (i + 1);
+                assertClose(fxCards[i].getLayoutX(), rxCards[i].getLayoutX(), label + " x == FlowPane");
+                assertClose(fxCards[i].getLayoutY(), rxCards[i].getLayoutY(), label + " y == FlowPane");
+            }
+            double lastRunStart = horizontal ? rxCards[2].getLayoutX() : rxCards[2].getLayoutY();
+            assertClose(18.0, lastRunStart, orientation + " last run start");
+        }
     }
 
     /**
@@ -755,6 +824,27 @@ public class RXFlowPaneTest {
         // blockWidth = 300 + 100 + 10 = 410, blockX = (1000 - 410) / 2 = 295.
         assertClose(295.0, a.getLayoutX(), "a re-centered after child pref width change");
         assertClose(300.0, a.getWidth(), "a laid out at its new pref width");
+    }
+
+    /**
+     * Verifies turning snapToPixel off rebuilds the cached runs and the pane's own layout:
+     * Region only requests the parent's layout on that change.
+     */
+    @Test
+    public void snapToPixelChangeRebuildsRuns() {
+        Region first = card(10.2, 10.0);
+        Region second = card(10.2, 10.0);
+        RXFlowPane pane = flowPane(0.0, 0.0, first, second);
+        layout(pane, 21.0, 100.0);
+        // Snapped, each card takes 11: 22 overflows 21, so the second wraps.
+        assertClose(10.0, second.getLayoutY(), "snapped: second card wraps");
+
+        pane.setSnapToPixel(false);
+        pane.layout();
+        // Unsnapped, 10.2 + 10.2 fits 21.
+        assertClose(0.0, second.getLayoutY(), "unsnapped: second card back on the first run");
+        assertClose(10.2, second.getLayoutX(), "unsnapped: second card x");
+        assertClose(10.0, pane.prefHeight(21.0), "preferred height follows the rebuilt runs");
     }
 
     /**
@@ -1359,6 +1449,15 @@ public class RXFlowPaneTest {
         Region[] cards = new Region[count];
         for (int i = 0; i < count; i++) {
             cards[i] = card(prefWidth, prefHeight);
+        }
+        return cards;
+    }
+
+    // Cards with the given sizes along the flow's main axis and a 10 px cross size.
+    private static Region[] cardsAlong(boolean horizontal, double... mainSizes) {
+        Region[] cards = new Region[mainSizes.length];
+        for (int i = 0; i < mainSizes.length; i++) {
+            cards[i] = horizontal ? card(mainSizes[i], 10.0) : card(10.0, mainSizes[i]);
         }
         return cards;
     }

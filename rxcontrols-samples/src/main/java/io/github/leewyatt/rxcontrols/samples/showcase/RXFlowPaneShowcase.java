@@ -16,6 +16,7 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
@@ -234,6 +235,14 @@ public class RXFlowPaneShowcase extends RXShowcaseApplication {
         Button addButton = new Button("Add chip");
         addButton.setOnAction(e -> flow.getChildren().add(createChip(nextChipIndex++)));
 
+        // Removing the first chip shifts every other chip, so its glide shows the removal reflow.
+        Button removeFirstButton = new Button("Remove first");
+        removeFirstButton.setOnAction(e -> {
+            if (!flow.getChildren().isEmpty()) {
+                flow.getChildren().remove(0);
+            }
+        });
+
         Button removeButton = new Button("Remove last");
         removeButton.setOnAction(e -> {
             if (!flow.getChildren().isEmpty()) {
@@ -242,7 +251,7 @@ public class RXFlowPaneShowcase extends RXShowcaseApplication {
         });
 
         return createGrid(
-                row("Chips", addButton, removeButton));
+                row("Chips", new HBox(8.0, addButton, removeFirstButton, removeButton)));
     }
 
     // ==================== Helpers ====================

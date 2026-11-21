@@ -4,6 +4,8 @@ import javafx.scene.layout.Region;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests {@link PixelGrid}.
@@ -58,5 +60,28 @@ public class PixelGridTest {
         Region region = new Region();
         assertEquals(100.0, PixelGrid.floorX(region, 100.5), DELTA);
         assertEquals(100.0, PixelGrid.floorY(region, 100.5), DELTA);
+    }
+
+    /**
+     * Verifies a sum of grid sizes that reaches the limit only up to rounding noise does
+     * not exceed it, while a value a fraction of a device pixel over the limit does.
+     */
+    @Test
+    public void exactFitWithRoundingNoiseDoesNotExceed() {
+        double sum = 20.8 + 20.8 + 20.8;
+        assertTrue(sum > 62.4, "the fixture must carry the rounding noise");
+        assertFalse(PixelGrid.exceeds(sum, 62.4, 1.25));
+        assertTrue(PixelGrid.exceeds(62.4, 62.39, 1.25));
+        assertFalse(PixelGrid.exceeds(62.39, 62.4, 1.25));
+    }
+
+    /** Verifies the tolerance is 1e-9 device pixels, and an invalid scale measures at scale 1. */
+    @Test
+    public void exceedsToleranceIsInDevicePixels() {
+        for (double scale : new double[] {1.0, 0.0, -1.5, Double.NaN, Double.POSITIVE_INFINITY}) {
+            assertFalse(PixelGrid.exceeds(1.0 + 5.0e-10, 1.0, scale), "scale " + scale);
+            assertTrue(PixelGrid.exceeds(1.0 + 2.0e-9, 1.0, scale), "scale " + scale);
+        }
+        assertTrue(PixelGrid.exceeds(1.0 + 5.0e-10, 1.0, 4.0), "5e-10 is 2e-9 device pixels at 4x");
     }
 }
