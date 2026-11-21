@@ -10,6 +10,7 @@ import io.github.leewyatt.rxcontrols.RXTileVisibleRange;
 import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
 import io.github.leewyatt.rxcontrols.internal.PixelGrid;
 import io.github.leewyatt.rxcontrols.internal.RXIndexedSelectionMutationGuard;
+import io.github.leewyatt.rxcontrols.internal.RenderScaleWatch;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
@@ -178,6 +179,13 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         // placement, so it relays out the control rather than re-filling the viewport.
         disposer.registerListener(control.prefColumnsProperty(), () -> getSkinnable().requestLayout());
         disposer.registerListener(control.prefTileHeightProperty(), this::requestLayoutPass);
+        // The columns and the preferred width add up sizes snapped to the render scale.
+        // Region re-lays out only the parent when snapToPixel changes, and nothing when
+        // the scale does, so the control's cached preferred width would stay on the old
+        // grid; a layout request on the viewport reaches the control and clears it.
+        disposer.registerListener(control.snapToPixelProperty(), this::requestLayoutPass);
+        RenderScaleWatch scaleWatch = new RenderScaleWatch(control, this::requestLayoutPass);
+        disposer.registerDisposeTask(scaleWatch::dispose);
         disposer.registerListener(control.vgapProperty(), this::requestLayoutPass);
         disposer.registerListener(control.itemsJustifyProperty(), this::requestLayoutPass);
         disposer.registerListener(control.placeholderProperty(), this::onPlaceholderChanged);
