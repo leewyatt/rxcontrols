@@ -3425,6 +3425,7 @@
 
 .rx-tab-pane > .header > .tab > .container {
     -fx-alignment: center;
+    -fx-spacing: 4px;
 }
 
 .rx-tab-pane:left > .header > .tab:has-text > .container,
