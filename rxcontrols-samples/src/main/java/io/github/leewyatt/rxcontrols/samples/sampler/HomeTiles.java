@@ -102,7 +102,7 @@ final class HomeTiles {
         grid.getStyleClass().add("home-tiles");
         grid.setAlign(RXRow.Align.STRETCH);
         grid.getChildren().addAll(
-                col(HomeKit.bleed(left), 24, 24, 16),
+                col(left, 24, 24, 16),
                 wall,
                 col(tile("RXTimelineView", "Events on a vertical or horizontal line.", timeline(), openType),
                         24, 12, 8),
@@ -110,7 +110,7 @@ final class HomeTiles {
                         24, 12, 8),
                 col(tile("RXRibbonBadge", "RXRibbonBadge and RXBadge", "Mark one card among many.", badges(),
                         openType), 24, 24, 8));
-        return HomeKit.bleed(grid);
+        return grid;
     }
 
     // ==================== Tile ====================
