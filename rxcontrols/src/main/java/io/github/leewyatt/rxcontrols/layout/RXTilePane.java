@@ -1202,6 +1202,11 @@ public class RXTilePane extends Pane {
         }
         for (int i = 0; i < managed.size(); i++) {
             Node child = managed.get(i);
+            // The children were taken when the pass began; a listener reached from laying
+            // an earlier one out may have moved this one away or unmanaged it since.
+            if (child.getParent() != this || !child.isManaged()) {
+                continue;
+            }
             int column = i % columns;
             int row = i / columns;
             double x = left + snapPositionX(startX + column * (tileWidth + effectiveHgap));

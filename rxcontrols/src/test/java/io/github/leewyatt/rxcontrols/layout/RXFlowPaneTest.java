@@ -2081,6 +2081,53 @@ public class RXFlowPaneTest {
         });
     }
 
+    /**
+     * Verifies a card a listener moves away or unmanages before the layout reaches it is
+     * not laid out by that layout: it keeps the position and size it was given, and put
+     * back later it enters as a new card rather than gliding in from where it was.
+     */
+    @Test
+    public void cardGoneBeforeItsTurnIsNotLaidOut() throws Exception {
+        onFx(() -> {
+            for (boolean moveAway : new boolean[] {true, false}) {
+                String what = moveAway ? "moved away" : "unmanaged";
+                RXFlowPane pane = flowPane(10.0, 10.0, cards(1, 100.0, 40.0));
+                StackPane elsewhere = new StackPane();
+                VBox root = new VBox(pane, elsewhere);
+                new Scene(root, 700.0, 600.0);
+                root.applyCss();
+                layout(pane, 400.0, 400.0);
+                Region a = card(100.0, 40.0);
+                Region b = card(100.0, 40.0);
+                b.setOpacity(0.8);
+                boolean[] called = {false};
+                a.layoutXProperty().addListener((obs, oldValue, newValue) -> {
+                    if (!called[0] && newValue.doubleValue() != 0.0) {
+                        called[0] = true;
+                        if (moveAway) {
+                            elsewhere.getChildren().add(b);
+                        } else {
+                            b.setManaged(false);
+                        }
+                        b.resizeRelocate(321.0, 123.0, 50.0, 55.0);
+                    }
+                });
+                pane.getChildren().addAll(a, b);
+                layout(pane, 400.0, 400.0);
+                assertTrue(called[0], what + ": setup, the listener ran during the layout");
+                assertClose(321.0, b.getLayoutX(), what + ": its x stands");
+                assertClose(123.0, b.getLayoutY(), what + ": its y stands");
+                assertClose(50.0, b.getWidth(), what + ": its width stands");
+                assertClose(55.0, b.getHeight(), what + ": its height stands");
+                if (moveAway) {
+                    pane.getChildren().add(b);
+                    layout(pane, 400.0, 400.0);
+                    assertClose(0.0, b.getOpacity(), what + ": put back later, it enters as a new child");
+                }
+            }
+        });
+    }
+
     // 100 x 40 cards with 10 px gaps, laid out once in a 400 px scene.
     private static RXFlowPane shownFlow(int count) {
         RXFlowPane pane = flowPane(10.0, 10.0, cards(count, 100.0, 40.0));

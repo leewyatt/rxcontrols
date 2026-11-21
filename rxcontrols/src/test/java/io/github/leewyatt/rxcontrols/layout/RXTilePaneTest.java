@@ -2499,6 +2499,56 @@ public class RXTilePaneTest {
         });
     }
 
+    /**
+     * Verifies a tile a listener moves away or unmanages before the layout reaches it is
+     * not laid out by that layout: it keeps the position and size it was given, and put
+     * back later it enters as a new tile rather than gliding in from where it was.
+     */
+    @Test
+    public void tileGoneBeforeItsTurnIsNotLaidOut() throws Exception {
+        onFx(() -> {
+            for (boolean moveAway : new boolean[] {true, false}) {
+                String what = moveAway ? "moved away" : "unmanaged";
+                RXTilePane pane = filledPane(1);
+                pane.setPrefTileWidth(100);
+                pane.setMaxColumns(3);
+                pane.setVgap(10);
+                StackPane elsewhere = new StackPane();
+                VBox root = new VBox(pane, elsewhere);
+                new Scene(root, 700.0, 600.0);
+                root.applyCss();
+                layout(pane, 700, 400);
+                Region a = card();
+                Region b = card();
+                b.setOpacity(0.8);
+                boolean[] called = {false};
+                a.layoutXProperty().addListener((obs, oldValue, newValue) -> {
+                    if (!called[0] && newValue.doubleValue() != 0.0) {
+                        called[0] = true;
+                        if (moveAway) {
+                            elsewhere.getChildren().add(b);
+                        } else {
+                            b.setManaged(false);
+                        }
+                        b.resizeRelocate(321.0, 123.0, 50.0, 55.0);
+                    }
+                });
+                pane.getChildren().addAll(a, b);
+                layout(pane, 700, 400);
+                assertTrue(called[0], what + ": setup, the listener ran during the layout");
+                assertTileClose(321.0, b.getLayoutX(), what + ": its x stands");
+                assertTileClose(123.0, b.getLayoutY(), what + ": its y stands");
+                assertTileClose(50.0, b.getWidth(), what + ": its width stands");
+                assertTileClose(55.0, b.getHeight(), what + ": its height stands");
+                if (moveAway) {
+                    pane.getChildren().add(b);
+                    layout(pane, 700, 400);
+                    assertTileClose(0.0, b.getOpacity(), what + ": put back later, it enters as a new child");
+                }
+            }
+        });
+    }
+
     // Tiles of 100 px, three to a row at 700 px with a 10 px vgap, laid out once in a scene.
     private static RXTilePane shownPane(int count) {
         RXTilePane pane = filledPane(count);

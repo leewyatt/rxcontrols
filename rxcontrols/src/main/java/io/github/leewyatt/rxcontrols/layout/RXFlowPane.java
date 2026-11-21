@@ -1537,6 +1537,11 @@ public class RXFlowPane extends Pane {
     private void layoutItem(Node node, double x, double y, double width, double height,
                             double baselineOffset, HPos hpos, VPos vpos,
                             List<PaneRelayoutAnimator.Move> moves, boolean resizeOnly) {
+        // The runs were taken when the pass began; a listener reached from laying an
+        // earlier child out may have moved this one away or unmanaged it since.
+        if (node.getParent() != this || !node.isManaged()) {
+            return;
+        }
         // Recorded before any early return: every pass in a scene, the first and the
         // resize-only ones included, sets who the next pass may glide.
         membership.laidOut(node);
