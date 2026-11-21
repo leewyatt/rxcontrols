@@ -2006,6 +2006,28 @@ public class RXFlowPaneTest {
         });
     }
 
+    /**
+     * Verifies a card added with animation on and reordered while animation is turned
+     * off around the reorder still enters, whether setAll keeps it or it is removed and
+     * added back: put back, it goes on as it stood when it was removed.
+     */
+    @Test
+    public void enteringCardReorderedWithAnimationOffStillEnters() throws Exception {
+        onFx(() -> {
+            for (boolean viaSetAll : new boolean[] {true, false}) {
+                String how = viaSetAll ? "setAll" : "remove and add";
+                RXFlowPane pane = shownFlow(2);
+                Region added = card(100.0, 40.0);
+                pane.getChildren().add(added);
+                pane.setAnimated(false);
+                moveToFront(pane, added, viaSetAll);
+                pane.setAnimated(true);
+                layout(pane, 400.0, 400.0);
+                assertClose(0.0, added.getOpacity(), how + ": it still enters");
+            }
+        });
+    }
+
     // 100 x 40 cards with 10 px gaps, laid out once in a 400 px scene.
     private static RXFlowPane shownFlow(int count) {
         RXFlowPane pane = flowPane(10.0, 10.0, cards(count, 100.0, 40.0));

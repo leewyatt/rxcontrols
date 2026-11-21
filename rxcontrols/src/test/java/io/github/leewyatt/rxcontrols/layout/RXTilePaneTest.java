@@ -2421,6 +2421,28 @@ public class RXTilePaneTest {
         });
     }
 
+    /**
+     * Verifies a tile added with animation on and reordered while animation is turned
+     * off around the reorder still enters, whether setAll keeps it or it is removed and
+     * added back: put back, it goes on as it stood when it was removed.
+     */
+    @Test
+    public void enteringTileReorderedWithAnimationOffStillEnters() throws Exception {
+        onFx(() -> {
+            for (boolean viaSetAll : new boolean[] {true, false}) {
+                String how = viaSetAll ? "setAll" : "remove and add";
+                RXTilePane pane = shownPane(2);
+                Region added = card();
+                pane.getChildren().add(added);
+                pane.setAnimated(false);
+                moveToFront(pane, added, viaSetAll);
+                pane.setAnimated(true);
+                layout(pane, 700, 400);
+                assertTileClose(0.0, added.getOpacity(), how + ": it still enters");
+            }
+        });
+    }
+
     // Tiles of 100 px, three to a row at 700 px with a 10 px vgap, laid out once in a scene.
     private static RXTilePane shownPane(int count) {
         RXTilePane pane = filledPane(count);

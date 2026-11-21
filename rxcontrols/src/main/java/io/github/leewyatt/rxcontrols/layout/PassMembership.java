@@ -161,17 +161,18 @@ final class PassMembership {
     }
 
     /**
-     * Notes that a child really joined the children list: a new child enters, and one
-     * put back goes on as it stood when it was removed. A child joining while the pane
-     * does not animate (animation turned off around a batch of additions, say) joins as
-     * it is, without an entrance.
+     * Notes that a child really joined the children list. A child put back goes on as it
+     * stood when it was removed, as one that setAll keeps in the list would, whatever the
+     * animation does now. A new child enters, unless it joins while the pane does not
+     * animate (animation turned off around a batch of additions, say): it then joins as it
+     * is.
      *
      * @param child     the child added
      * @param animating whether the pane animates now
      */
     void added(Node child, boolean animating) {
         Departure departure = departures.get(child);
-        if (animating && (departure == null || departure.entering())) {
+        if (departure != null ? departure.entering() : animating) {
             addedSinceLastPass.add(child);
         }
     }
