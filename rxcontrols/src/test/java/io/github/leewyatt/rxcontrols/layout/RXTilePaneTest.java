@@ -1188,6 +1188,42 @@ public class RXTilePaneTest {
     }
 
     /**
+     * Verifies repeated preferred height queries at changing widths do not scan the
+     * children again when none has a height that depends on its width: whether one does
+     * is kept with the tile size until the next layout request.
+     */
+    @Test
+    public void preferredHeightQueriesDoNotRescanTheChildren() throws Exception {
+        onFx(() -> {
+            int[] biasQueries = {0};
+            RXTilePane pane = new RXTilePane();
+            pane.setPrefTileWidth(60.0);
+            for (int i = 0; i < 50; i++) {
+                Region child = new Region() {
+                    @Override
+                    public Orientation getContentBias() {
+                        biasQueries[0]++;
+                        return null;
+                    }
+                };
+                child.setPrefSize(60.0, 20.0);
+                pane.getChildren().add(child);
+            }
+            new Scene(new StackPane(pane));
+            pane.applyCss();
+            layoutUntilClean(pane, 300.0, 400.0);
+            pane.prefHeight(300.0);
+            biasQueries[0] = 0;
+            for (int i = 0; i < 25; i++) {
+                for (double width : new double[] {100.0, 200.0, 300.0, 400.0}) {
+                    pane.prefHeight(width);
+                }
+            }
+            assertEquals(0, biasQueries[0], "no child is asked for its content bias again");
+        });
+    }
+
+    /**
      * Verifies a tile width worked out from container children is not snapped up again:
      * four HBoxes reporting 225 device pixels each at 175% need exactly 900, and fit four
      * to a row there.

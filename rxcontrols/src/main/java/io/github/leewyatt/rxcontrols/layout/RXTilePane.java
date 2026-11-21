@@ -1028,11 +1028,16 @@ public class RXTilePane extends Pane {
     private boolean tileHeightAtWidthValid;
     private double tileHeightAtWidthKey;
     private double cachedTileHeightAtWidth;
+    // Whether any managed child's height depends on its width; a parent asks for the
+    // preferred height at many widths, and this saves a scan of the children each time.
+    private boolean widthDependenceValid;
+    private boolean cachedWidthDependence;
 
     private void invalidateTileSizeCache() {
         nominalTileWidthValid = false;
         nominalTileHeightValid = false;
         tileHeightAtWidthValid = false;
+        widthDependenceValid = false;
     }
 
     // ==================== Layout ====================
@@ -1458,12 +1463,17 @@ public class RXTilePane extends Pane {
     }
 
     private boolean hasWidthDependentChild() {
-        for (Node child : getManagedChildren()) {
-            if (child.getContentBias() == Orientation.HORIZONTAL) {
-                return true;
+        if (!widthDependenceValid) {
+            cachedWidthDependence = false;
+            for (Node child : getManagedChildren()) {
+                if (child.getContentBias() == Orientation.HORIZONTAL) {
+                    cachedWidthDependence = true;
+                    break;
+                }
             }
+            widthDependenceValid = true;
         }
-        return false;
+        return cachedWidthDependence;
     }
 
     private static boolean isExplicitTileSize(double value) {
