@@ -1776,6 +1776,48 @@ public class RXFlowPaneTest {
         });
     }
 
+    /**
+     * Verifies a pane taken out of its scene by a translate listener while its glides
+     * start stops them: nothing keeps playing on the detached pane, and put back into the
+     * same scene, it snaps on its first layout there.
+     */
+    @Test
+    public void paneDetachedWhileItsGlidesStartStopsThem() throws Exception {
+        AtomicReference<RXFlowPane> paneRef = new AtomicReference<>();
+        AtomicReference<StackPane> rootRef = new AtomicReference<>();
+        ChangeListener<Number> detach = (obs, oldX, newX) -> rootRef.get().getChildren().remove(paneRef.get());
+
+        onFx(() -> {
+            RXFlowPane pane = flowPane(0.0, 0.0, cards(3, 100.0, 40.0));
+            pane.setAnimationDuration(Duration.seconds(1.0));
+            StackPane root = new StackPane(pane);
+            paneRef.set(pane);
+            rootRef.set(root);
+            new Scene(root, 600.0, 300.0);
+            root.applyCss();
+            layout(root, 600.0, 300.0);
+            child(pane, 1).translateXProperty().addListener(detach);
+
+            pane.setHgap(20.0);
+            layout(pane, 600.0, 300.0);
+            assertNull(pane.getScene(), "setup: starting B's glide took the pane out of its scene");
+            assertFalse(anyTranslated(pane), "the glides this pass started are stopped");
+        });
+        // Long enough for a glide left running to have moved its cards.
+        Thread.sleep(200);
+        onFx(() -> {
+            RXFlowPane pane = paneRef.get();
+            assertFalse(anyTranslated(pane), "nothing plays on the detached pane");
+
+            child(pane, 1).translateXProperty().removeListener(detach);
+            rootRef.get().getChildren().add(pane);
+            pane.setHgap(0.0);
+            layout(rootRef.get(), 600.0, 300.0);
+            assertClose(200.0, shownX(child(pane, 2)), "back in the same scene, C shows in its slot at once");
+            assertFalse(anyTranslated(pane), "the first layout back in the scene snaps");
+        });
+    }
+
     // Six 100 x 40 cards laid out once in a scene at 340 px, ready to animate.
     private static RXFlowPane reorderPane() {
         RXFlowPane pane = flowPane(10.0, 10.0, cards(6, 100.0, 40.0));

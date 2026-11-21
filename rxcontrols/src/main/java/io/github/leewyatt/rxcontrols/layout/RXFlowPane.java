@@ -1440,15 +1440,17 @@ public class RXFlowPane extends Pane {
             }
         }
 
+        if (moves != null && sceneChanges == sceneChangesAtStart) {
+            animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
+        }
+        // Laying a child out, or starting a glide (which writes translate), can reach a
+        // listener that takes the pane out of its scene while this pass runs. The scene
+        // listener stops only what it can see then: stop what this pass started after
+        // it, and let nothing from the pass count as laid out there.
         if (sceneChanges != sceneChangesAtStart) {
-            // Laying a child out took the pane out of its scene (and maybe back): the
-            // scene listener has stopped every animation, and nothing from this pass may
-            // start one or count as laid out there.
+            animator.stopAll();
             forgetLaidOutChildren();
             return;
-        }
-        if (moves != null) {
-            animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
         }
         if (scene != null) {
             Set<Node> previous = laidOutLastPass;
