@@ -205,7 +205,53 @@ public class RXFlowPanePixelGridTest {
         });
     }
 
+    /**
+     * Verifies a run that exactly fits at a fractional render scale stays on one line,
+     * though its snapped sizes sum with floating-point noise above the extent, while a run
+     * a fraction of a device pixel too long still wraps; the preferred cross size follows
+     * the same runs. Covers both orientations.
+     */
+    @Test
+    public void exactFitAtFractionalScaleStaysOnOneRun() throws Exception {
+        runOnFx(() -> {
+            for (Orientation orientation : Orientation.values()) {
+                boolean horizontal = orientation == Orientation.HORIZONTAL;
+                RXFlowPane pane = new RXFlowPane(orientation);
+                pane.setAnimated(false);
+                for (int i = 0; i < 3; i++) {
+                    pane.getChildren().add(horizontal ? box(20.8, 10.0) : box(10.0, 20.8));
+                }
+                Stage stage = stageFor(pane);
+                stage.setRenderScaleX(1.25);
+                stage.setRenderScaleY(1.25);
+                // 20.8 is 26 device pixels at 1.25, so three boxes fill 62.4 (78 pixels)
+                // exactly; the 10 px cross size snaps to 13 pixels (10.4).
+                double[] extents = {62.39, 62.4, 62.41};
+                int[] expectedRuns = {2, 1, 1};
+                for (int i = 0; i < extents.length; i++) {
+                    double extent = extents[i];
+                    String at = orientation + " at " + extent;
+                    if (horizontal) {
+                        layout(pane, extent, 100.0);
+                    } else {
+                        layout(pane, 100.0, extent);
+                    }
+                    assertEquals(expectedRuns[i], runCount(pane, horizontal), at + ": runs");
+                    double crossPref = horizontal ? pane.prefHeight(extent) : pane.prefWidth(extent);
+                    assertEquals(expectedRuns[i] * 10.4, crossPref, EPSILON, at + ": preferred cross size");
+                }
+            }
+        });
+    }
+
     // ==================== Assertions ====================
+
+    private static long runCount(RXFlowPane pane, boolean horizontal) {
+        return pane.getChildren().stream()
+                .mapToDouble(child -> horizontal ? child.getLayoutY() : child.getLayoutX())
+                .distinct()
+                .count();
+    }
 
     // edge: 0 leading, 1 centre, 2 trailing.
     private static void assertBlock(RXFlowPane pane, boolean alongX, int edge, double scale, String at) {

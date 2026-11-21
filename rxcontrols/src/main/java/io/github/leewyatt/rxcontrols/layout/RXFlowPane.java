@@ -1109,7 +1109,7 @@ public class RXFlowPane extends Pane {
                     nodeRect.node = child;
                     nodeRect.main = prefAreaMain(child);
                     nodeRect.cross = prefAreaCross(child);
-                    if (runLength + nodeRect.main > maxRunLength && runLength > 0) {
+                    if (runLength > 0 && overflowsRun(runLength + nodeRect.main, maxRunLength)) {
                         // wrap to next run unless it is the only node in the run
                         normalizeRun(run, mainGap, rowValignment);
                         built.add(run);
@@ -1503,6 +1503,14 @@ public class RXFlowPane extends Pane {
 
     private double snapSpace(Axis axis, double value) {
         return axis == Axis.X ? snapSpaceX(value) : snapSpaceY(value);
+    }
+
+    // Snapped sizes at a fractional render scale do not sum exactly (multiples of 0.8 at
+    // 1.25), so a run that exactly fits must not wrap on the rounding noise.
+    private boolean overflowsRun(double runLength, double maxRunLength) {
+        return mainAxis() == Axis.X
+                ? PixelGrid.exceedsX(this, runLength, maxRunLength)
+                : PixelGrid.exceedsY(this, runLength, maxRunLength);
     }
 
     private double marginLeading(Axis axis, Insets margin) {
