@@ -936,10 +936,10 @@ public class RXFlowPane extends Pane {
      * Whether existing children glide to their new positions when a relayout (a resize
      * that reflows the runs, a gap or alignment change) moves them. On by default;
      * turning it off mid-flight snaps every child to its final position. A change of the
-     * wrapping-axis extent imposed by the parent that keeps every item in its run
-     * applies immediately, so dragging a window edge along that axis never leaves
-     * children trailing; a glide already in flight keeps its clock while its target
-     * follows the resize. An explicit pref size, even one bound to the parent's size,
+     * pane's size imposed by the parent that keeps every item in its run applies
+     * immediately, along the wrapping axis or across it, so dragging a window edge never
+     * leaves children trailing; a glide already in flight keeps its clock while its
+     * target follows the resize. An explicit pref size, even one bound to the parent's size,
      * counts as imposed by the parent; an extent that follows the pane's own computed
      * preferred size still glides. Only a child the previous layout placed glides; one
      * that is newly added, newly managed or back after missing a layout snaps into
@@ -1366,7 +1366,9 @@ public class RXFlowPane extends Pane {
         boolean resizeOnly = false;
         if (isAnimated()) {
             resizeOnly = resizeGate.isResizeOnly(horizontal ? getWidth() : getHeight(),
-                    ownPrefExtent(horizontal), layoutStructure(horizontal, lines));
+                    ownPrefExtent(horizontal), horizontal ? getHeight() : getWidth(),
+                    ownCrossPrefExtent(horizontal, blockWidth, blockHeight),
+                    layoutStructure(horizontal, lines));
         } else {
             resizeGate.reset();
         }
@@ -1458,6 +1460,16 @@ public class RXFlowPane extends Pane {
             cachedOwnPrefExtent = horizontal ? computePrefWidth(-1.0) : computePrefHeight(-1.0);
         }
         return cachedOwnPrefExtent;
+    }
+
+    // The preferred cross-axis extent at the current wrap, as computePrefHeight(width) /
+    // computePrefWidth(height) report it: the block plus the insets on that axis. Padding
+    // added in a parent that sizes the pane to its pref changes it, so that growth still
+    // animates; an explicit pref size is left out like on the wrapping axis.
+    private double ownCrossPrefExtent(boolean horizontal, double blockWidth, double blockHeight) {
+        return horizontal
+                ? snappedTopInset() + snapSizeY(blockHeight) + snappedBottomInset()
+                : snappedLeftInset() + snapSizeX(blockWidth) + snappedRightInset();
     }
 
     // Orientation plus the children of each run in order: item sizes, gaps and

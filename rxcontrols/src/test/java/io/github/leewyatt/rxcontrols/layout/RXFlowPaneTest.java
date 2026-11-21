@@ -13,6 +13,7 @@ import javafx.scene.Scene;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -1370,6 +1371,74 @@ public class RXFlowPaneTest {
             pane.setHgap(30.0);
             layout(pane, 460.0, 400.0);
             assertTrue(anyTranslated(pane), "a gap change at the same width still glides");
+        });
+    }
+
+    /**
+     * Verifies a size change across the wrapping axis imposed from outside settles at once
+     * when the block is centred on that axis, in both orientations, so dragging that
+     * window edge does not leave the children trailing.
+     */
+    @Test
+    public void crossAxisResizeDoesNotGlide() throws Exception {
+        onFx(() -> {
+            RXFlowPane rows = flowPane(10.0, 10.0, cards(3, 100.0, 40.0));
+            rows.setAlignment(Pos.CENTER);
+            new Scene(rows, 400.0, 400.0);
+            rows.applyCss();
+            layout(rows, 400.0, 400.0);
+            layout(rows, 400.0, 402.0);
+            assertFalse(anyTranslated(rows), "horizontal flow, height change: no glide");
+
+            RXFlowPane columns = new RXFlowPane(Orientation.VERTICAL, 10.0, 10.0, cards(3, 40.0, 100.0));
+            columns.setAlignment(Pos.CENTER);
+            new Scene(columns, 400.0, 400.0);
+            columns.applyCss();
+            layout(columns, 400.0, 400.0);
+            layout(columns, 402.0, 400.0);
+            assertFalse(anyTranslated(columns), "vertical flow, width change: no glide");
+        });
+    }
+
+    /**
+     * Verifies a cross-axis growth that follows the pane's own preferred size still
+     * glides: padding added in a VBox that sizes the pane to its preferred height moves
+     * the card down, and that move animates.
+     */
+    @Test
+    public void crossAxisGrowthFromOwnPaddingStillGlides() throws Exception {
+        onFx(() -> {
+            Region card = card(100.0, 10.0);
+            RXFlowPane pane = flowPane(10.0, 10.0, card);
+            VBox box = new VBox(pane);
+            new Scene(box, 150.0, 400.0);
+            box.applyCss();
+            layout(box, 150.0, 400.0);
+
+            pane.setPadding(new Insets(20.0, 0.0, 0.0, 0.0));
+            box.layout();
+            assertClose(30.0, pane.getHeight(), "the VBox sizes the pane to its new preferred height");
+            assertClose(-20.0, card.getTranslateY(), "the card glides down from where it was");
+        });
+    }
+
+    /**
+     * Verifies a wrapping-axis resize landing with a content change in the same pass still
+     * settles at once: the cross-axis rule leaves that existing policy alone.
+     */
+    @Test
+    public void wrappingResizeWithTallerChildStillSettlesAtOnce() throws Exception {
+        onFx(() -> {
+            Region[] cards = cards(3, 100.0, 40.0);
+            RXFlowPane pane = flowPane(10.0, 10.0, cards);
+            new Scene(pane, 400.0, 400.0);
+            pane.applyCss();
+            layout(pane, 400.0, 400.0);
+
+            // The run grows, so the other two cards re-centre lower in it.
+            cards[0].setPrefHeight(60.0);
+            layout(pane, 410.0, 400.0);
+            assertFalse(anyTranslated(pane), "resize and content growth in one pass settle together");
         });
     }
 
