@@ -34,12 +34,8 @@ import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.WeakHashMap;
 
 /**
  * An enhanced {@link javafx.scene.layout.FlowPane} that lays managed children out in runs
@@ -217,23 +213,8 @@ public class RXFlowPane extends Pane {
     // All children are real and persistent, so no recycler pin-set is needed.
     private final PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
     private final ResizeGate resizeGate = new ResizeGate();
-    // A glide needs a position the child was last shown at. Only a pass in the scene the
-    // pane was last laid out in animates, and only a child that pass laid out glides;
-    // any other child (newly added, newly managed, back after missing a pass) snaps into
-    // its slot instead of gliding in from a stale position or the pane origin.
-    private Scene layoutScene;
-    // Bumped on every scene change. A listener reached from a layout pass can take the
-    // pane out of its scene while that pass is still running; the pass then sees the
-    // count change and leaves what the scene listener cleared alone.
-    private int sceneChanges;
-    private Set<Node> laidOutLastPass = new HashSet<>();
-    private Set<Node> laidOutThisPass = new HashSet<>();
-    // Children of the last pass removed since, with where each showed when it was
-    // removed (layout plus translate, read before the animator gives the translate back),
-    // so one put back before the next pass glides on from there. Weak keys: a removed
-    // child must not stay reachable from the pane when no further pass comes; the
-    // values hold no node.
-    private final Map<Node, double[]> removedSinceLastPass = new WeakHashMap<>();
+    // Who the previous pass laid out: only those children glide.
+    private final PassMembership membership = new PassMembership();
 
     private final ListChangeListener<Node> childrenListener = change -> {
         while (change.next()) {
@@ -241,11 +222,7 @@ public class RXFlowPane extends Pane {
                 // The recorded structure would otherwise keep removed children alive.
                 resizeGate.reset();
                 for (Node removed : change.getRemoved()) {
-                    if (laidOutLastPass.remove(removed)) {
-                        removedSinceLastPass.put(removed, new double[] {
-                                removed.getLayoutX() + removed.getTranslateX(),
-                                removed.getLayoutY() + removed.getTranslateY()});
-                    }
+                    membership.removed(removed);
                     animator.forget(removed);
                 }
             }
@@ -264,11 +241,10 @@ public class RXFlowPane extends Pane {
         // cached per wrap length, so without this they would keep the old snapped sizes.
         snapToPixelProperty().addListener((obs, oldValue, newValue) -> requestLayout());
         sceneProperty().addListener((obs, oldScene, newScene) -> {
-            sceneChanges++;
+            membership.sceneChanged(newScene);
             if (newScene == null) {
                 animator.stopAll();
                 resizeGate.reset();
-                forgetLaidOutChildren();
             }
         });
     }
@@ -1369,12 +1345,10 @@ public class RXFlowPane extends Pane {
         double hgap = snapSpaceX(hgapOrDefault());
         double vgap = snapSpaceY(vgapOrDefault());
 
-        // A pass that threw midway may have left members behind.
-        laidOutThisPass.clear();
-        int sceneChangesAtStart = sceneChanges;
+        membership.beginPass();
+        int sceneChangesAtStart = membership.sceneChanges();
         Scene scene = getScene();
-        boolean animate = isAnimated() && scene != null && scene == layoutScene
-                && isAnimationDurationPositive();
+        boolean animate = isAnimated() && membership.continuesIn(scene) && isAnimationDurationPositive();
         // With animation off and nothing in flight the animator pass would be a
         // no-op; a null list tells layoutItem to skip the move bookkeeping.
         List<PaneRelayoutAnimator.Move> moves =
@@ -1440,36 +1414,19 @@ public class RXFlowPane extends Pane {
             }
         }
 
-        if (moves != null && sceneChanges == sceneChangesAtStart) {
+        if (moves != null && membership.sceneChanges() == sceneChangesAtStart) {
             animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
         }
         // Laying a child out, or starting a glide (which writes translate), can reach a
         // listener that takes the pane out of its scene while this pass runs. The scene
         // listener stops only what it can see then: stop what this pass started after
         // it, and let nothing from the pass count as laid out there.
-        if (sceneChanges != sceneChangesAtStart) {
+        if (membership.sceneChanges() != sceneChangesAtStart) {
             animator.stopAll();
-            forgetLaidOutChildren();
+            membership.forget();
             return;
         }
-        if (scene != null) {
-            Set<Node> previous = laidOutLastPass;
-            laidOutLastPass = laidOutThisPass;
-            laidOutThisPass = previous;
-            laidOutThisPass.clear();
-            removedSinceLastPass.clear();
-            layoutScene = scene;
-        } else {
-            // An off-screen pass shows nothing, so the next pass in a scene snaps.
-            forgetLaidOutChildren();
-        }
-    }
-
-    private void forgetLaidOutChildren() {
-        layoutScene = null;
-        laidOutLastPass.clear();
-        laidOutThisPass.clear();
-        removedSinceLastPass.clear();
+        membership.endPass(scene);
     }
 
     // The preferred wrapping-axis extent the pane computes from its own inputs. An
@@ -1524,7 +1481,7 @@ public class RXFlowPane extends Pane {
                             List<PaneRelayoutAnimator.Move> moves, boolean resizeOnly) {
         // Recorded before any early return: every pass in a scene, the first and the
         // resize-only ones included, sets who the next pass may glide.
-        laidOutThisPass.add(node);
+        membership.laidOut(node);
         if (moves == null) {
             layoutInArea(node, x, y, width, height, baselineOffset, getMargin(node),
                     false, false, hpos, vpos);
@@ -1532,7 +1489,7 @@ public class RXFlowPane extends Pane {
         }
         // A child removed and put back since the last pass has had its translate given
         // back; where it showed when removed is where its glide goes on from.
-        double[] shownWhenRemoved = removedSinceLastPass.get(node);
+        double[] shownWhenRemoved = membership.shownWhenRemoved(node);
         double oldVisualX = shownWhenRemoved != null
                 ? shownWhenRemoved[0] : node.getLayoutX() + node.getTranslateX();
         double oldVisualY = shownWhenRemoved != null
@@ -1545,7 +1502,7 @@ public class RXFlowPane extends Pane {
         }
         // Checked before any motion: an entering child's old layout position belongs to
         // wherever it was before, and its own translate stays as it is.
-        if (shownWhenRemoved == null && !laidOutLastPass.contains(node)) {
+        if (shownWhenRemoved == null && !membership.wasLaidOut(node)) {
             return;
         }
         animator.addRelayoutMove(moves, node, oldVisualX, oldVisualY);

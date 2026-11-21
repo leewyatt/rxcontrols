@@ -37,12 +37,8 @@ import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.WeakHashMap;
 
 /**
  * A responsive, animated tile layout pane — the node-based sibling of
@@ -196,23 +192,8 @@ public class RXTilePane extends Pane {
     // children are real and persistent, so no recycler pin-set is needed.
     private final PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
     private final ResizeGate resizeGate = new ResizeGate();
-    // A glide needs a position the child was last shown at. Only a pass in the scene the
-    // pane was last laid out in animates, and only a child that pass laid out glides;
-    // any other child (newly added, newly managed, back after missing a pass) snaps into
-    // its slot instead of gliding in from a stale position or the pane origin.
-    private Scene layoutScene;
-    // Bumped on every scene change. A listener reached from a layout pass can take the
-    // pane out of its scene while that pass is still running; the pass then sees the
-    // count change and leaves what the scene listener cleared alone.
-    private int sceneChanges;
-    private Set<Node> laidOutLastPass = new HashSet<>();
-    private Set<Node> laidOutThisPass = new HashSet<>();
-    // Children of the last pass removed since, with where each showed when it was
-    // removed (layout plus translate, read before the animator gives the translate back),
-    // so one put back before the next pass glides on from there. Weak keys: a removed
-    // child must not stay reachable from the pane when no further pass comes; the
-    // values hold no node.
-    private final Map<Node, double[]> removedSinceLastPass = new WeakHashMap<>();
+    // Who the previous pass laid out: only those children glide.
+    private final PassMembership membership = new PassMembership();
 
     private final ListChangeListener<Node> childrenListener = change -> {
         while (change.next()) {
@@ -220,11 +201,7 @@ public class RXTilePane extends Pane {
                 // The recorded structure would otherwise keep removed children alive.
                 resizeGate.reset();
                 for (Node removed : change.getRemoved()) {
-                    if (laidOutLastPass.remove(removed)) {
-                        removedSinceLastPass.put(removed, new double[] {
-                                removed.getLayoutX() + removed.getTranslateX(),
-                                removed.getLayoutY() + removed.getTranslateY()});
-                    }
+                    membership.removed(removed);
                     animator.forget(removed);
                 }
             }
@@ -246,11 +223,10 @@ public class RXTilePane extends Pane {
         // and Region's cached preferred size would keep the old scale.
         new RenderScaleWatch(this, this::requestLayout);
         sceneProperty().addListener((obs, oldScene, newScene) -> {
-            sceneChanges++;
+            membership.sceneChanged(newScene);
             if (newScene == null) {
                 animator.stopAll();
                 resizeGate.reset();
-                forgetLaidOutChildren();
             }
         });
     }
@@ -1111,10 +1087,9 @@ public class RXTilePane extends Pane {
     protected void layoutChildren() {
         // Sampled before anything below can reach a listener: publishing the column count
         // notifies its listeners, and one of them may take the pane out of its scene.
-        int sceneChangesAtStart = sceneChanges;
+        int sceneChangesAtStart = membership.sceneChanges();
         Scene scene = getScene();
-        // A pass that threw midway may have left members behind.
-        laidOutThisPass.clear();
+        membership.beginPass();
         double left = snappedLeftInset();
         double top = snappedTopInset();
         double bottom = snappedBottomInset();
@@ -1156,7 +1131,7 @@ public class RXTilePane extends Pane {
         double startY = verticalContentOffset(
                 contentHeight, rowBlockHeight, contentVAlignmentOrDefault(getContentVAlignment()));
 
-        boolean animate = isAnimated() && scene != null && scene == layoutScene && isAnimationDurationPositive();
+        boolean animate = isAnimated() && membership.continuesIn(scene) && isAnimationDurationPositive();
         // With animation off and nothing in flight the animator pass would be a
         // no-op; skip the move bookkeeping entirely on this hot path.
         boolean collectMoves = animate || animator.hasActiveState();
@@ -1189,7 +1164,7 @@ public class RXTilePane extends Pane {
             // back; where it showed when removed is where its glide goes on from.
             double[] shownWhenRemoved = null;
             if (collectMoves) {
-                shownWhenRemoved = removedSinceLastPass.get(child);
+                shownWhenRemoved = membership.shownWhenRemoved(child);
                 oldVisualX = shownWhenRemoved != null
                         ? shownWhenRemoved[0] : child.getLayoutX() + child.getTranslateX();
                 oldVisualY = shownWhenRemoved != null
@@ -1198,7 +1173,7 @@ public class RXTilePane extends Pane {
             Pos childAlignment = childTileAlignment(child, tileAlignmentValue);
             // Recorded before any skip: every pass in a scene, the first and the
             // resize-only ones included, sets who the next pass may glide.
-            laidOutThisPass.add(child);
+            membership.laidOut(child);
             layoutInTile(child, x, y, tileWidth, tileHeight, baselineOffset, getMargin(child),
                     childAlignment.getHpos(), childAlignment.getVpos());
             if (!collectMoves) {
@@ -1210,41 +1185,24 @@ public class RXTilePane extends Pane {
             }
             // Checked before any motion: an entering child's old layout position belongs to
             // wherever it was before, and its own translate stays as it is.
-            if (shownWhenRemoved == null && !laidOutLastPass.contains(child)) {
+            if (shownWhenRemoved == null && !membership.wasLaidOut(child)) {
                 continue;
             }
             animator.addRelayoutMove(moves, child, oldVisualX, oldVisualY);
         }
-        if (collectMoves && sceneChanges == sceneChangesAtStart) {
+        if (collectMoves && membership.sceneChanges() == sceneChangesAtStart) {
             animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
         }
         // Publishing the column count, laying a child out, or starting a glide (which writes
         // translate) can reach a listener that takes the pane out of its scene while this
         // pass runs. The scene listener stops only what it can see then: stop what this
         // pass started after it, and let nothing from the pass count as laid out there.
-        if (sceneChanges != sceneChangesAtStart) {
+        if (membership.sceneChanges() != sceneChangesAtStart) {
             animator.stopAll();
-            forgetLaidOutChildren();
+            membership.forget();
             return;
         }
-        if (scene != null) {
-            Set<Node> previous = laidOutLastPass;
-            laidOutLastPass = laidOutThisPass;
-            laidOutThisPass = previous;
-            laidOutThisPass.clear();
-            removedSinceLastPass.clear();
-            layoutScene = scene;
-        } else {
-            // An off-screen pass shows nothing, so the next pass in a scene snaps.
-            forgetLaidOutChildren();
-        }
-    }
-
-    private void forgetLaidOutChildren() {
-        layoutScene = null;
-        laidOutLastPass.clear();
-        laidOutThisPass.clear();
-        removedSinceLastPass.clear();
+        membership.endPass(scene);
     }
 
     // The preferred width the pane computes from its own inputs. An explicit prefWidth
