@@ -2636,6 +2636,63 @@ public class RXTilePaneTest {
     }
 
     /**
+     * Verifies a step (tile width plus hgap) far below the rounding tolerance is still a
+     * step: with snapping off, an hgap of minus 100 plus 2^-31 against 100 px tiles fits
+     * ten or eleven tiles to a width of ten such steps, not every tile, and minus 100
+     * minus 2^-31 lays one tile a row. A tile that small with no gap keeps the columns
+     * its width holds too.
+     */
+    @Test
+    public void stepsBelowTheToleranceStillCount() {
+        double tiny = Math.scalb(1.0, -31);
+        RXTilePane nearlyPiled = gapPane(-100.0 + tiny, 0.0, 100);
+        nearlyPiled.setSnapToPixel(false);
+        layout(nearlyPiled, 100.0 + 9 * tiny, 10000);
+        int columns = nearlyPiled.getActualColumnCount();
+        assertTrue(columns == 10 || columns == 11, "ten steps hold ten or eleven tiles, got " + columns);
+        assertTrue(nearlyPiled.getChildren().get(99).getLayoutY() > 0.0, "the last tile is not on the first row");
+
+        RXTilePane backwards = gapPane(-100.0 - tiny, 0.0, 3);
+        backwards.setSnapToPixel(false);
+        layout(backwards, 150, 400);
+        assertEquals(1, backwards.getActualColumnCount(), "a step just below zero lays one tile a row");
+
+        RXTilePane tinyTiles = new RXTilePane();
+        tinyTiles.setSnapToPixel(false);
+        tinyTiles.setPrefTileWidth(5.0e-10);
+        tinyTiles.setPrefTileHeight(60);
+        tinyTiles.setHgap(0);
+        tinyTiles.setVgap(0);
+        tinyTiles.setAnimated(false);
+        for (int i = 0; i < 30; i++) {
+            tinyTiles.getChildren().add(card(100, 60));
+        }
+        layout(tinyTiles, 5.0e-9, 1000);
+        assertEquals(11, tinyTiles.getActualColumnCount(), "tiny tiles without a gap: the width holds eleven");
+        assertEquals(180.0, tinyTiles.prefHeight(5.0e-9), EPSILON, "three rows of 60");
+    }
+
+    /**
+     * Verifies a gap of minus the tile width piles a row's tiles on one spot only where
+     * itemsJustify keeps the base step: START piles three tiles at x 0, SPACE_BETWEEN
+     * shares the spare width out over the gaps and spreads them across the row.
+     */
+    @Test
+    public void pilingFollowsItemsJustify() {
+        RXTilePane start = gapPane(-100.0, 0.0, 3);
+        layout(start, 300, 400);
+        for (Node child : start.getChildren()) {
+            assertEquals(0.0, child.getLayoutX(), EPSILON, "START: piled at x 0");
+        }
+        RXTilePane between = gapPane(-100.0, 0.0, 3);
+        between.setItemsJustify(ItemsJustify.SPACE_BETWEEN);
+        layout(between, 300, 400);
+        assertEquals(0.0, between.getChildren().get(0).getLayoutX(), EPSILON, "SPACE_BETWEEN: first at 0");
+        assertEquals(100.0, between.getChildren().get(1).getLayoutX(), EPSILON, "SPACE_BETWEEN: second at 100");
+        assertEquals(200.0, between.getChildren().get(2).getLayoutX(), EPSILON, "SPACE_BETWEEN: third at 200");
+    }
+
+    /**
      * Verifies a vgap below minus the tile height piles the rows on one spot instead of
      * placing each above the one before it, out of the pane as JavaFX's TilePane does; the
      * preferred height stays one tile high, and an entrance still rises its 4 px minimum.

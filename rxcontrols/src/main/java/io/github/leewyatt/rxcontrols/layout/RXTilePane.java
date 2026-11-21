@@ -469,9 +469,15 @@ public class RXTilePane extends Pane {
     /**
      * Horizontal gap between tiles. A negative gap overlaps neighbouring tiles, as in
      * JavaFX's {@code TilePane}: the columns, positions and preferred width all account
-     * for the overlap. A gap of minus the tile width piles a row's tiles on one spot, and
-     * one beyond it lays one tile a row. A non-finite value is treated as zero at layout
-     * time rather than rejected.
+     * for the overlap. The column count comes from the nominal tile width and the gap;
+     * {@link #itemsJustifyProperty() itemsJustify} then places the tiles as it does for
+     * any gap, so the {@code SPACE_*} modes and {@code STRETCH} still share a row's spare
+     * width out over its gaps or tiles. A gap of exactly minus the tile width adds nothing
+     * per column, so every column fits once one tile does, and {@code START},
+     * {@code CENTER} and {@code END} pile a row's tiles on one spot ({@code TilePane}
+     * instead lays one tile a row while its width is exactly one tile); a gap beyond it
+     * lays one tile a row. A non-finite value is treated as zero at layout time rather
+     * than rejected.
      *
      * @return the hgap property
      */
@@ -1120,7 +1126,7 @@ public class RXTilePane extends Pane {
         double gap = snapSpaceX(gapOrZero(getHgap()));
         // A gap beyond minus the tile width lays one tile a row; more columns would make
         // the preferred width shrink below a tile.
-        if (PixelGrid.exceedsX(this, 0.0, tileWidth + gap)) {
+        if (tileWidth + gap < 0.0) {
             columns = 1;
         }
         double content = rowWidth(columns, tileWidth, gap);
@@ -1379,12 +1385,13 @@ public class RXTilePane extends Pane {
         int max = getMaxColumns();
         int limit = max > 0 ? Math.min(max, MAX_RESOLVED_COLUMNS) : MAX_RESOLVED_COLUMNS;
         double step = tileWidth + gap;
-        if (!PixelGrid.exceedsX(this, step, 0.0)) {
-            // A gap that cancels the tile width piles a row's tiles on one spot, so every
-            // column fits once one tile does; one beyond it would run the row backwards,
-            // so it takes one tile a row. Both as in JavaFX's TilePane.
-            boolean backwards = PixelGrid.exceedsX(this, 0.0, step);
-            return backwards || PixelGrid.exceedsX(this, tileWidth, availableWidth) ? 1 : limit;
+        // Told apart by the step itself: a step below the rounding tolerance still adds
+        // up along a row, so the tolerance belongs to the row widths compared below. A gap
+        // that cancels the tile width adds nothing per column, so every column fits once
+        // one tile does; one beyond it would run the row backwards, so it lays one tile a
+        // row, as JavaFX's TilePane does.
+        if (step <= 0.0) {
+            return step < 0.0 || PixelGrid.exceedsX(this, tileWidth, availableWidth) ? 1 : limit;
         }
         // Capped while still a double: the ratio of a tiny tile can exceed any int.
         double fit = Math.floor((availableWidth + gap) / step);
