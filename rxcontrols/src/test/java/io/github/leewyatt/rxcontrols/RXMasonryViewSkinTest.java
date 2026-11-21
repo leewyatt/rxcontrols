@@ -999,6 +999,33 @@ public class RXMasonryViewSkinTest {
         });
     }
 
+    /**
+     * Verifies a view at its own preferred width shows its preferred column count at
+     * every render scale while the vertical scroll bar shows; at 1.25 the 10 px gap
+     * snaps to 10.4 and the column division used to come out just below four.
+     */
+    @Test
+    public void preferredWidthShowsThePreferredColumnsAtEveryScale() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(200);
+            view.setColumnWidth(60);
+            view.setHgap(10);
+            view.setPrefColumns(4);
+            StackPane root = host(view, 600, 200);
+            Stage stage = new Stage();
+            stage.setScene(root.getScene());
+            pump(root);
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                stage.setRenderScaleX(scale);
+                double width = view.prefWidth(-1);
+                root.resize(width, 200);
+                view.requestLayout();
+                pump(root);
+                assertEquals(4, view.getActualColumnCount(), "scale " + scale + ", width " + width);
+            }
+        });
+    }
+
     // Sweeps the view width (half pixels included) with fillWidth on, checking every
     // row of equal-height items against the content clip and the configured hgap.
     private static void assertFilledRowsInsideClip(RXMasonryView<Integer> view, String fixture,

@@ -303,6 +303,36 @@ public class MasonryColumnsTest {
         assertEquals(Math.rint(scaled), scaled, 1.0e-6, message + " " + value + " is on the " + scale + "x grid");
     }
 
+    /**
+     * Verifies a width that exactly fits a count of columns resolves to that count at
+     * every render scale, though the division carries rounding noise (4 x 60 + 3 x 10.4
+     * at 1.25 divides to 3.999...), and one device pixel less drops the last column.
+     */
+    @Test
+    public void exactFitKeepsItsColumnsAtEveryScale() {
+        for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+            // 60 px is on every grid here; a snapped 10 px gap is not 10 at 1.25 and 1.75.
+            double hgap = Math.round(10.0 * scale) / scale;
+            for (int n = 1; n <= 12; n++) {
+                double width = n * 60.0 + (n - 1) * hgap;
+                for (boolean fill : new boolean[] {false, true}) {
+                    String at = "scale " + scale + ", " + n + " columns, fillWidth " + fill;
+                    assertEquals(n, MasonryColumns.resolve(width, width, 0, 60.0, hgap, 0, fill,
+                            RXBreakpointProfile.ANT_DESIGN, Map.of(), scale).columns(), at + ": exact fit");
+                    if (n > 1) {
+                        double shortWidth = width - 1.0 / scale;
+                        assertEquals(n - 1, MasonryColumns.resolve(shortWidth, shortWidth, 0, 60.0, hgap, 0, fill,
+                                RXBreakpointProfile.ANT_DESIGN, Map.of(), scale).columns(),
+                                at + ": one device pixel short");
+                    }
+                }
+            }
+        }
+        double width = 4 * 60.0 + 3 * 10.4;
+        assertEquals(4, MasonryColumns.resolve(width, width, 0, 60.0, 10.4, 0, false,
+                RXBreakpointProfile.ANT_DESIGN, Map.of(), 0.0).columns(), "without snapping, too");
+    }
+
     // ==================== Track / used width ====================
 
     /**
