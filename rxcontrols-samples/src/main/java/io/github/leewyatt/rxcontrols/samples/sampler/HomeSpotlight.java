@@ -73,7 +73,7 @@ final class HomeSpotlight {
                 half(libraryCard(controls, transitions, browse)),
                 half(side));
         row.getStyleClass().add("home-spotlight");
-        return HomeKit.bleed(row);
+        return row;
     }
 
     private static RXCol half(Node content) {

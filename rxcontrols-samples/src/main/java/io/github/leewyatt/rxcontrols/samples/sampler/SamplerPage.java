@@ -177,9 +177,7 @@ final class SamplerPage extends BorderPane {
             }
         }
         RXRow gallery = SampleGallery.create(samples.cards());
-        // The gutter leaves half a gap outside the outer cards; count it so the cards
-        // line up with the header.
-        gallery.setMaxWidth(CONTENT_MAX_WIDTH + gallery.getGutter());
+        gallery.setMaxWidth(CONTENT_MAX_WIDTH);
         VBox content = new VBox(gallery);
         content.setAlignment(Pos.TOP_CENTER);
         content.getStyleClass().add("examples");
