@@ -42,10 +42,11 @@ public final class PixelGrid {
     }
 
     /**
-     * Ceils a value worked out from grid values (snapped sizes and gaps added up, a
-     * snapped area less snapped margins) to the grid of the given render scale, counting
-     * a value at most 1e-9 device pixels above a grid line as on it. A raw size belongs to
-     * Region's own snapping instead: a positive size that small would come out as zero.
+     * Ceils a size to the grid of the given render scale, counting a value at most 1e-9
+     * device pixels above a grid line as on it, for sizes worked out from grid values
+     * (snapped sizes and gaps added up, a snapped area less snapped margins). A positive
+     * value never comes out as zero: like Region's snapping, it takes at least one device
+     * pixel.
      *
      * @param value the value in layout coordinates
      * @param scale the render scale; zero, negative or non-finite disables snapping
@@ -55,7 +56,11 @@ public final class PixelGrid {
         if (!Double.isFinite(scale) || scale <= 0.0) {
             return value;
         }
-        return Math.ceil(value * scale - GRID_TOLERANCE) / scale;
+        double pixels = Math.ceil(value * scale - GRID_TOLERANCE);
+        if (pixels < 1.0 && value > 0.0) {
+            pixels = 1.0;
+        }
+        return pixels / scale;
     }
 
     /**

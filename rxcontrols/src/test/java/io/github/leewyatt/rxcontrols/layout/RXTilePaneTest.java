@@ -1071,8 +1071,9 @@ public class RXTilePaneTest {
     }
 
     /**
-     * Verifies an explicit tile width far below a device pixel still takes one, as Region
-     * snaps any positive size: four such tiles sit side by side under maxColumns 4.
+     * Verifies a tile width far below a device pixel still takes one, as Region snaps any
+     * positive size, whether set or worked out from the children: four such tiles sit
+     * side by side under maxColumns 4.
      */
     @Test
     public void tinyExplicitTileWidthTakesADevicePixel() throws Exception {
@@ -1093,6 +1094,81 @@ public class RXTilePaneTest {
             assertEquals(4, pane.getActualColumnCount(), "four columns");
             assertEquals(1.0, pane.getChildren().get(1).getLayoutX() * 1.75, 1.0e-6, "the second slot starts one device pixel in");
             assertEquals(1.0, pane.getChildren().get(0).getLayoutBounds().getWidth() * 1.75, 1.0e-6, "each slot is one device pixel");
+
+            // The same with the tile width worked out from children that small.
+            RXTilePane computed = new RXTilePane();
+            computed.setPrefTileHeight(40.0);
+            computed.setHgap(0.0);
+            computed.setMaxColumns(4);
+            computed.setTileAlignment(Pos.TOP_LEFT);
+            computed.setAnimated(false);
+            for (int i = 0; i < 4; i++) {
+                computed.getChildren().add(card(1.0e-10, 40.0));
+            }
+            stageFor(computed, 1.75);
+            computed.applyCss();
+            layoutUntilClean(computed, 100.0, 200.0);
+            assertEquals(4, computed.getActualColumnCount(), "computed: four columns");
+            assertEquals(1.0, computed.getChildren().get(1).getLayoutX() * 1.75, 1.0e-6, "computed: one device pixel per slot");
+        });
+    }
+
+    /**
+     * Verifies a tile height worked out from the children measures a child whose height
+     * depends on its width at the width it gets: a FlowPane 225 device pixels wide at 175%
+     * needs two 20 px rows there (one at 226), so each tile is 40 high, the second tile
+     * starts below the first, and the two rows prefer 80.
+     */
+    @Test
+    public void computedTileHeightMeasuresAtTheWidthTheChildGets() throws Exception {
+        onFx(() -> {
+            FlowPane flow = new FlowPane(card(12.5, 20.0), card(116.5, 20.0));
+            flow.setPrefWidth(128.5);
+            Region below = card(50.0, 20.0);
+            RXTilePane pane = new RXTilePane(flow, below);
+            pane.setVgap(0.0);
+            pane.setPrefColumns(1);
+            pane.setTileAlignment(Pos.TOP_LEFT);
+            pane.setAnimated(false);
+            stageFor(pane, 1.75);
+            pane.applyCss();
+            layoutUntilClean(pane, 225.0 / 1.75, 100.0);
+            assertEquals(1, pane.getActualColumnCount(), "setup: one column");
+            assertEquals(225.0, flow.getLayoutBounds().getWidth() * 1.75, 1.0e-6, "the flow is 225 device pixels wide");
+            assertEquals(40.0, flow.getLayoutBounds().getHeight(), 1.0e-9, "it needs two rows there");
+            assertEquals(40.0, below.getLayoutY(), 1.0e-9, "the second tile starts below it");
+            assertEquals(80.0, pane.prefHeight(225.0 / 1.75), 1.0e-9, "two 40 px rows");
+        });
+    }
+
+    /**
+     * Verifies a tile width worked out from container children is not snapped up again:
+     * four HBoxes reporting 225 device pixels each at 175% need exactly 900, and fit four
+     * to a row there.
+     */
+    @Test
+    public void computedTileWidthKeepsTheChildrensSnappedWidth() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane();
+            pane.setHgap(0.0);
+            pane.setPrefColumns(4);
+            pane.setTileAlignment(Pos.TOP_LEFT);
+            pane.setAnimated(false);
+            for (int i = 0; i < 4; i++) {
+                Region content = new Region();
+                content.setMinWidth(128.5);
+                content.setPrefSize(128.5, 20.0);
+                pane.getChildren().add(new HBox(content));
+            }
+            stageFor(pane, 1.75);
+            pane.applyCss();
+            assertEquals(900.0, pane.prefWidth(-1.0) * 1.75, 1.0e-6, "four 225 device pixel tiles");
+            layoutUntilClean(pane, 900.0 / 1.75, 200.0);
+            assertEquals(4, pane.getActualColumnCount(), "four columns fit 900 device pixels");
+            Node last = pane.getChildren().get(3);
+            assertEquals(225.0, pane.getChildren().get(0).getLayoutBounds().getWidth() * 1.75, 1.0e-6, "each fills 225");
+            assertEquals(675.0, last.getLayoutX() * 1.75, 1.0e-6, "the last tile stays on the first row (x)");
+            assertEquals(0.0, last.getLayoutY(), 1.0e-9, "the last tile stays on the first row (y)");
         });
     }
 
