@@ -219,8 +219,8 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         // its size, so without this the column edges would stay on the old grid.
         disposer.registerListener(control.snapToPixelProperty(), this::requestRelayout);
         // Nor does it lay anything out when the render scale changes, which moves the grid
-        // and the snapped sizes the preferred width adds up.
-        RenderScaleWatch scaleWatch = new RenderScaleWatch(control, this::requestRelayout);
+        // and the snapped sizes the preferred width adds up, the scroll bar's breadth too.
+        RenderScaleWatch scaleWatch = new RenderScaleWatch(control, this::onRenderScaleChanged);
         disposer.registerDisposeTask(scaleWatch::dispose);
         // Switching the height source (provider <-> estimated, or a different provider)
         // makes the persistent cache stale; drop it.
@@ -256,6 +256,11 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     private void requestRelayout() {
         placementDirty = true;
         viewport.requestLayout();
+    }
+
+    private void onRenderScaleChanged() {
+        viewport.remeasureScrollBar();
+        requestRelayout();
     }
 
     // Drops the height cache and the column-reflow tracking together (the cache previously

@@ -1020,6 +1020,46 @@ public class RXTileViewSkinTest {
         assertEquals(1, kept.size(), "the view itself is still reachable");
     }
 
+    /**
+     * Verifies a view switched to a new render scale lays out like one built at that scale
+     * within the same fixed width. The scroll bar measured at 1.25 reports 14.4 px, which
+     * snaps to 15 at 1.0 and takes the pixel the eighth column needs, unless the switch
+     * has the bar measure itself again.
+     */
+    @Test
+    public void scaleSwitchMeasuresTheScrollBarAgain() throws Exception {
+        onFx(() -> {
+            RXTileView<String> fresh = scaledTiles(8);
+            StackPane freshRoot = new StackPane(fresh);
+            Stage freshStage = new Stage();
+            freshStage.setScene(new Scene(freshRoot, 900, 180));
+            freshStage.setRenderScaleX(1.0);
+            pump(freshRoot);
+            double width = fresh.prefWidth(-1);
+            freshRoot.resize(width, 180);
+            pump(freshRoot);
+
+            RXTileView<String> switched = scaledTiles(8);
+            StackPane root = new StackPane(switched);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root, 900, 180));
+            stage.setRenderScaleX(1.25);
+            stage.setRenderScaleY(1.25);
+            root.resize(width, 180);
+            pump(root);
+            stage.setRenderScaleX(1.0);
+            stage.setRenderScaleY(1.0);
+            pump(root);
+            assertEquals(8, fresh.getActualColumnCount(), "setup: a view built at 1.0 fits eight columns");
+            assertEquals(scrollBarWidth(fresh), scrollBarWidth(switched), 1e-9, "the scroll bar breadth");
+            assertEquals(8, switched.getActualColumnCount(), "the switched view fits eight columns too");
+        });
+    }
+
+    private static double scrollBarWidth(Region view) {
+        return ((Region) view.lookup(".scroll-bar")).getWidth();
+    }
+
     private static RXTileView<String> scaledTiles(int columns) {
         RXTileView<String> view = tiles(200);
         view.setPrefTileWidth(60);

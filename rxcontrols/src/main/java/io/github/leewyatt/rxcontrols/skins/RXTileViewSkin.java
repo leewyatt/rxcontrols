@@ -182,9 +182,10 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         // The columns and the preferred width add up sizes snapped to the render scale.
         // Region re-lays out only the parent when snapToPixel changes, and nothing when
         // the scale does, so the control's cached preferred width would stay on the old
-        // grid; a layout request on the viewport reaches the control and clears it.
+        // grid; a layout request on the viewport reaches the control and clears it. A new
+        // scale also has the scroll bar measure its breadth again.
         disposer.registerListener(control.snapToPixelProperty(), this::requestLayoutPass);
-        RenderScaleWatch scaleWatch = new RenderScaleWatch(control, this::requestLayoutPass);
+        RenderScaleWatch scaleWatch = new RenderScaleWatch(control, this::onRenderScaleChanged);
         disposer.registerDisposeTask(scaleWatch::dispose);
         disposer.registerListener(control.vgapProperty(), this::requestLayoutPass);
         disposer.registerListener(control.itemsJustifyProperty(), this::requestLayoutPass);
@@ -221,6 +222,11 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     // requestLayout on the control alone would not re-run the viewport's layout.
     private void requestLayoutPass() {
         viewport.requestLayout();
+    }
+
+    private void onRenderScaleChanged() {
+        viewport.remeasureScrollBar();
+        requestLayoutPass();
     }
 
     private void onSectionsChanged() {
