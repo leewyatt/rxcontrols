@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.animation.page.*;
 import io.github.leewyatt.rxcontrols.carousel.DefaultNavigator;
+import io.github.leewyatt.rxcontrols.carousel.RXPageLifecycleEvent;
 import io.github.leewyatt.rxcontrols.DisplayMode;
 import io.github.leewyatt.rxcontrols.samples.support.PageAnimationPresets;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
@@ -21,6 +22,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Slider;
 import javafx.scene.control.Spinner;
@@ -44,11 +46,13 @@ import java.util.function.Supplier;
 
 /**
  * Comprehensive showcase of all CarouselFX features: animations, navigation,
- * playback, display modes, and more.
+ * playback, display modes, and a log of the page lifecycle events and the
+ * pageTransitioning flag as they happen.
  */
 public class RXCarouselShowcase extends RXShowcaseApplication {
 
     private static final double DEFAULT_ANIM_DURATION = 580;
+    private static final int LOG_LIMIT = 200;
     private static final int SCREENSHOT_COUNT = 10;
     private static final File SCREENSHOT_DIR = new File(".internal/test-screenshots");
 
@@ -115,13 +119,6 @@ public class RXCarouselShowcase extends RXShowcaseApplication {
         carousel.setPageCount(COLORS.length);
         carousel.setPageFactory(this::createColorPage);
 
-        carousel.setOnPageCached(e -> System.out.println("CACHED page index = " + e.getPageIndex()));
-        carousel.setOnPageOpening(e -> System.out.println("OPENING page index = " + e.getPageIndex()));
-        carousel.setOnPageOpened(e -> System.out.println("OPENED page index = " + e.getPageIndex()));
-        carousel.setOnPageClosing(e -> System.out.println("CLOSING page index = " + e.getPageIndex()));
-        carousel.setOnPageClosed(e -> System.out.println("CLOSED page index = " + e.getPageIndex()));
-        carousel.setOnPageEvicted(e -> System.out.println("EVICTED page index = " + e.getPageIndex()));
-
         return carousel;
     }
 
@@ -131,7 +128,8 @@ public class RXCarouselShowcase extends RXShowcaseApplication {
                 section("Animation (70+)", createAnimationSection()),
                 section("Navigation", createNavigationSection()),
                 section("Playback", createPlaybackSection()),
-                section("Display", createDisplaySection())
+                section("Display", createDisplaySection()),
+                section("Lifecycle", createLifecycleSection())
                 // , section("Screenshot", createScreenshotSection())
         );
     }
@@ -317,6 +315,40 @@ public class RXCarouselShowcase extends RXShowcaseApplication {
                 row("Navigator", navigatorCombo),
                 row("Cache", cacheCombo)
         );
+    }
+
+    private Node createLifecycleSection() {
+        ListView<String> log = new ListView<>();
+        log.setPrefHeight(180.0);
+        // Registered before the carousel's first CSS pass, so the first page's
+        // CACHED / OPENING / OPENED are logged too.
+        carousel.addEventHandler(RXPageLifecycleEvent.ANY, event -> appendLog(log,
+                eventName(event) + "  Page " + (event.getPageIndex() + 1)));
+        carousel.pageTransitioningProperty().addListener((obs, oldValue, newValue) ->
+                appendLog(log, "pageTransitioning = " + newValue));
+
+        Button clearButton = new Button("Clear log");
+        clearButton.setOnAction(e -> log.getItems().clear());
+
+        Label hint = new Label("Fast clicks complete each change's CLOSED / OPENED before the next "
+                + "CLOSING / OPENING; resizing the window during a guarded animation completes it.");
+        hint.getStyleClass().add("hint-label");
+        hint.setWrapText(true);
+
+        return new VBox(6, log, clearButton, hint);
+    }
+
+    private static void appendLog(ListView<String> log, String line) {
+        log.getItems().add(line);
+        if (log.getItems().size() > LOG_LIMIT) {
+            log.getItems().remove(0);
+        }
+        log.scrollTo(log.getItems().size() - 1);
+    }
+
+    private static String eventName(RXPageLifecycleEvent event) {
+        String name = event.getEventType().getName();
+        return name.substring(name.lastIndexOf('_') + 1);
     }
 
     // ---- Screenshot Section (Development-only: captures animation frames for visual debugging.)----

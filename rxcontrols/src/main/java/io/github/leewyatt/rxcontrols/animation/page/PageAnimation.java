@@ -22,9 +22,9 @@ public interface PageAnimation {
      * Creates the transition animation for a page change.
      *
      * <p>Implementations must leave the layout in its final state both when
-     * the returned animation finishes and when {@link #jumpToEnd()} is called,
-     * and should fire the lifecycle notifications on the context at the
-     * matching points of the animation timeline.</p>
+     * the returned animation finishes and when {@link #jumpToEnd()} is called.
+     * The host fires its own lifecycle events before the animation plays and
+     * after it ends; the animation does not report them.</p>
      *
      * @param context the context containing current/next pages, direction, duration, and content pane
      * @return a ready-to-play animation

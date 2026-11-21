@@ -9,6 +9,11 @@
     -fx-background-radius: 3px;
 }
 
+.control-pane .hint-label {
+    -fx-text-fill: -showcase-caption-color;
+    -fx-font-size: 12px;
+}
+
 .color-page-label {
     -fx-font-size: 36px;
     -fx-text-fill: white;

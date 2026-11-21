@@ -51,11 +51,31 @@ import java.util.List;
  * </ul>
  *
  * <p>The transition effect is controlled by the {@link #animationProperty() animation}
- * property, which accepts any {@link PageAnimation} implementation.</p>
+ * property, which accepts any {@link PageAnimation} implementation. The skin
+ * shows each page node inside a page node of its own (style class
+ * {@code page}, reached from a stylesheet as
+ * {@code .rx-carousel > .content-pane > .page}); animations move, fade and
+ * hide that wrapper, so a page keeps its own opacity, transforms, effect and
+ * visibility.</p>
+ *
+ * <p>Pages report their lifecycle with {@link RXPageLifecycleEvent}s, which
+ * the carousel fires at the same points of every page change whatever the
+ * animation, and which stop at the carousel. A page change requested while
+ * one is in progress, including from an event handler, is carried out once
+ * the current step has finished; a change made while a transition plays
+ * jumps it to its end first.</p>
  *
  * <p>While the carousel itself has keyboard focus, the Left and Right arrow keys
- * show the previous and next page. Arrow keys pressed while a node inside a page
- * has focus are left to that node and to focus traversal.</p>
+ * show the previous and next page; with a right-to-left orientation they are
+ * swapped, like the arrows. Arrow keys pressed while a node inside a page
+ * has focus are left to that node and to focus traversal. When the page
+ * being left holds the focus, the focus moves to the first focusable node of
+ * the page that shows, or to the carousel. As with {@code Pagination}, mouse
+ * events on the pages do not reach the carousel's parent.</p>
+ *
+ * <p>The carousel prefers 600 × 400 pixels plus its insets, whatever its
+ * pages; its minimum size is its insets and its maximum size is unbounded.
+ * Set a preferred size, or let the parent size it.</p>
  *
  * <pre>{@code
  * // Simple: fixed pages
@@ -522,12 +542,16 @@ public class RXCarousel extends Control {
             new SimpleIntegerProperty(this, "cacheDistance", -1);
 
     /**
-     * The number of pages to keep cached on each side of the current page.
+     * The number of pages to keep cached on each side of the current page,
+     * applied once a page change has settled.
      * <ul>
-     *   <li>{@code -1} (default): cache all pages, never evict</li>
+     *   <li>{@code -1} (default): no eviction by distance</li>
      *   <li>{@code 0}: only keep the current page</li>
      *   <li>{@code N}: keep the current page and N pages on each side (2N+1 total)</li>
      * </ul>
+     * Whatever the distance, {@link #clearPageCache()}, a new page factory and
+     * changes to the page list still evict pages, and the side pages a
+     * multi-page animation shows stay cached.
      *
      * @return the cache distance property
      */
@@ -633,8 +657,12 @@ public class RXCarousel extends Control {
     /**
      * Whether a page transition animation is currently playing (read-only).
      * This property is {@code true} from the moment a transition animation starts
-     * until it finishes (naturally or via interruption). It remains {@code false}
-     * during direct cuts ({@link #goToPage(int, boolean) goToPage(index, false)}).
+     * until it ends, naturally or by interruption, and turns {@code false}
+     * before the {@link RXPageLifecycleEvent#CLOSED CLOSED} and
+     * {@link RXPageLifecycleEvent#OPENED OPENED} events of that transition. An
+     * animation stopped from outside, for example by a resize guard, is
+     * completed on the next pulse. It remains {@code false} during direct cuts
+     * ({@link #goToPage(int, boolean) goToPage(index, false)}).
      *
      * <p>Typical usage — disable controls while animating:</p>
      * <pre>{@code
@@ -1166,8 +1194,9 @@ public class RXCarousel extends Control {
     // ==================== Page Cache ====================
 
     /**
-     * Clears the entire page cache. All cached page nodes will be removed and
-     * {@link RXPageLifecycleEvent#EVICTED} events will be fired.
+     * Clears the entire page cache: every cached page receives
+     * {@link RXPageLifecycleEvent#EVICTED}. The current page is closed first
+     * and then created again from the page factory and opened.
      */
     public void clearPageCache() {
         if (getSkin() instanceof RXCarouselSkin) {
@@ -1176,9 +1205,9 @@ public class RXCarousel extends Control {
     }
 
     /**
-     * Clears the cached page at the given index. A
-     * {@link RXPageLifecycleEvent#EVICTED} event will be fired if the page
-     * was cached.
+     * Clears the cached page at the given index: the page receives
+     * {@link RXPageLifecycleEvent#EVICTED} if it was cached. The current page
+     * is closed first and then created again from the page factory and opened.
      *
      * @param index the page index to clear
      */
