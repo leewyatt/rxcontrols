@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.layout;
 
 import io.github.leewyatt.rxcontrols.ItemsJustify;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.geometry.Insets;
@@ -13,7 +14,9 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -879,6 +882,86 @@ public class RXTilePaneTest {
 
             pane.setAnimated(false); // snaps in-flight glides to final
             assertFalse(anyTranslated(pane), "disabling animation mid-glide snaps every child");
+        });
+    }
+
+    @Test
+    public void boundTranslateChildSnapsWhileOthersGlide() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = filledPane(12);
+            pane.setPrefTileWidth(100);
+            pane.setAnimated(true);
+            new Scene(pane, 400, 400);
+            pane.applyCss();
+            layout(pane, 400, 400);
+            Region bound = (Region) pane.getChildren().get(5);
+            bound.translateXProperty().bind(new SimpleDoubleProperty(3.0));
+
+            pane.applyCss();
+            layout(pane, 600, 400); // reflow: must not throw "A bound value cannot be set"
+
+            assertEquals(3.0, bound.getTranslateX(), EPSILON, "binding left untouched");
+            assertTrue(pane.getChildren().stream().filter(n -> n != bound)
+                    .anyMatch(n -> Math.abs(n.getTranslateX()) > EPSILON
+                            || Math.abs(n.getTranslateY()) > EPSILON), "other children still glide");
+        });
+    }
+
+    @Test
+    public void resizeWithinColumnCountDoesNotGlide() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = filledPane(6);
+            pane.setPrefTileWidth(100);
+            pane.setMaxColumns(3);
+            pane.setItemsJustify(ItemsJustify.CENTER);
+            pane.setAnimated(true);
+            new Scene(pane, 400, 400);
+            pane.applyCss();
+            layout(pane, 400, 400);
+
+            layout(pane, 460, 400); // still 3 columns; centring shifts every tile
+            assertFalse(anyTranslated(pane), "a resize that keeps the column count applies immediately");
+
+            layout(pane, 250, 400); // 2 columns: tiles change row and column
+            assertTrue(anyTranslated(pane), "a column-count change still glides");
+        });
+    }
+
+    @Test
+    public void prefDrivenWidthChangeStillGlides() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = filledPane(6);
+            pane.setMaxColumns(3);
+            pane.setAnimated(true);
+            HBox parent = new HBox(pane);
+            new Scene(parent);
+            parent.applyCss();
+            layout(parent, 800, 400);
+
+            // A wider child widens every tile, so the pane's pref width grows with it.
+            ((Region) pane.getChildren().get(0)).setPrefWidth(140);
+            layout(parent, 800, 400);
+
+            assertTrue(anyTranslated(pane), "the tile-size change glides");
+        });
+    }
+
+    @Test
+    public void prefWidthBoundToParentResizesWithoutGliding() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = filledPane(6);
+            pane.setMaxColumns(3);
+            pane.setItemsJustify(ItemsJustify.CENTER);
+            pane.setAnimated(true);
+            StackPane parent = new StackPane(pane);
+            pane.prefWidthProperty().bind(parent.widthProperty());
+            new Scene(parent);
+            parent.applyCss();
+            layout(parent, 400, 400);
+
+            layout(parent, 460, 400); // still 3 columns; centring shifts every tile
+
+            assertFalse(anyTranslated(pane), "the resize applies immediately");
         });
     }
 

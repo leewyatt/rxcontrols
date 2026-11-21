@@ -37,6 +37,14 @@ import java.util.Set;
  * <p>A {@code null}, zero, negative, unknown or indefinite duration — or a
  * {@code null} interpolator — degrades an animated call to the snap path instead
  * of constructing a timeline that would throw inside a layout pass.</p>
+ *
+ * <p>Bound channels are never written, since setting a bound property throws: a
+ * relayout move whose node has a bound {@code translateX} or {@code translateY} is
+ * skipped (the node simply snaps), a fade whose node has a bound {@code opacity}
+ * becomes a pure glide, and an exit whose node has either bound completes at once
+ * without animating. Binding these properties while the node is animating is not
+ * supported: the running timeline keeps writing the node until the next pass drops
+ * it, though settling never writes a bound channel.</p>
  */
 final class PaneRelayoutAnimator {
 
@@ -81,6 +89,7 @@ final class PaneRelayoutAnimator {
      */
     void runRelayout(List<Move> moves, boolean animate, Duration duration, Interpolator interpolator) {
         animate = animate && isAnimatable(duration, interpolator);
+        moves = writableMoves(moves);
         Set<Node> passNodes = new HashSet<>();
         for (Move move : moves) {
             passNodes.add(move.node());
@@ -210,7 +219,8 @@ final class PaneRelayoutAnimator {
      */
     void runExit(Node node, boolean animate, Duration duration, Interpolator interpolator,
                  double exitTranslateY, Runnable onFinished) {
-        animate = animate && isAnimatable(duration, interpolator);
+        animate = animate && isAnimatable(duration, interpolator)
+                && !isTranslateBound(node) && !node.opacityProperty().isBound();
         // The exit takes ownership of this node's transforms away from any relayout.
         MoveState tracked = activeMoves.get(node);
         releaseFromRelayout(node);
@@ -222,12 +232,11 @@ final class PaneRelayoutAnimator {
             // Settle anything this animator wrote before detaching, since forget
             // will no longer see the node as tracked.
             if (tracked != null || existing != null) {
-                node.setTranslateX(0.0);
-                node.setTranslateY(0.0);
+                resetTranslate(node);
                 if (existing != null) {
-                    node.setOpacity(existing.baseOpacity());
+                    restoreOpacity(node, existing.baseOpacity());
                 } else if (tracked.fade()) {
-                    node.setOpacity(tracked.targetOpacity());
+                    restoreOpacity(node, tracked.targetOpacity());
                 }
             }
             onFinished.run();
@@ -291,12 +300,11 @@ final class PaneRelayoutAnimator {
         if (tracked == null && exit == null) {
             return;
         }
-        node.setTranslateX(0.0);
-        node.setTranslateY(0.0);
+        resetTranslate(node);
         if (tracked != null && tracked.fade()) {
-            node.setOpacity(tracked.targetOpacity());
+            restoreOpacity(node, tracked.targetOpacity());
         } else if (exit != null) {
-            node.setOpacity(exit.baseOpacity());
+            restoreOpacity(node, exit.baseOpacity());
         }
     }
 
@@ -311,6 +319,20 @@ final class PaneRelayoutAnimator {
      */
     boolean isTracked(Node node) {
         return activeMoves.containsKey(node);
+    }
+
+    /**
+     * Resubmits a tracked node at its live offset, so its in-flight tween keeps its
+     * clock while its end point follows the node's freshly written layout position.
+     * Does nothing for an untracked node. Used on passes that must not start motion.
+     *
+     * @param moves the pass's moves
+     * @param node  the node just laid out
+     */
+    void keepInFlight(List<Move> moves, Node node) {
+        if (isTracked(node)) {
+            moves.add(new Move(node, node.getTranslateX(), node.getTranslateY(), false));
+        }
     }
 
     /**
@@ -391,9 +413,8 @@ final class PaneRelayoutAnimator {
             return;
         }
         state.timeline().stop();
-        node.setTranslateX(0.0);
-        node.setTranslateY(0.0);
-        node.setOpacity(state.baseOpacity());
+        resetTranslate(node);
+        restoreOpacity(node, state.baseOpacity());
         state.onFinished().run();
     }
 
@@ -408,11 +429,55 @@ final class PaneRelayoutAnimator {
         if (exits.containsKey(node)) {
             return;
         }
-        node.setTranslateX(0.0);
-        node.setTranslateY(0.0);
+        resetTranslate(node);
         if (state.fade()) {
-            node.setOpacity(state.targetOpacity());
+            restoreOpacity(node, state.targetOpacity());
         }
+    }
+
+    // Settling skips a channel bound since the node was armed. Binding mid-animation
+    // is unsupported, but it must not make the settle throw inside a layout pass.
+    private static void resetTranslate(Node node) {
+        if (!node.translateXProperty().isBound()) {
+            node.setTranslateX(0.0);
+        }
+        if (!node.translateYProperty().isBound()) {
+            node.setTranslateY(0.0);
+        }
+    }
+
+    private static void restoreOpacity(Node node, double value) {
+        if (!node.opacityProperty().isBound()) {
+            node.setOpacity(value);
+        }
+    }
+
+    // Allocates only when a move has to be dropped or downgraded.
+    private static List<Move> writableMoves(List<Move> moves) {
+        List<Move> result = null;
+        for (int i = 0; i < moves.size(); i++) {
+            Move move = moves.get(i);
+            Node node = move.node();
+            boolean translateBound = isTranslateBound(node);
+            boolean opacityBound = move.fade() && node.opacityProperty().isBound();
+            if (!translateBound && !opacityBound) {
+                if (result != null) {
+                    result.add(move);
+                }
+                continue;
+            }
+            if (result == null) {
+                result = new ArrayList<>(moves.subList(0, i));
+            }
+            if (!translateBound) {
+                result.add(new Move(node, move.fromTranslateX(), move.fromTranslateY(), false));
+            }
+        }
+        return result == null ? moves : result;
+    }
+
+    private static boolean isTranslateBound(Node node) {
+        return node.translateXProperty().isBound() || node.translateYProperty().isBound();
     }
 
     private static boolean isAnimatable(Duration duration, Interpolator interpolator) {

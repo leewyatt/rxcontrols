@@ -26,7 +26,6 @@ import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.NodeOrientation;
-import javafx.geometry.Pos;
 import javafx.geometry.Side;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
@@ -43,7 +42,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.text.TextAlignment;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -79,6 +77,7 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
     private static final PseudoClass RIGHT_PSEUDO = PseudoClass.getPseudoClass("right");
 
     private static final PseudoClass SELECTED_PSEUDO = PseudoClass.getPseudoClass("selected");
+    private static final PseudoClass HAS_TEXT_PSEUDO = PseudoClass.getPseudoClass("has-text");
     private static final PseudoClass FIRST_PSEUDO = PseudoClass.getPseudoClass("first");
     private static final PseudoClass LAST_PSEUDO = PseudoClass.getPseudoClass("last");
     // The focus ring is drawn on the cell that holds the roving keyboard focus,
@@ -1272,6 +1271,9 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
             // width, so a wrapped label's second line is included in the header height.
             thick = Math.max(thick, vertical ? clampedWidth : cell.prefHeight(clampedWidth));
         }
+        if (vertical) {
+            thick += headerArea.snappedLeftInset() + headerArea.snappedRightInset();
+        }
         return Math.max(DEFAULT_HEADER_MIN_HEIGHT, thick);
     }
 
@@ -1563,21 +1565,21 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
             // Long labels wrap to a second line when the cell is width-constrained
             // (vertical sides, or a tabMaxWidth cap) rather than being truncated.
             label.setWrapText(true);
-            label.setTextAlignment(TextAlignment.CENTER);
             closeGraphic.getStyleClass().add("graphic");
             closeGraphic.setMouseTransparent(true);
             closeGraphic.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
             closeButton.getStyleClass().add("close-button");
+            closeButton.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
             closeButton.setGraphic(closeGraphic);
             closeButton.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
             // Not a keyboard focus stop (that would break the single-focus tablist);
             // close via mouse / accessibility action / Delete on the selected tab.
             closeButton.setFocusTraversable(false);
-            cellBox.setAlignment(Pos.CENTER);
+            cellBox.getStyleClass().add("container");
             cellBox.getChildren().setAll(label, closeButton);
             setContent(cellBox);
 
-            updateContentDisplay();
+            label.setContentDisplay(tab.getContentDisplay());
             updateLabel();
             updateTooltip();
             updateDisabledState();
@@ -1588,7 +1590,9 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
 
             cellDisposer.registerListener(tab.textProperty(), this::updateLabel);
             cellDisposer.registerListener(tab.graphicProperty(), this::updateLabel);
-            cellDisposer.registerListener(tab.contentDisplayProperty(), this::updateContentDisplay);
+            cellDisposer.registerListener(tab.contentDisplayProperty(),
+                    () -> label.setContentDisplay(tab.getContentDisplay()));
+            cellDisposer.registerListener(label.contentDisplayProperty(), this::updateTextState);
             cellDisposer.registerListener(tab.disableProperty(), this::updateDisabledState);
             cellDisposer.registerListener(tab.tooltipProperty(), this::updateTooltip);
             cellDisposer.registerListener(tab.contentProperty(), () -> onTabContentChanged(tab));
@@ -1617,10 +1621,12 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         private void updateLabel() {
             label.setText(tab.getText() == null ? "" : tab.getText());
             label.setGraphic(tab.getGraphic());
+            updateTextState();
         }
 
-        private void updateContentDisplay() {
-            label.setContentDisplay(tab.getContentDisplay());
+        private void updateTextState() {
+            pseudoClassStateChanged(HAS_TEXT_PSEUDO,
+                    !label.getText().isEmpty() && label.getContentDisplay() != ContentDisplay.GRAPHIC_ONLY);
         }
 
         private void updateDisabledState() {

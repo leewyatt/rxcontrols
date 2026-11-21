@@ -191,6 +191,7 @@ public class RXTilePane extends Pane {
     // Reuses the same FLIP relayout animator as RXMasonryPane (same package). All
     // children are real and persistent, so no recycler pin-set is needed.
     private final PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+    private final ResizeGate resizeGate = new ResizeGate();
     private boolean firstLayoutDone;
     // Children added after the first layout: they snap into their slot rather than
     // gliding in from the pane origin (no enter animation in V1).
@@ -202,6 +203,8 @@ public class RXTilePane extends Pane {
                 enteringNodes.addAll(change.getAddedSubList());
             }
             if (change.wasRemoved()) {
+                // The recorded structure would otherwise keep removed children alive.
+                resizeGate.reset();
                 for (Node removed : change.getRemoved()) {
                     enteringNodes.remove(removed);
                     animator.forget(removed);
@@ -221,6 +224,7 @@ public class RXTilePane extends Pane {
         sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene == null) {
                 animator.stopAll();
+                resizeGate.reset();
             }
         });
     }
@@ -828,8 +832,15 @@ public class RXTilePane extends Pane {
     /**
      * Whether existing children glide to their new positions after relayout. On
      * by default; turning it off mid-flight snaps every child to its final
-     * position. While enabled, the pane drives each child's {@code translateX} /
-     * {@code translateY} during the glide.
+     * position. A width change imposed by the parent that keeps the column count
+     * applies immediately, so dragging a window edge sideways never leaves children
+     * trailing; a glide already in flight keeps its clock while its target follows
+     * the resize. An explicit {@code prefWidth}, even one bound to the parent's width,
+     * counts as imposed by the parent; a width that follows the pane's own computed
+     * preferred width still glides. While enabled,
+     * the pane drives each child's {@code translateX} / {@code translateY} during the
+     * glide; a child with either one bound snaps instead. Binding them while the
+     * child is gliding is not supported.
      *
      * @return the animated property
      */
@@ -1130,7 +1141,16 @@ public class RXTilePane extends Pane {
         // no-op; skip the move bookkeeping entirely on this hot path.
         boolean collectMoves = animate || animator.hasActiveState();
         double baselineOffset = computeBaselineOffset(managed, tileAlignmentValue, tileWidth, tileHeight);
-        List<PaneRelayoutAnimator.Move> moves = null;
+        List<PaneRelayoutAnimator.Move> moves = collectMoves ? new ArrayList<>() : null;
+        // Recorded on every animated-pane pass, the first layout included, so the
+        // next pass always has a baseline to compare against.
+        boolean resizeOnly = false;
+        if (isAnimated()) {
+            resizeOnly = resizeGate.isResizeOnly(getWidth(), ownPrefWidth(),
+                    layoutStructure(columns, managed));
+        } else {
+            resizeGate.reset();
+        }
         for (int i = 0; i < managed.size(); i++) {
             Node child = managed.get(i);
             int column = i % columns;
@@ -1152,6 +1172,10 @@ public class RXTilePane extends Pane {
             if (!collectMoves) {
                 continue;
             }
+            if (resizeOnly) {
+                animator.keepInFlight(moves, child);
+                continue;
+            }
             double fromDx = enteringNodes.contains(child) ? 0.0 : oldVisualX - child.getLayoutX();
             double fromDy = enteringNodes.contains(child) ? 0.0 : oldVisualY - child.getLayoutY();
             // A node the animator still tracks stays submitted even when static
@@ -1159,18 +1183,31 @@ public class RXTilePane extends Pane {
             if (Math.abs(fromDx) >= PaneRelayoutAnimator.MOVE_EPSILON
                     || Math.abs(fromDy) >= PaneRelayoutAnimator.MOVE_EPSILON
                     || animator.isTracked(child)) {
-                if (moves == null) {
-                    moves = new ArrayList<>();
-                }
                 moves.add(new PaneRelayoutAnimator.Move(child, fromDx, fromDy, false));
             }
         }
         if (collectMoves) {
-            animator.runRelayout(moves == null ? List.of() : moves, animate,
-                    getAnimationDuration(), interpolatorOrDefault());
+            animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
         }
         enteringNodes.clear();
         firstLayoutDone = true;
+    }
+
+    // The preferred width the pane computes from its own inputs. An explicit prefWidth
+    // is left out: one bound to the parent's width follows a resize and must not
+    // count as the pane changing itself. Without one, prefWidth(-1) is the computed
+    // value and comes from the layout cache.
+    private double ownPrefWidth() {
+        return getPrefWidth() == USE_COMPUTED_SIZE ? prefWidth(-1.0) : computePrefWidth(-1.0);
+    }
+
+    // Column count plus the child sequence fix every child's row and column; tile size,
+    // gaps and justify offsets are left out, so a pure resize leaves it equal.
+    private static List<Object> layoutStructure(int columns, List<Node> managed) {
+        List<Object> structure = new ArrayList<>(managed.size() + 1);
+        structure.add(columns);
+        structure.addAll(managed);
+        return structure;
     }
 
     // ==================== Helpers ====================

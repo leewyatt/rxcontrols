@@ -113,6 +113,20 @@ public class RXTabPaneClosingTest {
         });
     }
 
+    @Test
+    public void closeButtonKeepsItsSquareSizeWhenTheTitleWraps() throws Exception {
+        runOnFx(() -> {
+            RXTabPane pane = new RXTabPane(tab("Application preferences"));
+            pane.setTabClosingPolicy(TabClosingPolicy.ALL_TABS);
+            pane.setTabMaxWidth(90.0);
+            laidOut(pane);
+
+            Button close = closeButton(pane, 0);
+            assertEquals(20.0, close.getWidth());
+            assertEquals(close.getWidth(), close.getHeight());
+        });
+    }
+
     // ==================== Close pipeline: happy path ====================
 
     @Test

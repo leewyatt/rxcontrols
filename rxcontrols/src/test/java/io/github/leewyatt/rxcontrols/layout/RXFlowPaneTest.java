@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.layout;
 
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -1236,6 +1237,45 @@ public class RXFlowPaneTest {
 
             pane.setAnimated(false); // snaps in-flight glides to final
             assertFalse(anyTranslated(pane), "disabling animation mid-glide snaps every child");
+        });
+    }
+
+    @Test
+    public void boundTranslateChildSnapsWhileOthersGlide() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = flowPane(10.0, 10.0, cards(6, 100.0, 40.0));
+            pane.setAnimated(true);
+            new Scene(pane, 340.0, 400.0);
+            pane.applyCss();
+            layout(pane, 340.0, 400.0);
+            Region bound = (Region) pane.getChildren().get(4);
+            bound.translateYProperty().bind(new SimpleDoubleProperty(3.0));
+
+            layout(pane, 560.0, 400.0); // reflow: must not throw "A bound value cannot be set"
+
+            assertClose(3.0, bound.getTranslateY(), "binding left untouched");
+            assertTrue(pane.getChildren().stream().filter(n -> n != bound)
+                    .anyMatch(n -> Math.abs(n.getTranslateX()) > EPSILON
+                            || Math.abs(n.getTranslateY()) > EPSILON), "other children still glide");
+        });
+    }
+
+    @Test
+    public void resizeWithoutReflowDoesNotGlideButGapChangeDoes() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = flowPane(10.0, 10.0, cards(3, 100.0, 40.0));
+            pane.setAlignment(Pos.TOP_CENTER);
+            pane.setAnimated(true);
+            new Scene(pane, 400.0, 400.0);
+            pane.applyCss();
+            layout(pane, 400.0, 400.0);
+
+            layout(pane, 460.0, 400.0); // one run either way; centring shifts every item
+            assertFalse(anyTranslated(pane), "a resize that keeps the runs applies immediately");
+
+            pane.setHgap(30.0);
+            layout(pane, 460.0, 400.0);
+            assertTrue(anyTranslated(pane), "a gap change at the same width still glides");
         });
     }
 
