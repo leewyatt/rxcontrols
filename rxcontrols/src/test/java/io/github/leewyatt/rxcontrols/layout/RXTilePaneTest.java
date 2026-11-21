@@ -907,6 +907,50 @@ public class RXTilePaneTest {
         });
     }
 
+    /**
+     * Verifies a pane laid out at its own preferred width shows its preferred column count
+     * at any render scale: 60 px tiles with the default gap sum with floating-point noise
+     * at 125%, and a 128.5 px tile snapped twice at 175% would need a device pixel more.
+     * The preferred height follows the rows actually laid out, and a width 0.01 px short of
+     * four columns still loses one.
+     */
+    @Test
+    public void ownPreferredWidthShowsThePreferredColumnsAtAnyScale() throws Exception {
+        onFx(() -> {
+            double[][] cases = {{1.0, 60.0}, {1.25, 60.0}, {1.5, 60.0}, {1.75, 128.5}, {2.0, 60.0}};
+            for (double[] scaleAndTile : cases) {
+                double scale = scaleAndTile[0];
+                RXTilePane pane = new RXTilePane();
+                pane.setPrefTileWidth(scaleAndTile[1]);
+                pane.setPrefColumns(4);
+                pane.setAnimated(false);
+                for (int i = 0; i < 8; i++) {
+                    pane.getChildren().add(card(50.0, 40.0));
+                }
+                HBox box = new HBox(pane);
+                Stage stage = new Stage();
+                stage.setScene(new Scene(box));
+                stage.setRenderScaleX(scale);
+                stage.setRenderScaleY(scale);
+                box.applyCss();
+                box.resize(1200.0, 400.0);
+                box.layout();
+                box.layout();
+                String at = "scale " + scale + ", tile " + scaleAndTile[1];
+
+                assertEquals(4, pane.getActualColumnCount(), at + ": columns at its own preferred width");
+                double twoRows = pane.snapSizeY(2 * 40.0 + pane.snapSpaceY(10.0));
+                assertEquals(twoRows, pane.prefHeight(pane.getWidth()), 1.0e-9, at + ": preferred height of two rows");
+
+                // Four slots and three gaps, each snapped once: the width four columns need.
+                double fourColumns = 4 * pane.snapSizeX(scaleAndTile[1]) + 3 * pane.snapSpaceX(10.0);
+                pane.resize(fourColumns - 0.01, 400.0);
+                pane.layout();
+                assertEquals(3, pane.getActualColumnCount(), at + ": a row 0.01 px short loses a column");
+            }
+        });
+    }
+
     @Test
     public void resizeWithinColumnCountDoesNotGlide() throws Exception {
         onFx(() -> {

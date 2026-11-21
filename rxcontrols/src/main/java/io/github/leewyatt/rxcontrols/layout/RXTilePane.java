@@ -1215,13 +1215,23 @@ public class RXTilePane extends Pane {
 
     // ==================== Helpers ====================
 
+    // tileWidth is the snapped slot width the tiles are laid out with (nominalTileWidth()).
+    // Snapping it again can add a device pixel at a fractional render scale (175% turns
+    // 128.571 into 129.143), so the count would disagree with the slots it lays out.
     private int computeColumns(double availableWidth, double tileWidth) {
-        double track = snapSizeX(tileWidth);
         double gap = snapSpaceX(gapOrZero(getHgap()));
-        int columns = (availableWidth <= 0.0 || track <= 0.0)
-                ? 1
-                : (int) Math.floor((availableWidth + gap) / (track + gap));
-        columns = Math.max(1, columns);
+        int columns = 1;
+        if (availableWidth > 0.0 && tileWidth > 0.0) {
+            columns = Math.max(1, (int) Math.floor((availableWidth + gap) / (tileWidth + gap)));
+            // The division carries floating-point noise at a fractional render scale: a row
+            // that exactly fits must keep its last column, and one a fraction of a pixel too
+            // wide must still lose it. The candidate rows are summed like computePrefWidth.
+            if (!PixelGrid.exceedsX(this, rowWidth(columns + 1, tileWidth, gap), availableWidth)) {
+                columns++;
+            } else if (columns > 1 && PixelGrid.exceedsX(this, rowWidth(columns, tileWidth, gap), availableWidth)) {
+                columns--;
+            }
+        }
         int max = getMaxColumns();
         if (max > 0 && columns > max) {
             columns = max;
