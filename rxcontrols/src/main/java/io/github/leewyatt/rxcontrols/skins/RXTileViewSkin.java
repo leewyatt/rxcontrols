@@ -125,6 +125,9 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         super(control);
 
         viewport = new RXTileViewport<>(control);
+        // The viewport places the tiles and this skin counts the columns; both must snap,
+        // or not snap, alike, so the viewport follows the control's setting.
+        disposer.registerBinding(viewport.snapToPixelProperty(), control.snapToPixelProperty());
         getChildren().add(viewport);
 
         placeholderRegion = new StackPane();

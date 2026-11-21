@@ -1056,6 +1056,54 @@ public class RXTileViewSkinTest {
         });
     }
 
+    /**
+     * Verifies a view that does not snap to pixels places its tiles with the unsnapped
+     * widths its columns were counted with, clear of the scroll bar. At 1.25, tiles of
+     * 60.1 px and a 9.4 px gap snap to 60.8 and 9.6: a viewport still snapping them put
+     * the eighth tile under the bar. Checked at every render scale, with snapping off
+     * from the start and turned off after a layout.
+     */
+    @Test
+    public void unsnappedViewKeepsItsTilesClearOfTheScrollBar() throws Exception {
+        onFx(() -> {
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                for (boolean fromTheStart : new boolean[] {true, false}) {
+                    String at = "scale " + scale + (fromTheStart ? ", off from the start" : ", turned off after a layout");
+                    RXTileView<String> view = tiles(200);
+                    view.setPrefTileWidth(60.1);
+                    view.setPrefTileHeight(40);
+                    view.setHgap(9.4);
+                    view.setPrefColumns(8);
+                    if (fromTheStart) {
+                        view.setSnapToPixel(false);
+                    }
+                    HBox root = new HBox(view);
+                    Stage stage = new Stage();
+                    stage.setScene(new Scene(root, 900, 180));
+                    stage.setRenderScaleX(scale);
+                    settle(root, 180);
+                    if (!fromTheStart) {
+                        view.setSnapToPixel(false);
+                        settle(root, 170);
+                    }
+                    List<RXTileCell<?>> row = rowCells(view, 0);
+                    assertEquals(8, view.getActualColumnCount(), at + ": the preferred width fits eight columns");
+                    assertEquals(8, row.size(), at + ": the first row is full");
+                    RXTileCell<?> last = row.get(7);
+                    Region bar = (Region) view.lookup(".scroll-bar");
+                    double tileRight = last.localToScene(last.getBoundsInLocal()).getMaxX();
+                    double barLeft = bar.localToScene(bar.getBoundsInLocal()).getMinX();
+                    // Scene bounds carry float precision.
+                    assertTrue(tileRight <= barLeft + 1e-3,
+                            at + ": last tile ends at " + tileRight + ", bar starts at " + barLeft);
+                    assertEquals(60.1, last.getWidth(), 1e-9, at + ": tile width is not snapped");
+                    assertEquals(69.5, row.get(1).getLayoutX() - row.get(0).getLayoutX(), 1e-9,
+                            at + ": the step is not snapped");
+                }
+            }
+        });
+    }
+
     private static double scrollBarWidth(Region view) {
         return ((Region) view.lookup(".scroll-bar")).getWidth();
     }
