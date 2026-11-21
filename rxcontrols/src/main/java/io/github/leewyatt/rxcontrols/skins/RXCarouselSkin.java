@@ -87,7 +87,8 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     private CarouselNavigator installedNavigator;
     // The carousel's navigator is to be created once the page update ends.
     private boolean navigatorCreationPending;
-    // createNode is running: the navigator hears of the pages once its node is up.
+    // createNode is running or its node is joining the carousel: the
+    // navigator hears of the pages once its node is up.
     private boolean creatingNavigator;
     // A change of the pages the navigator is still to hear of: it is told
     // once the count, the factory and the selected index are consistent.
@@ -1391,23 +1392,25 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         // Recorded before createNode: should its code remove this skin, the
         // navigator may hold resources already, and the skin disposes it.
         installedNavigator = current;
-        Node node;
+        // Held until the node is up: listeners of the node run application
+        // code while it joins the carousel too.
         creatingNavigator = true;
         try {
-            node = current.createNode(carousel);
-        } finally {
-            creatingNavigator = false;
-        }
-        // Code the navigator ran may have disposed this skin or replaced
-        // the navigator; the node then has no place here.
-        if (node != null && !disposed && carousel.getNavigator() == current) {
+            Node node = current.createNode(carousel);
+            // Code the navigator ran may have disposed this skin or replaced
+            // the navigator; the node then has no place here.
+            if (node == null || disposed || carousel.getNavigator() != current) {
+                return;
+            }
             navigatorNode = node;
             navigatorNode.addEventHandler(MouseEvent.MOUSE_CLICKED, navigatorFocusHandler);
             getChildren().add(navigatorNode);
             updateNavigatorVisibility(carousel);
-            navigatorRefreshPending = true;
-            refreshNavigator(carousel);
+        } finally {
+            creatingNavigator = false;
         }
+        navigatorRefreshPending = true;
+        refreshNavigator(carousel);
     }
 
     private void updateNavigatorVisibility(RXCarousel carousel) {

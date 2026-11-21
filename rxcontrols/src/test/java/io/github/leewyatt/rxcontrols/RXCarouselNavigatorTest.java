@@ -19,6 +19,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -208,6 +209,32 @@ public class RXCarouselNavigatorTest {
     }
 
     @Test
+    public void navigatorWhoseNodeWritesAKeyAsItJoinsTheSceneHearsOnce() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = new RXCarousel();
+            carousel.setPages(new Label("old0"));
+            layOut(carousel);
+            ReadingNavigator navigator = new ReadingNavigator();
+            boolean[] armed = {true};
+            carousel.pageCountProperty().addListener((observable, was, is) -> {
+                if (armed[0]) {
+                    armed[0] = false;
+                    carousel.setNavigator(navigator);
+                }
+            });
+            navigator.onNode = node -> node.sceneProperty().addListener((observable, was, is) -> {
+                if (is != null) {
+                    carousel.getProperties().put("app-scene", is);
+                }
+            });
+
+            carousel.setPages(labels("new", 2));
+
+            assertEquals(List.of("-1->0/2[new0, new1]"), navigator.calls);
+        });
+    }
+
+    @Test
     public void navigatorReplacedWhileTheOldNodeLeavesIsMounted() throws Exception {
         onFx(() -> {
             RXCarousel carousel = new RXCarousel();
@@ -370,6 +397,9 @@ public class RXCarouselNavigatorTest {
         };
         Runnable onDispose = () -> {
         };
+        // Application code run on the node before it is returned.
+        Consumer<Node> onNode = node -> {
+        };
         private RXCarousel carousel;
 
         @Override
@@ -383,6 +413,7 @@ public class RXCarouselNavigatorTest {
                 created.add(seen.toString());
             }
             node = new StackPane();
+            onNode.accept(node);
             return node;
         }
 
