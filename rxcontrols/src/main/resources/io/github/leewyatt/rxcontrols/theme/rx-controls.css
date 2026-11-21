@@ -3423,6 +3423,24 @@
     -fx-background-color: -rx-primary-bg;
 }
 
+.rx-tab-pane > .header > .tab > .container {
+    -fx-alignment: center;
+}
+
+.rx-tab-pane:left > .header > .tab:has-text > .container,
+.rx-tab-pane:right > .header > .tab:has-text > .container {
+    -fx-alignment: center-left;
+}
+
+.rx-tab-pane > .header > .tab > .container > .label {
+    -fx-text-alignment: center;
+}
+
+.rx-tab-pane:left > .header > .tab > .container > .label,
+.rx-tab-pane:right > .header > .tab > .container > .label {
+    -fx-text-alignment: left;
+}
+
 .rx-tab-pane > .header > .tab .label {
     -fx-text-fill: -rx-on-surface-secondary;
 }
