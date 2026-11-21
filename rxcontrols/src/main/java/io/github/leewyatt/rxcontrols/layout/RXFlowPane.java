@@ -232,6 +232,9 @@ public class RXFlowPane extends Pane {
     public RXFlowPane() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         getChildren().addListener(childrenListener);
+        // Region only re-lays out the parent on a snapToPixel change, and the runs are
+        // cached per wrap length, so without this they would keep the old snapped sizes.
+        snapToPixelProperty().addListener((obs, oldValue, newValue) -> requestLayout());
         sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene == null) {
                 animator.stopAll();

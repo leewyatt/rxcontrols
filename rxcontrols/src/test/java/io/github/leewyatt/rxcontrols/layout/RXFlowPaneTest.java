@@ -758,6 +758,27 @@ public class RXFlowPaneTest {
     }
 
     /**
+     * Verifies turning snapToPixel off rebuilds the cached runs and the pane's own layout:
+     * Region only requests the parent's layout on that change.
+     */
+    @Test
+    public void snapToPixelChangeRebuildsRuns() {
+        Region first = card(10.2, 10.0);
+        Region second = card(10.2, 10.0);
+        RXFlowPane pane = flowPane(0.0, 0.0, first, second);
+        layout(pane, 21.0, 100.0);
+        // Snapped, each card takes 11: 22 overflows 21, so the second wraps.
+        assertClose(10.0, second.getLayoutY(), "snapped: second card wraps");
+
+        pane.setSnapToPixel(false);
+        pane.layout();
+        // Unsnapped, 10.2 + 10.2 fits 21.
+        assertClose(0.0, second.getLayoutY(), "unsnapped: second card back on the first run");
+        assertClose(10.2, second.getLayoutX(), "unsnapped: second card x");
+        assertClose(10.0, pane.prefHeight(21.0), "preferred height follows the rebuilt runs");
+    }
+
+    /**
      * Verifies changing rowHalignment re-applies on the next layout (alignment
      * is never baked into the cached runs).
      */
