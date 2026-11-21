@@ -104,11 +104,10 @@ import java.util.Set;
  * <p>The default {@code alignment} is {@link Pos#TOP_LEFT}, matching {@code FlowPane} and
  * the wider JavaFX layout convention: at its defaults an RXFlowPane aligns runs and items
  * like a {@code FlowPane} (the last-run fix is a no-op until the block leaves the leading
- * edge). To
- * see the fix, center the block on the flow's main axis — {@code alignment = TOP_CENTER} for
- * a horizontal flow, {@code alignment = CENTER_LEFT} for a vertical one — while keeping the
- * run-within-block alignment at the leading edge ({@code rowHalignment = LEFT} /
- * {@code columnValignment = TOP}, the defaults).</p>
+ * edge). To see the fix, center the block on the flow's main axis —
+ * {@code alignment = TOP_CENTER} for a horizontal flow, {@code alignment = CENTER_LEFT} for
+ * a vertical one — while keeping the run-within-block alignment at the leading edge
+ * ({@code rowHalignment = LEFT} / {@code columnValignment = TOP}, the defaults).</p>
  *
  * <h2>Other behavior</h2>
  *
