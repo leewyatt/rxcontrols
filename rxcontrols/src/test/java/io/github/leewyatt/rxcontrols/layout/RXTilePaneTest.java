@@ -975,6 +975,85 @@ public class RXTilePaneTest {
         });
     }
 
+    /**
+     * Verifies a change of the horizontal render scale alone re-measures a settled pane:
+     * the slot width snapped at 125% (60.8) is snapped again at 200% (60.5), so four
+     * slots fit 242 px, and the cached prefWidth(-1) follows.
+     */
+    @Test
+    public void horizontalRenderScaleChangeRemeasuresTheSlots() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = renderScaledPane();
+            Stage stage = stageFor(pane, 1.25);
+            pane.applyCss();
+            layoutUntilClean(pane, 240.0, 120.0);
+            assertEquals(3, pane.getActualColumnCount(), "setup: 60.8 px slots, three in 240 px");
+            assertEquals(pane.snapSizeX(3 * pane.snapSizeX(60.3)), pane.prefWidth(-1.0), 1.0e-9,
+                    "setup: cached preferred width at 125% (60.8 px slots)");
+
+            stage.setRenderScaleX(2.0);
+            pane.resize(242.0, 120.0);
+            pane.layout();
+            Node fourth = pane.getChildren().get(3);
+            assertEquals(4, pane.getActualColumnCount(), "four 60.5 px slots fit 242 px");
+            assertEquals(181.5, fourth.getLayoutX(), 1.0e-9, "the fourth tile stays on the first row (x)");
+            assertEquals(0.0, fourth.getLayoutY(), 1.0e-9, "the fourth tile stays on the first row (y)");
+            assertEquals(40.0, pane.prefHeight(242.0), 1.0e-9, "one row high at 242 px");
+            assertEquals(pane.snapSizeX(3 * pane.snapSizeX(60.3)), pane.prefWidth(-1.0), 1.0e-9,
+                    "the cached preferred width is measured again (60.5 px slots)");
+            assertEquals(181.5, pane.prefWidth(-1.0), 1.0e-9, "three 60.5 px slots");
+        });
+    }
+
+    /**
+     * Verifies a change of the vertical render scale alone re-measures a settled pane: the
+     * slot height snapped at 125% (40.8) is snapped again at 200% (40.5), and the cached
+     * prefHeight(-1) follows.
+     */
+    @Test
+    public void verticalRenderScaleChangeRemeasuresTheSlots() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = renderScaledPane();
+            pane.setPrefTileHeight(40.3);
+            pane.setVgap(0.0);
+            Stage stage = stageFor(pane, 1.25);
+            pane.applyCss();
+            layoutUntilClean(pane, 240.0, 120.0);
+            // Three columns of the default preferred width: four tiles take two rows.
+            assertEquals(pane.snapSizeY(2 * pane.snapSizeY(40.3)), pane.prefHeight(-1.0), 1.0e-9,
+                    "setup: cached preferred height at 125% (40.8 px slots)");
+
+            stage.setRenderScaleY(2.0);
+            pane.layout();
+            Node fourth = pane.getChildren().get(3);
+            assertEquals(40.5, fourth.getLayoutY(), 1.0e-9, "the second row starts one 40.5 px slot down");
+            assertEquals(81.0, pane.prefHeight(-1.0), 1.0e-9, "the cached preferred height is measured again (2 x 40.5)");
+        });
+    }
+
+    // Four 50 x 30 rectangles in 60.3 x 40 slots without gaps, pinned top-left.
+    private static RXTilePane renderScaledPane() {
+        RXTilePane pane = new RXTilePane();
+        pane.setPrefTileWidth(60.3);
+        pane.setPrefTileHeight(40.0);
+        pane.setHgap(0.0);
+        pane.setTileAlignment(Pos.TOP_LEFT);
+        pane.setAnimated(false);
+        for (int i = 0; i < 4; i++) {
+            pane.getChildren().add(new Rectangle(50.0, 30.0));
+        }
+        return pane;
+    }
+
+    // The stage is never shown: it only supplies the render scale the pane snaps to.
+    private static Stage stageFor(Region pane, double scale) {
+        Stage stage = new Stage();
+        stage.setScene(new Scene(new StackPane(pane)));
+        stage.setRenderScaleX(scale);
+        stage.setRenderScaleY(scale);
+        return stage;
+    }
+
     @Test
     public void resizeWithinColumnCountDoesNotGlide() throws Exception {
         onFx(() -> {
