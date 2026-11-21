@@ -221,6 +221,9 @@ public class RXTilePane extends Pane {
     public RXTilePane() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         getChildren().addListener(childrenListener);
+        // Region only re-lays out the parent on a snapToPixel change, and the tile size is
+        // cached snapped, so without this the tiles would keep the old snapped size.
+        snapToPixelProperty().addListener((obs, oldValue, newValue) -> requestLayout());
         sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene == null) {
                 animator.stopAll();

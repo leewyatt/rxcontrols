@@ -951,6 +951,30 @@ public class RXTilePaneTest {
         });
     }
 
+    /**
+     * Verifies turning snapToPixel off re-measures the tiles from a settled pane: Region
+     * only requests the parent's layout on that change.
+     */
+    @Test
+    public void snapToPixelChangeRemeasuresTheTiles() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = new RXTilePane(fixedCard(10.2, 10.0), fixedCard(10.2, 10.0));
+            pane.setHgap(0.0);
+            pane.setAnimated(false);
+            new Scene(new StackPane(pane));
+            pane.applyCss();
+            layoutUntilClean(pane, 21.0, 100.0);
+            // Snapped, each tile takes 11: two do not fit 21.
+            assertEquals(1, pane.getActualColumnCount(), "snapped: one column");
+
+            pane.setSnapToPixel(false);
+            pane.layout();
+            // Unsnapped, 10.2 + 10.2 fits 21.
+            assertEquals(2, pane.getActualColumnCount(), "unsnapped: two columns");
+            assertEquals(10.0, pane.prefHeight(21.0), 1.0e-9, "preferred height of one row");
+        });
+    }
+
     @Test
     public void resizeWithinColumnCountDoesNotGlide() throws Exception {
         onFx(() -> {
@@ -1194,6 +1218,25 @@ public class RXTilePaneTest {
                 .filter(scrollBar -> scrollBar.getOrientation() == orientation)
                 .findFirst()
                 .orElseThrow();
+    }
+
+    // A card that keeps its preferred size, so the tile size is what is measured.
+    private static Region fixedCard(double width, double height) {
+        Region region = new Region();
+        region.setPrefSize(width, height);
+        region.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        region.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return region;
+    }
+
+    // Lays the pane out until it is clean, so a later change alone decides whether it
+    // lays out again.
+    private static void layoutUntilClean(Region region, double width, double height) {
+        region.resize(width, height);
+        for (int i = 0; i < 5 && (i == 0 || region.isNeedsLayout()); i++) {
+            region.layout();
+        }
+        assertFalse(region.isNeedsLayout(), "setup: the pane settles");
     }
 
     private static Region card() {
