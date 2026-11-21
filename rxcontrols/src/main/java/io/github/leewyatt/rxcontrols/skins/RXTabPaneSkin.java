@@ -475,8 +475,7 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         // two-page view of this swap; the page provider maps those indices to the wrappers.
         TransitionContext context = new TransitionContext(oldWrapper, newWrapper, 0, 1, CONTENT_PAGE_COUNT,
                 direction, control.getAnimationDuration(), contentRegion,
-                index -> index == 0 ? oldWrapper : newWrapper,
-                TransitionContext.LifecycleCallback.NOOP);
+                index -> index == 0 ? oldWrapper : newWrapper);
 
         contentEngine.play(control.getContentAnimation(), context,
                 () -> {

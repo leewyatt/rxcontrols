@@ -5,7 +5,6 @@ import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;
-import javafx.animation.PauseTransition;
 import javafx.animation.ScaleTransition;
 import javafx.animation.SequentialTransition;
 import javafx.animation.TranslateTransition;
@@ -327,15 +326,7 @@ public class AnimAround extends PageAnimationBase {
 
         // ===== Assemble timeline =====
 
-        // Fire events at start
-        PauseTransition startPause = new PauseTransition(Duration.ZERO);
-        startPause.setOnFinished(e -> {
-            context.fireClosing(context.getCurrentIndex());
-            context.fireOpening(context.getNextIndex());
-        });
-
         SequentialTransition animation = new SequentialTransition();
-        animation.getChildren().add(startPause);
         if (zoomOutAnim != null) {
             animation.getChildren().add(zoomOutAnim);
         }
@@ -344,11 +335,7 @@ public class AnimAround extends PageAnimationBase {
             animation.getChildren().add(zoomInAnim);
         }
 
-        animation.setOnFinished(e -> {
-            finish.run();
-            context.fireClosed(context.getCurrentIndex());
-            context.fireOpened(context.getNextIndex());
-        });
+        animation.setOnFinished(e -> finish.run());
 
         setCurrentAnimation(animation);
         return animation;

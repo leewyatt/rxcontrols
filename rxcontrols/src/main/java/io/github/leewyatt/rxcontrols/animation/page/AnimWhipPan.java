@@ -174,9 +174,6 @@ public class AnimWhipPan extends PageAnimationBase {
         };
         setFinishAction(finish);
 
-        context.fireClosing(context.getCurrentIndex());
-        context.fireOpening(context.getNextIndex());
-
         progress.addListener((obs, oldVal, newVal) -> updatePositions.run());
         // Apply p=0 state before first render frame to prevent nextPage flicker
         updatePositions.run();
@@ -194,11 +191,7 @@ public class AnimWhipPan extends PageAnimationBase {
                 new KeyFrame(duration, new KeyValue(progress, 1.0, interpolator))
         );
 
-        timeline.setOnFinished(e -> {
-            finish.run();
-            context.fireClosed(context.getCurrentIndex());
-            context.fireOpened(context.getNextIndex());
-        });
+        timeline.setOnFinished(e -> finish.run());
 
         setCurrentAnimation(timeline);
         return timeline;

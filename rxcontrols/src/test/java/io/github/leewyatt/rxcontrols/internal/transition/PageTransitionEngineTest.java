@@ -63,7 +63,7 @@ public class PageTransitionEngineTest {
         final Region next = new Region();
         final TransitionContext context = new TransitionContext(current, next, 0, 1, 2,
                 TransitionDirection.FORWARD, LENGTH, contentPane,
-                index -> index == 0 ? current : next, TransitionContext.LifecycleCallback.NOOP);
+                index -> index == 0 ? current : next);
 
         RecordingAnimation play(Duration length) {
             return play(length, "");

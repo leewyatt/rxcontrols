@@ -19,8 +19,6 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
@@ -34,10 +32,10 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link AnimFlip}: the lifecycle event order shared with the other page
- * transitions, the page swap at the middle, the direction and perspective of the
- * turn, restoring the pages and their own effects on every end path, pages that do
- * not fill the pane or draw past their bounds, invalid settings, and reuse.
+ * Tests for {@link AnimFlip}: the page swap at the middle, the direction and
+ * perspective of the turn, restoring the pages and their own effects on every end
+ * path, pages that do not fill the pane or draw past their bounds, invalid
+ * settings, and reuse.
  */
 public class AnimFlipTest {
 
@@ -56,13 +54,11 @@ public class AnimFlipTest {
         }
     }
 
-    /** Pages and a content pane laid out by hand, plus the events the flip fires. */
+    /** Pages and a content pane laid out by hand. */
     private static final class Fixture {
         final StackPane contentPane = new StackPane();
         final Region current = new Region();
         final Region next = new Region();
-        final List<String> events = new ArrayList<>();
-        final TransitionContext.LifecycleCallback callback;
         final TransitionContext context;
 
         Fixture(double pageWidth, double pageHeight) {
@@ -74,32 +70,11 @@ public class AnimFlipTest {
             contentPane.resize(400.0, 300.0);
             current.resize(pageWidth, pageHeight);
             next.resize(pageWidth, pageHeight);
-            callback = new TransitionContext.LifecycleCallback() {
-                        @Override
-                        public void fireOpening(int pageIndex) {
-                            events.add("opening " + pageIndex);
-                        }
-
-                        @Override
-                        public void fireOpened(int pageIndex) {
-                            events.add("opened " + pageIndex);
-                        }
-
-                        @Override
-                        public void fireClosing(int pageIndex) {
-                            events.add("closing " + pageIndex);
-                        }
-
-                        @Override
-                        public void fireClosed(int pageIndex) {
-                            events.add("closed " + pageIndex);
-                        }
-                    };
             context = contextFor(current, next, direction);
         }
 
         TransitionContext contextFor(Region from, Region to, TransitionDirection direction) {
-            return new TransitionContext(from, to, 0, 1, 2, direction, DURATION, contentPane, index -> null, callback);
+            return new TransitionContext(from, to, 0, 1, 2, direction, DURATION, contentPane, index -> null);
         }
     }
 
@@ -118,23 +93,7 @@ public class AnimFlipTest {
     }
 
     @Test
-    public void closingAndOpeningFireAtTheStartAndClosedAndOpenedAtTheEnd() throws Exception {
-        Fixture fixture = new Fixture(400.0, 300.0);
-        CountDownLatch finished = new CountDownLatch(1);
-        List<String> atStart = onFx(() -> {
-            Animation animation = new AnimFlip().getAnimation(fixture.context);
-            List<String> snapshot = new ArrayList<>(fixture.events);
-            runAfterFinish(animation, finished::countDown);
-            animation.play();
-            return snapshot;
-        });
-        assertEquals(List.of("closing 0", "opening 1"), atStart);
-        assertTrue(finished.await(5, TimeUnit.SECONDS), "the flip did not finish");
-        assertEquals(List.of("closing 0", "opening 1", "closed 0", "opened 1"), onFx(() -> List.copyOf(fixture.events)));
-    }
-
-    @Test
-    public void passingTheMiddleSwapsThePagesWithoutFiringEvents() throws Exception {
+    public void passingTheMiddleSwapsThePages() throws Exception {
         Fixture fixture = new Fixture(400.0, 300.0);
         boolean[] visible = onFx(() -> {
             Animation animation = new AnimFlip().getAnimation(fixture.context);
@@ -152,7 +111,6 @@ public class AnimFlipTest {
         assertFalse(visible[1], "the next page shows before the middle");
         assertFalse(visible[2], "the current page still shows after the middle");
         assertTrue(visible[3], "the next page does not show after the middle");
-        assertEquals(List.of("closing 0", "opening 1"), onFx(() -> List.copyOf(fixture.events)));
     }
 
     @Test
@@ -186,7 +144,7 @@ public class AnimFlipTest {
     }
 
     @Test
-    public void jumpToEndRestoresBothPagesAndFiresNothingMore() throws Exception {
+    public void jumpToEndRestoresBothPages() throws Exception {
         Fixture fixture = new Fixture(400.0, 300.0);
         onFx(() -> {
             AnimFlip flip = new AnimFlip(Orientation.VERTICAL);
@@ -201,7 +159,6 @@ public class AnimFlipTest {
         assertNull(fixture.next.getEffect());
         assertFalse(fixture.current.isVisible());
         assertTrue(fixture.next.isVisible());
-        assertEquals(List.of("closing 0", "opening 1"), onFx(() -> List.copyOf(fixture.events)));
     }
 
     @Test

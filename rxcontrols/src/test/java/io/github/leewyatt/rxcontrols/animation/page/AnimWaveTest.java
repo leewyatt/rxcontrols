@@ -267,7 +267,7 @@ public class AnimWaveTest {
                                                     StackPane pane, double durationMillis) {
         return new TransitionContext(current, next, 0, 1, 2,
                 TransitionDirection.FORWARD, Duration.millis(durationMillis),
-                pane, index -> null, TransitionContext.LifecycleCallback.NOOP);
+                pane, index -> null);
     }
 
     /**

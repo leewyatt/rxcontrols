@@ -87,7 +87,7 @@ public class AnimAccordionTest {
             TransitionContext ctx = new TransitionContext(
                     current, next, 0, 1, 2,
                     TransitionDirection.FORWARD, Duration.millis(1000.0),
-                    contentPane, index -> null, TransitionContext.LifecycleCallback.NOOP);
+                    contentPane, index -> null);
             Animation animation = anim.getAnimation(ctx);
             animation.play();
             animRef.set(animation);

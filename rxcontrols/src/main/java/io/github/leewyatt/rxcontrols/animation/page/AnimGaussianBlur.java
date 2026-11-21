@@ -104,9 +104,6 @@ public class AnimGaussianBlur extends PageAnimationBase {
         };
         setFinishAction(finish);
 
-        context.fireClosing(context.getCurrentIndex());
-        context.fireOpening(context.getNextIndex());
-
         List<KeyValue> startValues = new ArrayList<>();
         List<KeyValue> endValues = new ArrayList<>();
 
@@ -128,11 +125,7 @@ public class AnimGaussianBlur extends PageAnimationBase {
                 new KeyFrame(duration, endValues.toArray(new KeyValue[0]))
         );
 
-        timeline.setOnFinished(e -> {
-            finish.run();
-            context.fireClosed(context.getCurrentIndex());
-            context.fireOpened(context.getNextIndex());
-        });
+        timeline.setOnFinished(e -> finish.run());
 
         setCurrentAnimation(timeline);
         return timeline;

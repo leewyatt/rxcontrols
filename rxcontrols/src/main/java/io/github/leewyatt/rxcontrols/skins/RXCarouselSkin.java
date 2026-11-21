@@ -1186,8 +1186,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                         attachHidden(page);
                     }
                     return page.wrapper;
-                },
-                TransitionContext.LifecycleCallback.NOOP);
+                });
     }
 
     // ==================== Lifecycle Events ====================

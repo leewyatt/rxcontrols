@@ -119,14 +119,10 @@ public class AnimSlideIn extends PageAnimationBase {
         blur.setRadius(blurRadius);
         nextPage.setEffect(blur);
 
-        context.fireClosing(context.getCurrentIndex());
-        context.fireOpening(context.getNextIndex());
-
         // Instantly hide current page
         if (currentPage != null) {
             currentPage.setVisible(false);
         }
-        context.fireClosed(context.getCurrentIndex());
 
         Timeline timeline = new Timeline(
                 new KeyFrame(Duration.ZERO,
@@ -137,10 +133,7 @@ public class AnimSlideIn extends PageAnimationBase {
                         new KeyValue(blur.radiusProperty(), 0, interpolator))
         );
 
-        timeline.setOnFinished(e -> {
-            finish.run();
-            context.fireOpened(context.getNextIndex());
-        });
+        timeline.setOnFinished(e -> finish.run());
 
         setCurrentAnimation(timeline);
         return timeline;

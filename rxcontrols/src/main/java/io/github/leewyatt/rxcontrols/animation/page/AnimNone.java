@@ -6,8 +6,9 @@ import javafx.scene.Node;
 import javafx.util.Duration;
 
 /**
- * No-animation transition. Instantly switches pages while still firing
- * the full lifecycle event sequence (CLOSING, OPENING, CLOSED, OPENED).
+ * No-animation transition. Switches pages at once as a transition of zero
+ * length, so a host still goes through its transition: its transitioning
+ * state and its lifecycle events behave as with any other animation.
  */
 public class AnimNone extends PageAnimationBase {
 
@@ -26,15 +27,8 @@ public class AnimNone extends PageAnimationBase {
         };
         setFinishAction(finish);
 
-        context.fireClosing(context.getCurrentIndex());
-        context.fireOpening(context.getNextIndex());
-
         PauseTransition pause = new PauseTransition(Duration.ZERO);
-        pause.setOnFinished(e -> {
-            finish.run();
-            context.fireClosed(context.getCurrentIndex());
-            context.fireOpened(context.getNextIndex());
-        });
+        pause.setOnFinished(e -> finish.run());
 
         setCurrentAnimation(pause);
         return pause;

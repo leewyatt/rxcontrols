@@ -158,9 +158,6 @@ public class AnimCorner extends PageAnimationBase {
         };
         setFinishAction(finish);
 
-        context.fireClosing(context.getCurrentIndex());
-        context.fireOpening(context.getNextIndex());
-
         // Remove old listener
         if (progressListener != null) {
             progress.removeListener(progressListener);
@@ -183,8 +180,6 @@ public class AnimCorner extends PageAnimationBase {
             if (progressListener != null) {
                 progress.removeListener(progressListener);
             }
-            context.fireClosed(context.getCurrentIndex());
-            context.fireOpened(context.getNextIndex());
         });
 
         setCurrentAnimation(timeline);

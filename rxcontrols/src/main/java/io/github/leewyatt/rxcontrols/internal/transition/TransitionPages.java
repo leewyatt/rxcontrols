@@ -290,8 +290,7 @@ public final class TransitionPages {
                 0, 1, 2,
                 direction, duration,
                 contentPane,
-                index -> index == 0 ? outgoing : incoming,
-                TransitionContext.LifecycleCallback.NOOP);
+                index -> index == 0 ? outgoing : incoming);
     }
 
     // ==================== Dispose ====================

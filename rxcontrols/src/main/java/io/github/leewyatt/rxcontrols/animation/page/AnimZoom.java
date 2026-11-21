@@ -166,9 +166,6 @@ public class AnimZoom extends PageAnimationBase {
         currentPage.toFront();
         currentPage.setRotationAxis(rotationAxis);
 
-        context.fireClosing(context.getCurrentIndex());
-        context.fireOpening(context.getNextIndex());
-
         Timeline timeline = new Timeline(
                 new KeyFrame(Duration.ZERO),
                 new KeyFrame(duration,
@@ -178,11 +175,7 @@ public class AnimZoom extends PageAnimationBase {
                         new KeyValue(currentPage.opacityProperty(), 0.0, interpolator))
         );
 
-        timeline.setOnFinished(e -> {
-            finish.run();
-            context.fireClosed(context.getCurrentIndex());
-            context.fireOpened(context.getNextIndex());
-        });
+        timeline.setOnFinished(e -> finish.run());
 
         setCurrentAnimation(timeline);
         return timeline;

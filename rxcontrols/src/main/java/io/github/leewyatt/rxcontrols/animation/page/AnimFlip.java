@@ -210,8 +210,6 @@ public class AnimFlip extends PageAnimationBase {
 
         // The same order as the other transitions: closing and opening now, closed and
         // opened when it ends. A host that interrupts the flip makes up the last two.
-        context.fireClosing(context.getCurrentIndex());
-        context.fireOpening(context.getNextIndex());
 
         Timeline timeline = new Timeline(
                 new KeyFrame(Duration.ZERO, new KeyValue(progress, 0)),
@@ -221,8 +219,6 @@ public class AnimFlip extends PageAnimationBase {
             // Let go of this transition's pages, panes and host callbacks.
             setFinishAction(null);
             setCurrentAnimation(null);
-            context.fireClosed(context.getCurrentIndex());
-            context.fireOpened(context.getNextIndex());
         });
 
         setCurrentAnimation(timeline);

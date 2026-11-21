@@ -58,9 +58,6 @@ public class AnimFade extends PageAnimationBase {
         };
         setFinishAction(finish);
 
-        context.fireClosing(context.getCurrentIndex());
-        context.fireOpening(context.getNextIndex());
-
         Timeline timeline = new Timeline();
         if (currentPage != null && nextPage != null) {
             timeline.getKeyFrames().add(new KeyFrame(duration,
@@ -71,11 +68,7 @@ public class AnimFade extends PageAnimationBase {
                     new KeyValue(nextPage.opacityProperty(), 1.0, interpolator)));
         }
 
-        timeline.setOnFinished(e -> {
-            finish.run();
-            context.fireClosed(context.getCurrentIndex());
-            context.fireOpened(context.getNextIndex());
-        });
+        timeline.setOnFinished(e -> finish.run());
 
         setCurrentAnimation(timeline);
         return timeline;

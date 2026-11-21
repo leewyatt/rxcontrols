@@ -135,9 +135,6 @@ public class AnimDrain extends PageAnimationBase {
         };
         setFinishAction(finish);
 
-        context.fireClosing(context.getCurrentIndex());
-        context.fireOpening(context.getNextIndex());
-
         if (progressListener != null) {
             progress.removeListener(progressListener);
         }
@@ -157,11 +154,7 @@ public class AnimDrain extends PageAnimationBase {
                         new KeyValue(progress, 1, Interpolator.LINEAR))
         );
 
-        timeline.setOnFinished(e -> {
-            finish.run();
-            context.fireClosed(context.getCurrentIndex());
-            context.fireOpened(context.getNextIndex());
-        });
+        timeline.setOnFinished(e -> finish.run());
 
         setCurrentAnimation(timeline);
         return timeline;

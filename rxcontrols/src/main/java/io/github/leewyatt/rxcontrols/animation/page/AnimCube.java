@@ -119,9 +119,6 @@ public class AnimCube extends PageAnimationBase {
         };
         setFinishAction(finish);
 
-        context.fireClosing(context.getCurrentIndex());
-        context.fireOpening(context.getNextIndex());
-
         // Initialize PTs to p=0 state BEFORE applying, so the first rendered
         // frame shows the correct geometry (known pitfall: PT defaults to all
         // zeros, which renders the node as a zero-size point).
@@ -169,11 +166,7 @@ public class AnimCube extends PageAnimationBase {
                 new KeyFrame(duration, new KeyValue(progress, 1, interpolator))
         );
 
-        timeline.setOnFinished(e -> {
-            finish.run();
-            context.fireClosed(context.getCurrentIndex());
-            context.fireOpened(context.getNextIndex());
-        });
+        timeline.setOnFinished(e -> finish.run());
 
         setCurrentAnimation(timeline);
         return timeline;

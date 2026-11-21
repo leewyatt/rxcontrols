@@ -205,9 +205,6 @@ public class AnimLouver extends PageAnimationBase {
         };
         setFinishAction(finish);
 
-        context.fireClosing(context.getCurrentIndex());
-        context.fireOpening(context.getNextIndex());
-
         if (progressListener != null) {
             progress.removeListener(progressListener);
         }
@@ -225,11 +222,7 @@ public class AnimLouver extends PageAnimationBase {
                 new KeyFrame(duration, new KeyValue(progress, 1, interpolator))
         );
 
-        timeline.setOnFinished(e -> {
-            finish.run();
-            context.fireClosed(context.getCurrentIndex());
-            context.fireOpened(context.getNextIndex());
-        });
+        timeline.setOnFinished(e -> finish.run());
 
         setCurrentAnimation(timeline);
         return timeline;

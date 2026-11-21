@@ -99,24 +99,17 @@ public class AnimBlend extends PageAnimationBase {
         };
         setFinishAction(finish);
 
-        context.fireClosing(context.getCurrentIndex());
-        context.fireOpening(context.getNextIndex());
-
         // Instantly hide current page
         if (currentPage != null) {
             currentPage.setVisible(false);
         }
-        context.fireClosed(context.getCurrentIndex());
 
         Timeline timeline = new Timeline(
                 new KeyFrame(Duration.ZERO, new KeyValue(blend.opacityProperty(), 1)),
                 new KeyFrame(duration, new KeyValue(blend.opacityProperty(), 0, interpolator))
         );
 
-        timeline.setOnFinished(e -> {
-            finish.run();
-            context.fireOpened(context.getNextIndex());
-        });
+        timeline.setOnFinished(e -> finish.run());
 
         setCurrentAnimation(timeline);
         return timeline;

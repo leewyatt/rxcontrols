@@ -125,9 +125,6 @@ public class AnimSector extends PageAnimationBase {
         };
         setFinishAction(finish);
 
-        context.fireClosing(context.getCurrentIndex());
-        context.fireOpening(context.getNextIndex());
-
         // Remove old listener
         if (progressListener != null) {
             progress.removeListener(progressListener);
@@ -161,11 +158,7 @@ public class AnimSector extends PageAnimationBase {
                         new KeyValue(progress, 1, interpolator))
         );
 
-        timeline.setOnFinished(e -> {
-            finish.run();
-            context.fireClosed(context.getCurrentIndex());
-            context.fireOpened(context.getNextIndex());
-        });
+        timeline.setOnFinished(e -> finish.run());
 
         setCurrentAnimation(timeline);
         return timeline;

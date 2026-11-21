@@ -92,11 +92,7 @@ public class AnimMotionBlur extends PageAnimationBase {
         setFinishAction(finish);
 
         if (currentPage == null) {
-            context.fireClosing(context.getCurrentIndex());
-            context.fireOpening(context.getNextIndex());
             finish.run();
-            context.fireClosed(context.getCurrentIndex());
-            context.fireOpened(context.getNextIndex());
             return new Timeline();
         }
 
@@ -107,9 +103,6 @@ public class AnimMotionBlur extends PageAnimationBase {
         currentPage.setEffect(motionBlur);
         motionBlur.setRadius(0);
 
-        context.fireClosing(context.getCurrentIndex());
-        context.fireOpening(context.getNextIndex());
-
         Timeline timeline = new Timeline(
                 new KeyFrame(Duration.ZERO),
                 new KeyFrame(duration,
@@ -117,11 +110,7 @@ public class AnimMotionBlur extends PageAnimationBase {
                         new KeyValue(currentPage.opacityProperty(), 0.0, interpolator))
         );
 
-        timeline.setOnFinished(e -> {
-            finish.run();
-            context.fireClosed(context.getCurrentIndex());
-            context.fireOpened(context.getNextIndex());
-        });
+        timeline.setOnFinished(e -> finish.run());
 
         setCurrentAnimation(timeline);
         return timeline;
