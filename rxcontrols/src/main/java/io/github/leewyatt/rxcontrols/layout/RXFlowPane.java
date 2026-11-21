@@ -1371,6 +1371,9 @@ public class RXFlowPane extends Pane {
      */
     @Override
     protected void layoutChildren() {
+        // Begun before the runs are taken, so a child added from here on counts as added
+        // while the pass runs.
+        membership.beginPass();
         double top = snappedTopInset();
         double left = snappedLeftInset();
         // Inside extents are kept unsnapped here so the run-cache key
@@ -1398,7 +1401,6 @@ public class RXFlowPane extends Pane {
         double hgap = snapSpaceX(hgapOrDefault());
         double vgap = snapSpaceY(vgapOrDefault());
 
-        membership.beginPass();
         int sceneChangesAtStart = membership.sceneChanges();
         Scene scene = getScene();
         boolean animate = isAnimated() && membership.continuesIn(scene) && isAnimationDurationPositive();

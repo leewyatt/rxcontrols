@@ -2128,6 +2128,46 @@ public class RXFlowPaneTest {
         });
     }
 
+    /**
+     * Verifies a card added while a layout runs, which that layout does not reach,
+     * enters on the layout that first places it; a card added and unmanaged before a
+     * layout still snaps in once managed.
+     */
+    @Test
+    public void cardAddedDuringALayoutEntersOnItsFirstLayout() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = flowPane(10.0, 10.0, cards(1, 100.0, 40.0));
+            new Scene(pane, 700.0, 600.0);
+            pane.applyCss();
+            layout(pane, 400.0, 400.0);
+            Region a = card(100.0, 40.0);
+            Region late = card(100.0, 40.0);
+            late.setOpacity(0.7);
+            boolean[] called = {false};
+            a.layoutXProperty().addListener((obs, oldValue, newValue) -> {
+                if (!called[0] && newValue.doubleValue() != 0.0) {
+                    called[0] = true;
+                    pane.getChildren().add(late);
+                }
+            });
+            pane.getChildren().add(a);
+            layout(pane, 400.0, 400.0);
+            assertTrue(called[0], "setup: the listener ran during the layout");
+            layout(pane, 400.0, 400.0);
+            assertClose(0.0, late.getOpacity(), "added during a layout: it enters on its first layout");
+
+            pane.setAnimated(false);
+            pane.setAnimated(true);
+            Region parked = card(100.0, 40.0);
+            pane.getChildren().add(parked);
+            parked.setManaged(false);
+            layout(pane, 400.0, 400.0);
+            parked.setManaged(true);
+            layout(pane, 400.0, 400.0);
+            assertFalse(entering(parked), "added and unmanaged before a layout: it snaps in once managed");
+        });
+    }
+
     // 100 x 40 cards with 10 px gaps, laid out once in a 400 px scene.
     private static RXFlowPane shownFlow(int count) {
         RXFlowPane pane = flowPane(10.0, 10.0, cards(count, 100.0, 40.0));

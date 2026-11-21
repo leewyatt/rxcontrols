@@ -2549,6 +2549,49 @@ public class RXTilePaneTest {
         });
     }
 
+    /**
+     * Verifies a tile added while a layout runs, which that layout does not reach,
+     * enters on the layout that first places it; a tile added and unmanaged before a
+     * layout still snaps in once managed.
+     */
+    @Test
+    public void tileAddedDuringALayoutEntersOnItsFirstLayout() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = filledPane(1);
+            pane.setPrefTileWidth(100);
+            pane.setMaxColumns(3);
+            pane.setVgap(10);
+            new Scene(pane, 700.0, 600.0);
+            pane.applyCss();
+            layout(pane, 700, 400);
+            Region a = card();
+            Region late = card();
+            late.setOpacity(0.7);
+            boolean[] called = {false};
+            a.layoutXProperty().addListener((obs, oldValue, newValue) -> {
+                if (!called[0] && newValue.doubleValue() != 0.0) {
+                    called[0] = true;
+                    pane.getChildren().add(late);
+                }
+            });
+            pane.getChildren().add(a);
+            layout(pane, 700, 400);
+            assertTrue(called[0], "setup: the listener ran during the layout");
+            layout(pane, 700, 400);
+            assertTileClose(0.0, late.getOpacity(), "added during a layout: it enters on its first layout");
+
+            pane.setAnimated(false);
+            pane.setAnimated(true);
+            Region parked = card();
+            pane.getChildren().add(parked);
+            parked.setManaged(false);
+            layout(pane, 700, 400);
+            parked.setManaged(true);
+            layout(pane, 700, 400);
+            assertFalse(entering(parked), "added and unmanaged before a layout: it snaps in once managed");
+        });
+    }
+
     // Tiles of 100 px, three to a row at 700 px with a 10 px vgap, laid out once in a scene.
     private static RXTilePane shownPane(int count) {
         RXTilePane pane = filledPane(count);

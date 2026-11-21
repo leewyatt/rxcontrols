@@ -35,6 +35,11 @@ final class PassMembership {
     private Set<Node> laidOutThisPass = new HashSet<>();
     // Children added since the last pass; all are in the list, so they are held anyway.
     private final Set<Node> addedSinceLastPass = new HashSet<>();
+    // Children added while a pass runs. The pass took its children before, so one it does
+    // not lay out keeps its entrance for the next pass; one added before the pass and left
+    // unmanaged does not.
+    private final Set<Node> addedDuringPass = new HashSet<>();
+    private boolean passRunning;
     // Children removed since the last pass, with how each stood. Weak keys: a removed
     // child must not stay reachable from the pane when no further pass comes; the
     // values hold no node.
@@ -84,6 +89,8 @@ final class PassMembership {
      */
     void beginPass() {
         laidOutThisPass.clear();
+        addedDuringPass.clear();
+        passRunning = true;
     }
 
     /**
@@ -149,6 +156,7 @@ final class PassMembership {
     void removed(Node child, boolean fading) {
         // Removed while a pass runs: it no longer counts as laid out by that pass.
         laidOutThisPass.remove(child);
+        addedDuringPass.remove(child);
         boolean laidOut = laidOutLastPass.remove(child);
         boolean entering = addedSinceLastPass.remove(child);
         // Taken out again after being put back: how it stood is recorded already.
@@ -176,6 +184,9 @@ final class PassMembership {
         Departure departure = departures.get(child);
         if (departure != null ? departure.entering() : animating) {
             addedSinceLastPass.add(child);
+            if (passRunning) {
+                addedDuringPass.add(child);
+            }
         }
     }
 
@@ -195,6 +206,14 @@ final class PassMembership {
         laidOutThisPass = previous;
         laidOutThisPass.clear();
         addedSinceLastPass.clear();
+        // Added while this pass ran and not laid out by it: it enters on its first layout.
+        for (Node child : addedDuringPass) {
+            if (!laidOutLastPass.contains(child)) {
+                addedSinceLastPass.add(child);
+            }
+        }
+        addedDuringPass.clear();
+        passRunning = false;
         departures.clear();
         layoutScene = scene;
     }
@@ -207,6 +226,8 @@ final class PassMembership {
         laidOutLastPass.clear();
         laidOutThisPass.clear();
         addedSinceLastPass.clear();
+        addedDuringPass.clear();
+        passRunning = false;
         departures.clear();
     }
 }
