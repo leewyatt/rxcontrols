@@ -44,7 +44,6 @@ import javafx.util.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -248,8 +247,9 @@ public class RXMasonryPane extends Pane {
     private final PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
     private final ResizeGate resizeGate = new ResizeGate();
     private final Set<Node> enteringNodes = new HashSet<>();
-    // leaving node -> its managed state before the exit animation, restored on finish
-    private final Map<Node, Boolean> leavingNodes = new HashMap<>();
+    // A leaving child drifts up by the entrance offset while it fades.
+    private final ChildExits exits = new ChildExits(this, animator, this::animationsActive,
+            this::getAnimationDuration, this::interpolatorOrDefault, () -> -enterTranslateY());
     private boolean firstLayoutDone;
 
     private final ListChangeListener<Node> childrenListener = change -> {
@@ -262,12 +262,7 @@ public class RXMasonryPane extends Pane {
                 resizeGate.reset();
                 for (Node removed : change.getRemoved()) {
                     enteringNodes.remove(removed);
-                    // A node removed externally mid-exit never reaches finishLeaving,
-                    // so restore its original managed state here.
-                    Boolean wasManaged = leavingNodes.remove(removed);
-                    if (wasManaged != null && !removed.managedProperty().isBound()) {
-                        removed.setManaged(wasManaged);
-                    }
+                    exits.removed(removed);
                     animator.forget(removed);
                 }
             }
@@ -943,16 +938,7 @@ public class RXMasonryPane extends Pane {
      * @return {@code true} if the child was a member of this pane
      */
     public boolean removeAnimated(Node child) {
-        if (child == null || !getChildren().contains(child)) {
-            return false;
-        }
-        if (!animationsActive() || !canLeaveAnimated(child)) {
-            getChildren().remove(child);
-            return true;
-        }
-        startLeaving(child);
-        requestLayout();
-        return true;
+        return exits.removeAnimated(child);
     }
 
     /**
@@ -960,78 +946,7 @@ public class RXMasonryPane extends Pane {
      * the pane is not showing) the children are cleared immediately.
      */
     public void clearAnimated() {
-        if (!animationsActive()) {
-            getChildren().clear();
-            return;
-        }
-        // Removing a child notifies listeners synchronously, and one that turns animation
-        // off finishes the running exits, which removes children inside that very
-        // notification; JavaFX forbids that. So the children that cannot fade out go
-        // first, before this call starts any exit.
-        List<Node> immediate = new ArrayList<>();
-        for (Node child : getChildren()) {
-            if (!canLeaveAnimated(child)) {
-                immediate.add(child);
-            }
-        }
-        getChildren().removeAll(immediate);
-        // Listeners may have moved, bound or removed children or turned animation off,
-        // so each remaining child is checked again when it is reached.
-        List<Node> late = new ArrayList<>();
-        for (Node child : new ArrayList<>(getChildren())) {
-            if (child.getParent() != this || leavingNodes.containsKey(child)) {
-                continue;
-            }
-            if (animationsActive() && canLeaveAnimated(child)) {
-                startLeaving(child);
-            } else {
-                late.add(child);
-            }
-        }
-        getChildren().removeAll(late);
-        requestLayout();
-    }
-
-    // Leaving unmanages the child and fades its translate and opacity; a binding on any
-    // of them would throw.
-    private static boolean canLeaveAnimated(Node child) {
-        return !child.managedProperty().isBound() && !child.translateXProperty().isBound()
-                && !child.translateYProperty().isBound() && !child.opacityProperty().isBound();
-    }
-
-    // Unmanaging the child notifies listeners synchronously; one may move the child to
-    // another parent or turn animation off, so both are checked again before the exit
-    // starts. A child moved away is no longer this pane's to touch (the children
-    // listener already restored its managed state); one left behind with animation
-    // off finishes leaving at once.
-    private void startLeaving(Node child) {
-        markLeaving(child);
-        if (child.getParent() != this) {
-            return;
-        }
-        if (!animationsActive()) {
-            finishLeaving(child);
-            return;
-        }
-        animator.runExit(child, true, getAnimationDuration(), interpolatorOrDefault(),
-                -enterTranslateY(), () -> finishLeaving(child));
-    }
-
-    // Callers check canLeaveAnimated first: unmanaging a bound managed would throw.
-    private void markLeaving(Node child) {
-        // Remember the original managed state and unmanage the node so survivors
-        // reflow into the freed space; restored verbatim in finishLeaving.
-        if (leavingNodes.putIfAbsent(child, child.isManaged()) == null) {
-            child.setManaged(false);
-        }
-    }
-
-    private void finishLeaving(Node child) {
-        Boolean wasManaged = leavingNodes.remove(child);
-        if (wasManaged != null && !child.managedProperty().isBound()) {
-            child.setManaged(wasManaged);
-        }
-        getChildren().remove(child);
+        exits.clearAnimated();
     }
 
     private boolean animationsActive() {
