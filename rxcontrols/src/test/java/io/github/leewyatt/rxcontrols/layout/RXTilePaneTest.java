@@ -2370,6 +2370,23 @@ public class RXTilePaneTest {
         });
     }
 
+    /**
+     * Verifies a tile added while animation is turned off around the addition, in the
+     * same event and with no layout in between, joins without an entrance.
+     */
+    @Test
+    public void tileAddedWithAnimationOffAroundItJoinsAsIs() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = shownPane(2);
+            Region added = card();
+            pane.setAnimated(false);
+            pane.getChildren().add(added);
+            pane.setAnimated(true);
+            layout(pane, 700, 400);
+            assertFalse(entering(added), "no entrance");
+        });
+    }
+
     // Tiles of 100 px, three to a row at 700 px with a 10 px vgap, laid out once in a scene.
     private static RXTilePane shownPane(int count) {
         RXTilePane pane = filledPane(count);

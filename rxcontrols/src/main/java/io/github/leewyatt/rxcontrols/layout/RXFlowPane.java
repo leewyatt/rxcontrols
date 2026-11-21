@@ -238,7 +238,7 @@ public class RXFlowPane extends Pane {
             }
         });
         for (Node added : children.added()) {
-            membership.added(added);
+            membership.added(added, animationsActive());
         }
     };
 
@@ -944,12 +944,12 @@ public class RXFlowPane extends Pane {
      * target follows the resize. An explicit pref size, even one bound to the parent's
      * size, counts as imposed by the parent; an extent that follows the pane's own
      * computed preferred size still glides. Only a child the previous layout placed
-     * glides, and only a child added to the list since enters; one that is newly managed
-     * or back after missing a layout snaps into place, and so does every child on the
-     * first layout after the pane enters a scene or is laid out outside one. A child
-     * removed and put back before the next layout goes on as it stood when it was removed:
-     * it glides on from where it showed, even mid-glide, or still enters if it was added
-     * since; one that {@code setAll} keeps in the list goes on as it was.
+     * glides, and only a child added to the list since, with animation on, enters; one
+     * that is newly managed or back after missing a layout snaps into place, and so does
+     * every child on the first layout after the pane enters a scene or is laid out outside
+     * one. A child removed and put back before the next layout goes on as it stood when it
+     * was removed: it glides on from where it showed, even mid-glide, or still enters if
+     * it was added since; one that {@code setAll} keeps in the list goes on as it was.
      *
      * <p>While a child animates, the pane drives its {@code translateX} /
      * {@code translateY}, and its {@code opacity} while it fades in or out. Values the

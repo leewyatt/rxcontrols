@@ -15,11 +15,12 @@ import java.util.WeakHashMap;
  *
  * <p>A glide needs a position the child was last shown at. Only a pass in the scene the
  * pane was last laid out in animates, and only a child that pass laid out glides. A
- * child added to the list since enters; any other child (newly managed, back after
- * missing a pass) snaps into its slot instead of gliding in from a stale position or the
- * pane origin. A child removed and put back before the next pass goes on as it stood
- * when it was removed: one the last pass laid out glides on from where it showed, one
- * added since still enters, and one that was in the list but not laid out snaps.</p>
+ * child added to the list since, while the pane animates, enters; any other child
+ * (added while animation is off, newly managed, back after missing a pass) snaps into
+ * its slot instead of gliding in from a stale position or the pane origin. A child
+ * removed and put back before the next pass goes on as it stood when it was removed:
+ * one the last pass laid out glides on from where it showed, one added since still
+ * enters, and one that was in the list but not laid out snaps.</p>
  *
  * <p>A listener reached from a layout pass can take the pane out of its scene while the
  * pass is still running. The pane samples {@link #sceneChanges()} when the pass starts;
@@ -161,13 +162,16 @@ final class PassMembership {
 
     /**
      * Notes that a child really joined the children list: a new child enters, and one
-     * put back goes on as it stood when it was removed.
+     * put back goes on as it stood when it was removed. A child joining while the pane
+     * does not animate (animation turned off around a batch of additions, say) joins as
+     * it is, without an entrance.
      *
-     * @param child the child added
+     * @param child     the child added
+     * @param animating whether the pane animates now
      */
-    void added(Node child) {
+    void added(Node child, boolean animating) {
         Departure departure = departures.get(child);
-        if (departure == null || departure.entering()) {
+        if (animating && (departure == null || departure.entering())) {
             addedSinceLastPass.add(child);
         }
     }

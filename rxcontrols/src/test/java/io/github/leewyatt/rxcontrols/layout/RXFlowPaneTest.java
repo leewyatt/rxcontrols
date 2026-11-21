@@ -1955,6 +1955,23 @@ public class RXFlowPaneTest {
         });
     }
 
+    /**
+     * Verifies a child added while animation is turned off around the addition, in the
+     * same event and with no layout in between, joins without an entrance.
+     */
+    @Test
+    public void childAddedWithAnimationOffAroundItJoinsAsIs() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = shownFlow(2);
+            Region added = card(100.0, 40.0);
+            pane.setAnimated(false);
+            pane.getChildren().add(added);
+            pane.setAnimated(true);
+            layout(pane, 400.0, 400.0);
+            assertFalse(entering(added), "no entrance");
+        });
+    }
+
     // 100 x 40 cards with 10 px gaps, laid out once in a 400 px scene.
     private static RXFlowPane shownFlow(int count) {
         RXFlowPane pane = flowPane(10.0, 10.0, cards(count, 100.0, 40.0));
