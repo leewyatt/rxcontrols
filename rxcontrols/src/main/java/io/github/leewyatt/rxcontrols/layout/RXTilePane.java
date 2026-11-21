@@ -359,7 +359,9 @@ public class RXTilePane extends Pane {
     /**
      * Preferred height of each tile. The default
      * {@link Region#USE_COMPUTED_SIZE} resolves the height from the largest
-     * preferred area of the managed children. A positive value fixes the nominal
+     * preferred area of the managed children; a child whose height depends on its
+     * width is measured at the tile width when {@code prefTileWidth} is set, and at
+     * the widest child's preferred width otherwise. A positive value fixes the nominal
      * tile height and does not let child min / pref heights expand the tile. A
      * non-positive or non-finite value is accepted and resolved from children at
      * layout time.
@@ -1446,7 +1448,11 @@ public class RXTilePane extends Pane {
         double width = -1.0;
         for (Node child : managed) {
             if (child.getContentBias() == Orientation.HORIZONTAL) {
-                width = computeMaxChildPrefAreaWidth();
+                // A child whose height depends on its width is measured at the width of its
+                // tile. A set tile width is that width; measuring at the child's own
+                // preferred width instead would leave a child that wraps in a narrower tile
+                // taller than its row. A computed tile width comes from the children.
+                width = isExplicitTileSize(getPrefTileWidth()) ? nominalTileWidth() : computeMaxChildPrefAreaWidth();
                 break;
             }
         }

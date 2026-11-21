@@ -1142,6 +1142,38 @@ public class RXTilePaneTest {
     }
 
     /**
+     * Verifies a computed tile height measures a width-dependent child at a set tile
+     * width: a FlowPane of two 60 px items prefers 120 (one 20 px row), but in a 100 px
+     * tile it wraps to two rows, so the tile is 40 high and the next tile starts below
+     * it. With margins the child is measured at the tile less its margins.
+     */
+    @Test
+    public void computedTileHeightMeasuresAtASetTileWidth() throws Exception {
+        onFx(() -> {
+            for (double margin : new double[] {0.0, 5.0}) {
+                String at = "margin " + margin;
+                FlowPane flow = new FlowPane(card(60.0, 20.0), card(60.0, 20.0));
+                RXTilePane.setMargin(flow, new Insets(0.0, margin, 0.0, margin));
+                Region below = card(50.0, 20.0);
+                RXTilePane pane = new RXTilePane(flow, below);
+                pane.setPrefTileWidth(100.0 + 2 * margin);
+                pane.setPrefColumns(1);
+                pane.setVgap(0.0);
+                pane.setTileAlignment(Pos.TOP_LEFT);
+                pane.setAnimated(false);
+                new Scene(new StackPane(pane));
+                pane.applyCss();
+                double width = 100.0 + 2 * margin;
+                layoutUntilClean(pane, width, 200.0);
+                assertEquals(100.0, flow.getLayoutBounds().getWidth(), 1.0e-9, at + ": the flow gets 100");
+                assertEquals(40.0, flow.getLayoutBounds().getHeight(), 1.0e-9, at + ": it wraps to two rows");
+                assertEquals(40.0, below.getLayoutY(), 1.0e-9, at + ": the next tile starts below it");
+                assertEquals(80.0, pane.prefHeight(width), 1.0e-9, at + ": two 40 px rows");
+            }
+        });
+    }
+
+    /**
      * Verifies a tile width worked out from container children is not snapped up again:
      * four HBoxes reporting 225 device pixels each at 175% need exactly 900, and fit four
      * to a row there.
