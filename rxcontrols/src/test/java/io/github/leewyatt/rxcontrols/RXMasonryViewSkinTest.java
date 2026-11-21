@@ -19,6 +19,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
@@ -27,6 +28,7 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -1024,6 +1026,83 @@ public class RXMasonryViewSkinTest {
                 assertEquals(4, view.getActualColumnCount(), "scale " + scale + ", width " + width);
             }
         });
+    }
+
+    /**
+     * Verifies a parent laying the view out at its preferred width gets a fresh one after
+     * snapToPixel or the render scale changes: Region re-lays out only the parent on the
+     * first and nothing on the second, while the preferred width adds up snapped sizes.
+     * A 9 px gap snaps to 8.8 at 1.25, so a stale preferred width loses a column.
+     */
+    @Test
+    public void preferredWidthFollowsSnappingAndRenderScale() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> snapped = scaledGallery(4);
+            HBox snappedRoot = new HBox(snapped);
+            Stage snappedStage = new Stage();
+            snappedStage.setScene(new Scene(snappedRoot, 900, 300));
+            snappedStage.setRenderScaleX(1.25);
+            settle(snappedRoot, 300);
+            snapped.setSnapToPixel(false);
+            settle(snappedRoot, 280);
+            assertEquals(4, snapped.getActualColumnCount(), "snapToPixel off at 1.25");
+
+            RXMasonryView<Integer> rescaled = scaledGallery(8);
+            HBox rescaledRoot = new HBox(rescaled);
+            Stage rescaledStage = new Stage();
+            rescaledStage.setScene(new Scene(rescaledRoot, 900, 300));
+            rescaledStage.setRenderScaleX(1.25);
+            settle(rescaledRoot, 300);
+            rescaledStage.setRenderScaleX(1.0);
+            settle(rescaledRoot, 280);
+            assertEquals(8, rescaled.getActualColumnCount(), "from 1.25 to 1.0");
+        });
+    }
+
+    /**
+     * Verifies a disposed skin no longer watches the render scale or snapToPixel: the
+     * view, still reachable, does not keep it. The view is taken out of its scene first,
+     * as JavaFX keeps a parent's removed children until its next render sync, which a
+     * scene that is not shown never runs.
+     */
+    @Test
+    public void disposedSkinStopsWatchingTheRenderScale() throws Exception {
+        List<WeakReference<Object>> disposed = new ArrayList<>();
+        List<Object> kept = new ArrayList<>();
+        onFx(() -> {
+            RXMasonryView<Integer> view = uniformGallery(20);
+            StackPane root = new StackPane(view);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root, 300, 200));
+            stage.setRenderScaleX(1.25);
+            pump(root);
+            disposed.add(new WeakReference<>(view.getSkin()));
+            view.setSkin(null);
+            pump(root);
+            root.getChildren().remove(view);
+            kept.add(view);
+        });
+        for (int i = 0; i < 50 && disposed.get(0).get() != null; i++) {
+            System.gc();
+            Thread.sleep(20);
+        }
+        assertNull(disposed.get(0).get(), "the disposed skin is not kept by the view");
+        assertEquals(1, kept.size(), "the view itself is still reachable");
+    }
+
+    private static RXMasonryView<Integer> scaledGallery(int columns) {
+        RXMasonryView<Integer> view = uniformGallery(200);
+        view.setColumnWidth(60);
+        view.setHgap(9);
+        view.setPrefColumns(columns);
+        return view;
+    }
+
+    // A new height makes the parent lay the view out again without touching the view's
+    // cached preferred width.
+    private static void settle(Region root, double height) {
+        root.resize(900, height);
+        pump(root);
     }
 
     // Sweeps the view width (half pixels included) with fillWidth on, checking every

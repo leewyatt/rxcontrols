@@ -12,6 +12,7 @@ import io.github.leewyatt.rxcontrols.internal.MasonryColumns;
 import io.github.leewyatt.rxcontrols.internal.MasonryColumns.Resolution;
 import io.github.leewyatt.rxcontrols.internal.MasonryLayoutEngine;
 import io.github.leewyatt.rxcontrols.internal.RXIndexedSelectionMutationGuard;
+import io.github.leewyatt.rxcontrols.internal.RenderScaleWatch;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
@@ -217,6 +218,10 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         // Region only re-lays out the parent on a snapToPixel change, and the control keeps
         // its size, so without this the column edges would stay on the old grid.
         disposer.registerListener(control.snapToPixelProperty(), this::requestRelayout);
+        // Nor does it lay anything out when the render scale changes, which moves the grid
+        // and the snapped sizes the preferred width adds up.
+        RenderScaleWatch scaleWatch = new RenderScaleWatch(control, this::requestRelayout);
+        disposer.registerDisposeTask(scaleWatch::dispose);
         // Switching the height source (provider <-> estimated, or a different provider)
         // makes the persistent cache stale; drop it.
         disposer.registerListener(control.cellHeightProviderProperty(), this::onHeightSourceChanged);
