@@ -176,11 +176,14 @@ final class PaneRelayoutAnimator {
     }
 
     // True when this pass introduces a move the running timeline does not already
-    // cover: a fading-in node, or a node whose layout target shifted since its tween
-    // was armed. A node still tweening toward the same target — its from-translate
-    // (offset from the freshly written layout position) equals its live translate —
-    // is left to its existing timeline, so a per-pulse relayout does not reset the
-    // tween clock.
+    // cover: a fading-in node, a static node that starts to move, or a tracked node
+    // whose layout target shifted since its tween was armed. A tracked node still
+    // tweening toward the same target — its from-translate (offset from the freshly
+    // written layout position) equals its live translate — is left to its existing
+    // timeline, so a per-pulse relayout does not reset the tween clock. Any other
+    // from-translate of a tracked node is a new target, even one with no offset left:
+    // the node then sits at its new layout position while the old timeline would keep
+    // pushing it away.
     private boolean needsRearm(List<Move> moves) {
         for (Move move : moves) {
             Node node = move.node();
@@ -190,15 +193,15 @@ final class PaneRelayoutAnimator {
             if (move.fade()) {
                 return true;
             }
-            boolean hasTranslation = Math.abs(move.fromTranslateX()) >= MOVE_EPSILON
-                    || Math.abs(move.fromTranslateY()) >= MOVE_EPSILON;
-            if (!hasTranslation) {
+            if (activeMoves.containsKey(node)) {
+                if (Math.abs(move.fromTranslateX() - node.getTranslateX()) >= MOVE_EPSILON
+                        || Math.abs(move.fromTranslateY() - node.getTranslateY()) >= MOVE_EPSILON) {
+                    return true;
+                }
                 continue;
             }
-            boolean tweeningToSameTarget = activeMoves.containsKey(node)
-                    && Math.abs(move.fromTranslateX() - node.getTranslateX()) < MOVE_EPSILON
-                    && Math.abs(move.fromTranslateY() - node.getTranslateY()) < MOVE_EPSILON;
-            if (!tweeningToSameTarget) {
+            if (Math.abs(move.fromTranslateX()) >= MOVE_EPSILON
+                    || Math.abs(move.fromTranslateY()) >= MOVE_EPSILON) {
                 return true;
             }
         }

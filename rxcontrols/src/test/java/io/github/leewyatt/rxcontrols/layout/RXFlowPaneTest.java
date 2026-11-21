@@ -1442,6 +1442,27 @@ public class RXFlowPaneTest {
         });
     }
 
+    /**
+     * Verifies a child whose target moves away and back before its glide advances stays
+     * where it shows: the second move must not leave it pushed away by the first glide.
+     */
+    @Test
+    public void targetMovedAwayAndBackLeavesTheChildInPlace() throws Exception {
+        onFx(() -> {
+            Region card = card(100.0, 40.0);
+            RXFlowPane pane = flowPane(10.0, 10.0, card);
+            new Scene(pane, 400.0, 300.0);
+            pane.applyCss();
+            layout(pane, 400.0, 300.0);
+            for (double left : new double[] {100.0, 0.0}) {
+                pane.setPadding(new Insets(0.0, 0.0, 0.0, left));
+                layout(pane, 400.0, 300.0);
+                assertClose(0.0, card.getLayoutX() + card.getTranslateX(), "visible x at left padding " + left);
+            }
+            assertFalse(translated(card), "back in its slot with nothing left to glide");
+        });
+    }
+
     @Test
     public void addedChildSnapsWithoutGliding() throws Exception {
         onFx(() -> {
