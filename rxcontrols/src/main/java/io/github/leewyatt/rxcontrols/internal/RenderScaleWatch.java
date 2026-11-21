@@ -1,4 +1,4 @@
-package io.github.leewyatt.rxcontrols.layout;
+package io.github.leewyatt.rxcontrols.internal;
 
 import javafx.beans.InvalidationListener;
 import javafx.beans.value.ChangeListener;
@@ -12,30 +12,51 @@ import javafx.stage.Window;
  * another window or out of one.
  *
  * <p>Region snaps sizes and positions to that scale but lays nothing out again when it
- * changes, so a pane that caches snapped sizes (its own, or the preferred size Region
- * caches) uses this to request its layout. The listeners sit only on the node's current
- * scene and window and move with them, so neither keeps a node that has left it
- * reachable.</p>
+ * changes, so a pane or skin that caches snapped sizes (its own, or the preferred size
+ * Region caches) uses this to request its layout. The listeners sit only on the node's
+ * current scene and window and move with them, so neither keeps a node that has left it
+ * reachable. A watch that lives as long as its node needs no cleanup; a skin disposes
+ * its watch with itself.</p>
  */
-final class RenderScaleWatch {
+public final class RenderScaleWatch {
 
+    private final Node node;
     private final Runnable action;
     private final InvalidationListener scaleListener;
+    private final ChangeListener<Scene> sceneListener = (obs, oldScene, newScene) -> watchScene(newScene);
     private final ChangeListener<Window> windowListener = (obs, oldWindow, newWindow) -> watchWindow(newWindow);
     private Scene scene;
     private Window window;
 
     /**
-     * Starts watching the node.
+     * Starts watching the node, running the action once for the window it is in now.
      *
      * @param node   the node whose window is watched
      * @param action the action to run when the render scale may have changed
      */
-    RenderScaleWatch(Node node, Runnable action) {
+    public RenderScaleWatch(Node node, Runnable action) {
+        this.node = node;
         this.action = action;
         this.scaleListener = obs -> action.run();
-        node.sceneProperty().addListener((obs, oldScene, newScene) -> watchScene(newScene));
+        node.sceneProperty().addListener(sceneListener);
         watchScene(node.getScene());
+    }
+
+    /**
+     * Stops watching: removes the listeners from the node, its scene and its window, so
+     * the action no longer runs.
+     */
+    public void dispose() {
+        node.sceneProperty().removeListener(sceneListener);
+        if (scene != null) {
+            scene.windowProperty().removeListener(windowListener);
+            scene = null;
+        }
+        if (window != null) {
+            window.renderScaleXProperty().removeListener(scaleListener);
+            window.renderScaleYProperty().removeListener(scaleListener);
+            window = null;
+        }
     }
 
     private void watchScene(Scene newScene) {

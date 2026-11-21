@@ -44,12 +44,9 @@ import javafx.util.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Responsive masonry (waterfall) layout pane. Children keep their own height and
@@ -157,8 +154,6 @@ public class RXMasonryPane extends Pane {
      */
     private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
 
-    private static final double ENTER_TRANSLATE_MIN = 4.0;
-    private static final double ENTER_TRANSLATE_MAX = 12.0;
 
     // ==================== Constraints ====================
 
@@ -249,30 +244,32 @@ public class RXMasonryPane extends Pane {
 
     private final PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
     private final ResizeGate resizeGate = new ResizeGate();
-    private final Set<Node> enteringNodes = new HashSet<>();
-    // leaving node -> its managed state before the exit animation, restored on finish
-    private final Map<Node, Boolean> leavingNodes = new HashMap<>();
-    private boolean firstLayoutDone;
+    // Who the previous pass laid out, who joined since, and how removed children stood:
+    // only children the previous pass laid out glide, and only new ones enter.
+    private final PassMembership membership = new PassMembership();
+    // A leaving child drifts up by the entrance offset while it fades.
+    private final ChildExits exits = new ChildExits(this, animator, this::animationsActive,
+            this::getAnimationDuration, this::interpolatorOrDefault, () -> -enterTranslateY());
 
+    // A child the change keeps in the list (setAll keeping it) never left: whatever it is
+    // doing (a glide, an entrance, an exit) goes on untouched.
     private final ListChangeListener<Node> childrenListener = change -> {
-        while (change.next()) {
-            if (change.wasAdded() && firstLayoutDone) {
-                enteringNodes.addAll(change.getAddedSubList());
+        ChildrenChange children = ChildrenChange.of(change);
+        if (!children.removed().isEmpty()) {
+            // The recorded structure would otherwise keep removed children alive.
+            resizeGate.reset();
+        }
+        // Forgotten in one batch: clearing many gliding children reworks the glide of
+        // the rest once.
+        animator.inBatch(() -> {
+            for (Node removed : children.removed()) {
+                membership.removed(removed, animator.isFading(removed));
+                exits.removed(removed);
+                animator.forget(removed);
             }
-            if (change.wasRemoved()) {
-                // The recorded structure would otherwise keep removed children alive.
-                resizeGate.reset();
-                for (Node removed : change.getRemoved()) {
-                    enteringNodes.remove(removed);
-                    // A node removed externally mid-exit never reaches finishLeaving,
-                    // so restore its original managed state here.
-                    Boolean wasManaged = leavingNodes.remove(removed);
-                    if (wasManaged != null && !removed.managedProperty().isBound()) {
-                        removed.setManaged(wasManaged);
-                    }
-                    animator.forget(removed);
-                }
-            }
+        });
+        for (Node added : children.added()) {
+            membership.added(added, animationsActive());
         }
     };
 
@@ -293,6 +290,7 @@ public class RXMasonryPane extends Pane {
         // size, so without this the filled column edges would stay on the old grid.
         snapToPixelProperty().addListener((obs, oldValue, newValue) -> requestLayout());
         sceneProperty().addListener((obs, oldScene, newScene) -> {
+            membership.sceneChanged(newScene);
             if (newScene == null) {
                 animator.stopAll();
                 resizeGate.reset();
@@ -789,17 +787,25 @@ public class RXMasonryPane extends Pane {
     };
 
     /**
-     * Whether children animate to their new positions on relayout, fade in on
-     * insertion, and fade out via {@link #removeAnimated(Node)}. On by default;
-     * turning this off while an animation is running snaps every child to its
-     * final state. A width change imposed by the parent that keeps the column count
-     * and every child's column applies immediately, so dragging a window edge sideways
-     * never leaves children trailing; a glide already in flight keeps its clock while
-     * its target follows the resize. An explicit {@code prefWidth}, even one bound to
-     * the parent's width, counts as imposed by the parent; a width that follows the
-     * pane's own computed preferred width (say, after a gap change in an
-     * {@code HBox}) still glides. Other changes, such as a child growing, still glide,
-     * unless they land in the same layout pass as such a resize.
+     * Whether children animate on relayout: existing children glide to their new
+     * positions, a child added while the pane shows fades in, rising a few pixels into
+     * place, and {@link #removeAnimated(Node)} and {@link #clearAnimated()} fade a child
+     * out, drifting up, while the others reflow. On by default; turning this off while an
+     * animation is running snaps every child to its final state. A width change imposed by
+     * the parent that keeps the column count and every child's column applies immediately,
+     * so dragging a window edge sideways never leaves children trailing; a glide already
+     * in flight keeps its clock while its target follows the resize. An explicit
+     * {@code prefWidth}, even one bound to the parent's width, counts as imposed by the
+     * parent; a width that follows the pane's own computed preferred width (say, after a
+     * gap change in an {@code HBox}) still glides. Other changes, such as a child growing,
+     * still glide, unless they land in the same layout pass as such a resize. Only a child
+     * the previous layout placed glides, and only a child added to the list since, with
+     * animation on, enters; one that is newly managed or back after missing a layout snaps
+     * into place, and so does every child on the first layout after the pane enters a
+     * scene or is laid out outside one. A child removed and put back before the next
+     * layout goes on as it stood when it was removed: it glides on from where it showed,
+     * even mid-glide, or still enters if it was added since; one that {@code setAll} keeps
+     * in the list goes on as it was.
      *
      * <p>While a child animates, the pane drives its {@code translateX} /
      * {@code translateY}, and its {@code opacity} while it fades in or out. Values the
@@ -808,16 +814,24 @@ public class RXMasonryPane extends Pane {
      * these from elsewhere while the child animates, by one assignment or a running
      * animation, is not supported: the pane may overwrite them, and when the animation
      * settles it puts back the values from before, which a still-running animation may
-     * then change again. Keep independent effects on a node inside the child. A
-     * child whose {@code translateX} or {@code translateY} is bound snaps into place,
-     * whether moving or entering; one whose {@code opacity} is bound moves and enters
-     * without fading; and either binding, or a bound {@code managed}, makes
-     * {@link #removeAnimated(Node)} and {@link #clearAnimated()} remove the child at
-     * once. Binding these properties
-     * while the child is animating is not supported. Neither is turning animation off
-     * from a listener on the children list while children are fading out: finishing
-     * their exits removes children, which JavaFX forbids during that list's change
-     * notification.</p>
+     * then change again. Keep independent effects on a node inside the child. A child
+     * whose {@code translateX} or {@code translateY} is bound snaps into place, whether
+     * moving or entering; one whose {@code opacity} is bound moves and enters without
+     * fading; and either binding, or a bound {@code managed}, makes
+     * {@link #removeAnimated(Node)} and {@link #clearAnimated()} remove the child at once.
+     * Binding these properties while the child is animating is not supported. Neither is
+     * turning animation off from a listener on the children list while children are fading
+     * out: finishing their exits removes children, which JavaFX forbids during that list's
+     * change notification.</p>
+     *
+     * <p>A listener the pane's own layout reaches (one on a child's position or size, say)
+     * may change the children or turn animation off while that layout runs. The pane then
+     * throws nothing, keeps no reference to a child it no longer holds, does not lay out a
+     * child that left it or was unmanaged before its turn, stops driving a child that
+     * moved to another parent, and writes no animation once animation is off. Where the
+     * transitions of that layout start from, and how smoothly they go on, is best effort,
+     * and a child that leaves while its own layout is under way may still be placed by
+     * that layout.</p>
      *
      * @return the animated property
      */
@@ -945,16 +959,7 @@ public class RXMasonryPane extends Pane {
      * @return {@code true} if the child was a member of this pane
      */
     public boolean removeAnimated(Node child) {
-        if (child == null || !getChildren().contains(child)) {
-            return false;
-        }
-        if (!animationsActive() || !canLeaveAnimated(child)) {
-            getChildren().remove(child);
-            return true;
-        }
-        startLeaving(child);
-        requestLayout();
-        return true;
+        return exits.removeAnimated(child);
     }
 
     /**
@@ -962,78 +967,7 @@ public class RXMasonryPane extends Pane {
      * the pane is not showing) the children are cleared immediately.
      */
     public void clearAnimated() {
-        if (!animationsActive()) {
-            getChildren().clear();
-            return;
-        }
-        // Removing a child notifies listeners synchronously, and one that turns animation
-        // off finishes the running exits, which removes children inside that very
-        // notification; JavaFX forbids that. So the children that cannot fade out go
-        // first, before this call starts any exit.
-        List<Node> immediate = new ArrayList<>();
-        for (Node child : getChildren()) {
-            if (!canLeaveAnimated(child)) {
-                immediate.add(child);
-            }
-        }
-        getChildren().removeAll(immediate);
-        // Listeners may have moved, bound or removed children or turned animation off,
-        // so each remaining child is checked again when it is reached.
-        List<Node> late = new ArrayList<>();
-        for (Node child : new ArrayList<>(getChildren())) {
-            if (child.getParent() != this || leavingNodes.containsKey(child)) {
-                continue;
-            }
-            if (animationsActive() && canLeaveAnimated(child)) {
-                startLeaving(child);
-            } else {
-                late.add(child);
-            }
-        }
-        getChildren().removeAll(late);
-        requestLayout();
-    }
-
-    // Leaving unmanages the child and fades its translate and opacity; a binding on any
-    // of them would throw.
-    private static boolean canLeaveAnimated(Node child) {
-        return !child.managedProperty().isBound() && !child.translateXProperty().isBound()
-                && !child.translateYProperty().isBound() && !child.opacityProperty().isBound();
-    }
-
-    // Unmanaging the child notifies listeners synchronously; one may move the child to
-    // another parent or turn animation off, so both are checked again before the exit
-    // starts. A child moved away is no longer this pane's to touch (the children
-    // listener already restored its managed state); one left behind with animation
-    // off finishes leaving at once.
-    private void startLeaving(Node child) {
-        markLeaving(child);
-        if (child.getParent() != this) {
-            return;
-        }
-        if (!animationsActive()) {
-            finishLeaving(child);
-            return;
-        }
-        animator.runExit(child, true, getAnimationDuration(), interpolatorOrDefault(),
-                -enterTranslateY(), () -> finishLeaving(child));
-    }
-
-    // Callers check canLeaveAnimated first: unmanaging a bound managed would throw.
-    private void markLeaving(Node child) {
-        // Remember the original managed state and unmanage the node so survivors
-        // reflow into the freed space; restored verbatim in finishLeaving.
-        if (leavingNodes.putIfAbsent(child, child.isManaged()) == null) {
-            child.setManaged(false);
-        }
-    }
-
-    private void finishLeaving(Node child) {
-        Boolean wasManaged = leavingNodes.remove(child);
-        if (wasManaged != null && !child.managedProperty().isBound()) {
-            child.setManaged(wasManaged);
-        }
-        getChildren().remove(child);
+        exits.clearAnimated();
     }
 
     private boolean animationsActive() {
@@ -1067,7 +1001,7 @@ public class RXMasonryPane extends Pane {
     }
 
     private double enterTranslateY() {
-        return RXMath.clamp(sanitizedVgap(), ENTER_TRANSLATE_MIN, ENTER_TRANSLATE_MAX);
+        return PaneRelayoutAnimator.enterOffset(sanitizedVgap());
     }
 
     // ==================== RXBreakpoint Profile ====================
@@ -1443,6 +1377,11 @@ public class RXMasonryPane extends Pane {
 
     @Override
     protected void layoutChildren() {
+        // Sampled before anything below can reach a listener: publishing the column count
+        // notifies its listeners, and one of them may take the pane out of its scene.
+        int sceneChangesAtStart = membership.sceneChanges();
+        Scene scene = getScene();
+        membership.beginPass();
         double left = snappedLeftInset();
         double top = snappedTopInset();
         double right = snappedRightInset();
@@ -1467,8 +1406,7 @@ public class RXMasonryPane extends Pane {
         double alignWidth = hpos == HPos.RIGHT ? PixelGrid.floor(contentWidth, snapScaleX()) : contentWidth;
         double xOffset = fill ? 0.0 : computeXOffset(alignWidth, resolution.usedWidth(), hpos);
         double yOffset = computeYOffset(contentHeight, metrics.result().contentHeight(), vpos);
-        boolean animate = isAnimated() && firstLayoutDone && getScene() != null
-                && isAnimationDurationPositive();
+        boolean animate = isAnimated() && membership.continuesIn(scene) && isAnimationDurationPositive();
         // With animation off and nothing in flight the animator pass would be a
         // no-op; skip the move bookkeeping entirely on this hot path.
         boolean collectMoves = animate || animator.hasActiveState();
@@ -1488,6 +1426,11 @@ public class RXMasonryPane extends Pane {
         }
         for (int i = 0, size = managed.size(); i < size; i++) {
             Node child = managed.get(i);
+            // The children were taken when the pass began; a listener reached from laying
+            // an earlier one out may have moved this one away or unmanaged it since.
+            if (child.getParent() != this || !child.isManaged()) {
+                continue;
+            }
             Insets margin = getMargin(child);
             double areaWidth = metrics.areaWidths()[i];
             double areaHeight = metrics.blockHeights()[i];
@@ -1496,12 +1439,21 @@ public class RXMasonryPane extends Pane {
 
             // FLIP: record the current on-screen position before relocating, so the
             // animator can invert the move and tween translate back to its resting value.
+            // A child removed and put back since the last pass has had its translate given
+            // back; where it showed when removed is where its glide goes on from.
             double oldVisualX = 0.0;
             double oldVisualY = 0.0;
+            PassMembership.Shown shownWhenRemoved = null;
             if (collectMoves) {
-                oldVisualX = child.getLayoutX() + child.getTranslateX();
-                oldVisualY = child.getLayoutY() + child.getTranslateY();
+                shownWhenRemoved = membership.shownWhenRemoved(child);
+                oldVisualX = shownWhenRemoved != null
+                        ? shownWhenRemoved.x() : child.getLayoutX() + child.getTranslateX();
+                oldVisualY = shownWhenRemoved != null
+                        ? shownWhenRemoved.y() : child.getLayoutY() + child.getTranslateY();
             }
+            // Recorded before any skip: every pass in a scene, the first and the
+            // resize-only ones included, sets who the next pass may glide.
+            membership.laidOut(child);
             layoutInArea(child, x, y, areaWidth, areaHeight, -1.0, margin, fill, false, hpos, VPos.TOP);
             if (fill) {
                 keepInsideSlot(child, x, areaWidth, margin);
@@ -1511,17 +1463,43 @@ public class RXMasonryPane extends Pane {
             }
             if (resizeOnly) {
                 animator.keepInFlight(moves, child);
-            } else if (enteringNodes.contains(child)) {
-                animator.addEnterMove(moves, child, 0.0, enterOffset, true);
+                continue;
+            }
+            // A child with no shown position to glide from has an old layout position that
+            // belongs to wherever it was before. A new child rises into its slot from its own
+            // translate; any other snaps, its translate untouched.
+            if (shownWhenRemoved == null && !membership.wasLaidOut(child)) {
+                if (membership.isEntering(child)) {
+                    animator.addEnterMove(moves, child, 0.0, enterOffset, true);
+                }
+                continue;
+            }
+            if (shownWhenRemoved != null && shownWhenRemoved.fading()) {
+                // Removed mid-fade and put back: the removal gave the opacity back, so the
+                // fade goes on from where it showed.
+                animator.addResumedMove(moves, child, oldVisualX, oldVisualY, shownWhenRemoved.opacity());
             } else {
                 animator.addRelayoutMove(moves, child, oldVisualX, oldVisualY);
             }
         }
-        if (collectMoves) {
-            animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
+        if (collectMoves && membership.sceneChanges() == sceneChangesAtStart) {
+            // Laying a child out can reach a listener that moves another child away or
+            // turns animation off while this pass runs: only children still laid out here
+            // move, and only while the pane still animates.
+            moves.removeIf(move -> move.node().getParent() != this || !move.node().isManaged());
+            animator.runRelayout(moves, animate && animationsActive(), getAnimationDuration(),
+                    interpolatorOrDefault());
         }
-        enteringNodes.clear();
-        firstLayoutDone = true;
+        // Publishing the column count, laying a child out, or starting a glide (which writes
+        // translate) can reach a listener that takes the pane out of its scene while this
+        // pass runs. The scene listener stops only what it can see then: stop what this
+        // pass started after it, and let nothing from the pass count as laid out there.
+        if (membership.sceneChanges() != sceneChangesAtStart) {
+            animator.stopAll();
+            membership.forget();
+            return;
+        }
+        membership.endPass(scene);
     }
 
     // The preferred width the pane computes from its own inputs. An explicit prefWidth
@@ -1535,11 +1513,17 @@ public class RXMasonryPane extends Pane {
     // Column count plus each child's start column: widths, gaps and heights are left
     // out, so a pure resize leaves it equal while a column change or a card moving to
     // another column does not.
-    private static List<Object> layoutStructure(int columns, List<Node> managed, int[] startColumns) {
+    private List<Object> layoutStructure(int columns, List<Node> managed, int[] startColumns) {
         List<Object> structure = new ArrayList<>(2 * managed.size() + 1);
         structure.add(columns);
         for (int i = 0; i < managed.size(); i++) {
-            structure.add(managed.get(i));
+            Node child = managed.get(i);
+            // The children were taken before the column count was published; a listener
+            // may have removed one since, and the gate keeps what it records.
+            if (child.getParent() != this || !child.isManaged()) {
+                continue;
+            }
+            structure.add(child);
             structure.add(startColumns[i]);
         }
         return structure;

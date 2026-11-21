@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.layout;
 import io.github.leewyatt.rxcontrols.ItemsJustify;
 import io.github.leewyatt.rxcontrols.internal.PixelGrid;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
+import io.github.leewyatt.rxcontrols.internal.RenderScaleWatch;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Interpolator;
 import javafx.beans.property.BooleanProperty;
@@ -37,12 +38,8 @@ import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.WeakHashMap;
 
 /**
  * A responsive, animated tile layout pane — the node-based sibling of
@@ -60,7 +57,7 @@ import java.util.WeakHashMap;
  * dimension is {@link Region#USE_COMPUTED_SIZE} or not a finite positive
  * value, that dimension is resolved from the largest preferred area of the
  * managed children. Tiles are separated by {@link #hgapProperty() hgap} /
- * {@link #vgapProperty() vgap};
+ * {@link #vgapProperty() vgap}, which may be negative to overlap them;
  * spare row width is distributed per {@link #itemsJustifyProperty()
  * itemsJustify}; the row block is positioned vertically by
  * {@link #contentVAlignmentProperty() contentVAlignment}. Non-stretch rows keep
@@ -196,38 +193,32 @@ public class RXTilePane extends Pane {
     // children are real and persistent, so no recycler pin-set is needed.
     private final PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
     private final ResizeGate resizeGate = new ResizeGate();
-    // A glide needs a position the child was last shown at. Only a pass in the scene the
-    // pane was last laid out in animates, and only a child that pass laid out glides;
-    // any other child (newly added, newly managed, back after missing a pass) snaps into
-    // its slot instead of gliding in from a stale position or the pane origin.
-    private Scene layoutScene;
-    // Bumped on every scene change. A listener reached from a layout pass can take the
-    // pane out of its scene while that pass is still running; the pass then sees the
-    // count change and leaves what the scene listener cleared alone.
-    private int sceneChanges;
-    private Set<Node> laidOutLastPass = new HashSet<>();
-    private Set<Node> laidOutThisPass = new HashSet<>();
-    // Children of the last pass removed since, with where each showed when it was
-    // removed (layout plus translate, read before the animator gives the translate back),
-    // so one put back before the next pass glides on from there. Weak keys: a removed
-    // child must not stay reachable from the pane when no further pass comes; the
-    // values hold no node.
-    private final Map<Node, double[]> removedSinceLastPass = new WeakHashMap<>();
+    // Who the previous pass laid out: only those children glide.
+    private final PassMembership membership = new PassMembership();
+    // A leaving child drifts up by the entrance offset while it fades.
+    private final ChildExits exits = new ChildExits(this, animator, this::animationsActive,
+            this::getAnimationDuration, this::interpolatorOrDefault,
+            () -> -PaneRelayoutAnimator.enterOffset(snapSpaceY(gapOrZero(getVgap()))));
 
+    // A child the change keeps in the list (setAll keeping it) never left: its glide goes
+    // on untouched.
     private final ListChangeListener<Node> childrenListener = change -> {
-        while (change.next()) {
-            if (change.wasRemoved()) {
-                // The recorded structure would otherwise keep removed children alive.
-                resizeGate.reset();
-                for (Node removed : change.getRemoved()) {
-                    if (laidOutLastPass.remove(removed)) {
-                        removedSinceLastPass.put(removed, new double[] {
-                                removed.getLayoutX() + removed.getTranslateX(),
-                                removed.getLayoutY() + removed.getTranslateY()});
-                    }
-                    animator.forget(removed);
-                }
+        ChildrenChange children = ChildrenChange.of(change);
+        if (!children.removed().isEmpty()) {
+            // The recorded structure would otherwise keep removed children alive.
+            resizeGate.reset();
+        }
+        // Forgotten in one batch: clearing many gliding children reworks the glide of
+        // the rest once.
+        animator.inBatch(() -> {
+            for (Node removed : children.removed()) {
+                membership.removed(removed, animator.isFading(removed));
+                exits.removed(removed);
+                animator.forget(removed);
             }
+        });
+        for (Node added : children.added()) {
+            membership.added(added, animationsActive());
         }
     };
 
@@ -246,11 +237,10 @@ public class RXTilePane extends Pane {
         // and Region's cached preferred size would keep the old scale.
         new RenderScaleWatch(this, this::requestLayout);
         sceneProperty().addListener((obs, oldScene, newScene) -> {
-            sceneChanges++;
+            membership.sceneChanged(newScene);
             if (newScene == null) {
                 animator.stopAll();
                 resizeGate.reset();
-                forgetLaidOutChildren();
             }
         });
     }
@@ -478,8 +468,17 @@ public class RXTilePane extends Pane {
     };
 
     /**
-     * Horizontal gap between tiles. A negative or non-finite value is treated as
-     * zero at layout time rather than rejected.
+     * Horizontal gap between tiles. A negative gap overlaps neighbouring tiles, as in
+     * JavaFX's {@code TilePane}: the columns, positions and preferred width all account
+     * for the overlap. The column count comes from the nominal tile width and the gap;
+     * {@link #itemsJustifyProperty() itemsJustify} then places the tiles as it does for
+     * any gap, so the {@code SPACE_*} modes and {@code STRETCH} still share a row's spare
+     * width out over its gaps or tiles. A gap of exactly minus the tile width adds nothing
+     * per column, so every column fits once one tile does, and {@code START},
+     * {@code CENTER} and {@code END} pile a row's tiles on one spot ({@code TilePane}
+     * instead lays one tile a row while its width is exactly one tile); a gap beyond it
+     * lays one tile a row. A non-finite value is treated as zero at layout time rather
+     * than rejected.
      *
      * @return the hgap property
      */
@@ -530,8 +529,11 @@ public class RXTilePane extends Pane {
     };
 
     /**
-     * Vertical gap between rows. A negative or non-finite value is treated as zero
-     * at layout time rather than rejected.
+     * Vertical gap between rows. A negative gap overlaps neighbouring rows, and the
+     * preferred height accounts for it; a gap below minus the tile height is laid out as
+     * minus the tile height, piling the rows on one spot rather than placing each above
+     * the one before it, out of the pane. A non-finite value is treated as zero at layout
+     * time rather than rejected.
      *
      * @return the vgap property
      */
@@ -859,28 +861,49 @@ public class RXTilePane extends Pane {
     };
 
     /**
-     * Whether existing children glide to their new positions after relayout. On by
-     * default; turning it off mid-flight snaps every child to its final position. A size
-     * change imposed by the parent that keeps the column count applies immediately, in
-     * width or in height (a pane squeezed below its content included), so dragging a
+     * Whether children animate on relayout: existing children glide to their new
+     * positions, and a child added while the pane shows fades in, rising a few pixels into
+     * place with the same duration and interpolator; {@link #removeAnimated(Node)} and
+     * {@link #clearAnimated()} fade a child out, drifting up, while the others reflow. On
+     * by default; turning it off mid-flight snaps every child to its final position. A
+     * size change imposed by the parent that keeps the column count applies immediately,
+     * in width or in height (a pane squeezed below its content included), so dragging a
      * window edge never leaves children trailing; a glide already in flight keeps its
      * clock while its target follows the resize. An explicit {@code prefWidth}, even one
      * bound to the parent's width, counts as imposed by the parent; a width that follows
      * the pane's own computed preferred width still glides. Only a child the previous
-     * layout placed glides; one that is newly added, newly managed or back after missing a
-     * layout snaps into place, and so does every child on the first layout after the pane
-     * enters a scene or is laid out outside one. A child removed and put back before the
-     * next layout glides on from where it showed when it was removed, even mid-glide.
+     * layout placed glides, and only a child added to the list since, with animation on,
+     * enters; one that is newly managed or back after missing a layout snaps into place,
+     * and so does every child on the first layout after the pane enters a scene or is laid
+     * out outside one. A child removed and put back before the next layout goes on as it
+     * stood when it was removed: it glides on from where it showed, even mid-glide, or
+     * still enters if it was added since; one that {@code setAll} keeps in the list goes
+     * on as it was.
      *
-     * <p>While a child glides, the pane drives its {@code translateX} /
-     * {@code translateY}; it never touches {@code opacity}. A translate the child had
-     * before the glide is kept: the glide ends there. Writing translate from elsewhere
-     * while the child glides, by one assignment or a running animation, is not
-     * supported: the pane may overwrite it, and when the glide settles it puts back the
-     * value from before the glide, which a still-running animation may then change
-     * again. Keep independent effects on a node inside the child. A child with
-     * {@code translateX} or {@code translateY} bound snaps instead; binding them while
-     * the child is gliding is not supported.</p>
+     * <p>While a child animates, the pane drives its {@code translateX} /
+     * {@code translateY}, and its {@code opacity} while it fades in or out. Values the
+     * child had before are kept: a glide ends at the earlier translate, an entrance starts
+     * offset from it, and a fade returns to the earlier opacity. Writing these from
+     * elsewhere while the child animates, by one assignment or a running animation, is not
+     * supported: the pane may overwrite them, and when the animation settles it puts back
+     * the values from before, which a still-running animation may then change again. Keep
+     * independent effects on a node inside the child. A child with {@code translateX} or
+     * {@code translateY} bound snaps instead, whether moving or entering, and one with
+     * {@code opacity} bound enters without fading; either binding, or a bound
+     * {@code managed}, makes {@link #removeAnimated(Node)} and {@link #clearAnimated()}
+     * remove the child at once. Binding these while the child is animating is not
+     * supported. Neither is turning animation off from a listener on the children list
+     * while children are fading out: finishing their exits removes children, which JavaFX
+     * forbids during that list's change notification.</p>
+     *
+     * <p>A listener the pane's own layout reaches (one on a child's position or size, say)
+     * may change the children or turn animation off while that layout runs. The pane then
+     * throws nothing, keeps no reference to a child it no longer holds, does not lay out a
+     * child that left it or was unmanaged before its turn, stops driving a child that
+     * moved to another parent, and writes no animation once animation is off. Where the
+     * transitions of that layout start from, and how smoothly they go on, is best effort,
+     * and a child that leaves while its own layout is under way may still be placed by
+     * that layout.</p>
      *
      * @return the animated property
      */
@@ -994,6 +1017,31 @@ public class RXTilePane extends Pane {
         animationInterpolator.set(value);
     }
 
+    // ==================== Animated removal ====================
+
+    /**
+     * Removes a child with a fade-out: the child leaves the layout at once, so the other
+     * children reflow into the space it frees while it fades out drifting up, and it
+     * leaves the children list when the fade ends. If animation is off or the pane is not
+     * in a scene, or the child's {@code managed}, {@code translateX}, {@code translateY} or
+     * {@code opacity} is bound, the child is removed at once. Removing it from the
+     * children list directly always removes it at once.
+     *
+     * @param child the child to remove
+     * @return whether the child was a child of this pane
+     */
+    public boolean removeAnimated(Node child) {
+        return exits.removeAnimated(child);
+    }
+
+    /**
+     * Removes every child with a fade-out, as {@link #removeAnimated(Node)} does with one.
+     * If animation is off or the pane is not in a scene, the children are cleared at once.
+     */
+    public void clearAnimated() {
+        exits.clearAnimated();
+    }
+
     // ==================== Actual Column Count (read-only) ====================
 
     private final ReadOnlyIntegerWrapper actualColumnCount =
@@ -1077,6 +1125,11 @@ public class RXTilePane extends Pane {
         int columns = prefWidthColumns();
         double tileWidth = nominalTileWidth();
         double gap = snapSpaceX(gapOrZero(getHgap()));
+        // A gap beyond minus the tile width lays one tile a row; more columns would make
+        // the preferred width shrink below a tile.
+        if (tileWidth + gap < 0.0) {
+            columns = 1;
+        }
         double content = rowWidth(columns, tileWidth, gap);
         // Slots and gaps are on the grid already; snapping their sum again can add a
         // device pixel at a fractional render scale.
@@ -1111,10 +1164,9 @@ public class RXTilePane extends Pane {
     protected void layoutChildren() {
         // Sampled before anything below can reach a listener: publishing the column count
         // notifies its listeners, and one of them may take the pane out of its scene.
-        int sceneChangesAtStart = sceneChanges;
+        int sceneChangesAtStart = membership.sceneChanges();
         Scene scene = getScene();
-        // A pass that threw midway may have left members behind.
-        laidOutThisPass.clear();
+        membership.beginPass();
         double left = snappedLeftInset();
         double top = snappedTopInset();
         double bottom = snappedBottomInset();
@@ -1152,11 +1204,12 @@ public class RXTilePane extends Pane {
         // its width is as high as it is laid out.
         double fullTileHeight = tileHeightAt(tileWidth);
         double tileHeight = fullTileHeight > contentHeight ? contentHeight : fullTileHeight;
-        double rowBlockHeight = rows == 0 ? 0.0 : rows * tileHeight + (rows - 1) * vgapValue;
+        double rowGapValue = rowGap(vgapValue, tileHeight);
+        double rowBlockHeight = rows == 0 ? 0.0 : rows * tileHeight + (rows - 1) * rowGapValue;
         double startY = verticalContentOffset(
                 contentHeight, rowBlockHeight, contentVAlignmentOrDefault(getContentVAlignment()));
 
-        boolean animate = isAnimated() && scene != null && scene == layoutScene && isAnimationDurationPositive();
+        boolean animate = isAnimated() && membership.continuesIn(scene) && isAnimationDurationPositive();
         // With animation off and nothing in flight the animator pass would be a
         // no-op; skip the move bookkeeping entirely on this hot path.
         boolean collectMoves = animate || animator.hasActiveState();
@@ -1177,28 +1230,33 @@ public class RXTilePane extends Pane {
         }
         for (int i = 0; i < managed.size(); i++) {
             Node child = managed.get(i);
+            // The children were taken when the pass began; a listener reached from laying
+            // an earlier one out may have moved this one away or unmanaged it since.
+            if (child.getParent() != this || !child.isManaged()) {
+                continue;
+            }
             int column = i % columns;
             int row = i / columns;
             double x = left + snapPositionX(startX + column * (tileWidth + effectiveHgap));
-            double y = top + snapPositionY(startY + row * (tileHeight + vgapValue));
+            double y = top + snapPositionY(startY + row * (tileHeight + rowGapValue));
             // FLIP: capture the current on-screen position before relocating so the
             // animator can invert the move and tween translate back to its resting value.
             double oldVisualX = 0.0;
             double oldVisualY = 0.0;
             // A child removed and put back since the last pass has had its translate given
             // back; where it showed when removed is where its glide goes on from.
-            double[] shownWhenRemoved = null;
+            PassMembership.Shown shownWhenRemoved = null;
             if (collectMoves) {
-                shownWhenRemoved = removedSinceLastPass.get(child);
+                shownWhenRemoved = membership.shownWhenRemoved(child);
                 oldVisualX = shownWhenRemoved != null
-                        ? shownWhenRemoved[0] : child.getLayoutX() + child.getTranslateX();
+                        ? shownWhenRemoved.x() : child.getLayoutX() + child.getTranslateX();
                 oldVisualY = shownWhenRemoved != null
-                        ? shownWhenRemoved[1] : child.getLayoutY() + child.getTranslateY();
+                        ? shownWhenRemoved.y() : child.getLayoutY() + child.getTranslateY();
             }
             Pos childAlignment = childTileAlignment(child, tileAlignmentValue);
             // Recorded before any skip: every pass in a scene, the first and the
             // resize-only ones included, sets who the next pass may glide.
-            laidOutThisPass.add(child);
+            membership.laidOut(child);
             layoutInTile(child, x, y, tileWidth, tileHeight, baselineOffset, getMargin(child),
                     childAlignment.getHpos(), childAlignment.getVpos());
             if (!collectMoves) {
@@ -1208,43 +1266,41 @@ public class RXTilePane extends Pane {
                 animator.keepInFlight(moves, child);
                 continue;
             }
-            // Checked before any motion: an entering child's old layout position belongs to
-            // wherever it was before, and its own translate stays as it is.
-            if (shownWhenRemoved == null && !laidOutLastPass.contains(child)) {
+            // Checked before any motion: a child with no shown position to glide from has an
+            // old layout position that belongs to wherever it was before. A new child rises
+            // into its slot from its own translate; any other snaps, its translate untouched.
+            if (shownWhenRemoved == null && !membership.wasLaidOut(child)) {
+                if (membership.isEntering(child)) {
+                    animator.addEnterMove(moves, child, 0.0, PaneRelayoutAnimator.enterOffset(vgapValue), true);
+                }
                 continue;
             }
-            animator.addRelayoutMove(moves, child, oldVisualX, oldVisualY);
+            if (shownWhenRemoved != null && shownWhenRemoved.fading()) {
+                // Removed mid-fade and put back: the removal gave the opacity back, so the
+                // fade goes on from where it showed.
+                animator.addResumedMove(moves, child, oldVisualX, oldVisualY, shownWhenRemoved.opacity());
+            } else {
+                animator.addRelayoutMove(moves, child, oldVisualX, oldVisualY);
+            }
         }
-        if (collectMoves && sceneChanges == sceneChangesAtStart) {
-            animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
+        if (collectMoves && membership.sceneChanges() == sceneChangesAtStart) {
+            // Laying a child out can reach a listener that moves another child away or
+            // turns animation off while this pass runs: only children still laid out here
+            // move, and only while the pane still animates.
+            moves.removeIf(move -> move.node().getParent() != this || !move.node().isManaged());
+            animator.runRelayout(moves, animate && animationsActive(), getAnimationDuration(),
+                    interpolatorOrDefault());
         }
         // Publishing the column count, laying a child out, or starting a glide (which writes
         // translate) can reach a listener that takes the pane out of its scene while this
         // pass runs. The scene listener stops only what it can see then: stop what this
         // pass started after it, and let nothing from the pass count as laid out there.
-        if (sceneChanges != sceneChangesAtStart) {
+        if (membership.sceneChanges() != sceneChangesAtStart) {
             animator.stopAll();
-            forgetLaidOutChildren();
+            membership.forget();
             return;
         }
-        if (scene != null) {
-            Set<Node> previous = laidOutLastPass;
-            laidOutLastPass = laidOutThisPass;
-            laidOutThisPass = previous;
-            laidOutThisPass.clear();
-            removedSinceLastPass.clear();
-            layoutScene = scene;
-        } else {
-            // An off-screen pass shows nothing, so the next pass in a scene snaps.
-            forgetLaidOutChildren();
-        }
-    }
-
-    private void forgetLaidOutChildren() {
-        layoutScene = null;
-        laidOutLastPass.clear();
-        laidOutThisPass.clear();
-        removedSinceLastPass.clear();
+        membership.endPass(scene);
     }
 
     // The preferred width the pane computes from its own inputs. An explicit prefWidth
@@ -1304,7 +1360,7 @@ public class RXTilePane extends Pane {
     // The preferred height of the given rows plus the vertical insets, ceiled as
     // computePrefWidth explains.
     private double heightOfRows(int rows, double tileHeight, double vgap) {
-        double content = rows == 0 ? 0.0 : rows * tileHeight + (rows - 1) * vgap;
+        double content = rows == 0 ? 0.0 : rows * tileHeight + (rows - 1) * rowGap(vgap, tileHeight);
         return PixelGrid.ceilY(this, snappedTopInset() + content + snappedBottomInset());
     }
 
@@ -1323,22 +1379,31 @@ public class RXTilePane extends Pane {
     // Snapping it again can add a device pixel at a fractional render scale (175% turns
     // 128.571 into 129.143), so the count would disagree with the slots it lays out.
     private int computeColumns(double availableWidth, double tileWidth) {
+        if (!(availableWidth > 0.0) || !(tileWidth > 0.0)) {
+            return 1;
+        }
         double gap = snapSpaceX(gapOrZero(getHgap()));
         int max = getMaxColumns();
         int limit = max > 0 ? Math.min(max, MAX_RESOLVED_COLUMNS) : MAX_RESOLVED_COLUMNS;
-        int columns = 1;
-        if (availableWidth > 0.0 && tileWidth > 0.0) {
-            // Capped while still a double: the ratio of a tiny tile can exceed any int.
-            double fit = Math.floor((availableWidth + gap) / (tileWidth + gap));
-            columns = (int) Math.max(1.0, Math.min(fit, limit));
-            // The division carries floating-point noise at a fractional render scale: a row
-            // that exactly fits must keep its last column, and one a fraction of a pixel too
-            // wide must still lose it. The candidate rows are summed like computePrefWidth.
-            if (columns < limit && !PixelGrid.exceedsX(this, rowWidth(columns + 1, tileWidth, gap), availableWidth)) {
-                columns++;
-            } else if (columns > 1 && PixelGrid.exceedsX(this, rowWidth(columns, tileWidth, gap), availableWidth)) {
-                columns--;
-            }
+        double step = tileWidth + gap;
+        // Told apart by the step itself: a step below the rounding tolerance still adds
+        // up along a row, so the tolerance belongs to the row widths compared below. A gap
+        // that cancels the tile width adds nothing per column, so every column fits once
+        // one tile does; one beyond it would run the row backwards, so it lays one tile a
+        // row, as JavaFX's TilePane does.
+        if (step <= 0.0) {
+            return step < 0.0 || PixelGrid.exceedsX(this, tileWidth, availableWidth) ? 1 : limit;
+        }
+        // Capped while still a double: the ratio of a tiny tile can exceed any int.
+        double fit = Math.floor((availableWidth + gap) / step);
+        int columns = (int) Math.max(1.0, Math.min(fit, limit));
+        // The division carries floating-point noise at a fractional render scale: a row
+        // that exactly fits must keep its last column, and one a fraction of a pixel too
+        // wide must still lose it. The candidate rows are summed like computePrefWidth.
+        if (columns < limit && !PixelGrid.exceedsX(this, rowWidth(columns + 1, tileWidth, gap), availableWidth)) {
+            columns++;
+        } else if (columns > 1 && PixelGrid.exceedsX(this, rowWidth(columns, tileWidth, gap), availableWidth)) {
+            columns--;
         }
         return columns;
     }
@@ -1638,6 +1703,10 @@ public class RXTilePane extends Pane {
         return Double.isFinite(value) && value > 0.0 ? value : 0.0;
     }
 
+    private boolean animationsActive() {
+        return isAnimated() && getScene() != null && isAnimationDurationPositive();
+    }
+
     private boolean isAnimationDurationPositive() {
         Duration value = getAnimationDuration();
         return value != null && !value.isUnknown() && !value.isIndefinite()
@@ -1649,8 +1718,16 @@ public class RXTilePane extends Pane {
         return value == null ? DEFAULT_ANIMATION_INTERPOLATOR : value;
     }
 
+    // A negative gap overlaps the tiles, as in JavaFX's TilePane; only a non-finite one
+    // falls back to zero.
     private static double gapOrZero(double gap) {
-        return Double.isFinite(gap) ? Math.max(0.0, gap) : 0.0;
+        return Double.isFinite(gap) ? gap : 0.0;
+    }
+
+    // The gap between rows as laid out: overlapping rows may share a top, but a gap below
+    // minus the tile height would place each row above the one before it, out of the pane.
+    private static double rowGap(double vgap, double tileHeight) {
+        return Math.max(vgap, -tileHeight);
     }
 
     private static ItemsJustify justifyOrDefault(ItemsJustify value) {

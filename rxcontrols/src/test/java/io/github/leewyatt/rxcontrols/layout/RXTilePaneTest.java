@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.ItemsJustify;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.collections.ListChangeListener;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.geometry.Insets;
@@ -17,8 +18,10 @@ import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
@@ -815,7 +818,7 @@ public class RXTilePaneTest {
                 "invalid prefTileWidth resolves from managed children at layout time");
         assertEquals(100.0, pane.getChildren().get(0).getLayoutBounds().getHeight(), EPSILON,
                 "invalid prefTileHeight resolves from managed children at layout time");
-        assertEquals(100.0, pane.getChildren().get(1).getLayoutX(), EPSILON, "negative hgap acts as 0");
+        assertEquals(90.0, pane.getChildren().get(1).getLayoutX(), EPSILON, "a negative hgap overlaps the tiles");
     }
 
     @Test
@@ -1734,8 +1737,8 @@ public class RXTilePaneTest {
 
     /**
      * Verifies moving the last tile to the front glides when the tile is put back before
-     * the next layout, whether through setAll or remove and add, and snaps when a layout
-     * ran without it in between.
+     * the next layout, whether through setAll or remove and add, and enters as a new tile
+     * when a layout ran without it in between.
      */
     @Test
     public void reorderGlidesOnlyWithoutALayoutInBetween() throws Exception {
@@ -1763,7 +1766,8 @@ public class RXTilePaneTest {
             layout(removedForAPass, 340, 400);
             removedForAPass.getChildren().add(0, tile);
             layout(removedForAPass, 340, 400);
-            assertFalse(translated(tile), "remove, layout, add: snaps");
+            assertEquals(0.0, tile.getOpacity(), 1.0e-9, "remove, layout, add: enters as a new tile");
+            assertEquals(0.0, tile.getTranslateX(), 1.0e-9, "remove, layout, add: no glide from its old slot");
 
             RXTilePane setAllForAPass = reorderPane();
             tile = setAllForAPass.getChildren().get(5);
@@ -1775,7 +1779,8 @@ public class RXTilePaneTest {
             withFirst.add(0, tile);
             setAllForAPass.getChildren().setAll(withFirst);
             layout(setAllForAPass, 340, 400);
-            assertFalse(translated(tile), "setAll without it, layout, setAll with it: snaps");
+            assertEquals(0.0, tile.getOpacity(), 1.0e-9, "setAll without it, layout, setAll with it: enters");
+            assertEquals(0.0, tile.getTranslateX(), 1.0e-9, "setAll without it, layout, setAll with it: no glide");
             assertTrue(translated(setAllForAPass.getChildren().get(1)), "the tiles it pushed along still glide");
         });
     }
@@ -1819,6 +1824,32 @@ public class RXTilePaneTest {
                 assertEquals(240.0, shownX(b), 1.0e-9, how + ": B settles in its new slot");
                 assertEquals(0.0, shownX(c), 1.0e-9, how + ": C settles in its new slot");
             }
+        });
+    }
+
+    /**
+     * Verifies a tile that setAll keeps in the list is left alone by the change: JavaFX
+     * reports it removed and added at once, but it never left, so its glide is not
+     * handed back before the next layout.
+     */
+    @Test
+    public void tileKeptBySetAllKeepsItsGlide() throws Exception {
+        onFx(() -> {
+            Region a = card(100, 40);
+            Region b = card(100, 40);
+            Region c = card(100, 40);
+            RXTilePane pane = new RXTilePane(a, b, c);
+            pane.setHgap(0);
+            new Scene(pane, 600, 300);
+            pane.applyCss();
+            layout(pane, 600, 300);
+            pane.setHgap(20);
+            layout(pane, 600, 300);
+            double gliding = b.getTranslateX();
+            assertTrue(Math.abs(gliding) > EPSILON, "setup: B glides");
+
+            pane.getChildren().setAll(c, a, b);
+            assertEquals(gliding, b.getTranslateX(), 1.0e-9, "B keeps its glide through the change");
         });
     }
 
@@ -1917,24 +1948,855 @@ public class RXTilePaneTest {
         });
     }
 
+    /**
+     * Verifies a tile added while the pane shows enters: on its first frame it is
+     * transparent and one vgap below its own translate, and it settles at its own
+     * translate and opacity. Inserted in the middle, it enters while the tiles after it
+     * glide aside.
+     */
     @Test
-    public void addedChildPopsInWithoutGliding() throws Exception {
+    public void addedTileEntersFromBelow() throws Exception {
         onFx(() -> {
-            RXTilePane pane = filledPane(5);
+            RXTilePane pane = shownPane(5);
+            Region added = card();
+            added.setTranslateX(3.0);
+            added.setTranslateY(-4.0);
+            added.setOpacity(0.7);
+            pane.getChildren().add(added);
+            layout(pane, 700, 400);
+            assertEquals(0.0, added.getOpacity(), 1.0e-9, "first frame: transparent");
+            assertEquals(3.0, added.getTranslateX(), 1.0e-9, "first frame: at its own x");
+            assertEquals(6.0, added.getTranslateY(), 1.0e-9, "first frame: one vgap below its own y");
+
+            Region inserted = card();
+            Node pushed = pane.getChildren().get(1);
+            pane.getChildren().add(1, inserted);
+            layout(pane, 700, 400);
+            assertEquals(0.0, inserted.getOpacity(), 1.0e-9, "an inserted tile enters");
+            assertTrue(translated(pushed), "the tiles after it glide aside");
+
+            pane.setAnimated(false);
+            assertEquals(0.7, added.getOpacity(), 1.0e-9, "it settles at its own opacity");
+            assertEquals(3.0, added.getTranslateX(), 1.0e-9, "at its own x");
+            assertEquals(-4.0, added.getTranslateY(), 1.0e-9, "at its own y");
+            assertEquals(1.0, inserted.getOpacity(), 1.0e-9, "the inserted tile settles too");
+        });
+    }
+
+    /**
+     * Verifies only a tile added while the pane shows enters: one added before the first
+     * layout, while animation is off, or while the pane is out of its scene, and one
+     * managed for the first time, all snap in with their opacity untouched.
+     */
+    @Test
+    public void onlyATileAddedWhileShownEnters() throws Exception {
+        onFx(() -> {
+            RXTilePane beforeFirst = filledPane(2);
+            Region early = card();
+            beforeFirst.getChildren().add(early);
+            new Scene(beforeFirst, 700, 400);
+            beforeFirst.applyCss();
+            layout(beforeFirst, 700, 400);
+            assertFalse(entering(early), "added before the first layout");
+
+            RXTilePane quiet = shownPane(2);
+            quiet.setAnimated(false);
+            Region whileOff = card();
+            quiet.getChildren().add(whileOff);
+            layout(quiet, 700, 400);
+            quiet.setAnimated(true);
+            layout(quiet, 700, 400);
+            assertFalse(entering(whileOff), "added while animation was off");
+
+            RXTilePane away = filledPane(2);
+            StackPane root = new StackPane(away);
+            new Scene(root, 700, 400);
+            root.applyCss();
+            layout(root, 700, 400);
+            root.getChildren().clear();
+            Region whileAway = card();
+            away.getChildren().add(whileAway);
+            root.getChildren().add(away);
+            layout(root, 700, 400);
+            assertFalse(entering(whileAway), "added while the pane was out of its scene");
+
+            Region late = card();
+            late.setManaged(false);
+            RXTilePane managedLate = new RXTilePane(card(), late);
+            new Scene(managedLate, 700, 400);
+            managedLate.applyCss();
+            layout(managedLate, 700, 400);
+            late.setManaged(true);
+            layout(managedLate, 700, 400);
+            assertFalse(entering(late), "managed for the first time");
+        });
+    }
+
+    /**
+     * Verifies a tile keeps what it was when the children list reorders it, whether
+     * setAll keeps it in the list or it is removed and added back before the next layout:
+     * one that was in the list but unmanaged on the last layout snaps once managed, and
+     * one added since still enters.
+     */
+    @Test
+    public void reorderedTilesKeepWhetherTheyAreNew() throws Exception {
+        onFx(() -> {
+            for (boolean viaSetAll : new boolean[] {true, false}) {
+                String how = viaSetAll ? "setAll" : "remove and add";
+                Region unmanaged = card();
+                unmanaged.setManaged(false);
+                RXTilePane pane = new RXTilePane(card(), unmanaged);
+                pane.setVgap(10);
+                new Scene(pane, 700, 400);
+                pane.applyCss();
+                layout(pane, 700, 400);
+                moveToFront(pane, unmanaged, viaSetAll);
+                unmanaged.setManaged(true);
+                layout(pane, 700, 400);
+                assertFalse(entering(unmanaged), how + ": a tile that was in the list snaps once managed");
+
+                Region added = card();
+                pane.getChildren().add(added);
+                moveToFront(pane, added, viaSetAll);
+                layout(pane, 700, 400);
+                assertEquals(0.0, added.getOpacity(), 1.0e-9, how + ": a tile added since still enters");
+            }
+        });
+    }
+
+    /**
+     * Verifies a tile with its translate bound snaps in when added, untouched, and one
+     * with its opacity bound rises into place without fading.
+     */
+    @Test
+    public void addedTileEntersWithoutWhatIsBound() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = shownPane(2);
+            Region boundTranslate = card();
+            boundTranslate.translateYProperty().bind(new SimpleDoubleProperty(5.0));
+            Region boundOpacity = card();
+            boundOpacity.opacityProperty().bind(new SimpleDoubleProperty(0.8));
+            pane.getChildren().addAll(boundTranslate, boundOpacity);
+            layout(pane, 700, 400);
+            assertEquals(5.0, boundTranslate.getTranslateY(), 1.0e-9, "bound translate: left alone");
+            assertEquals(1.0, boundTranslate.getOpacity(), 1.0e-9, "bound translate: snaps without fading");
+            assertEquals(0.8, boundOpacity.getOpacity(), 1.0e-9, "bound opacity: left alone");
+            assertEquals(10.0, boundOpacity.getTranslateY(), 1.0e-9, "bound opacity: still rises");
+        });
+    }
+
+    /**
+     * Verifies a tile removed while it fades in and put back before the next layout,
+     * through remove and add, fades on from the opacity it showed: in another slot, and
+     * in the same slot where it does not move at all. Removed, it gets its own opacity
+     * back at once; with its opacity bound by the time it is put back, it only moves.
+     */
+    @Test
+    public void tilePutBackMidEntranceFadesOn() throws Exception {
+        onFx(() -> {
+            for (boolean sameSlot : new boolean[] {false, true}) {
+                String where = sameSlot ? "same slot" : "another slot";
+                RXTilePane pane = shownPane(3);
+                Region entering = card();
+                entering.setOpacity(0.7);
+                pane.getChildren().add(entering);
+                layout(pane, 700, 400);
+                assertEquals(0.0, entering.getOpacity(), 1.0e-9, where + ": setup, it fades in from 0");
+
+                pane.getChildren().remove(entering);
+                assertEquals(0.7, entering.getOpacity(), 1.0e-9, where + ": removed, its own opacity is back");
+                pane.getChildren().add(sameSlot ? pane.getChildren().size() : 0, entering);
+                layout(pane, 700, 400);
+                assertEquals(0.0, entering.getOpacity(), 1.0e-9, where + ": put back, it fades on from where it showed");
+                pane.setAnimated(false);
+                assertEquals(0.7, entering.getOpacity(), 1.0e-9, where + ": it settles at its own opacity");
+            }
+
+            RXTilePane pane = shownPane(3);
+            Region bound = card();
+            pane.getChildren().add(bound);
+            layout(pane, 700, 400);
+            pane.getChildren().remove(bound);
+            bound.opacityProperty().bind(new SimpleDoubleProperty(0.5));
+            pane.getChildren().add(0, bound);
+            layout(pane, 700, 400);
+            assertEquals(0.5, bound.getOpacity(), 1.0e-9, "bound by then: its opacity is left alone");
+            assertTrue(translated(bound), "bound by then: it still glides to its new slot");
+        });
+    }
+
+    /**
+     * Verifies removeAnimated keeps the child while it fades out, unmanaged so the
+     * children after it glide into its place, and removes it with its managed state back
+     * when the fade ends; a node that is not a child is not removed, and with animation
+     * off the child goes at once.
+     */
+    @Test
+    public void removeAnimatedFadesAChildOutWhileTheOthersReflow() throws Exception {
+        Node[] leaving = new Node[1];
+        CountDownLatch gone = new CountDownLatch(1);
+        onFx(() -> {
+            RXTilePane pane = shownPane(5);
+            pane.setAnimationDuration(Duration.millis(40));
+            Node child = pane.getChildren().get(1);
+            Node next = pane.getChildren().get(2);
+            pane.getChildren().addListener((ListChangeListener<Node>) change -> {
+                if (!pane.getChildren().contains(child)) {
+                    gone.countDown();
+                }
+            });
+            assertFalse(pane.removeAnimated(card()), "not a child: nothing removed");
+            assertTrue(pane.removeAnimated(child), "a child");
+            assertTrue(pane.getChildren().contains(child), "still a child while it fades");
+            assertFalse(child.isManaged(), "unmanaged, so the others reflow");
+            layout(pane, 700, 400);
+            assertTrue(translated(next), "the child after it glides into its place");
+            leaving[0] = child;
+        });
+        assertTrue(gone.await(5, TimeUnit.SECONDS), "it leaves when the fade ends");
+        onFx(() -> assertTrue(leaving[0].isManaged(), "its managed state is back"));
+
+        onFx(() -> {
+            RXTilePane pane = shownPane(2);
+            pane.setAnimated(false);
+            Node child = pane.getChildren().get(0);
+            pane.removeAnimated(child);
+            assertFalse(pane.getChildren().contains(child), "animation off: removed at once");
+        });
+    }
+
+    /**
+     * Verifies clearAnimated starts an exit for every child, which turning animation off
+     * finishes, and clears the children at once when animation is off.
+     */
+    @Test
+    public void clearAnimatedFadesEveryChildOut() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = shownPane(3);
+            pane.clearAnimated();
+            assertEquals(3, pane.getChildren().size(), "the children stay while they fade");
+            assertTrue(pane.getChildren().stream().noneMatch(Node::isManaged), "every child is unmanaged");
+            pane.setAnimated(false);
+            assertTrue(pane.getChildren().isEmpty(), "turning animation off finishes every exit");
+
+            RXTilePane quiet = shownPane(2);
+            quiet.setAnimated(false);
+            quiet.clearAnimated();
+            assertTrue(quiet.getChildren().isEmpty(), "animation off: cleared at once");
+        });
+    }
+
+    /**
+     * Verifies a child fading out stays on its way out when setAll keeps it in the list,
+     * and really leaves the list once, when its exit ends; removed from the list directly
+     * mid-exit, it gets its managed state back at once.
+     */
+    @Test
+    public void leavingChildKeptBySetAllLeavesOnce() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = shownPane(3);
+            Node a = pane.getChildren().get(0);
+            Node b = pane.getChildren().get(1);
+            Node c = pane.getChildren().get(2);
+            int[] departures = {0};
+            pane.getChildren().addListener((ListChangeListener<Node>) change -> {
+                boolean removed = false;
+                boolean added = false;
+                while (change.next()) {
+                    removed |= change.wasRemoved() && change.getRemoved().contains(b);
+                    added |= change.wasAdded() && change.getAddedSubList().contains(b);
+                }
+                if (removed && !added) {
+                    departures[0]++;
+                }
+            });
+            pane.removeAnimated(b);
+            pane.getChildren().setAll(c, b, a);
+            assertFalse(b.isManaged(), "kept by setAll, it is still leaving");
+            layout(pane, 700, 400);
+            pane.setAnimated(false);
+            assertFalse(pane.getChildren().contains(b), "it leaves when its exit ends");
+            assertTrue(b.isManaged(), "with its managed state back");
+            assertEquals(1, departures[0], "it leaves the list once");
+
+            RXTilePane other = shownPane(2);
+            Node leaving = other.getChildren().get(0);
+            other.removeAnimated(leaving);
+            other.getChildren().remove(leaving);
+            assertTrue(leaving.isManaged(), "removed directly mid-exit: managed state back at once");
+        });
+    }
+
+    /**
+     * Verifies removeAnimated on a tile mid-glide starts the fade where the tile shows,
+     * glide offset included, both at once and after the next layout, and the tile has
+     * its own translate and opacity back when it leaves.
+     */
+    @Test
+    public void tileRemovedMidGlideFadesOutWhereItShows() throws Exception {
+        Runnable body = () -> {
+            Region a = card(100, 40);
+            Region b = card(100, 40);
+            Region c = card(100, 40);
+            b.setTranslateY(-4.0);
+            RXTilePane pane = new RXTilePane(a, b, c);
+            pane.setHgap(0);
+            new Scene(pane, 600, 300);
+            pane.applyCss();
+            layout(pane, 600, 300);
+            pane.setHgap(20);
+            layout(pane, 600, 300);
+            double shownX = b.getLayoutX() + b.getTranslateX();
+            double shownY = b.getLayoutY() + b.getTranslateY();
+            assertTrue(Math.abs(b.getTranslateX()) > 0.5, "setup: B glides");
+
+            pane.removeAnimated(b);
+            assertTileClose(shownX, b.getLayoutX() + b.getTranslateX(), "the fade starts where it shows (x)");
+            assertTileClose(shownY, b.getLayoutY() + b.getTranslateY(), "the fade starts where it shows (y)");
+            layout(pane, 600, 300);
+            assertTileClose(shownX, b.getLayoutX() + b.getTranslateX(), "the next layout leaves it there (x)");
+            assertTileClose(shownY, b.getLayoutY() + b.getTranslateY(), "the next layout leaves it there (y)");
+
+            pane.setAnimated(false);
+            assertFalse(pane.getChildren().contains(b), "it leaves when the exit ends");
+            assertTileClose(0.0, b.getTranslateX(), "its own translateX is back");
+            assertTileClose(-4.0, b.getTranslateY(), "its own translateY is back");
+            assertTileClose(1.0, b.getOpacity(), "its own opacity is back");
+        };
+        onFx(body);
+    }
+
+    private static void assertTileClose(double expected, double actual, String label) {
+        assertEquals(expected, actual, 1.0e-9, label);
+    }
+
+    /**
+     * Verifies clearing many tiles that are still entering costs about as much as
+     * clearing as many settled ones, through clearAnimated and through the children list:
+     * the glide of the rest is reworked once for the whole batch, not once per tile.
+     * Before, 800 entering tiles took over a second.
+     */
+    @Test
+    public void clearingEnteringTilesCostsAboutAsMuchAsSettledOnes() throws Exception {
+        onFx(() -> {
+            for (boolean viaClearAnimated : new boolean[] {true, false}) {
+                String how = viaClearAnimated ? "clearAnimated" : "getChildren().clear()";
+                clearNanos(false, viaClearAnimated);
+                clearNanos(true, viaClearAnimated);
+                long settled = Math.min(clearNanos(false, viaClearAnimated), clearNanos(false, viaClearAnimated));
+                long entering = Math.min(clearNanos(true, viaClearAnimated), clearNanos(true, viaClearAnimated));
+                assertTrue(entering < 5 * settled + 100_000_000L,
+                        how + ": entering " + entering / 1_000_000 + " ms, settled " + settled / 1_000_000 + " ms");
+            }
+        });
+    }
+
+    // Times clearing 800 tiles that were added and laid out, entering or (added with
+    // animation off) settled.
+    private static long clearNanos(boolean entering, boolean viaClearAnimated) {
+        RXTilePane pane = shownPane(1);
+        pane.setAnimated(entering);
+        for (int i = 0; i < 800; i++) {
+            pane.getChildren().add(card());
+        }
+        layout(pane, 700, 400);
+        pane.setAnimated(true);
+        long start = System.nanoTime();
+        if (viaClearAnimated) {
+            pane.clearAnimated();
+        } else {
+            pane.getChildren().clear();
+        }
+        long elapsed = System.nanoTime() - start;
+        pane.setAnimated(false);
+        return elapsed;
+    }
+
+    /**
+     * Verifies a tile that a listener moves to another parent as its entrance first
+     * writes it keeps its own opacity and translate there, and one whose listener turns
+     * animation off then settles at once: the entrance does not go on driving either.
+     */
+    @Test
+    public void listenerReachedFromAnEntranceStopsIt() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = shownPane(2);
+            StackPane elsewhere = new StackPane();
+            Region moved = card();
+            moved.setOpacity(0.8);
+            moved.opacityProperty().addListener((obs, oldValue, newValue) -> {
+                if (newValue.doubleValue() == 0.0 && moved.getParent() == pane) {
+                    elsewhere.getChildren().add(moved);
+                }
+            });
+            pane.getChildren().add(moved);
+            layout(pane, 700, 400);
+            assertSame(elsewhere, moved.getParent(), "setup: the listener moved it");
+            assertTileClose(0.8, moved.getOpacity(), "moved: its opacity is back");
+            assertTileClose(0.0, moved.getTranslateY(), "moved: its translate is back");
+
+            RXTilePane switching = shownPane(2);
+            Region added = card();
+            added.setOpacity(0.8);
+            added.opacityProperty().addListener((obs, oldValue, newValue) -> {
+                if (newValue.doubleValue() == 0.0) {
+                    switching.setAnimated(false);
+                }
+            });
+            switching.getChildren().add(added);
+            layout(switching, 700, 400);
+            assertTileClose(0.8, added.getOpacity(), "animation off: its opacity is back");
+            assertTileClose(0.0, added.getTranslateY(), "animation off: its translate is back");
+        });
+    }
+
+    /**
+     * Verifies a settled tile whose opacity is changed while it is out of the list keeps
+     * that opacity when put back, in its slot or another: only a tile the pane was fading
+     * in when it was removed resumes a fade.
+     */
+    @Test
+    public void settledTileChangedWhileOutKeepsItsOpacity() throws Exception {
+        onFx(() -> {
+            for (boolean sameSlot : new boolean[] {true, false}) {
+                String where = sameSlot ? "same slot" : "another slot";
+                RXTilePane pane = shownPane(3);
+                Node settled = pane.getChildren().get(2);
+                pane.getChildren().remove(settled);
+                settled.setOpacity(0.3);
+                pane.getChildren().add(sameSlot ? 2 : 0, settled);
+                layout(pane, 700, 400);
+                assertTileClose(0.3, settled.getOpacity(), where + ": its new opacity stands");
+            }
+        });
+    }
+
+    /**
+     * Verifies a tile added while animation is turned off around the addition, in the
+     * same event and with no layout in between, joins without an entrance.
+     */
+    @Test
+    public void tileAddedWithAnimationOffAroundItJoinsAsIs() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = shownPane(2);
+            Region added = card();
+            pane.setAnimated(false);
+            pane.getChildren().add(added);
+            pane.setAnimated(true);
+            layout(pane, 700, 400);
+            assertFalse(entering(added), "no entrance");
+        });
+    }
+
+    /**
+     * Verifies a listener reached from one new tile's entrance can bind or take away
+     * other tiles added with it: the bound one keeps its binding, the one moved to
+     * another parent keeps its own opacity and translate there, and the first enters and
+     * settles as usual.
+     */
+    @Test
+    public void listenerOnOneEntranceCanChangeTheNextNewTiles() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = shownPane(2);
+            StackPane elsewhere = new StackPane();
+            Region first = card();
+            Region bound = card();
+            Region moved = card();
+            moved.setOpacity(0.8);
+            moved.setTranslateY(-3.0);
+            first.opacityProperty().addListener((obs, oldValue, newValue) -> {
+                if (newValue.doubleValue() == 0.0 && moved.getParent() == pane) {
+                    bound.opacityProperty().bind(new SimpleDoubleProperty(0.6));
+                    elsewhere.getChildren().add(moved);
+                }
+            });
+            pane.getChildren().addAll(first, bound, moved);
+            layout(pane, 700, 400);
+            assertTileClose(0.0, first.getOpacity(), "the first enters");
+            assertTileClose(0.6, bound.getOpacity(), "the bound one keeps its binding");
+            assertSame(elsewhere, moved.getParent(), "setup: the listener moved one away");
+            assertTileClose(0.8, moved.getOpacity(), "the one moved away keeps its opacity");
+            assertTileClose(-3.0, moved.getTranslateY(), "and its translate");
+            pane.setAnimated(false);
+            assertTileClose(1.0, first.getOpacity(), "the first settles");
+        });
+    }
+
+    /**
+     * Verifies a tile added with animation on and reordered while animation is turned
+     * off around the reorder still enters, whether setAll keeps it or it is removed and
+     * added back: put back, it goes on as it stood when it was removed.
+     */
+    @Test
+    public void enteringTileReorderedWithAnimationOffStillEnters() throws Exception {
+        onFx(() -> {
+            for (boolean viaSetAll : new boolean[] {true, false}) {
+                String how = viaSetAll ? "setAll" : "remove and add";
+                RXTilePane pane = shownPane(2);
+                Region added = card();
+                pane.getChildren().add(added);
+                pane.setAnimated(false);
+                moveToFront(pane, added, viaSetAll);
+                pane.setAnimated(true);
+                layout(pane, 700, 400);
+                assertTileClose(0.0, added.getOpacity(), how + ": it still enters");
+            }
+        });
+    }
+
+    /**
+     * Verifies a listener reached while a layout places the tiles can still call off an
+     * entrance that layout collected but has not started: a tile moved to another parent
+     * in the same scene keeps its own opacity and translate there while the other new
+     * tile enters, and animation turned off lets both new tiles land at once.
+     */
+    @Test
+    public void entranceCalledOffDuringItsLayoutDoesNotStart() throws Exception {
+        onFx(() -> {
+            for (boolean moveAway : new boolean[] {true, false}) {
+                String what = moveAway ? "moved away" : "animation off";
+                RXTilePane pane = filledPane(2);
+                pane.setPrefTileWidth(100);
+                pane.setMaxColumns(3);
+                pane.setVgap(10);
+                StackPane elsewhere = new StackPane();
+                VBox root = new VBox(pane, elsewhere);
+                new Scene(root, 700.0, 600.0);
+                root.applyCss();
+                layout(pane, 700, 400);
+                Region a = card();
+                a.setOpacity(0.8);
+                a.setTranslateY(-3.0);
+                Region b = card();
+                boolean[] called = {false};
+                b.layoutYProperty().addListener((obs, oldValue, newValue) -> {
+                    if (!called[0] && newValue.doubleValue() != 0.0) {
+                        called[0] = true;
+                        if (moveAway) {
+                            elsewhere.getChildren().add(a);
+                        } else {
+                            pane.setAnimated(false);
+                        }
+                    }
+                });
+                pane.getChildren().addAll(a, b);
+                layout(pane, 700, 400);
+                assertTrue(called[0], what + ": setup, the listener ran during the layout");
+                assertTileClose(0.8, a.getOpacity(), what + ": A keeps its opacity");
+                assertTileClose(-3.0, a.getTranslateY(), what + ": A keeps its translate");
+                if (moveAway) {
+                    assertSame(elsewhere, a.getParent(), what + ": A is in its new parent");
+                    assertTileClose(0.0, b.getOpacity(), what + ": B still enters");
+                    pane.getChildren().add(a);
+                    layout(pane, 700, 400);
+                    assertTileClose(0.0, a.getOpacity(), what + ": put back later, A enters as a new child");
+                    pane.setAnimated(false);
+                    assertTileClose(1.0, b.getOpacity(), what + ": B settles");
+                } else {
+                    assertTileClose(1.0, b.getOpacity(), what + ": B lands at once");
+                    assertTileClose(0.0, b.getTranslateY(), what + ": B lands in place");
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a tile a listener moves away or unmanages before the layout reaches it is
+     * not laid out by that layout: it keeps the position and size it was given, and put
+     * back later it enters as a new tile rather than gliding in from where it was.
+     */
+    @Test
+    public void tileGoneBeforeItsTurnIsNotLaidOut() throws Exception {
+        onFx(() -> {
+            for (boolean moveAway : new boolean[] {true, false}) {
+                String what = moveAway ? "moved away" : "unmanaged";
+                RXTilePane pane = filledPane(1);
+                pane.setPrefTileWidth(100);
+                pane.setMaxColumns(3);
+                pane.setVgap(10);
+                StackPane elsewhere = new StackPane();
+                VBox root = new VBox(pane, elsewhere);
+                new Scene(root, 700.0, 600.0);
+                root.applyCss();
+                layout(pane, 700, 400);
+                Region a = card();
+                Region b = card();
+                b.setOpacity(0.8);
+                boolean[] called = {false};
+                a.layoutXProperty().addListener((obs, oldValue, newValue) -> {
+                    if (!called[0] && newValue.doubleValue() != 0.0) {
+                        called[0] = true;
+                        if (moveAway) {
+                            elsewhere.getChildren().add(b);
+                        } else {
+                            b.setManaged(false);
+                        }
+                        b.resizeRelocate(321.0, 123.0, 50.0, 55.0);
+                    }
+                });
+                pane.getChildren().addAll(a, b);
+                layout(pane, 700, 400);
+                assertTrue(called[0], what + ": setup, the listener ran during the layout");
+                assertTileClose(321.0, b.getLayoutX(), what + ": its x stands");
+                assertTileClose(123.0, b.getLayoutY(), what + ": its y stands");
+                assertTileClose(50.0, b.getWidth(), what + ": its width stands");
+                assertTileClose(55.0, b.getHeight(), what + ": its height stands");
+                if (moveAway) {
+                    pane.getChildren().add(b);
+                    layout(pane, 700, 400);
+                    assertTileClose(0.0, b.getOpacity(), what + ": put back later, it enters as a new child");
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a tile added while a layout runs, which that layout does not reach,
+     * enters on the layout that first places it; a tile added and unmanaged before a
+     * layout still snaps in once managed.
+     */
+    @Test
+    public void tileAddedDuringALayoutEntersOnItsFirstLayout() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = filledPane(1);
             pane.setPrefTileWidth(100);
             pane.setMaxColumns(3);
-            pane.setAnimated(true);
-            new Scene(pane, 700, 400);
+            pane.setVgap(10);
+            new Scene(pane, 700.0, 600.0);
             pane.applyCss();
-            pane.layout(); // first layout done
+            layout(pane, 700, 400);
+            Region a = card();
+            Region late = card();
+            late.setOpacity(0.7);
+            boolean[] called = {false};
+            a.layoutXProperty().addListener((obs, oldValue, newValue) -> {
+                if (!called[0] && newValue.doubleValue() != 0.0) {
+                    called[0] = true;
+                    pane.getChildren().add(late);
+                }
+            });
+            pane.getChildren().add(a);
+            layout(pane, 700, 400);
+            assertTrue(called[0], "setup: the listener ran during the layout");
+            layout(pane, 700, 400);
+            assertTileClose(0.0, late.getOpacity(), "added during a layout: it enters on its first layout");
 
-            Region added = card();
-            pane.getChildren().add(added); // index 5 -> row 1, col 2 (non-zero x and y)
-            pane.applyCss();
-            pane.layout();
-            assertEquals(0.0, added.getTranslateX(), EPSILON, "an added child snaps in, not gliding from the origin");
-            assertEquals(0.0, added.getTranslateY(), EPSILON);
+            pane.setAnimated(false);
+            pane.setAnimated(true);
+            Region parked = card();
+            pane.getChildren().add(parked);
+            parked.setManaged(false);
+            layout(pane, 700, 400);
+            parked.setManaged(true);
+            layout(pane, 700, 400);
+            assertFalse(entering(parked), "added and unmanaged before a layout: it snaps in once managed");
         });
+    }
+
+    // ==================== Negative gaps ====================
+
+    /**
+     * Verifies negative gaps overlap the tiles as JavaFX's TilePane does: the same columns,
+     * the same position for every tile, and the same preferred width and height.
+     */
+    @Test
+    public void negativeGapsOverlapTheTilesAsTilePaneDoes() {
+        RXTilePane pane = gapPane(-20.0, -15.0, 7);
+        TilePane tilePane = nativeGapPane(-20.0, -15.0, 7);
+        layout(pane, 300, 400);
+        layout(tilePane, 300, 400);
+        assertEquals(3, pane.getActualColumnCount(), "three columns: (300 - 20) / (100 - 20)");
+        assertSamePlaces(pane, tilePane, "hgap -20, vgap -15");
+        assertEquals(tilePane.prefWidth(-1), pane.prefWidth(-1), EPSILON, "preferred width: 4 x 100 - 3 x 20");
+        assertEquals(tilePane.prefHeight(300), pane.prefHeight(300), EPSILON, "preferred height: 3 x 60 - 2 x 15");
+    }
+
+    /**
+     * Verifies the two ends of the horizontal overlap match JavaFX's TilePane: a gap of
+     * minus the tile width piles each row's tiles on one spot, and a gap beyond it lays
+     * one tile a row; the preferred width then stays one tile wide.
+     */
+    @Test
+    public void horizontalOverlapEndsAsTilePaneDoes() {
+        RXTilePane piled = gapPane(-100.0, 10.0, 6);
+        TilePane nativePiled = nativeGapPane(-100.0, 10.0, 6);
+        layout(piled, 300, 400);
+        layout(nativePiled, 300, 400);
+        assertSamePlaces(piled, nativePiled, "hgap -100");
+        assertEquals(0.0, piled.getChildren().get(5).getLayoutX(), EPSILON, "every tile at the same x");
+        assertEquals(0.0, piled.getChildren().get(5).getLayoutY(), EPSILON, "all in the first row");
+
+        RXTilePane stacked = gapPane(-101.0, 10.0, 3);
+        TilePane nativeStacked = nativeGapPane(-101.0, 10.0, 3);
+        layout(stacked, 300, 400);
+        layout(nativeStacked, 300, 400);
+        assertEquals(1, stacked.getActualColumnCount(), "hgap -101: one column");
+        assertSamePlaces(stacked, nativeStacked, "hgap -101");
+        assertEquals(100.0, stacked.prefWidth(-1), EPSILON, "the preferred width stays one tile wide");
+    }
+
+    /**
+     * Verifies a step (tile width plus hgap) far below the rounding tolerance is still a
+     * step: with snapping off, an hgap of minus 100 plus 2^-31 against 100 px tiles fits
+     * ten or eleven tiles to a width of ten such steps, not every tile, and minus 100
+     * minus 2^-31 lays one tile a row. A tile that small with no gap keeps the columns
+     * its width holds too.
+     */
+    @Test
+    public void stepsBelowTheToleranceStillCount() {
+        double tiny = Math.scalb(1.0, -31);
+        RXTilePane nearlyPiled = gapPane(-100.0 + tiny, 0.0, 100);
+        nearlyPiled.setSnapToPixel(false);
+        layout(nearlyPiled, 100.0 + 9 * tiny, 10000);
+        int columns = nearlyPiled.getActualColumnCount();
+        assertTrue(columns == 10 || columns == 11, "ten steps hold ten or eleven tiles, got " + columns);
+        assertTrue(nearlyPiled.getChildren().get(99).getLayoutY() > 0.0, "the last tile is not on the first row");
+
+        RXTilePane backwards = gapPane(-100.0 - tiny, 0.0, 3);
+        backwards.setSnapToPixel(false);
+        layout(backwards, 150, 400);
+        assertEquals(1, backwards.getActualColumnCount(), "a step just below zero lays one tile a row");
+
+        RXTilePane tinyTiles = new RXTilePane();
+        tinyTiles.setSnapToPixel(false);
+        tinyTiles.setPrefTileWidth(5.0e-10);
+        tinyTiles.setPrefTileHeight(60);
+        tinyTiles.setHgap(0);
+        tinyTiles.setVgap(0);
+        tinyTiles.setAnimated(false);
+        for (int i = 0; i < 30; i++) {
+            tinyTiles.getChildren().add(card(100, 60));
+        }
+        layout(tinyTiles, 5.0e-9, 1000);
+        assertEquals(11, tinyTiles.getActualColumnCount(), "tiny tiles without a gap: the width holds eleven");
+        assertEquals(180.0, tinyTiles.prefHeight(5.0e-9), EPSILON, "three rows of 60");
+    }
+
+    /**
+     * Verifies a gap of minus the tile width piles a row's tiles on one spot only where
+     * itemsJustify keeps the base step: START piles three tiles at x 0, SPACE_BETWEEN
+     * shares the spare width out over the gaps and spreads them across the row.
+     */
+    @Test
+    public void pilingFollowsItemsJustify() {
+        RXTilePane start = gapPane(-100.0, 0.0, 3);
+        layout(start, 300, 400);
+        for (Node child : start.getChildren()) {
+            assertEquals(0.0, child.getLayoutX(), EPSILON, "START: piled at x 0");
+        }
+        RXTilePane between = gapPane(-100.0, 0.0, 3);
+        between.setItemsJustify(ItemsJustify.SPACE_BETWEEN);
+        layout(between, 300, 400);
+        assertEquals(0.0, between.getChildren().get(0).getLayoutX(), EPSILON, "SPACE_BETWEEN: first at 0");
+        assertEquals(100.0, between.getChildren().get(1).getLayoutX(), EPSILON, "SPACE_BETWEEN: second at 100");
+        assertEquals(200.0, between.getChildren().get(2).getLayoutX(), EPSILON, "SPACE_BETWEEN: third at 200");
+    }
+
+    /**
+     * Verifies a vgap below minus the tile height piles the rows on one spot instead of
+     * placing each above the one before it, out of the pane as JavaFX's TilePane does; the
+     * preferred height stays one tile high, and an entrance still rises its 4 px minimum.
+     */
+    @Test
+    public void rowsOverlappingBeyondATileHeightPileUp() throws Exception {
+        RXTilePane pane = gapPane(10.0, -80.0, 7);
+        layout(pane, 300, 400);
+        for (Node child : pane.getChildren()) {
+            assertEquals(0.0, child.getLayoutY(), EPSILON, "every row at the top");
+        }
+        assertEquals(60.0, pane.prefHeight(300), EPSILON, "the preferred height stays one tile high");
+
+        onFx(() -> {
+            RXTilePane shown = gapPane(10.0, -30.0, 2);
+            shown.setAnimated(true);
+            new Scene(shown, 300, 400);
+            shown.applyCss();
+            layout(shown, 300, 400);
+            Region added = card(100, 60);
+            shown.getChildren().add(added);
+            layout(shown, 300, 400);
+            assertEquals(4.0, added.getTranslateY(), 1.0e-9, "an entrance rises at least 4 px");
+        });
+    }
+
+    /**
+     * Verifies STRETCH keeps a negative gap's overlap while it widens the tiles to fill
+     * the row: three tiles of 110 px overlapping by 20 span exactly 290 px.
+     */
+    @Test
+    public void stretchKeepsTheOverlap() {
+        RXTilePane pane = gapPane(-20.0, 0.0, 3);
+        pane.setItemsJustify(ItemsJustify.STRETCH);
+        layout(pane, 290, 400);
+        Node last = pane.getChildren().get(2);
+        assertEquals(110.0, last.getLayoutBounds().getWidth(), EPSILON, "each tile widened to 110");
+        assertEquals(90.0, pane.getChildren().get(1).getLayoutX(), EPSILON, "overlapping its neighbour by 20");
+        assertEquals(290.0, last.getLayoutX() + last.getLayoutBounds().getWidth(), EPSILON, "the row fills the width");
+    }
+
+    // Tiles of 100 x 60 with the given gaps, three preferred columns, animation off.
+    private static RXTilePane gapPane(double hgap, double vgap, int count) {
+        RXTilePane pane = new RXTilePane();
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(60);
+        pane.setHgap(hgap);
+        pane.setVgap(vgap);
+        pane.setPrefColumns(4);
+        pane.setTileAlignment(Pos.TOP_LEFT);
+        pane.setAnimated(false);
+        for (int i = 0; i < count; i++) {
+            pane.getChildren().add(card(100, 60));
+        }
+        return pane;
+    }
+
+    private static TilePane nativeGapPane(double hgap, double vgap, int count) {
+        TilePane pane = new TilePane(hgap, vgap);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(60);
+        pane.setPrefColumns(4);
+        pane.setTileAlignment(Pos.TOP_LEFT);
+        for (int i = 0; i < count; i++) {
+            pane.getChildren().add(card(100, 60));
+        }
+        return pane;
+    }
+
+    private static void assertSamePlaces(RXTilePane pane, TilePane tilePane, String label) {
+        for (int i = 0; i < pane.getChildren().size(); i++) {
+            Node rx = pane.getChildren().get(i);
+            Node fx = tilePane.getChildren().get(i);
+            assertEquals(fx.getLayoutX(), rx.getLayoutX(), EPSILON, label + ": tile " + i + " x");
+            assertEquals(fx.getLayoutY(), rx.getLayoutY(), EPSILON, label + ": tile " + i + " y");
+        }
+    }
+
+    // Tiles of 100 px, three to a row at 700 px with a 10 px vgap, laid out once in a scene.
+    private static RXTilePane shownPane(int count) {
+        RXTilePane pane = filledPane(count);
+        pane.setPrefTileWidth(100);
+        pane.setMaxColumns(3);
+        pane.setVgap(10);
+        new Scene(pane, 700, 400);
+        pane.applyCss();
+        layout(pane, 700, 400);
+        return pane;
+    }
+
+    private static boolean entering(Node node) {
+        return node.getOpacity() < 1.0 - 1.0e-9 || translated(node);
+    }
+
+    private static void moveToFront(Pane pane, Node node, boolean viaSetAll) {
+        if (viaSetAll) {
+            List<Node> order = new ArrayList<>(pane.getChildren());
+            order.remove(node);
+            order.add(0, node);
+            pane.getChildren().setAll(order);
+        } else {
+            pane.getChildren().remove(node);
+            pane.getChildren().add(0, node);
+        }
     }
 
     @Test

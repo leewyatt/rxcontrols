@@ -4,6 +4,7 @@ import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.collections.ListChangeListener;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -12,6 +13,7 @@ import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -1514,11 +1516,11 @@ public class RXFlowPaneTest {
     }
 
     /**
-     * Verifies an added child keeps a translate of its own: it snaps in without being
-     * written, first frame and last.
+     * Verifies an added child keeps a translate of its own: it enters from one vgap below
+     * it and settles back on it.
      */
     @Test
-    public void enteringChildKeepsItsOwnTranslate() throws Exception {
+    public void enteringChildRisesFromItsOwnTranslate() throws Exception {
         onFx(() -> {
             RXFlowPane pane = flowPane(10.0, 10.0, cards(3, 100.0, 40.0));
             new Scene(pane, 400.0, 400.0);
@@ -1531,7 +1533,8 @@ public class RXFlowPaneTest {
             pane.getChildren().add(added);
             layout(pane, 400.0, 400.0);
             assertClose(20.0, added.getTranslateX(), "first frame x");
-            assertClose(6.0, added.getTranslateY(), "first frame y");
+            assertClose(16.0, added.getTranslateY(), "first frame y: one vgap below its own");
+
 
             pane.setAnimated(false);
             assertClose(20.0, added.getTranslateX(), "last frame x");
@@ -1539,22 +1542,655 @@ public class RXFlowPaneTest {
         });
     }
 
+    /**
+     * Verifies a card added while the pane shows enters: on its first frame it is
+     * transparent and one vgap below its own translate, and it settles at its own
+     * translate and opacity. Inserted in the middle, it enters while the cards after it
+     * glide aside.
+     */
     @Test
-    public void addedChildSnapsWithoutGliding() throws Exception {
+    public void addedChildEntersFromBelow() throws Exception {
         onFx(() -> {
-            RXFlowPane pane = flowPane(10.0, 10.0, cards(3, 100.0, 40.0));
-            pane.setAnimated(true);
-            new Scene(pane, 400.0, 400.0);
-            pane.applyCss();
-            layout(pane, 400.0, 400.0); // first layout done
-
+            RXFlowPane pane = shownFlow(3);
             Region added = card(100.0, 40.0);
-            pane.getChildren().add(added); // wraps to a new row, enters
+            added.setOpacity(0.7);
+            pane.getChildren().add(added);
             layout(pane, 400.0, 400.0);
-            assertEquals(0.0, added.getTranslateX(), EPSILON,
-                    "an added child snaps in, not gliding from the origin");
-            assertEquals(0.0, added.getTranslateY(), EPSILON);
+            assertClose(0.0, added.getOpacity(), "first frame: transparent");
+            assertClose(10.0, added.getTranslateY(), "first frame: one vgap below");
+
+            Region inserted = card(100.0, 40.0);
+            Node pushed = child(pane, 1);
+            pane.getChildren().add(1, inserted);
+            layout(pane, 400.0, 400.0);
+            assertClose(0.0, inserted.getOpacity(), "an inserted card enters");
+            assertTrue(translated(pushed), "the cards after it glide aside");
+
+            pane.setAnimated(false);
+            assertClose(0.7, added.getOpacity(), "it settles at its own opacity");
+            assertClose(0.0, added.getTranslateY(), "at its own y");
+            assertClose(1.0, inserted.getOpacity(), "the inserted card settles too");
         });
+    }
+
+    /**
+     * Verifies only a card added while the pane shows enters: one added before the first
+     * layout, while animation is off, or while the pane is out of its scene, and one
+     * managed for the first time, all snap in with their opacity untouched.
+     */
+    @Test
+    public void onlyAChildAddedWhileShownEnters() throws Exception {
+        onFx(() -> {
+            RXFlowPane beforeFirst = flowPane(10.0, 10.0, cards(2, 100.0, 40.0));
+            Region early = card(100.0, 40.0);
+            beforeFirst.getChildren().add(early);
+            new Scene(beforeFirst, 400.0, 400.0);
+            beforeFirst.applyCss();
+            layout(beforeFirst, 400.0, 400.0);
+            assertFalse(entering(early), "added before the first layout");
+
+            RXFlowPane quiet = shownFlow(2);
+            quiet.setAnimated(false);
+            Region whileOff = card(100.0, 40.0);
+            quiet.getChildren().add(whileOff);
+            layout(quiet, 400.0, 400.0);
+            quiet.setAnimated(true);
+            layout(quiet, 400.0, 400.0);
+            assertFalse(entering(whileOff), "added while animation was off");
+
+            RXFlowPane away = flowPane(10.0, 10.0, cards(2, 100.0, 40.0));
+            StackPane root = new StackPane(away);
+            new Scene(root, 400.0, 400.0);
+            root.applyCss();
+            layout(root, 400.0, 400.0);
+            root.getChildren().clear();
+            Region whileAway = card(100.0, 40.0);
+            away.getChildren().add(whileAway);
+            root.getChildren().add(away);
+            layout(root, 400.0, 400.0);
+            assertFalse(entering(whileAway), "added while the pane was out of its scene");
+
+            Region late = card(100.0, 40.0);
+            late.setManaged(false);
+            RXFlowPane managedLate = flowPane(10.0, 10.0, card(100.0, 40.0), late);
+            new Scene(managedLate, 400.0, 400.0);
+            managedLate.applyCss();
+            layout(managedLate, 400.0, 400.0);
+            late.setManaged(true);
+            layout(managedLate, 400.0, 400.0);
+            assertFalse(entering(late), "managed for the first time");
+        });
+    }
+
+    /**
+     * Verifies a card keeps what it was when the children list reorders it, whether
+     * setAll keeps it in the list or it is removed and added back before the next layout:
+     * one that was in the list but unmanaged on the last layout snaps once managed, and
+     * one added since still enters.
+     */
+    @Test
+    public void reorderedChildrenKeepWhetherTheyAreNew() throws Exception {
+        onFx(() -> {
+            for (boolean viaSetAll : new boolean[] {true, false}) {
+                String how = viaSetAll ? "setAll" : "remove and add";
+                Region unmanaged = card(100.0, 40.0);
+                unmanaged.setManaged(false);
+                RXFlowPane pane = flowPane(10.0, 10.0, card(100.0, 40.0), unmanaged);
+                new Scene(pane, 400.0, 400.0);
+                pane.applyCss();
+                layout(pane, 400.0, 400.0);
+                moveToFront(pane, unmanaged, viaSetAll);
+                unmanaged.setManaged(true);
+                layout(pane, 400.0, 400.0);
+                assertFalse(entering(unmanaged), how + ": a card that was in the list snaps once managed");
+
+                Region added = card(100.0, 40.0);
+                pane.getChildren().add(added);
+                moveToFront(pane, added, viaSetAll);
+                layout(pane, 400.0, 400.0);
+                assertClose(0.0, added.getOpacity(), how + ": a card added since still enters");
+            }
+        });
+    }
+
+    /**
+     * Verifies a card with its translate bound snaps in when added, untouched, and one
+     * with its opacity bound rises into place without fading.
+     */
+    @Test
+    public void addedChildEntersWithoutWhatIsBound() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = shownFlow(2);
+            Region boundTranslate = card(100.0, 40.0);
+            boundTranslate.translateYProperty().bind(new SimpleDoubleProperty(5.0));
+            Region boundOpacity = card(100.0, 40.0);
+            boundOpacity.opacityProperty().bind(new SimpleDoubleProperty(0.8));
+            pane.getChildren().addAll(boundTranslate, boundOpacity);
+            layout(pane, 400.0, 400.0);
+            assertClose(5.0, boundTranslate.getTranslateY(), "bound translate: left alone");
+            assertClose(1.0, boundTranslate.getOpacity(), "bound translate: snaps without fading");
+            assertClose(0.8, boundOpacity.getOpacity(), "bound opacity: left alone");
+            assertClose(10.0, boundOpacity.getTranslateY(), "bound opacity: still rises");
+        });
+    }
+
+    /**
+     * Verifies a card removed while it fades in and put back before the next layout,
+     * through remove and add, fades on from the opacity it showed: in another slot, and
+     * in the same slot where it does not move at all. Removed, it gets its own opacity
+     * back at once; with its opacity bound by the time it is put back, it only moves.
+     */
+    @Test
+    public void childPutBackMidEntranceFadesOn() throws Exception {
+        onFx(() -> {
+            for (boolean sameSlot : new boolean[] {false, true}) {
+                String where = sameSlot ? "same slot" : "another slot";
+                RXFlowPane pane = shownFlow(3);
+                Region entering = card(100.0, 40.0);
+                entering.setOpacity(0.7);
+                pane.getChildren().add(entering);
+                layout(pane, 400.0, 400.0);
+                assertClose(0.0, entering.getOpacity(), where + ": setup, it fades in from 0");
+
+                pane.getChildren().remove(entering);
+                assertClose(0.7, entering.getOpacity(), where + ": removed, its own opacity is back");
+                pane.getChildren().add(sameSlot ? pane.getChildren().size() : 0, entering);
+                layout(pane, 400.0, 400.0);
+                assertClose(0.0, entering.getOpacity(), where + ": put back, it fades on from where it showed");
+                pane.setAnimated(false);
+                assertClose(0.7, entering.getOpacity(), where + ": it settles at its own opacity");
+            }
+
+            RXFlowPane pane = shownFlow(3);
+            Region bound = card(100.0, 40.0);
+            pane.getChildren().add(bound);
+            layout(pane, 400.0, 400.0);
+            pane.getChildren().remove(bound);
+            bound.opacityProperty().bind(new SimpleDoubleProperty(0.5));
+            pane.getChildren().add(0, bound);
+            layout(pane, 400.0, 400.0);
+            assertClose(0.5, bound.getOpacity(), "bound by then: its opacity is left alone");
+            assertTrue(translated(bound), "bound by then: it still glides to its new slot");
+        });
+    }
+
+    /**
+     * Verifies removeAnimated keeps the child while it fades out, unmanaged so the
+     * children after it glide into its place, and removes it with its managed state back
+     * when the fade ends; a node that is not a child is not removed, and with animation
+     * off the child goes at once.
+     */
+    @Test
+    public void removeAnimatedFadesAChildOutWhileTheOthersReflow() throws Exception {
+        Node[] leaving = new Node[1];
+        CountDownLatch gone = new CountDownLatch(1);
+        onFx(() -> {
+            RXFlowPane pane = shownFlow(5);
+            pane.setAnimationDuration(Duration.millis(40));
+            Node child = pane.getChildren().get(1);
+            Node next = pane.getChildren().get(2);
+            pane.getChildren().addListener((ListChangeListener<Node>) change -> {
+                if (!pane.getChildren().contains(child)) {
+                    gone.countDown();
+                }
+            });
+            assertFalse(pane.removeAnimated(card(100.0, 40.0)), "not a child: nothing removed");
+            assertTrue(pane.removeAnimated(child), "a child");
+            assertTrue(pane.getChildren().contains(child), "still a child while it fades");
+            assertFalse(child.isManaged(), "unmanaged, so the others reflow");
+            layout(pane, 400.0, 400.0);
+            assertTrue(translated(next), "the child after it glides into its place");
+            leaving[0] = child;
+        });
+        assertTrue(gone.await(5, TimeUnit.SECONDS), "it leaves when the fade ends");
+        onFx(() -> assertTrue(leaving[0].isManaged(), "its managed state is back"));
+
+        onFx(() -> {
+            RXFlowPane pane = shownFlow(2);
+            pane.setAnimated(false);
+            Node child = pane.getChildren().get(0);
+            pane.removeAnimated(child);
+            assertFalse(pane.getChildren().contains(child), "animation off: removed at once");
+        });
+    }
+
+    /**
+     * Verifies clearAnimated starts an exit for every child, which turning animation off
+     * finishes, and clears the children at once when animation is off.
+     */
+    @Test
+    public void clearAnimatedFadesEveryChildOut() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = shownFlow(3);
+            pane.clearAnimated();
+            assertEquals(3, pane.getChildren().size(), "the children stay while they fade");
+            assertTrue(pane.getChildren().stream().noneMatch(Node::isManaged), "every child is unmanaged");
+            pane.setAnimated(false);
+            assertTrue(pane.getChildren().isEmpty(), "turning animation off finishes every exit");
+
+            RXFlowPane quiet = shownFlow(2);
+            quiet.setAnimated(false);
+            quiet.clearAnimated();
+            assertTrue(quiet.getChildren().isEmpty(), "animation off: cleared at once");
+        });
+    }
+
+    /**
+     * Verifies a child fading out stays on its way out when setAll keeps it in the list,
+     * and really leaves the list once, when its exit ends; removed from the list directly
+     * mid-exit, it gets its managed state back at once.
+     */
+    @Test
+    public void leavingChildKeptBySetAllLeavesOnce() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = shownFlow(3);
+            Node a = pane.getChildren().get(0);
+            Node b = pane.getChildren().get(1);
+            Node c = pane.getChildren().get(2);
+            int[] departures = {0};
+            pane.getChildren().addListener((ListChangeListener<Node>) change -> {
+                boolean removed = false;
+                boolean added = false;
+                while (change.next()) {
+                    removed |= change.wasRemoved() && change.getRemoved().contains(b);
+                    added |= change.wasAdded() && change.getAddedSubList().contains(b);
+                }
+                if (removed && !added) {
+                    departures[0]++;
+                }
+            });
+            pane.removeAnimated(b);
+            pane.getChildren().setAll(c, b, a);
+            assertFalse(b.isManaged(), "kept by setAll, it is still leaving");
+            layout(pane, 400.0, 400.0);
+            pane.setAnimated(false);
+            assertFalse(pane.getChildren().contains(b), "it leaves when its exit ends");
+            assertTrue(b.isManaged(), "with its managed state back");
+            assertEquals(1, departures[0], "it leaves the list once");
+
+            RXFlowPane other = shownFlow(2);
+            Node leaving = other.getChildren().get(0);
+            other.removeAnimated(leaving);
+            other.getChildren().remove(leaving);
+            assertTrue(leaving.isManaged(), "removed directly mid-exit: managed state back at once");
+        });
+    }
+
+    /**
+     * Verifies removeAnimated on a card mid-glide starts the fade where the card shows,
+     * glide offset included, both at once and after the next layout, and the card has
+     * its own translate and opacity back when it leaves.
+     */
+    @Test
+    public void childRemovedMidGlideFadesOutWhereItShows() throws Exception {
+        Runnable body = () -> {
+            Region a = card(100.0, 40.0);
+            Region b = card(100.0, 40.0);
+            Region c = card(100.0, 40.0);
+            b.setTranslateY(-4.0);
+            RXFlowPane pane = flowPane(0.0, 0.0, a, b, c);
+            new Scene(pane, 600.0, 300.0);
+            pane.applyCss();
+            layout(pane, 600.0, 300.0);
+            pane.setHgap(20.0);
+            layout(pane, 600.0, 300.0);
+            double shownX = b.getLayoutX() + b.getTranslateX();
+            double shownY = b.getLayoutY() + b.getTranslateY();
+            assertTrue(Math.abs(b.getTranslateX()) > 0.5, "setup: B glides");
+
+            pane.removeAnimated(b);
+            assertClose(shownX, b.getLayoutX() + b.getTranslateX(), "the fade starts where it shows (x)");
+            assertClose(shownY, b.getLayoutY() + b.getTranslateY(), "the fade starts where it shows (y)");
+            layout(pane, 600.0, 300.0);
+            assertClose(shownX, b.getLayoutX() + b.getTranslateX(), "the next layout leaves it there (x)");
+            assertClose(shownY, b.getLayoutY() + b.getTranslateY(), "the next layout leaves it there (y)");
+
+            pane.setAnimated(false);
+            assertFalse(pane.getChildren().contains(b), "it leaves when the exit ends");
+            assertClose(0.0, b.getTranslateX(), "its own translateX is back");
+            assertClose(-4.0, b.getTranslateY(), "its own translateY is back");
+            assertClose(1.0, b.getOpacity(), "its own opacity is back");
+        };
+        onFx(body);
+    }
+
+    /**
+     * Verifies clearing many cards that are still entering costs about as much as
+     * clearing as many settled ones, through clearAnimated and through the children list:
+     * the glide of the rest is reworked once for the whole batch, not once per card.
+     * Before, 800 entering cards took over a second.
+     */
+    @Test
+    public void clearingEnteringCardsCostsAboutAsMuchAsSettledOnes() throws Exception {
+        onFx(() -> {
+            for (boolean viaClearAnimated : new boolean[] {true, false}) {
+                String how = viaClearAnimated ? "clearAnimated" : "getChildren().clear()";
+                clearNanos(false, viaClearAnimated);
+                clearNanos(true, viaClearAnimated);
+                long settled = Math.min(clearNanos(false, viaClearAnimated), clearNanos(false, viaClearAnimated));
+                long entering = Math.min(clearNanos(true, viaClearAnimated), clearNanos(true, viaClearAnimated));
+                assertTrue(entering < 5 * settled + 100_000_000L,
+                        how + ": entering " + entering / 1_000_000 + " ms, settled " + settled / 1_000_000 + " ms");
+            }
+        });
+    }
+
+    // Times clearing 800 cards that were added and laid out, entering or (added with
+    // animation off) settled.
+    private static long clearNanos(boolean entering, boolean viaClearAnimated) {
+        RXFlowPane pane = shownFlow(1);
+        pane.setAnimated(entering);
+        for (int i = 0; i < 800; i++) {
+            pane.getChildren().add(card(100.0, 40.0));
+        }
+        layout(pane, 400.0, 400.0);
+        pane.setAnimated(true);
+        long start = System.nanoTime();
+        if (viaClearAnimated) {
+            pane.clearAnimated();
+        } else {
+            pane.getChildren().clear();
+        }
+        long elapsed = System.nanoTime() - start;
+        pane.setAnimated(false);
+        return elapsed;
+    }
+
+    /**
+     * Verifies a card that a listener moves to another parent as its entrance first
+     * writes it keeps its own opacity and translate there, and one whose listener turns
+     * animation off then settles at once: the entrance does not go on driving either.
+     */
+    @Test
+    public void listenerReachedFromAnEntranceStopsIt() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = shownFlow(2);
+            StackPane elsewhere = new StackPane();
+            Region moved = card(100.0, 40.0);
+            moved.setOpacity(0.8);
+            moved.opacityProperty().addListener((obs, oldValue, newValue) -> {
+                if (newValue.doubleValue() == 0.0 && moved.getParent() == pane) {
+                    elsewhere.getChildren().add(moved);
+                }
+            });
+            pane.getChildren().add(moved);
+            layout(pane, 400.0, 400.0);
+            assertSame(elsewhere, moved.getParent(), "setup: the listener moved it");
+            assertClose(0.8, moved.getOpacity(), "moved: its opacity is back");
+            assertClose(0.0, moved.getTranslateY(), "moved: its translate is back");
+
+            RXFlowPane switching = shownFlow(2);
+            Region added = card(100.0, 40.0);
+            added.setOpacity(0.8);
+            added.opacityProperty().addListener((obs, oldValue, newValue) -> {
+                if (newValue.doubleValue() == 0.0) {
+                    switching.setAnimated(false);
+                }
+            });
+            switching.getChildren().add(added);
+            layout(switching, 400.0, 400.0);
+            assertClose(0.8, added.getOpacity(), "animation off: its opacity is back");
+            assertClose(0.0, added.getTranslateY(), "animation off: its translate is back");
+        });
+    }
+
+    /**
+     * Verifies a settled card whose opacity is changed while it is out of the list keeps
+     * that opacity when put back, in its slot or another: only a card the pane was fading
+     * in when it was removed resumes a fade.
+     */
+    @Test
+    public void settledCardChangedWhileOutKeepsItsOpacity() throws Exception {
+        onFx(() -> {
+            for (boolean sameSlot : new boolean[] {true, false}) {
+                String where = sameSlot ? "same slot" : "another slot";
+                RXFlowPane pane = shownFlow(3);
+                Node settled = pane.getChildren().get(2);
+                pane.getChildren().remove(settled);
+                settled.setOpacity(0.3);
+                pane.getChildren().add(sameSlot ? 2 : 0, settled);
+                layout(pane, 400.0, 400.0);
+                assertClose(0.3, settled.getOpacity(), where + ": its new opacity stands");
+            }
+        });
+    }
+
+    /**
+     * Verifies a child added while animation is turned off around the addition, in the
+     * same event and with no layout in between, joins without an entrance.
+     */
+    @Test
+    public void childAddedWithAnimationOffAroundItJoinsAsIs() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = shownFlow(2);
+            Region added = card(100.0, 40.0);
+            pane.setAnimated(false);
+            pane.getChildren().add(added);
+            pane.setAnimated(true);
+            layout(pane, 400.0, 400.0);
+            assertFalse(entering(added), "no entrance");
+        });
+    }
+
+    /**
+     * Verifies a listener reached from one new card's entrance can bind or take away
+     * other cards added with it: the bound one keeps its binding, the one moved to
+     * another parent keeps its own opacity and translate there, and the first enters and
+     * settles as usual.
+     */
+    @Test
+    public void listenerOnOneEntranceCanChangeTheNextNewCards() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = shownFlow(2);
+            StackPane elsewhere = new StackPane();
+            Region first = card(100.0, 40.0);
+            Region bound = card(100.0, 40.0);
+            Region moved = card(100.0, 40.0);
+            moved.setOpacity(0.8);
+            moved.setTranslateY(-3.0);
+            first.opacityProperty().addListener((obs, oldValue, newValue) -> {
+                if (newValue.doubleValue() == 0.0 && moved.getParent() == pane) {
+                    bound.opacityProperty().bind(new SimpleDoubleProperty(0.6));
+                    elsewhere.getChildren().add(moved);
+                }
+            });
+            pane.getChildren().addAll(first, bound, moved);
+            layout(pane, 400.0, 400.0);
+            assertClose(0.0, first.getOpacity(), "the first enters");
+            assertClose(0.6, bound.getOpacity(), "the bound one keeps its binding");
+            assertSame(elsewhere, moved.getParent(), "setup: the listener moved one away");
+            assertClose(0.8, moved.getOpacity(), "the one moved away keeps its opacity");
+            assertClose(-3.0, moved.getTranslateY(), "and its translate");
+            pane.setAnimated(false);
+            assertClose(1.0, first.getOpacity(), "the first settles");
+        });
+    }
+
+    /**
+     * Verifies a card added with animation on and reordered while animation is turned
+     * off around the reorder still enters, whether setAll keeps it or it is removed and
+     * added back: put back, it goes on as it stood when it was removed.
+     */
+    @Test
+    public void enteringCardReorderedWithAnimationOffStillEnters() throws Exception {
+        onFx(() -> {
+            for (boolean viaSetAll : new boolean[] {true, false}) {
+                String how = viaSetAll ? "setAll" : "remove and add";
+                RXFlowPane pane = shownFlow(2);
+                Region added = card(100.0, 40.0);
+                pane.getChildren().add(added);
+                pane.setAnimated(false);
+                moveToFront(pane, added, viaSetAll);
+                pane.setAnimated(true);
+                layout(pane, 400.0, 400.0);
+                assertClose(0.0, added.getOpacity(), how + ": it still enters");
+            }
+        });
+    }
+
+    /**
+     * Verifies a listener reached while a layout places the cards can still call off an
+     * entrance that layout collected but has not started: a card moved to another parent
+     * in the same scene keeps its own opacity and translate there while the other new
+     * card enters, and animation turned off lets both new cards land at once.
+     */
+    @Test
+    public void entranceCalledOffDuringItsLayoutDoesNotStart() throws Exception {
+        onFx(() -> {
+            for (boolean moveAway : new boolean[] {true, false}) {
+                String what = moveAway ? "moved away" : "animation off";
+                RXFlowPane pane = flowPane(10.0, 10.0, cards(2, 100.0, 40.0));
+                StackPane elsewhere = new StackPane();
+                VBox root = new VBox(pane, elsewhere);
+                new Scene(root, 700.0, 600.0);
+                root.applyCss();
+                layout(pane, 400.0, 400.0);
+                Region a = card(100.0, 40.0);
+                a.setOpacity(0.8);
+                a.setTranslateY(-3.0);
+                Region b = card(100.0, 40.0);
+                boolean[] called = {false};
+                b.layoutYProperty().addListener((obs, oldValue, newValue) -> {
+                    if (!called[0] && newValue.doubleValue() != 0.0) {
+                        called[0] = true;
+                        if (moveAway) {
+                            elsewhere.getChildren().add(a);
+                        } else {
+                            pane.setAnimated(false);
+                        }
+                    }
+                });
+                pane.getChildren().addAll(a, b);
+                layout(pane, 400.0, 400.0);
+                assertTrue(called[0], what + ": setup, the listener ran during the layout");
+                assertClose(0.8, a.getOpacity(), what + ": A keeps its opacity");
+                assertClose(-3.0, a.getTranslateY(), what + ": A keeps its translate");
+                if (moveAway) {
+                    assertSame(elsewhere, a.getParent(), what + ": A is in its new parent");
+                    assertClose(0.0, b.getOpacity(), what + ": B still enters");
+                    pane.getChildren().add(a);
+                    layout(pane, 400.0, 400.0);
+                    assertClose(0.0, a.getOpacity(), what + ": put back later, A enters as a new child");
+                    pane.setAnimated(false);
+                    assertClose(1.0, b.getOpacity(), what + ": B settles");
+                } else {
+                    assertClose(1.0, b.getOpacity(), what + ": B lands at once");
+                    assertClose(0.0, b.getTranslateY(), what + ": B lands in place");
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a card a listener moves away or unmanages before the layout reaches it is
+     * not laid out by that layout: it keeps the position and size it was given, and put
+     * back later it enters as a new card rather than gliding in from where it was.
+     */
+    @Test
+    public void cardGoneBeforeItsTurnIsNotLaidOut() throws Exception {
+        onFx(() -> {
+            for (boolean moveAway : new boolean[] {true, false}) {
+                String what = moveAway ? "moved away" : "unmanaged";
+                RXFlowPane pane = flowPane(10.0, 10.0, cards(1, 100.0, 40.0));
+                StackPane elsewhere = new StackPane();
+                VBox root = new VBox(pane, elsewhere);
+                new Scene(root, 700.0, 600.0);
+                root.applyCss();
+                layout(pane, 400.0, 400.0);
+                Region a = card(100.0, 40.0);
+                Region b = card(100.0, 40.0);
+                b.setOpacity(0.8);
+                boolean[] called = {false};
+                a.layoutXProperty().addListener((obs, oldValue, newValue) -> {
+                    if (!called[0] && newValue.doubleValue() != 0.0) {
+                        called[0] = true;
+                        if (moveAway) {
+                            elsewhere.getChildren().add(b);
+                        } else {
+                            b.setManaged(false);
+                        }
+                        b.resizeRelocate(321.0, 123.0, 50.0, 55.0);
+                    }
+                });
+                pane.getChildren().addAll(a, b);
+                layout(pane, 400.0, 400.0);
+                assertTrue(called[0], what + ": setup, the listener ran during the layout");
+                assertClose(321.0, b.getLayoutX(), what + ": its x stands");
+                assertClose(123.0, b.getLayoutY(), what + ": its y stands");
+                assertClose(50.0, b.getWidth(), what + ": its width stands");
+                assertClose(55.0, b.getHeight(), what + ": its height stands");
+                if (moveAway) {
+                    pane.getChildren().add(b);
+                    layout(pane, 400.0, 400.0);
+                    assertClose(0.0, b.getOpacity(), what + ": put back later, it enters as a new child");
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a card added while a layout runs, which that layout does not reach,
+     * enters on the layout that first places it; a card added and unmanaged before a
+     * layout still snaps in once managed.
+     */
+    @Test
+    public void cardAddedDuringALayoutEntersOnItsFirstLayout() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = flowPane(10.0, 10.0, cards(1, 100.0, 40.0));
+            new Scene(pane, 700.0, 600.0);
+            pane.applyCss();
+            layout(pane, 400.0, 400.0);
+            Region a = card(100.0, 40.0);
+            Region late = card(100.0, 40.0);
+            late.setOpacity(0.7);
+            boolean[] called = {false};
+            a.layoutXProperty().addListener((obs, oldValue, newValue) -> {
+                if (!called[0] && newValue.doubleValue() != 0.0) {
+                    called[0] = true;
+                    pane.getChildren().add(late);
+                }
+            });
+            pane.getChildren().add(a);
+            layout(pane, 400.0, 400.0);
+            assertTrue(called[0], "setup: the listener ran during the layout");
+            layout(pane, 400.0, 400.0);
+            assertClose(0.0, late.getOpacity(), "added during a layout: it enters on its first layout");
+
+            pane.setAnimated(false);
+            pane.setAnimated(true);
+            Region parked = card(100.0, 40.0);
+            pane.getChildren().add(parked);
+            parked.setManaged(false);
+            layout(pane, 400.0, 400.0);
+            parked.setManaged(true);
+            layout(pane, 400.0, 400.0);
+            assertFalse(entering(parked), "added and unmanaged before a layout: it snaps in once managed");
+        });
+    }
+
+    // 100 x 40 cards with 10 px gaps, laid out once in a 400 px scene.
+    private static RXFlowPane shownFlow(int count) {
+        RXFlowPane pane = flowPane(10.0, 10.0, cards(count, 100.0, 40.0));
+        new Scene(pane, 400.0, 400.0);
+        pane.applyCss();
+        layout(pane, 400.0, 400.0);
+        return pane;
+    }
+
+    private static boolean entering(Node node) {
+        return node.getOpacity() < 1.0 - 1.0e-9 || translated(node);
+    }
+
+    private static void moveToFront(Pane pane, Node node, boolean viaSetAll) {
+        if (viaSetAll) {
+            List<Node> order = new ArrayList<>(pane.getChildren());
+            order.remove(node);
+            order.add(0, node);
+            pane.getChildren().setAll(order);
+        } else {
+            pane.getChildren().remove(node);
+            pane.getChildren().add(0, node);
+        }
     }
 
     /**
@@ -1631,8 +2267,8 @@ public class RXFlowPaneTest {
 
     /**
      * Verifies moving the last card to the front glides when the card is put back before
-     * the next layout, whether through setAll or remove and add, and snaps when a layout
-     * ran without it in between.
+     * the next layout, whether through setAll or remove and add, and enters as a new card
+     * when a layout ran without it in between.
      */
     @Test
     public void reorderGlidesOnlyWithoutALayoutInBetween() throws Exception {
@@ -1661,7 +2297,8 @@ public class RXFlowPaneTest {
             layout(removedForAPass, 340.0, 400.0);
             removedForAPass.getChildren().add(0, card);
             layout(removedForAPass, 340.0, 400.0);
-            assertFalse(translated(card), "remove, layout, add: snaps");
+            assertClose(0.0, card.getOpacity(), "remove, layout, add: enters as a new card");
+            assertClose(0.0, card.getTranslateX(), "remove, layout, add: no glide from its old slot");
 
             RXFlowPane setAllForAPass = reorderPane();
             card = child(setAllForAPass, 5);
@@ -1673,7 +2310,8 @@ public class RXFlowPaneTest {
             withFirst.add(0, card);
             setAllForAPass.getChildren().setAll(withFirst);
             layout(setAllForAPass, 340.0, 400.0);
-            assertFalse(translated(card), "setAll without it, layout, setAll with it: snaps");
+            assertClose(0.0, card.getOpacity(), "setAll without it, layout, setAll with it: enters");
+            assertClose(0.0, card.getTranslateX(), "setAll without it, layout, setAll with it: no glide");
             assertTrue(translated(child(setAllForAPass, 1)), "the cards it pushed along still glide");
         });
     }
@@ -1716,6 +2354,31 @@ public class RXFlowPaneTest {
                 assertClose(240.0, shownX(b), how + ": B settles in its new slot");
                 assertClose(0.0, shownX(c), how + ": C settles in its new slot");
             }
+        });
+    }
+
+    /**
+     * Verifies a child that setAll keeps in the list is left alone by the change: JavaFX
+     * reports it removed and added at once, but it never left, so its glide is not
+     * handed back before the next layout.
+     */
+    @Test
+    public void childKeptBySetAllKeepsItsGlide() throws Exception {
+        onFx(() -> {
+            Region a = card(100.0, 40.0);
+            Region b = card(100.0, 40.0);
+            Region c = card(100.0, 40.0);
+            RXFlowPane pane = flowPane(0.0, 0.0, a, b, c);
+            new Scene(pane, 600.0, 300.0);
+            pane.applyCss();
+            layout(pane, 600.0, 300.0);
+            pane.setHgap(20.0);
+            layout(pane, 600.0, 300.0);
+            double gliding = b.getTranslateX();
+            assertTrue(Math.abs(gliding) > 0.5, "setup: B glides");
+
+            pane.getChildren().setAll(c, a, b);
+            assertClose(gliding, b.getTranslateX(), "B keeps its glide through the change");
         });
     }
 

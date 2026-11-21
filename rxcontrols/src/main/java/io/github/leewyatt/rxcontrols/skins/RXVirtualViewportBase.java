@@ -12,6 +12,7 @@ import javafx.event.EventHandler;
 import javafx.event.EventTarget;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.Control;
 import javafx.scene.control.IndexedCell;
 import javafx.scene.control.ScrollBar;
@@ -303,6 +304,25 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
      */
     final double scrollBarBreadth() {
         return snapSizeX(vbar.prefWidth(-1));
+    }
+
+    /**
+     * Makes the scroll bar measure itself again, for a new render scale. A region keeps
+     * its measured size until it requests its own layout, which a render scale change
+     * never does, and the bar's breadth comes from the sizes its buttons measured, so
+     * every parent in the bar is asked again.
+     */
+    final void remeasureScrollBar() {
+        requestLayoutBranch(vbar);
+    }
+
+    private static void requestLayoutBranch(Node node) {
+        if (node instanceof Parent parent) {
+            parent.requestLayout();
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                requestLayoutBranch(child);
+            }
+        }
     }
 
     /**

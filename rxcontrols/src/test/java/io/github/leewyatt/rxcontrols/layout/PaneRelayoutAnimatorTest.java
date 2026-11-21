@@ -51,12 +51,12 @@ public class PaneRelayoutAnimatorTest {
     }
 
     /**
-     * Verifies an exit drops a residual glide offset instead of fading out shifted
-     * sideways, and starts from the node's resting translate: zero for a node the
-     * relayout armed from rest, the node's own translate for one it never armed.
+     * Verifies an exit starts where the node shows: a node mid-glide keeps its glide
+     * offset rather than jumping to its resting translate, and a node the relayout never
+     * armed keeps its own translate.
      */
     @Test
-    public void exitResetsTranslateX() throws Exception {
+    public void exitStartsWhereTheNodeShows() throws Exception {
         runOnFx(() -> {
             PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
             Region gliding = new Region();
@@ -65,8 +65,8 @@ public class PaneRelayoutAnimatorTest {
 
             animator.runExit(gliding, true, DURATION, Interpolator.EASE_BOTH, -10.0, () -> { });
 
-            assertEquals(0.0, gliding.getTranslateX(), EPSILON, "glide offset dropped on x");
-            assertEquals(0.0, gliding.getTranslateY(), EPSILON, "glide offset dropped on y");
+            assertEquals(50.0, gliding.getTranslateX(), EPSILON, "glide offset kept on x");
+            assertEquals(8.0, gliding.getTranslateY(), EPSILON, "glide offset kept on y");
 
             Region offset = new Region();
             offset.setTranslateX(50.0);
@@ -76,6 +76,109 @@ public class PaneRelayoutAnimatorTest {
 
             assertEquals(50.0, offset.getTranslateX(), EPSILON, "its own translateX kept");
             assertEquals(8.0, offset.getTranslateY(), EPSILON, "its own translateY kept");
+        });
+    }
+
+    /**
+     * Verifies nodes left after a batch keep gliding: letting others go inside the batch
+     * stops the shared timeline, and it is rebuilt for the rest when the batch ends.
+     */
+    @Test
+    public void nodesLeftAfterABatchKeepGliding() throws Exception {
+        PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+        Region forgotten = new Region();
+        Region leaving = new Region();
+        Region left = new Region();
+        runOnFx(() -> {
+            animator.runRelayout(List.of(
+                    new PaneRelayoutAnimator.Move(forgotten, 30.0, 0.0, false),
+                    new PaneRelayoutAnimator.Move(leaving, 30.0, 0.0, false),
+                    new PaneRelayoutAnimator.Move(left, 30.0, 0.0, false)), true, SHORT, Interpolator.LINEAR);
+            animator.inBatch(() -> {
+                animator.forget(forgotten);
+                animator.runExit(leaving, true, SHORT, Interpolator.LINEAR, -10.0, () -> { });
+            });
+            assertFalse(animator.isTracked(forgotten), "the forgotten node is let go");
+            assertEquals(0.0, forgotten.getTranslateX(), EPSILON, "with its translate back");
+            assertTrue(animator.isTracked(left), "the node left still glides");
+        });
+        waitUntil(() -> !animator.isTracked(left));
+        runOnFx(() -> assertEquals(0.0, left.getTranslateX(), EPSILON, "and settles at rest"));
+    }
+
+    /**
+     * Verifies a node let go by a listener its first write reaches is not driven by the
+     * timeline the pass builds: forgotten, it has its values back and nothing runs; with
+     * everything stopped, the nodes after it in the pass are not armed either.
+     */
+    @Test
+    public void nodeLetGoFromItsFirstWriteIsNotDriven() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            Region forgotten = new Region();
+            forgotten.setOpacity(0.8);
+            forgotten.opacityProperty().addListener((obs, oldValue, newValue) -> {
+                if (newValue.doubleValue() == 0.0) {
+                    animator.forget(forgotten);
+                }
+            });
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(forgotten, 0.0, 10.0, true)),
+                    true, SHORT, Interpolator.LINEAR);
+            assertFalse(animator.isTracked(forgotten), "forgotten: not tracked");
+            assertEquals(0.8, forgotten.getOpacity(), EPSILON, "forgotten: its opacity is back");
+            assertEquals(0.0, forgotten.getTranslateY(), EPSILON, "forgotten: its translate is back");
+            assertFalse(animator.hasActiveState(), "forgotten: no timeline runs");
+
+            PaneRelayoutAnimator stopping = new PaneRelayoutAnimator();
+            Region first = new Region();
+            first.setOpacity(0.8);
+            Region second = new Region();
+            first.opacityProperty().addListener((obs, oldValue, newValue) -> {
+                if (newValue.doubleValue() == 0.0) {
+                    stopping.stopAll();
+                }
+            });
+            stopping.runRelayout(List.of(
+                    new PaneRelayoutAnimator.Move(first, 0.0, 10.0, true),
+                    new PaneRelayoutAnimator.Move(second, 0.0, 10.0, false)), true, SHORT, Interpolator.LINEAR);
+            assertFalse(stopping.hasActiveState(), "stopped: nothing runs");
+            assertEquals(0.8, first.getOpacity(), EPSILON, "stopped: its opacity is back");
+            assertEquals(0.0, first.getTranslateY(), EPSILON, "stopped: its translate is back");
+            assertEquals(0.0, second.getTranslateY(), EPSILON, "stopped: the next node is not armed");
+        });
+    }
+
+    /**
+     * Verifies each node of a pass is checked again when its turn comes: a later node
+     * whose opacity a listener on an earlier node's write binds only moves, keeping its
+     * binding, and a later node the listener lets go is not taken over; the earlier node
+     * goes on.
+     */
+    @Test
+    public void laterNodeChangedFromAnEarlierWriteIsCheckedAgain() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            Region first = new Region();
+            Region bound = new Region();
+            Region letGo = new Region();
+            letGo.setOpacity(0.8);
+            letGo.setTranslateY(-3.0);
+            first.opacityProperty().addListener((obs, oldValue, newValue) -> {
+                if (newValue.doubleValue() == 0.0) {
+                    bound.opacityProperty().bind(new SimpleDoubleProperty(0.6));
+                    animator.forget(letGo);
+                }
+            });
+            animator.runRelayout(List.of(
+                    new PaneRelayoutAnimator.Move(first, 0.0, 10.0, true),
+                    new PaneRelayoutAnimator.Move(bound, 0.0, 10.0, true),
+                    new PaneRelayoutAnimator.Move(letGo, 0.0, 7.0, true)), true, SHORT, Interpolator.LINEAR);
+            assertTrue(animator.isTracked(first), "the earlier node goes on");
+            assertEquals(0.6, bound.getOpacity(), EPSILON, "the bound node keeps its binding");
+            assertEquals(10.0, bound.getTranslateY(), EPSILON, "and still moves");
+            assertFalse(animator.isTracked(letGo), "the node let go is not taken over");
+            assertEquals(0.8, letGo.getOpacity(), EPSILON, "it keeps its opacity");
+            assertEquals(-3.0, letGo.getTranslateY(), EPSILON, "and its translate");
         });
     }
 
@@ -1003,11 +1106,11 @@ public class PaneRelayoutAnimatorTest {
     }
 
     /**
-     * Verifies an exit drops the glide offset, fades out from the resting translate, and
+     * Verifies an exit fades out from where the node shows, glide offset included, and
      * has the resting translate back before its completion action runs.
      */
     @Test
-    public void exitStartsAndEndsAtTheRestingTranslate() throws Exception {
+    public void exitStartsWhereItShowsAndEndsAtTheRestingTranslate() throws Exception {
         PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
         Region node = rested();
         AtomicReference<double[]> atCompletion = new AtomicReference<>();
@@ -1017,7 +1120,8 @@ public class PaneRelayoutAnimatorTest {
                     true, Duration.seconds(30.0), Interpolator.LINEAR);
             animator.runExit(node, true, SHORT, Interpolator.LINEAR, -10.0,
                     () -> atCompletion.set(new double[] {node.getTranslateX(), node.getTranslateY()}));
-            assertRested(node, "the exit starts");
+            assertEquals(96.0, node.getTranslateX(), EPSILON, "the exit starts where it shows (x)");
+            assertEquals(6.0, node.getTranslateY(), EPSILON, "the exit starts where it shows (y)");
         });
         waitUntil(() -> atCompletion.get() != null);
 

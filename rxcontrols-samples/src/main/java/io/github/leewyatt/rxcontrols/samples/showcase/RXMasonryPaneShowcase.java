@@ -285,8 +285,9 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
 
         Button removeButton = new Button("Remove last");
         removeButton.setOnAction(e -> {
-            if (!masonry.getChildren().isEmpty()) {
-                masonry.removeAnimated(masonry.getChildren().get(masonry.getChildren().size() - 1));
+            Node last = lastManagedChild(masonry.getChildren());
+            if (last != null) {
+                masonry.removeAnimated(last);
             }
         });
 
@@ -356,5 +357,17 @@ public class RXMasonryPaneShowcase extends RXShowcaseApplication {
      */
     public static void main(String[] args) {
         launch(args);
+    }
+
+    // A card fading out stays in the children list until its exit ends, so the button
+    // picks the last managed card: rapid clicks then fade out one more each time rather
+    // than the one already leaving.
+    private static Node lastManagedChild(List<Node> children) {
+        for (int i = children.size() - 1; i >= 0; i--) {
+            if (children.get(i).isManaged()) {
+                return children.get(i);
+            }
+        }
+        return null;
     }
 }
