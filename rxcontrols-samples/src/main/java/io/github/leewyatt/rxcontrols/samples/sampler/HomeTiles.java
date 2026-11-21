@@ -218,8 +218,11 @@ final class HomeTiles {
     }
 
     private static void paint(Label label, String key) {
-        label.getStyleClass().removeAll(PALETTE);
-        label.getStyleClass().add(PALETTE.get(Math.floorMod(key.hashCode(), PALETTE.size())));
+        String color = PALETTE.get(Math.floorMod(key.hashCode(), PALETTE.size()));
+        if (!label.getStyleClass().contains(color)) {
+            label.getStyleClass().removeAll(PALETTE);
+            label.getStyleClass().add(color);
+        }
     }
 
     private static String initials(String name) {

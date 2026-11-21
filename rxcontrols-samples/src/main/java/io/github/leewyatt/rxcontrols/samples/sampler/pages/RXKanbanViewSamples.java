@@ -22,7 +22,6 @@ import javafx.util.Callback;
 
 import java.util.List;
 
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.PALETTE;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.avatar;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.colorOf;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.icon;
@@ -178,13 +177,19 @@ public final class RXKanbanViewSamples {
                 setGraphic(null);
             } else {
                 tag.setText(task.tag());
-                tag.getStyleClass().removeAll(PALETTE);
-                tag.getStyleClass().add(colorOf(task.tag()));
+                updateColor(tag, task.tag());
                 title.setText(task.title());
                 owner.setText(initials(task.owner()));
-                paint(owner, colorOf(task.owner()));
+                updateColor(owner, task.owner());
                 points.setText(task.points() + " pt");
                 setGraphic(card);
+            }
+        }
+
+        private static void updateColor(Label label, String key) {
+            String color = colorOf(key);
+            if (!label.getStyleClass().contains(color)) {
+                paint(label, color);
             }
         }
     }
