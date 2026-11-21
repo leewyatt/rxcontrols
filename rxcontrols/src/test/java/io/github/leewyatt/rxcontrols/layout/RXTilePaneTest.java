@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.ItemsJustify;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.collections.ListChangeListener;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.geometry.Insets;
@@ -2120,6 +2121,108 @@ public class RXTilePaneTest {
             layout(pane, 700, 400);
             assertEquals(0.5, bound.getOpacity(), 1.0e-9, "bound by then: its opacity is left alone");
             assertTrue(translated(bound), "bound by then: it still glides to its new slot");
+        });
+    }
+
+    /**
+     * Verifies removeAnimated keeps the child while it fades out, unmanaged so the
+     * children after it glide into its place, and removes it with its managed state back
+     * when the fade ends; a node that is not a child is not removed, and with animation
+     * off the child goes at once.
+     */
+    @Test
+    public void removeAnimatedFadesAChildOutWhileTheOthersReflow() throws Exception {
+        Node[] leaving = new Node[1];
+        CountDownLatch gone = new CountDownLatch(1);
+        onFx(() -> {
+            RXTilePane pane = shownPane(5);
+            pane.setAnimationDuration(Duration.millis(40));
+            Node child = pane.getChildren().get(1);
+            Node next = pane.getChildren().get(2);
+            pane.getChildren().addListener((ListChangeListener<Node>) change -> {
+                if (!pane.getChildren().contains(child)) {
+                    gone.countDown();
+                }
+            });
+            assertFalse(pane.removeAnimated(card()), "not a child: nothing removed");
+            assertTrue(pane.removeAnimated(child), "a child");
+            assertTrue(pane.getChildren().contains(child), "still a child while it fades");
+            assertFalse(child.isManaged(), "unmanaged, so the others reflow");
+            layout(pane, 700, 400);
+            assertTrue(translated(next), "the child after it glides into its place");
+            leaving[0] = child;
+        });
+        assertTrue(gone.await(5, TimeUnit.SECONDS), "it leaves when the fade ends");
+        onFx(() -> assertTrue(leaving[0].isManaged(), "its managed state is back"));
+
+        onFx(() -> {
+            RXTilePane pane = shownPane(2);
+            pane.setAnimated(false);
+            Node child = pane.getChildren().get(0);
+            pane.removeAnimated(child);
+            assertFalse(pane.getChildren().contains(child), "animation off: removed at once");
+        });
+    }
+
+    /**
+     * Verifies clearAnimated starts an exit for every child, which turning animation off
+     * finishes, and clears the children at once when animation is off.
+     */
+    @Test
+    public void clearAnimatedFadesEveryChildOut() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = shownPane(3);
+            pane.clearAnimated();
+            assertEquals(3, pane.getChildren().size(), "the children stay while they fade");
+            assertTrue(pane.getChildren().stream().noneMatch(Node::isManaged), "every child is unmanaged");
+            pane.setAnimated(false);
+            assertTrue(pane.getChildren().isEmpty(), "turning animation off finishes every exit");
+
+            RXTilePane quiet = shownPane(2);
+            quiet.setAnimated(false);
+            quiet.clearAnimated();
+            assertTrue(quiet.getChildren().isEmpty(), "animation off: cleared at once");
+        });
+    }
+
+    /**
+     * Verifies a child fading out stays on its way out when setAll keeps it in the list,
+     * and really leaves the list once, when its exit ends; removed from the list directly
+     * mid-exit, it gets its managed state back at once.
+     */
+    @Test
+    public void leavingChildKeptBySetAllLeavesOnce() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = shownPane(3);
+            Node a = pane.getChildren().get(0);
+            Node b = pane.getChildren().get(1);
+            Node c = pane.getChildren().get(2);
+            int[] departures = {0};
+            pane.getChildren().addListener((ListChangeListener<Node>) change -> {
+                boolean removed = false;
+                boolean added = false;
+                while (change.next()) {
+                    removed |= change.wasRemoved() && change.getRemoved().contains(b);
+                    added |= change.wasAdded() && change.getAddedSubList().contains(b);
+                }
+                if (removed && !added) {
+                    departures[0]++;
+                }
+            });
+            pane.removeAnimated(b);
+            pane.getChildren().setAll(c, b, a);
+            assertFalse(b.isManaged(), "kept by setAll, it is still leaving");
+            layout(pane, 700, 400);
+            pane.setAnimated(false);
+            assertFalse(pane.getChildren().contains(b), "it leaves when its exit ends");
+            assertTrue(b.isManaged(), "with its managed state back");
+            assertEquals(1, departures[0], "it leaves the list once");
+
+            RXTilePane other = shownPane(2);
+            Node leaving = other.getChildren().get(0);
+            other.removeAnimated(leaving);
+            other.getChildren().remove(leaving);
+            assertTrue(leaving.isManaged(), "removed directly mid-exit: managed state back at once");
         });
     }
 

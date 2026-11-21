@@ -194,6 +194,10 @@ public class RXTilePane extends Pane {
     private final ResizeGate resizeGate = new ResizeGate();
     // Who the previous pass laid out: only those children glide.
     private final PassMembership membership = new PassMembership();
+    // A leaving child drifts up by the entrance offset while it fades.
+    private final ChildExits exits = new ChildExits(this, animator, this::animationsActive,
+            this::getAnimationDuration, this::interpolatorOrDefault,
+            () -> -PaneRelayoutAnimator.enterOffset(snapSpaceY(gapOrZero(getVgap()))));
 
     // A child the change keeps in the list (setAll keeping it) never left: its glide goes
     // on untouched.
@@ -205,6 +209,7 @@ public class RXTilePane extends Pane {
         }
         for (Node removed : children.removed()) {
             membership.removed(removed);
+            exits.removed(removed);
             animator.forget(removed);
         }
         for (Node added : children.added()) {
@@ -841,10 +846,11 @@ public class RXTilePane extends Pane {
     /**
      * Whether children animate on relayout: existing children glide to their new
      * positions, and a child added while the pane shows fades in, rising a few pixels into
-     * place with the same duration and interpolator. On by default; turning it off
-     * mid-flight snaps every child to its final position. A size
-     * change imposed by the parent that keeps the column count applies immediately, in
-     * width or in height (a pane squeezed below its content included), so dragging a
+     * place with the same duration and interpolator; {@link #removeAnimated(Node)} and
+     * {@link #clearAnimated()} fade a child out, drifting up, while the others reflow. On
+     * by default; turning it off mid-flight snaps every child to its final position. A
+     * size change imposed by the parent that keeps the column count applies immediately,
+     * in width or in height (a pane squeezed below its content included), so dragging a
      * window edge never leaves children trailing; a glide already in flight keeps its
      * clock while its target follows the resize. An explicit {@code prefWidth}, even one
      * bound to the parent's width, counts as imposed by the parent; a width that follows
@@ -857,16 +863,20 @@ public class RXTilePane extends Pane {
      * was added since; one that {@code setAll} keeps in the list goes on as it was.
      *
      * <p>While a child animates, the pane drives its {@code translateX} /
-     * {@code translateY}, and its {@code opacity} while it fades in. Values the child had
-     * before are kept: a glide ends at the earlier translate, an entrance starts offset
-     * from it, and a fade returns to the earlier opacity. Writing these from elsewhere
-     * while the child animates, by one assignment or a running animation, is not
+     * {@code translateY}, and its {@code opacity} while it fades in or out. Values the
+     * child had before are kept: a glide ends at the earlier translate, an entrance starts
+     * offset from it, and a fade returns to the earlier opacity. Writing these from
+     * elsewhere while the child animates, by one assignment or a running animation, is not
      * supported: the pane may overwrite them, and when the animation settles it puts back
      * the values from before, which a still-running animation may then change again. Keep
      * independent effects on a node inside the child. A child with {@code translateX} or
      * {@code translateY} bound snaps instead, whether moving or entering, and one with
-     * {@code opacity} bound enters without fading; binding these while the child is
-     * animating is not supported.</p>
+     * {@code opacity} bound enters without fading; either binding, or a bound
+     * {@code managed}, makes {@link #removeAnimated(Node)} and {@link #clearAnimated()}
+     * remove the child at once. Binding these while the child is animating is not
+     * supported. Neither is turning animation off from a listener on the children list
+     * while children are fading out: finishing their exits removes children, which JavaFX
+     * forbids during that list's change notification.</p>
      *
      * @return the animated property
      */
@@ -978,6 +988,31 @@ public class RXTilePane extends Pane {
      */
     public final void setAnimationInterpolator(Interpolator value) {
         animationInterpolator.set(value);
+    }
+
+    // ==================== Animated removal ====================
+
+    /**
+     * Removes a child with a fade-out: the child leaves the layout at once, so the other
+     * children reflow into the space it frees while it fades out drifting up, and it
+     * leaves the children list when the fade ends. If animation is off or the pane is not
+     * in a scene, or the child's {@code managed}, {@code translateX}, {@code translateY} or
+     * {@code opacity} is bound, the child is removed at once. Removing it from the
+     * children list directly always removes it at once.
+     *
+     * @param child the child to remove
+     * @return whether the child was a child of this pane
+     */
+    public boolean removeAnimated(Node child) {
+        return exits.removeAnimated(child);
+    }
+
+    /**
+     * Removes every child with a fade-out, as {@link #removeAnimated(Node)} does with one.
+     * If animation is off or the pane is not in a scene, the children are cleared at once.
+     */
+    public void clearAnimated() {
+        exits.clearAnimated();
     }
 
     // ==================== Actual Column Count (read-only) ====================
@@ -1614,6 +1649,10 @@ public class RXTilePane extends Pane {
     private double maxTileWidthOrUnbounded() {
         double value = getMaxTileWidth();
         return Double.isFinite(value) && value > 0.0 ? value : 0.0;
+    }
+
+    private boolean animationsActive() {
+        return isAnimated() && getScene() != null && isAnimationDurationPositive();
     }
 
     private boolean isAnimationDurationPositive() {
