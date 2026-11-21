@@ -88,17 +88,23 @@ import java.util.Set;
  * {@link javafx.scene.layout.FlowPane#alignmentProperty()} but differs on the
  * <em>main-axis</em> component: FlowPane applies it per run (the source of the bug),
  * RXFlowPane applies it to the whole block once. The cross-axis component is identical
- * (whole block in both). FlowPane's exact behavior is reproducible as an opt-in special
+ * (whole block in both). FlowPane's run alignment is reproducible as an opt-in special
  * case: for a horizontal flow, {@code alignment = X} together with
- * {@code rowHalignment = X.getHpos()} lays out identically to
- * {@code FlowPane.alignment = X} — the block offset and the run-in-block offset compose to
+ * {@code rowHalignment = X.getHpos()} aligns every run as
+ * {@code FlowPane.alignment = X} does — the block offset and the run-in-block offset compose to
  * the per-run offset (the block extent cancels) — and choosing {@code rowHalignment = LEFT}
  * instead is the fix. A vertical flow reproduces FlowPane the same way through
  * {@code columnValignment}.</p>
  *
+ * <p>The equivalence covers the alignment rules, not every coordinate. Children are never
+ * stretched to fill their run (see below), and a right- or bottom-aligned block stays
+ * inside an extent that is off the device pixel grid, where FlowPane can overhang it by a
+ * fraction of a pixel.</p>
+ *
  * <p>The default {@code alignment} is {@link Pos#TOP_LEFT}, matching {@code FlowPane} and
- * the wider JavaFX layout convention: at its defaults an RXFlowPane lays out exactly like a
- * {@code FlowPane} (the last-run fix is a no-op until the block leaves the leading edge). To
+ * the wider JavaFX layout convention: at its defaults an RXFlowPane aligns runs and items
+ * like a {@code FlowPane} (the last-run fix is a no-op until the block leaves the leading
+ * edge). To
  * see the fix, center the block on the flow's main axis — {@code alignment = TOP_CENTER} for
  * a horizontal flow, {@code alignment = CENTER_LEFT} for a vertical one — while keeping the
  * run-within-block alignment at the leading edge ({@code rowHalignment = LEFT} /
@@ -107,8 +113,14 @@ import java.util.Set;
  * <h2>Other behavior</h2>
  *
  * <ul>
- * <li>Each child keeps its own preferred size (no uniform tiles); this is an enhanced
- *     FlowPane, not a grid.</li>
+ * <li>Each child is laid out at its own preferred size, clamped to its minimum and maximum
+ *     (no uniform tiles; this is an enhanced FlowPane, not a grid). Unlike
+ *     {@code FlowPane}, a child is never stretched to fill its run: FlowPane grows a child
+ *     whose maximum allows it (a {@code StackPane} or {@code VBox} card, say) to the run's
+ *     height in a horizontal flow and to its width in a vertical one, whereas here the
+ *     child keeps its preferred size and {@code rowValignment} / {@code columnHalignment}
+ *     position it within the run. A {@code BASELINE} run may cap a child without a text
+ *     baseline; see {@link #rowValignmentProperty()}.</li>
  * <li>{@link #getContentBias()} follows the orientation: height-for-width when horizontal,
  *     width-for-height when vertical. Max width/height stay unbounded so the block has room
  *     to align.</li>
@@ -606,8 +618,9 @@ public class RXFlowPane extends Pane {
      * Horizontal alignment of each run <em>within the content block</em>,
      * relative to the content-block width (not the pane's inside width). With
      * {@link HPos#LEFT} (the default) a short last row stays at the block's left
-     * edge instead of being centered by itself. A {@code null} value is not
-     * rejected; it resolves to the default ({@link HPos#LEFT}) at the use site.
+     * edge instead of being centered by itself. Ignored for a vertical flow. A
+     * {@code null} value is not rejected; it resolves to the default
+     * ({@link HPos#LEFT}) at the use site.
      *
      * @return the row-halignment property
      */
@@ -672,8 +685,8 @@ public class RXFlowPane extends Pane {
      * with its bottom edge on the shared baseline, and its bottom margin is not
      * reserved in a baseline run; unlike {@code FlowPane} such a child is not
      * stretched to fill the run height (it is capped at the run's above-baseline
-     * extent). A {@code null} value is not rejected; it resolves to the default
-     * ({@link VPos#CENTER}) at the use site.
+     * extent). Ignored for a vertical flow. A {@code null} value is not rejected; it
+     * resolves to the default ({@link VPos#CENTER}) at the use site.
      *
      * @return the row-valignment property
      */

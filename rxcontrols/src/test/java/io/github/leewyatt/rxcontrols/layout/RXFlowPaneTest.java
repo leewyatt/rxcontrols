@@ -99,10 +99,11 @@ public class RXFlowPaneTest {
     }
 
     /**
-     * Verifies RXFlowPane is a drop-in superset: at its default settings (alignment
-     * TOP_LEFT, rowHalignment LEFT, rowValignment CENTER — all matching FlowPane) it lays
-     * the same children out at the same positions as a JavaFX {@link FlowPane}. The fix is
-     * opt-in, never a default behavior change.
+     * Verifies RXFlowPane aligns like FlowPane at its default settings (alignment
+     * TOP_LEFT, rowHalignment LEFT, rowValignment CENTER — all matching FlowPane): equal-size
+     * children land at the same positions as in a JavaFX {@link FlowPane}. The fix is
+     * opt-in, never a default behavior change. Children FlowPane would stretch are covered
+     * by {@link #childrenKeepTheirPreferredSizeUnlikeFlowPane()}.
      */
     @Test
     public void defaultsMatchFlowPaneLayout() {
@@ -120,6 +121,38 @@ public class RXFlowPaneTest {
             assertClose(fxCards[i].getLayoutX(), rxCards[i].getLayoutX(), "card" + (i + 1) + " x == FlowPane");
             assertClose(fxCards[i].getLayoutY(), rxCards[i].getLayoutY(), "card" + (i + 1) + " y == FlowPane");
         }
+    }
+
+    /**
+     * Verifies children keep their preferred cross size instead of filling the run, the
+     * documented difference from FlowPane: FlowPane stretches a child whose maximum allows
+     * it to the run's cross extent, RXFlowPane aligns it in the run at its preferred size.
+     * Covers both orientations.
+     */
+    @Test
+    public void childrenKeepTheirPreferredSizeUnlikeFlowPane() {
+        // The cards' maximum size is unbounded, like a StackPane or VBox card.
+        Region shortCard = card(100.0, 40.0);
+        Region tallCard = card(100.0, 80.0);
+        RXFlowPane rx = flowPane(10.0, 10.0, shortCard, tallCard);
+        layout(rx, 400.0, 400.0);
+        assertBox(shortCard, 0.0, 20.0, 100.0, 40.0, "horizontal: short card centred in the run at its height");
+
+        Region fxShortCard = card(100.0, 40.0);
+        FlowPane fx = new FlowPane(10.0, 10.0, fxShortCard, card(100.0, 80.0));
+        layout(fx, 400.0, 400.0);
+        assertClose(80.0, fxShortCard.getHeight(), "horizontal: FlowPane stretches it to the run height");
+
+        Region narrowCard = card(40.0, 100.0);
+        Region wideCard = card(80.0, 100.0);
+        RXFlowPane rxVertical = new RXFlowPane(Orientation.VERTICAL, 10.0, 10.0, narrowCard, wideCard);
+        layout(rxVertical, 400.0, 400.0);
+        assertBox(narrowCard, 0.0, 0.0, 40.0, 100.0, "vertical: narrow card at the column's left at its width");
+
+        Region fxNarrowCard = card(40.0, 100.0);
+        FlowPane fxVertical = new FlowPane(Orientation.VERTICAL, 10.0, 10.0, fxNarrowCard, card(80.0, 100.0));
+        layout(fxVertical, 400.0, 400.0);
+        assertClose(80.0, fxNarrowCard.getWidth(), "vertical: FlowPane stretches it to the column width");
     }
 
     // ==================== Headline: last-row alignment ====================
