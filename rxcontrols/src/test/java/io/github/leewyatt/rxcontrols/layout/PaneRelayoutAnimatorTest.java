@@ -107,6 +107,48 @@ public class PaneRelayoutAnimatorTest {
     }
 
     /**
+     * Verifies a node let go by a listener its first write reaches is not driven by the
+     * timeline the pass builds: forgotten, it has its values back and nothing runs; with
+     * everything stopped, the nodes after it in the pass are not armed either.
+     */
+    @Test
+    public void nodeLetGoFromItsFirstWriteIsNotDriven() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            Region forgotten = new Region();
+            forgotten.setOpacity(0.8);
+            forgotten.opacityProperty().addListener((obs, oldValue, newValue) -> {
+                if (newValue.doubleValue() == 0.0) {
+                    animator.forget(forgotten);
+                }
+            });
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(forgotten, 0.0, 10.0, true)),
+                    true, SHORT, Interpolator.LINEAR);
+            assertFalse(animator.isTracked(forgotten), "forgotten: not tracked");
+            assertEquals(0.8, forgotten.getOpacity(), EPSILON, "forgotten: its opacity is back");
+            assertEquals(0.0, forgotten.getTranslateY(), EPSILON, "forgotten: its translate is back");
+            assertFalse(animator.hasActiveState(), "forgotten: no timeline runs");
+
+            PaneRelayoutAnimator stopping = new PaneRelayoutAnimator();
+            Region first = new Region();
+            first.setOpacity(0.8);
+            Region second = new Region();
+            first.opacityProperty().addListener((obs, oldValue, newValue) -> {
+                if (newValue.doubleValue() == 0.0) {
+                    stopping.stopAll();
+                }
+            });
+            stopping.runRelayout(List.of(
+                    new PaneRelayoutAnimator.Move(first, 0.0, 10.0, true),
+                    new PaneRelayoutAnimator.Move(second, 0.0, 10.0, false)), true, SHORT, Interpolator.LINEAR);
+            assertFalse(stopping.hasActiveState(), "stopped: nothing runs");
+            assertEquals(0.8, first.getOpacity(), EPSILON, "stopped: its opacity is back");
+            assertEquals(0.0, first.getTranslateY(), EPSILON, "stopped: its translate is back");
+            assertEquals(0.0, second.getTranslateY(), EPSILON, "stopped: the next node is not armed");
+        });
+    }
+
+    /**
      * Verifies a non-animated exit removes the node immediately.
      */
     @Test

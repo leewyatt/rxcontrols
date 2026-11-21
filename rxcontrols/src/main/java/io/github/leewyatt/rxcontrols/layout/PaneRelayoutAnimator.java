@@ -122,6 +122,9 @@ final class PaneRelayoutAnimator {
     // the nodes left once, when the outermost batch ends.
     private int batchDepth;
     private boolean rebuildPending;
+    // Counts stopAll calls, so a pass can tell that a listener reached from one of its
+    // writes stopped everything (animation turned off, say).
+    private int stops;
     private Duration lastDuration = Duration.ZERO;
     private Interpolator lastInterpolator = Interpolator.LINEAR;
 
@@ -137,6 +140,7 @@ final class PaneRelayoutAnimator {
     void runRelayout(List<Move> moves, boolean animate, Duration duration, Interpolator interpolator) {
         animate = animate && isAnimatable(duration, interpolator);
         moves = writableMoves(moves);
+        int stopsAtStart = stops;
         Set<Node> passNodes = new HashSet<>();
         for (Move move : moves) {
             passNodes.add(move.node());
@@ -147,6 +151,10 @@ final class PaneRelayoutAnimator {
                 finalizeMove(node);
                 removedActiveMove = true;
             }
+        }
+        // Settling writes too, and a listener it reaches may have stopped everything.
+        if (stops != stopsAtStart) {
+            return;
         }
         if (!animate) {
             if (relayoutTimeline != null) {
@@ -177,8 +185,8 @@ final class PaneRelayoutAnimator {
 
         lastDuration = duration;
         lastInterpolator = interpolator;
-        List<KeyValue> keyValues = new ArrayList<>();
-        List<Node> animated = new ArrayList<>();
+        List<Node> armedNodes = new ArrayList<>();
+        List<MoveState> armedStates = new ArrayList<>();
         for (Move move : moves) {
             Node node = move.node();
             // The exit timeline owns a leaving node's transforms; arming it here
@@ -200,23 +208,48 @@ final class PaneRelayoutAnimator {
                 finalizeMove(node);
                 continue;
             }
+            // A fade still in flight resumes from the live mid-fade value: no opacity
+            // write, the timeline interpolates from the current value at play time.
+            double targetOpacity = !fade ? Double.NaN : continuedFade ? previous.targetOpacity() : node.getOpacity();
+            MoveState state = new MoveState(fade, targetOpacity, restX, restY);
+            // Taken over before the first write: a listener reached from a write may
+            // forget the node (moving it to another parent) or stop everything, and must
+            // find it then to give its values back. After each write the node is only
+            // written on while it is still this pass's.
+            activeMoves.put(node, state);
             node.setTranslateX(move.fromTranslateX());
-            node.setTranslateY(move.fromTranslateY());
-            double targetOpacity = Double.NaN;
-            if (fade) {
-                if (continuedFade) {
-                    // Resume from the live mid-fade value: no opacity write, the
-                    // timeline interpolates from the current value at play time.
-                    targetOpacity = previous.targetOpacity();
-                } else {
-                    targetOpacity = node.getOpacity();
-                    node.setOpacity(move.resumesFade() ? move.fromOpacity() : 0.0);
-                }
-                keyValues.add(new KeyValue(node.opacityProperty(), targetOpacity, interpolator));
+            if (stops != stopsAtStart) {
+                return;
             }
-            keyValues.add(new KeyValue(node.translateXProperty(), restX, interpolator));
-            keyValues.add(new KeyValue(node.translateYProperty(), restY, interpolator));
-            activeMoves.put(node, new MoveState(fade, targetOpacity, restX, restY));
+            if (activeMoves.get(node) == state) {
+                node.setTranslateY(move.fromTranslateY());
+            }
+            if (stops != stopsAtStart) {
+                return;
+            }
+            if (fade && !continuedFade && activeMoves.get(node) == state) {
+                node.setOpacity(move.resumesFade() ? move.fromOpacity() : 0.0);
+            }
+            if (stops != stopsAtStart) {
+                return;
+            }
+            armedNodes.add(node);
+            armedStates.add(state);
+        }
+        // A listener reached from a later write may still have let an earlier node go.
+        List<KeyValue> keyValues = new ArrayList<>();
+        List<Node> animated = new ArrayList<>();
+        for (int i = 0; i < armedNodes.size(); i++) {
+            Node node = armedNodes.get(i);
+            MoveState state = armedStates.get(i);
+            if (activeMoves.get(node) != state) {
+                continue;
+            }
+            if (state.fade()) {
+                keyValues.add(new KeyValue(node.opacityProperty(), state.targetOpacity(), interpolator));
+            }
+            keyValues.add(new KeyValue(node.translateXProperty(), state.restX(), interpolator));
+            keyValues.add(new KeyValue(node.translateYProperty(), state.restY(), interpolator));
             animated.add(node);
         }
         if (keyValues.isEmpty()) {
@@ -506,6 +539,7 @@ final class PaneRelayoutAnimator {
      * detached-but-unmanaged ghosts remain.
      */
     void stopAll() {
+        stops++;
         if (relayoutTimeline != null) {
             relayoutTimeline.stop();
             relayoutTimeline = null;

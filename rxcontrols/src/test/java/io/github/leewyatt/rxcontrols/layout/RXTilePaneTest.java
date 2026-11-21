@@ -2311,6 +2311,44 @@ public class RXTilePaneTest {
         return elapsed;
     }
 
+    /**
+     * Verifies a tile that a listener moves to another parent as its entrance first
+     * writes it keeps its own opacity and translate there, and one whose listener turns
+     * animation off then settles at once: the entrance does not go on driving either.
+     */
+    @Test
+    public void listenerReachedFromAnEntranceStopsIt() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = shownPane(2);
+            StackPane elsewhere = new StackPane();
+            Region moved = card();
+            moved.setOpacity(0.8);
+            moved.opacityProperty().addListener((obs, oldValue, newValue) -> {
+                if (newValue.doubleValue() == 0.0 && moved.getParent() == pane) {
+                    elsewhere.getChildren().add(moved);
+                }
+            });
+            pane.getChildren().add(moved);
+            layout(pane, 700, 400);
+            assertSame(elsewhere, moved.getParent(), "setup: the listener moved it");
+            assertTileClose(0.8, moved.getOpacity(), "moved: its opacity is back");
+            assertTileClose(0.0, moved.getTranslateY(), "moved: its translate is back");
+
+            RXTilePane switching = shownPane(2);
+            Region added = card();
+            added.setOpacity(0.8);
+            added.opacityProperty().addListener((obs, oldValue, newValue) -> {
+                if (newValue.doubleValue() == 0.0) {
+                    switching.setAnimated(false);
+                }
+            });
+            switching.getChildren().add(added);
+            layout(switching, 700, 400);
+            assertTileClose(0.8, added.getOpacity(), "animation off: its opacity is back");
+            assertTileClose(0.0, added.getTranslateY(), "animation off: its translate is back");
+        });
+    }
+
     // Tiles of 100 px, three to a row at 700 px with a 10 px vgap, laid out once in a scene.
     private static RXTilePane shownPane(int count) {
         RXTilePane pane = filledPane(count);

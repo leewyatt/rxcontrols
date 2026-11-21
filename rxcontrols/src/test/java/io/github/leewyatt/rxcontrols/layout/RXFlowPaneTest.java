@@ -1896,6 +1896,44 @@ public class RXFlowPaneTest {
         return elapsed;
     }
 
+    /**
+     * Verifies a card that a listener moves to another parent as its entrance first
+     * writes it keeps its own opacity and translate there, and one whose listener turns
+     * animation off then settles at once: the entrance does not go on driving either.
+     */
+    @Test
+    public void listenerReachedFromAnEntranceStopsIt() throws Exception {
+        onFx(() -> {
+            RXFlowPane pane = shownFlow(2);
+            StackPane elsewhere = new StackPane();
+            Region moved = card(100.0, 40.0);
+            moved.setOpacity(0.8);
+            moved.opacityProperty().addListener((obs, oldValue, newValue) -> {
+                if (newValue.doubleValue() == 0.0 && moved.getParent() == pane) {
+                    elsewhere.getChildren().add(moved);
+                }
+            });
+            pane.getChildren().add(moved);
+            layout(pane, 400.0, 400.0);
+            assertSame(elsewhere, moved.getParent(), "setup: the listener moved it");
+            assertClose(0.8, moved.getOpacity(), "moved: its opacity is back");
+            assertClose(0.0, moved.getTranslateY(), "moved: its translate is back");
+
+            RXFlowPane switching = shownFlow(2);
+            Region added = card(100.0, 40.0);
+            added.setOpacity(0.8);
+            added.opacityProperty().addListener((obs, oldValue, newValue) -> {
+                if (newValue.doubleValue() == 0.0) {
+                    switching.setAnimated(false);
+                }
+            });
+            switching.getChildren().add(added);
+            layout(switching, 400.0, 400.0);
+            assertClose(0.8, added.getOpacity(), "animation off: its opacity is back");
+            assertClose(0.0, added.getTranslateY(), "animation off: its translate is back");
+        });
+    }
+
     // 100 x 40 cards with 10 px gaps, laid out once in a 400 px scene.
     private static RXFlowPane shownFlow(int count) {
         RXFlowPane pane = flowPane(10.0, 10.0, cards(count, 100.0, 40.0));
