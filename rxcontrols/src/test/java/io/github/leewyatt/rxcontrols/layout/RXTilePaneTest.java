@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.layout;
 import io.github.leewyatt.rxcontrols.ItemsJustify;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.geometry.Insets;
@@ -1138,6 +1139,116 @@ public class RXTilePaneTest {
         });
     }
 
+    /**
+     * Verifies a child the previous layout did not place snaps into its slot: one managed
+     * for the first time (still at the pane origin) and one back after missing a layout
+     * (still at a stale slot).
+     */
+    @Test
+    public void childNotLaidOutOnThePreviousPassSnaps() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = filledPane(6);
+            Node late = pane.getChildren().get(5);
+            late.setManaged(false);
+            new Scene(pane, 340, 400);
+            pane.applyCss();
+            layout(pane, 340, 400);
+
+            late.setManaged(true);
+            layout(pane, 340, 400);
+            assertFalse(translated(late), "a child managed for the first time snaps, not gliding from the origin");
+
+            Node returning = pane.getChildren().get(1);
+            returning.setManaged(false);
+            layout(pane, 340, 400);
+            // A wider gap moves its slot away from the stale position it still holds.
+            pane.setHgap(30);
+            returning.setManaged(true);
+            layout(pane, 340, 400);
+            assertFalse(translated(returning), "a child back after missing a layout snaps");
+        });
+    }
+
+    /**
+     * Verifies the first layout after the pane enters a scene snaps every child: back in
+     * the same scene, back after a layout outside any scene, and moved to another scene.
+     */
+    @Test
+    public void firstLayoutInASceneSnaps() throws Exception {
+        onFx(() -> {
+            RXTilePane sameScene = filledPane(6);
+            StackPane root = new StackPane(sameScene);
+            new Scene(root, 340, 400);
+            root.applyCss();
+            layout(root, 340, 400);
+            root.getChildren().clear();
+            root.getChildren().add(sameScene);
+            layout(root, 560, 400);
+            assertFalse(anyTranslated(sameScene), "back in the same scene at a new width: snaps");
+
+            RXTilePane offScreen = filledPane(6);
+            StackPane offScreenRoot = new StackPane(offScreen);
+            new Scene(offScreenRoot, 340, 400);
+            offScreenRoot.applyCss();
+            layout(offScreenRoot, 340, 400);
+            offScreenRoot.getChildren().clear();
+            layout(offScreen, 450, 400);
+            offScreenRoot.getChildren().add(offScreen);
+            layout(offScreenRoot, 560, 400);
+            assertFalse(anyTranslated(offScreen), "back after a layout outside any scene: snaps");
+
+            RXTilePane moved = filledPane(6);
+            StackPane firstRoot = new StackPane(moved);
+            new Scene(firstRoot, 340, 400);
+            firstRoot.applyCss();
+            layout(firstRoot, 340, 400);
+            StackPane secondRoot = new StackPane();
+            new Scene(secondRoot, 560, 400);
+            secondRoot.getChildren().add(moved);
+            secondRoot.applyCss();
+            layout(secondRoot, 560, 400);
+            assertFalse(anyTranslated(moved), "moved to another scene: snaps");
+        });
+    }
+
+    /**
+     * Verifies a pane taken out of its scene by a listener while its own layout pass runs
+     * starts no glide from that pass and, put back into the same scene, snaps on its first
+     * layout there. The listener is reached from publishing the column count, from laying
+     * a child out, and from starting a glide.
+     */
+    @Test
+    public void paneDetachedDuringItsLayoutSnapsWhenPutBack() throws Exception {
+        onFx(() -> {
+            for (String trigger : new String[] {"column count", "layoutX", "translateX"}) {
+                RXTilePane pane = filledPane(6);
+                StackPane root = new StackPane(pane);
+                new Scene(root, 340, 400);
+                root.applyCss();
+                layout(root, 340, 400);
+                // Three columns at 340 px, five at 560: the fourth tile moves up a row.
+                Node fourth = pane.getChildren().get(3);
+                ChangeListener<Number> detach = (obs, oldValue, newValue) -> root.getChildren().remove(pane);
+                switch (trigger) {
+                    case "column count" -> pane.actualColumnCountProperty().addListener(detach);
+                    case "layoutX" -> fourth.layoutXProperty().addListener(detach);
+                    default -> fourth.translateXProperty().addListener(detach);
+                }
+
+                layout(pane, 560, 400);
+                assertNull(pane.getScene(), trigger + ": setup, the pass took the pane out of its scene");
+                assertFalse(anyTranslated(pane), trigger + ": the abandoned pass leaves no glide behind");
+
+                pane.actualColumnCountProperty().removeListener(detach);
+                fourth.layoutXProperty().removeListener(detach);
+                fourth.translateXProperty().removeListener(detach);
+                root.getChildren().add(pane);
+                layout(root, 340, 400);
+                assertFalse(anyTranslated(pane), trigger + ": the first layout back in the scene snaps");
+            }
+        });
+    }
+
     @Test
     public void addedChildPopsInWithoutGliding() throws Exception {
         onFx(() -> {
@@ -1262,6 +1373,10 @@ public class RXTilePaneTest {
     }
 
     // ==================== Helpers ====================
+
+    private static boolean translated(Node node) {
+        return Math.abs(node.getTranslateX()) > EPSILON || Math.abs(node.getTranslateY()) > EPSILON;
+    }
 
     private static boolean anyTranslated(RXTilePane pane) {
         return pane.getChildren().stream()
