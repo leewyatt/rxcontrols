@@ -1518,8 +1518,10 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                 && hasNextPage(carousel);
     }
 
+    // Wrapping around needs another page too: next() does nothing with one.
     private static boolean hasNextPage(RXCarousel carousel) {
-        return carousel.isCircular() || carousel.getSelectedIndex() < carousel.getPageCount() - 1;
+        int count = carousel.getPageCount();
+        return count > 1 && (carousel.isCircular() || carousel.getSelectedIndex() < count - 1);
     }
 
     // Starts the countdown when it may run; stops one running once no next

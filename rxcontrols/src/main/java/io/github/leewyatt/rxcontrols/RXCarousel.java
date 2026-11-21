@@ -630,7 +630,9 @@ public class RXCarousel extends Control {
      * the carousel automatically advances to the next page.
      *
      * <p>This property can be used to drive a progress bar or countdown indicator.
-     * The value is 0.0 when auto-play is disabled or during a page transition.</p>
+     * The value is 0.0 when auto-play is disabled, during a page transition,
+     * and while no next page exists: with fewer than two pages, or on the
+     * last page of a carousel that does not wrap around.</p>
      *
      * @return the auto-play progress property
      */

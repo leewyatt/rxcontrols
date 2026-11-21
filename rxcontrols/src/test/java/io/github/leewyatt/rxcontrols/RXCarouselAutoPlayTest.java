@@ -215,6 +215,43 @@ public class RXCarouselAutoPlayTest {
     }
 
     @Test
+    public void countdownRunsOnlyWithAnotherPageToShow() throws Exception {
+        RXCarousel[] carousel = new RXCarousel[1];
+        onFx(() -> {
+            carousel[0] = showingCarousel(1);
+            carousel[0].setAutoPlayInterval(Duration.seconds(2.0));
+            carousel[0].setAutoPlay(true);
+        });
+        Thread.sleep(150L);
+        try {
+            onFx(() -> {
+                assertEquals(0.0, carousel[0].getAutoPlayProgress(), "one page");
+                carousel[0].setPages(new Label("A"), new Label("B"));
+            });
+            Thread.sleep(150L);
+            onFx(() -> {
+                assertTrue(carousel[0].getAutoPlayProgress() > 0.0, "two pages");
+                carousel[0].setPageCount(1);
+                assertEquals(0.0, carousel[0].getAutoPlayProgress(), "down to one page");
+            });
+            Thread.sleep(150L);
+            onFx(() -> {
+                assertEquals(0.0, carousel[0].getAutoPlayProgress(), "still one page");
+                carousel[0].setPageCount(0);
+            });
+            Thread.sleep(150L);
+            onFx(() -> {
+                assertEquals(0.0, carousel[0].getAutoPlayProgress(), "no page");
+                carousel[0].setPages(new Label("C"), new Label("D"));
+            });
+            Thread.sleep(150L);
+            onFx(() -> assertTrue(carousel[0].getAutoPlayProgress() > 0.0, "two pages again"));
+        } finally {
+            onFx(() -> carousel[0].getScene().getRoot().setVisible(false));
+        }
+    }
+
+    @Test
     public void hoverPauseTurnedOffWhileHoveredResumesTheCountdown() throws Exception {
         RXCarousel[] carousel = new RXCarousel[1];
         double[] paused = new double[1];
