@@ -1142,6 +1142,52 @@ public class RXTilePaneTest {
     }
 
     /**
+     * Verifies a computed tile height measures a width-dependent child at the width its
+     * tile is laid out with, in a layout and in the preferred height alike: a set tile
+     * width (less the child's margins), a single column squeezed below it, a row that
+     * STRETCH widens, and a computed tile width squeezed. A FlowPane of two items wraps
+     * to a second 20 px row only where it is too narrow for both.
+     */
+    @Test
+    public void computedTileHeightMeasuresAtTheWidthTheTileIsLaidOutWith() throws Exception {
+        onFx(() -> {
+            // set tile width, margin, flow pref width (-1: computed), item width, justify, pane width, rows
+            assertFlowTileRows("set width, laid out at it", 100.0, 0.0, 120.0, 60.0, ItemsJustify.START, 100.0, 2);
+            assertFlowTileRows("set width less margins", 120.0, 10.0, 120.0, 60.0, ItemsJustify.START, 120.0, 2);
+            assertFlowTileRows("set width squeezed", 120.0, 0.0, 80.0, 50.0, ItemsJustify.START, 80.0, 2);
+            assertFlowTileRows("set width stretched", 100.0, 0.0, 120.0, 60.0, ItemsJustify.STRETCH, 120.0, 1);
+            assertFlowTileRows("computed width squeezed", Region.USE_COMPUTED_SIZE, 0.0, -1.0, 60.0,
+                    ItemsJustify.START, 80.0, 2);
+        });
+    }
+
+    // A FlowPane of two items over a plain tile, in one column of the given pane width.
+    private static void assertFlowTileRows(String at, double prefTileWidth, double margin, double flowPrefWidth,
+                                           double itemWidth, ItemsJustify justify, double paneWidth, int flowRows) {
+        FlowPane flow = new FlowPane(card(itemWidth, 20.0), card(itemWidth, 20.0));
+        if (flowPrefWidth > 0.0) {
+            flow.setPrefWidth(flowPrefWidth);
+        }
+        RXTilePane.setMargin(flow, new Insets(0.0, margin, 0.0, margin));
+        Region below = card(50.0, 20.0);
+        RXTilePane pane = new RXTilePane(flow, below);
+        pane.setPrefTileWidth(prefTileWidth);
+        pane.setPrefColumns(1);
+        pane.setVgap(0.0);
+        pane.setTileAlignment(Pos.TOP_LEFT);
+        pane.setItemsJustify(justify);
+        pane.setAnimated(false);
+        new Scene(new StackPane(pane));
+        pane.applyCss();
+        layoutUntilClean(pane, paneWidth, 200.0);
+        double tileHeight = flowRows * 20.0;
+        assertEquals(1, pane.getActualColumnCount(), at + ": setup, one column");
+        assertEquals(tileHeight, flow.getLayoutBounds().getHeight(), 1.0e-9, at + ": flow height");
+        assertEquals(tileHeight, below.getLayoutY(), 1.0e-9, at + ": the next tile starts below it");
+        assertEquals(2 * tileHeight, pane.prefHeight(paneWidth), 1.0e-9, at + ": preferred height of the two rows");
+    }
+
+    /**
      * Verifies a tile width worked out from container children is not snapped up again:
      * four HBoxes reporting 225 device pixels each at 175% need exactly 900, and fit four
      * to a row there.

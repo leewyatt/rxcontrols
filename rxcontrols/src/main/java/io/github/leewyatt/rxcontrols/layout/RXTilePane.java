@@ -359,7 +359,10 @@ public class RXTilePane extends Pane {
     /**
      * Preferred height of each tile. The default
      * {@link Region#USE_COMPUTED_SIZE} resolves the height from the largest
-     * preferred area of the managed children. A positive value fixes the nominal
+     * preferred area of the managed children; a child whose height depends on its
+     * width is measured at the width its tile is laid out with, so the tile height can
+     * change with that width (a squeezed single column or {@link ItemsJustify#STRETCH}).
+     * A positive value fixes the nominal
      * tile height and does not let child min / pref heights expand the tile. A
      * non-positive or non-finite value is accepted and resolved from children at
      * layout time.
@@ -1020,10 +1023,16 @@ public class RXTilePane extends Pane {
     private double cachedNominalTileWidth;
     private boolean nominalTileHeightValid;
     private double cachedNominalTileHeight;
+    // The computed tile height for one tile width, when it depends on the width; a
+    // different width measures again (see tileHeightAt).
+    private boolean tileHeightAtWidthValid;
+    private double tileHeightAtWidthKey;
+    private double cachedTileHeightAtWidth;
 
     private void invalidateTileSizeCache() {
         nominalTileWidthValid = false;
         nominalTileHeightValid = false;
+        tileHeightAtWidthValid = false;
     }
 
     // ==================== Layout ====================
@@ -1082,7 +1091,15 @@ public class RXTilePane extends Pane {
         int count = getManagedChildren().size();
         int rows = count == 0 ? 0 : (count + columns - 1) / columns;
         double vgapValue = snapSpaceY(gapOrZero(getVgap()));
-        return heightOfRows(rows, nominalTileHeight(), vgapValue);
+        if (rows == 0) {
+            return heightOfRows(0, 0.0, vgapValue);
+        }
+        // The tiles as layoutChildren sizes them at this width: the tile height can depend
+        // on their width.
+        int justifyColumns = rows == 1 ? Math.min(columns, count) : columns;
+        RowLayout tileRow = rowLayout(PixelGrid.floorX(this, contentWidth), justifyColumns,
+                justifyOrDefault(getItemsJustify()), tileWidth, snapSpaceX(gapOrZero(getHgap())));
+        return heightOfRows(rows, tileHeightAt(tileRow.tileWidth()), vgapValue);
     }
 
     @Override
@@ -1099,7 +1116,6 @@ public class RXTilePane extends Pane {
         double contentWidth = Math.max(0.0, getWidth() - left - snappedRightInset());
         double contentHeight = Math.max(0.0, getHeight() - top - bottom);
         double nominalTileWidth = nominalTileWidth();
-        double nominalTileHeight = nominalTileHeight();
 
         int columns = computeColumns(contentWidth, nominalTileWidth);
         if (actualColumnCount.get() != columns) {
@@ -1109,17 +1125,9 @@ public class RXTilePane extends Pane {
         List<Node> managed = getManagedChildren();
         double hgapValue = snapSpaceX(gapOrZero(getHgap()));
         double vgapValue = snapSpaceY(gapOrZero(getVgap()));
-        double tileHeight = nominalTileHeight > contentHeight ? contentHeight : nominalTileHeight;
         int rows = managed.isEmpty() ? 0 : (managed.size() + columns - 1) / columns;
-        double rowBlockHeight = rows == 0 ? 0.0 : rows * tileHeight + (rows - 1) * vgapValue;
-        double startY = verticalContentOffset(
-                contentHeight, rowBlockHeight, contentVAlignmentOrDefault(getContentVAlignment()));
         Pos tileAlignmentValue = tileAlignmentOrDefault(getTileAlignment());
 
-        double tileWidth;
-        double effectiveHgap;
-        double startX;
-        ItemsJustify mode = justifyOrDefault(getItemsJustify());
         // A single partial row has no cross-row column alignment to preserve, so
         // the justify block spans the actual tiles rather than the resolvable
         // column count — CENTER/END/SPACE_*/STRETCH then behave like CSS
@@ -1130,54 +1138,18 @@ public class RXTilePane extends Pane {
         // gaps are on the grid too, so every rounded tile x stays monotonic, keeps at
         // least hgap to its neighbour and leaves the last tile inside the content area.
         // A content width off the grid would let rounding push the last tile out.
-        double rowWidth = PixelGrid.floorX(this, contentWidth);
-        double preferredRowWidth = justifyColumns * nominalTileWidth + (justifyColumns - 1) * hgapValue;
-        if (justifyColumns == 1 && preferredRowWidth > rowWidth) {
-            tileWidth = Math.max(0.0, rowWidth);
-            effectiveHgap = hgapValue;
-            startX = 0.0;
-        } else if (mode == ItemsJustify.STRETCH) {
-            double ideal = (rowWidth - (justifyColumns - 1) * hgapValue) / justifyColumns;
-            double cap = maxTileWidthOrUnbounded();
-            double effectiveCap = cap > 0.0 ? Math.max(snapSizeX(cap), nominalTileWidth) : 0.0;
-            effectiveHgap = hgapValue;
-            if (effectiveCap > 0.0 && ideal > effectiveCap) {
-                tileWidth = effectiveCap;
-                double used = justifyColumns * tileWidth + (justifyColumns - 1) * hgapValue;
-                startX = Math.max(0.0, (rowWidth - used) / 2.0);
-            } else {
-                // Floored, not ceiled (snapSizeX): ceiling each tile overruns the content
-                // area by up to a pixel per column, into the right padding and past the
-                // pane. The few spare pixels go into the gaps, so the tiles stay equal and
-                // the row still fills edge to edge.
-                tileWidth = PixelGrid.floorX(this, Math.max(0.0, ideal));
-                double spare = Math.max(0.0,
-                        rowWidth - (justifyColumns * tileWidth + (justifyColumns - 1) * hgapValue));
-                effectiveHgap = hgapValue + (justifyColumns > 1 ? spare / (justifyColumns - 1) : 0.0);
-                startX = 0.0;
-            }
-        } else {
-            effectiveHgap = hgapValue;
-            startX = 0.0;
-            tileWidth = nominalTileWidth;
-            double slack = Math.max(0.0, rowWidth - preferredRowWidth);
-            switch (mode) {
-                case CENTER -> startX = slack / 2.0;
-                case END -> startX = slack;
-                case SPACE_BETWEEN -> effectiveHgap = hgapValue + (justifyColumns > 1 ? slack / (justifyColumns - 1) : 0.0);
-                case SPACE_AROUND -> {
-                    effectiveHgap = hgapValue + slack / justifyColumns;
-                    startX = slack / (2.0 * justifyColumns);
-                }
-                case SPACE_EVENLY -> {
-                    effectiveHgap = hgapValue + slack / (justifyColumns + 1);
-                    startX = slack / (justifyColumns + 1);
-                }
-                default -> {
-                    // START: the block hugs the leading edge (defaults stand).
-                }
-            }
-        }
+        RowLayout tileRow = rowLayout(PixelGrid.floorX(this, contentWidth), justifyColumns,
+                justifyOrDefault(getItemsJustify()), nominalTileWidth, hgapValue);
+        double tileWidth = tileRow.tileWidth();
+        double effectiveHgap = tileRow.hgap();
+        double startX = tileRow.startX();
+        // Measured at the width the tiles get in this pass: a child whose height depends on
+        // its width is as high as it is laid out.
+        double fullTileHeight = tileHeightAt(tileWidth);
+        double tileHeight = fullTileHeight > contentHeight ? contentHeight : fullTileHeight;
+        double rowBlockHeight = rows == 0 ? 0.0 : rows * tileHeight + (rows - 1) * vgapValue;
+        double startY = verticalContentOffset(
+                contentHeight, rowBlockHeight, contentVAlignmentOrDefault(getContentVAlignment()));
 
         boolean animate = isAnimated() && scene != null && scene == layoutScene && isAnimationDurationPositive();
         // With animation off and nothing in flight the animator pass would be a
@@ -1189,12 +1161,12 @@ public class RXTilePane extends Pane {
         // next pass always has a baseline to compare against.
         boolean resizeOnly = false;
         if (isAnimated()) {
-            // The cross preferred extent uses the nominal tile height: the tile height a
-            // short pane squeezes its rows to follows every drag of the window edge, while
+            // The cross preferred extent uses the full tile height: the tile height a short
+            // pane squeezes its rows to follows every drag of the window edge, while
             // padding added in a parent that sizes the pane to its pref changes this value,
             // so that growth still animates.
             resizeOnly = resizeGate.isResizeOnly(getWidth(), ownPrefWidth(), getHeight(),
-                    heightOfRows(rows, nominalTileHeight, vgapValue), layoutStructure(columns, managed));
+                    heightOfRows(rows, fullTileHeight, vgapValue), layoutStructure(columns, managed));
         } else {
             resizeGate.reset();
         }
@@ -1276,6 +1248,52 @@ public class RXTilePane extends Pane {
     // value and comes from the layout cache.
     private double ownPrefWidth() {
         return getPrefWidth() == USE_COMPUTED_SIZE ? prefWidth(-1.0) : computePrefWidth(-1.0);
+    }
+
+    // The width of the tiles in a row, the gap between them and where the row starts.
+    private record RowLayout(double tileWidth, double hgap, double startX) {
+    }
+
+    // Lays out a row of justifyColumns tiles within rowWidth, a width on the pixel grid.
+    // Shared by layoutChildren and computePrefHeight, so a preferred height is measured
+    // with the tiles the layout makes at that width.
+    private RowLayout rowLayout(double rowWidth, int justifyColumns, ItemsJustify mode,
+                                double nominalTileWidth, double hgapValue) {
+        double preferredRowWidth = justifyColumns * nominalTileWidth + (justifyColumns - 1) * hgapValue;
+        if (justifyColumns == 1 && preferredRowWidth > rowWidth) {
+            return new RowLayout(Math.max(0.0, rowWidth), hgapValue, 0.0);
+        }
+        if (mode == ItemsJustify.STRETCH) {
+            double ideal = (rowWidth - (justifyColumns - 1) * hgapValue) / justifyColumns;
+            double cap = maxTileWidthOrUnbounded();
+            double effectiveCap = cap > 0.0 ? Math.max(snapSizeX(cap), nominalTileWidth) : 0.0;
+            if (effectiveCap > 0.0 && ideal > effectiveCap) {
+                double used = justifyColumns * effectiveCap + (justifyColumns - 1) * hgapValue;
+                return new RowLayout(effectiveCap, hgapValue, Math.max(0.0, (rowWidth - used) / 2.0));
+            }
+            // Floored, not ceiled (snapSizeX): ceiling each tile overruns the content area
+            // by up to a pixel per column, into the right padding and past the pane. The
+            // few spare pixels go into the gaps, so the tiles stay equal and the row still
+            // fills edge to edge.
+            double tileWidth = PixelGrid.floorX(this, Math.max(0.0, ideal));
+            double spare = Math.max(0.0,
+                    rowWidth - (justifyColumns * tileWidth + (justifyColumns - 1) * hgapValue));
+            return new RowLayout(tileWidth,
+                    hgapValue + (justifyColumns > 1 ? spare / (justifyColumns - 1) : 0.0), 0.0);
+        }
+        double slack = Math.max(0.0, rowWidth - preferredRowWidth);
+        return switch (mode) {
+            case CENTER -> new RowLayout(nominalTileWidth, hgapValue, slack / 2.0);
+            case END -> new RowLayout(nominalTileWidth, hgapValue, slack);
+            case SPACE_BETWEEN -> new RowLayout(nominalTileWidth,
+                    hgapValue + (justifyColumns > 1 ? slack / (justifyColumns - 1) : 0.0), 0.0);
+            case SPACE_AROUND -> new RowLayout(nominalTileWidth,
+                    hgapValue + slack / justifyColumns, slack / (2.0 * justifyColumns));
+            case SPACE_EVENLY -> new RowLayout(nominalTileWidth,
+                    hgapValue + slack / (justifyColumns + 1), slack / (justifyColumns + 1));
+            // START: the block hugs the leading edge.
+            default -> new RowLayout(nominalTileWidth, hgapValue, 0.0);
+        };
     }
 
     // The preferred height of the given rows plus the vertical insets, ceiled as
@@ -1411,14 +1429,41 @@ public class RXTilePane extends Pane {
         return cachedNominalTileWidth;
     }
 
+    // A set tile height, or one computed from children whose heights do not depend on
+    // their width: the same at every tile width.
     private double nominalTileHeight() {
         if (!nominalTileHeightValid) {
             double value = getPrefTileHeight();
             cachedNominalTileHeight = isExplicitTileSize(value)
-                    ? snapSizeY(value) : PixelGrid.ceilY(this, computeTileHeightFromChildren());
+                    ? snapSizeY(value) : PixelGrid.ceilY(this, computeTileHeightFromChildren(-1.0));
             nominalTileHeightValid = true;
         }
         return cachedNominalTileHeight;
+    }
+
+    // The tile height for tiles this wide. A computed height measures a child whose height
+    // depends on its width at the width it gets in a tile this wide, the set or computed
+    // tile width or what a squeezed or stretched row makes of it, so it is worked out for
+    // the width asked; the last one is kept.
+    private double tileHeightAt(double tileWidth) {
+        if (isExplicitTileSize(getPrefTileHeight()) || !hasWidthDependentChild()) {
+            return nominalTileHeight();
+        }
+        if (!tileHeightAtWidthValid || tileWidth != tileHeightAtWidthKey) {
+            cachedTileHeightAtWidth = PixelGrid.ceilY(this, computeTileHeightFromChildren(tileWidth));
+            tileHeightAtWidthKey = tileWidth;
+            tileHeightAtWidthValid = true;
+        }
+        return cachedTileHeightAtWidth;
+    }
+
+    private boolean hasWidthDependentChild() {
+        for (Node child : getManagedChildren()) {
+            if (child.getContentBias() == Orientation.HORIZONTAL) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isExplicitTileSize(double value) {
@@ -1430,7 +1475,10 @@ public class RXTilePane extends Pane {
         double height = -1.0;
         for (Node child : managed) {
             if (child.getContentBias() == Orientation.VERTICAL) {
-                height = computeTileHeightFromChildren();
+                // The tile width is being worked out here, so width-dependent children are
+                // measured at their own preferred widths.
+                height = computeTileHeightFromChildren(
+                        hasWidthDependentChild() ? computeMaxChildPrefAreaWidth() : -1.0);
                 break;
             }
         }
@@ -1441,15 +1489,11 @@ public class RXTilePane extends Pane {
         return max;
     }
 
-    private double computeTileHeightFromChildren() {
+    // tileWidth is the width of the tile a child whose height depends on its width is
+    // measured in, or -1 when no such child is measured.
+    private double computeTileHeightFromChildren(double tileWidth) {
         List<Node> managed = getManagedChildren();
-        double width = -1.0;
-        for (Node child : managed) {
-            if (child.getContentBias() == Orientation.HORIZONTAL) {
-                width = computeMaxChildPrefAreaWidth();
-                break;
-            }
-        }
+        double width = tileWidth;
         double max = 0.0;
         double baselineMaxAbove = 0.0;
         double baselineMaxBelow = 0.0;
