@@ -123,8 +123,20 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
                 button::isRippleEnabled, button::isRippleCentered);
         getChildren().addAll(ripple.getLayer(), pages.getContentPane());
 
+        // Registered before the bindings, so it runs after they are released:
+        // the alternate content and the button's graphic belong to the
+        // button and must not keep this skin's nodes reachable.
+        disposer.registerDisposeTask(() -> {
+            pages.getPageB().getChildren().clear();
+            frontLabel.setGraphic(null);
+        });
         bindFrontLabel(button);
         setPageContent(pages.getPageB(), button.getAlternateContent());
+        // A skin installed while the trigger is active starts on the
+        // alternate face, without playing a transition.
+        if (showAlternate()) {
+            pages.directCutTo(pages.getPageB());
+        }
 
         wireFaces(button);
         wireBehavior(button);

@@ -816,6 +816,82 @@ public class RXTransitionButtonTest {
     }
 
     @Test
+    public void skinInstalledWhileTriggeredShowsTheAlternateFace() {
+        Label alternate = new Label("Back");
+        RXTransitionButton button = new RXTransitionButton("Front");
+        button.setAlternateContent(alternate);
+        button.setAnimationTrigger(AnimationTrigger.PRESSED);
+        RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
+        button.setAnimation(recording);
+        button.arm();
+
+        layOut(button);
+
+        try {
+            assertSame(alternate, visibleFaceContent(button));
+            assertEquals(0, recording.contexts.size());
+            assertFalse(button.isTransitioning());
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void replacementSkinInstalledWhileTriggeredKeepsTheAlternateFace() {
+        Label alternate = new Label("Back");
+        RXTransitionButton button = laidOutButton("Front", alternate);
+        button.setAnimationTrigger(AnimationTrigger.PRESSED);
+        button.setAnimation(null);
+        button.arm();
+        assertSame(alternate, visibleFaceContent(button));
+
+        // A skin of the installed class is ignored by setSkin, hence the subclass.
+        button.setSkin(new RXTransitionButtonSkin(button) {
+        });
+
+        try {
+            assertSame(alternate, visibleFaceContent(button));
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void removingTheSkinReleasesAlternateContentAndGraphic() {
+        Label alternate = new Label("Back");
+        Label icon = new Label("icon");
+        RXTransitionButton button = new RXTransitionButton("Front", icon);
+        button.setAlternateContent(alternate);
+        layOut(button);
+        assertSame(frontLabel(button), icon.getParent());
+
+        button.setSkin(null);
+
+        assertNull(alternate.getParent());
+        assertNull(icon.getParent());
+    }
+
+    @Test
+    public void replacementSkinTakesTheGraphicOver() {
+        Label icon = new Label("icon");
+        RXTransitionButton button = new RXTransitionButton("Front", icon);
+        layOut(button);
+
+        // A skin of the installed class is ignored by setSkin, hence the subclass.
+        button.setSkin(new RXTransitionButtonSkin(button) {
+        });
+        layOut(button);
+
+        try {
+            assertSame(frontLabel(button), icon.getParent());
+            assertTrue(icon.getParent().isVisible());
+            assertSame(icon, frontLabel(button).getGraphic());
+        } finally {
+            button.getSkin().dispose();
+        }
+    }
+
+    @Test
     public void mouseEventsStayWithTheButtonLikeAButton() {
         RXTransitionButton button = laidOutButton("Front", null);
         List<MouseEvent> received = new ArrayList<>();
@@ -907,12 +983,19 @@ public class RXTransitionButtonTest {
     private static RXTransitionButton laidOutButton(String text, Node alternateContent) {
         RXTransitionButton button = new RXTransitionButton(text);
         button.setAlternateContent(alternateContent);
-        StackPane root = new StackPane(button);
-        new Scene(root, 200.0, 100.0);
+        layOut(button);
+        return button;
+    }
+
+    // Lays the button out in its own scene, or again in the scene it is in.
+    private static void layOut(RXTransitionButton button) {
+        StackPane root = button.getParent() instanceof StackPane parent ? parent : new StackPane(button);
+        if (root.getScene() == null) {
+            new Scene(root, 200.0, 100.0);
+        }
         root.resize(200.0, 100.0);
         root.applyCss();
         root.layout();
-        return button;
     }
 
     private static WeakReference<RXTransitionButtonSkin> installIgnoredSkin(RXTransitionButton button) {
