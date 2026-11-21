@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.carousel.CarouselNavigator;
 import io.github.leewyatt.rxcontrols.carousel.DefaultNavigator;
 import io.github.leewyatt.rxcontrols.carousel.RXPageLifecycleEvent;
+import io.github.leewyatt.rxcontrols.internal.CarouselSignals;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXCarouselSkin;
 import javafx.beans.property.BooleanProperty;
@@ -23,6 +24,7 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.collections.WeakListChangeListener;
 import javafx.css.PseudoClass;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
@@ -111,17 +113,23 @@ public class RXCarousel extends Control {
     private final IntegerProperty pageCount = new SimpleIntegerProperty(this, "pageCount", 0) {
         @Override
         protected void invalidated() {
-            if (get() < 0) {
+            int count = get();
+            if (count < 0) {
                 if (!isBound()) {
                     set(0);
                 }
                 throw new IllegalArgumentException("pageCount cannot be negative");
             }
+            // The selected page stays within the pages, with or without a skin.
+            if (getSelectedIndex() >= count) {
+                setSelectedIndex(Math.max(0, count - 1));
+            }
         }
     };
 
     /**
-     * The total number of pages in the carousel.
+     * The total number of pages in the carousel. When the count drops to or
+     * below the selected index, the selected index moves to the last page.
      *
      * @return the page count property
      */
@@ -767,13 +775,43 @@ public class RXCarousel extends Control {
     }
 
     private ObservableList<Node> observablePages;
-    private ListChangeListener<Node> pagesListener;
+    private Callback<Integer, Node> observablePagesFactory;
+
+    // Weak: a page list that outlives the carousel must not keep it reachable.
+    private final ListChangeListener<Node> pagesListener = change -> onPagesChanged();
+    private final WeakListChangeListener<Node> weakPagesListener = new WeakListChangeListener<>(pagesListener);
 
     private void clearPagesListener() {
-        if (observablePages != null && pagesListener != null) {
-            observablePages.removeListener(pagesListener);
+        if (observablePages != null) {
+            observablePages.removeListener(weakPagesListener);
             observablePages = null;
-            pagesListener = null;
+            observablePagesFactory = null;
+        }
+    }
+
+    // The list keeps driving the pages only while its factory is the carousel's.
+    private void onPagesChanged() {
+        if (getPageFactory() != observablePagesFactory) {
+            return;
+        }
+        getProperties().put(CarouselSignals.PAGES_UPDATING, Boolean.TRUE);
+        try {
+            setPageCount(observablePages.size());
+            getProperties().put(CarouselSignals.PAGES_CHANGED, Boolean.TRUE);
+        } finally {
+            getProperties().remove(CarouselSignals.PAGES_UPDATING);
+        }
+    }
+
+    // The count, the factory and the selected index the count may move
+    // change together: the skin updates the pages once all are set.
+    private void applyPages(int count, Callback<Integer, Node> factory) {
+        getProperties().put(CarouselSignals.PAGES_UPDATING, Boolean.TRUE);
+        try {
+            setPageCount(count);
+            setPageFactory(factory);
+        } finally {
+            getProperties().remove(CarouselSignals.PAGES_UPDATING);
         }
     }
 
@@ -786,23 +824,25 @@ public class RXCarousel extends Control {
     public void setPages(Node... pages) {
         clearPagesListener();
         List<Node> list = Arrays.asList(pages);
-        setPageCount(list.size());
-        setPageFactory(list::get);
+        applyPages(list.size(), list::get);
     }
 
     /**
-     * Sets the carousel pages from an observable list. The page count is
-     * automatically updated when the list changes.
+     * Sets the carousel pages from an observable list. The pages follow the
+     * list: the page count changes with its size, and a page whose node the
+     * list no longer has at that index is replaced, the current one with a
+     * direct cut. The carousel keeps no strong reference from the list, so
+     * the list may outlive it.
      *
      * @param pages the observable list of page nodes
      */
     public void setPages(ObservableList<Node> pages) {
         clearPagesListener();
+        Callback<Integer, Node> factory = pages::get;
+        applyPages(pages.size(), factory);
         observablePages = pages;
-        pagesListener = c -> setPageCount(pages.size());
-        setPageCount(pages.size());
-        setPageFactory(pages::get);
-        pages.addListener(pagesListener);
+        observablePagesFactory = factory;
+        pages.addListener(weakPagesListener);
     }
 
     // ==================== Page Lifecycle Event Handlers ====================

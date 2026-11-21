@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.carousel.CarouselNavigator;
 import io.github.leewyatt.rxcontrols.carousel.RXPageLifecycleEvent;
+import io.github.leewyatt.rxcontrols.internal.CarouselSignals;
 import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
@@ -195,6 +196,10 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             return;
         }
         activated = true;
+        // Taken before the properties listener is registered: removing a key
+        // must not start a sync before the pages are taken over.
+        Handover handover = (Handover) carousel.getProperties().remove(HANDOVER_KEY);
+        boolean pagesChanged = carousel.getProperties().remove(CarouselSignals.PAGES_CHANGED) != null;
         treeShowing = controlTreeShowingProperty();
 
         disposer.registerEventHandler(prevButton, MouseEvent.MOUSE_CLICKED, e -> {
@@ -216,15 +221,14 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         updateNavigatorVisibility(carousel);
         updateArrowVisibility(carousel);
         updateArrowDisabledState(carousel);
-        takeOver(carousel);
+        takeOver(carousel, handover, pagesChanged);
     }
 
     // Continues the pages a replaced skin handed over: the page it left open
     // stays open without events while it is still the selected page;
     // otherwise the first step closes it and cuts to the selected page.
     // Without a hand-over the selected page is opened from scratch.
-    private void takeOver(RXCarousel carousel) {
-        Handover handover = (Handover) carousel.getProperties().remove(HANDOVER_KEY);
+    private void takeOver(RXCarousel carousel, Handover handover, boolean pagesChanged) {
         if (handover != null) {
             for (Map.Entry<Integer, Node> entry : handover.pages.entrySet()) {
                 Page page = new Page(entry.getKey(), entry.getValue());
@@ -238,6 +242,8 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             }
             if (handover.factory != carousel.getPageFactory()) {
                 doomed.addAll(pageCache.values());
+            } else if (pagesChanged) {
+                checkPages(carousel);
             }
         }
         cutNext = true;
@@ -359,17 +365,25 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             sync();
         });
 
-        disposer.registerListener(carousel.pageCountProperty(), (obs, oldVal, newVal) -> {
+        // Pages beyond the new count are evicted by the loop; the carousel has
+        // already moved the selected index within the pages.
+        disposer.registerListener(carousel.pageCountProperty(), () -> {
             if (disposed) {
                 return;
             }
-            int count = newVal.intValue();
             forgetMissingPage();
             idlePending = true;
             updateArrowDisabledState(carousel);
             notifyNavigator(-1, carousel);
-            if (count > 0 && carousel.getSelectedIndex() >= count) {
-                carousel.setSelectedIndex(count - 1);
+            sync();
+        });
+
+        disposer.registerListener(carousel.getProperties(), () -> {
+            if (disposed) {
+                return;
+            }
+            if (carousel.getProperties().remove(CarouselSignals.PAGES_CHANGED) != null) {
+                checkPages(carousel);
             }
             sync();
         });
@@ -477,7 +491,8 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     // a further call returns at once: the loop re-reads the state after the
     // step.
     private void sync() {
-        if (!activated || disposed || busy) {
+        if (!activated || disposed || busy
+                || getSkinnable().getProperties().containsKey(CarouselSignals.PAGES_UPDATING)) {
             return;
         }
         busy = true;
@@ -956,6 +971,22 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         detach(page);
         page.wrapper.getChildren().clear();
         announce(RXPageLifecycleEvent.EVICTED, page);
+    }
+
+    // The nodes behind the indices may have changed: a cached page whose
+    // index is past the pages is evicted anyway; one whose node the factory
+    // no longer gives for its index is evicted too. The index is checked
+    // first, as a shorter list cannot be asked for it.
+    private void checkPages(RXCarousel carousel) {
+        Callback<Integer, Node> factory = carousel.getPageFactory();
+        int count = carousel.getPageCount();
+        for (Page page : sortedPages()) {
+            if (page.index < count && (factory == null || callFactory(factory, page.index) != page.node)) {
+                doomed.add(page);
+            }
+        }
+        forgetMissingPage();
+        idlePending = true;
     }
 
     // The shown page was given up on: a later change tries the factory again.

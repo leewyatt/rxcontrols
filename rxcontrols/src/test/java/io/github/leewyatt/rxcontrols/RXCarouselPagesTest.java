@@ -7,6 +7,9 @@ import io.github.leewyatt.rxcontrols.carousel.RXPageLifecycleEvent;
 import io.github.leewyatt.rxcontrols.skins.RXCarouselSkin;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -16,6 +19,7 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -24,14 +28,17 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests the page structure of the carousel: each page node sits in a page
- * wrapper of the skin, animations and the skin change the wrappers only, and
- * the skin lets go of the page nodes it evicts or leaves behind.
+ * Tests the pages of the carousel: each page node sits in a page wrapper of
+ * the skin, animations and the skin change the wrappers only, the skin lets
+ * go of the page nodes it evicts or leaves behind, changes to a page list or
+ * to setPages reach the cached pages, and the selected index stays within the
+ * pages.
  */
 public class RXCarouselPagesTest {
 
@@ -178,7 +185,184 @@ public class RXCarouselPagesTest {
         });
     }
 
+    // ==================== Page list ====================
+
+    @Test
+    public void addingToThePageListCachesTheNewNeighbourOnly() throws Exception {
+        onFx(() -> {
+            ObservableList<Node> list = FXCollections.observableArrayList(labels(3));
+            RXCarousel carousel = laidOutCarousel(list);
+            List<String> events = record(carousel);
+
+            list.add(new Label("P3"));
+
+            assertEquals(List.of("CACHED:3"), events);
+            assertEquals(List.of("P0"), shownPages(carousel));
+        });
+    }
+
+    @Test
+    public void removingTheCurrentPageFromTheListCutsToTheNodeNowAtItsIndex() throws Exception {
+        onFx(() -> {
+            List<Label> pages = labels(3);
+            ObservableList<Node> list = FXCollections.observableArrayList(pages);
+            RXCarousel carousel = laidOutCarousel(list);
+            List<String> events = record(carousel);
+
+            list.remove(0);
+
+            assertEquals(List.of("CLOSING:0", "CLOSED:0", "EVICTED:0", "EVICTED:1", "EVICTED:2",
+                    "CACHED:0", "OPENING:0", "OPENED:0", "CACHED:1"), events);
+            assertEquals(List.of("P1"), shownPages(carousel));
+            assertNull(pages.get(0).getParent());
+        });
+    }
+
+    @Test
+    public void replacingTheCurrentPageInTheListCutsToTheNewNode() throws Exception {
+        onFx(() -> {
+            ObservableList<Node> list = FXCollections.observableArrayList(labels(3));
+            RXCarousel carousel = laidOutCarousel(list);
+            List<String> events = record(carousel);
+
+            list.set(0, new Label("X"));
+
+            assertEquals(List.of("CLOSING:0", "CLOSED:0", "EVICTED:0", "CACHED:0", "OPENING:0", "OPENED:0"),
+                    events);
+            assertEquals(List.of("X"), shownPages(carousel));
+        });
+    }
+
+    @Test
+    public void removingACachedPageLeavesTheCurrentPageAlone() throws Exception {
+        onFx(() -> {
+            ObservableList<Node> list = FXCollections.observableArrayList(labels(4));
+            RXCarousel carousel = laidOutCarousel(list);
+            List<String> events = record(carousel);
+            List<Throwable> errors = new ArrayList<>();
+
+            withUncaughtHandler(errors, () -> list.remove(3));
+
+            assertEquals(List.of(), errors);
+            assertEquals(List.of("EVICTED:3", "CACHED:2"), events);
+            assertEquals(List.of("P0"), shownPages(carousel));
+        });
+    }
+
+    @Test
+    public void pageListDoesNotKeepTheCarouselAlive() throws Exception {
+        ObservableList<Node> list = FXCollections.observableArrayList(labels(3));
+        List<WeakReference<RXCarousel>> carousel = new ArrayList<>();
+        onFx(() -> {
+            RXCarousel c = new RXCarousel();
+            c.setPages(list);
+            carousel.add(new WeakReference<>(c));
+        });
+        for (int i = 0; i < 50 && carousel.get(0).get() != null; i++) {
+            System.gc();
+            Thread.sleep(10L);
+        }
+        assertNull(carousel.get(0).get(), "the page list must not keep the carousel reachable");
+        assertEquals(3, list.size());
+    }
+
+    // ==================== setPages ====================
+
+    @Test
+    public void setPagesFromOnePageToTwoKeepsNextUsable() throws Exception {
+        for (boolean circular : List.of(true, false)) {
+            onFx(() -> {
+                RXCarousel carousel = new RXCarousel();
+                carousel.setCircular(circular);
+                carousel.setPages(new Label("A0"));
+                layOut(carousel);
+                List<String> events = record(carousel);
+                List<Throwable> errors = new ArrayList<>();
+
+                withUncaughtHandler(errors, () -> carousel.setPages(new Label("B0"), new Label("B1")));
+
+                assertEquals(List.of(), errors, "circular " + circular);
+                assertEquals(List.of("CLOSING:0", "CLOSED:0", "EVICTED:0", "CACHED:0", "OPENING:0", "OPENED:0",
+                        "CACHED:1"), events, "circular " + circular);
+                assertFalse(carousel.lookup(".next-button").isDisabled(), "circular " + circular);
+                assertEquals(List.of("B0"), shownPages(carousel));
+                carousel.next();
+                assertEquals(1, carousel.getSelectedIndex(), "circular " + circular);
+            });
+        }
+    }
+
+    @Test
+    public void setPagesWithFewerPagesOpensTheClampedPageOnce() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = new RXCarousel();
+            carousel.setPages(labels(5).toArray(new Node[0]));
+            layOut(carousel);
+            carousel.goToPage(4, false);
+            List<String> events = record(carousel);
+            List<Throwable> errors = new ArrayList<>();
+
+            withUncaughtHandler(errors, () -> carousel.setPages(new Label("B0"), new Label("B1"), new Label("B2")));
+
+            assertEquals(List.of(), errors);
+            assertEquals(2, carousel.getSelectedIndex());
+            List<String> openClose = new ArrayList<>(events);
+            openClose.removeIf(event -> event.startsWith("CACHED") || event.startsWith("EVICTED"));
+            assertEquals(List.of("CLOSING:4", "CLOSED:4", "OPENING:2", "OPENED:2"), openClose);
+            assertTrue(events.indexOf("EVICTED:4") > events.indexOf("CLOSED:4"));
+            assertEquals(List.of("B2"), shownPages(carousel));
+        });
+    }
+
+    // ==================== Selected index ====================
+
+    @Test
+    public void selectedIndexStaysWithinThePagesWithoutASkin() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = new RXCarousel();
+            carousel.setPages(labels(5).toArray(new Node[0]));
+            carousel.goToPage(4);
+
+            carousel.setPages(new Label("B0"), new Label("B1"), new Label("B2"));
+
+            assertEquals(2, carousel.getSelectedIndex());
+            carousel.setPageCount(1);
+            assertEquals(0, carousel.getSelectedIndex());
+            carousel.setPageCount(3);
+            carousel.goToPage(2);
+            layOut(carousel);
+            assertEquals(List.of("B2"), shownPages(carousel));
+            assertTrue(carousel.getPseudoClassStates().contains(PseudoClass.getPseudoClass("last-page")));
+        });
+    }
+
     // ==================== Helpers ====================
+
+    private static RXCarousel laidOutCarousel(ObservableList<Node> list) {
+        RXCarousel carousel = new RXCarousel();
+        carousel.setPages(list);
+        layOut(carousel);
+        return carousel;
+    }
+
+    private static List<String> record(RXCarousel carousel) {
+        List<String> events = new ArrayList<>();
+        carousel.addEventHandler(RXPageLifecycleEvent.ANY, e -> events.add(
+                e.getEventType().getName().substring("RX_PAGE_".length()) + ":" + e.getPageIndex()));
+        return events;
+    }
+
+    private static List<String> shownPages(RXCarousel carousel) {
+        List<String> shown = new ArrayList<>();
+        for (Node wrapper : ((Parent) carousel.lookup(".content-pane")).getChildrenUnmodifiable()) {
+            if (wrapper.isVisible()) {
+                for (Node node : ((Parent) wrapper).getChildrenUnmodifiable()) {
+                    shown.add(((Label) node).getText());
+                }
+            }
+        }
+        return shown;
+    }
 
     private static List<Label> labels(int count) {
         List<Label> pages = new ArrayList<>();
