@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -223,10 +224,12 @@ public class RXFlowPane extends Pane {
     private Scene layoutScene;
     private Set<Node> laidOutLastPass = new HashSet<>();
     private Set<Node> laidOutThisPass = new HashSet<>();
-    // Children of the last pass removed since, so one put back before the next pass
-    // glides from where it was. Weak: a removed child must not stay reachable from the
-    // pane when no further pass comes.
-    private final Set<Node> removedSinceLastPass = Collections.newSetFromMap(new WeakHashMap<>());
+    // Children of the last pass removed since, with where each showed when it was
+    // removed (layout plus translate, read before the animator gives the translate back),
+    // so one put back before the next pass glides on from there. Weak keys: a removed
+    // child must not stay reachable from the pane when no further pass comes; the
+    // values hold no node.
+    private final Map<Node, double[]> removedSinceLastPass = new WeakHashMap<>();
 
     private final ListChangeListener<Node> childrenListener = change -> {
         while (change.next()) {
@@ -235,7 +238,9 @@ public class RXFlowPane extends Pane {
                 resizeGate.reset();
                 for (Node removed : change.getRemoved()) {
                     if (laidOutLastPass.remove(removed)) {
-                        removedSinceLastPass.add(removed);
+                        removedSinceLastPass.put(removed, new double[] {
+                                removed.getLayoutX() + removed.getTranslateX(),
+                                removed.getLayoutY() + removed.getTranslateY()});
                     }
                     animator.forget(removed);
                 }
@@ -945,7 +950,7 @@ public class RXFlowPane extends Pane {
      * that is newly added, newly managed or back after missing a layout snaps into
      * place, and so does every child on the first layout after the pane enters a scene
      * or is laid out outside one. A child removed and put back before the next layout
-     * glides from where it was.
+     * glides on from where it showed when it was removed, even mid-glide.
      *
      * <p>While a child glides, the pane drives its {@code translateX} /
      * {@code translateY}; it never touches {@code opacity}. A translate the child had
@@ -1510,8 +1515,13 @@ public class RXFlowPane extends Pane {
                     false, false, hpos, vpos);
             return;
         }
-        double oldVisualX = node.getLayoutX() + node.getTranslateX();
-        double oldVisualY = node.getLayoutY() + node.getTranslateY();
+        // A child removed and put back since the last pass has had its translate given
+        // back; where it showed when removed is where its glide goes on from.
+        double[] shownWhenRemoved = removedSinceLastPass.get(node);
+        double oldVisualX = shownWhenRemoved != null
+                ? shownWhenRemoved[0] : node.getLayoutX() + node.getTranslateX();
+        double oldVisualY = shownWhenRemoved != null
+                ? shownWhenRemoved[1] : node.getLayoutY() + node.getTranslateY();
         layoutInArea(node, x, y, width, height, baselineOffset, getMargin(node),
                 false, false, hpos, vpos);
         if (resizeOnly) {
@@ -1520,7 +1530,7 @@ public class RXFlowPane extends Pane {
         }
         // Checked before any motion: an entering child's old layout position belongs to
         // wherever it was before, and its own translate stays as it is.
-        if (!laidOutLastPass.contains(node) && !removedSinceLastPass.contains(node)) {
+        if (shownWhenRemoved == null && !laidOutLastPass.contains(node)) {
             return;
         }
         animator.addRelayoutMove(moves, node, oldVisualX, oldVisualY);

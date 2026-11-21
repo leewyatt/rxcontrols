@@ -1677,6 +1677,71 @@ public class RXFlowPaneTest {
         });
     }
 
+    /**
+     * Verifies reordering while children glide goes on from where each child shows,
+     * through setAll and through remove and add alike: neither the moved card nor the
+     * cards it shifts jump to their earlier glide targets first.
+     */
+    @Test
+    public void reorderMidGlideGoesOnFromWhereChildrenShow() throws Exception {
+        onFx(() -> {
+            for (boolean viaSetAll : new boolean[] {true, false}) {
+                String how = viaSetAll ? "setAll" : "remove and add";
+                Region a = card(100.0, 40.0);
+                Region b = card(100.0, 40.0);
+                Region c = card(100.0, 40.0);
+                RXFlowPane pane = flowPane(0.0, 0.0, a, b, c);
+                new Scene(pane, 600.0, 300.0);
+                pane.applyCss();
+                layout(pane, 600.0, 300.0);
+                pane.setHgap(20.0);
+                layout(pane, 600.0, 300.0);
+                assertClose(100.0, shownX(b), how + ": setup, B glides toward 120 from 100");
+                assertClose(200.0, shownX(c), how + ": setup, C glides toward 240 from 200");
+
+                if (viaSetAll) {
+                    pane.getChildren().setAll(c, a, b);
+                } else {
+                    pane.getChildren().remove(c);
+                    pane.getChildren().add(0, c);
+                }
+                layout(pane, 600.0, 300.0);
+                assertClose(0.0, shownX(a), how + ": A goes on from where it shows");
+                assertClose(100.0, shownX(b), how + ": B goes on from where it shows");
+                assertClose(200.0, shownX(c), how + ": C goes on from where it shows");
+
+                pane.setAnimated(false);
+                assertClose(120.0, shownX(a), how + ": A settles in its new slot");
+                assertClose(240.0, shownX(b), how + ": B settles in its new slot");
+                assertClose(0.0, shownX(c), how + ": C settles in its new slot");
+            }
+        });
+    }
+
+    /**
+     * Verifies a child removed for good mid-glide gets its own translate back at once,
+     * though the pane keeps where it showed in case it is put back.
+     */
+    @Test
+    public void childRemovedMidGlideGetsItsOwnTranslateBack() throws Exception {
+        onFx(() -> {
+            Region a = card(100.0, 40.0);
+            Region b = card(100.0, 40.0);
+            RXFlowPane pane = flowPane(0.0, 0.0, a, b);
+            new Scene(pane, 600.0, 300.0);
+            pane.applyCss();
+            layout(pane, 600.0, 300.0);
+            b.setTranslateY(-4.0);
+            pane.setHgap(20.0);
+            layout(pane, 600.0, 300.0);
+            assertTrue(translated(b), "setup: B glides");
+
+            pane.getChildren().remove(b);
+            assertClose(0.0, b.getTranslateX(), "the glide offset is dropped");
+            assertClose(-4.0, b.getTranslateY(), "its own translate is back");
+        });
+    }
+
     // Six 100 x 40 cards laid out once in a scene at 340 px, ready to animate.
     private static RXFlowPane reorderPane() {
         RXFlowPane pane = flowPane(10.0, 10.0, cards(6, 100.0, 40.0));
@@ -1701,6 +1766,10 @@ public class RXFlowPaneTest {
     }
 
     // ==================== Helpers ====================
+
+    private static double shownX(Node node) {
+        return node.getLayoutX() + node.getTranslateX();
+    }
 
     private static boolean translated(Node node) {
         return Math.abs(node.getTranslateX()) > 0.5 || Math.abs(node.getTranslateY()) > 0.5;
