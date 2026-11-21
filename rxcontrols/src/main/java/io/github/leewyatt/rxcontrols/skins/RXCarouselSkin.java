@@ -557,9 +557,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             settlePending = true;
             return true;
         }
-        Page stale = nextStalePage();
-        if (stale != null) {
-            evict(stale);
+        List<Page> stale = stalePages();
+        if (!stale.isEmpty()) {
+            evictAll(stale);
             return true;
         }
         if (target != shownIndex) {
@@ -1049,23 +1049,45 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         }
     }
 
-    // The next page to evict: one beyond the page count or one asked for.
-    // The shown page goes first, so the page on screen closes before the
-    // others are evicted.
-    private Page nextStalePage() {
+    // The pages to evict: those beyond the page count, made by another
+    // factory or asked for. The shown page goes first, so the page on screen
+    // closes before the others are evicted; the others follow by index.
+    private List<Page> stalePages() {
         doomed.removeIf(page -> pageCache.get(page.index) != page);
-        Page next = null;
+        List<Page> stale = new ArrayList<>();
+        boolean shownStale = false;
         for (Page page : pageCache.values()) {
-            if (isStale(page)) {
-                if (page == shown) {
-                    return page;
-                }
-                if (next == null || page.index < next.index) {
-                    next = page;
-                }
+            if (page == shown) {
+                shownStale = isStale(page);
+            } else if (isStale(page)) {
+                stale.add(page);
             }
         }
-        return next;
+        stale.sort(Comparator.comparingInt(page -> page.index));
+        if (shownStale) {
+            stale.add(0, shown);
+        }
+        return stale;
+    }
+
+    // Evicts the pages found stale by one scan; a scan per page would make a
+    // large eviction quadratic. Handlers run between the evictions: a page
+    // they evicted or brought back within the pages is skipped, and once they
+    // make the shown page stale the rest wait for the next step, which closes
+    // the shown page first. Pages they make stale are found by the next step.
+    private void evictAll(List<Page> stale) {
+        for (Page page : stale) {
+            if (disposed) {
+                return;
+            }
+            if (pageCache.get(page.index) != page || !isStale(page)) {
+                continue;
+            }
+            if (page != shown && isStale(shown)) {
+                return;
+            }
+            evict(page);
+        }
     }
 
     // A page is stale when asked for, past the page count, or made by another

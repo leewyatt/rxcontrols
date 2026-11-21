@@ -493,6 +493,42 @@ public class RXCarouselLifecycleTest {
     }
 
     @Test
+    public void evictedHandlerClearingTheOpenPageClosesItBeforeTheOtherPagesGo() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = laidOutCarousel(5);
+            for (int i = 4; i >= 0; i--) {
+                carousel.goToPage(i, false);
+            }
+            Recorder recorder = new Recorder(carousel);
+            recorder.once("EVICTED:3", () -> carousel.clearPageCache(0));
+
+            carousel.setPageCount(3);
+
+            assertEquals(List.of("EVICTED:3", "CLOSING:0", "CLOSED:0", "EVICTED:0", "EVICTED:4",
+                    "CACHED:0", "OPENING:0", "OPENED:0"), recorder.take());
+            assertEquals(List.of("P0"), shownPages(carousel));
+        });
+    }
+
+    @Test
+    public void pagesBackWithinTheCountWhileOthersAreEvictedStayCached() throws Exception {
+        onFx(() -> {
+            RXCarousel carousel = laidOutCarousel(5);
+            for (int i = 4; i >= 0; i--) {
+                carousel.goToPage(i, false);
+            }
+            Recorder recorder = new Recorder(carousel);
+            recorder.once("EVICTED:2", () -> carousel.setPageCount(5));
+
+            carousel.setPageCount(2);
+
+            assertEquals(List.of("EVICTED:2"), recorder.take());
+            carousel.goToPage(3, false);
+            assertEquals(List.of("CLOSING:0", "CLOSED:0", "OPENING:3", "OPENED:3", "CACHED:2"), recorder.take());
+        });
+    }
+
+    @Test
     public void clearingTheOutgoingPageMidTransitionClosesItOnce() throws Exception {
         onFx(() -> {
             RXCarousel carousel = laidOutCarousel(4);
