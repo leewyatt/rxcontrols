@@ -43,9 +43,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests how a carousel skin takes the carousel over and lets it go: only an
- * installed skin adds nodes and fires events, a replacement continues the
- * replaced skin's pages without events, and a removed skin completes the
- * started pairs, closes the current page and empties its cache.
+ * installed skin adds nodes and fires events, a disposed skin completes the
+ * started pairs, closes the current page and empties its cache whether it is
+ * replaced or removed, and a replacement opens the selected page again.
  */
 public class RXCarouselSkinTest {
 
@@ -136,11 +136,12 @@ public class RXCarouselSkinTest {
     // ==================== Replacement ====================
 
     @Test
-    public void replacingTheSkinWhileIdleFiresNothingAndKeepsThePages() throws Exception {
+    public void replacingTheSkinWhileIdleReopensTheSelectedPage() throws Exception {
         onFx(() -> {
             List<Label> pages = labels(4);
             RXCarousel carousel = laidOutCarousel(pages);
             carousel.setAnimationDuration(Duration.ZERO);
+            carousel.goToPage(2);
             List<String> events = record(carousel);
             int children = carousel.getChildrenUnmodifiable().size();
 
@@ -149,17 +150,19 @@ public class RXCarouselSkinTest {
             });
             layOutAgain(carousel);
 
-            assertEquals(List.of(), events);
+            assertEquals(List.of("CLOSING:2", "CLOSED:2", "OPENING:2", "OPENED:2"), openClose(events));
+            assertTrue(events.indexOf("EVICTED:2") < events.indexOf("CACHED:2"), events::toString);
             assertEquals(children, carousel.getChildrenUnmodifiable().size());
-            assertEquals(List.of("P0"), shownPages(carousel));
+            assertEquals(List.of("P2"), shownPages(carousel));
             assertEquals(4, carousel.lookupAll(".dot").size());
-            assertEquals(0, selectedDot(carousel));
+            assertEquals(2, selectedDot(carousel));
+            events.clear();
 
             carousel.next();
 
-            assertEquals(List.of("CLOSING:0", "CLOSED:0", "OPENING:1", "OPENED:1"), openClose(events));
-            assertEquals(List.of("P1"), shownPages(carousel));
-            assertEquals(1, selectedDot(carousel));
+            assertEquals(List.of("CLOSING:2", "CLOSED:2", "OPENING:3", "OPENED:3"), openClose(events));
+            assertEquals(List.of("P3"), shownPages(carousel));
+            assertEquals(3, selectedDot(carousel));
             carousel.setSkin(null);
         });
     }
@@ -186,7 +189,7 @@ public class RXCarouselSkinTest {
     }
 
     @Test
-    public void replacingTheSkinMidTransitionCompletesThePairsOnce() throws Exception {
+    public void replacingTheSkinMidTransitionCompletesThePairsAndReopensTheTarget() throws Exception {
         onFx(() -> {
             List<Label> pages = labels(4);
             RXCarousel carousel = laidOutCarousel(pages);
@@ -201,83 +204,14 @@ public class RXCarouselSkinTest {
             });
             layOutAgain(carousel);
 
-            assertEquals(List.of("CLOSED:0", "OPENED:1"), openClose(events));
+            assertEquals(List.of("CLOSED:0", "OPENED:1", "CLOSING:1", "CLOSED:1", "OPENING:1", "OPENED:1"),
+                    openClose(events));
             assertFalse(carousel.isPageTransitioning());
             assertEquals(List.of("P1"), shownPages(carousel));
             events.clear();
 
             carousel.goToPage(2, false);
             assertEquals(List.of("CLOSING:1", "CLOSED:1", "OPENING:2", "OPENED:2"), openClose(events));
-            carousel.setSkin(null);
-        });
-    }
-
-    @Test
-    public void factoryReplacedWhileAReplacedSkinCompletesItsPairsReachesTheNewSkin() throws Exception {
-        onFx(() -> {
-            RXCarousel carousel = laidOutCarousel(labels(4));
-            List<Label> fresh = List.of(new Label("N0"), new Label("N1"), new Label("N2"), new Label("N3"));
-            carousel.setAnimation(new AnimFade());
-            carousel.setAnimationDuration(Duration.seconds(30.0));
-            carousel.goToPage(1);
-            boolean[] armed = {true};
-            carousel.addEventHandler(RXPageLifecycleEvent.OPENED, e -> {
-                if (armed[0] && e.getPageIndex() == 1) {
-                    armed[0] = false;
-                    carousel.setPageFactory(fresh::get);
-                }
-            });
-
-            carousel.setSkin(new RXCarouselSkin(carousel) {
-            });
-            layOutAgain(carousel);
-
-            assertEquals(List.of("N1"), shownPages(carousel));
-            carousel.setSkin(null);
-        });
-    }
-
-    @Test
-    public void navigatorCodeRunDuringATakeOverOpensNoPageOfItsOwn() throws Exception {
-        onFx(() -> {
-            RXCarousel carousel = new RXCarousel();
-            carousel.setPageCount(3);
-            carousel.setPageFactory(index -> new Label("P" + index));
-            ScriptedNavigator navigator = new ScriptedNavigator();
-            carousel.setNavigator(navigator);
-            layOut(carousel);
-            Node first = shownNode(carousel);
-            List<String> events = record(carousel);
-            navigator.onCreate = (owner, node) -> owner.getProperties().put("navigator-node", node);
-
-            carousel.setSkin(new RXCarouselSkin(carousel) {
-            });
-            layOutAgain(carousel);
-
-            assertEquals(List.of(), events);
-            assertSame(first, shownNode(carousel));
-            carousel.setSkin(null);
-            assertEquals(List.of("CLOSING:0", "CLOSED:0"), openClose(events));
-        });
-    }
-
-    @Test
-    public void cacheClearRequestedByNavigatorCodeDuringATakeOverIsCarriedOut() throws Exception {
-        onFx(() -> {
-            RXCarousel carousel = new RXCarousel();
-            carousel.setPageCount(3);
-            carousel.setPageFactory(index -> new Label("P" + index));
-            ScriptedNavigator navigator = new ScriptedNavigator();
-            carousel.setNavigator(navigator);
-            layOut(carousel);
-            List<String> events = record(carousel);
-            navigator.onCreate = (owner, node) -> owner.clearPageCache(1);
-
-            carousel.setSkin(new RXCarouselSkin(carousel) {
-            });
-            layOutAgain(carousel);
-
-            assertEquals(List.of("EVICTED:1", "CACHED:1"), events);
             carousel.setSkin(null);
         });
     }
@@ -325,7 +259,7 @@ public class RXCarouselSkinTest {
     }
 
     @Test
-    public void skinReplacedByAPageNodeListenerDuringATakeOverHandsOnEveryPage() throws Exception {
+    public void skinReplacedByTheListenerOfANewPageNodeOpensThePageOnce() throws Exception {
         onFx(() -> {
             List<Label> pages = labels(3);
             RXCarousel carousel = laidOutCarousel(pages);
@@ -345,10 +279,9 @@ public class RXCarouselSkinTest {
             layOutAgain(carousel);
 
             assertEquals(List.of(), errors);
-            assertEquals(List.of(), events);
+            assertEquals(List.of("CLOSING:0", "CLOSED:0", "OPENING:0", "OPENED:0"), openClose(events));
             assertEquals(List.of("P0"), shownPages(carousel));
             carousel.setSkin(null);
-            assertEquals(List.of("CLOSING:0", "CLOSED:0", "EVICTED:0", "EVICTED:1", "EVICTED:2"), events);
         });
     }
 
@@ -370,114 +303,6 @@ public class RXCarouselSkinTest {
 
             assertNull(carousel.getSkin());
             assertNull(third.getParent());
-        });
-    }
-
-    @Test
-    public void skinReplacedByAFactoryListenerDropsThePagesOfTheOldFactory() throws Exception {
-        onFx(() -> {
-            RXCarousel carousel = new RXCarousel();
-            carousel.setPages(labels(3).toArray(new Node[0]));
-            List<Label> fresh = List.of(new Label("N0"), new Label("N1"), new Label("N2"));
-            boolean[] armed = {true};
-            // Registered before the skin exists, so it runs before the skin's own factory listener.
-            carousel.pageFactoryProperty().addListener(observable -> {
-                if (armed[0]) {
-                    armed[0] = false;
-                    carousel.setSkin(new RXCarouselSkin(carousel) {
-                    });
-                }
-            });
-            layOut(carousel);
-
-            carousel.setPageFactory(fresh::get);
-            layOutAgain(carousel);
-
-            assertEquals(List.of("N0"), shownPages(carousel));
-            carousel.setSkin(null);
-        });
-    }
-
-    @Test
-    public void cacheClearRequestedWhileAnEvictionClosesThePageSurvivesASkinReplacement() throws Exception {
-        onFx(() -> {
-            RXCarousel carousel = new RXCarousel();
-            carousel.setPageCount(3);
-            carousel.setPageFactory(index -> new Label("P" + index));
-            layOut(carousel);
-            Node first = shownNode(carousel);
-            List<String> events = record(carousel);
-            boolean[] armed = {true};
-            carousel.addEventHandler(RXPageLifecycleEvent.CLOSING, e -> {
-                if (armed[0]) {
-                    armed[0] = false;
-                    carousel.setSkin(new RXCarouselSkin(carousel) {
-                    });
-                }
-            });
-
-            carousel.clearPageCache(0);
-            layOutAgain(carousel);
-
-            assertTrue(events.contains("EVICTED:0"), events::toString);
-            assertNotSame(first, shownNode(carousel));
-            carousel.setSkin(null);
-        });
-    }
-
-    @Test
-    public void cacheClearRequestedWhileTheReplacedSkinCompletesItsPairsReachesTheNewSkin() throws Exception {
-        onFx(() -> {
-            RXCarousel carousel = laidOutCarousel(labels(3));
-            carousel.setAnimation(new AnimFade());
-            carousel.setAnimationDuration(Duration.seconds(30.0));
-            carousel.goToPage(1);
-            List<String> events = record(carousel);
-            boolean[] armed = {true};
-            carousel.addEventHandler(RXPageLifecycleEvent.CLOSED, e -> {
-                if (armed[0]) {
-                    armed[0] = false;
-                    carousel.clearPageCache();
-                }
-            });
-
-            carousel.setSkin(new RXCarouselSkin(carousel) {
-            });
-            layOutAgain(carousel);
-
-            assertTrue(events.containsAll(List.of("EVICTED:0", "EVICTED:1", "EVICTED:2")), events::toString);
-            assertEquals(List.of("CLOSED:0", "OPENED:1", "CLOSING:1", "CLOSED:1", "OPENING:1", "OPENED:1"),
-                    openClose(events));
-            assertEquals(List.of("P1"), shownPages(carousel));
-            carousel.setSkin(null);
-        });
-    }
-
-    @Test
-    public void cacheClearedJustBeforeTheSkinIsReplacedIsClearedByTheNewSkin() throws Exception {
-        onFx(() -> {
-            List<Label> pages = labels(3);
-            RXCarousel carousel = laidOutCarousel(pages);
-            carousel.setAnimationDuration(Duration.ZERO);
-            List<String> events = record(carousel);
-            boolean[] armed = {true};
-            carousel.addEventHandler(RXPageLifecycleEvent.OPENED, e -> {
-                if (armed[0] && e.getPageIndex() == 1) {
-                    armed[0] = false;
-                    carousel.clearPageCache();
-                    carousel.setSkin(new RXCarouselSkin(carousel) {
-                    });
-                }
-            });
-
-            carousel.goToPage(1);
-            layOutAgain(carousel);
-
-            List<String> afterOpened = events.subList(events.indexOf("OPENED:1") + 1, events.size());
-            assertTrue(afterOpened.containsAll(List.of("EVICTED:0", "EVICTED:1", "EVICTED:2")), afterOpened::toString);
-            assertEquals(List.of("CLOSING:1", "CLOSED:1", "OPENING:1", "OPENED:1"), openClose(afterOpened));
-            assertEquals(List.of("P1"), shownPages(carousel));
-            carousel.setSkin(null);
         });
     }
 
@@ -660,17 +485,6 @@ public class RXCarouselSkinTest {
         } finally {
             thread.setUncaughtExceptionHandler(previous);
         }
-    }
-
-    private static Node shownNode(RXCarousel carousel) {
-        for (Node pane : carousel.lookupAll(".content-pane")) {
-            for (Node wrapper : ((Parent) pane).getChildrenUnmodifiable()) {
-                if (wrapper.isVisible() && !((Parent) wrapper).getChildrenUnmodifiable().isEmpty()) {
-                    return ((Parent) wrapper).getChildrenUnmodifiable().get(0);
-                }
-            }
-        }
-        return null;
     }
 
     // Texts of the page nodes whose wrapper shows in the content pane.

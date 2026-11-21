@@ -27,7 +27,6 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
-import javafx.scene.control.Skin;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -60,8 +59,9 @@ import java.util.Set;
  * a listener is picked up once the current step has finished.</p>
  *
  * <p>The skin takes the carousel over when it is installed, not when it is
- * constructed. A replacement skin continues the cached pages without events;
- * removing the skin closes the open page and evicts the cache.</p>
+ * constructed. Disposing the skin, whether it is replaced or removed, closes
+ * the open page and evicts the cache; a replacement builds its view from the
+ * carousel's state and opens the selected page again.</p>
  */
 public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
 
@@ -69,9 +69,6 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     private static final Duration FADE_DURATION = Duration.millis(200);
     private static final AnimNone FALLBACK_NONE = new AnimNone();
     private static final String EMPTY_CAROUSEL_TEXT = "No Pages";
-    // Kept in the carousel's properties from the dispose of a replaced skin
-    // until its replacement takes the carousel over.
-    private static final Object HANDOVER_KEY = new Object();
 
     private final StackPane contentPane;
     private final Rectangle contentClip;
@@ -115,8 +112,6 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     private boolean busy;
     // The housekeeping of the settled pages is due once the loop converges.
     private boolean idlePending;
-    // The next page change cuts: taking the carousel over never animates.
-    private boolean cutNext;
     // How the latest change of the selected index was requested.
     private boolean requestAnimated = true;
     private TransitionDirection requestDirection;
@@ -157,9 +152,6 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     private boolean takenOver;
     private boolean disposed;
     private final InvalidationListener skinListener = observable -> activate();
-    // Cache clears requested between installation and take-over.
-    private boolean clearAllOnTakeOver;
-    private final Set<Integer> clearOnTakeOver = new HashSet<>();
 
     /**
      * Creates the default skin for the given carousel. The skin starts showing
@@ -208,15 +200,6 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             return;
         }
         activated = true;
-        // The pages come first: the activation runs application code (the
-        // navigator, listeners of the page nodes), and whatever that code asks
-        // of the pages must find them here. The loop waits for the take-over.
-        // That code may also replace or remove this skin: the activation then
-        // ends where it is, and the dispose has completed the pages.
-        adopt((Handover) carousel.getProperties().remove(HANDOVER_KEY));
-        if (disposed) {
-            return;
-        }
         treeShowing = controlTreeShowingProperty();
 
         // Like a button, the arrows answer the primary button only.
@@ -233,9 +216,6 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             }
         });
         getChildren().addAll(contentPane, prevButton, nextButton);
-        if (disposed) {
-            return;
-        }
 
         // Sync internal progress property to the public read-only property on RXCarousel
         disposer.registerListener(autoPlayProgressInternal,
@@ -244,6 +224,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         setupListeners(carousel);
         updateNavigator(null, carousel.getNavigator(), carousel);
         if (disposed) {
+            // The navigator's code replaced or removed this skin.
             return;
         }
         updateNavigatorVisibility(carousel);
@@ -252,70 +233,16 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         takeOver(carousel);
     }
 
-    // Continues the pages a replaced skin handed over: the page it left open
-    // stays open without events. Pages it had yet to evict stay marked, and
-    // pages of another factory than the carousel's are stale anyway. Every
-    // page is recorded before the first node moves into its wrapper: a
-    // listener of a node may replace this skin, which then hands all of them
-    // on and stops.
-    private void adopt(Handover handover) {
-        if (handover == null) {
-            return;
-        }
-        List<Page> pages = new ArrayList<>();
-        for (HandedPage handed : handover.pages) {
-            Page page = new Page(handed.index(), handed.node(), handed.factory());
-            pages.add(page);
-            pageCache.put(page.index, page);
-            if (handed.stale()) {
-                doomed.add(page);
-            }
-            if (page.index == handover.openIndex) {
-                page.phase = Phase.OPENED;
-                showOnly(page);
-                shown = page;
-                shownIndex = page.index;
-            }
-        }
-        for (Page page : pages) {
-            page.wrap();
-            if (disposed) {
-                return;
-            }
-        }
-    }
-
-    // Ends the activation: applies a pages change and the cache clears asked
-    // for since installation, then lets the loop run. Its first step cuts: a
-    // page other than the one left open is reached without animation, and
-    // without a hand-over the selected page is opened from scratch.
+    // Ends the activation and opens the selected page from scratch. The loop
+    // runs only from here on, so code the activation ran cannot start it on
+    // a skin that is still being built.
     private void takeOver(RXCarousel carousel) {
-        if (disposed) {
-            // Disposed while activating; the signal below is the replacement's.
-            return;
-        }
-        if (carousel.getProperties().remove(CarouselSignals.PAGES_CHANGED) != null) {
-            checkPages(carousel);
-        }
-        applyClearRequests();
+        // The pages are made from the current list: a change signalled before
+        // this skin listened is already in them.
+        carousel.getProperties().remove(CarouselSignals.PAGES_CHANGED);
         takenOver = true;
-        cutNext = true;
         idlePending = true;
         sync();
-    }
-
-    private void applyClearRequests() {
-        if (clearAllOnTakeOver) {
-            doomed.addAll(pageCache.values());
-        }
-        for (int index : clearOnTakeOver) {
-            Page page = pageCache.get(index);
-            if (page != null) {
-                doomed.add(page);
-            }
-        }
-        clearAllOnTakeOver = false;
-        clearOnTakeOver.clear();
     }
 
     // ==================== Layout ====================
@@ -593,8 +520,6 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         } finally {
             busy = false;
         }
-        // The cut is for the take-over only, also when its page was already shown.
-        cutNext = false;
     }
 
     // Returns false once nothing is left to do.
@@ -635,8 +560,6 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
     // possible, otherwise with a direct cut.
     private void changePage() {
         RXCarousel carousel = getSkinnable();
-        boolean cut = cutNext;
-        cutNext = false;
         stopAutoplay(carousel);
         Page from = shown;
         prepareFor(animationOrNone(carousel), from);
@@ -644,13 +567,13 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                 && !announce(RXPageLifecycleEvent.CLOSING, from)) {
             return;
         }
-        proceedFrom(from, cut);
+        proceedFrom(from);
     }
 
     // `from` has received CLOSING (or is null) and still shows. Opens the
     // latest target: animated from `from` when possible, otherwise by
     // closing `from` first and cutting to the target.
-    private void proceedFrom(Page from, boolean cut) {
+    private void proceedFrom(Page from) {
         RXCarousel carousel = getSkinnable();
         while (true) {
             int target = targetIndex();
@@ -673,7 +596,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             }
             PageAnimation animation = animationOrNone(carousel);
             Duration duration = carousel.getAnimationDuration();
-            boolean animate = !cut && requestAnimated && from != null && to != null && to != from
+            boolean animate = requestAnimated && from != null && to != null && to != from
                     && PageTransitionEngine.canAnimate(animation, true, carousel.getPageCount(),
                             duration, true);
             if (!animate) {
@@ -1037,8 +960,8 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             }
             page = new Page(index, node, factory);
             // Wrapped before it is cached: should a listener of the node
-            // dispose this skin, the page, which has had no event yet, is not
-            // handed on, and the dispose never saw its node to release it.
+            // dispose this skin, the dispose does not evict a page that never
+            // received CACHED, and the node is released here instead.
             page.wrap();
             if (disposed) {
                 page.wrapper.getChildren().clear();
@@ -1148,9 +1071,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
 
     // Evicts a page after completing what it started: the open page closes
     // first (CLOSING, CLOSED), then EVICTED. The node leaves the skin's
-    // wrapper before EVICTED, so a handler can put it somewhere else. The
-    // page stays marked until it has left the cache, so a skin replaced from
-    // a CLOSING handler still hands the eviction over.
+    // wrapper before EVICTED, so a handler can put it somewhere else.
     private void evict(Page page) {
         if (page != shown && page.wrapper.isVisible() && page.wrapper.getParent() == contentPane) {
             // A side page of a multi-page layout: lay the pages out again.
@@ -1203,15 +1124,8 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
      * {@link RXCarousel#clearPageCache()}.
      */
     public void clearPageCache() {
-        if (disposed) {
-            return;
-        }
-        if (!takenOver) {
-            // Installed, but the replaced skin still fires its last events or
-            // the activation still runs: the take-over clears what it has.
-            if (isInstalled()) {
-                clearAllOnTakeOver = true;
-            }
+        // Before the take-over nothing is cached yet.
+        if (!takenOver || disposed) {
             return;
         }
         doomed.addAll(pageCache.values());
@@ -1227,13 +1141,7 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
      * @param index the page index to clear
      */
     public void clearPageCache(int index) {
-        if (disposed) {
-            return;
-        }
-        if (!takenOver) {
-            if (isInstalled()) {
-                clearOnTakeOver.add(index);
-            }
+        if (!takenOver || disposed) {
             return;
         }
         Page page = pageCache.get(index);
@@ -1242,11 +1150,6 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             forgetMissingPage();
             sync();
         }
-    }
-
-    private boolean isInstalled() {
-        RXCarousel carousel = getSkinnable();
-        return carousel != null && carousel.getSkin() == this;
     }
 
     // ==================== Pages in the Content Pane ====================
@@ -1699,15 +1602,10 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         stopFade(nextButtonFade);
         stopFade(navigatorFade);
 
-        // setSkin has already stored the replacement when it disposes this
-        // skin. A replacement continues the pages without events; without
-        // one the open page is closed and the cache emptied.
-        Skin<?> installed = carousel.getSkin();
-        boolean replaced = installed instanceof RXCarouselSkin
-                && installed != this
-                && ((RXCarouselSkin) installed).getSkinnable() == carousel;
-        // The stop runs the animation's finish action; the transition
-        // callbacks see this skin disposed and do nothing.
+        // Replaced or removed, the skin completes what it started, closes the
+        // open page and evicts the cache; a replacement opens the selected
+        // page again. The stop runs the animation's finish action; the
+        // transition callbacks see this skin disposed and do nothing.
         engine.interrupt();
         transitioning = false;
         settlePending = false;
@@ -1720,18 +1618,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             }
         }
         pendingCached.clear();
-        finishPairs(carousel, !replaced);
-        if (!takenOver) {
-            // Disposed while activating: the clears asked for go with the pages.
-            applyClearRequests();
-        }
+        finishPairs(carousel);
 
         List<Page> pages = sortedPages();
-        if (replaced) {
-            carousel.getProperties().put(HANDOVER_KEY, new Handover(pages, openPage(), doomed));
-        } else {
-            carousel.getProperties().remove(HANDOVER_KEY);
-        }
         pageCache.clear();
         doomed.clear();
         shown = null;
@@ -1741,10 +1630,8 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
             detach(page);
             page.wrapper.getChildren().clear();
         }
-        if (!replaced) {
-            for (Page page : pages) {
-                fire(RXPageLifecycleEvent.EVICTED, page, carousel);
-            }
+        for (Page page : pages) {
+            fire(RXPageLifecycleEvent.EVICTED, page, carousel);
         }
         contentPane.getChildren().clear();
 
@@ -1765,10 +1652,9 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         engine.dispose(carousel.getAnimation());
     }
 
-    // Completes every started pair: closing pages get CLOSED, opening pages
-    // OPENED. A skin that is removed rather than replaced closes the open
-    // page as well.
-    private void finishPairs(RXCarousel carousel, boolean closeOpenPage) {
+    // Completes every started pair, then closes the open page: closing pages
+    // get CLOSED, opening pages OPENED, and the open page CLOSING and CLOSED.
+    private void finishPairs(RXCarousel carousel) {
         for (Page page : sortedPages()) {
             if (page.phase == Phase.CLOSING) {
                 page.wrapper.setVisible(false);
@@ -1781,13 +1667,11 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
                 fire(RXPageLifecycleEvent.OPENED, page, carousel);
             }
         }
-        if (closeOpenPage) {
-            for (Page page : sortedPages()) {
-                if (page.phase == Phase.OPENED) {
-                    fire(RXPageLifecycleEvent.CLOSING, page, carousel);
-                    page.wrapper.setVisible(false);
-                    fire(RXPageLifecycleEvent.CLOSED, page, carousel);
-                }
+        for (Page page : sortedPages()) {
+            if (page.phase == Phase.OPENED) {
+                fire(RXPageLifecycleEvent.CLOSING, page, carousel);
+                page.wrapper.setVisible(false);
+                fire(RXPageLifecycleEvent.CLOSED, page, carousel);
             }
         }
     }
@@ -1798,14 +1682,6 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         return pages;
     }
 
-    private Page openPage() {
-        for (Page page : sortedPages()) {
-            if (page.phase == Phase.OPENED) {
-                return page;
-            }
-        }
-        return null;
-    }
 
     // ==================== Page ====================
 
@@ -1839,24 +1715,5 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         void wrap() {
             wrapper.getChildren().add(node);
         }
-    }
-
-    // The pages a replaced skin leaves to its replacement, which continues
-    // them without events.
-    private static final class Handover {
-
-        final List<HandedPage> pages = new ArrayList<>();
-        final int openIndex;
-
-        Handover(List<Page> cached, Page open, Set<Page> stalePages) {
-            for (Page page : cached) {
-                pages.add(new HandedPage(page.index, page.node, page.factory, stalePages.contains(page)));
-            }
-            this.openIndex = open == null ? -1 : open.index;
-        }
-    }
-
-    // A handed-over page; stale when the replaced skin had yet to evict it.
-    private record HandedPage(int index, Node node, Callback<Integer, Node> factory, boolean stale) {
     }
 }
