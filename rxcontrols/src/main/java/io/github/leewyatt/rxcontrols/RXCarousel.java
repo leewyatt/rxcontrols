@@ -556,7 +556,10 @@ public class RXCarousel extends Control {
      * <ul>
      *   <li>{@code -1} (default): no eviction by distance</li>
      *   <li>{@code 0}: only keep the current page</li>
-     *   <li>{@code N}: keep the current page and N pages on each side (2N+1 total)</li>
+     *   <li>{@code N}: keep the pages at most N away from the current page,
+     *       up to 2N+1 in total; in circular mode the distance is counted the
+     *       shorter way round, so every page stays once 2N+1 reaches the page
+     *       count</li>
      * </ul>
      * Whatever the distance, {@link #clearPageCache()}, a new page factory and
      * changes to the page list still evict pages, and the side pages a
