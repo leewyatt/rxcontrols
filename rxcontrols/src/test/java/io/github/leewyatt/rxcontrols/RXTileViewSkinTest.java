@@ -24,6 +24,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
 import javafx.scene.input.ScrollEvent;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
@@ -33,6 +34,7 @@ import javafx.stage.Stage;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
@@ -925,6 +927,153 @@ public class RXTileViewSkinTest {
             assertEquals(gridRight, last.getLayoutX() + last.getWidth(), 1e-6,
                     "width " + width + ": last cell edge, clip " + clipRight);
         });
+    }
+
+    /**
+     * Verifies a view at its own preferred width shows its preferred column count at
+     * every render scale while the vertical scroll bar shows: the preferred width adds
+     * up the snapped tile width and gap the columns are counted with, and the count keeps
+     * a column the row exactly fits despite the division's rounding noise.
+     */
+    @Test
+    public void preferredWidthShowsThePreferredColumnsAtEveryScale() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(200);
+            view.setPrefTileWidth(60);
+            view.setPrefTileHeight(40);
+            view.setHgap(10);
+            view.setPrefColumns(4);
+            StackPane root = new StackPane(view);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root, 600, 200));
+            pump(root);
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                stage.setRenderScaleX(scale);
+                double width = view.prefWidth(-1);
+                root.resize(width, 200);
+                view.requestLayout();
+                pump(root);
+                assertEquals(4, view.getActualColumnCount(), "scale " + scale + ", width " + width);
+            }
+        });
+    }
+
+    /**
+     * Verifies a parent laying the view out at its preferred width gets a fresh one after
+     * snapToPixel or the render scale changes: Region re-lays out only the parent on the
+     * first and nothing on the second, while the preferred width adds up snapped sizes.
+     * A 9 px gap snaps to 8.8 at 1.25, so a stale preferred width loses a column.
+     */
+    @Test
+    public void preferredWidthFollowsSnappingAndRenderScale() throws Exception {
+        onFx(() -> {
+            RXTileView<String> snapped = scaledTiles(4);
+            HBox snappedRoot = new HBox(snapped);
+            Stage snappedStage = new Stage();
+            snappedStage.setScene(new Scene(snappedRoot, 900, 300));
+            snappedStage.setRenderScaleX(1.25);
+            settle(snappedRoot, 300);
+            snapped.setSnapToPixel(false);
+            settle(snappedRoot, 280);
+            assertEquals(4, snapped.getActualColumnCount(), "snapToPixel off at 1.25");
+
+            RXTileView<String> rescaled = scaledTiles(8);
+            HBox rescaledRoot = new HBox(rescaled);
+            Stage rescaledStage = new Stage();
+            rescaledStage.setScene(new Scene(rescaledRoot, 900, 300));
+            rescaledStage.setRenderScaleX(1.25);
+            settle(rescaledRoot, 300);
+            rescaledStage.setRenderScaleX(1.0);
+            settle(rescaledRoot, 280);
+            assertEquals(8, rescaled.getActualColumnCount(), "from 1.25 to 1.0");
+        });
+    }
+
+    /**
+     * Verifies a disposed skin no longer watches the render scale or snapToPixel: the
+     * view, still reachable, does not keep it. The view is taken out of its scene first,
+     * as JavaFX keeps a parent's removed children until its next render sync, which a
+     * scene that is not shown never runs.
+     */
+    @Test
+    public void disposedSkinStopsWatchingTheRenderScale() throws Exception {
+        List<WeakReference<Object>> disposed = new ArrayList<>();
+        List<Object> kept = new ArrayList<>();
+        onFx(() -> {
+            RXTileView<String> view = tiles(20);
+            StackPane root = new StackPane(view);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root, 300, 200));
+            stage.setRenderScaleX(1.25);
+            pump(root);
+            disposed.add(new WeakReference<>(view.getSkin()));
+            view.setSkin(null);
+            pump(root);
+            root.getChildren().remove(view);
+            kept.add(view);
+        });
+        for (int i = 0; i < 50 && disposed.get(0).get() != null; i++) {
+            System.gc();
+            Thread.sleep(20);
+        }
+        assertNull(disposed.get(0).get(), "the disposed skin is not kept by the view");
+        assertEquals(1, kept.size(), "the view itself is still reachable");
+    }
+
+    /**
+     * Verifies a view switched to a new render scale lays out like one built at that scale
+     * within the same fixed width. The scroll bar measured at 1.25 reports 14.4 px, which
+     * snaps to 15 at 1.0 and takes the pixel the eighth column needs, unless the switch
+     * has the bar measure itself again.
+     */
+    @Test
+    public void scaleSwitchMeasuresTheScrollBarAgain() throws Exception {
+        onFx(() -> {
+            RXTileView<String> fresh = scaledTiles(8);
+            StackPane freshRoot = new StackPane(fresh);
+            Stage freshStage = new Stage();
+            freshStage.setScene(new Scene(freshRoot, 900, 180));
+            freshStage.setRenderScaleX(1.0);
+            pump(freshRoot);
+            double width = fresh.prefWidth(-1);
+            freshRoot.resize(width, 180);
+            pump(freshRoot);
+
+            RXTileView<String> switched = scaledTiles(8);
+            StackPane root = new StackPane(switched);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root, 900, 180));
+            stage.setRenderScaleX(1.25);
+            stage.setRenderScaleY(1.25);
+            root.resize(width, 180);
+            pump(root);
+            stage.setRenderScaleX(1.0);
+            stage.setRenderScaleY(1.0);
+            pump(root);
+            assertEquals(8, fresh.getActualColumnCount(), "setup: a view built at 1.0 fits eight columns");
+            assertEquals(scrollBarWidth(fresh), scrollBarWidth(switched), 1e-9, "the scroll bar breadth");
+            assertEquals(8, switched.getActualColumnCount(), "the switched view fits eight columns too");
+        });
+    }
+
+    private static double scrollBarWidth(Region view) {
+        return ((Region) view.lookup(".scroll-bar")).getWidth();
+    }
+
+    private static RXTileView<String> scaledTiles(int columns) {
+        RXTileView<String> view = tiles(200);
+        view.setPrefTileWidth(60);
+        view.setPrefTileHeight(40);
+        view.setHgap(9);
+        view.setPrefColumns(columns);
+        return view;
+    }
+
+    // A new height makes the parent lay the view out again without touching the view's
+    // cached preferred width.
+    private static void settle(Region root, double height) {
+        root.resize(900, height);
+        pump(root);
     }
 
     @Test

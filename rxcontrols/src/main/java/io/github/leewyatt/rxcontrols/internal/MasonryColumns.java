@@ -151,9 +151,10 @@ public final class MasonryColumns {
      * @param breakpointColumns the per-breakpoint column overrides, keyed by tier;
      *                          {@code null} or empty means no overrides
      * @param snapScale        the caller's render scale, so edges snap to its device
-     *                         pixels; {@code 0} (or any non-positive or non-finite
-     *                         value) disables snapping, as for a node that does not
-     *                         snap to pixels
+     *                         pixels and a width that exactly fits a count of columns
+     *                         keeps them despite rounding noise; {@code 0} (or any
+     *                         non-positive or non-finite value) disables snapping, as
+     *                         for a node that does not snap to pixels
      * @return the resolved column geometry
      * @throws NullPointerException if {@code profile} is {@code null}
      */
@@ -173,9 +174,9 @@ public final class MasonryColumns {
             layoutWidth = 0.0;
         }
         RXBreakpoint activeBreakpoint = profile.resolve(breakpointWidth);
-        int columns = computeColumns(layoutWidth, columnCount, columnWidth, hgap, maxColumns,
-                profile, breakpointColumns, activeBreakpoint);
         double scale = Double.isFinite(snapScale) && snapScale > 0.0 ? snapScale : 0.0;
+        int columns = computeColumns(layoutWidth, columnCount, columnWidth, hgap, maxColumns,
+                profile, breakpointColumns, activeBreakpoint, scale);
         double trackWidth;
         double effectiveHgap = hgap;
         if (fillWidth) {
@@ -207,7 +208,7 @@ public final class MasonryColumns {
     private static int computeColumns(double layoutWidth, int columnCount, double columnWidth,
                                       double hgap, int maxColumns, RXBreakpointProfile profile,
                                       Map<RXBreakpoint, Integer> breakpointColumns,
-                                      RXBreakpoint activeBreakpoint) {
+                                      RXBreakpoint activeBreakpoint, double scale) {
         int columns;
         if (columnCount >= 1) {
             columns = columnCount;
@@ -218,7 +219,7 @@ public final class MasonryColumns {
                 columns = breakpointColumnCount;
             } else {
                 double step = Math.max(columnWidth + hgap, MIN_COLUMN_STEP_RATIO * columnWidth);
-                columns = (int) Math.floor((layoutWidth + hgap) / step);
+                columns = autoColumns(layoutWidth, hgap, step, scale);
             }
         }
         if (columns < 1) {
@@ -229,6 +230,22 @@ public final class MasonryColumns {
         }
         if (columns > MAX_RESOLVED_COLUMNS) {
             columns = MAX_RESOLVED_COLUMNS;
+        }
+        return columns;
+    }
+
+    // n columns take n steps less one gap, the width the division below measures. The
+    // division carries floating-point noise at a fractional render scale (a width of 4 x 60
+    // + 3 x 10.4 gives 3.999...), so a width that exactly fits a count must keep its last
+    // column, and one a fraction of a pixel short must still lose it.
+    private static int autoColumns(double layoutWidth, double hgap, double step, double scale) {
+        // Capped while still a double: the ratio of a tiny column can exceed any int.
+        double fit = Math.floor((layoutWidth + hgap) / step);
+        int columns = (int) Math.max(0.0, Math.min(fit, MAX_RESOLVED_COLUMNS));
+        if (columns < MAX_RESOLVED_COLUMNS && !PixelGrid.exceeds((columns + 1) * step - hgap, layoutWidth, scale)) {
+            columns++;
+        } else if (columns > 1 && PixelGrid.exceeds(columns * step - hgap, layoutWidth, scale)) {
+            columns--;
         }
         return columns;
     }

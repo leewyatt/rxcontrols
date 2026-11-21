@@ -1401,6 +1401,32 @@ public class RXMasonryPaneTest {
     }
 
     /**
+     * Verifies a pane at its own preferred width shows its preferred column count at
+     * every render scale; at 1.25 the 10 px gap snaps to 10.4 and the column division
+     * used to come out just below four.
+     */
+    @Test
+    public void preferredWidthShowsThePreferredColumnsAtEveryScale() throws Exception {
+        runOnFx(() -> {
+            RXMasonryPane pane = new RXMasonryPane();
+            pane.setColumnWidth(60);
+            pane.setHgap(10);
+            pane.setPrefColumns(4);
+            pane.setAnimated(false);
+            for (int i = 0; i < 8; i++) {
+                pane.getChildren().add(card(60.0, 40.0));
+            }
+            Stage stage = stageFor(pane);
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                stage.setRenderScaleX(scale);
+                double width = pane.prefWidth(-1);
+                layout(pane, width, 400.0);
+                assertEquals(4, pane.getActualColumnCount(), "scale " + scale + ", width " + width);
+            }
+        });
+    }
+
+    /**
      * Verifies filled spanning children stay inside the content area and keep the hgap
      * from every child beside them, wherever they land.
      */
