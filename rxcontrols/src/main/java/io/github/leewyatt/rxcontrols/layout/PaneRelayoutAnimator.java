@@ -37,6 +37,13 @@ import java.util.Set;
  * <p>A {@code null}, zero, negative, unknown or indefinite duration — or a
  * {@code null} interpolator — degrades an animated call to the snap path instead
  * of constructing a timeline that would throw inside a layout pass.</p>
+ *
+ * <p>Bound channels are never written, since setting a bound property throws: a
+ * relayout move whose node has a bound {@code translateX} or {@code translateY} is
+ * skipped (the node simply snaps), a fade whose node has a bound {@code opacity}
+ * becomes a pure glide, and an exit whose node has either bound completes at once
+ * without animating. Binding these properties while the node is animating is not
+ * supported.</p>
  */
 final class PaneRelayoutAnimator {
 
@@ -81,6 +88,7 @@ final class PaneRelayoutAnimator {
      */
     void runRelayout(List<Move> moves, boolean animate, Duration duration, Interpolator interpolator) {
         animate = animate && isAnimatable(duration, interpolator);
+        moves = writableMoves(moves);
         Set<Node> passNodes = new HashSet<>();
         for (Move move : moves) {
             passNodes.add(move.node());
@@ -210,7 +218,8 @@ final class PaneRelayoutAnimator {
      */
     void runExit(Node node, boolean animate, Duration duration, Interpolator interpolator,
                  double exitTranslateY, Runnable onFinished) {
-        animate = animate && isAnimatable(duration, interpolator);
+        animate = animate && isAnimatable(duration, interpolator)
+                && !isTranslateBound(node) && !node.opacityProperty().isBound();
         // The exit takes ownership of this node's transforms away from any relayout.
         MoveState tracked = activeMoves.get(node);
         releaseFromRelayout(node);
@@ -413,6 +422,34 @@ final class PaneRelayoutAnimator {
         if (state.fade()) {
             node.setOpacity(state.targetOpacity());
         }
+    }
+
+    // Allocates only when a move has to be dropped or downgraded.
+    private static List<Move> writableMoves(List<Move> moves) {
+        List<Move> result = null;
+        for (int i = 0; i < moves.size(); i++) {
+            Move move = moves.get(i);
+            Node node = move.node();
+            boolean translateBound = isTranslateBound(node);
+            boolean opacityBound = move.fade() && node.opacityProperty().isBound();
+            if (!translateBound && !opacityBound) {
+                if (result != null) {
+                    result.add(move);
+                }
+                continue;
+            }
+            if (result == null) {
+                result = new ArrayList<>(moves.subList(0, i));
+            }
+            if (!translateBound) {
+                result.add(new Move(node, move.fromTranslateX(), move.fromTranslateY(), false));
+            }
+        }
+        return result == null ? moves : result;
+    }
+
+    private static boolean isTranslateBound(Node node) {
+        return node.translateXProperty().isBound() || node.translateYProperty().isBound();
     }
 
     private static boolean isAnimatable(Duration duration, Interpolator interpolator) {

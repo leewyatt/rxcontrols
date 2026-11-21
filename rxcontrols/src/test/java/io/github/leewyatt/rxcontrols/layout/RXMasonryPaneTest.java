@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.layout;
 
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -475,6 +476,40 @@ public class RXMasonryPaneTest {
     }
 
     /**
+     * Verifies bound channels never throw: a bound-translate child snaps through a
+     * reflow, a bound-opacity child enters without fading, and removeAnimated removes
+     * a bound child at once instead of fading it.
+     */
+    @Test
+    public void boundChannelsSkipTheirAnimation() throws Exception {
+        runOnFx(() -> {
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0,
+                    card(80.0, 50.0), card(80.0, 60.0), card(80.0, 40.0), card(80.0, 70.0));
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+            Region translateBound = (Region) pane.getChildren().get(3);
+            translateBound.translateXProperty().bind(new SimpleDoubleProperty(3.0));
+
+            layout(pane, 500.0, 400.0); // reflow: must not throw "A bound value cannot be set"
+            assertClose(3.0, translateBound.getTranslateX(), "translate binding left untouched");
+
+            Region opacityBound = card(80.0, 50.0);
+            opacityBound.opacityProperty().bind(new SimpleDoubleProperty(0.6));
+            pane.getChildren().add(opacityBound);
+            layout(pane, 500.0, 400.0);
+            assertClose(0.6, opacityBound.getOpacity(), "enters without fading");
+
+            pane.removeAnimated(opacityBound);
+            pane.removeAnimated(translateBound);
+            assertFalse(pane.getChildren().contains(opacityBound), "removed at once");
+            assertFalse(pane.getChildren().contains(translateBound), "removed at once");
+            assertTrue(opacityBound.isManaged() && translateBound.isManaged(), "managed restored");
+        });
+    }
+
+    /**
+     * Verifies removing a leaving child externally (mid-exit) restores its    /**
      * Verifies removing a leaving child externally (mid-exit) restores its
      * original managed state instead of leaving it stuck unmanaged.
      */

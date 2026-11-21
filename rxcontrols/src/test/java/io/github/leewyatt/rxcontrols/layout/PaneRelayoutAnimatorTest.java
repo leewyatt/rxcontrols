@@ -4,6 +4,7 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.scene.layout.Region;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -661,6 +662,70 @@ public class PaneRelayoutAnimatorTest {
             Region node = new Region();
             assertFalse(animator.reclaimExit(node));
             assertFalse(animator.isTracked(node));
+        });
+    }
+
+    /**
+     * Verifies a move whose node has a bound translate is skipped instead of throwing
+     * "A bound value cannot be set".
+     */
+    @Test
+    public void boundTranslateMoveIsSkipped() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            Region node = new Region();
+            node.translateXProperty().bind(new SimpleDoubleProperty(5.0));
+
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 30.0, 0.0, true)),
+                    true, DURATION, Interpolator.EASE_BOTH);
+
+            assertEquals(5.0, node.getTranslateX(), EPSILON, "binding left untouched");
+            assertFalse(animator.isTracked(node));
+        });
+    }
+
+    /**
+     * Verifies a fade whose node has a bound opacity becomes a pure glide.
+     */
+    @Test
+    public void boundOpacityFadeBecomesGlide() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            Region node = new Region();
+            node.opacityProperty().bind(new SimpleDoubleProperty(0.6));
+
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 30.0, 0.0, true)),
+                    true, DURATION, Interpolator.EASE_BOTH);
+
+            assertEquals(0.6, node.getOpacity(), EPSILON, "binding left untouched");
+            assertEquals(30.0, node.getTranslateX(), EPSILON, "still glides");
+            assertTrue(animator.isTracked(node));
+        });
+    }
+
+    /**
+     * Verifies an exit whose node has a bound opacity or translate completes at once
+     * instead of throwing from its timeline.
+     */
+    @Test
+    public void exitWithBoundChannelCompletesAtOnce() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            Region fadeBound = new Region();
+            fadeBound.opacityProperty().bind(new SimpleDoubleProperty(0.6));
+            Region driftBound = new Region();
+            driftBound.translateYProperty().bind(new SimpleDoubleProperty(4.0));
+            AtomicBoolean fadeFinished = new AtomicBoolean(false);
+            AtomicBoolean driftFinished = new AtomicBoolean(false);
+
+            animator.runExit(fadeBound, true, DURATION, Interpolator.EASE_BOTH, -10.0,
+                    () -> fadeFinished.set(true));
+            animator.runExit(driftBound, true, DURATION, Interpolator.EASE_BOTH, -10.0,
+                    () -> driftFinished.set(true));
+
+            assertTrue(fadeFinished.get(), "bound opacity: completed immediately");
+            assertTrue(driftFinished.get(), "bound translate: completed immediately");
+            assertFalse(animator.hasActiveState(), "nothing left animating");
         });
     }
 

@@ -909,7 +909,9 @@ public class RXFlowPane extends Pane {
      * that reflows the runs, a gap or alignment change) moves them. On by default;
      * turning it off mid-flight snaps every child to its final position. Children added
      * after the first layout snap into place rather than gliding in. While enabled, the
-     * pane drives each child's {@code translateX} / {@code translateY} during the glide.
+     * pane drives each child's {@code translateX} / {@code translateY} during the glide;
+     * a child with either one bound snaps instead. Binding them while the child is
+     * gliding is not supported.
      *
      * @return the animated property
      */

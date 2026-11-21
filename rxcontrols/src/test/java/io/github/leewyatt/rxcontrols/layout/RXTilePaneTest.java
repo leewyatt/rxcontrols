@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.layout;
 
 import io.github.leewyatt.rxcontrols.ItemsJustify;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
 import javafx.geometry.Insets;
@@ -879,6 +880,28 @@ public class RXTilePaneTest {
 
             pane.setAnimated(false); // snaps in-flight glides to final
             assertFalse(anyTranslated(pane), "disabling animation mid-glide snaps every child");
+        });
+    }
+
+    @Test
+    public void boundTranslateChildSnapsWhileOthersGlide() throws Exception {
+        onFx(() -> {
+            RXTilePane pane = filledPane(12);
+            pane.setPrefTileWidth(100);
+            pane.setAnimated(true);
+            new Scene(pane, 400, 400);
+            pane.applyCss();
+            layout(pane, 400, 400);
+            Region bound = (Region) pane.getChildren().get(5);
+            bound.translateXProperty().bind(new SimpleDoubleProperty(3.0));
+
+            pane.applyCss();
+            layout(pane, 600, 400); // reflow: must not throw "A bound value cannot be set"
+
+            assertEquals(3.0, bound.getTranslateX(), EPSILON, "binding left untouched");
+            assertTrue(pane.getChildren().stream().filter(n -> n != bound)
+                    .anyMatch(n -> Math.abs(n.getTranslateX()) > EPSILON
+                            || Math.abs(n.getTranslateY()) > EPSILON), "other children still glide");
         });
     }
 

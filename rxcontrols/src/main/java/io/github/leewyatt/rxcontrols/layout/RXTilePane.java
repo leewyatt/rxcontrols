@@ -829,7 +829,8 @@ public class RXTilePane extends Pane {
      * Whether existing children glide to their new positions after relayout. On
      * by default; turning it off mid-flight snaps every child to its final
      * position. While enabled, the pane drives each child's {@code translateX} /
-     * {@code translateY} during the glide.
+     * {@code translateY} during the glide; a child with either one bound snaps
+     * instead. Binding them while the child is gliding is not supported.
      *
      * @return the animated property
      */
