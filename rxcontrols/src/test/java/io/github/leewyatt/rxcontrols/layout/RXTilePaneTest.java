@@ -21,6 +21,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
@@ -817,7 +818,7 @@ public class RXTilePaneTest {
                 "invalid prefTileWidth resolves from managed children at layout time");
         assertEquals(100.0, pane.getChildren().get(0).getLayoutBounds().getHeight(), EPSILON,
                 "invalid prefTileHeight resolves from managed children at layout time");
-        assertEquals(100.0, pane.getChildren().get(1).getLayoutX(), EPSILON, "negative hgap acts as 0");
+        assertEquals(90.0, pane.getChildren().get(1).getLayoutX(), EPSILON, "a negative hgap overlaps the tiles");
     }
 
     @Test
@@ -2590,6 +2591,127 @@ public class RXTilePaneTest {
             layout(pane, 700, 400);
             assertFalse(entering(parked), "added and unmanaged before a layout: it snaps in once managed");
         });
+    }
+
+    // ==================== Negative gaps ====================
+
+    /**
+     * Verifies negative gaps overlap the tiles as JavaFX's TilePane does: the same columns,
+     * the same position for every tile, and the same preferred width and height.
+     */
+    @Test
+    public void negativeGapsOverlapTheTilesAsTilePaneDoes() {
+        RXTilePane pane = gapPane(-20.0, -15.0, 7);
+        TilePane tilePane = nativeGapPane(-20.0, -15.0, 7);
+        layout(pane, 300, 400);
+        layout(tilePane, 300, 400);
+        assertEquals(3, pane.getActualColumnCount(), "three columns: (300 - 20) / (100 - 20)");
+        assertSamePlaces(pane, tilePane, "hgap -20, vgap -15");
+        assertEquals(tilePane.prefWidth(-1), pane.prefWidth(-1), EPSILON, "preferred width: 4 x 100 - 3 x 20");
+        assertEquals(tilePane.prefHeight(300), pane.prefHeight(300), EPSILON, "preferred height: 3 x 60 - 2 x 15");
+    }
+
+    /**
+     * Verifies the two ends of the horizontal overlap match JavaFX's TilePane: a gap of
+     * minus the tile width piles each row's tiles on one spot, and a gap beyond it lays
+     * one tile a row; the preferred width then stays one tile wide.
+     */
+    @Test
+    public void horizontalOverlapEndsAsTilePaneDoes() {
+        RXTilePane piled = gapPane(-100.0, 10.0, 6);
+        TilePane nativePiled = nativeGapPane(-100.0, 10.0, 6);
+        layout(piled, 300, 400);
+        layout(nativePiled, 300, 400);
+        assertSamePlaces(piled, nativePiled, "hgap -100");
+        assertEquals(0.0, piled.getChildren().get(5).getLayoutX(), EPSILON, "every tile at the same x");
+        assertEquals(0.0, piled.getChildren().get(5).getLayoutY(), EPSILON, "all in the first row");
+
+        RXTilePane stacked = gapPane(-101.0, 10.0, 3);
+        TilePane nativeStacked = nativeGapPane(-101.0, 10.0, 3);
+        layout(stacked, 300, 400);
+        layout(nativeStacked, 300, 400);
+        assertEquals(1, stacked.getActualColumnCount(), "hgap -101: one column");
+        assertSamePlaces(stacked, nativeStacked, "hgap -101");
+        assertEquals(100.0, stacked.prefWidth(-1), EPSILON, "the preferred width stays one tile wide");
+    }
+
+    /**
+     * Verifies a vgap below minus the tile height piles the rows on one spot instead of
+     * placing each above the one before it, out of the pane as JavaFX's TilePane does; the
+     * preferred height stays one tile high, and an entrance still rises its 4 px minimum.
+     */
+    @Test
+    public void rowsOverlappingBeyondATileHeightPileUp() throws Exception {
+        RXTilePane pane = gapPane(10.0, -80.0, 7);
+        layout(pane, 300, 400);
+        for (Node child : pane.getChildren()) {
+            assertEquals(0.0, child.getLayoutY(), EPSILON, "every row at the top");
+        }
+        assertEquals(60.0, pane.prefHeight(300), EPSILON, "the preferred height stays one tile high");
+
+        onFx(() -> {
+            RXTilePane shown = gapPane(10.0, -30.0, 2);
+            shown.setAnimated(true);
+            new Scene(shown, 300, 400);
+            shown.applyCss();
+            layout(shown, 300, 400);
+            Region added = card(100, 60);
+            shown.getChildren().add(added);
+            layout(shown, 300, 400);
+            assertEquals(4.0, added.getTranslateY(), 1.0e-9, "an entrance rises at least 4 px");
+        });
+    }
+
+    /**
+     * Verifies STRETCH keeps a negative gap's overlap while it widens the tiles to fill
+     * the row: three tiles of 110 px overlapping by 20 span exactly 290 px.
+     */
+    @Test
+    public void stretchKeepsTheOverlap() {
+        RXTilePane pane = gapPane(-20.0, 0.0, 3);
+        pane.setItemsJustify(ItemsJustify.STRETCH);
+        layout(pane, 290, 400);
+        Node last = pane.getChildren().get(2);
+        assertEquals(110.0, last.getLayoutBounds().getWidth(), EPSILON, "each tile widened to 110");
+        assertEquals(90.0, pane.getChildren().get(1).getLayoutX(), EPSILON, "overlapping its neighbour by 20");
+        assertEquals(290.0, last.getLayoutX() + last.getLayoutBounds().getWidth(), EPSILON, "the row fills the width");
+    }
+
+    // Tiles of 100 x 60 with the given gaps, three preferred columns, animation off.
+    private static RXTilePane gapPane(double hgap, double vgap, int count) {
+        RXTilePane pane = new RXTilePane();
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(60);
+        pane.setHgap(hgap);
+        pane.setVgap(vgap);
+        pane.setPrefColumns(4);
+        pane.setTileAlignment(Pos.TOP_LEFT);
+        pane.setAnimated(false);
+        for (int i = 0; i < count; i++) {
+            pane.getChildren().add(card(100, 60));
+        }
+        return pane;
+    }
+
+    private static TilePane nativeGapPane(double hgap, double vgap, int count) {
+        TilePane pane = new TilePane(hgap, vgap);
+        pane.setPrefTileWidth(100);
+        pane.setPrefTileHeight(60);
+        pane.setPrefColumns(4);
+        pane.setTileAlignment(Pos.TOP_LEFT);
+        for (int i = 0; i < count; i++) {
+            pane.getChildren().add(card(100, 60));
+        }
+        return pane;
+    }
+
+    private static void assertSamePlaces(RXTilePane pane, TilePane tilePane, String label) {
+        for (int i = 0; i < pane.getChildren().size(); i++) {
+            Node rx = pane.getChildren().get(i);
+            Node fx = tilePane.getChildren().get(i);
+            assertEquals(fx.getLayoutX(), rx.getLayoutX(), EPSILON, label + ": tile " + i + " x");
+            assertEquals(fx.getLayoutY(), rx.getLayoutY(), EPSILON, label + ": tile " + i + " y");
+        }
     }
 
     // Tiles of 100 px, three to a row at 700 px with a 10 px vgap, laid out once in a scene.
