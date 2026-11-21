@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.RXTileSectionCell;
 import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.RXTileVisibleRange;
 import io.github.leewyatt.rxcontrols.event.RXTileViewActionEvent;
+import io.github.leewyatt.rxcontrols.internal.PixelGrid;
 import io.github.leewyatt.rxcontrols.internal.RXIndexedSelectionMutationGuard;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.animation.Animation;
@@ -341,21 +342,21 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         RXTileView<T> control = getSkinnable();
         double track = snapSizeX(prefTileWidthOrDefault(control));
         double gap = snapSpaceX(gapOrZero(control.getHgap()));
-        int columns;
-        if (availableWidth <= 0.0 || track <= 0.0) {
-            columns = 1;
-        } else {
-            columns = (int) Math.floor((availableWidth + gap) / (track + gap));
-        }
-        if (columns < 1) {
-            columns = 1;
+        if (!(availableWidth > 0.0) || !(track > 0.0)) {
+            return 1;
         }
         int max = control.getMaxColumns();
-        if (max > 0 && columns > max) {
-            columns = max;
-        }
-        if (columns > MAX_RESOLVED_COLUMNS) {
-            columns = MAX_RESOLVED_COLUMNS;
+        int limit = max > 0 ? Math.min(max, MAX_RESOLVED_COLUMNS) : MAX_RESOLVED_COLUMNS;
+        // Capped while still a double: the ratio of a tiny tile can exceed any int.
+        double fit = Math.floor((availableWidth + gap) / (track + gap));
+        int columns = (int) Math.max(1.0, Math.min(fit, limit));
+        // The division carries floating-point noise at a fractional render scale: a row
+        // that exactly fits must keep its last column, and one a fraction of a pixel too
+        // wide must still lose it. The candidate rows are summed like computePrefWidth.
+        if (columns < limit && !PixelGrid.exceedsX(control, rowWidth(columns + 1, track, gap), availableWidth)) {
+            columns++;
+        } else if (columns > 1 && PixelGrid.exceedsX(control, rowWidth(columns, track, gap), availableWidth)) {
+            columns--;
         }
         return columns;
     }
@@ -466,9 +467,11 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
     protected double computePrefWidth(double height, double topInset, double rightInset,
                                       double bottomInset, double leftInset) {
         RXTileView<T> control = getSkinnable();
-        double prefTileWidth = prefTileWidthOrDefault(control);
-        double gap = gapOrZero(control.getHgap());
-        double content = rowWidth(prefWidthColumns(control), prefTileWidth, gap);
+        // Snapped as computeColumns and the viewport snap them, so a view at its preferred
+        // width shows its preferred columns at a fractional render scale too.
+        double tileWidth = snapSizeX(prefTileWidthOrDefault(control));
+        double gap = snapSpaceX(gapOrZero(control.getHgap()));
+        double content = rowWidth(prefWidthColumns(control), tileWidth, gap);
         return leftInset + content
                 + viewport.scrollBarBreadth() + rightInset;
     }
@@ -499,8 +502,8 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         return Math.min(capped, MAX_RESOLVED_COLUMNS);
     }
 
-    private static double rowWidth(int columns, double prefTileWidth, double hgap) {
-        return columns * prefTileWidth + (columns - 1) * hgap;
+    private static double rowWidth(int columns, double tileWidth, double hgap) {
+        return columns * tileWidth + (columns - 1) * hgap;
     }
 
     @Override

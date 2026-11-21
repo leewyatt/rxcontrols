@@ -927,6 +927,35 @@ public class RXTileViewSkinTest {
         });
     }
 
+    /**
+     * Verifies a view at its own preferred width shows its preferred column count at
+     * every render scale while the vertical scroll bar shows: the preferred width adds
+     * up the snapped tile width and gap the columns are counted with, and the count keeps
+     * a column the row exactly fits despite the division's rounding noise.
+     */
+    @Test
+    public void preferredWidthShowsThePreferredColumnsAtEveryScale() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(200);
+            view.setPrefTileWidth(60);
+            view.setPrefTileHeight(40);
+            view.setHgap(10);
+            view.setPrefColumns(4);
+            StackPane root = new StackPane(view);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root, 600, 200));
+            pump(root);
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                stage.setRenderScaleX(scale);
+                double width = view.prefWidth(-1);
+                root.resize(width, 200);
+                view.requestLayout();
+                pump(root);
+                assertEquals(4, view.getActualColumnCount(), "scale " + scale + ", width " + width);
+            }
+        });
+    }
+
     @Test
     public void justifiedRowsNeverOverrunTheContentClip() throws Exception {
         onFx(() -> {
