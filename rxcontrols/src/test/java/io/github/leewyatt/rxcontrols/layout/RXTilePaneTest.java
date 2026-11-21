@@ -2443,6 +2443,62 @@ public class RXTilePaneTest {
         });
     }
 
+    /**
+     * Verifies a listener reached while a layout places the tiles can still call off an
+     * entrance that layout collected but has not started: a tile moved to another parent
+     * in the same scene keeps its own opacity and translate there while the other new
+     * tile enters, and animation turned off lets both new tiles land at once.
+     */
+    @Test
+    public void entranceCalledOffDuringItsLayoutDoesNotStart() throws Exception {
+        onFx(() -> {
+            for (boolean moveAway : new boolean[] {true, false}) {
+                String what = moveAway ? "moved away" : "animation off";
+                RXTilePane pane = filledPane(2);
+                pane.setPrefTileWidth(100);
+                pane.setMaxColumns(3);
+                pane.setVgap(10);
+                StackPane elsewhere = new StackPane();
+                VBox root = new VBox(pane, elsewhere);
+                new Scene(root, 700.0, 600.0);
+                root.applyCss();
+                layout(pane, 700, 400);
+                Region a = card();
+                a.setOpacity(0.8);
+                a.setTranslateY(-3.0);
+                Region b = card();
+                boolean[] called = {false};
+                b.layoutYProperty().addListener((obs, oldValue, newValue) -> {
+                    if (!called[0] && newValue.doubleValue() != 0.0) {
+                        called[0] = true;
+                        if (moveAway) {
+                            elsewhere.getChildren().add(a);
+                        } else {
+                            pane.setAnimated(false);
+                        }
+                    }
+                });
+                pane.getChildren().addAll(a, b);
+                layout(pane, 700, 400);
+                assertTrue(called[0], what + ": setup, the listener ran during the layout");
+                assertTileClose(0.8, a.getOpacity(), what + ": A keeps its opacity");
+                assertTileClose(-3.0, a.getTranslateY(), what + ": A keeps its translate");
+                if (moveAway) {
+                    assertSame(elsewhere, a.getParent(), what + ": A is in its new parent");
+                    assertTileClose(0.0, b.getOpacity(), what + ": B still enters");
+                    pane.getChildren().add(a);
+                    layout(pane, 700, 400);
+                    assertTileClose(0.0, a.getOpacity(), what + ": put back later, A enters as a new child");
+                    pane.setAnimated(false);
+                    assertTileClose(1.0, b.getOpacity(), what + ": B settles");
+                } else {
+                    assertTileClose(1.0, b.getOpacity(), what + ": B lands at once");
+                    assertTileClose(0.0, b.getTranslateY(), what + ": B lands in place");
+                }
+            }
+        });
+    }
+
     // Tiles of 100 px, three to a row at 700 px with a 10 px vgap, laid out once in a scene.
     private static RXTilePane shownPane(int count) {
         RXTilePane pane = filledPane(count);

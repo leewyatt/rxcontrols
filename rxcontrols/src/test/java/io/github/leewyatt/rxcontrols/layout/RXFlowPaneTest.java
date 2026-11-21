@@ -2028,6 +2028,59 @@ public class RXFlowPaneTest {
         });
     }
 
+    /**
+     * Verifies a listener reached while a layout places the cards can still call off an
+     * entrance that layout collected but has not started: a card moved to another parent
+     * in the same scene keeps its own opacity and translate there while the other new
+     * card enters, and animation turned off lets both new cards land at once.
+     */
+    @Test
+    public void entranceCalledOffDuringItsLayoutDoesNotStart() throws Exception {
+        onFx(() -> {
+            for (boolean moveAway : new boolean[] {true, false}) {
+                String what = moveAway ? "moved away" : "animation off";
+                RXFlowPane pane = flowPane(10.0, 10.0, cards(2, 100.0, 40.0));
+                StackPane elsewhere = new StackPane();
+                VBox root = new VBox(pane, elsewhere);
+                new Scene(root, 700.0, 600.0);
+                root.applyCss();
+                layout(pane, 400.0, 400.0);
+                Region a = card(100.0, 40.0);
+                a.setOpacity(0.8);
+                a.setTranslateY(-3.0);
+                Region b = card(100.0, 40.0);
+                boolean[] called = {false};
+                b.layoutYProperty().addListener((obs, oldValue, newValue) -> {
+                    if (!called[0] && newValue.doubleValue() != 0.0) {
+                        called[0] = true;
+                        if (moveAway) {
+                            elsewhere.getChildren().add(a);
+                        } else {
+                            pane.setAnimated(false);
+                        }
+                    }
+                });
+                pane.getChildren().addAll(a, b);
+                layout(pane, 400.0, 400.0);
+                assertTrue(called[0], what + ": setup, the listener ran during the layout");
+                assertClose(0.8, a.getOpacity(), what + ": A keeps its opacity");
+                assertClose(-3.0, a.getTranslateY(), what + ": A keeps its translate");
+                if (moveAway) {
+                    assertSame(elsewhere, a.getParent(), what + ": A is in its new parent");
+                    assertClose(0.0, b.getOpacity(), what + ": B still enters");
+                    pane.getChildren().add(a);
+                    layout(pane, 400.0, 400.0);
+                    assertClose(0.0, a.getOpacity(), what + ": put back later, A enters as a new child");
+                    pane.setAnimated(false);
+                    assertClose(1.0, b.getOpacity(), what + ": B settles");
+                } else {
+                    assertClose(1.0, b.getOpacity(), what + ": B lands at once");
+                    assertClose(0.0, b.getTranslateY(), what + ": B lands in place");
+                }
+            }
+        });
+    }
+
     // 100 x 40 cards with 10 px gaps, laid out once in a 400 px scene.
     private static RXFlowPane shownFlow(int count) {
         RXFlowPane pane = flowPane(10.0, 10.0, cards(count, 100.0, 40.0));

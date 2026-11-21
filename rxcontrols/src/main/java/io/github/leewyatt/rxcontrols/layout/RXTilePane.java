@@ -1251,7 +1251,12 @@ public class RXTilePane extends Pane {
             }
         }
         if (collectMoves && membership.sceneChanges() == sceneChangesAtStart) {
-            animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
+            // Laying a child out can reach a listener that moves another child away or
+            // turns animation off while this pass runs: only children still laid out here
+            // move, and only while the pane still animates.
+            moves.removeIf(move -> move.node().getParent() != this || !move.node().isManaged());
+            animator.runRelayout(moves, animate && animationsActive(), getAnimationDuration(),
+                    interpolatorOrDefault());
         }
         // Publishing the column count, laying a child out, or starting a glide (which writes
         // translate) can reach a listener that takes the pane out of its scene while this

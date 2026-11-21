@@ -147,6 +147,8 @@ final class PassMembership {
      * @param fading whether the pane's animator is fading the child in
      */
     void removed(Node child, boolean fading) {
+        // Removed while a pass runs: it no longer counts as laid out by that pass.
+        laidOutThisPass.remove(child);
         boolean laidOut = laidOutLastPass.remove(child);
         boolean entering = addedSinceLastPass.remove(child);
         // Taken out again after being put back: how it stood is recorded already.
