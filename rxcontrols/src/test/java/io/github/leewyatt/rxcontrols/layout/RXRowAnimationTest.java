@@ -4,6 +4,7 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
@@ -28,8 +29,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for the structural layout animation of {@link RXRow}: only a change of the
- * row's discrete structure starts a glide, geometry-only passes never do, and every
- * stop path leaves the columns settled.
+ * row's discrete structure starts a glide, geometry-only passes never do, responsive
+ * hidden fades a column out in place, and every stop path leaves the columns settled.
  *
  * <p>The fixture has three columns. Below the {@code md} breakpoint each takes a full
  * line; from {@code md} on, the first two share a line and the third wraps.</p>
@@ -386,7 +387,277 @@ public class RXRowAnimationTest {
         });
     }
 
+    // ==================== Responsive hidden ====================
+
+    @Test
+    public void hiddenColumnFadesOutInPlace() throws Exception {
+        onFx(() -> {
+            RXRow row = fixture();
+            layout(row, WIDE);
+            Region first = col(row, 0);
+            double x = first.getLayoutX();
+            double width = first.getWidth();
+
+            ((RXCol) first).setHidden(true);
+            layout(row, WIDE);
+
+            assertFading(first);
+            assertEquals(x, first.getLayoutX(), EPSILON, "stays in place");
+            assertEquals(width, first.getWidth(), EPSILON, "keeps its size");
+            assertNotEquals(0.0, col(row, 1).getTranslateX(), "the sibling glides into the gap");
+
+            layout(row, WIDE + 60.0);
+            assertFading(first);
+            assertEquals(width, first.getWidth(), EPSILON, "a later pass does not restart or snap the fade");
+
+            row.setAnimated(false);
+            assertFullyHidden(first);
+            assertFalse(first.isMouseTransparent(), "mouseTransparent restored");
+            assertEquals(1.0, first.getOpacity(), EPSILON, "opacity restored");
+        });
+    }
+
+    @Test
+    public void fadeOutCompletionRestoresOriginalMouseTransparent() throws Exception {
+        onFx(() -> {
+            RXRow row = fixture();
+            layout(row, WIDE);
+            Region first = col(row, 0);
+            first.setMouseTransparent(true);
+
+            ((RXCol) first).setHidden(true);
+            layout(row, WIDE);
+            row.setAnimated(false);
+
+            assertFullyHidden(first);
+            assertTrue(first.isMouseTransparent());
+        });
+    }
+
+    @Test
+    public void showingMidFadeOutReclaimsTheColumn() throws Exception {
+        Duration duration = Duration.millis(1000.0);
+        AtomicReference<RXRow> rowRef = new AtomicReference<>();
+        double[] visual = new double[3];
+
+        onFx(() -> {
+            RXRow row = fixture();
+            rowRef.set(row);
+            row.setAnimationDuration(duration);
+            layout(row, WIDE);
+            ((RXCol) col(row, 0)).setHidden(true);
+            layout(row, WIDE);
+        });
+        Thread.sleep(200);
+        onFx(() -> {
+            RXRow row = rowRef.get();
+            Region first = col(row, 0);
+            visual[0] = first.getOpacity();
+            visual[1] = first.getLayoutX() + first.getTranslateX();
+            visual[2] = first.getLayoutY() + first.getTranslateY();
+            assertTrue(visual[0] < 1.0 && visual[0] > 0.0, "caught mid fade-out: " + visual[0]);
+
+            ((RXCol) first).setHidden(false);
+            layout(row, WIDE);
+
+            assertTrue(first.isVisible() && first.isManaged(), "shown again");
+            assertFalse(first.isMouseTransparent(), "mouseTransparent restored");
+            assertEquals(visual[0], first.getOpacity(), EPSILON, "opacity continues from its live value");
+            assertEquals(visual[1], first.getLayoutX() + first.getTranslateX(), EPSILON, "no x jump");
+            assertEquals(visual[2], first.getLayoutY() + first.getTranslateY(), EPSILON, "no y jump");
+        });
+
+        // Well past the original exit: a late completion would hide the column again.
+        waitUntil(() -> !anyTranslated(rowRef.get()));
+        Thread.sleep(200);
+        onFx(() -> {
+            Region first = col(rowRef.get(), 0);
+            assertTrue(first.isVisible() && first.isManaged(), "still shown");
+            assertEquals(1.0, first.getOpacity(), EPSILON);
+            assertTrue(first.getWidth() > 0.0, "laid out in its slot");
+        });
+    }
+
+    @Test
+    public void reshownColumnFadesInPlace() throws Exception {
+        onFx(() -> {
+            RXRow row = fixture();
+            layout(row, WIDE);
+            RXCol first = (RXCol) col(row, 0);
+            first.setHidden(true);
+            layout(row, WIDE);
+            row.setAnimated(false);
+            row.setAnimated(true);
+
+            first.setHidden(false);
+            layout(row, WIDE);
+
+            assertTrue(first.isVisible() && first.isManaged());
+            assertEquals(0.0, first.getOpacity(), EPSILON, "fades in from transparent");
+            assertEquals(0.0, first.getTranslateX(), EPSILON, "no glide from the hidden 0x0 spot");
+            assertEquals(0.0, first.getTranslateY(), EPSILON);
+        });
+    }
+
+    @Test
+    public void removingAFadingColumnRestoresIt() throws Exception {
+        onFx(() -> {
+            RXRow row = fixture();
+            layout(row, WIDE);
+            Region first = col(row, 0);
+            Region second = col(row, 1);
+            second.setMouseTransparent(true);
+            ((RXCol) first).setHidden(true);
+            ((RXCol) second).setHidden(true);
+            layout(row, WIDE);
+            assertFading(first);
+            assertFading(second);
+
+            row.getChildren().removeAll(first, second);
+
+            for (Region removed : List.of(first, second)) {
+                assertTrue(removed.isVisible() && removed.isManaged(), "visible and managed restored");
+                assertEquals(1.0, removed.getOpacity(), EPSILON, "opacity restored");
+                assertEquals(0.0, removed.getTranslateX(), EPSILON);
+                assertEquals(0.0, removed.getTranslateY(), EPSILON);
+            }
+            assertFalse(first.isMouseTransparent(), "mouseTransparent restored");
+            assertTrue(second.isMouseTransparent(), "an original true is kept");
+        });
+    }
+
+    @Test
+    public void hidingMidGlideKeepsTheVisualPosition() throws Exception {
+        onFx(() -> {
+            RXRow row = fixture();
+            layout(row, NARROW);
+            layout(row, WIDE);
+            Region second = col(row, 1);
+            assertNotEquals(0.0, second.getTranslateX());
+            double visualX = second.getLayoutX() + second.getTranslateX();
+            double visualY = second.getLayoutY() + second.getTranslateY();
+
+            ((RXCol) second).setHidden(true);
+            layout(row, WIDE);
+
+            assertFading(second);
+            assertEquals(0.0, second.getTranslateX(), EPSILON, "offset folded into layoutX");
+            assertEquals(0.0, second.getTranslateY(), EPSILON);
+            assertEquals(visualX, second.getLayoutX(), EPSILON, "no x jump");
+            assertEquals(visualY, second.getLayoutY(), EPSILON, "no y jump");
+        });
+    }
+
+    @Test
+    public void hidingMidFadeInKeepsTheOpacity() throws Exception {
+        onFx(() -> {
+            RXRow row = fixture();
+            layout(row, WIDE);
+            RXCol added = column(24, 24);
+            added.setOpacity(0.9);
+            row.getChildren().add(added);
+            layout(row, WIDE);
+            assertEquals(0.0, added.getOpacity(), EPSILON);
+
+            added.setHidden(true);
+            layout(row, WIDE);
+
+            assertFading(added);
+            assertEquals(0.0, added.getOpacity(), EPSILON, "opacity does not jump");
+
+            row.setAnimated(false);
+            assertFullyHidden(added);
+            assertEquals(0.9, added.getOpacity(), EPSILON, "the fade-in target is the base");
+        });
+    }
+
+    @Test
+    public void mouseTransparentBoundTrueStillFades() throws Exception {
+        onFx(() -> {
+            RXRow row = fixture();
+            layout(row, WIDE);
+            Region first = col(row, 0);
+            first.mouseTransparentProperty().bind(new SimpleBooleanProperty(true));
+
+            ((RXCol) first).setHidden(true);
+            layout(row, WIDE);
+            assertFading(first);
+
+            row.setAnimated(false);
+            assertFullyHidden(first);
+        });
+    }
+
+    @Test
+    public void mouseTransparentBoundFalseHidesImmediately() throws Exception {
+        onFx(() -> {
+            RXRow row = fixture();
+            layout(row, WIDE);
+            Region first = col(row, 0);
+            first.mouseTransparentProperty().bind(new SimpleBooleanProperty(false));
+
+            ((RXCol) first).setHidden(true);
+            layout(row, WIDE);
+
+            assertFullyHidden(first);
+        });
+    }
+
+    @Test
+    public void focusInsideHidesImmediately() throws Exception {
+        onFx(() -> {
+            RXRow row = fixture();
+            layout(row, WIDE);
+            Region focused = content(row, 0);
+            focused.requestFocus();
+            assertEquals(focused, row.getScene().getFocusOwner(), "precondition: focus inside");
+
+            ((RXCol) col(row, 0)).setHidden(true);
+            layout(row, WIDE);
+
+            assertFullyHidden(col(row, 0));
+        });
+    }
+
+    @Test
+    public void boundChannelsHideImmediately() throws Exception {
+        onFx(() -> {
+            RXRow row = fixture();
+            layout(row, WIDE);
+            Region first = col(row, 0);
+            Region second = col(row, 1);
+            Region third = col(row, 2);
+            first.opacityProperty().bind(new SimpleDoubleProperty(1.0));
+            second.translateXProperty().bind(new SimpleDoubleProperty(0.0));
+            third.visibleProperty().bind(new SimpleBooleanProperty(true));
+
+            for (Region region : List.of(first, second, third)) {
+                ((RXCol) region).setHidden(true);
+            }
+            layout(row, WIDE);
+
+            assertFullyHidden(first);
+            assertFullyHidden(second);
+            assertFalse(third.isManaged(), "bound visible keeps the existing snap path");
+            assertEquals(0.0, third.getWidth(), EPSILON);
+        });
+    }
+
     // ==================== Helpers ====================
+
+    private static void assertFading(Region col) {
+        assertTrue(col.isVisible(), "visible while fading out");
+        assertFalse(col.isManaged(), "out of the layout while fading out");
+        assertTrue(col.isMouseTransparent(), "mouse transparent while fading out");
+        assertTrue(col.getWidth() > 0.0, "keeps its size while fading out");
+    }
+
+    private static void assertFullyHidden(Region col) {
+        assertFalse(col.isVisible(), "hidden");
+        assertFalse(col.isManaged(), "unmanaged");
+        assertEquals(0.0, col.getWidth(), EPSILON, "collapsed");
+    }
+
 
     private static RXRow animatedRow() {
         RXRow row = new RXRow();

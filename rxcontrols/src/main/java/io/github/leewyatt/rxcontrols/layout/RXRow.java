@@ -29,6 +29,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
 import javafx.util.Duration;
 
@@ -36,10 +37,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.logging.Logger;
 
 /**
@@ -79,7 +82,9 @@ import java.util.logging.Logger;
  * that moves a column to another line, start column or span; a change to
  * {@link #columnsProperty() columns}, {@link #justifyProperty() justify},
  * {@link #alignProperty() align} or a column's order; or a column entering or
- * leaving the layout. Entering columns fade in where they land. Geometry-only
+ * leaving the layout. Entering and re-shown columns fade in where they land, and a
+ * column hidden by its spec fades out in place while the others close the gap; one
+ * shown again mid fade-out glides back from where it is. Geometry-only
  * changes apply immediately: resizing within a breakpoint, gutter, row gap, padding
  * and content height never start a glide, so dragging a window does not leave
  * columns trailing behind, and a glide already in flight keeps its clock while its
@@ -138,12 +143,18 @@ public class RXRow extends Pane {
     // Structure of the last layout pass in a scene; null before the first such pass
     // and after the row leaves its scene, so neither of those ever animates.
     private LayoutSignature previousSignature;
+    // Columns shown again while fading out on the current pass; they glide back from
+    // where they are instead of fading in from nothing.
+    private final Set<Node> reclaimedColumns = new HashSet<>();
 
     private final ListChangeListener<Node> childrenListener = change -> {
         while (change.next()) {
             if (change.wasRemoved()) {
                 for (Node removed : change.getRemoved()) {
                     animator.forget(removed);
+                    if (removed instanceof RXCol col) {
+                        releaseResponsiveHidden(col);
+                    }
                 }
             }
         }
@@ -629,8 +640,15 @@ public class RXRow extends Pane {
      * it had when the fade started, overwriting any value written during the fade. A
      * column whose {@code translateX} or {@code translateY} is bound does not animate,
      * and one whose {@code opacity} is bound glides without fading. Binding these
-     * properties while an animation is in flight is not supported. A column hidden by
-     * its spec disappears immediately while the remaining columns glide.</p>
+     * properties while an animation is in flight is not supported.</p>
+     *
+     * <p>A column hidden by its spec leaves the layout at once but stays visible while
+     * it fades out; for that time it is mouse transparent, and its previous
+     * {@code mouseTransparent} value is restored afterwards. It is hidden immediately
+     * instead when keyboard focus is inside it, when its {@code translateX},
+     * {@code translateY}, {@code opacity}, {@code visible} or {@code managed} is bound,
+     * or when its {@code mouseTransparent} is bound to {@code false}. Focus traversal
+     * can still reach a fading column until the fade ends.</p>
      *
      * @return the animated property
      */
@@ -770,7 +788,7 @@ public class RXRow extends Pane {
     @Override
     protected double computePrefHeight(double width) {
         double measuredWidth = normalizeMeasurementWidth(width);
-        Measurement measurement = measure(measuredWidth, resolveBreakpoint(measuredWidth), false);
+        Measurement measurement = measure(measuredWidth, resolveBreakpoint(measuredWidth), false, null);
         return snapSpaceY(getInsets().getTop()) + snapSizeY(measurement.totalHeight())
                 + snapSpaceY(getInsets().getBottom());
     }
@@ -782,10 +800,13 @@ public class RXRow extends Pane {
         if (breakpoint == null) {
             breakpoint = resolveBreakpoint(rowWidth);
         }
-        Measurement measurement = measure(rowWidth, breakpoint, true);
         boolean inScene = getScene() != null;
-        LayoutSignature signature = inScene ? signatureOf(measurement) : null;
         boolean animate = isAnimated() && inScene && isAnimationDurationPositive();
+        // Only a column shown in a slot on the previous pass has something to fade out.
+        Map<Node, SlotKey> fadeOutSlots =
+                animate && previousSignature != null ? previousSignature.slots() : null;
+        Measurement measurement = measure(rowWidth, breakpoint, true, fadeOutSlots);
+        LayoutSignature signature = inScene ? signatureOf(measurement) : null;
         // Only a pass whose structure differs from the previous one starts motion;
         // geometry-only passes (resize, gutter, row gap, content height) never do.
         Map<Node, SlotKey> previousSlots = animate && previousSignature != null
@@ -809,6 +830,7 @@ public class RXRow extends Pane {
         if (moves != null) {
             animator.runRelayout(moves, animate, getAnimationDuration(), interpolatorOrDefault());
         }
+        reclaimedColumns.clear();
         previousSignature = signature;
     }
 
@@ -839,6 +861,14 @@ public class RXRow extends Pane {
     private void addMove(List<PaneRelayoutAnimator.Move> moves, Node child,
                          double oldVisualX, double oldVisualY, Map<Node, SlotKey> previousSlots) {
         if (child.translateXProperty().isBound() || child.translateYProperty().isBound()) {
+            return;
+        }
+        if (reclaimedColumns.contains(child)) {
+            // Shown again mid fade-out: its visual position was folded into layoutX when
+            // the fade began, so it glides back from there and resumes fading in from its
+            // live opacity.
+            moves.add(new PaneRelayoutAnimator.Move(child,
+                    oldVisualX - child.getLayoutX(), oldVisualY - child.getLayoutY(), true));
             return;
         }
         boolean tracked = animator.isTracked(child);
@@ -902,8 +932,10 @@ public class RXRow extends Pane {
     // Lines are split by columns alone, then each line's slots are placed on the pixel
     // grid before its height is measured, so a wrapping child is asked for its height at
     // the exact width it is laid out at.
+    // fadeOutSlots (non-null only on an animated layout pass) holds the columns shown on
+    // the previous pass; a column among them that becomes hidden fades out in place.
     private Measurement measure(double rowWidth, RXBreakpoint breakpoint,
-                                boolean applyHiddenState) {
+                                boolean applyHiddenState, Map<Node, SlotKey> fadeOutSlots) {
         int columnsCount = columnsOrDefault();
         double contentWidth = contentWidth(rowWidth);
         List<Line> lines = new ArrayList<>();
@@ -911,7 +943,7 @@ public class RXRow extends Pane {
         List<Integer> startColumns = new ArrayList<>();
         int cursor = 0;
         List<LayoutCandidate> candidates =
-                collectLayoutCandidates(breakpoint, columnsCount, applyHiddenState);
+                collectLayoutCandidates(breakpoint, columnsCount, applyHiddenState, fadeOutSlots);
 
         for (LayoutCandidate candidate : candidates) {
             EffectiveSpec spec = candidate.spec();
@@ -937,7 +969,8 @@ public class RXRow extends Pane {
 
     private List<LayoutCandidate> collectLayoutCandidates(RXBreakpoint breakpoint,
                                                           int columnsCount,
-                                                          boolean applyHiddenState) {
+                                                          boolean applyHiddenState,
+                                                          Map<Node, SlotKey> fadeOutSlots) {
         List<LayoutCandidate> candidates = new ArrayList<>();
         List<Node> children = getChildren();
         for (int i = 0; i < children.size(); i++) {
@@ -945,7 +978,7 @@ public class RXRow extends Pane {
             EffectiveSpec spec = resolveSpec(child, breakpoint, columnsCount);
             if (child instanceof RXCol col) {
                 if (applyHiddenState) {
-                    updateResponsiveHidden(col, spec.hidden());
+                    updateResponsiveHidden(col, spec.hidden(), fadeOutSlots);
                 }
                 if (spec.hidden()) {
                     continue;
@@ -955,9 +988,6 @@ public class RXRow extends Pane {
                 continue;
             }
             candidates.add(new LayoutCandidate(child, spec, i));
-        }
-        if (applyHiddenState) {
-            cleanupRemovedResponsiveHiddenStates(children);
         }
         candidates.sort(Comparator
                 .comparingInt((LayoutCandidate candidate) -> candidate.spec().order())
@@ -975,17 +1005,82 @@ public class RXRow extends Pane {
         return child.isManaged();
     }
 
-    private void updateResponsiveHidden(RXCol col, boolean hidden) {
-        if (hidden) {
-            ResponsiveHiddenState hiddenState = responsiveHiddenStates.get(col);
-            if (hiddenState == null) {
-                hiddenState = new ResponsiveHiddenState(col.isVisible(), col.isManaged());
-                responsiveHiddenStates.put(col, hiddenState);
-            }
-            applyResponsiveHidden(col, hiddenState);
-        } else {
+    private void updateResponsiveHidden(RXCol col, boolean hidden, Map<Node, SlotKey> fadeOutSlots) {
+        if (!hidden) {
             restoreResponsiveHidden(col);
+            return;
         }
+        ResponsiveHiddenState hiddenState = responsiveHiddenStates.get(col);
+        if (hiddenState == null) {
+            hiddenState = new ResponsiveHiddenState(col.isVisible(), col.isManaged());
+            responsiveHiddenStates.put(col, hiddenState);
+            if (fadeOutSlots != null && fadeOutSlots.containsKey(col) && canFadeOut(col)) {
+                startResponsiveFadeOut(col, hiddenState);
+                return;
+            }
+        } else if (hiddenState.fadingOut()) {
+            return;
+        }
+        applyResponsiveHidden(col, hiddenState);
+    }
+
+    // The fade writes translate (the glide offset is folded into layoutX), opacity,
+    // managed and later visible, so a binding on any of them rules it out; translate is
+    // checked before anything is written. A mouseTransparent bound to false would leave
+    // the fading column clickable. A column holding keyboard focus is hidden at once so
+    // JavaFX moves the focus away instead of keys reaching a column that is gone.
+    private static boolean canFadeOut(RXCol col) {
+        if (col.translateXProperty().isBound() || col.translateYProperty().isBound()
+                || col.opacityProperty().isBound()
+                || col.visibleProperty().isBound() || col.managedProperty().isBound()) {
+            return false;
+        }
+        if (col.mouseTransparentProperty().isBound() && !col.isMouseTransparent()) {
+            return false;
+        }
+        return col.isVisible() && !containsFocusOwner(col);
+    }
+
+    private static boolean containsFocusOwner(RXCol col) {
+        Scene scene = col.getScene();
+        if (scene == null) {
+            return false;
+        }
+        for (Node node = scene.getFocusOwner(); node != null; node = node.getParent()) {
+            if (node == col) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // The column leaves the layout now (siblings close the gap) but stays visible at its
+    // size until the fade ends.
+    private void startResponsiveFadeOut(RXCol col, ResponsiveHiddenState hiddenState) {
+        col.setManaged(false);
+        // The exit resets translate to 0; folding the live glide offset into layoutX first
+        // keeps the column where it is on screen. Unmanaged, its layoutX is ours alone.
+        col.setLayoutX(col.getLayoutX() + col.getTranslateX());
+        col.setLayoutY(col.getLayoutY() + col.getTranslateY());
+        if (!col.mouseTransparentProperty().isBound()) {
+            hiddenState.borrowMouseTransparent(col.isMouseTransparent());
+            col.setMouseTransparent(true);
+        }
+        hiddenState.setFadingOut(true);
+        animator.runExit(col, true, getAnimationDuration(), interpolatorOrDefault(), 0.0,
+                () -> finishResponsiveFadeOut(col));
+    }
+
+    // Guarded by the phase so a stale completion can never hide a column that was shown
+    // again or removed in the meantime.
+    private void finishResponsiveFadeOut(RXCol col) {
+        ResponsiveHiddenState hiddenState = responsiveHiddenStates.get(col);
+        if (hiddenState == null || !hiddenState.fadingOut()) {
+            return;
+        }
+        hiddenState.setFadingOut(false);
+        restoreMouseTransparent(col, hiddenState);
+        applyResponsiveHidden(col, hiddenState);
     }
 
     private void applyResponsiveHidden(RXCol col, ResponsiveHiddenState hiddenState) {
@@ -1003,10 +1098,26 @@ public class RXRow extends Pane {
     }
 
     private void restoreResponsiveHidden(RXCol col) {
+        ResponsiveHiddenState hiddenState = responsiveHiddenStates.get(col);
+        if (hiddenState == null) {
+            return;
+        }
+        // Cancel the exit before restoring, or its completion would later hide the
+        // column that is being shown.
+        if (hiddenState.fadingOut() && animator.reclaimExit(col)) {
+            reclaimedColumns.add(col);
+        }
+        releaseResponsiveHidden(col);
+    }
+
+    // Restores what responsive hidden changed on the column without animating; also used
+    // when the column leaves the row, so it never stays hidden in its next parent.
+    private void releaseResponsiveHidden(RXCol col) {
         ResponsiveHiddenState hiddenState = responsiveHiddenStates.remove(col);
         if (hiddenState == null) {
             return;
         }
+        restoreMouseTransparent(col, hiddenState);
         if (col.visibleProperty().isBound()) {
             warnResponsiveHiddenBinding(col, "visible", hiddenState);
         } else {
@@ -1019,18 +1130,13 @@ public class RXRow extends Pane {
         }
     }
 
-    private void cleanupRemovedResponsiveHiddenStates(List<Node> children) {
-        if (responsiveHiddenStates.isEmpty()) {
+    private static void restoreMouseTransparent(RXCol col, ResponsiveHiddenState hiddenState) {
+        if (!hiddenState.mouseTransparentBorrowed()) {
             return;
         }
-        List<RXCol> removed = new ArrayList<>();
-        for (RXCol col : responsiveHiddenStates.keySet()) {
-            if (!children.contains(col)) {
-                removed.add(col);
-            }
-        }
-        for (RXCol col : removed) {
-            restoreResponsiveHidden(col);
+        hiddenState.clearMouseTransparentBorrow();
+        if (!col.mouseTransparentProperty().isBound()) {
+            col.setMouseTransparent(hiddenState.mouseTransparentBefore());
         }
     }
 
@@ -1183,7 +1289,7 @@ public class RXRow extends Pane {
 
         for (RXBreakpoint breakpoint : breakpoints) {
             List<LayoutCandidate> candidates =
-                    collectLayoutCandidates(breakpoint, columnsCount, false);
+                    collectLayoutCandidates(breakpoint, columnsCount, false, null);
             for (LayoutCandidate candidate : candidates) {
                 Node child = candidate.child();
                 EffectiveSpec spec = candidate.spec();
@@ -1499,6 +1605,11 @@ public class RXRow extends Pane {
         private final boolean managedBefore;
         private boolean visibleWarningLogged;
         private boolean managedWarningLogged;
+        // true while the column fades out (unmanaged but still visible); false once it
+        // is fully hidden.
+        private boolean fadingOut;
+        private boolean mouseTransparentBorrowed;
+        private boolean mouseTransparentBefore;
 
         private ResponsiveHiddenState(boolean visibleBefore, boolean managedBefore) {
             this.visibleBefore = visibleBefore;
@@ -1527,6 +1638,31 @@ public class RXRow extends Pane {
 
         private void setManagedWarningLogged(boolean value) {
             managedWarningLogged = value;
+        }
+
+        private boolean fadingOut() {
+            return fadingOut;
+        }
+
+        private void setFadingOut(boolean value) {
+            fadingOut = value;
+        }
+
+        private boolean mouseTransparentBorrowed() {
+            return mouseTransparentBorrowed;
+        }
+
+        private boolean mouseTransparentBefore() {
+            return mouseTransparentBefore;
+        }
+
+        private void borrowMouseTransparent(boolean before) {
+            mouseTransparentBorrowed = true;
+            mouseTransparentBefore = before;
+        }
+
+        private void clearMouseTransparentBorrow() {
+            mouseTransparentBorrowed = false;
         }
     }
 }

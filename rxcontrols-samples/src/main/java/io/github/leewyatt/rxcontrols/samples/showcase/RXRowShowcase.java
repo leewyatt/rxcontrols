@@ -267,8 +267,9 @@ public class RXRowShowcase extends RXShowcaseApplication {
                 row.setAnimationDuration(Duration.millis(newV.doubleValue())));
         Label durationValue = createValueLabel(durationSlider, "%.0f ms");
 
-        Label hint = createHint("Breakpoint, span, offset, order and justify changes glide; "
-                + "resizing within a breakpoint, gutter and row gap apply immediately.");
+        Label hint = createHint("Breakpoint, span, offset, order and justify changes glide, and "
+                + "hidden cards fade out in place; resizing within a breakpoint, gutter and row gap "
+                + "apply immediately.");
         return new VBox(10.0,
                 createGrid(row(animatedBox), row("Duration", durationSlider, durationValue)),
                 hint);

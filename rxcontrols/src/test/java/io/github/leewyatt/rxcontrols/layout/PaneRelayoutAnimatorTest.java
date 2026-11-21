@@ -598,6 +598,72 @@ public class PaneRelayoutAnimatorTest {
         });
     }
 
+    /**
+     * Verifies a reclaimed exit never runs its completion action, keeps the live
+     * opacity, and fades back to the exit's base opacity when resubmitted.
+     */
+    @Test
+    public void reclaimExitResumesFadeWithoutCompletion() throws Exception {
+        PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+        Region node = new Region();
+        AtomicBoolean finished = new AtomicBoolean(false);
+
+        runOnFx(() -> {
+            node.setOpacity(0.8);
+            animator.runExit(node, true, SHORT, Interpolator.EASE_BOTH, 0.0, () -> finished.set(true));
+            node.setOpacity(0.3); // stands in for a mid-exit value
+
+            assertTrue(animator.reclaimExit(node), "an exit was in flight");
+            assertEquals(0.3, node.getOpacity(), EPSILON, "reclaim does not write opacity");
+            assertTrue(animator.isTracked(node), "tracked as a fade-in");
+
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(node, 0.0, 0.0, true)),
+                    true, DURATION, Interpolator.EASE_BOTH);
+            assertEquals(0.3, node.getOpacity(), EPSILON, "fade resumes from the live value");
+        });
+
+        waitUntil(() -> !animator.hasActiveState());
+
+        runOnFx(() -> {
+            assertFalse(finished.get(), "the stopped exit never completes");
+            assertEquals(0.8, node.getOpacity(), EPSILON, "faded back to the base opacity");
+        });
+    }
+
+    /**
+     * Verifies a reclaimed node left out of the next relayout pass settles at the
+     * exit's base opacity.
+     */
+    @Test
+    public void reclaimedNodeLeftOutOfPassSettlesAtBase() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            Region node = new Region();
+            node.setOpacity(0.8);
+            animator.runExit(node, true, DURATION, Interpolator.EASE_BOTH, 0.0, () -> { });
+            node.setOpacity(0.3);
+            animator.reclaimExit(node);
+
+            animator.runRelayout(List.of(), true, DURATION, Interpolator.EASE_BOTH);
+
+            assertFalse(animator.isTracked(node));
+            assertEquals(0.8, node.getOpacity(), EPSILON, "settled at the base opacity");
+        });
+    }
+
+    /**
+     * Verifies reclaiming a node without an exit is a no-op.
+     */
+    @Test
+    public void reclaimExitWithoutExitIsNoOp() throws Exception {
+        runOnFx(() -> {
+            PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+            Region node = new Region();
+            assertFalse(animator.reclaimExit(node));
+            assertFalse(animator.isTracked(node));
+        });
+    }
+
     private static void waitUntil(Callable<Boolean> conditionOnFx) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
         while (System.nanoTime() < deadline) {
