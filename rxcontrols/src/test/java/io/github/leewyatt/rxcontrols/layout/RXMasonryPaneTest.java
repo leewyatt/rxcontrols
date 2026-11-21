@@ -15,6 +15,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -1729,6 +1730,296 @@ public class RXMasonryPaneTest {
             thread.setUncaughtExceptionHandler(previous);
         }
         assertNull(reported.get(), () -> "a listener threw: " + reported.get());
+    }
+
+    // ==================== Entrance membership ====================
+
+    /**
+     * Verifies only a child added while the pane shows enters: one added while animation
+     * is turned off around the addition, one added while the pane is out of its scene, one
+     * managed for the first time and one back after missing a layout all snap in, and a
+     * pane put back into its scene glides nothing on its first layout there.
+     */
+    @Test
+    public void onlyAChildAddedWhileShownEnters() throws Exception {
+        runOnFx(() -> {
+            RXMasonryPane quiet = shownMasonry(2);
+            Region whileOff = card(80.0, 50.0);
+            quiet.setAnimated(false);
+            quiet.getChildren().add(whileOff);
+            quiet.setAnimated(true);
+            layout(quiet, 300.0, 600.0);
+            assertFalse(entering(whileOff), "added with animation turned off around it");
+
+            RXMasonryPane away = pane(80.0, 10.0, 10.0, card(80.0, 50.0), card(80.0, 50.0));
+            StackPane root = new StackPane(away);
+            new Scene(root, 300.0, 600.0);
+            layout(root, 300.0, 600.0);
+            root.getChildren().clear();
+            Region whileAway = card(80.0, 50.0);
+            away.getChildren().add(whileAway);
+            away.setHgap(40.0);
+            root.getChildren().add(away);
+            layout(root, 300.0, 600.0);
+            assertFalse(entering(whileAway), "added while the pane was out of its scene");
+            assertFalse(anyTranslated(away), "back in its scene, nothing glides");
+
+            Region late = card(80.0, 50.0);
+            late.setManaged(false);
+            RXMasonryPane managedLate = pane(80.0, 10.0, 10.0, card(80.0, 50.0), late);
+            new Scene(managedLate, 300.0, 600.0);
+            layout(managedLate, 300.0, 600.0);
+            late.setManaged(true);
+            layout(managedLate, 300.0, 600.0);
+            assertFalse(entering(late), "managed for the first time");
+
+            RXMasonryPane missing = shownMasonry(3);
+            Node second = missing.getChildren().get(1);
+            second.setManaged(false);
+            layout(missing, 300.0, 600.0);
+            missing.setHgap(40.0);
+            second.setManaged(true);
+            layout(missing, 300.0, 600.0);
+            assertFalse(translatedNode(second), "back after missing a layout: it snaps");
+        });
+    }
+
+    /**
+     * Verifies a child keeps what it was when the children list reorders it, whether
+     * setAll keeps it or it is removed and added back before the next layout: one that was
+     * in the list but unmanaged on the last layout snaps once managed, and one added since
+     * still enters, even with animation turned off around the reorder.
+     */
+    @Test
+    public void reorderedChildrenKeepWhetherTheyAreNew() throws Exception {
+        runOnFx(() -> {
+            for (boolean viaSetAll : new boolean[] {true, false}) {
+                String how = viaSetAll ? "setAll" : "remove and add";
+                Region unmanaged = card(80.0, 50.0);
+                unmanaged.setManaged(false);
+                RXMasonryPane pane = pane(80.0, 10.0, 10.0, card(80.0, 50.0), unmanaged);
+                new Scene(pane, 300.0, 600.0);
+                layout(pane, 300.0, 600.0);
+                moveToFront(pane, unmanaged, viaSetAll);
+                unmanaged.setManaged(true);
+                layout(pane, 300.0, 600.0);
+                assertFalse(entering(unmanaged), how + ": a child that was in the list snaps once managed");
+
+                Region added = card(80.0, 50.0);
+                pane.getChildren().add(added);
+                pane.setAnimated(false);
+                moveToFront(pane, added, viaSetAll);
+                pane.setAnimated(true);
+                layout(pane, 300.0, 600.0);
+                assertNear(0.0, added.getOpacity(), how + ": a child added since still enters");
+            }
+        });
+    }
+
+    /**
+     * Verifies a child removed while it fades in and put back before the next layout fades
+     * on from the opacity it showed, and a settled child whose opacity is changed while it
+     * is out keeps that opacity when put back.
+     */
+    @Test
+    public void childPutBackGoesOnAsItStood() throws Exception {
+        runOnFx(() -> {
+            RXMasonryPane pane = shownMasonry(3);
+            Region entering = card(80.0, 50.0);
+            entering.setOpacity(0.7);
+            pane.getChildren().add(entering);
+            layout(pane, 300.0, 600.0);
+            assertNear(0.0, entering.getOpacity(), "setup: it fades in from 0");
+            pane.getChildren().remove(entering);
+            assertNear(0.7, entering.getOpacity(), "removed, its own opacity is back");
+            pane.getChildren().add(0, entering);
+            layout(pane, 300.0, 600.0);
+            assertNear(0.0, entering.getOpacity(), "put back, it fades on from where it showed");
+
+            RXMasonryPane other = shownMasonry(3);
+            Node settled = other.getChildren().get(2);
+            other.getChildren().remove(settled);
+            settled.setOpacity(0.3);
+            other.getChildren().add(2, settled);
+            layout(other, 300.0, 600.0);
+            assertNear(0.3, settled.getOpacity(), "a settled child keeps the opacity set while it was out");
+        });
+    }
+
+    /**
+     * Verifies a listener reached while a layout places the children can call off what
+     * that layout collected: a child it moves to another parent in the same scene after its
+     * slot was set keeps its own opacity and translate, animation turned off lets the new
+     * children land at once, and a child moved away before its turn keeps the geometry it
+     * was given and, put back later, enters as a new child.
+     */
+    @Test
+    public void listenerReachedFromALayoutCanCallOffItsWork() throws Exception {
+        runOnFx(() -> {
+            for (boolean moveAway : new boolean[] {true, false}) {
+                String what = moveAway ? "moved away" : "animation off";
+                RXMasonryPane pane = pane(80.0, 10.0, 10.0, card(80.0, 50.0), card(80.0, 50.0));
+                StackPane elsewhere = new StackPane();
+                VBox root = new VBox(pane, elsewhere);
+                new Scene(root, 300.0, 600.0);
+                layout(pane, 300.0, 600.0);
+                Region a = card(80.0, 50.0);
+                a.setOpacity(0.8);
+                a.setTranslateY(-3.0);
+                Region b = card(80.0, 50.0);
+                boolean[] called = {false};
+                b.layoutYProperty().addListener((obs, oldValue, newValue) -> {
+                    if (!called[0] && newValue.doubleValue() != 0.0) {
+                        called[0] = true;
+                        if (moveAway) {
+                            elsewhere.getChildren().add(a);
+                        } else {
+                            pane.setAnimated(false);
+                        }
+                    }
+                });
+                pane.getChildren().addAll(a, b);
+                layout(pane, 300.0, 600.0);
+                assertTrue(called[0], what + ": setup, the listener ran during the layout");
+                assertNear(0.8, a.getOpacity(), what + ": A keeps its opacity");
+                assertNear(-3.0, a.getTranslateY(), what + ": A keeps its translate");
+                assertNear(moveAway ? 0.0 : 1.0, b.getOpacity(), what + (moveAway ? ": B still enters" : ": B lands at once"));
+            }
+
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, card(80.0, 50.0));
+            StackPane elsewhere = new StackPane();
+            VBox root = new VBox(pane, elsewhere);
+            new Scene(root, 300.0, 600.0);
+            layout(pane, 300.0, 600.0);
+            Region a = card(80.0, 50.0);
+            Region b = card(80.0, 50.0);
+            boolean[] called = {false};
+            a.layoutXProperty().addListener((obs, oldValue, newValue) -> {
+                if (!called[0] && newValue.doubleValue() != 0.0) {
+                    called[0] = true;
+                    elsewhere.getChildren().add(b);
+                    b.resizeRelocate(321.0, 123.0, 50.0, 55.0);
+                }
+            });
+            pane.getChildren().addAll(a, b);
+            layout(pane, 300.0, 600.0);
+            assertTrue(called[0], "setup: the listener ran during the layout");
+            assertNear(321.0, b.getLayoutX(), "moved away before its turn: its x stands");
+            assertNear(50.0, b.getWidth(), "moved away before its turn: its width stands");
+            pane.getChildren().add(b);
+            layout(pane, 300.0, 600.0);
+            assertNear(0.0, b.getOpacity(), "put back later, it enters as a new child");
+        });
+    }
+
+    /**
+     * Verifies a child added while a layout runs, which that layout does not reach,
+     * enters on the layout that first places it, and a pane a column count listener takes
+     * out of its scene mid-layout snaps when put back.
+     */
+    @Test
+    public void layoutListenersChangingThePaneAreHandled() throws Exception {
+        runOnFx(() -> {
+            RXMasonryPane pane = shownMasonry(1);
+            Region a = card(80.0, 50.0);
+            Region late = card(80.0, 50.0);
+            late.setOpacity(0.7);
+            boolean[] called = {false};
+            a.layoutXProperty().addListener((obs, oldValue, newValue) -> {
+                if (!called[0] && newValue.doubleValue() != 0.0) {
+                    called[0] = true;
+                    pane.getChildren().add(late);
+                }
+            });
+            pane.getChildren().add(a);
+            layout(pane, 300.0, 600.0);
+            assertTrue(called[0], "setup: the listener ran during the layout");
+            layout(pane, 300.0, 600.0);
+            assertNear(0.0, late.getOpacity(), "added during a layout: it enters on its first layout");
+
+            RXMasonryPane detached = pane(80.0, 10.0, 10.0, card(80.0, 50.0), card(80.0, 50.0), card(80.0, 50.0));
+            StackPane root = new StackPane(detached);
+            new Scene(root, 300.0, 600.0);
+            layout(root, 300.0, 600.0);
+            detached.actualColumnCountProperty().addListener((obs, oldValue, newValue) -> root.getChildren().remove(detached));
+            layout(detached, 200.0, 600.0);
+            assertNull(detached.getScene(), "setup: the column count listener took the pane out");
+            assertFalse(anyTranslated(detached), "the abandoned layout leaves no glide behind");
+        });
+    }
+
+    /**
+     * Verifies clearing many children that are still entering costs about as much as
+     * clearing as many settled ones, through clearAnimated and through the children list.
+     */
+    @Test
+    public void clearingEnteringChildrenCostsAboutAsMuchAsSettledOnes() throws Exception {
+        runOnFx(() -> {
+            for (boolean viaClearAnimated : new boolean[] {true, false}) {
+                String how = viaClearAnimated ? "clearAnimated" : "getChildren().clear()";
+                clearNanos(false, viaClearAnimated);
+                clearNanos(true, viaClearAnimated);
+                long settled = Math.min(clearNanos(false, viaClearAnimated), clearNanos(false, viaClearAnimated));
+                long entering = Math.min(clearNanos(true, viaClearAnimated), clearNanos(true, viaClearAnimated));
+                assertTrue(entering < 5 * settled + 100_000_000L,
+                        how + ": entering " + entering / 1_000_000 + " ms, settled " + settled / 1_000_000 + " ms");
+            }
+        });
+    }
+
+    private static long clearNanos(boolean entering, boolean viaClearAnimated) {
+        RXMasonryPane pane = shownMasonry(1);
+        pane.setAnimated(entering);
+        for (int i = 0; i < 800; i++) {
+            pane.getChildren().add(card(80.0, 50.0));
+        }
+        layout(pane, 300.0, 600.0);
+        pane.setAnimated(true);
+        long start = System.nanoTime();
+        if (viaClearAnimated) {
+            pane.clearAnimated();
+        } else {
+            pane.getChildren().clear();
+        }
+        long elapsed = System.nanoTime() - start;
+        pane.setAnimated(false);
+        return elapsed;
+    }
+
+    // 80 x 50 cards in 80 px columns with 10 px gaps, three columns at 300 px, laid out once
+    // in a scene.
+    private static RXMasonryPane shownMasonry(int count) {
+        RXMasonryPane pane = pane(80.0, 10.0, 10.0);
+        for (int i = 0; i < count; i++) {
+            pane.getChildren().add(card(80.0, 50.0));
+        }
+        new Scene(pane, 300.0, 600.0);
+        layout(pane, 300.0, 600.0);
+        return pane;
+    }
+
+    private static boolean translatedNode(Node node) {
+        return Math.abs(node.getTranslateX()) > EPSILON || Math.abs(node.getTranslateY()) > EPSILON;
+    }
+
+    private static boolean entering(Node node) {
+        return node.getOpacity() < 1.0 - 1.0e-9 || translatedNode(node);
+    }
+
+    private static void assertNear(double expected, double actual, String label) {
+        assertEquals(expected, actual, 1.0e-9, label);
+    }
+
+    private static void moveToFront(Pane pane, Node node, boolean viaSetAll) {
+        if (viaSetAll) {
+            List<Node> order = new ArrayList<>(pane.getChildren());
+            order.remove(node);
+            order.add(0, node);
+            pane.getChildren().setAll(order);
+        } else {
+            pane.getChildren().remove(node);
+            pane.getChildren().add(0, node);
+        }
     }
 
     private static boolean anyTranslated(RXMasonryPane pane) {
