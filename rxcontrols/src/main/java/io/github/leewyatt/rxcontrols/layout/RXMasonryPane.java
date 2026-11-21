@@ -807,7 +807,10 @@ public class RXMasonryPane extends Pane {
      * without fading; and either binding, or a bound {@code managed}, makes
      * {@link #removeAnimated(Node)} and {@link #clearAnimated()} remove the child at
      * once. Binding these properties
-     * while the child is animating is not supported.
+     * while the child is animating is not supported. Neither is turning animation off
+     * from a listener on the children list while children are fading out: finishing
+     * their exits removes children, which JavaFX forbids during that list's change
+     * notification.
      *
      * @return the animated property
      */
@@ -938,7 +941,7 @@ public class RXMasonryPane extends Pane {
         if (child == null || !getChildren().contains(child)) {
             return false;
         }
-        if (!animationsActive() || child.managedProperty().isBound()) {
+        if (!animationsActive() || !canLeaveAnimated(child)) {
             getChildren().remove(child);
             return true;
         }
@@ -958,29 +961,44 @@ public class RXMasonryPane extends Pane {
             getChildren().clear();
             return;
         }
-        // Each binding is checked when its child is reached, since a listener may bind
-        // one while earlier children are processed. The bound children are removed
-        // last: removal notifies listeners synchronously, and by then every exit runs.
-        List<Node> leaving = new ArrayList<>();
+        // Removing a child notifies listeners synchronously, and one that turns animation
+        // off finishes the running exits, which removes children inside that very
+        // notification; JavaFX forbids that. So the children that cannot fade out go
+        // first, before this call starts any exit.
         List<Node> immediate = new ArrayList<>();
-        for (Node child : new ArrayList<>(getChildren())) {
-            if (child.managedProperty().isBound()) {
+        for (Node child : getChildren()) {
+            if (!canLeaveAnimated(child)) {
                 immediate.add(child);
-            } else {
-                markLeaving(child);
-                leaving.add(child);
             }
         }
-        requestLayout();
-        for (Node child : leaving) {
-            animator.runExit(child, true, getAnimationDuration(), interpolatorOrDefault(),
-                    -enterTranslateY(), () -> finishLeaving(child));
-        }
         getChildren().removeAll(immediate);
+        // Listeners may have moved, bound or removed children or turned animation off,
+        // so each remaining child is checked again when it is reached.
+        List<Node> late = new ArrayList<>();
+        for (Node child : new ArrayList<>(getChildren())) {
+            if (child.getParent() != this || leavingNodes.containsKey(child)) {
+                continue;
+            }
+            if (animationsActive() && canLeaveAnimated(child)) {
+                markLeaving(child);
+                animator.runExit(child, true, getAnimationDuration(), interpolatorOrDefault(),
+                        -enterTranslateY(), () -> finishLeaving(child));
+            } else {
+                late.add(child);
+            }
+        }
+        getChildren().removeAll(late);
+        requestLayout();
     }
 
-    // Callers remove a child whose managed is bound at once instead: unmanaging it
-    // would throw.
+    // Leaving unmanages the child and fades its translate and opacity; a binding on any
+    // of them would throw.
+    private static boolean canLeaveAnimated(Node child) {
+        return !child.managedProperty().isBound() && !child.translateXProperty().isBound()
+                && !child.translateYProperty().isBound() && !child.opacityProperty().isBound();
+    }
+
+    // Callers check canLeaveAnimated first: unmanaging a bound managed would throw.
     private void markLeaving(Node child) {
         // Remember the original managed state and unmanage the node so survivors
         // reflow into the freed space; restored verbatim in finishLeaving.

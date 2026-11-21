@@ -12,6 +12,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
@@ -610,7 +611,7 @@ public class RXMasonryPaneTest {
             new Scene(pane);
             layout(pane, 300.0, 400.0);
 
-            pane.clearAnimated();
+            assertNoListenerException(pane::clearAnimated);
 
             assertFalse(pane.getChildren().contains(second), "bound on the way: removed at once");
             assertTrue(pane.getChildren().contains(first), "the first child still fades out");
@@ -634,11 +635,64 @@ public class RXMasonryPaneTest {
             new Scene(pane);
             layout(pane, 300.0, 400.0);
 
-            pane.clearAnimated();
+            assertNoListenerException(pane::clearAnimated);
 
             assertFalse(pane.isAnimated(), "precondition: removal disabled animation");
             assertTrue(pane.getChildren().isEmpty(), "every child is gone");
             assertTrue(plain.isManaged(), "managed restored");
+        });
+    }
+
+    /**
+     * Same as above with a child whose only binding is opacity: it too is removed
+     * before any exit starts, and the child after it is not left fading out once the
+     * removal has turned animation off.
+     */
+    @Test
+    public void clearAnimatedWithBoundOpacityThatDisablesAnimation() throws Exception {
+        runOnFx(() -> {
+            Region bound = card(80.0, 60.0);
+            bound.opacityProperty().bind(new SimpleDoubleProperty(0.6));
+            Region plain = card(80.0, 50.0);
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, bound, plain);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            pane.animatedProperty().bind(Bindings.size(pane.getChildren()).greaterThan(1));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+
+            assertNoListenerException(pane::clearAnimated);
+
+            assertTrue(pane.getChildren().isEmpty(), "every child is gone");
+            assertTrue(plain.isManaged(), "managed restored");
+        });
+    }
+
+    /**
+     * Verifies clearAnimated leaves alone a child that a listener moved to another
+     * parent while earlier children were processed.
+     */
+    @Test
+    public void clearAnimatedSkipsChildMovedAway() throws Exception {
+        runOnFx(() -> {
+            Region first = card(80.0, 50.0);
+            Region second = card(80.0, 60.0);
+            Pane elsewhere = new Pane();
+            first.managedProperty().addListener((obs, oldValue, managed) -> {
+                if (!managed) {
+                    elsewhere.getChildren().add(second);
+                }
+            });
+            RXMasonryPane pane = pane(80.0, 10.0, 10.0, first, second);
+            pane.setAnimationDuration(Duration.seconds(10.0));
+            new Scene(pane);
+            layout(pane, 300.0, 400.0);
+
+            assertNoListenerException(pane::clearAnimated);
+
+            assertSame(elsewhere, second.getParent(), "moved away");
+            assertTrue(second.isManaged(), "not unmanaged by the old pane");
+            assertClose(1.0, second.getOpacity(), "no exit started on it");
+            assertTrue(pane.getChildren().contains(first), "the first child still fades out");
         });
     }
 
@@ -1400,6 +1454,22 @@ public class RXMasonryPaneTest {
     }
 
     // ==================== Helpers ====================
+
+    // JavaFX hands an exception thrown inside a listener to the thread's uncaught
+    // exception handler rather than to the caller, so checking only the final state
+    // would miss it.
+    private static void assertNoListenerException(Runnable action) {
+        Thread thread = Thread.currentThread();
+        Thread.UncaughtExceptionHandler previous = thread.getUncaughtExceptionHandler();
+        AtomicReference<Throwable> reported = new AtomicReference<>();
+        thread.setUncaughtExceptionHandler((t, error) -> reported.compareAndSet(null, error));
+        try {
+            action.run();
+        } finally {
+            thread.setUncaughtExceptionHandler(previous);
+        }
+        assertNull(reported.get(), () -> "a listener threw: " + reported.get());
+    }
 
     private static boolean anyTranslated(RXMasonryPane pane) {
         return pane.getChildren().stream()
