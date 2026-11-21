@@ -120,7 +120,7 @@ public class RXCarouselTest {
     // ==================== Interrupt Supplementation ====================
 
     @Test
-    public void interruptJumpsToEndAndSupplementsClosedOpened() throws InterruptedException {
+    public void interruptJumpsToEndAndCompletesThePairs() throws InterruptedException {
         RXCarousel carousel = createLaidOutCarousel(3);
         RecordingAnimation recording = new RecordingAnimation(Duration.seconds(30.0));
         carousel.setAnimation(recording);
@@ -133,16 +133,15 @@ public class RXCarouselTest {
 
             runOnFx(() -> carousel.goToPage(2, true));
 
-            // The interrupted transition is jumped to its end and the lost
-            // CLOSED/OPENED pair is supplemented from the indices captured
-            // before the interrupt (the recording animation itself never
-            // fires lifecycle events).
+            // The recording animation fires no lifecycle callbacks; the skin
+            // fires the whole sequence itself.
             assertEquals(1, recording.jumpToEndCalls);
             assertEquals(2, recording.contexts.size());
             assertTrue(carousel.isPageTransitioning());
-            assertEquals(List.of("CLOSED:0", "OPENED:1"), events);
+            assertEquals(List.of("CLOSING:0", "OPENING:1", "CLOSED:0", "OPENED:1", "CLOSING:1", "OPENING:2"),
+                    events);
         } finally {
-            carousel.getSkin().dispose();
+            runOnFx(() -> carousel.getSkin().dispose());
         }
     }
 
