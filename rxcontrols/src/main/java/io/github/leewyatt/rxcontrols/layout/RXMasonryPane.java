@@ -1339,7 +1339,9 @@ public class RXMasonryPane extends Pane {
         // layout promise — squeezing below the forced track total only overflows
         // when fillWidth is disabled, and honoring the forced count here would
         // instead impose a surprise minimum on containers that clamp to minWidth.
-        return snappedLeftInset() + snapSizeX(columnWidthOrDefault()) + snappedRightInset();
+        // Ceiled as the preferred width is: left a hair above its grid line, the minimum
+        // of a pane preferring one column would exceed that preferred width.
+        return PixelGrid.ceilX(this, snappedLeftInset() + snapSizeX(columnWidthOrDefault()) + snappedRightInset());
     }
 
     @Override
@@ -1360,7 +1362,9 @@ public class RXMasonryPane extends Pane {
         }
         columns = Math.min(columns, MasonryColumns.MAX_RESOLVED_COLUMNS);
         double content = columns * snapSizeX(columnWidthOrDefault()) + (columns - 1) * snapSpaceX(sanitizedHgap());
-        return snappedLeftInset() + snapSizeX(content) + snappedRightInset();
+        // Columns and gaps are on the grid already; snapping their sum as a size again can
+        // add a device pixel at a fractional render scale.
+        return PixelGrid.ceilX(this, snappedLeftInset() + content + snappedRightInset());
     }
 
     @Override
@@ -1372,7 +1376,8 @@ public class RXMasonryPane extends Pane {
             contentWidth = Math.max(0.0, width - snappedLeftInset() - snappedRightInset());
         }
         LayoutMetrics metrics = computeMetrics(contentWidth);
-        return snappedTopInset() + snapSizeY(metrics.result().contentHeight()) + snappedBottomInset();
+        // The content height adds up snapped blocks and gaps, as the width above does.
+        return PixelGrid.ceilY(this, snappedTopInset() + metrics.result().contentHeight() + snappedBottomInset());
     }
 
     @Override
@@ -1454,10 +1459,7 @@ public class RXMasonryPane extends Pane {
             // Recorded before any skip: every pass in a scene, the first and the
             // resize-only ones included, sets who the next pass may glide.
             membership.laidOut(child);
-            layoutInArea(child, x, y, areaWidth, areaHeight, -1.0, margin, fill, false, hpos, VPos.TOP);
-            if (fill) {
-                keepInsideSlot(child, x, areaWidth, margin);
-            }
+            layoutInSlot(child, x, y, areaWidth, areaHeight, margin, fill, hpos);
             if (!collectMoves) {
                 continue;
             }
@@ -1574,8 +1576,8 @@ public class RXMasonryPane extends Pane {
 
     // Filled columns take their snapped edges from the resolution, so a spanning child
     // runs from its first column's left edge to its last column's right edge and none
-    // passes the content width. Fixed-width columns keep the continuous geometry and
-    // leave the snapping to layoutInArea.
+    // passes the content width. Fixed-width columns keep the continuous geometry; a
+    // child's position and width are snapped when it is laid out in its slot.
     private static double columnX(Resolution resolution, double xOffset, int column) {
         if (resolution.fillWidth()) {
             return resolution.columnX(0.0, column);
@@ -1624,8 +1626,8 @@ public class RXMasonryPane extends Pane {
         double childHeight;
         if (child.isResizable()) {
             // Only a horizontal content bias makes height depend on width; for a
-            // vertical or null bias, measure at -1 so the result matches what
-            // layoutInArea will give the child (height is the independent axis).
+            // vertical or null bias, measure at -1 so the result matches what the
+            // child is given in its slot (height is the independent axis).
             double heightHint = child.getContentBias() == Orientation.HORIZONTAL
                     ? boundedChildWidth(child, contentWidth)
                     : -1.0;
@@ -1647,23 +1649,59 @@ public class RXMasonryPane extends Pane {
         return RXMath.clamp(pref, child.minWidth(-1), child.maxWidth(-1));
     }
 
-    // layoutInArea ceils the child width to the pixel grid, and at some fractional
-    // scales (1.75) the ceiling of an on-grid width lands one device pixel wider. A
-    // filled child is pulled back to its slot width, unless its minimum width alone
-    // already overflows the slot.
-    private void keepInsideSlot(Node child, double areaX, double areaWidth, Insets margin) {
-        if (!child.isResizable()) {
-            return;
+    // Sizes and places a child in its slot as layoutInArea does without fillHeight and top
+    // aligned, except for how the size is snapped. A slot is on the pixel grid already,
+    // and at fractional scales JavaFX 17 ceils such a width a whole device pixel wider:
+    // the child would run past its slot. Resizing it back afterwards would change its
+    // width twice on every pass, and a child that follows its width at once, as a wrapping
+    // label does, would ask for another layout from inside each pass, so the pane would
+    // lay out on every pulse. The width is ceiled with the grid's tolerance instead and
+    // set once; only a minimum width above the slot takes a child past it. The height is
+    // snapped on the vertical grid, as the child's block is: JavaFX 17 snaps it with the
+    // horizontal scale, which leaves a child off its block where the two scales differ.
+    private void layoutInSlot(Node child, double areaX, double areaY, double areaWidth, double areaHeight,
+                              Insets margin, boolean fillWidth, HPos hpos) {
+        if (child.isResizable()) {
+            double slotWidth = areaWidth - leftSpace(margin) - rightSpace(margin);
+            double slotHeight = areaHeight - topSpace(margin) - bottomSpace(margin);
+            Orientation bias = child.getContentBias();
+            double width;
+            double height;
+            if (bias == Orientation.VERTICAL) {
+                height = boundedHeight(child, slotHeight, -1.0);
+                width = fittedWidth(child, slotWidth, height, fillWidth);
+            } else {
+                width = fittedWidth(child, slotWidth, -1.0, fillWidth);
+                // Asked at the width its block height was measured at.
+                double widthHint = bias == Orientation.HORIZONTAL
+                        ? boundedChildWidth(child, Math.max(0.0, slotWidth))
+                        : -1.0;
+                height = boundedHeight(child, slotHeight, widthHint);
+            }
+            child.resize(width, snapSizeY(height));
         }
-        double slotWidth = Math.max(0.0, areaWidth - leftSpace(margin) - rightSpace(margin));
-        double height = child.getLayoutBounds().getHeight();
-        double minWidth = child.getContentBias() == Orientation.VERTICAL
-                ? child.minWidth(height)
-                : child.minWidth(-1.0);
-        if (child.getLayoutBounds().getWidth() > slotWidth && minWidth <= slotWidth) {
-            child.resize(slotWidth, height);
-            child.relocate(snapPositionX(areaX + leftSpace(margin)), child.getLayoutY());
+        positionInArea(child, areaX, areaY, areaWidth, areaHeight, -1.0, margin, hpos, VPos.TOP, isSnapToPixel());
+    }
+
+    // The width of a child in its slot: the slot, or in fixed-width columns no more than
+    // the child's preferred width, within the child's own bounds, on the pixel grid.
+    // Ceiling then clamping equals clamping then ceiling, but each side ceils its own way:
+    // the slot adds up grid values and is ceiled with the grid's tolerance, while a size of
+    // the child's own takes at least a device pixel. That size is ceiled with the tolerance
+    // too: a container's is often a sum of snapped sizes itself, and ceiled as Region does
+    // it would come out a device pixel wider than the parts it adds up.
+    private double fittedWidth(Node child, double slotWidth, double heightHint, boolean fillWidth) {
+        double wanted = PixelGrid.ceilX(this, slotWidth);
+        if (!fillWidth) {
+            wanted = Math.min(wanted, PixelGrid.ceilSizeX(this, child.prefWidth(heightHint)));
         }
+        return RXMath.clamp(wanted, PixelGrid.ceilSizeX(this, child.minWidth(heightHint)),
+                PixelGrid.ceilSizeX(this, child.maxWidth(heightHint)));
+    }
+
+    private static double boundedHeight(Node child, double slotHeight, double widthHint) {
+        return RXMath.clamp(Math.min(slotHeight, child.prefHeight(widthHint)), child.minHeight(widthHint),
+                child.maxHeight(widthHint));
     }
 
     private double computeXOffset(double width, double contentWidth, HPos hpos) {
