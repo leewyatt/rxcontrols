@@ -1056,6 +1056,163 @@ public class RXTileViewSkinTest {
         });
     }
 
+    /**
+     * Verifies a view that does not snap to pixels places its tiles with the unsnapped
+     * widths its columns were counted with, clear of the scroll bar. At 1.25, tiles of
+     * 60.1 px and a 9.4 px gap snap to 60.8 and 9.6: a viewport still snapping them put
+     * the eighth tile under the bar. Checked at every render scale, with snapping off
+     * from the start and turned off after a layout.
+     */
+    @Test
+    public void unsnappedViewKeepsItsTilesClearOfTheScrollBar() throws Exception {
+        onFx(() -> {
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                for (boolean fromTheStart : new boolean[] {true, false}) {
+                    String at = "scale " + scale + (fromTheStart ? ", off from the start" : ", turned off after a layout");
+                    RXTileView<String> view = tiles(200);
+                    view.setPrefTileWidth(60.1);
+                    view.setPrefTileHeight(40);
+                    view.setHgap(9.4);
+                    view.setPrefColumns(8);
+                    if (fromTheStart) {
+                        view.setSnapToPixel(false);
+                    }
+                    HBox root = new HBox(view);
+                    Stage stage = new Stage();
+                    stage.setScene(new Scene(root, 900, 180));
+                    stage.setRenderScaleX(scale);
+                    settle(root, 180);
+                    if (!fromTheStart) {
+                        view.setSnapToPixel(false);
+                        settle(root, 170);
+                    }
+                    List<RXTileCell<?>> row = rowCells(view, 0);
+                    assertEquals(8, view.getActualColumnCount(), at + ": the preferred width fits eight columns");
+                    assertEquals(8, row.size(), at + ": the first row is full");
+                    RXTileCell<?> last = row.get(7);
+                    Region bar = (Region) view.lookup(".scroll-bar");
+                    double tileRight = last.localToScene(last.getBoundsInLocal()).getMaxX();
+                    double barLeft = bar.localToScene(bar.getBoundsInLocal()).getMinX();
+                    // Scene bounds carry float precision.
+                    assertTrue(tileRight <= barLeft + 1e-3,
+                            at + ": last tile ends at " + tileRight + ", bar starts at " + barLeft);
+                    assertEquals(60.1, last.getWidth(), 1e-9, at + ": tile width is not snapped");
+                    assertEquals(69.5, row.get(1).getLayoutX() - row.get(0).getLayoutX(), 1e-9,
+                            at + ": the step is not snapped");
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a view whose snapping is turned back on places its tiles on the pixel
+     * grid again, as a view that always snapped does.
+     */
+    @Test
+    public void snappingTurnedBackOnPlacesTheTilesOnTheGridAgain() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(200);
+            view.setPrefTileWidth(60.1);
+            view.setPrefTileHeight(40);
+            view.setHgap(9.4);
+            view.setPrefColumns(8);
+            view.setSnapToPixel(false);
+            HBox root = new HBox(view);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root, 900, 180));
+            stage.setRenderScaleX(1.25);
+            settle(root, 180);
+            view.setSnapToPixel(true);
+            settle(root, 170);
+            List<RXTileCell<?>> row = rowCells(view, 0);
+            assertEquals(8, row.size(), "the first row is full");
+            RXTileCell<?> last = row.get(7);
+            Region bar = (Region) view.lookup(".scroll-bar");
+            double tileRight = last.localToScene(last.getBoundsInLocal()).getMaxX();
+            double barLeft = bar.localToScene(bar.getBoundsInLocal()).getMinX();
+            // Scene bounds carry float precision.
+            assertTrue(tileRight <= barLeft + 1e-3, "last tile ends at " + tileRight + ", bar starts at " + barLeft);
+            assertEquals(60.8, last.getWidth(), 1e-9, "tile width is snapped again");
+            assertEquals(70.4, row.get(1).getLayoutX() - row.get(0).getLayoutX(), 1e-9, "the step is snapped again");
+        });
+    }
+
+    /**
+     * Verifies a snapping change places the tiles again in a view whose size and insets
+     * stay as they were: at scale 1 nothing else asks the viewport for a layout.
+     */
+    @Test
+    public void snappingChangePlacesTheTilesAgainAtAnUnchangedSize() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(200);
+            view.setPrefTileWidth(60.1);
+            view.setPrefTileHeight(40);
+            view.setHgap(9.4);
+            StackPane root = host(view, 600, 180);
+            pump(root);
+            List<RXTileCell<?>> row = rowCells(view, 0);
+            assertEquals(61.0, row.get(0).getWidth(), 1e-9, "tile width is snapped");
+            assertEquals(70.0, row.get(1).getLayoutX() - row.get(0).getLayoutX(), 1e-9, "the step is snapped");
+
+            view.setSnapToPixel(false);
+            pump(root);
+            row = rowCells(view, 0);
+            assertEquals(60.1, row.get(0).getWidth(), 1e-9, "tile width is no longer snapped");
+            assertEquals(69.5, row.get(1).getLayoutX() - row.get(0).getLayoutX(), 1e-9,
+                    "the step is no longer snapped");
+
+            view.setSnapToPixel(true);
+            pump(root);
+            row = rowCells(view, 0);
+            assertEquals(61.0, row.get(0).getWidth(), 1e-9, "tile width is snapped again");
+            assertEquals(70.0, row.get(1).getLayoutX() - row.get(0).getLayoutX(), 1e-9, "the step is snapped again");
+        });
+    }
+
+    /**
+     * Verifies a view that does not snap to pixels sizes its rows and section headers
+     * as its row plan measured them: unsnapped. At 1.25, a header of 32.3 px drawn at
+     * its snapped 32.8 px covered the top of the row below it.
+     */
+    @Test
+    public void unsnappedViewKeepsItsRowsClearOfTheSectionHeaders() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = manySections(6, 7);
+            view.setPrefTileWidth(60);
+            view.setPrefTileHeight(40.3);
+            view.setVgap(3.4);
+            view.setSectionHeaderHeight(32.3);
+            view.setSectionSpacing(5.3);
+            view.setStickySectionHeader(false);
+            view.setSnapToPixel(false);
+            StackPane root = new StackPane(view);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root, 400, 300));
+            stage.setRenderScaleX(1.25);
+            stage.setRenderScaleY(1.25);
+            root.resize(400, 300);
+            pump(root);
+
+            List<RXTileSectionCell> shown = headers(view);
+            assertTrue(shown.size() >= 2, "several section headers are in view");
+            for (RXTileSectionCell header : shown) {
+                assertEquals(32.3, header.getHeight(), 1e-9, "header height is not snapped");
+                double headerTop = header.getLayoutY();
+                double headerBottom = headerTop + header.getHeight();
+                for (Node node : view.lookupAll(".rx-tile-cell")) {
+                    if (node instanceof RXTileCell<?> cell && !cell.isEmpty()) {
+                        double cellTop = cell.getLayoutY();
+                        double cellBottom = cellTop + cell.getHeight();
+                        assertTrue(cellTop >= headerBottom - 1e-9 || cellBottom <= headerTop + 1e-9,
+                                "row " + cellTop + ".." + cellBottom + " meets header " + headerTop + ".." + headerBottom);
+                    }
+                }
+            }
+            assertEquals(43.7, rowCells(view, 1).get(0).getLayoutY() - rowCells(view, 0).get(0).getLayoutY(), 1e-9,
+                    "the row step is not snapped");
+        });
+    }
+
     private static double scrollBarWidth(Region view) {
         return ((Region) view.lookup(".scroll-bar")).getWidth();
     }
