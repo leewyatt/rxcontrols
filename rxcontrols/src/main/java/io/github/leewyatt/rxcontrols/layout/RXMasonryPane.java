@@ -1554,7 +1554,8 @@ public class RXMasonryPane extends Pane {
                 snapSpaceY(sanitizedVgap()), spans, (index, startColumn, span) -> {
                     Node child = managed.get(index);
                     areaWidths[index] = areaWidth(resolution, startColumn, span);
-                    blockHeights[index] = computeChildBlockHeight(child, areaWidths[index], getMargin(child));
+                    blockHeights[index] = computeChildBlockHeight(child, areaWidths[index], getMargin(child),
+                            resolution.fillWidth());
                     return blockHeights[index];
                 });
 
@@ -1619,17 +1620,20 @@ public class RXMasonryPane extends Pane {
         return span;
     }
 
-    private double computeChildBlockHeight(Node child, double areaWidth, Insets margin) {
+    private double computeChildBlockHeight(Node child, double areaWidth, Insets margin, boolean fillWidth) {
         double marginTop = topSpace(margin);
         double marginBottom = bottomSpace(margin);
-        double contentWidth = Math.max(0.0, areaWidth - leftSpace(margin) - rightSpace(margin));
+        double slotWidth = areaWidth - leftSpace(margin) - rightSpace(margin);
         double childHeight;
         if (child.isResizable()) {
             // Only a horizontal content bias makes height depend on width; for a
             // vertical or null bias, measure at -1 so the result matches what the
-            // child is given in its slot (height is the independent axis).
+            // child is given in its slot (height is the independent axis). A biased
+            // child is measured at exactly the width it is given there: one that wraps
+            // its content decides its rows by a strict comparison, and a width a
+            // rounding error apart can cost it a row its block would not hold.
             double heightHint = child.getContentBias() == Orientation.HORIZONTAL
-                    ? boundedChildWidth(child, contentWidth)
+                    ? fittedWidth(child, slotWidth, -1.0, fillWidth)
                     : -1.0;
             childHeight = RXMath.clamp(child.prefHeight(heightHint), child.minHeight(heightHint),
                     child.maxHeight(heightHint));
@@ -1642,11 +1646,6 @@ public class RXMasonryPane extends Pane {
         // Negative margins are valid in JavaFX, so the block (margins + height) can
         // go negative; clamp it so the engine never receives a negative extent.
         return Math.max(0.0, marginTop + snapSizeY(childHeight) + marginBottom);
-    }
-
-    private double boundedChildWidth(Node child, double contentWidth) {
-        double pref = isFillWidth() ? contentWidth : Math.min(contentWidth, child.prefWidth(-1));
-        return RXMath.clamp(pref, child.minWidth(-1), child.maxWidth(-1));
     }
 
     // Sizes and places a child in its slot as layoutInArea does without fillHeight and top
@@ -1672,11 +1671,8 @@ public class RXMasonryPane extends Pane {
                 width = fittedWidth(child, slotWidth, height, fillWidth);
             } else {
                 width = fittedWidth(child, slotWidth, -1.0, fillWidth);
-                // Asked at the width its block height was measured at.
-                double widthHint = bias == Orientation.HORIZONTAL
-                        ? boundedChildWidth(child, Math.max(0.0, slotWidth))
-                        : -1.0;
-                height = boundedHeight(child, slotHeight, widthHint);
+                // Asked at the width it is given, as its block height was.
+                height = boundedHeight(child, slotHeight, bias == Orientation.HORIZONTAL ? width : -1.0);
             }
             child.resize(width, snapSizeY(height));
         }
