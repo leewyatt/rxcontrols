@@ -63,8 +63,8 @@ public final class RXRatingSamples {
                         SampleCard.large("Whole, half and any step",
                                 "The step limits what the pointer picks; with ANY it is the exact place in the star. Click your rating again to clear it.",
                                 steps()),
-                        SampleCard.large("Ratings in a library",
-                                "One rating per row for your own score. A row starts not rated, and clicking its rating again clears it.",
+                        SampleCard.large("Ratings that cannot be cleared",
+                                "A media library with clearable off: a row can start not rated, but once rated, clicking the same star again keeps the rating.",
                                 library()),
                         SampleCard.large("Icons, colors and sizes",
                                 "The heart style class swaps the icon; -rx-rating-color and the icon size come from CSS; max sets the count.",
@@ -193,6 +193,7 @@ public final class RXRatingSamples {
             Region spacer = new Region();
             HBox.setHgrow(spacer, Priority.ALWAYS);
             RXRating rating = new RXRating(ratings[i]);
+            rating.setClearable(false);
             rating.setAccessibleText("Rating of " + tracks[i][0]);
             all.add(rating);
             HBox row = new HBox(10.0, cover, names, spacer, rating);
