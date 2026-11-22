@@ -6,6 +6,7 @@ import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
 import javafx.event.EventHandler;
 import javafx.event.EventTarget;
 import javafx.geometry.Point2D;
@@ -77,6 +78,9 @@ final class DashboardGesture {
     private Scene watchedScene;
     private Window watchedWindow;
     private Timeline autoScroll;
+    // The click JavaFX generates for the release that ends a gesture: the card followed the pointer, so press and
+    // release land on the same node. It is not a click on the content.
+    private boolean swallowClick;
 
     private final EventHandler<KeyEvent> escapeFilter = event -> {
         if (event.getCode() == KeyCode.ESCAPE && started) {
@@ -84,6 +88,10 @@ final class DashboardGesture {
             event.consume();
         }
     };
+
+    // The pane moving in the scene without the pointer moving (a scroll wheel, a parent re-centering it) leaves the
+    // pointer over other cells.
+    private final InvalidationListener sceneTransformListener = this::paneMoved;
 
     // Switching to another application can swallow the release; the card would then stick to the pointer.
     private final InvalidationListener focusListener = observable -> {
@@ -94,9 +102,14 @@ final class DashboardGesture {
 
     DashboardGesture(RXDashboardPane pane) {
         this.pane = pane;
+        // A press and the drags before the threshold bubble, so content that takes them for itself keeps them. Once a
+        // gesture has started, filters take its drags first and see its release even when content consumes it.
         pane.addEventHandler(MouseEvent.MOUSE_PRESSED, this::pressed);
+        pane.addEventFilter(MouseEvent.MOUSE_PRESSED, this::pressedDuringGesture);
         pane.addEventHandler(MouseEvent.MOUSE_DRAGGED, this::dragged);
-        pane.addEventHandler(MouseEvent.MOUSE_RELEASED, this::released);
+        pane.addEventFilter(MouseEvent.MOUSE_DRAGGED, this::draggedDuringGesture);
+        pane.addEventFilter(MouseEvent.MOUSE_RELEASED, this::released);
+        pane.addEventFilter(MouseEvent.MOUSE_CLICKED, this::clicked);
     }
 
     // ==================== Pane-facing ====================
@@ -180,6 +193,17 @@ final class DashboardGesture {
     }
 
     /**
+     * Cancels the gesture when the card it moves turned off the switch the gesture needs.
+     *
+     * @param changed the card whose move or resize switch changed
+     */
+    void switchChanged(RXDashboardCard changed) {
+        if (changed == card && (edge == null ? !changed.isMoveEnabled() : !changed.isResizeEnabled())) {
+            cancel();
+        }
+    }
+
+    /**
      * Cancels the gesture: drops the preview, puts the card back and lets every card glide back. Disarms a press
      * that has not started a gesture yet.
      */
@@ -194,6 +218,22 @@ final class DashboardGesture {
     }
 
     // ==================== Mouse ====================
+
+    // Reading the transform validates it again, so the next move invalidates it again.
+    private void paneMoved(Observable observable) {
+        pane.getLocalToSceneTransform();
+        if (started) {
+            track();
+        }
+    }
+
+    // A primary press while a gesture is in progress means its release never arrived.
+    private void pressedDuringGesture(MouseEvent event) {
+        swallowClick = false;
+        if (started && event.getButton() == MouseButton.PRIMARY) {
+            cancel();
+        }
+    }
 
     private void pressed(MouseEvent event) {
         if (started || event.getButton() != MouseButton.PRIMARY) {
@@ -233,8 +273,18 @@ final class DashboardGesture {
         }
     }
 
+    private void draggedDuringGesture(MouseEvent event) {
+        if (!started) {
+            return;
+        }
+        lastSceneX = event.getSceneX();
+        lastSceneY = event.getSceneY();
+        update();
+        event.consume();
+    }
+
     private void dragged(MouseEvent event) {
-        if (!armed) {
+        if (!armed || started) {
             return;
         }
         lastSceneX = event.getSceneX();
@@ -255,16 +305,27 @@ final class DashboardGesture {
         event.consume();
     }
 
+    // Not consumed: content that saw the press gets its release.
     private void released(MouseEvent event) {
         if (event.getButton() != MouseButton.PRIMARY) {
             return;
         }
         armed = false;
         if (started) {
+            lastSceneX = event.getSceneX();
+            lastSceneY = event.getSceneY();
+            track();
+            swallowClick = true;
             commit();
-            event.consume();
         } else {
             forgetPress();
+        }
+    }
+
+    private void clicked(MouseEvent event) {
+        if (swallowClick) {
+            swallowClick = false;
+            event.consume();
         }
     }
 
@@ -436,6 +497,8 @@ final class DashboardGesture {
     private void watch(Scene scene) {
         watchedScene = scene;
         scene.addEventFilter(KeyEvent.KEY_PRESSED, escapeFilter);
+        pane.localToSceneTransformProperty().addListener(sceneTransformListener);
+        pane.getLocalToSceneTransform();
         watchedWindow = scene.getWindow();
         if (watchedWindow != null) {
             watchedWindow.focusedProperty().addListener(focusListener);
@@ -443,6 +506,7 @@ final class DashboardGesture {
     }
 
     private void unwatch() {
+        pane.localToSceneTransformProperty().removeListener(sceneTransformListener);
         if (watchedScene != null) {
             watchedScene.removeEventFilter(KeyEvent.KEY_PRESSED, escapeFilter);
             watchedScene = null;
@@ -498,7 +562,8 @@ final class DashboardGesture {
         if (!scroller.vvalueProperty().isBound()) {
             scroller.setVvalue(clamped);
         }
-        // The pane moved under a pointer that did not: follow it again.
+        // The pane moved under a pointer that did not: follow it again (the scene-transform listener may not see the
+        // move until the scroll pane lays its content out).
         track();
     }
 

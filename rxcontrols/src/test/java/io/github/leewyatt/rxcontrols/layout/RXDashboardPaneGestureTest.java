@@ -284,14 +284,27 @@ public class RXDashboardPaneGestureTest {
             Region right = handle(board.a, "right");
             Region bottom = handle(board.a, "bottom");
             Region corner = handle(board.a, "corner");
+            // No gap: the handles keep their thickness inside the card, off the neighbours.
             assertTrue(right.isVisible());
-            assertEquals(196.0, right.getLayoutX(), EPSILON);
+            assertEquals(192.0, right.getLayoutX(), EPSILON);
             assertEquals(8.0, right.getWidth(), EPSILON);
-            assertEquals(96.0, bottom.getLayoutY(), EPSILON);
+            assertEquals(92.0, bottom.getLayoutY(), EPSILON);
             assertEquals(8.0, bottom.getHeight(), EPSILON);
-            assertEquals(188.0, corner.getLayoutX(), EPSILON);
+            assertEquals(184.0, corner.getLayoutX(), EPSILON);
             assertEquals(16.0, corner.getWidth(), EPSILON);
-            assertEquals(88.0, right.getHeight(), EPSILON);
+            assertEquals(84.0, right.getHeight(), EPSILON);
+            // A gap of 10: they straddle the edges, half in the gap.
+            board.pane.setHgap(10);
+            board.pane.setVgap(10);
+            board.layout();
+            assertEquals(board.a.getWidth() - 4.0, right.getLayoutX(), EPSILON);
+            assertEquals(board.a.getHeight() - 4.0, bottom.getLayoutY(), EPSILON);
+            board.pane.setHgap(2);
+            board.layout();
+            assertEquals(board.a.getWidth() - 6.0, right.getLayoutX(), EPSILON, "2 px out, 6 px in");
+            board.pane.setHgap(0);
+            board.pane.setVgap(0);
+            board.layout();
             board.a.setResizeEnabled(false);
             board.layout();
             assertFalse(right.isVisible());
@@ -483,6 +496,86 @@ public class RXDashboardPaneGestureTest {
         });
         Thread.sleep(150);
         fx(() -> assertEquals(value.get(), scroller.getVvalue(), EPSILON, "stops with the gesture"));
+    }
+
+    // ==================== Robustness ====================
+
+    @Test
+    public void contentThatConsumesTheReleaseCannotStrandAGesture() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            Region content = new Region();
+            int[] clicks = {0};
+            content.addEventHandler(MouseEvent.MOUSE_RELEASED, MouseEvent::consume);
+            content.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> clicks[0]++);
+            board.a.setContent(content);
+            board.layout();
+            List<RXDashboardEvent> events = board.events();
+            Point2D start = board.press(content, 10, 10);
+            board.drag(content, start.getX() + 100, start.getY());
+            board.release(content, start.getX() + 100, start.getY());
+            assertFalse(board.a.getPseudoClassStates().contains(DRAGGING));
+            assertEquals(1, events.size());
+            assertPlacement(board.a, 1, 0, 2, 1);
+            board.fire(content, MouseEvent.MOUSE_CLICKED, new Point2D(start.getX() + 100, start.getY()),
+                    MouseButton.PRIMARY);
+            assertEquals(0, clicks[0], "the click that ends a drag is not the content's");
+            Point2D again = board.press(content, 10, 10);
+            board.release(content, again.getX(), again.getY());
+            board.fire(content, MouseEvent.MOUSE_CLICKED, again, MouseButton.PRIMARY);
+            assertEquals(1, clicks[0], "a plain click still is");
+        });
+    }
+
+    @Test
+    public void aPressDuringAGestureCancelsIt() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            List<RXDashboardEvent> events = board.events();
+            Point2D start = board.press(board.a, 5, 5);
+            board.drag(board.a, start.getX() + 100, start.getY());
+            board.press(board.c, 5, 5);
+            assertFalse(board.a.getPseudoClassStates().contains(DRAGGING));
+            board.release(board.c, 0, 0);
+            assertTrue(events.isEmpty());
+            assertPlacement(board.a, 0, 0, 2, 1);
+        });
+    }
+
+    @Test
+    public void aCardFollowsThePointerWhenThePaneMovesUnderIt() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            Point2D start = board.press(board.a, 5, 5);
+            board.drag(board.a, start.getX() + 60, start.getY());
+            board.layout();
+            double shownBefore = board.a.localToScene(0, 0).getX();
+            board.pane.setTranslateX(-100);
+            assertEquals(shownBefore, board.a.localToScene(0, 0).getX(), EPSILON, "stays under the pointer");
+            board.layout();
+            assertEquals(new Placement(2, 0, 2, 1), board.candidate(), "the pointer is over other cells now");
+            board.release(board.a, start.getX() + 60, start.getY());
+            assertPlacement(board.a, 2, 0, 2, 1);
+        });
+    }
+
+    @Test
+    public void handlesFollowTheDashboardACardMovesTo() throws Exception {
+        fx(() -> {
+            Board editable = new Board();
+            Board readOnly = new Board();
+            readOnly.pane.setEditable(false);
+            RXDashboardCard moved = new RXDashboardCard("M", null, 3, 0, 1, 1);
+            editable.pane.getCards().add(moved);
+            editable.layout();
+            assertTrue(handle(moved, "right").isVisible());
+            readOnly.pane.getCards().add(moved);
+            readOnly.layout();
+            assertFalse(handle(moved, "right").isVisible());
+            editable.pane.getCards().add(moved);
+            editable.layout();
+            assertTrue(handle(moved, "right").isVisible());
+        });
     }
 
     // ==================== Event handlers ====================

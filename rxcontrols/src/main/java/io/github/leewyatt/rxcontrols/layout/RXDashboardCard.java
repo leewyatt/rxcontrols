@@ -665,8 +665,9 @@ public class RXDashboardCard extends Region {
     }
 
     // The handles straddle the card's right and bottom edges, half in the gap and half in the padding, so with the
-    // default padding they cover no content; the corner square takes the bottom-right end of both. They show only
-    // where the user may resize the card.
+    // default padding they cover no content. A gap narrower than half a handle moves the rest of it inward: a handle
+    // keeps its thickness but never lies over a neighbour, which may be drawn and picked above it. The corner square
+    // takes the bottom-right end of both. They show only where the user may resize the card.
     private void layoutHandles() {
         boolean shown = owner != null && owner.isEditable() && isResizeEnabled() && !isLocked();
         rightHandle.setVisible(shown);
@@ -679,9 +680,11 @@ public class RXDashboardCard extends Region {
         double height = getHeight();
         double thicknessX = snapSizeX(rightHandle.prefWidth(-1));
         double thicknessY = snapSizeY(bottomHandle.prefHeight(-1));
-        double rightStart = snapPositionX(width - thicknessX / 2.0);
+        double outsideX = Math.min(thicknessX / 2.0, owner.handleRoomX());
+        double outsideY = Math.min(thicknessY / 2.0, owner.handleRoomY());
+        double rightStart = snapPositionX(width + outsideX - thicknessX);
         double rightEnd = rightStart + thicknessX;
-        double bottomStart = snapPositionY(height - thicknessY / 2.0);
+        double bottomStart = snapPositionY(height + outsideY - thicknessY);
         double bottomEnd = bottomStart + thicknessY;
         double cornerX = Math.min(rightStart, rightEnd - snapSizeX(cornerHandle.prefWidth(-1)));
         double cornerY = Math.min(bottomStart, bottomEnd - snapSizeY(cornerHandle.prefHeight(-1)));

@@ -492,6 +492,10 @@ public class RXDashboardPane extends Region {
             @Override
             protected void invalidated() {
                 requestLayout();
+                // The resize handles reach into the gap.
+                for (RXDashboardCard card : members) {
+                    card.requestLayout();
+                }
             }
 
             @Override
@@ -1334,6 +1338,8 @@ public class RXDashboardPane extends Region {
         }
         card.owner = this;
         card.placement = null;
+        // Its handles show by this pane's editable state, even if its size stays the same.
+        card.requestLayout();
         if (card.getParent() != this) {
             getChildren().add(card);
         }
@@ -1352,6 +1358,7 @@ public class RXDashboardPane extends Region {
         if (card.owner == this) {
             card.owner = null;
             card.placement = null;
+            card.requestLayout();
         }
     }
 
@@ -1365,10 +1372,18 @@ public class RXDashboardPane extends Region {
 
     // Called by a card when its move or resize switch changes.
     void cardGestureFlagsChanged(RXDashboardCard card) {
-        if (gesture.card() == card) {
-            gesture.cancel();
-        }
+        gesture.switchChanged(card);
         card.requestLayout();
+    }
+
+    // The room a card's resize handles may take beyond its right and bottom edges: the gap, which no other card's
+    // handle uses, so a handle never lies over a neighbour.
+    double handleRoomX() {
+        return snapSpaceX(gapOrZero(getHgap()));
+    }
+
+    double handleRoomY() {
+        return snapSpaceY(gapOrZero(getVgap()));
     }
 
     // ==================== Gesture hooks ====================
