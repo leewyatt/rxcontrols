@@ -1427,9 +1427,10 @@ public class RXMasonryPaneTest {
     }
 
     /**
-     * Verifies the preferred width is the padding plus the snapped columns and gaps, to
-     * the device pixel, at every render scale. Their sum is on the pixel grid already;
-     * snapped as a size once more it grew a device pixel at 1.5 and 1.75.
+     * Verifies the preferred width is exactly the grid value of the padding plus the
+     * snapped columns and gaps at every render scale. Their sum is on the pixel grid
+     * already; snapped as a size once more it grew a device pixel at fractional scales.
+     * Left a hair above its grid line, it would grow one in a parent that snaps it.
      */
     @Test
     public void preferredWidthIsTheSumOfTheSnappedColumns() throws Exception {
@@ -1450,8 +1451,8 @@ public class RXMasonryPaneTest {
                                     + columns * Math.round(pane.snapSizeX(columnWidth) * scale)
                                     + (columns - 1) * Math.round(pane.snapSpaceX(hgap) * scale)
                                     + Math.round(pane.snappedRightInset() * scale);
-                            assertEquals(expected, pane.prefWidth(-1) * scale, 1e-6, "device pixels at scale " + scale
-                                    + ": " + columns + " columns of " + columnWidth + ", gap " + hgap);
+                            assertEquals(expected / scale, pane.prefWidth(-1), 0.0, expected + " device pixels at scale "
+                                    + scale + ": " + columns + " columns of " + columnWidth + ", gap " + hgap);
                         }
                     }
                 }
@@ -1460,8 +1461,9 @@ public class RXMasonryPaneTest {
     }
 
     /**
-     * Verifies the preferred height is the padding plus the snapped cards and gaps of
-     * the tallest column, to the device pixel, at every render scale.
+     * Verifies the preferred height is exactly the grid value of the padding plus the
+     * snapped cards and gaps of the tallest column at every vertical render scale, with
+     * a horizontal scale that differs from it.
      */
     @Test
     public void preferredHeightIsTheSumOfTheSnappedBlocks() throws Exception {
@@ -1476,7 +1478,7 @@ public class RXMasonryPaneTest {
                         pane.setColumnCount(1);
                         pane.setVgap(vgap);
                         Stage stage = stageFor(pane);
-                        stage.setRenderScaleX(scale);
+                        stage.setRenderScaleX(scale == 1.5 ? 1.25 : 1.5);
                         stage.setRenderScaleY(scale);
                         for (int count = 1; count <= 12; count++) {
                             pane.getChildren().add(card(60.0, height));
@@ -1484,9 +1486,124 @@ public class RXMasonryPaneTest {
                                     + count * Math.round(pane.snapSizeY(height) * scale)
                                     + (count - 1) * Math.round(pane.snapSpaceY(vgap) * scale)
                                     + Math.round(pane.snappedBottomInset() * scale);
-                            assertEquals(expected, pane.prefHeight(-1) * scale, 1e-6, "device pixels at scale " + scale
-                                    + ": " + count + " cards of " + height + ", gap " + vgap);
+                            assertEquals(expected / scale, pane.prefHeight(-1), 0.0, expected + " device pixels at scale "
+                                    + scale + ": " + count + " cards of " + height + ", gap " + vgap);
                         }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies the minimum width, one column and the padding, is on the pixel grid as
+     * the preferred width is: a pane preferring one column never reports a minimum above
+     * its preferred width, which a parent would take in its place.
+     */
+    @Test
+    public void minimumWidthNeverExceedsThePreferredWidth() throws Exception {
+        runOnFx(() -> {
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                RXMasonryPane pane = new RXMasonryPane();
+                pane.setAnimated(false);
+                pane.setPrefColumns(1);
+                pane.getChildren().add(card(60.0, 40.0));
+                stageFor(pane).setRenderScaleX(scale);
+                for (double columnWidth : new double[] {100.0, 143.0, 150.0, 160.0, 170.0, 260.0}) {
+                    for (double padding : new double[] {0.0, 4.25, 7.5, 9.0, 10.0, 13.0}) {
+                        pane.setColumnWidth(columnWidth);
+                        pane.setPadding(new Insets(3.0, padding, 3.0, padding));
+                        String at = "scale " + scale + ", column " + columnWidth + ", padding " + padding;
+                        long expected = Math.round(pane.snappedLeftInset() * scale)
+                                + Math.round(pane.snapSizeX(columnWidth) * scale)
+                                + Math.round(pane.snappedRightInset() * scale);
+                        assertEquals(expected / scale, pane.minWidth(-1), 0.0, at + ": minimum width");
+                        assertTrue(pane.minWidth(-1) <= pane.prefWidth(-1),
+                                at + ": minimum " + pane.minWidth(-1) + " above preferred " + pane.prefWidth(-1));
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a parent that sizes the pane to its preferred width gives it the snapped
+     * columns, gaps and padding and no device pixel more, at the scales where the
+     * parent's own snapping of a grid value adds none.
+     */
+    @Test
+    public void parentGivesThePaneItsSnappedColumns() throws Exception {
+        runOnFx(() -> {
+            for (double scale : new double[] {1.25, 1.5, 2.0}) {
+                RXMasonryPane pane = new RXMasonryPane();
+                pane.setAnimated(false);
+                pane.getChildren().add(card(60.0, 40.0));
+                HBox box = new HBox(pane);
+                stageFor(box).setRenderScaleX(scale);
+                for (double columnWidth : new double[] {60.0, 61.0, 143.0, 160.0}) {
+                    for (double hgap : new double[] {0.0, 9.0, 10.0, 12.5}) {
+                        for (double padding : new double[] {0.0, 4.25, 9.0}) {
+                            for (int columns = 1; columns <= 8; columns++) {
+                                pane.setColumnWidth(columnWidth);
+                                pane.setHgap(hgap);
+                                pane.setPadding(new Insets(3.0, padding, 3.0, padding));
+                                pane.setPrefColumns(columns);
+                                layout(box, 4000.0, 400.0);
+                                long expected = Math.round(pane.snappedLeftInset() * scale)
+                                        + columns * Math.round(pane.snapSizeX(columnWidth) * scale)
+                                        + (columns - 1) * Math.round(pane.snapSpaceX(hgap) * scale)
+                                        + Math.round(pane.snappedRightInset() * scale);
+                                String at = "scale " + scale + ": " + columns + " columns of " + columnWidth
+                                        + ", gap " + hgap + ", padding " + padding;
+                                assertEquals(expected, pane.getWidth() * scale, 1e-6, at + ": device pixels");
+                                assertEquals(columns, pane.getActualColumnCount(), at + ": columns");
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a child of fixed-width columns that wants more than its columns is as wide
+     * as they are and no wider, so one reaching the last column ends at the content edge
+     * of a pane at its preferred width.
+     */
+    @Test
+    public void childrenOfFixedColumnsStayInsideTheirColumns() throws Exception {
+        runOnFx(() -> {
+            double[][] geometries = {{60.0, 10.0, 4.0}, {61.0, 0.0, 11.0}, {49.0, 22.0, 8.0}, {40.0, 10.0, 4.0},
+                    {100.0, 10.0, 3.0}};
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                for (double[] geometry : geometries) {
+                    int columns = (int) geometry[2];
+                    int[] spans = new int[columns + 2];
+                    Region[] cards = new Region[spans.length];
+                    for (int i = 0; i < cards.length; i++) {
+                        spans[i] = i < columns ? 1 : i == columns ? columns : Math.max(1, columns / 2);
+                        cards[i] = card(5000.0, 30.0);
+                        RXMasonryPane.setColumnSpan(cards[i], spans[i]);
+                    }
+                    RXMasonryPane pane = pane(geometry[0], geometry[1], 6.0, cards);
+                    pane.setAnimated(false);
+                    pane.setFillWidth(false);
+                    pane.setPrefColumns(columns);
+                    pane.setPadding(new Insets(3.0, 7.5, 3.0, 4.25));
+                    stageFor(pane).setRenderScaleX(scale);
+                    layout(pane, pane.prefWidth(-1), 600.0);
+
+                    String at = "scale " + scale + ", " + columns + " columns of " + geometry[0] + ", gap " + geometry[1];
+                    assertEquals(columns, pane.getActualColumnCount(), at + ": columns");
+                    double track = pane.snapSizeX(geometry[0]);
+                    double gap = pane.snapSpaceX(geometry[1]);
+                    double contentRight = pane.getWidth() - pane.snappedRightInset();
+                    for (int i = 0; i < cards.length; i++) {
+                        double slot = spans[i] * track + (spans[i] - 1) * gap;
+                        assertClose(slot, cards[i].getWidth(), at + ": width of card " + i);
+                        double right = cards[i].getLayoutX() + cards[i].getWidth();
+                        assertTrue(right <= contentRight + 1e-9,
+                                at + ": card " + i + " ends at " + right + ", content at " + contentRight);
                     }
                 }
             }

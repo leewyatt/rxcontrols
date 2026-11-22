@@ -1339,7 +1339,9 @@ public class RXMasonryPane extends Pane {
         // layout promise — squeezing below the forced track total only overflows
         // when fillWidth is disabled, and honoring the forced count here would
         // instead impose a surprise minimum on containers that clamp to minWidth.
-        return snappedLeftInset() + snapSizeX(columnWidthOrDefault()) + snappedRightInset();
+        // Ceiled as the preferred width is: left a hair above its grid line, the minimum
+        // of a pane preferring one column would exceed that preferred width.
+        return PixelGrid.ceilX(this, snappedLeftInset() + snapSizeX(columnWidthOrDefault()) + snappedRightInset());
     }
 
     @Override
@@ -1458,9 +1460,7 @@ public class RXMasonryPane extends Pane {
             // resize-only ones included, sets who the next pass may glide.
             membership.laidOut(child);
             layoutInArea(child, x, y, areaWidth, areaHeight, -1.0, margin, fill, false, hpos, VPos.TOP);
-            if (fill) {
-                keepInsideSlot(child, x, areaWidth, margin);
-            }
+            keepInsideSlot(child, x, areaWidth, margin);
             if (!collectMoves) {
                 continue;
             }
@@ -1650,10 +1650,12 @@ public class RXMasonryPane extends Pane {
         return RXMath.clamp(pref, child.minWidth(-1), child.maxWidth(-1));
     }
 
-    // layoutInArea ceils the child width to the pixel grid, and at some fractional
-    // scales (1.75) the ceiling of an on-grid width lands one device pixel wider. A
-    // filled child is pulled back to its slot width, unless its minimum width alone
-    // already overflows the slot.
+    // layoutInArea ceils the child width to the pixel grid, and at fractional scales the
+    // ceiling of a slot width already on the grid can land one device pixel wider. A
+    // child wider than its slot is pulled back to the slot width, in filled and in
+    // fixed-width columns alike, unless its minimum width alone already overflows the
+    // slot. A child that wants less than its slot is never wider than it and stays as
+    // layoutInArea aligned it.
     private void keepInsideSlot(Node child, double areaX, double areaWidth, Insets margin) {
         if (!child.isResizable()) {
             return;
