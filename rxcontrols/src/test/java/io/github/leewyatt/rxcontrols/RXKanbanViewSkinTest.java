@@ -11,6 +11,7 @@ import io.github.leewyatt.rxcontrols.event.RXCardActionEvent;
 import io.github.leewyatt.rxcontrols.event.RXCardMovedEvent;
 import io.github.leewyatt.rxcontrols.event.RXColumnMovedEvent;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
+import io.github.leewyatt.rxcontrols.skins.RXKanbanViewSkin;
 import javafx.event.Event;
 import javafx.event.EventType;
 import javafx.geometry.Bounds;
@@ -23,6 +24,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollBar;
+import javafx.scene.control.SkinBase;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -2145,6 +2147,63 @@ public class RXKanbanViewSkinTest {
         assertEquals(1, kept.size(), "the board itself is still reachable");
     }
 
+    // ==================== Skin replacement ====================
+
+    /**
+     * Verifies a replaced skin takes its own nodes out of the board: JavaFX leaves them
+     * there, under the new skin's, and the old horizontal scroll bar would keep showing.
+     */
+    @Test
+    public void replacedSkinTakesItsNodesAway() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 6, "B", 6, "C", 6);
+            scaledHost(board, 1.0);
+            StackPane root = (StackPane) board.getParent();
+            assertEquals(1, visibleHorizontalBars(board).size(), "setup: three columns scroll sideways");
+            List<Node> old = new ArrayList<>(board.getChildrenUnmodifiable());
+
+            board.setSkin(new RXKanbanViewSkin<>(board) { });
+            pump(root);
+
+            for (Node node : old) {
+                assertNull(node.getParent(), "a node of the old skin is left in the board: " + node);
+            }
+            assertEquals(old.size(), board.getChildrenUnmodifiable().size(), "the new skin's nodes only");
+            List<ScrollBar> bars = visibleHorizontalBars(board);
+            assertEquals(1, bars.size(), "one horizontal scroll bar shows");
+            assertSame(board, bars.get(0).getParent(), "the new skin's scroll bar");
+            assertEquals(3, board.lookupAll(".column").size(), "the new skin's columns only");
+        });
+    }
+
+    /**
+     * Verifies a replaced skin lets go of the board's placeholder: a skin of another class
+     * that shows none leaves the node free, and the board holds the new skin's node only.
+     */
+    @Test
+    public void replacedSkinLetsGoOfThePlaceholder() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> board = new RXKanbanView<>();
+            Label placeholder = new Label("No columns");
+            board.setPlaceholder(placeholder);
+            StackPane root = host(board, 400.0, 300.0);
+            pump(root);
+            assertTrue(placeholder.getParent() != null && placeholder.getParent().isVisible(),
+                    "setup: the empty board shows its placeholder");
+            Rectangle marker = new Rectangle(4.0, 4.0);
+
+            board.setSkin(new SkinBase<>(board) {
+                {
+                    getChildren().add(marker);
+                }
+            });
+            pump(root);
+
+            assertEquals(List.of(marker), board.getChildrenUnmodifiable(), "the new skin's node only");
+            assertNull(placeholder.getParent(), "the placeholder is let go");
+        });
+    }
+
     // ==================== Helpers ====================
 
     // Lays the board out in a stage of the given render scale, 700 wide: three default
@@ -2158,6 +2217,16 @@ public class RXKanbanViewSkinTest {
         stage.setRenderScaleY(scale);
         pump(root);
         return stage;
+    }
+
+    private static List<ScrollBar> visibleHorizontalBars(RXKanbanView<?> board) {
+        List<ScrollBar> bars = new ArrayList<>();
+        for (Node node : board.lookupAll(".scroll-bar")) {
+            if (node instanceof ScrollBar bar && bar.getOrientation() == Orientation.HORIZONTAL && bar.isVisible()) {
+                bars.add(bar);
+            }
+        }
+        return bars;
     }
 
     private static RXKanbanView<String> fixedHeaderBoard() {

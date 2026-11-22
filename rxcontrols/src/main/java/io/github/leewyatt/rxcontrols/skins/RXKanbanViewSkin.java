@@ -1207,5 +1207,10 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         }
         boxes.clear();
         columnsBox.getChildren().clear();
+        placeholderHost.getChildren().clear();
+        // JFX does not remove a replaced SkinBase skin's nodes, and a replacement skin
+        // has already added its own: remove exactly ours, or the old columns and scroll
+        // bar stay in the board and keep showing under the new skin.
+        getChildren().removeAll(columnsBox, placeholderHost, hbar, dragSupport.getOverlay());
     }
 }
