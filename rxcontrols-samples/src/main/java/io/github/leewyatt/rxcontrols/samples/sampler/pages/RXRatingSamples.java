@@ -1,7 +1,10 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
+import io.github.leewyatt.rxcontrols.RXBurstOptions;
+import io.github.leewyatt.rxcontrols.RXBursts;
 import io.github.leewyatt.rxcontrols.RXImageView;
 import io.github.leewyatt.rxcontrols.RXRating;
+import io.github.leewyatt.rxcontrols.animation.burst.BurstAnimation;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -14,16 +17,23 @@ import javafx.scene.layout.VBox;
 import java.util.List;
 import java.util.Locale;
 
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.AMBER;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.ORANGE;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MotionKit.ROSE;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SelectionIcons.text;
 
 /**
- * The RXRating page: a review rated in half stars with a label that follows the hover
- * preview, a read-only average on a product card, whole against half steps, a survey
- * that counts its saves, and other icons, colors and sizes.
+ * The RXRating page: a review with a label that follows the hover preview and a burst
+ * that grows with the score, a read-only average on a product card, a face for each score, the whole,
+ * half and any-fraction steps, a survey that counts its saves, and other icons, colors
+ * and sizes.
  */
 public final class RXRatingSamples {
 
     private static final String[] WORDS = {"Terrible", "Poor", "Okay", "Good", "Excellent"};
+    private static final RXBurstOptions TOP_BURST = RXBurstOptions.builder()
+            .animation(BurstAnimation.FIREWORKS)
+            .palette(List.of(AMBER, ORANGE, ROSE)).scale(1.6).build();
 
     private RXRatingSamples() {
     }
@@ -35,23 +45,26 @@ public final class RXRatingSamples {
      */
     public static SampleContent create() {
         return new SampleContent(
-                "A row of stars that shows a rating exactly and lets the user give one in whole or half steps.",
+                "A row of stars that shows a rating exactly and lets the user give one in whole, half or free steps.",
                 List.of("Reviews, feedback forms and personal ratings in a media library, and average scores next to a product.",
                         "For a favorite that is on or off use RXReactionButton; for a number on a wide scale use RXSlider."),
                 List.of(
-                        SampleCard.large("Review with a preview",
-                                "Hover to see what a click would give: the label follows the preview and returns to your rating when the pointer leaves.",
+                        SampleCard.large("Review with a preview and a burst",
+                                "The label follows the hover preview. In onAction, RXBursts plays from the star you rated, larger for a higher score, with fireworks for the top one.",
                                 review()),
                         SampleCard.large("Average score",
                                 "A read-only rating draws 3.7 as it is: 70% of the fourth star.",
                                 product()),
-                        SampleCard.large("Whole and half steps",
-                                "The step limits what you can pick. Click your rating again to clear it.",
+                        SampleCard.large("A face for each score",
+                                "Each position carries a style class, .item-1 to .item-5, so a stylesheet gives every score its own icon.",
+                                faces()),
+                        SampleCard.large("Whole, half and any step",
+                                "The step limits what the pointer picks; with ANY it is the exact place in the star. Click your rating again to clear it.",
                                 steps()),
                         SampleCard.large("Saving on action",
                                 "onAction fires once per change you make, never while you hover.",
                                 survey()),
-                        SampleCard.wide("Icons, colors and sizes",
+                        SampleCard.large("Icons, colors and sizes",
                                 "The heart style class swaps the icon; -rx-rating-color and the icon size come from CSS; max sets the count.",
                                 looks())),
                 SelectionIcons.STYLESHEET);
@@ -59,7 +72,6 @@ public final class RXRatingSamples {
 
     private static Node review() {
         RXRating rating = new RXRating();
-        rating.setStep(RXRating.Step.HALF);
         rating.getStyleClass().add("large");
         rating.setAccessibleText("Your rating");
 
@@ -68,12 +80,29 @@ public final class RXRatingSamples {
                 () -> describe(rating.getHoverValue() != null ? rating.getHoverValue() : rating.getValue()),
                 rating.hoverValueProperty(), rating.valueProperty()));
 
+        // Every rating sparkles from its icon, which is found by the style class of
+        // its position, and the burst grows with the score; clearing stays quiet.
+        rating.setOnAction(event -> {
+            Double now = rating.getValue();
+            if (now != null) {
+                int score = now.intValue();
+                RXBursts.play(rating.lookup(".item-" + score),
+                        score >= rating.getMax() ? TOP_BURST : starBurst(score));
+            }
+        });
+
         VBox box = new VBox(10.0, text("How was your stay?", "heading"), rating, word);
         box.getStyleClass().add("form-panel");
         box.setAlignment(Pos.CENTER);
         box.setPrefWidth(300.0);
         box.setMaxWidth(Region.USE_PREF_SIZE);
         return box;
+    }
+
+    /** Sparkles that grow with the score: 0.8 for one star, 0.2 more for each further one. */
+    private static RXBurstOptions starBurst(int score) {
+        return RXBurstOptions.builder().animation(BurstAnimation.SPARKLES).color(AMBER)
+                .scale(0.5 + 0.15 * score).build();
     }
 
     private static String describe(Double value) {
@@ -102,6 +131,22 @@ public final class RXRatingSamples {
         return card;
     }
 
+    private static Node faces() {
+        RXRating rating = new RXRating(4.0);
+        rating.getStyleClass().addAll("faces", "large");
+        rating.setAccessibleText("Satisfaction");
+
+        Label word = text("", "heading");
+        word.textProperty().bind(Bindings.createStringBinding(() -> {
+            Double shown = rating.getHoverValue() != null ? rating.getHoverValue() : rating.getValue();
+            return shown == null ? "How do you feel?" : WORDS[(int) Math.ceil(shown) - 1];
+        }, rating.hoverValueProperty(), rating.valueProperty()));
+
+        VBox box = new VBox(10.0, rating, word);
+        box.setAlignment(Pos.CENTER);
+        return box;
+    }
+
     private static Node steps() {
         RXRating whole = new RXRating(3.0);
         whole.setAccessibleText("Whole stars");
@@ -114,6 +159,10 @@ public final class RXRatingSamples {
         grid.setVgap(12.0);
         grid.addRow(0, text("Whole", "hint"), whole, valueLabel(whole));
         grid.addRow(1, text("Half", "hint"), half, valueLabel(half));
+        RXRating any = new RXRating(3.7);
+        any.setStep(RXRating.Step.ANY);
+        any.setAccessibleText("Any fraction");
+        grid.addRow(2, text("Any", "hint"), any, valueLabel(any));
         grid.setMaxWidth(Region.USE_PREF_SIZE);
         return grid;
     }
@@ -121,7 +170,8 @@ public final class RXRatingSamples {
     private static Label valueLabel(RXRating rating) {
         Label label = text("", "value");
         label.textProperty().bind(Bindings.createStringBinding(
-                () -> rating.getValue() == null ? "not rated" : format(rating.getValue()),
+                () -> rating.getValue() == null ? "not rated"
+                        : String.format(Locale.ROOT, "%.2f", rating.getValue()),
                 rating.valueProperty()));
         return label;
     }
@@ -174,10 +224,12 @@ public final class RXRatingSamples {
 
         GridPane grid = new GridPane();
         grid.setHgap(18.0);
-        grid.setVgap(14.0);
-        grid.addRow(0, text("Hearts", "hint"), hearts, text("Custom color", "hint"), teal);
-        grid.addRow(1, text("Ten, small", "hint"), ten, text("Large", "hint"), big);
-        grid.addRow(2, text("Disabled", "hint"), disabled);
+        grid.setVgap(12.0);
+        grid.addRow(0, text("Hearts", "hint"), hearts);
+        grid.addRow(1, text("Custom color", "hint"), teal);
+        grid.addRow(2, text("Ten, small", "hint"), ten);
+        grid.addRow(3, text("Large", "hint"), big);
+        grid.addRow(4, text("Disabled", "hint"), disabled);
         grid.setMaxWidth(Region.USE_PREF_SIZE);
         return grid;
     }
