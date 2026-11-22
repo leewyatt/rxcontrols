@@ -1710,24 +1710,32 @@ public class RXMasonryPaneTest {
     }
 
     /**
-     * Verifies a minimum width of the child's own that is a rounding error above a grid
-     * line counts as on it. At 1.5 a column of 217 snaps to 217.33; that plus 40 comes to
-     * 386.00000000000006 device pixels, which ceiled as Region does would be 387.
+     * Verifies a width of the child's own that is a rounding error above a grid line
+     * counts as on it, be it its minimum, preferred or maximum width. At 1.5 a column of
+     * 217 snaps to 217.33; that plus 40 comes to 386.00000000000006 device pixels, which
+     * ceiled as Region does would be 387.
      */
     @Test
-    public void ownMinimumARoundingErrorAboveTheGridStaysOnIt() throws Exception {
+    public void ownWidthARoundingErrorAboveTheGridStaysOnIt() throws Exception {
         runOnFx(() -> {
-            for (boolean fillWidth : new boolean[] {false, true}) {
+            for (String bound : new String[] {"minimum, fixed", "minimum, filled", "preferred", "maximum"}) {
                 Region card = card(60.0, 30.0);
-                RXMasonryPane pane = pane(217.0, 10.0, 6.0, card);
+                double columnWidth = bound.startsWith("minimum") ? 217.0 : 300.0;
+                RXMasonryPane pane = pane(columnWidth, 10.0, 6.0, card);
                 pane.setAnimated(false);
-                pane.setFillWidth(fillWidth);
+                pane.setFillWidth(bound.equals("minimum, filled") || bound.equals("maximum"));
                 stageFor(pane).setRenderScaleX(1.5);
-                double minimum = pane.snapSizeX(217.0) + 40.0;
-                assertTrue(minimum * 1.5 > 386.0, "setup: the minimum is above its grid line");
-                card.setMinWidth(minimum);
-                layout(pane, pane.snapSizeX(217.0), 400.0);
-                assertEquals(386.0 / 1.5, card.getWidth(), 1.0e-9, fillWidth ? "filled" : "fixed");
+                double width = pane.snapSizeX(217.0) + 40.0;
+                assertTrue(width * 1.5 > 386.0, "setup: the width is above its grid line");
+                if (bound.startsWith("minimum")) {
+                    card.setMinWidth(width);
+                } else if (bound.equals("preferred")) {
+                    card.setPrefWidth(width);
+                } else {
+                    card.setMaxWidth(width);
+                }
+                layout(pane, pane.snapSizeX(columnWidth), 400.0);
+                assertEquals(386.0 / 1.5, card.getWidth(), 1.0e-9, bound);
             }
         });
     }
@@ -1760,6 +1768,37 @@ public class RXMasonryPaneTest {
                 assertEquals(20.0, second.getHeight(), 1.0e-9, at + ": height of the second child");
                 assertEquals(second.getLayoutY() + 20.0 + 6.0, third.getLayoutY(), 1.0e-9,
                         at + ": y of the third child");
+            }
+        });
+    }
+
+    /**
+     * Verifies a child is given its preferred height, not the height of its slot, at the
+     * top of that slot. At a vertical scale of 1.75 a block of 128.5 is 225 device pixels
+     * high, a value that snapped once more would be 226. A top margin of -30 leaves a
+     * child of 20 a slot of 30, starting 30 above its block.
+     */
+    @Test
+    public void childKeepsItsPreferredHeightAtTheTopOfItsSlot() throws Exception {
+        runOnFx(() -> {
+            for (boolean fillWidth : new boolean[] {false, true}) {
+                String at = fillWidth ? "filled" : "fixed";
+                Region tall = card(60.0, 128.5);
+                RXMasonryPane scaled = pane(60.0, 10.0, 6.0, tall);
+                scaled.setAnimated(false);
+                scaled.setFillWidth(fillWidth);
+                stageFor(scaled).setRenderScaleY(1.75);
+                layout(scaled, 60.0, 400.0);
+                assertEquals(225.0 / 1.75, tall.getHeight(), 1.0e-9, at + ": height at 1.75");
+
+                Region raised = card(60.0, 20.0);
+                RXMasonryPane.setMargin(raised, new Insets(-30.0, 0.0, 0.0, 0.0));
+                RXMasonryPane pane = pane(60.0, 10.0, 6.0, raised);
+                pane.setAnimated(false);
+                pane.setFillWidth(fillWidth);
+                layout(pane, 60.0, 400.0);
+                assertEquals(20.0, raised.getHeight(), 1.0e-9, at + ": height under a negative margin");
+                assertEquals(-30.0, raised.getLayoutY(), 1.0e-9, at + ": y under a negative margin");
             }
         });
     }
