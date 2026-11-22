@@ -1360,7 +1360,9 @@ public class RXMasonryPane extends Pane {
         }
         columns = Math.min(columns, MasonryColumns.MAX_RESOLVED_COLUMNS);
         double content = columns * snapSizeX(columnWidthOrDefault()) + (columns - 1) * snapSpaceX(sanitizedHgap());
-        return snappedLeftInset() + snapSizeX(content) + snappedRightInset();
+        // Columns and gaps are on the grid already; snapping their sum as a size again can
+        // add a device pixel at a fractional render scale.
+        return PixelGrid.ceilX(this, snappedLeftInset() + content + snappedRightInset());
     }
 
     @Override
@@ -1372,7 +1374,8 @@ public class RXMasonryPane extends Pane {
             contentWidth = Math.max(0.0, width - snappedLeftInset() - snappedRightInset());
         }
         LayoutMetrics metrics = computeMetrics(contentWidth);
-        return snappedTopInset() + snapSizeY(metrics.result().contentHeight()) + snappedBottomInset();
+        // The content height adds up snapped blocks and gaps, as the width above does.
+        return PixelGrid.ceilY(this, snappedTopInset() + metrics.result().contentHeight() + snappedBottomInset());
     }
 
     @Override

@@ -1427,6 +1427,73 @@ public class RXMasonryPaneTest {
     }
 
     /**
+     * Verifies the preferred width is the padding plus the snapped columns and gaps, to
+     * the device pixel, at every render scale. Their sum is on the pixel grid already;
+     * snapped as a size once more it grew a device pixel at 1.5 and 1.75.
+     */
+    @Test
+    public void preferredWidthIsTheSumOfTheSnappedColumns() throws Exception {
+        runOnFx(() -> {
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                RXMasonryPane pane = new RXMasonryPane();
+                pane.setAnimated(false);
+                pane.setPadding(new Insets(3.0, 7.5, 3.0, 4.25));
+                pane.getChildren().add(card(60.0, 40.0));
+                stageFor(pane).setRenderScaleX(scale);
+                for (double columnWidth : new double[] {60.0, 61.0, 100.0, 137.3}) {
+                    for (double hgap : new double[] {0.0, 9.0, 10.0, 12.5}) {
+                        for (int columns = 1; columns <= 12; columns++) {
+                            pane.setColumnWidth(columnWidth);
+                            pane.setHgap(hgap);
+                            pane.setPrefColumns(columns);
+                            long expected = Math.round(pane.snappedLeftInset() * scale)
+                                    + columns * Math.round(pane.snapSizeX(columnWidth) * scale)
+                                    + (columns - 1) * Math.round(pane.snapSpaceX(hgap) * scale)
+                                    + Math.round(pane.snappedRightInset() * scale);
+                            assertEquals(expected, pane.prefWidth(-1) * scale, 1e-6, "device pixels at scale " + scale
+                                    + ": " + columns + " columns of " + columnWidth + ", gap " + hgap);
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies the preferred height is the padding plus the snapped cards and gaps of
+     * the tallest column, to the device pixel, at every render scale.
+     */
+    @Test
+    public void preferredHeightIsTheSumOfTheSnappedBlocks() throws Exception {
+        runOnFx(() -> {
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                for (double height : new double[] {40.0, 41.0, 55.5}) {
+                    for (double vgap : new double[] {0.0, 9.0, 10.0, 12.5}) {
+                        RXMasonryPane pane = new RXMasonryPane();
+                        pane.setAnimated(false);
+                        pane.setPadding(new Insets(3.0, 7.5, 3.0, 4.25));
+                        pane.setColumnWidth(60.0);
+                        pane.setColumnCount(1);
+                        pane.setVgap(vgap);
+                        Stage stage = stageFor(pane);
+                        stage.setRenderScaleX(scale);
+                        stage.setRenderScaleY(scale);
+                        for (int count = 1; count <= 12; count++) {
+                            pane.getChildren().add(card(60.0, height));
+                            long expected = Math.round(pane.snappedTopInset() * scale)
+                                    + count * Math.round(pane.snapSizeY(height) * scale)
+                                    + (count - 1) * Math.round(pane.snapSpaceY(vgap) * scale)
+                                    + Math.round(pane.snappedBottomInset() * scale);
+                            assertEquals(expected, pane.prefHeight(-1) * scale, 1e-6, "device pixels at scale " + scale
+                                    + ": " + count + " cards of " + height + ", gap " + vgap);
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
      * Verifies filled spanning children stay inside the content area and keep the hgap
      * from every child beside them, wherever they land.
      */
