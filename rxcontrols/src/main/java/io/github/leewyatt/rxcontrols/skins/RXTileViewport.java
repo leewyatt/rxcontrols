@@ -482,7 +482,9 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
                 header.updateSection(info.section());
                 header.setVisible(true);
                 applyCssAfterCellUpdate(header, oldStyle);
-                placeHeader(header, rowTop, contentWidth, snapSizeY(info.height()), header == priorHeader);
+                // The plan's height is snapped already, and the rows below are placed by it:
+                // snapped again, JavaFX can ceil it a device pixel taller, over the next row.
+                placeHeader(header, rowTop, contentWidth, info.height(), header == priorHeader);
             } else {
                 int rowStart = info.firstItemIndex();
                 int cellsInRow = info.cellCount();
@@ -927,7 +929,7 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
     // stale on the pending-scroll path) — only whether the sticky will be shown.
     private double stickyOverlayHeight(RXTileRowPlan plan) {
         return control.isStickySectionHeader() && plan.headersShown()
-                ? snapSizeY(plan.headerHeight()) : 0.0;
+                ? plan.headerHeight() : 0.0;
     }
 
     private void layoutStickyHeader(RXTileRowPlan plan, double contentWidth) {
@@ -936,7 +938,7 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
             return;
         }
         ensureStickyHeader();
-        double stickyH = snapSizeY(plan.headerHeight());
+        double stickyH = plan.headerHeight();
         int topIndex = topSection.sectionIndex();
 
         // Handoff: once the next section's header rises into the [0, stickyH] band it

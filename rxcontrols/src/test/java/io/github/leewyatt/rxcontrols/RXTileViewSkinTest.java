@@ -3864,6 +3864,58 @@ public class RXTileViewSkinTest {
         });
     }
 
+    // ==================== Heights as planned ====================
+
+    /**
+     * Verifies section headers are as high as the row plan has them, for a height JavaFX 17
+     * moves a device pixel further when it is snapped twice: at 1.75, 128.5 snaps to 225
+     * device pixels and 225 to 226. The viewport snapped the planned height again, and a
+     * header lay a device pixel over the first row of its section. The sticky header keeps
+     * the planned height too, and a row scrolled to the top lands right below it.
+     */
+    @Test
+    public void plannedHeaderHeightIsNotSnappedAgain() throws Exception {
+        onFx(() -> {
+            for (boolean sticky : new boolean[] {false, true}) {
+                RXTileView<String> view = manySections(4, 12);
+                view.setSectionHeaderHeight(128.5);
+                view.setPrefTileHeight(40.0);
+                view.setVgap(0.0);
+                view.setSectionSpacing(0.0);
+                view.setStickySectionHeader(sticky);
+                StackPane root = new StackPane(view);
+                Stage stage = new Stage();
+                stage.setScene(new Scene(root, 520, 700));
+                stage.setRenderScaleX(1.75);
+                stage.setRenderScaleY(1.75);
+                root.resize(520, 700);
+                pump(root);
+                if (!sticky) {
+                    RXTileSectionCell header = headerByKey(view, "s0");
+                    assertEquals(225.0, header.getHeight() * 1.75, 1e-6, "the height of the header in device pixels");
+                    assertEquals(yInViewport(header) + header.getHeight(), yInViewport(cellByIndex(view, 0)), 1e-9,
+                            "the first row starts where the header ends");
+                } else {
+                    view.scrollTo(12, ScrollAlignment.START);
+                    pump(root);
+                    RXTileSectionCell pinned = stickyHeader(view);
+                    assertEquals(225.0, pinned.getHeight() * 1.75, 1e-6, "the height of the sticky header");
+                    assertEquals(yInViewport(pinned) + pinned.getHeight(), yInViewport(cellByIndex(view, 12)), 1e-9,
+                            "the row scrolled to starts where the sticky header ends");
+                }
+            }
+        });
+    }
+
+    // The node's top in the viewport, through the layers between them.
+    private static double yInViewport(Node node) {
+        double y = 0.0;
+        for (Node n = node; !n.getStyleClass().contains("viewport"); n = n.getParent()) {
+            y += n.getLayoutY() + n.getTranslateY();
+        }
+        return y;
+    }
+
     // ==================== Helpers ====================
 
     private static RXTileView<String> stickyGeometry() {
