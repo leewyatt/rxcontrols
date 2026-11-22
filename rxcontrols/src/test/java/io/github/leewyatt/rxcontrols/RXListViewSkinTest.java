@@ -1924,14 +1924,15 @@ public class RXListViewSkinTest {
 
     /**
      * Verifies a measured row takes the height its content asks for when a narrower width
-     * makes it ask for a little more: 20.9 px wide, 21.2 px narrow, which snap to different
-     * device pixels at scales 1 and 1.75. The cache once compared the two unsnapped, found
-     * them within half a pixel and kept the row a device pixel short.
+     * makes it ask for a little more: 20.9 px wide, 21.2 px narrow, which snap a device
+     * pixel apart at scales 1, 1.75, 2 and 3. The cache once compared the two unsnapped,
+     * found them within half a pixel and kept the row a device pixel short; at 2 and 3 the
+     * viewport skipped the change as well, a device pixel there being half a pixel or less.
      */
     @Test
     public void measuredRowTakesASmallChangeAcrossAPixel() throws Exception {
         onFx(() -> {
-            for (double scale : new double[] {1.0, 1.75}) {
+            for (double scale : new double[] {1.0, 1.75, 2.0, 3.0}) {
                 RXListView<Integer> view = intItems(200);
                 view.setFixedCellSize(0);
                 view.setCellFactory(v -> new RXListCell<>() {

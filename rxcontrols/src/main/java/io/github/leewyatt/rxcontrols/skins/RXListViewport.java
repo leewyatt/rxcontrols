@@ -39,9 +39,12 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
 
     private static final PseudoClass PINNED_PSEUDO_CLASS = PseudoClass.getPseudoClass("pinned");
 
-    // Below this px difference a measured row height matches the placed (cached /
-    // estimated) height, so no correction is reported — stops a re-measure churn loop.
+    // Up to this px difference a measured height matches the placed (cached / estimated)
+    // one, so no correction is reported: unsnapped, smaller differences are not worth a
+    // re-pack. Snapped, both heights are on the device grid and differ by whole device
+    // pixels, a half pixel or less from a scale of 2 up, so any difference counts.
     private static final double MEASURE_EPSILON = 0.5;
+    private static final double ON_GRID_EPSILON = 1.0e-6;
 
     /**
      * Receives a measured cell height for the variable-height path. Primitive
@@ -543,11 +546,12 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
             cell.applyCss();
         }
         // Reports the content's own height; the skin snaps what it stores each time it
-        // lays the cells out. A height reported snapped stays on the grid it was measured
-        // on, and after a snapToPixel or render scale change this check skips correcting
-        // it whenever the difference is under half a pixel.
+        // lays the cells out, so a snapToPixel or render scale change needs no new
+        // measurement. A height reported snapped would stay on the grid it was measured
+        // on, and once snapping is off this check skips a difference under half a pixel.
         double content = cell.prefHeight(width);
-        if (Math.abs(snapSizeY(content) - placedHeight) > MEASURE_EPSILON) {
+        double tolerance = isSnapToPixel() ? ON_GRID_EPSILON : MEASURE_EPSILON;
+        if (Math.abs(snapSizeY(content) - placedHeight) > tolerance) {
             heightSink.onMeasured(itemIndex, content);
         }
     }

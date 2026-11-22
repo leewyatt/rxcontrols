@@ -1428,14 +1428,16 @@ public class RXMasonryViewSkinTest {
 
     /**
      * Verifies a measured cell takes the height its content asks for when a narrower
-     * column makes it ask for a little more: 20.9 px wide, 21.2 px narrow, which snap to
-     * different device pixels at scales 1 and 1.75. The cache once compared the two
-     * unsnapped, found them within half a pixel and kept the cell a device pixel short.
+     * column makes it ask for a little more: 20.9 px wide, 21.2 px narrow, which snap a
+     * device pixel apart at scales 1, 1.75, 2 and 3. The cache once compared the two
+     * unsnapped, found them within half a pixel and kept the cell a device pixel short; at
+     * 2 and 3 the viewport skipped the change as well, a device pixel there being half a
+     * pixel or less.
      */
     @Test
     public void measuredCellTakesASmallChangeAcrossAPixel() throws Exception {
         onFx(() -> {
-            for (double scale : new double[] {1.0, 1.75}) {
+            for (double scale : new double[] {1.0, 1.75, 2.0, 3.0}) {
                 ObservableList<Integer> items = FXCollections.observableArrayList();
                 for (int i = 0; i < 200; i++) {
                     items.add(i);
