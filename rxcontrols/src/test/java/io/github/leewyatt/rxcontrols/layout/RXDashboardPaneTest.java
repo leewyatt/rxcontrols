@@ -737,7 +737,9 @@ public class RXDashboardPaneTest {
             assertFalse(a.getChildrenUnmodifiable().contains(first));
             assertSame(a, second.getParent());
             a.setContent(null);
-            assertTrue(a.getChildrenUnmodifiable().isEmpty());
+            assertFalse(a.getChildrenUnmodifiable().contains(second));
+            assertTrue(a.getChildrenUnmodifiable().stream().allMatch(
+                    child -> child.getStyleClass().contains("resize-handle")));
             assertPlacement(a, 0, 0, 2, 1);
         });
     }

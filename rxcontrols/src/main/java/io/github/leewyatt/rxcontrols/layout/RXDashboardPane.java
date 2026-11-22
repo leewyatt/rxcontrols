@@ -589,7 +589,14 @@ public class RXDashboardPane extends Region {
 
     // ==================== Live Resize ====================
 
-    private final BooleanProperty liveResize = new SimpleBooleanProperty(this, "liveResize", true);
+    private final BooleanProperty liveResize = new SimpleBooleanProperty(this, "liveResize", true) {
+        @Override
+        protected void invalidated() {
+            if (gesture.isActive()) {
+                requestLayout();
+            }
+        }
+    };
 
     /**
      * Whether a card the user resizes changes size with the pointer, laying its content out at every step, or keeps

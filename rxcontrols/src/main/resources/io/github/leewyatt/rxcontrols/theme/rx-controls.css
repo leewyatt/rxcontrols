@@ -4318,6 +4318,18 @@
     -fx-cursor: closed-hand;
 }
 
+.rx-dashboard-card > .resize-handle.right {
+    -fx-cursor: h-resize;
+}
+
+.rx-dashboard-card > .resize-handle.bottom {
+    -fx-cursor: v-resize;
+}
+
+.rx-dashboard-card > .resize-handle.corner {
+    -fx-cursor: se-resize;
+}
+
 .rx-dashboard-pane > .placeholder {
     -fx-background-color: -rx-primary-bg;
     -fx-background-radius: 6;

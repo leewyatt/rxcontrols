@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.layout;
 
+import io.github.leewyatt.rxcontrols.layout.RXDashboardCard.Edge;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardLayout.Placement;
 import javafx.beans.InvalidationListener;
 import javafx.event.EventHandler;
@@ -17,15 +18,17 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * The user gestures of an {@link RXDashboardPane}: dragging a card. One instance per pane.
+ * The user gestures of an {@link RXDashboardPane}: dragging a card and resizing it. One instance per pane.
  *
- * <p>A press on a card that its content did not consume arms the gesture; once the pointer has moved
- * {@link #DRAG_THRESHOLD} pixels it starts. The card then follows the pointer through its translate, raised above
- * the other cards by its view order, while its layout position stays where the gesture started. Whenever the
- * pointer reaches another cell, the edit is solved from the layout the gesture started with; an accepted candidate
- * becomes the preview the pane lays the other cards out by, and the placeholder marks it. Releasing commits the
- * preview; Esc, the window losing focus, the pane leaving its scene and any change to the pane's cards or layout
- * cancel it, and every card glides back from where it shows.</p>
+ * <p>A press on a card that its content did not consume arms a drag; a press on one of the card's resize handles
+ * arms a resize. Once the pointer has moved {@link #DRAG_THRESHOLD} pixels the gesture starts and the card is raised
+ * above the others by its view order. A dragged card follows the pointer through its translate while its layout
+ * position stays where the gesture started; a resized card keeps its top-left corner and, with live resize on,
+ * takes the size the pointer gives it, within its span limits. Whenever the pointer reaches another cell, the edit
+ * is solved from the layout the gesture started with; an accepted candidate becomes the preview the pane lays the
+ * other cards out by, and the placeholder marks it. Releasing commits the preview; Esc, the window losing focus, the
+ * pane leaving its scene and any change to the pane's cards or layout cancel it, and every card glides back from
+ * where it shows.</p>
  */
 final class DashboardGesture {
 
@@ -39,11 +42,14 @@ final class DashboardGesture {
     private boolean armed;
     private boolean started;
     private RXDashboardCard card;
+    // The edge a resize pulls, or null for a drag.
+    private Edge edge;
     private double pressSceneX;
     private double pressSceneY;
     private double lastSceneX;
     private double lastSceneY;
-    // The pointer's offset from the card's top-left corner as it showed at the press, in the pane's coordinates.
+    // In the pane's coordinates: for a drag, the pointer's offset from the card's top-left corner as it showed at the
+    // press; for a resize, its offset from the card's right and bottom edges at its cells.
     private double grabX;
     private double grabY;
     private double viewOrderBefore;
@@ -123,15 +129,38 @@ final class DashboardGesture {
     }
 
     /**
-     * Lays the dragged card out: at the cells it had when the gesture started, displaced by the pointer.
+     * Lays the edited card out at the cells it had when the gesture started: a dragged card displaced by the
+     * pointer, a resized one at the size the pointer gives it when resizing live.
      *
      * @param grid the grid of the pass
      */
     void layoutCard(DashboardGrid grid) {
         Placement start = startLayout.get(card);
-        card.resize(grid.spanWidth(start.column(), start.columnSpan()), grid.spanHeight(start.row(), start.rowSpan()));
-        card.relocate(grid.columnX(start.column()), grid.rowY(start.row()));
-        follow();
+        double x = grid.columnX(start.column());
+        double y = grid.rowY(start.row());
+        double width = grid.spanWidth(start.column(), start.columnSpan());
+        double height = grid.spanHeight(start.row(), start.rowSpan());
+        if (edge != null && pane.isLiveResize()) {
+            Point2D local = pane.sceneToLocal(lastSceneX, lastSceneY);
+            Placement smallest = smallestArea(start, grid.columnCount());
+            Placement largest = largestArea(start, grid.columnCount());
+            if (edge != Edge.BOTTOM) {
+                width = clamp(local.getX() - grabX - x, grid.spanWidth(start.column(), smallest.columnSpan()),
+                        grid.spanWidth(start.column(), largest.columnSpan()));
+            }
+            if (edge != Edge.RIGHT) {
+                double maxHeight = largest.rowSpan() >= DashboardSolver.MAX_ROW_SPAN ? Double.MAX_VALUE
+                        : grid.spanHeight(start.row(), largest.rowSpan());
+                height = clamp(local.getY() - grabY - y, grid.spanHeight(start.row(), smallest.rowSpan()), maxHeight);
+            }
+            width = card.snapSizeX(width);
+            height = card.snapSizeY(height);
+        }
+        card.resize(width, height);
+        card.relocate(x, y);
+        if (edge == null) {
+            follow();
+        }
     }
 
     /**
@@ -154,19 +183,36 @@ final class DashboardGesture {
         }
         armed = false;
         RXDashboardCard pressed = cardOf(event.getTarget());
-        if (pressed == null || !pane.isEditable() || pressed.isLocked() || !pressed.isMoveEnabled()
-                || !onHandle(event.getTarget(), pressed)) {
+        if (pressed == null || !pane.isEditable() || pressed.isLocked()) {
+            return;
+        }
+        Edge pulled = edgeOf(event.getTarget(), pressed);
+        if (pulled != null ? !pressed.isResizeEnabled()
+                : !pressed.isMoveEnabled() || !onHandle(event.getTarget(), pressed)) {
             return;
         }
         card = pressed;
+        edge = pulled;
         pressSceneX = event.getSceneX();
         pressSceneY = event.getSceneY();
         lastSceneX = pressSceneX;
         lastSceneY = pressSceneY;
         Point2D local = pane.sceneToLocal(pressSceneX, pressSceneY);
-        grabX = local.getX() - (card.getLayoutX() + card.getTranslateX());
-        grabY = local.getY() - (card.getLayoutY() + card.getTranslateY());
+        if (edge == null) {
+            // A drag keeps the grabbed point under the pointer, from where the card shows now, even mid-glide.
+            grabX = local.getX() - (card.getLayoutX() + card.getTranslateX());
+            grabY = local.getY() - (card.getLayoutY() + card.getTranslateY());
+        } else {
+            // A resized card stops gliding and stands at its cells when the gesture starts; the pulled edge moves
+            // from there by as much as the pointer moves.
+            grabX = local.getX() - (card.getLayoutX() + card.getWidth());
+            grabY = local.getY() - (card.getLayoutY() + card.getHeight());
+        }
         armed = true;
+        if (edge != null) {
+            // The press is the handle's: nothing under it, and nothing above the pane, should act on it.
+            event.consume();
+        }
     }
 
     private void dragged(MouseEvent event) {
@@ -205,8 +251,9 @@ final class DashboardGesture {
 
     private boolean start() {
         // The card may have left the pane, or the pane its editable state, between the press and now.
-        if (card.owner != pane || card.placement == null || !pane.isEditable() || card.isLocked()
-                || !card.isMoveEnabled() || pane.getScene() == null) {
+        boolean allowed = edge != null ? card.isResizeEnabled() : card.isMoveEnabled();
+        if (card.owner != pane || card.placement == null || !pane.isEditable() || card.isLocked() || !allowed
+                || pane.getScene() == null) {
             return false;
         }
         started = true;
@@ -219,24 +266,30 @@ final class DashboardGesture {
         if (!card.viewOrderProperty().isBound()) {
             card.setViewOrder(viewOrderBefore - 1.0);
         }
-        card.pseudoClassStateChanged(RXDashboardCard.DRAGGING_PSEUDO_CLASS, true);
+        card.pseudoClassStateChanged(edge == null ? RXDashboardCard.DRAGGING_PSEUDO_CLASS
+                : RXDashboardCard.RESIZING_PSEUDO_CLASS, true);
         watch(pane.getScene());
-        follow();
+        if (edge == null) {
+            follow();
+        }
         pane.requestLayout();
         return true;
     }
 
     // Follows the pointer and re-solves when it reaches another cell.
     private void update() {
-        follow();
+        if (edge == null) {
+            follow();
+        } else if (pane.isLiveResize()) {
+            pane.requestLayout();
+        }
         DashboardGrid grid = pane.grid();
         if (grid == null) {
             return;
         }
         Point2D local = pane.sceneToLocal(lastSceneX, lastSceneY);
         Placement start = startLayout.get(card);
-        Placement next = start.withPosition(grid.nearestColumn(local.getX() - grabX, start.columnSpan()),
-                grid.nearestRow(local.getY() - grabY));
+        Placement next = edge == null ? dragCandidate(grid, start, local) : resizeCandidate(grid, start, local);
         if (next.equals(candidate)) {
             return;
         }
@@ -247,6 +300,50 @@ final class DashboardGesture {
         candidate = next;
         preview = solved;
         pane.requestLayout();
+    }
+
+    // The cell nearest to the card's top-left corner as it follows the pointer.
+    private Placement dragCandidate(DashboardGrid grid, Placement start, Point2D local) {
+        return start.withPosition(grid.nearestColumn(local.getX() - grabX, start.columnSpan()),
+                grid.nearestRow(local.getY() - grabY));
+    }
+
+    // The spans whose edges are nearest to the pulled edges, within the card's span limits and the grid.
+    private Placement resizeCandidate(DashboardGrid grid, Placement start, Point2D local) {
+        int columnSpan = start.columnSpan();
+        int rowSpan = start.rowSpan();
+        if (edge != Edge.BOTTOM) {
+            columnSpan = grid.nearestColumnSpan(start.column(), local.getX() - grabX);
+        }
+        if (edge != Edge.RIGHT) {
+            rowSpan = grid.nearestRowSpan(start.row(), local.getY() - grabY);
+        }
+        Placement smallest = smallestArea(start, grid.columnCount());
+        Placement largest = largestArea(start, grid.columnCount());
+        return start.withSpan(Math.max(smallest.columnSpan(), Math.min(largest.columnSpan(), columnSpan)),
+                Math.max(smallest.rowSpan(), Math.min(largest.rowSpan(), rowSpan)));
+    }
+
+    // The card at its smallest and largest spans from its top-left cell, within its limits and the grid.
+    private Placement smallestArea(Placement start, int columns) {
+        Placement clamped = DashboardSolver.clamp(item(), start.withSpan(1, 1), columns);
+        return start.withSpan(Math.min(clamped.columnSpan(), columns - start.column()), clamped.rowSpan());
+    }
+
+    private Placement largestArea(Placement start, int columns) {
+        Placement clamped = DashboardSolver.clamp(item(), start.withSpan(Integer.MAX_VALUE, Integer.MAX_VALUE),
+                columns);
+        return start.withSpan(Math.max(1, Math.min(clamped.columnSpan(), columns - start.column())),
+                clamped.rowSpan());
+    }
+
+    private DashboardSolver.Item<RXDashboardCard> item() {
+        return new DashboardSolver.Item<>(card, card.placement, card.isLocked(), card.getMinColumnSpan(),
+                card.getMaxColumnSpan(), card.getMinRowSpan(), card.getMaxRowSpan());
+    }
+
+    private static double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(Math.max(min, max), value));
     }
 
     // The translate that keeps the grabbed point under the pointer, from the card's current layout position.
@@ -292,7 +389,9 @@ final class DashboardGesture {
             ended.setViewOrder(viewOrderBefore);
         }
         ended.pseudoClassStateChanged(RXDashboardCard.DRAGGING_PSEUDO_CLASS, false);
+        ended.pseudoClassStateChanged(RXDashboardCard.RESIZING_PSEUDO_CLASS, false);
         card = null;
+        edge = null;
         startLayout = null;
         preview = null;
         candidate = null;
@@ -335,6 +434,12 @@ final class DashboardGesture {
             }
         }
         return null;
+    }
+
+    // The edge a press pulls: the resize handle of the pressed card the target is, or null.
+    private static Edge edgeOf(EventTarget target, RXDashboardCard pressed) {
+        Node node = target instanceof Node n ? n : null;
+        return node != null && node.getParent() == pressed ? RXDashboardCard.edgeOf(node) : null;
     }
 
     private static boolean onHandle(EventTarget target, RXDashboardCard pressed) {

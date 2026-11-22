@@ -269,6 +269,170 @@ public class RXDashboardPaneGestureTest {
         });
     }
 
+    // ==================== Resizing ====================
+
+    @Test
+    public void handlesStraddleTheEdgesAndShowOnlyWhereResizingIsAllowed() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            Region right = handle(board.a, "right");
+            Region bottom = handle(board.a, "bottom");
+            Region corner = handle(board.a, "corner");
+            assertTrue(right.isVisible());
+            assertEquals(196.0, right.getLayoutX(), EPSILON);
+            assertEquals(8.0, right.getWidth(), EPSILON);
+            assertEquals(96.0, bottom.getLayoutY(), EPSILON);
+            assertEquals(8.0, bottom.getHeight(), EPSILON);
+            assertEquals(188.0, corner.getLayoutX(), EPSILON);
+            assertEquals(16.0, corner.getWidth(), EPSILON);
+            assertEquals(88.0, right.getHeight(), EPSILON);
+            board.a.setResizeEnabled(false);
+            board.layout();
+            assertFalse(right.isVisible());
+            board.a.setResizeEnabled(true);
+            board.a.setLocked(true);
+            board.layout();
+            assertFalse(corner.isVisible());
+            board.a.setLocked(false);
+            board.pane.setEditable(false);
+            board.layout();
+            assertFalse(bottom.isVisible());
+            assertFalse(handle(new RXDashboardCard(), "right").isVisible(), "no handles outside a pane");
+        });
+    }
+
+    @Test
+    public void widenFromTheRightEdgeLive() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            List<RXDashboardEvent> events = board.events();
+            Region right = handle(board.a, "right");
+            Point2D start = board.press(right, 4, 40);
+            board.drag(right, start.getX() + 70, start.getY());
+            board.layout();
+            assertTrue(board.a.getPseudoClassStates().contains(PseudoClass.getPseudoClass("resizing")));
+            assertEquals(270.0, board.a.getWidth(), EPSILON, "follows the pointer");
+            assertEquals(100.0, board.a.getHeight(), EPSILON);
+            assertEquals(new Placement(0, 0, 3, 1), board.candidate());
+            assertEquals(100.0, board.b.getLayoutY(), EPSILON, "B pushed in the preview");
+            board.release(right, start.getX() + 70, start.getY());
+            board.layout();
+            assertPlacement(board.a, 0, 0, 3, 1);
+            assertPlacement(board.b, 2, 1, 1, 1);
+            assertPlacement(board.c, 2, 2, 1, 1);
+            assertEquals(300.0, board.a.getWidth(), EPSILON, "snaps to its cells");
+            assertEquals(1, events.size());
+            assertFalse(board.a.getPseudoClassStates().contains(PseudoClass.getPseudoClass("resizing")));
+        });
+    }
+
+    @Test
+    public void growTheTrendChartFromTheCorner() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            Region corner = handle(board.a, "corner");
+            Point2D start = board.press(corner, 12, 12);
+            board.drag(corner, start.getX() + 100, start.getY() + 100);
+            board.release(corner, start.getX() + 100, start.getY() + 100);
+            assertPlacement(board.a, 0, 0, 3, 2);
+            assertPlacement(board.b, 2, 2, 1, 1);
+            assertPlacement(board.c, 2, 3, 1, 1);
+
+            Region bottom = handle(board.c, "bottom");
+            board.layout();
+            Point2D from = board.press(bottom, 40, 4);
+            board.drag(bottom, from.getX(), from.getY() + 160);
+            board.release(bottom, from.getX(), from.getY() + 160);
+            assertPlacement(board.c, 2, 3, 1, 3);
+        });
+    }
+
+    @Test
+    public void resizingStaysWithinSpanLimitsAndTheGrid() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            board.a.setMaxColumnSpan(2);
+            board.a.setMinRowSpan(1);
+            Region right = handle(board.a, "right");
+            Point2D start = board.press(right, 4, 40);
+            board.drag(right, start.getX() + 150, start.getY());
+            board.layout();
+            assertEquals(200.0, board.a.getWidth(), EPSILON);
+            assertEquals(new Placement(0, 0, 2, 1), board.candidate());
+            board.drag(right, start.getX() - 150, start.getY());
+            board.layout();
+            assertEquals(100.0, board.a.getWidth(), EPSILON, "never below one column");
+            board.release(right, start.getX() - 150, start.getY());
+            assertPlacement(board.a, 0, 0, 1, 1);
+
+            Board wide = new Board();
+            Region edge = handle(wide.c, "right");
+            Point2D from = wide.press(edge, 4, 40);
+            wide.drag(edge, from.getX() + 400, from.getY());
+            wide.layout();
+            assertEquals(200.0, wide.c.getWidth(), EPSILON, "stops at the grid's right edge");
+            wide.release(edge, from.getX() + 400, from.getY());
+            assertPlacement(wide.c, 2, 1, 2, 1);
+        });
+    }
+
+    @Test
+    public void resizingOntoALockedCardIsRejected() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            board.b.setLocked(true);
+            List<RXDashboardEvent> events = board.events();
+            Region right = handle(board.a, "right");
+            Point2D start = board.press(right, 4, 40);
+            board.drag(right, start.getX() + 100, start.getY());
+            board.layout();
+            assertEquals(new Placement(0, 0, 2, 1), board.candidate());
+            board.release(right, start.getX() + 100, start.getY());
+            assertPlacement(board.a, 0, 0, 2, 1);
+            assertTrue(events.isEmpty());
+        });
+    }
+
+    @Test
+    public void withoutLiveResizeOnlyThePlaceholderFollows() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            board.pane.setLiveResize(false);
+            Region right = handle(board.a, "right");
+            Point2D start = board.press(right, 4, 40);
+            board.drag(right, start.getX() + 100, start.getY());
+            board.layout();
+            assertEquals(200.0, board.a.getWidth(), EPSILON);
+            assertEquals(300.0, board.placeholder().getWidth(), EPSILON);
+            board.pane.setLiveResize(true);
+            board.layout();
+            assertEquals(300.0, board.a.getWidth(), EPSILON);
+            board.release(right, start.getX() + 100, start.getY());
+            assertPlacement(board.a, 0, 0, 3, 1);
+        });
+    }
+
+    @Test
+    public void escapeCancelsAResize() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            List<RXDashboardEvent> events = board.events();
+            Region corner = handle(board.a, "corner");
+            Point2D start = board.press(corner, 12, 12);
+            board.drag(corner, start.getX() + 100, start.getY() + 100);
+            board.layout();
+            board.pane.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ESCAPE, false, false, false,
+                    false));
+            board.layout();
+            assertEquals(200.0, board.a.getWidth(), EPSILON);
+            assertEquals(100.0, board.a.getHeight(), EPSILON);
+            board.release(corner, start.getX() + 100, start.getY() + 100);
+            assertPlacement(board.a, 0, 0, 2, 1);
+            assertPlacement(board.b, 2, 0, 1, 1);
+            assertTrue(events.isEmpty());
+        });
+    }
+
     // ==================== Event handlers ====================
 
     @Test
@@ -348,6 +512,15 @@ public class RXDashboardPaneGestureTest {
     }
 
     // ==================== Helpers ====================
+
+    private static Region handle(RXDashboardCard card, String edge) {
+        for (Node child : card.getChildrenUnmodifiable()) {
+            if (child.getStyleClass().contains("resize-handle") && child.getStyleClass().contains(edge)) {
+                return (Region) child;
+            }
+        }
+        throw new AssertionError("no " + edge + " handle");
+    }
 
     private static void assertNoDrag(Board board) {
         Point2D start = board.press(board.a, 5, 5);

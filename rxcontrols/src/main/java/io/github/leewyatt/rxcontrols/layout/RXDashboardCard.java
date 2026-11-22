@@ -60,12 +60,23 @@ public class RXDashboardCard extends Region {
     // A column or row of -1: the card has no position yet and goes to the first free area when added.
     private static final int NO_POSITION = -1;
 
+    /**
+     * The edge a resize handle pulls.
+     */
+    enum Edge {
+        RIGHT, BOTTOM, CORNER
+    }
+
     // ==================== Pane bookkeeping ====================
 
     // The pane whose card list holds this card, and the placement it committed for it. Package-private: the pane
     // writes them, the card only reads them.
     RXDashboardPane owner;
     Placement placement;
+
+    private final ResizeHandle rightHandle = new ResizeHandle(Edge.RIGHT, "right");
+    private final ResizeHandle bottomHandle = new ResizeHandle(Edge.BOTTOM, "bottom");
+    private final ResizeHandle cornerHandle = new ResizeHandle(Edge.CORNER, "corner");
 
     // ==================== Constructors ====================
 
@@ -105,6 +116,7 @@ public class RXDashboardCard extends Region {
                            @NamedArg(value = "columnSpan", defaultValue = "1") int columnSpan,
                            @NamedArg(value = "rowSpan", defaultValue = "1") int rowSpan) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
+        getChildren().addAll(rightHandle, bottomHandle, cornerHandle);
         boolean positioned = column >= 0 && row >= 0;
         this.column.set(positioned ? column : NO_POSITION);
         this.row.set(positioned ? row : NO_POSITION);
@@ -308,6 +320,7 @@ public class RXDashboardCard extends Region {
         @Override
         protected void invalidated() {
             pseudoClassStateChanged(LOCKED_PSEUDO_CLASS, get());
+            requestLayout();
             if (owner != null) {
                 owner.cardChanged();
             }
@@ -395,8 +408,9 @@ public class RXDashboardCard extends Region {
     };
 
     /**
-     * Whether the user can resize the card. When off, the card shows no resize handles; it still makes room when
-     * another card is pushed onto it, and code can still resize it. On by default.
+     * Whether the user can resize the card from its right edge, bottom edge or bottom-right corner. When off, the card
+     * shows no resize handles; it still makes room when another card is pushed onto it, and code can still resize
+     * it. On by default.
      *
      * @return the resize-enabled property
      */
@@ -595,6 +609,7 @@ public class RXDashboardCard extends Region {
 
     @Override
     protected void layoutChildren() {
+        layoutHandles();
         Node node = getContent();
         if (node == null || node.getParent() != this) {
             return;
@@ -623,12 +638,43 @@ public class RXDashboardCard extends Region {
         }
     }
 
+    // The handles straddle the card's right and bottom edges, half in the gap and half in the padding, so with the
+    // default padding they cover no content; the corner square takes the bottom-right end of both. They show only
+    // where the user may resize the card.
+    private void layoutHandles() {
+        boolean shown = owner != null && owner.isEditable() && isResizeEnabled() && !isLocked();
+        rightHandle.setVisible(shown);
+        bottomHandle.setVisible(shown);
+        cornerHandle.setVisible(shown);
+        if (!shown) {
+            return;
+        }
+        double width = getWidth();
+        double height = getHeight();
+        double thicknessX = snapSizeX(rightHandle.prefWidth(-1));
+        double thicknessY = snapSizeY(bottomHandle.prefHeight(-1));
+        double rightStart = snapPositionX(width - thicknessX / 2.0);
+        double rightEnd = rightStart + thicknessX;
+        double bottomStart = snapPositionY(height - thicknessY / 2.0);
+        double bottomEnd = bottomStart + thicknessY;
+        double cornerX = Math.min(rightStart, rightEnd - snapSizeX(cornerHandle.prefWidth(-1)));
+        double cornerY = Math.min(bottomStart, bottomEnd - snapSizeY(cornerHandle.prefHeight(-1)));
+        cornerHandle.resizeRelocate(cornerX, cornerY, rightEnd - cornerX, bottomEnd - cornerY);
+        rightHandle.resizeRelocate(rightStart, 0.0, thicknessX, Math.max(0.0, cornerY));
+        bottomHandle.resizeRelocate(0.0, bottomStart, Math.max(0.0, cornerX), thicknessY);
+    }
+
     // The area size within [min, max], the minimum winning over a smaller maximum.
     private static double fit(double area, double min, double max) {
         return Math.max(min, Math.min(area, Math.max(min, max)));
     }
 
     // ==================== Pane hooks ====================
+
+    // The edge a press on this node pulls, or null when the node is not one of a card's resize handles.
+    static Edge edgeOf(Node node) {
+        return node instanceof ResizeHandle handle ? handle.edge : null;
+    }
 
     // Publishes the placement the pane committed to the read-only properties.
     void publish(Placement value) {
@@ -643,4 +689,35 @@ public class RXDashboardCard extends Region {
         return new Placement(column.get(), row.get(), columnSpan.get(), rowSpan.get());
     }
 
+
+    // ==================== Resize handle ====================
+
+    // A transparent strip over the card's edge that the user pulls to resize the card. It is picked on its bounds,
+    // so it takes presses whatever the style sheet paints. The default thickness and corner size are its preferred
+    // size; a style sheet may change them with -fx-pref-width and -fx-pref-height.
+    private static final class ResizeHandle extends Region {
+
+        private static final double DEFAULT_THICKNESS = 8.0;
+        private static final double DEFAULT_CORNER_SIZE = 16.0;
+
+        private final Edge edge;
+
+        ResizeHandle(Edge edge, String styleClass) {
+            this.edge = edge;
+            getStyleClass().addAll("resize-handle", styleClass);
+            setManaged(false);
+            setPickOnBounds(true);
+            setVisible(false);
+        }
+
+        @Override
+        protected double computePrefWidth(double height) {
+            return edge == Edge.CORNER ? DEFAULT_CORNER_SIZE : DEFAULT_THICKNESS;
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            return edge == Edge.CORNER ? DEFAULT_CORNER_SIZE : DEFAULT_THICKNESS;
+        }
+    }
 }
