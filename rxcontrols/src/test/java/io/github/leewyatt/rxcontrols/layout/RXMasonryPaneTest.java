@@ -11,6 +11,7 @@ import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
@@ -1566,44 +1567,190 @@ public class RXMasonryPaneTest {
     }
 
     /**
-     * Verifies a child of fixed-width columns that wants more than its columns is as wide
-     * as they are and no wider, so one reaching the last column ends at the content edge
-     * of a pane at its preferred width.
+     * Verifies a child that wants more than its columns is as wide as its slot and sits
+     * on it, in fixed-width and in filled columns, under every horizontal alignment and
+     * with margins: one reaching the last column ends at the content edge of a pane at
+     * its preferred width.
      */
     @Test
-    public void childrenOfFixedColumnsStayInsideTheirColumns() throws Exception {
+    public void childrenWantingMoreThanTheirColumnsTakeTheirSlot() throws Exception {
         runOnFx(() -> {
             double[][] geometries = {{60.0, 10.0, 4.0}, {61.0, 0.0, 11.0}, {49.0, 22.0, 8.0}, {40.0, 10.0, 4.0},
                     {100.0, 10.0, 3.0}};
-            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
-                for (double[] geometry : geometries) {
-                    int columns = (int) geometry[2];
-                    int[] spans = new int[columns + 2];
-                    Region[] cards = new Region[spans.length];
-                    for (int i = 0; i < cards.length; i++) {
-                        spans[i] = i < columns ? 1 : i == columns ? columns : Math.max(1, columns / 2);
-                        cards[i] = card(5000.0, 30.0);
-                        RXMasonryPane.setColumnSpan(cards[i], spans[i]);
-                    }
-                    RXMasonryPane pane = pane(geometry[0], geometry[1], 6.0, cards);
-                    pane.setAnimated(false);
-                    pane.setFillWidth(false);
-                    pane.setPrefColumns(columns);
-                    pane.setPadding(new Insets(3.0, 7.5, 3.0, 4.25));
-                    stageFor(pane).setRenderScaleX(scale);
-                    layout(pane, pane.prefWidth(-1), 600.0);
+            for (boolean fillWidth : new boolean[] {false, true}) {
+                for (Pos alignment : new Pos[] {Pos.TOP_LEFT, Pos.TOP_CENTER, Pos.TOP_RIGHT}) {
+                    for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                        for (double[] geometry : geometries) {
+                            int columns = (int) geometry[2];
+                            // One card a column, then one spanning every column and one half of them:
+                            // equal heights put card i in column i and the spanning ones in column 0.
+                            int[] spans = new int[columns + 2];
+                            Region[] cards = new Region[spans.length];
+                            for (int i = 0; i < cards.length; i++) {
+                                spans[i] = i < columns ? 1 : i == columns ? columns : Math.max(1, columns / 2);
+                                cards[i] = card(5000.0, 30.0);
+                                RXMasonryPane.setColumnSpan(cards[i], spans[i]);
+                                if (i % 2 == 1) {
+                                    RXMasonryPane.setMargin(cards[i], new Insets(0.0, 3.0, 0.0, 5.0));
+                                }
+                            }
+                            RXMasonryPane pane = pane(geometry[0], geometry[1], 6.0, cards);
+                            pane.setAnimated(false);
+                            pane.setFillWidth(fillWidth);
+                            pane.setAlignment(alignment);
+                            pane.setPrefColumns(columns);
+                            pane.setPadding(new Insets(3.0, 7.5, 3.0, 4.25));
+                            stageFor(pane).setRenderScaleX(scale);
+                            layout(pane, pane.prefWidth(-1), 600.0);
 
-                    String at = "scale " + scale + ", " + columns + " columns of " + geometry[0] + ", gap " + geometry[1];
-                    assertEquals(columns, pane.getActualColumnCount(), at + ": columns");
-                    double track = pane.snapSizeX(geometry[0]);
-                    double gap = pane.snapSpaceX(geometry[1]);
-                    double contentRight = pane.getWidth() - pane.snappedRightInset();
+                            String at = (fillWidth ? "filled, " : "fixed, ") + alignment + ", scale " + scale + ", "
+                                    + columns + " columns of " + geometry[0] + ", gap " + geometry[1];
+                            assertEquals(columns, pane.getActualColumnCount(), at + ": columns");
+                            double track = pane.snapSizeX(geometry[0]);
+                            double gap = pane.snapSpaceX(geometry[1]);
+                            double contentRight = pane.getWidth() - pane.snappedRightInset();
+                            for (int i = 0; i < cards.length; i++) {
+                                Insets margin = RXMasonryPane.getMargin(cards[i]);
+                                double left = margin == null ? 0.0 : pane.snapSpaceX(margin.getLeft());
+                                double right = margin == null ? 0.0 : pane.snapSpaceX(margin.getRight());
+                                int column = i < columns ? i : 0;
+                                double slotX = pane.snappedLeftInset() + column * (track + gap) + left;
+                                double slotWidth = spans[i] * track + (spans[i] - 1) * gap - left - right;
+                                assertClose(slotX, cards[i].getLayoutX(), at + ": x of card " + i);
+                                assertEquals(slotWidth, cards[i].getWidth(), 1e-9, at + ": width of card " + i);
+                                double edge = cards[i].getLayoutX() + cards[i].getWidth() + right;
+                                assertTrue(edge <= contentRight + 1e-9,
+                                        at + ": card " + i + " ends at " + edge + ", content at " + contentRight);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a child narrower than its slot, by its preferred width in fixed-width
+     * columns or by its maximum width in filled ones, keeps that width and is placed in
+     * the slot by the pane's horizontal alignment.
+     */
+    @Test
+    public void childNarrowerThanItsSlotFollowsTheAlignment() throws Exception {
+        runOnFx(() -> {
+            for (boolean fillWidth : new boolean[] {false, true}) {
+                for (double scale : new double[] {1.0, 1.5}) {
+                    Region[] cards = new Region[3];
                     for (int i = 0; i < cards.length; i++) {
-                        double slot = spans[i] * track + (spans[i] - 1) * gap;
-                        assertClose(slot, cards[i].getWidth(), at + ": width of card " + i);
-                        double right = cards[i].getLayoutX() + cards[i].getWidth();
-                        assertTrue(right <= contentRight + 1e-9,
-                                at + ": card " + i + " ends at " + right + ", content at " + contentRight);
+                        cards[i] = card(40.0, 30.0);
+                        cards[i].setMaxWidth(40.0);
+                    }
+                    RXMasonryPane pane = pane(100.0, 10.0, 6.0, cards);
+                    pane.setAnimated(false);
+                    pane.setFillWidth(fillWidth);
+                    pane.setPrefColumns(3);
+                    stageFor(pane).setRenderScaleX(scale);
+                    double[] offsets = {0.0, 30.0, 60.0};
+                    Pos[] alignments = {Pos.TOP_LEFT, Pos.TOP_CENTER, Pos.TOP_RIGHT};
+                    for (int a = 0; a < alignments.length; a++) {
+                        pane.setAlignment(alignments[a]);
+                        layout(pane, pane.prefWidth(-1), 400.0);
+                        for (int i = 0; i < cards.length; i++) {
+                            String at = (fillWidth ? "filled, " : "fixed, ") + alignments[a] + ", scale " + scale
+                                    + ", card " + i;
+                            assertClose(40.0, cards[i].getWidth(), at + ": width");
+                            assertClose(i * 110.0 + offsets[a], cards[i].getLayoutX(), at + ": x");
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a layout pass sets the width of a child once, and a pass that changes
+     * nothing sets none: a child ceiled past its slot and pulled back was resized twice
+     * on every pass, and laid out again each time.
+     */
+    @Test
+    public void passResizesAChildAtMostOnce() throws Exception {
+        runOnFx(() -> {
+            for (boolean fillWidth : new boolean[] {false, true}) {
+                for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                    CountingRegion[] cards = new CountingRegion[24];
+                    for (int i = 0; i < cards.length; i++) {
+                        cards[i] = new CountingRegion();
+                        cards[i].setPrefSize(5000.0, 20.0 + (i * 13) % 50);
+                        RXMasonryPane.setColumnSpan(cards[i], i % 5 == 2 ? 2 : i % 11 == 6 ? 3 : 1);
+                    }
+                    RXMasonryPane pane = paddedFilledPane(cards);
+                    pane.setFillWidth(fillWidth);
+                    stageFor(pane).setRenderScaleX(scale);
+                    for (double width = 300.0; width <= 520.0; width += 0.25) {
+                        String at = (fillWidth ? "filled" : "fixed") + ", scale " + scale + ", width " + width;
+                        for (CountingRegion card : cards) {
+                            card.widthChanges = 0;
+                        }
+                        layout(pane, width, 800.0);
+                        for (int i = 0; i < cards.length; i++) {
+                            assertTrue(cards[i].widthChanges <= 1,
+                                    at + ": card " + i + " resized " + cards[i].widthChanges + " times");
+                        }
+                        for (CountingRegion card : cards) {
+                            card.widthChanges = 0;
+                            card.layouts = 0;
+                        }
+                        pane.requestLayout();
+                        pane.layout();
+                        for (int i = 0; i < cards.length; i++) {
+                            assertEquals(0, cards[i].widthChanges, at + ": card " + i + " resized on a repeated pass");
+                            assertEquals(0, cards[i].layouts, at + ": card " + i + " laid out on a repeated pass");
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a pane whose children follow their own width at once, as a wrapping label
+     * does, comes to rest. Such a child, resized past its slot and back in one pass,
+     * changed its content both times and asked for another layout from inside the pass:
+     * the pane laid out on every pulse.
+     */
+    @Test
+    public void layoutComesToRestWithWrappingLabels() throws Exception {
+        runOnFx(() -> {
+            double[][] geometries = {{63.0, 0.0, 3.0}, {61.0, 8.0, 2.0}, {261.0, 10.0, 3.0}, {60.0, 10.0, 4.0}};
+            for (boolean fillWidth : new boolean[] {false, true}) {
+                for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                    for (double[] geometry : geometries) {
+                        int columns = (int) geometry[2];
+                        RXMasonryPane pane = new RXMasonryPane();
+                        pane.setFillWidth(fillWidth);
+                        pane.setColumnWidth(geometry[0]);
+                        pane.setHgap(geometry[1]);
+                        pane.setPrefColumns(columns);
+                        Label banner = wrappingLabel();
+                        RXMasonryPane.setColumnSpan(banner, columns);
+                        pane.getChildren().add(banner);
+                        for (int i = 0; i < columns * 2; i++) {
+                            pane.getChildren().add(wrappingLabel());
+                        }
+                        stageFor(pane).setRenderScaleX(scale);
+                        pane.applyCss();
+                        double preferred = pane.prefWidth(-1);
+                        // Fixed columns do not depend on the width; filled ones are tried at many.
+                        double widest = fillWidth ? preferred + 40.0 : preferred;
+                        for (double width = preferred; width <= widest; width += 0.25) {
+                            pane.resize(width, 2000.0);
+                            for (int pass = 0; pass < 6; pass++) {
+                                pane.applyCss();
+                                pane.layout();
+                            }
+                            assertFalse(pane.isNeedsLayout(), (fillWidth ? "filled" : "fixed") + ", scale " + scale
+                                    + ", " + columns + " columns of " + geometry[0] + ", gap " + geometry[1]
+                                    + ", width " + width + ": still asking for a layout");
+                        }
                     }
                 }
             }
@@ -2338,6 +2485,12 @@ public class RXMasonryPaneTest {
         return region;
     }
 
+    private static Label wrappingLabel() {
+        Label label = new Label("A text long enough to wrap onto several lines in a narrow column of the pane");
+        label.setWrapText(true);
+        return label;
+    }
+
     private static void layout(Region region, double width, double height) {
         region.resize(width, height);
         region.layout();
@@ -2373,6 +2526,25 @@ public class RXMasonryPaneTest {
     }
 
     private static final class FixedRegion extends Region {
+    }
+
+    /**
+     * A region that counts its width changes and its layout passes.
+     */
+    private static final class CountingRegion extends Region {
+
+        private int widthChanges;
+        private int layouts;
+
+        private CountingRegion() {
+            widthProperty().addListener((observable, oldWidth, newWidth) -> widthChanges++);
+        }
+
+        @Override
+        protected void layoutChildren() {
+            layouts++;
+            super.layoutChildren();
+        }
     }
 
     /**
