@@ -39,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -1811,6 +1812,75 @@ public class RXListViewSkinTest {
                     RXListCell<?> row = rows.get(i);
                     assertEquals(height, row.getHeight(), 1e-9, "scale " + scale + ": the height of row " + i);
                     assertEquals(i * height, row.getLayoutY(), 1e-9, "scale " + scale + ": the top of row " + i);
+                }
+            }
+        });
+    }
+
+    // ==================== Heights as planned ====================
+
+    /**
+     * Verifies rows and section headers are as high as the row plan has them, each starting
+     * where the one above ends, for a height JavaFX 17 moves a device pixel further when it
+     * is snapped twice: at 1.75, 128.5 snaps to 225 device pixels and 225 to 226. The
+     * viewport snapped the planned heights again, and each row lay a device pixel over the
+     * next.
+     */
+    @Test
+    public void plannedHeightsAreNotSnappedAgain() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> fixedRows = intItems(50);
+            fixedRows.setFixedCellSize(128.5);
+            RXListView<Integer> headers = intItems(50);
+            headers.setFixedCellSize(20.0);
+            headers.setSectionKeyFactory(item -> item / 5);
+            headers.setSectionHeaderHeight(128.5);
+            headers.setStickySectionHeader(false);
+            RXListView<Integer> sticky = intItems(50);
+            sticky.setFixedCellSize(20.0);
+            sticky.setSectionKeyFactory(item -> item / 5);
+            sticky.setSectionHeaderHeight(128.5);
+            sticky.setStickySectionHeader(true);
+
+            String[] names = {"fixed rows", "section headers", "sticky header"};
+            RXListView<?>[] views = {fixedRows, headers, sticky};
+            for (int v = 0; v < views.length; v++) {
+                RXListView<?> view = views[v];
+                StackPane root = new StackPane(view);
+                Stage stage = new Stage();
+                stage.setScene(new Scene(root, 520, 700));
+                stage.setRenderScaleX(1.75);
+                stage.setRenderScaleY(1.75);
+                root.resize(520, 700);
+                pump(root);
+                if (view == sticky) {
+                    verticalBar(view).setValue(30.0);
+                    pump(root);
+                    assertEquals(225.0, stickyHeader(view).getHeight() * 1.75, 1e-6, "the height of the sticky header");
+                    // A row scrolled to the top lands right below the pinned header.
+                    view.scrollTo(12, ScrollAlignment.START);
+                    pump(root);
+                    RXListSectionCell pinned = stickyHeader(view);
+                    // The rows sit in a content layer of the viewport, the sticky header on it.
+                    double targetY = 0.0;
+                    for (Node node = cellByIndex(view, 12); node != pinned.getParent(); node = node.getParent()) {
+                        targetY += node.getLayoutY() + node.getTranslateY();
+                    }
+                    assertEquals(pinned.getLayoutY() + pinned.getHeight(), targetY, 1e-9,
+                            "the row scrolled to starts where the sticky header ends");
+                    continue;
+                }
+                List<Region> rows = new ArrayList<>(shownRows(view));
+                rows.addAll(inFlowHeaders(view));
+                rows.sort(Comparator.comparingDouble(Node::getLayoutY));
+                assertTrue(rows.size() >= 4, names[v] + ": setup: rows in view");
+                Region planned = view == headers ? inFlowHeaders(view).get(0) : rows.get(0);
+                assertEquals(225.0, planned.getHeight() * 1.75, 1e-6, names[v] + ": the height in device pixels");
+                for (int i = 1; i < rows.size(); i++) {
+                    Region above = rows.get(i - 1);
+                    assertSame(above.getParent(), rows.get(i).getParent(), names[v] + ": setup: one layer");
+                    assertEquals(above.getLayoutY() + above.getHeight(), rows.get(i).getLayoutY(), 1e-9,
+                            names[v] + ": row " + i + " starts where the one above ends");
                 }
             }
         });

@@ -468,9 +468,11 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
 
     private void fillVisibleRows(RXListRowPlan plan, int first, int last, double contentWidth) {
         boolean variable = plan.variable();
-        // Fixed mode: every data row is the uniform height (snapped once); variable mode
-        // reads each row's height from the plan's prefix sum.
-        double uniformRowHeight = variable ? 0.0 : snapSizeY(plan.rowHeight());
+        // Fixed mode: every data row is the uniform height; variable mode reads each row's
+        // height from the plan's prefix sum. The plan's heights are snapped already, and
+        // the rows below are placed by them: snapped again, JavaFX can ceil a height on the
+        // grid a device pixel taller, over the next row.
+        double uniformRowHeight = variable ? 0.0 : plan.rowHeight();
         // When the sticky overlay is active it is the sole renderer of the top
         // section's header, so the in-flow copy of that header row is skipped here.
         boolean stickyActive = isStickyHeaderActive(plan);
@@ -495,7 +497,7 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
                 syncHeaderFocus(header);
                 header.setVisible(true);
                 applyCssAfterCellUpdate(header, oldStyle);
-                header.resizeRelocate(snapPositionX(0.0), rowTop, contentWidth, snapSizeY(info.height()));
+                header.resizeRelocate(snapPositionX(0.0), rowTop, contentWidth, info.height());
             } else {
                 int itemIndex = info.itemIndex();
                 if (firstItem < 0) {
@@ -506,7 +508,7 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
                     anchorCandidateTop = info.top();
                 }
                 lastItem = itemIndex;
-                double cellHeight = variable ? snapSizeY(info.height()) : uniformRowHeight;
+                double cellHeight = variable ? info.height() : uniformRowHeight;
                 RXListCell<T> cell = acquireCell(cellCursor++);
                 String oldStyle = cell.getStyle();
                 cell.updateIndex(itemIndex);
@@ -592,7 +594,7 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
     // stale on the pending-scroll path) — only whether the sticky will be shown.
     private double stickyOverlayHeight(RXListRowPlan plan) {
         return control.isStickySectionHeader() && plan.headersShown()
-                ? snapSizeY(plan.headerHeight()) : 0.0;
+                ? plan.headerHeight() : 0.0;
     }
 
     private void layoutStickyHeader(RXListRowPlan plan, double contentWidth) {
@@ -601,7 +603,7 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
             return;
         }
         ensureStickyHeader();
-        double stickyH = snapSizeY(plan.headerHeight());
+        double stickyH = plan.headerHeight();
         int topIndex = topSection.sectionIndex();
 
         // Handoff: once the next section's header rises into the [0, stickyH] band it

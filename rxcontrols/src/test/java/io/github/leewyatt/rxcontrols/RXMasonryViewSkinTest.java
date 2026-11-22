@@ -1330,6 +1330,55 @@ public class RXMasonryViewSkinTest {
         });
     }
 
+    // ==================== Heights as placed ====================
+
+    /**
+     * Verifies cells are as high as the placement has them, each starting where the one
+     * above ends, for a height JavaFX 17 moves a device pixel further when it is snapped
+     * twice: at 1.75, 128.5 snaps to 225 device pixels and 225 to 226. The viewport snapped
+     * the placed heights again, and each cell lay a device pixel over the next.
+     */
+    @Test
+    public void placedHeightsAreNotSnappedAgain() throws Exception {
+        onFx(() -> {
+            RXMasonryView<Integer> provided = gallery(60);
+            provided.setCellHeightProvider(context -> 128.5);
+            String[] names = {"provided heights"};
+            RXMasonryView<?>[] views = {provided};
+            for (int v = 0; v < views.length; v++) {
+                RXMasonryView<?> view = views[v];
+                view.setColumnWidth(120.0);
+                view.setVgap(0.0);
+                view.setAnimated(false);
+                StackPane root = new StackPane(view);
+                Stage stage = new Stage();
+                stage.setScene(new Scene(root, 520, 700));
+                stage.setRenderScaleX(1.75);
+                stage.setRenderScaleY(1.75);
+                root.resize(520, 700);
+                pump(root);
+                Map<Double, List<RXMasonryCell<?>>> columns = new TreeMap<>();
+                for (Node node : view.lookupAll(".rx-masonry-cell")) {
+                    if (node instanceof RXMasonryCell<?> cell && cell.isVisible() && !cell.isEmpty()) {
+                        assertEquals(225.0, cell.getHeight() * 1.75, 1e-6,
+                                names[v] + ": the height of cell " + cell.getIndex() + " in device pixels");
+                        columns.computeIfAbsent(cell.getLayoutX(), x -> new ArrayList<>()).add(cell);
+                    }
+                }
+                assertTrue(columns.size() >= 2, names[v] + ": setup: several columns");
+                for (List<RXMasonryCell<?>> column : columns.values()) {
+                    column.sort(Comparator.comparingDouble(Node::getLayoutY));
+                    assertTrue(column.size() >= 3, names[v] + ": setup: cells in a column");
+                    for (int i = 1; i < column.size(); i++) {
+                        RXMasonryCell<?> above = column.get(i - 1);
+                        assertEquals(above.getLayoutY() + above.getHeight(), column.get(i).getLayoutY(), 1e-9,
+                                names[v] + ": cell " + column.get(i).getIndex() + " starts where the one above ends");
+                    }
+                }
+            }
+        });
+    }
+
     // ==================== Estimated path: measure-time re-pack ====================
 
     @Test
