@@ -4318,6 +4318,15 @@
     -fx-cursor: closed-hand;
 }
 
+.rx-dashboard-pane > .placeholder {
+    -fx-background-color: -rx-primary-bg;
+    -fx-background-radius: 6;
+    -fx-border-color: -rx-primary;
+    -fx-border-style: segments(6, 4);
+    -fx-border-width: 1.5;
+    -fx-border-radius: 6;
+}
+
 /*******************************************************************************
  *                                                                             *
  * RXBursts (scene burst overlay)                                              *

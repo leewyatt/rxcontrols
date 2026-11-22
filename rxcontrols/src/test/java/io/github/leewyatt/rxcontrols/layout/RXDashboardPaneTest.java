@@ -8,6 +8,7 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.css.PseudoClass;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.Region;
 import javafx.scene.shape.Circle;
@@ -161,7 +162,7 @@ public class RXDashboardPaneTest {
             RXDashboardCard a = find(pane, "A");
             pane.getCards().add(null);
             pane.getCards().add(a);
-            assertEquals(3, pane.getChildrenUnmodifiable().size());
+            assertEquals(3, cardChildren(pane).size());
             pane.getCards().remove(pane.getCards().size() - 1);
             assertSame(pane, a.getParent());
             pane.getCards().removeIf(card -> card != null && "B".equals(card.getCardId()));
@@ -656,7 +657,7 @@ public class RXDashboardPaneTest {
             assertFalse(pane.isNeedsLayout());
             pane.layout();
             assertFalse(pane.isNeedsLayout());
-            assertEquals(List.of(find(pane, "B"), find(pane, "C"), a), pane.getChildrenUnmodifiable());
+            assertEquals(List.of(find(pane, "B"), find(pane, "C"), a), cardChildren(pane));
             assertEquals("A", pane.getCards().get(0).getCardId());
         });
     }
@@ -820,6 +821,11 @@ public class RXDashboardPaneTest {
                 assertFalse(DashboardSolver.overlaps(a, b), a + " overlaps " + b);
             }
         }
+    }
+
+    // The pane's children without its placeholder, which is always the first child.
+    private static List<Node> cardChildren(RXDashboardPane pane) {
+        return pane.getChildrenUnmodifiable().subList(1, pane.getChildrenUnmodifiable().size());
     }
 
     private static Placement placement(RXDashboardCard card) {

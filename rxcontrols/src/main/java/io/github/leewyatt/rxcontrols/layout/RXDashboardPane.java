@@ -34,6 +34,7 @@ import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.DurationConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.event.EventHandler;
+import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.layout.Region;
@@ -157,6 +158,12 @@ public class RXDashboardPane extends Region {
     private final PassMembership membership = new PassMembership();
     private DashboardGrid grid;
 
+    private final DashboardGesture gesture;
+    // Where a card a gesture let go showed, for the next pass to glide it from.
+    private final Map<RXDashboardCard, Point2D> pendingShown = new IdentityHashMap<>();
+    // Marks the area a dragged or resized card lands on. Unmanaged, so showing it requests no layout.
+    private final Region placeholder = new Region();
+
     // columns is 0 for a request: a card added with a requested position (or none) and spans, placed by the add rules
     // again at the new count. Requests last until the pane is first laid out: FXML applies an element's attributes
     // after its children and a style sheet's column count arrives with the first CSS pass, so a pane's column count
@@ -181,12 +188,21 @@ public class RXDashboardPane extends Region {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         pseudoClassStateChanged(EDITABLE_PSEUDO_CLASS, true);
         layout.set(RXDashboardLayout.builder(effectiveColumns).build());
+        placeholder.getStyleClass().add("placeholder");
+        placeholder.setManaged(false);
+        placeholder.setMouseTransparent(true);
+        placeholder.setVisible(false);
+        placeholder.setViewOrder(1.0);
+        getChildren().add(placeholder);
+        gesture = new DashboardGesture(this);
         cards.addListener((ListChangeListener<RXDashboardCard>) change -> reconcile());
         // Region re-lays out nothing when the render scale or snapToPixel changes; the grid lines would keep the old
         // device grid.
         snapToPixelProperty().addListener((obs, oldValue, newValue) -> requestLayout());
         new RenderScaleWatch(this, this::requestLayout);
         sceneProperty().addListener((obs, oldScene, newScene) -> {
+            gesture.cancel();
+            pendingShown.clear();
             membership.sceneChanged(newScene);
             if (newScene == null) {
                 animator.stopAll();
@@ -491,7 +507,12 @@ public class RXDashboardPane extends Region {
     // ==================== Collision Policy ====================
 
     private final ObjectProperty<CollisionPolicy> collisionPolicy =
-            new SimpleObjectProperty<>(this, "collisionPolicy", DEFAULT_COLLISION_POLICY);
+            new SimpleObjectProperty<>(this, "collisionPolicy", DEFAULT_COLLISION_POLICY) {
+                @Override
+                protected void invalidated() {
+                    gesture.cancel();
+                }
+            };
 
     /**
      * How an edit whose area covers other cards is resolved, for user gestures, code and cards added with a
@@ -528,6 +549,9 @@ public class RXDashboardPane extends Region {
         @Override
         protected void invalidated() {
             pseudoClassStateChanged(EDITABLE_PSEUDO_CLASS, get());
+            if (!get()) {
+                gesture.cancel();
+            }
             for (RXDashboardCard card : members) {
                 card.requestLayout();
             }
@@ -869,6 +893,7 @@ public class RXDashboardPane extends Region {
      */
     public void compact() {
         checkNotNotifying();
+        gesture.cancel();
         commitEdit(DashboardSolver.compact(items()));
     }
 
@@ -896,6 +921,7 @@ public class RXDashboardPane extends Region {
     public void applyLayout(RXDashboardLayout layout) {
         Objects.requireNonNull(layout, "layout cannot be null");
         checkNotNotifying();
+        gesture.cancel();
         Map<RXDashboardCard, Placement> target = new LinkedHashMap<>();
         Map<String, RXDashboardCard> byId = cardsById();
         layout.getPlacements().forEach((id, placement) -> {
@@ -917,6 +943,7 @@ public class RXDashboardPane extends Region {
     }
 
     private boolean edit(RXDashboardCard card, Placement requested) {
+        gesture.cancel();
         Placement candidate = DashboardSolver.clamp(item(card, requested), requested, effectiveColumns);
         Map<RXDashboardCard, Placement> result = DashboardSolver.solve(items(), card, candidate, isBlocking(),
                 effectiveColumns);
@@ -974,7 +1001,7 @@ public class RXDashboardPane extends Region {
 
     // Records the result, then notifies: the cards' placement properties first, then the layout property. Changes
     // the listeners make to the cards or the columns are applied once the notification is over.
-    private void commit(Map<RXDashboardCard, Placement> result) {
+    private RXDashboardLayout commit(Map<RXDashboardCard, Placement> result) {
         boolean moved = changesPlacements(result);
         for (RXDashboardCard card : members) {
             card.placement = result.get(card);
@@ -1000,6 +1027,7 @@ public class RXDashboardPane extends Region {
         if (reconcilePending && notifying == 0) {
             reconcile();
         }
+        return next;
     }
 
     private RXDashboardLayout snapshot() {
@@ -1020,16 +1048,19 @@ public class RXDashboardPane extends Region {
         return byId;
     }
 
-    // The children are the cards in reading order, which is also the focus traversal order. One setAll keeps every
-    // card in the scene, so a focused node inside keeps the focus.
+    // The children are the placeholder, then the cards in reading order, which is also the focus traversal order. One
+    // setAll keeps every card in the scene, so a focused node inside keeps the focus.
     private void sortChildren() {
         List<RXDashboardCard> sorted = new ArrayList<>(members);
         sorted.sort((a, b) -> {
             int byRow = Integer.compare(a.placement.row(), b.placement.row());
             return byRow != 0 ? byRow : Integer.compare(a.placement.column(), b.placement.column());
         });
-        if (!getChildren().equals(sorted)) {
-            getChildren().setAll(sorted);
+        List<Node> children = new ArrayList<>(sorted.size() + 1);
+        children.add(placeholder);
+        children.addAll(sorted);
+        if (!getChildren().equals(children)) {
+            getChildren().setAll(children);
         }
     }
 
@@ -1043,6 +1074,8 @@ public class RXDashboardPane extends Region {
             reconcilePending = true;
             return;
         }
+        // The preview was solved from a layout that no longer holds.
+        gesture.cancel();
         reconciling = true;
         try {
             int rounds = 0;
@@ -1209,6 +1242,7 @@ public class RXDashboardPane extends Region {
 
     private void detach(RXDashboardCard card) {
         base.remove(card);
+        pendingShown.remove(card);
         resizeGate.reset();
         if (card.getParent() == this) {
             membership.removed(card, animator.isFading(card));
@@ -1228,7 +1262,46 @@ public class RXDashboardPane extends Region {
 
     // Called by a card when its move or resize switch changes.
     void cardGestureFlagsChanged(RXDashboardCard card) {
+        if (gesture.card() == card) {
+            gesture.cancel();
+        }
         card.requestLayout();
+    }
+
+    // ==================== Gesture hooks ====================
+
+    Map<RXDashboardCard, Placement> committedPlacements() {
+        Map<RXDashboardCard, Placement> placements = new LinkedHashMap<>();
+        for (RXDashboardCard card : members) {
+            placements.put(card, card.placement);
+        }
+        return placements;
+    }
+
+    DashboardGrid grid() {
+        return grid;
+    }
+
+    // A card the user takes hold of is no longer the animator's: its translate follows the pointer.
+    void releaseFromAnimation(RXDashboardCard card) {
+        animator.forget(card);
+    }
+
+    Map<RXDashboardCard, Placement> solveFrom(Map<RXDashboardCard, Placement> start, RXDashboardCard card,
+                                              Placement candidate) {
+        return DashboardSolver.solve(items(start), card, candidate, isBlocking(), effectiveColumns);
+    }
+
+    void glideFrom(RXDashboardCard card, double x, double y) {
+        pendingShown.put(card, new Point2D(x, y));
+    }
+
+    // A committed gesture: the result becomes the base of later conversions, and the event comes last, once the
+    // properties are notified and any change made from their listeners is applied.
+    void commitUserEdit(Map<RXDashboardCard, Placement> result, RXDashboardCard edited, RXDashboardLayout before) {
+        rebase(result);
+        RXDashboardLayout committed = commit(result);
+        fireEvent(new RXDashboardEvent(RXDashboardEvent.LAYOUT_CHANGED, this, committed, before, edited));
     }
 
     private List<RXDashboardCard> distinctCards() {
@@ -1307,16 +1380,17 @@ public class RXDashboardPane extends Region {
         return computePrefHeight(width);
     }
 
-    // The rows the committed layout uses: the largest bottom row of any card.
+    // The rows the shown layout uses: the largest bottom row of any card, plus one during a gesture so a card can be
+    // taken below the last row.
     private int rowCount() {
         int rows = 0;
         for (RXDashboardCard card : members) {
-            Placement placement = card.placement;
+            Placement placement = gesture.displayedPlacement(card);
             if (placement != null) {
                 rows = Math.max(rows, placement.row() + placement.rowSpan());
             }
         }
-        return rows;
+        return gesture.isActive() ? rows + 1 : rows;
     }
 
     // ==================== Layout ====================
@@ -1332,6 +1406,7 @@ public class RXDashboardPane extends Region {
         boolean animate = isAnimated() && isAnimationDurationPositive() && membership.continuesIn(scene);
         boolean collectMoves = animate || animator.hasActiveState();
         List<RXDashboardCard> laidOut = new ArrayList<>(members);
+        RXDashboardCard held = gesture.card();
         boolean resizeOnly = false;
         if (isAnimated()) {
             resizeOnly = resizeGate.isResizeOnly(getWidth(), ownPrefWidth(), structure(laidOut));
@@ -1341,21 +1416,31 @@ public class RXDashboardPane extends Region {
         List<PaneRelayoutAnimator.Move> moves = collectMoves ? new ArrayList<>() : null;
         for (RXDashboardCard card : laidOut) {
             // A listener reached from laying out an earlier card may have taken this one away.
-            Placement placement = card.placement;
+            Placement placement = gesture.displayedPlacement(card);
             if (card.getParent() != this || placement == null) {
                 continue;
             }
+            membership.laidOut(card);
+            if (card == held) {
+                gesture.layoutCard(grid);
+                continue;
+            }
+            Point2D shownAfterGesture = pendingShown.remove(card);
             double oldVisualX = 0.0;
             double oldVisualY = 0.0;
             PassMembership.Shown shownWhenRemoved = null;
             if (collectMoves) {
                 shownWhenRemoved = membership.shownWhenRemoved(card);
-                oldVisualX = shownWhenRemoved != null
-                        ? shownWhenRemoved.x() : card.getLayoutX() + card.getTranslateX();
-                oldVisualY = shownWhenRemoved != null
-                        ? shownWhenRemoved.y() : card.getLayoutY() + card.getTranslateY();
+                if (shownAfterGesture != null) {
+                    oldVisualX = shownAfterGesture.getX();
+                    oldVisualY = shownAfterGesture.getY();
+                } else {
+                    oldVisualX = shownWhenRemoved != null
+                            ? shownWhenRemoved.x() : card.getLayoutX() + card.getTranslateX();
+                    oldVisualY = shownWhenRemoved != null
+                            ? shownWhenRemoved.y() : card.getLayoutY() + card.getTranslateY();
+                }
             }
-            membership.laidOut(card);
             // Sized and placed directly from the grid lines: layoutInArea would snap the width a second time and can
             // push the card one device pixel into the gap.
             card.resize(grid.spanWidth(placement.column(), placement.columnSpan()),
@@ -1382,16 +1467,27 @@ public class RXDashboardPane extends Region {
             }
         }
         if (collectMoves && membership.sceneChanges() == sceneChangesAtStart) {
-            moves.removeIf(move -> move.node().getParent() != this);
+            moves.removeIf(move -> move.node().getParent() != this || move.node() == gesture.card());
             animator.runRelayout(moves, animate && animationsActive(), getAnimationDuration(),
                     interpolatorOrDefault());
         }
+        layoutPlaceholder();
         if (membership.sceneChanges() != sceneChangesAtStart) {
             animator.stopAll();
             membership.forget();
             return;
         }
         membership.endPass(scene);
+    }
+
+    private void layoutPlaceholder() {
+        Placement target = gesture.candidate();
+        placeholder.setVisible(target != null);
+        if (target != null) {
+            placeholder.resizeRelocate(grid.columnX(target.column()), grid.rowY(target.row()),
+                    grid.spanWidth(target.column(), target.columnSpan()),
+                    grid.spanHeight(target.row(), target.rowSpan()));
+        }
     }
 
     // Once laid out, the layout the requests produced is what later column-count changes convert from.
@@ -1435,11 +1531,11 @@ public class RXDashboardPane extends Region {
 
     // What goes where: a pass with the same structure and only a new width is a window resize, which starts no
     // glide. Records hold no state beyond the card and its placement, so equal lists mean the same layout.
-    private static List<Object> structure(List<RXDashboardCard> laidOut) {
+    private List<Object> structure(List<RXDashboardCard> laidOut) {
         List<Object> structure = new ArrayList<>(laidOut.size() * 2);
         for (RXDashboardCard card : laidOut) {
             structure.add(card);
-            structure.add(card.placement);
+            structure.add(gesture.displayedPlacement(card));
         }
         return structure;
     }
