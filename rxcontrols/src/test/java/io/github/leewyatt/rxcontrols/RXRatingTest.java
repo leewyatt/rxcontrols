@@ -299,7 +299,7 @@ public class RXRatingTest {
         });
     }
 
-    /** Verifies the rating picks only its bounds, and the focus ring band outside them takes no input. */
+    /** Verifies the focus ring band outside the layout bounds is picked but previews and commits nothing. */
     @Test
     public void onlyTheLayoutBoundsTakeInput() throws Exception {
         runOnFx(() -> {
