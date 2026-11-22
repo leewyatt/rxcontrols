@@ -86,8 +86,8 @@ public class RXRating extends Control {
         /** Half icons: 0.5, 1, 1.5 … */
         HALF,
         /**
-         * Any fraction: the pointer picks the exact place inside an icon, and the
-         * keyboard moves in tenths.
+         * Any fraction: the pointer picks the exact place inside an icon, but never
+         * less than 0.1, and the keyboard moves in tenths.
          */
         ANY
     }

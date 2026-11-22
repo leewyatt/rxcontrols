@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXRating;
 import io.github.leewyatt.rxcontrols.internal.RatingAccess;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
+import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.css.PseudoClass;
@@ -107,6 +108,8 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
         disposer.registerListener(control.stepProperty(), live(this::clearPreview));
         disposer.registerListener(control.readOnlyProperty(), live(this::cancelPointer));
         disposer.registerListener(control.disabledProperty(), live(this::cancelPointer));
+        // A rating taken out of its scene mid-press gets no release.
+        disposer.registerListener(control.sceneProperty(), live(this::cancelPointer));
 
         disposer.registerEventHandler(control, MouseEvent.MOUSE_ENTERED, this::onPointerMoved);
         disposer.registerEventHandler(control, MouseEvent.MOUSE_MOVED, this::onPointerMoved);
@@ -250,14 +253,15 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
     }
 
     private void onPressed(MouseEvent event) {
-        if (event.getButton() != MouseButton.PRIMARY || !interactive() || !inside(event)) {
+        // A modified press belongs to something else: Control-click opens a context menu on macOS.
+        if (!RXMouse.isPlainPrimaryPress(event) || !interactive() || !inside(event)) {
             return;
         }
         RXRating control = getSkinnable();
         if (control.isFocusTraversable()) {
             control.requestFocus();
-            // A focus listener may have replaced this skin.
-            if (disposed) {
+            // A focus listener may have replaced this skin or closed the rating to input.
+            if (disposed || !interactive()) {
                 return;
             }
         }
@@ -401,8 +405,8 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
     // The keyboard takes the icons back from a hover preview until the pointer moves again.
     private void keyCommit(Runnable change) {
         clearPreview();
-        // A hover value listener may have replaced this skin.
-        if (disposed) {
+        // A hover value listener may have replaced this skin or closed the rating to input.
+        if (disposed || !interactive()) {
             return;
         }
         change.run();

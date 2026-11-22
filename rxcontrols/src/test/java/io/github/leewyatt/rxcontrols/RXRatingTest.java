@@ -392,6 +392,74 @@ public class RXRatingTest {
         });
     }
 
+    /** Verifies a modified primary press, such as a macOS Control-click, rates and clears nothing. */
+    @Test
+    public void modifiedPressIsNotARating() throws Exception {
+        runOnFx(() -> {
+            RXRating rating = laidOut(new RXRating(3.0));
+            Recorder recorder = new Recorder(rating);
+            for (double x : new double[] {10.0, 2 * PITCH + 10.0}) {
+                Point2D scene = rating.localToScene(x, 9.0);
+                Event.fireEvent(rating, new MouseEvent(MouseEvent.MOUSE_PRESSED, x, 9.0, scene.getX(), scene.getY(),
+                        MouseButton.PRIMARY, 1, false, true, false, false, true, false, false, false, true, true,
+                        new PickResult(rating, scene.getX(), scene.getY())));
+                fire(rating, MouseEvent.MOUSE_RELEASED, x, MouseButton.PRIMARY, false);
+            }
+            assertEquals(3.0, rating.getValue(), EPSILON);
+            assertEquals(0, recorder.actions.size());
+        });
+    }
+
+    /** Verifies a rating removed from its scene mid-press answers the keyboard once it is back. */
+    @Test
+    public void leavingTheSceneEndsThePress() throws Exception {
+        runOnFx(() -> {
+            RXRating rating = laidOut(new RXRating(1.0));
+            Pane parent = (Pane) rating.getParent();
+            fire(rating, MouseEvent.MOUSE_PRESSED, 10.0, MouseButton.PRIMARY, false);
+            parent.getChildren().remove(rating);
+            assertNull(rating.getHoverValue());
+            parent.getChildren().add(rating);
+            Event.fireEvent(rating, key(KeyCode.RIGHT));
+            assertEquals(2.0, rating.getValue(), EPSILON);
+        });
+    }
+
+    /** Verifies a listener that makes the rating read-only or bound mid-input stops that input. */
+    @Test
+    public void inputStopsWhenAListenerClosesTheRating() throws Exception {
+        runOnFx(() -> {
+            RXRating readOnly = laidOut(new RXRating(1.0));
+            Recorder recorder = new Recorder(readOnly);
+            fire(readOnly, MouseEvent.MOUSE_MOVED, 2 * PITCH + 10.0, MouseButton.NONE, false);
+            readOnly.hoverValueProperty().addListener((obs, was, now) -> {
+                if (now == null) {
+                    readOnly.setReadOnly(true);
+                }
+            });
+            Event.fireEvent(readOnly, key(KeyCode.RIGHT));
+            assertEquals(1.0, readOnly.getValue(), EPSILON);
+            assertEquals(0, recorder.actions.size());
+
+            RXRating bound = laidOut(new RXRating(1.0));
+            fire(bound, MouseEvent.MOUSE_MOVED, 2 * PITCH + 10.0, MouseButton.NONE, false);
+            SimpleObjectProperty<Double> source = new SimpleObjectProperty<>(4.0);
+            bound.hoverValueProperty().addListener((obs, was, now) -> {
+                if (now == null && !bound.valueProperty().isBound()) {
+                    bound.valueProperty().bind(source);
+                }
+            });
+            Event.fireEvent(bound, key(KeyCode.RIGHT));
+            assertEquals(4.0, bound.getValue(), EPSILON);
+
+            RXRating onFocus = laidOut(new RXRating(1.0));
+            onFocus.getScene().focusOwnerProperty().addListener((obs, was, now) -> onFocus.setReadOnly(true));
+            fire(onFocus, MouseEvent.MOUSE_PRESSED, 2 * PITCH + 10.0, MouseButton.PRIMARY, false);
+            assertTrue(onFocus.isReadOnly());
+            assertNull(onFocus.getHoverValue());
+        });
+    }
+
     /** Verifies an enter that arrives just ahead of the release does not drop the click. */
     @Test
     public void enterAheadOfTheReleaseKeepsTheClick() throws Exception {
