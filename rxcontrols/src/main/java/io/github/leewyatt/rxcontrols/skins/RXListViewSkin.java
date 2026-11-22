@@ -153,6 +153,9 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         super(control);
 
         viewport = new RXListViewport<>(control);
+        // This skin plans the rows and the viewport places them; both must snap, or not
+        // snap, alike, so the viewport follows the control's setting.
+        disposer.registerBinding(viewport.snapToPixelProperty(), control.snapToPixelProperty());
         getChildren().add(viewport);
 
         placeholderRegion = new StackPane();
@@ -193,6 +196,9 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         disposer.registerListener(control.converterProperty(), this::onConverterChanged);
         disposer.registerListener(control.fixedCellSizeProperty(), this::onFixedCellSizeChanged);
         disposer.registerListener(control.estimatedCellSizeProperty(), this::requestLayoutPass);
+        // Region re-lays out only the parent when snapToPixel changes; the viewport, whose
+        // size need not change, would leave the rows where the old setting put them.
+        disposer.registerListener(control.snapToPixelProperty(), this::requestLayoutPass);
         // Region lays nothing out when the render scale changes, and the scroll bar would
         // keep the breadth it measured at the old one, off the new pixel grid.
         RenderScaleWatch scaleWatch = new RenderScaleWatch(control, this::onRenderScaleChanged);

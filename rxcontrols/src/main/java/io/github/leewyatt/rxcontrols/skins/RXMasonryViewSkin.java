@@ -156,6 +156,9 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         super(control);
 
         viewport = new RXMasonryViewport<>(control);
+        // This skin places the cells and the viewport lays them out; both must snap, or
+        // not snap, alike, so the viewport follows the control's setting.
+        disposer.registerBinding(viewport.snapToPixelProperty(), control.snapToPixelProperty());
         getChildren().add(viewport);
 
         placeholderRegion = new StackPane();

@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -1702,6 +1703,119 @@ public class RXListViewSkinTest {
         assertEquals(1, kept.size(), "the view itself is still reachable");
     }
 
+    // ==================== Without snapping ====================
+
+    /**
+     * Verifies a view that does not snap to pixels lays its rows out as its row plan has
+     * them, unsnapped, each starting where the one above ends, whether snapping was off
+     * from the start or turned off later. The viewport used to snap on its own: at 1.25,
+     * rows of 24.3 px were drawn 24.8 px high at rounded positions and overlapped by up
+     * to 0.8 px.
+     */
+    @Test
+    public void unsnappedRowsMeetWithoutOverlapping() throws Exception {
+        onFx(() -> {
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                for (boolean turnedOff : new boolean[] {false, true}) {
+                    String at = "scale " + scale + (turnedOff ? ", turned off after a layout" : ", off from the start");
+                    RXListView<String> view = items(200);
+                    view.setFixedCellSize(24.3);
+                    view.setSnapToPixel(turnedOff);
+                    scaledHost(view, scale);
+                    Region root = (Region) view.getParent();
+                    view.setSnapToPixel(false);
+                    pump(root);
+                    verticalBar(view).setValue(37.7);
+                    pump(root);
+                    List<RXListCell<?>> rows = shownRows(view);
+                    assertTrue(rows.size() >= 6, at + ": setup: rows in view");
+                    for (int i = 1; i < rows.size(); i++) {
+                        RXListCell<?> above = rows.get(i - 1);
+                        RXListCell<?> below = rows.get(i);
+                        assertEquals(24.3, above.getHeight(), 1e-9, at + ": the height of row " + above.getIndex());
+                        assertEquals(above.getLayoutY() + above.getHeight(), below.getLayoutY(), 1e-9,
+                                at + ": row " + below.getIndex() + " starts where the one above ends");
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies rows of measured heights meet without overlapping in a view that does not
+     * snap to pixels, and keep the heights they ask for when snapping is off from the start.
+     */
+    @Test
+    public void unsnappedVariableRowsMeetWithoutOverlapping() throws Exception {
+        onFx(() -> {
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                for (boolean turnedOff : new boolean[] {false, true}) {
+                    String at = "scale " + scale + (turnedOff ? ", turned off after a layout" : ", off from the start");
+                    RXListView<Integer> view = intItems(200);
+                    view.setFixedCellSize(0);
+                    view.setCellFactory(v -> new RXListCell<>() {
+                        @Override
+                        protected void updateItem(Integer item, boolean empty) {
+                            super.updateItem(item, empty);
+                            setText(empty || item == null ? null : String.valueOf(item));
+                            setPrefHeight(empty || item == null ? Region.USE_COMPUTED_SIZE : 20.3 + (item % 3) * 7.1);
+                        }
+                    });
+                    view.setSnapToPixel(turnedOff);
+                    scaledHost(view, scale);
+                    Region root = (Region) view.getParent();
+                    view.setSnapToPixel(false);
+                    pump(root);
+                    verticalBar(view).setValue(37.7);
+                    pump(root);
+                    List<RXListCell<?>> rows = shownRows(view);
+                    assertTrue(rows.size() >= 6, at + ": setup: rows in view");
+                    for (int i = 1; i < rows.size(); i++) {
+                        RXListCell<?> above = rows.get(i - 1);
+                        RXListCell<?> below = rows.get(i);
+                        if (!turnedOff) {
+                            int item = (Integer) above.getItem();
+                            assertEquals(20.3 + (item % 3) * 7.1, above.getHeight(), 1e-9,
+                                    at + ": the height of row " + item);
+                        }
+                        assertEquals(above.getLayoutY() + above.getHeight(), below.getLayoutY(), 1e-9,
+                                at + ": row " + below.getIndex() + " starts where the one above ends");
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies turning snapping back on puts the rows on the pixel grid again in a view
+     * whose size does not change: at scales 1 and 2 nothing else asks the viewport for a
+     * layout.
+     */
+    @Test
+    public void snappingTurnedBackOnPutsTheRowsOnTheGrid() throws Exception {
+        onFx(() -> {
+            for (double scale : new double[] {1.0, 2.0}) {
+                RXListView<String> view = items(200);
+                view.setFixedCellSize(24.3);
+                view.setSnapToPixel(false);
+                scaledHost(view, scale);
+                Region root = (Region) view.getParent();
+                assertEquals(24.3, shownRows(view).get(0).getHeight(), 1e-9, "setup: the rows are not snapped");
+
+                view.setSnapToPixel(true);
+                pump(root);
+
+                double height = Math.ceil(24.3 * scale) / scale;
+                List<RXListCell<?>> rows = shownRows(view);
+                for (int i = 0; i < rows.size(); i++) {
+                    RXListCell<?> row = rows.get(i);
+                    assertEquals(height, row.getHeight(), 1e-9, "scale " + scale + ": the height of row " + i);
+                    assertEquals(i * height, row.getLayoutY(), 1e-9, "scale " + scale + ": the top of row " + i);
+                }
+            }
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static RXListView<String> items(int count) {
@@ -1820,6 +1934,18 @@ public class RXListViewSkinTest {
             }
         }
         return false;
+    }
+
+    // The rows in view, by index.
+    private static List<RXListCell<?>> shownRows(RXListView<?> view) {
+        List<RXListCell<?>> rows = new ArrayList<>();
+        for (Node node : view.lookupAll(".rx-list-cell")) {
+            if (node instanceof RXListCell<?> cell && cell.isVisible() && !cell.isEmpty()) {
+                rows.add(cell);
+            }
+        }
+        rows.sort(Comparator.comparingInt(RXListCell::getIndex));
+        return rows;
     }
 
     private static RXListCell<?> cellByIndex(RXListView<?> view, int index) {

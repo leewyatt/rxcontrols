@@ -1265,6 +1265,71 @@ public class RXMasonryViewSkinTest {
         return null;
     }
 
+    // ==================== Without snapping ====================
+
+    /**
+     * Verifies a view that does not snap to pixels lays its cells out as it placed them,
+     * unsnapped: in each column a cell starts where the one above ends, and each column
+     * ends before the next begins, whether snapping was off from the start or turned off
+     * later. The viewport used to snap the heights on its own: at 1.25, cells of 40.3 px
+     * were drawn 40.8 px high at rounded positions and overlapped by up to 0.8 px.
+     */
+    @Test
+    public void unsnappedCellsMeetWithoutOverlapping() throws Exception {
+        onFx(() -> {
+            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                for (boolean turnedOff : new boolean[] {false, true}) {
+                    String at = "scale " + scale + (turnedOff ? ", turned off after a layout" : ", off from the start");
+                    RXMasonryView<Integer> view = gallery(200);
+                    view.setCellHeightProvider(context -> 40.3 + (context.index() % 4) * 6.7);
+                    view.setColumnWidth(60.1);
+                    view.setHgap(9.4);
+                    view.setVgap(0.0);
+                    view.setAnimated(false);
+                    view.setSnapToPixel(turnedOff);
+                    StackPane root = new StackPane(view);
+                    Stage stage = new Stage();
+                    stage.setScene(new Scene(root, 520, 260));
+                    stage.setRenderScaleX(scale);
+                    stage.setRenderScaleY(scale);
+                    root.resize(520, 260);
+                    pump(root);
+                    view.setSnapToPixel(false);
+                    pump(root);
+                    verticalBar(view).setValue(37.7);
+                    pump(root);
+
+                    Map<Double, List<RXMasonryCell<?>>> columns = new TreeMap<>();
+                    for (Node node : view.lookupAll(".rx-masonry-cell")) {
+                        if (node instanceof RXMasonryCell<?> cell && cell.isVisible() && !cell.isEmpty()) {
+                            columns.computeIfAbsent(cell.getLayoutX(), x -> new ArrayList<>()).add(cell);
+                        }
+                    }
+                    assertTrue(columns.size() >= 2, at + ": setup: several columns");
+                    List<Double> lefts = new ArrayList<>(columns.keySet());
+                    for (int c = 0; c < lefts.size(); c++) {
+                        List<RXMasonryCell<?>> column = columns.get(lefts.get(c));
+                        column.sort(Comparator.comparingDouble(Node::getLayoutY));
+                        assertTrue(column.size() >= 3, at + ": setup: cells in column " + c);
+                        for (int i = 1; i < column.size(); i++) {
+                            RXMasonryCell<?> above = column.get(i - 1);
+                            RXMasonryCell<?> below = column.get(i);
+                            assertEquals(40.3 + (above.getIndex() % 4) * 6.7, above.getHeight(), 1e-9,
+                                    at + ": the height of cell " + above.getIndex());
+                            assertEquals(above.getLayoutY() + above.getHeight(), below.getLayoutY(), 1e-9,
+                                    at + ": cell " + below.getIndex() + " starts where the one above ends");
+                        }
+                        if (c > 0) {
+                            RXMasonryCell<?> left = columns.get(lefts.get(c - 1)).get(0);
+                            assertTrue(left.getLayoutX() + left.getWidth() <= lefts.get(c) + 1e-9,
+                                    at + ": column " + c + " starts after the one before it ends");
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     // ==================== Estimated path: measure-time re-pack ====================
 
     @Test
