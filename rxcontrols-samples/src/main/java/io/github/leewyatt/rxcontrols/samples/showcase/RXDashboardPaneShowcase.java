@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.layout.RXDashboardPane.CollisionPolicy;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.chart.LineChart;
@@ -111,6 +112,12 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
         hgap.valueProperty().addListener((obs, old, value) -> dashboard.setHgap(value.doubleValue()));
         Slider vgap = createSlider(0, 24, dashboard.getVgap());
         vgap.valueProperty().addListener((obs, old, value) -> dashboard.setVgap(value.doubleValue()));
+        Slider padding = createSlider(0, 16, 8);
+        padding.valueProperty().addListener((obs, old, value) -> {
+            for (RXDashboardCard card : dashboard.getCards()) {
+                card.setPadding(new Insets(value.doubleValue()));
+            }
+        });
         Slider minColumn = createSlider(0, 200, dashboard.getMinColumnWidth());
         minColumn.valueProperty().addListener(
                 (obs, old, value) -> dashboard.setMinColumnWidth(value.doubleValue()));
@@ -124,6 +131,7 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
                 row("Row height", rowHeight, createValueLabel(rowHeight, "%.0f px")),
                 row("Hgap", hgap, createValueLabel(hgap, "%.0f px")),
                 row("Vgap", vgap, createValueLabel(vgap, "%.0f px")),
+                row("Card padding", padding, createValueLabel(padding, "%.0f px")),
                 row("Min column width", minColumn, createValueLabel(minColumn, "%.0f px")),
                 row(note));
     }
