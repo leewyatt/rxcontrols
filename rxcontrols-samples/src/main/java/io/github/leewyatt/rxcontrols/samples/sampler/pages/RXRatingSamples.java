@@ -11,9 +11,11 @@ import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -24,9 +26,9 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SelectionIcons
 
 /**
  * The RXRating page: a review with a label that follows the hover preview and a burst
- * that grows with the score, a read-only average on a product card, a face for each score, the whole,
- * half and any-fraction steps, a survey that counts its saves, and other icons, colors
- * and sizes.
+ * that grows with the score, a read-only average on a product card, a face for each
+ * score, the whole, half and any-fraction steps, a media library with a rating on every
+ * row, and other icons, colors and sizes.
  */
 public final class RXRatingSamples {
 
@@ -50,9 +52,9 @@ public final class RXRatingSamples {
                         "For a favorite that is on or off use RXReactionButton; for a number on a wide scale use RXSlider."),
                 List.of(
                         SampleCard.large("Review with a preview and a burst",
-                                "The label follows the hover preview. In onAction, RXBursts plays from the star you rated, larger for a higher score, with fireworks for the top one.",
+                                "The label follows the hover preview. onAction fires only when you commit a rating, never on hover; here it plays a burst that grows with the score, with fireworks for the top one.",
                                 review()),
-                        SampleCard.large("Average score",
+                        SampleCard.large("Read-only average score",
                                 "A read-only rating draws 3.7 as it is: 70% of the fourth star.",
                                 product()),
                         SampleCard.large("A face for each score",
@@ -61,9 +63,9 @@ public final class RXRatingSamples {
                         SampleCard.large("Whole, half and any step",
                                 "The step limits what the pointer picks; with ANY it is the exact place in the star. Click your rating again to clear it.",
                                 steps()),
-                        SampleCard.large("Saving on action",
-                                "onAction fires once per change you make, never while you hover.",
-                                survey()),
+                        SampleCard.large("Ratings in a library",
+                                "One rating per row for your own score. A row starts not rated, and clicking its rating again clears it.",
+                                library()),
                         SampleCard.large("Icons, colors and sizes",
                                 "The heart style class swaps the icon; -rx-rating-color and the icon size come from CSS; max sets the count.",
                                 looks())),
@@ -176,24 +178,39 @@ public final class RXRatingSamples {
         return label;
     }
 
-    private static Node survey() {
-        int[] saves = {0};
-        Label status = text("Saved 0 times", "hint");
-        GridPane grid = new GridPane();
-        grid.setHgap(14.0);
-        grid.setVgap(10.0);
-        String[] questions = {"Cleanliness", "Location", "Value"};
-        for (int i = 0; i < questions.length; i++) {
-            RXRating rating = new RXRating();
-            rating.setAccessibleText(questions[i]);
-            // The action is the user's change; hovering and code writes never reach it.
-            rating.setOnAction(event -> {
-                saves[0]++;
-                status.setText("Saved " + saves[0] + (saves[0] == 1 ? " time" : " times"));
-            });
-            grid.addRow(i, text(questions[i], "body"), rating);
+    private static Node library() {
+        String[][] tracks = {
+                {"Harbor Lights", "John Doe"}, {"Slow Morning", "Jane Doe"},
+                {"Northbound", "John Smith"}, {"Afterglow", "Jane Roe"}};
+        Double[] ratings = {5.0, 3.0, null, 4.0};
+        List<RXRating> all = new ArrayList<>();
+        VBox rows = new VBox(10.0);
+        for (int i = 0; i < tracks.length; i++) {
+            RXImageView cover = new RXImageView(SampleImages.scenery(i + 1));
+            cover.setPrefSize(36.0, 36.0);
+            cover.setImageRadius(6.0);
+            VBox names = new VBox(1.0, text(tracks[i][0], "body"), text(tracks[i][1], "hint"));
+            Region spacer = new Region();
+            HBox.setHgrow(spacer, Priority.ALWAYS);
+            RXRating rating = new RXRating(ratings[i]);
+            rating.setAccessibleText("Rating of " + tracks[i][0]);
+            all.add(rating);
+            HBox row = new HBox(10.0, cover, names, spacer, rating);
+            row.setAlignment(Pos.CENTER_LEFT);
+            rows.getChildren().add(row);
         }
-        VBox box = new VBox(12.0, grid, status);
+
+        Label summary = text("", "hint");
+        Runnable count = () -> {
+            long rated = all.stream().filter(rating -> rating.getValue() != null).count();
+            summary.setText(rated + " of " + all.size() + " rated");
+        };
+        all.forEach(rating -> rating.valueProperty().addListener(observable -> count.run()));
+        count.run();
+
+        VBox box = new VBox(12.0, rows, summary);
+        box.getStyleClass().add("form-panel");
+        box.setPrefWidth(340.0);
         box.setMaxWidth(Region.USE_PREF_SIZE);
         return box;
     }
