@@ -182,11 +182,13 @@ public class RXTileViewSkin<T> extends RXSkinBase<RXTileView<T>> {
         // placement, so it relays out the control rather than re-filling the viewport.
         disposer.registerListener(control.prefColumnsProperty(), () -> getSkinnable().requestLayout());
         disposer.registerListener(control.prefTileHeightProperty(), this::requestLayoutPass);
-        // The columns and the preferred width add up sizes snapped to the render scale.
-        // Region re-lays out only the parent when snapToPixel changes, and nothing when
-        // the scale does, so the control's cached preferred width would stay on the old
-        // grid; a layout request on the viewport reaches the control and clears it. A new
-        // scale also has the scroll bar measure its breadth again.
+        // The columns, the preferred width and the places of the tiles add up sizes
+        // snapped to the render scale. Region re-lays out only the parent when snapToPixel
+        // changes, and nothing when the scale does: the viewport, whose size need not
+        // change, would leave the tiles where they were, and the control would keep its
+        // cached preferred width on the old grid. A layout request on the viewport places
+        // the tiles again and, reaching the control, clears that width. A new scale also
+        // has the scroll bar measure its breadth again.
         disposer.registerListener(control.snapToPixelProperty(), this::requestLayoutPass);
         RenderScaleWatch scaleWatch = new RenderScaleWatch(control, this::onRenderScaleChanged);
         disposer.registerDisposeTask(scaleWatch::dispose);

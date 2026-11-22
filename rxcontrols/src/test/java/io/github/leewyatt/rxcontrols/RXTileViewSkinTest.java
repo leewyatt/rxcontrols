@@ -1138,6 +1138,38 @@ public class RXTileViewSkinTest {
     }
 
     /**
+     * Verifies a snapping change places the tiles again in a view whose size and insets
+     * stay as they were: at scale 1 nothing else asks the viewport for a layout.
+     */
+    @Test
+    public void snappingChangePlacesTheTilesAgainAtAnUnchangedSize() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(200);
+            view.setPrefTileWidth(60.1);
+            view.setPrefTileHeight(40);
+            view.setHgap(9.4);
+            StackPane root = host(view, 600, 180);
+            pump(root);
+            List<RXTileCell<?>> row = rowCells(view, 0);
+            assertEquals(61.0, row.get(0).getWidth(), 1e-9, "tile width is snapped");
+            assertEquals(70.0, row.get(1).getLayoutX() - row.get(0).getLayoutX(), 1e-9, "the step is snapped");
+
+            view.setSnapToPixel(false);
+            pump(root);
+            row = rowCells(view, 0);
+            assertEquals(60.1, row.get(0).getWidth(), 1e-9, "tile width is no longer snapped");
+            assertEquals(69.5, row.get(1).getLayoutX() - row.get(0).getLayoutX(), 1e-9,
+                    "the step is no longer snapped");
+
+            view.setSnapToPixel(true);
+            pump(root);
+            row = rowCells(view, 0);
+            assertEquals(61.0, row.get(0).getWidth(), 1e-9, "tile width is snapped again");
+            assertEquals(70.0, row.get(1).getLayoutX() - row.get(0).getLayoutX(), 1e-9, "the step is snapped again");
+        });
+    }
+
+    /**
      * Verifies a view that does not snap to pixels sizes its rows and section headers
      * as its row plan measured them: unsnapped. At 1.25, a header of 32.3 px drawn at
      * its snapped 32.8 px covered the top of the row below it.
