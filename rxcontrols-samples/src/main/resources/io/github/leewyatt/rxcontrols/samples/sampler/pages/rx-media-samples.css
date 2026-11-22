@@ -393,6 +393,18 @@
     -rx-bar-fill: linear-gradient(from 0% 100% to 0% 0%, #65a30d, #a3e635);
 }
 
+.example-card .rx-audio-spectrum.orchid {
+    -rx-bar-fill: linear-gradient(from 0% 100% to 0% 0%, #7c3aed, #e879f9);
+}
+
+.example-card .rx-audio-spectrum.ice {
+    -rx-bar-fill: linear-gradient(from 0% 100% to 0% 0%, #22d3ee, #cffafe);
+}
+
+.example-card .rx-audio-spectrum.sun {
+    -rx-bar-fill: linear-gradient(from 0% 100% to 0% 0%, #fde047, #f97316 55%, #dc2626);
+}
+
 /*******************************************************************************
  *                                                                             *
  * RXLrcView / RXLrcLineView                                                   *

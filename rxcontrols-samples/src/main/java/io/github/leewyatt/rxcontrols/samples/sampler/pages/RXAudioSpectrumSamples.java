@@ -20,6 +20,7 @@ import javafx.util.Duration;
 
 import java.util.List;
 import java.util.Random;
+import java.util.function.DoubleBinaryOperator;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.iconButton;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.setIcon;
@@ -30,8 +31,9 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.s
 
 /**
  * The RXAudioSpectrum page: a music player whose spectrum settles when paused, mirrored
- * bars, a line, a radial ring around a cover and a centered layout with glow. Every
- * spectrum is fed made-up magnitudes, since the sampler plays no audio.
+ * bars, a line, a radial ring around a cover, a centered layout with glow, and four
+ * shapes drawn with made-up waves: a flower, a double flower, a corona and an aurora.
+ * Every spectrum is fed made-up magnitudes, since the sampler plays no audio.
  */
 public final class RXAudioSpectrumSamples {
 
@@ -39,6 +41,8 @@ public final class RXAudioSpectrumSamples {
     private static final double MIN_DECIBELS = -60.0;
     private static final Duration FRAME = Duration.millis(40.0);
     private static final double BEATS_PER_SECOND = 2.0;
+    private static final Duration WAVE_FRAME = Duration.millis(100.0);
+    private static final double FLOWER_SIZE = 200.0;
 
     private RXAudioSpectrumSamples() {
     }
@@ -69,7 +73,19 @@ public final class RXAudioSpectrumSamples {
                                 screen(radial(life))),
                         SampleCard.medium("Centered with glow",
                                 "BandLayout.CENTER_FOLD puts the bass in the middle; glow adds a soft light.",
-                                screen(centered(life)))),
+                                screen(centered(life))),
+                        SampleCard.medium("Flower",
+                                "VisRadial with a small hole; a wave travelling across the bands turns the petals.",
+                                screen(flower(life))),
+                        SampleCard.medium("Double flower",
+                                "Two VisRadial spectrums, one inside the hole of the other, turning opposite ways.",
+                                screen(doubleFlower(life))),
+                        SampleCard.medium("Corona",
+                                "VisRadial with CENTER_FOLD and glow: both halves of the ring move alike.",
+                                screen(corona(life))),
+                        SampleCard.medium("Aurora",
+                                "Three VisLine spectrums stacked, each with its own color, wave and glow.",
+                                screen(aurora(life)))),
                 MediaKit.STYLESHEET);
     }
 
@@ -161,6 +177,95 @@ public final class RXAudioSpectrumSamples {
         screen.getStyleClass().add("screen");
         screen.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return screen;
+    }
+
+    // ==================== Wave shapes ====================
+
+    private static Node flower(SampleLifecycle life) {
+        return petals(FLOWER_SIZE, 0.15, 1.0, life);
+    }
+
+    private static Node doubleFlower(SampleLifecycle life) {
+        RXAudioSpectrum outer = petals(FLOWER_SIZE, 0.5, 1.0, life);
+        outer.getStyleClass().add("orchid");
+        // The inner flower is as large as the hole of the outer one.
+        RXAudioSpectrum inner = petals(FLOWER_SIZE * 0.5, 0.2, -1.0, life);
+        inner.setBandCount(64);
+        inner.getStyleClass().add("ice");
+        StackPane stack = new StackPane(outer, inner);
+        stack.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return stack;
+    }
+
+    // A sine wave moving along the bands, louder in the bass, breathing slowly.
+    private static RXAudioSpectrum petals(double size, double hole, double direction, SampleLifecycle life) {
+        RXAudioSpectrum spectrum = new RXAudioSpectrum();
+        VisRadial radial = new VisRadial();
+        radial.setInnerRadiusRatio(hole);
+        spectrum.setVisualization(radial);
+        spectrum.setPrefSize(size, size);
+        spectrum.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        wave(spectrum, life, (time, position) -> {
+            double wave = Math.max(0.0, Math.sin(direction * time * 4.0 + position * RAW_BANDS * 0.25));
+            double tilt = 1.0 - 0.6 * position;
+            double pulse = 0.6 + 0.4 * Math.sin(time * 2.0 * Math.PI * 0.4);
+            return wave * tilt * pulse;
+        });
+        return spectrum;
+    }
+
+    private static Node corona(SampleLifecycle life) {
+        RXAudioSpectrum spectrum = spectrum(96, 59L, life);
+        VisRadial ring = new VisRadial();
+        ring.setInnerRadiusRatio(0.3);
+        // The fold puts the bass half a turn after the start, so start at the bottom.
+        ring.setStartAngle(90.0);
+        spectrum.setVisualization(ring);
+        spectrum.setBandLayout(BandLayout.CENTER_FOLD);
+        spectrum.setGlow(true);
+        spectrum.setShowPeaks(false);
+        spectrum.getStyleClass().add("sun");
+        spectrum.setPrefSize(FLOWER_SIZE, FLOWER_SIZE);
+        return spectrum;
+    }
+
+    private static Node aurora(SampleLifecycle life) {
+        StackPane stack = new StackPane(
+                ribbon("lime", 0.0, 0.9, life), ribbon("aqua", 2.1, 1.3, life), ribbon("violet", 4.2, 0.6, life));
+        stack.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return stack;
+    }
+
+    // Two slow sines of different lengths, so the ribbon never repeats itself exactly.
+    private static RXAudioSpectrum ribbon(String color, double phase, double speed, SampleLifecycle life) {
+        RXAudioSpectrum spectrum = new RXAudioSpectrum();
+        spectrum.setBandCount(48);
+        spectrum.setVisualization(new VisLine(3.0));
+        spectrum.setGlow(true);
+        spectrum.getStyleClass().add(color);
+        spectrum.setPrefSize(240.0, 130.0);
+        wave(spectrum, life, (time, position) -> 0.5
+                + 0.28 * Math.sin(position * 7.0 + time * speed + phase)
+                + 0.14 * Math.sin(position * 17.0 - time * speed * 1.7 + phase));
+        return spectrum;
+    }
+
+    /** Feeds a spectrum with levels from 0 to 1 computed from the time and the band position. */
+    private static void wave(RXAudioSpectrum spectrum, SampleLifecycle life, DoubleBinaryOperator level) {
+        float[] frame = new float[RAW_BANDS];
+        double[] time = {0.0};
+        Runnable feed = () -> {
+            time[0] += WAVE_FRAME.toSeconds();
+            for (int i = 0; i < RAW_BANDS; i++) {
+                double value = level.applyAsDouble(time[0], i / (double) RAW_BANDS);
+                frame[i] = (float) (MIN_DECIBELS * (1.0 - Math.max(0.0, Math.min(1.0, value))));
+            }
+            spectrum.updateSpectrum(frame);
+        };
+        feed.run();
+        Timeline timeline = new Timeline(new KeyFrame(WAVE_FRAME, event -> feed.run()));
+        timeline.setCycleCount(Animation.INDEFINITE);
+        life.playWhileShown(timeline);
     }
 
     // ==================== Made-up music ====================
