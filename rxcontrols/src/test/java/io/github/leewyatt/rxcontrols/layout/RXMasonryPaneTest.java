@@ -12,6 +12,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
@@ -1804,12 +1805,12 @@ public class RXMasonryPaneTest {
     }
 
     /**
-     * Verifies a child whose height depends on its width is given the height its block was
-     * measured with when its width is off the pixel grid: at 1.5 a preferred width of 40.3
-     * is laid out 40.67 wide, where the child would ask for a pixel less than its block.
+     * Verifies a child whose height depends on its width is measured at the width it is
+     * laid out at when its preferred width is off the pixel grid: at 1.5 a preferred width
+     * of 40.3 is laid out 40.67 wide, and its height and its block are those of that width.
      */
     @Test
-    public void biasedChildOffTheGridIsAsHighAsItsBlock() throws Exception {
+    public void biasedChildOffTheGridIsMeasuredAtItsLaidOutWidth() throws Exception {
         runOnFx(() -> {
             WidthRecordingRegion biased = new WidthRecordingRegion();
             biased.setPrefWidth(40.3);
@@ -1819,8 +1820,13 @@ public class RXMasonryPaneTest {
             pane.setFillWidth(false);
             stageFor(pane).setRenderScaleX(1.5);
             layout(pane, 100.0, 400.0);
-            assertEquals(61.0 / 1.5, biased.getWidth(), 1.0e-9, "setup: the width is off the preferred width");
-            assertEquals(Math.ceil(6000.0 / 40.3), biased.getHeight(), 1.0e-9, "the height of the block");
+            double width = 61.0 / 1.5;
+            assertEquals(width, biased.getWidth(), 1.0e-9, "setup: the width is off the preferred width");
+            assertFalse(biased.askedWidths.isEmpty(), "setup: the height was asked for");
+            for (double asked : biased.askedWidths) {
+                assertEquals(biased.getWidth(), asked, "the width the height is asked at");
+            }
+            assertEquals(Math.ceil(6000.0 / width), biased.getHeight(), 1.0e-9, "the height at the laid out width");
             assertEquals(biased.getHeight() + 6.0, next.getLayoutY(), 1.0e-9, "the next block starts a gap below");
         });
     }
@@ -2005,32 +2011,88 @@ public class RXMasonryPaneTest {
     }
 
     /**
-     * Verifies a width-dependent child is measured at the width it is laid out at, for
-     * single and spanning children at fractional render scales.
+     * Verifies a width-dependent child is measured at exactly the width it is laid out at,
+     * for single and spanning children, in filled and in fixed-width columns, at fractional
+     * render scales. Not even a rounding error apart: a child that wraps its content
+     * decides its rows by a strict comparison.
      */
     @Test
     public void childHeightIsMeasuredAtTheLaidOutWidth() throws Exception {
         runOnFx(() -> {
-            WidthRecordingRegion[] cards = new WidthRecordingRegion[16];
-            for (int i = 0; i < cards.length; i++) {
-                cards[i] = new WidthRecordingRegion();
-                RXMasonryPane.setColumnSpan(cards[i], i % 3 == 1 ? 2 : 1);
-            }
-            RXMasonryPane pane = paddedFilledPane(cards);
-            Stage stage = stageFor(pane);
-            for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
-                stage.setRenderScaleX(scale);
-                for (double width = 300.0; width <= 420.0; width += 0.25) {
-                    for (WidthRecordingRegion card : cards) {
-                        card.askedWidths.clear();
-                    }
-                    layout(pane, width, 2000.0);
+            double[][] geometries = {{60.0, 10.0}, {61.0, 6.0}};
+            for (double[] geometry : geometries) {
+                for (boolean fillWidth : new boolean[] {false, true}) {
+                    WidthRecordingRegion[] cards = new WidthRecordingRegion[16];
                     for (int i = 0; i < cards.length; i++) {
-                        for (double asked : cards[i].askedWidths) {
-                            assertEquals(cards[i].getWidth(), asked, 1e-9,
-                                    "card " + i + " at scale " + scale + ", width " + width);
+                        cards[i] = new WidthRecordingRegion();
+                        cards[i].setPrefWidth(5000.0);
+                        RXMasonryPane.setColumnSpan(cards[i], i % 3 == 1 ? 2 : 1);
+                    }
+                    RXMasonryPane pane = paddedFilledPane(cards);
+                    pane.setColumnWidth(geometry[0]);
+                    pane.setHgap(geometry[1]);
+                    pane.setFillWidth(fillWidth);
+                    Stage stage = stageFor(pane);
+                    for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                        stage.setRenderScaleX(scale);
+                        for (double width = 300.0; width <= 420.0; width += 0.25) {
+                            for (WidthRecordingRegion card : cards) {
+                                card.askedWidths.clear();
+                            }
+                            layout(pane, width, 2000.0);
+                            for (int i = 0; i < cards.length; i++) {
+                                for (double asked : cards[i].askedWidths) {
+                                    assertEquals(cards[i].getWidth(), asked, (fillWidth ? "filled" : "fixed")
+                                            + ", columns of " + geometry[0] + ", gap " + geometry[1] + ", scale "
+                                            + scale + ", width " + width + ": card " + i);
+                                }
+                            }
                         }
                     }
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a child that wraps its content is as high as the rows it wraps into at the
+     * width it is given, and the next block starts below it. A FlowPane across two columns,
+     * holding two items a column wide with the pane's own gap between them, fits its slot
+     * to a rounding error: measured a rounding error wider than it was laid out, it came
+     * out a row short, and its second row lay over the next child.
+     */
+    @Test
+    public void wrappingChildIsAsHighAsTheRowsItWrapsInto() throws Exception {
+        runOnFx(() -> {
+            double[][] cases = {{1.5, 61.0, 6.0}, {1.25, 66.0, 1.0}, {1.75, 61.0, 2.0}, {1.0, 61.0, 6.0}};
+            for (boolean fillWidth : new boolean[] {false, true}) {
+                for (double[] c : cases) {
+                    String at = (fillWidth ? "filled" : "fixed") + ", scale " + c[0] + ", columns of " + c[1]
+                            + ", gap " + c[2];
+                    Region last = card(c[1], 20.0);
+                    FlowPane flow = new FlowPane(c[2], 0.0, card(c[1], 20.0), last);
+                    Region next = card(c[1], 20.0);
+                    RXMasonryPane.setColumnSpan(flow, 2);
+                    RXMasonryPane.setColumnSpan(next, 2);
+                    RXMasonryPane pane = new RXMasonryPane(flow, next);
+                    pane.setColumnWidth(c[1]);
+                    pane.setHgap(c[2]);
+                    pane.setVgap(0.0);
+                    pane.setPrefColumns(2);
+                    pane.setFillWidth(fillWidth);
+                    pane.setAnimated(false);
+                    Stage stage = stageFor(pane);
+                    stage.setRenderScaleX(c[0]);
+                    stage.setRenderScaleY(c[0]);
+                    layout(pane, pane.prefWidth(-1), 400.0);
+                    assertEquals(flow.prefHeight(flow.getWidth()), flow.getHeight(), 1.0e-9,
+                            at + ": the height the content needs at its width");
+                    assertTrue(last.getLayoutY() + last.getHeight() <= flow.getHeight() + 1.0e-9,
+                            at + ": the content stays inside the child");
+                    assertEquals(flow.getLayoutY() + flow.getHeight(), next.getLayoutY(), 1.0e-9,
+                            at + ": the next block starts below");
+                    assertEquals(next.getLayoutY() + next.getHeight(), pane.prefHeight(pane.getWidth()), 1.0e-9,
+                            at + ": the preferred height holds both");
                 }
             }
         });
