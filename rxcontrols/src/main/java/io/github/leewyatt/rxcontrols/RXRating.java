@@ -42,7 +42,8 @@ import java.util.List;
  * rated.</p>
  *
  * <p><b>Input.</b> The step limits what the user can pick, never what is shown: whole
- * icons, halves, or with {@link Step#ANY} the exact place under the pointer. That value
+ * icons, halves, or with {@link Step#ANY} the exact place under the pointer, never less
+ * than 0.1. That value
  * is not rounded, so it depends on the icon size, and clicking the very same value
  * again to clear it is unlikely; round it for display as needed. Hovering previews the value a click would commit in
  * {@link #hoverValueProperty() hoverValue} and never touches {@code value}; leaving the

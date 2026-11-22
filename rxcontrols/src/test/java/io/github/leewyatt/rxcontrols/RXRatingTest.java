@@ -460,6 +460,62 @@ public class RXRatingTest {
         });
     }
 
+    /** Verifies a listener that forbids clearing while Delete ends the preview keeps the value. */
+    @Test
+    public void deleteAsksAgainWhetherClearingIsAllowed() throws Exception {
+        runOnFx(() -> {
+            RXRating rating = laidOut(new RXRating(1.0));
+            Recorder recorder = new Recorder(rating);
+            fire(rating, MouseEvent.MOUSE_MOVED, 2 * PITCH + 10.0, MouseButton.NONE, false);
+            rating.hoverValueProperty().addListener((obs, was, now) -> {
+                if (now == null) {
+                    rating.setClearable(false);
+                }
+            });
+            Event.fireEvent(rating, key(KeyCode.DELETE));
+            assertEquals(1.0, rating.getValue(), EPSILON);
+            assertEquals(0, recorder.actions.size());
+            Event.fireEvent(rating, key(KeyCode.RIGHT));
+            assertEquals(2.0, rating.getValue(), EPSILON);
+        });
+    }
+
+    /** Verifies an action that removes the rating from its scene leaves no preview behind. */
+    @Test
+    public void actionThatRemovesTheRatingLeavesNoPreview() throws Exception {
+        runOnFx(() -> {
+            RXRating rating = laidOut(new RXRating());
+            Pane parent = (Pane) rating.getParent();
+            rating.setOnAction(event -> parent.getChildren().remove(rating));
+            click(rating, 2 * PITCH + 10.0);
+            assertEquals(3.0, rating.getValue(), EPSILON);
+            assertNull(rating.getScene());
+            assertNull(rating.getHoverValue());
+        });
+    }
+
+    /** Verifies a press whose focus callback takes the rating out and back leaves no press or preview. */
+    @Test
+    public void pressCancelledByItsFocusCallbackStaysCancelled() throws Exception {
+        runOnFx(() -> {
+            RXRating rating = laidOut(new RXRating(1.0));
+            Pane parent = (Pane) rating.getParent();
+            boolean[] moved = {false};
+            rating.getScene().focusOwnerProperty().addListener((obs, was, now) -> {
+                if (now == rating && !moved[0]) {
+                    moved[0] = true;
+                    parent.getChildren().remove(rating);
+                    parent.getChildren().add(rating);
+                }
+            });
+            fire(rating, MouseEvent.MOUSE_PRESSED, 2 * PITCH + 10.0, MouseButton.PRIMARY, false);
+            assertTrue(moved[0]);
+            assertNull(rating.getHoverValue());
+            Event.fireEvent(rating, key(KeyCode.RIGHT));
+            assertEquals(2.0, rating.getValue(), EPSILON);
+        });
+    }
+
     /** Verifies an enter that arrives just ahead of the release does not drop the click. */
     @Test
     public void enterAheadOfTheReleaseKeepsTheClick() throws Exception {

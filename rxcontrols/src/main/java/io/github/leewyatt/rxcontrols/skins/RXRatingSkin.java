@@ -67,6 +67,12 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
     private boolean disposed;
     /** True from a primary press on the rating until its release. */
     private boolean pressed;
+    /**
+     * Counts the pointer gestures cancelled so far. A handler that runs application
+     * code reads it before and after: a change means the gesture it was handling was
+     * cancelled meanwhile, and it must not set the press or the preview up again.
+     */
+    private int cancelCount;
     /** The value a click just cleared; no preview is shown while the pointer stays on it. */
     private Double clearedValue;
     private final InvalidationListener skinListener = observable -> activate();
@@ -259,9 +265,11 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
         }
         RXRating control = getSkinnable();
         if (control.isFocusTraversable()) {
+            int cancelsBefore = cancelCount;
             control.requestFocus();
-            // A focus listener may have replaced this skin or closed the rating to input.
-            if (disposed || !interactive()) {
+            // A focus listener may have replaced this skin, closed the rating to input
+            // or taken it out of its scene.
+            if (disposed || cancelCount != cancelsBefore || !interactive()) {
                 return;
             }
         }
@@ -287,8 +295,11 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
         pressed = false;
         boolean inside = inside(event);
         if (inside && interactive()) {
+            int cancelsBefore = cancelCount;
             commitFromPointer(valueAt(event.getX()));
-            if (disposed) {
+            // The action may have replaced this skin or removed the rating from its
+            // scene; the pointer is then no longer over a rating to preview on.
+            if (disposed || cancelCount != cancelsBefore) {
                 return;
             }
         }
@@ -330,6 +341,7 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
     }
 
     private void cancelPointer() {
+        cancelCount++;
         pressed = false;
         clearPreview();
     }
@@ -395,7 +407,7 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
         } else if (code == KeyCode.END) {
             keyCommit(() -> commit((double) items.size()));
         } else if ((code == KeyCode.DELETE || code == KeyCode.BACK_SPACE) && control.isClearable()) {
-            keyCommit(() -> commit(null));
+            keyCommit(this::clear);
         } else {
             return;
         }
@@ -435,6 +447,13 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
         if (steps >= 1.0) {
             commit(steps / divisions);
         } else if (getSkinnable().isClearable()) {
+            commit(null);
+        }
+    }
+
+    // Asked again here: ending the preview ran listeners that may have changed it.
+    private void clear() {
+        if (getSkinnable().isClearable()) {
             commit(null);
         }
     }
