@@ -112,6 +112,7 @@ import io.github.leewyatt.rxcontrols.RXYearRangeView;
 import io.github.leewyatt.rxcontrols.RXYearView;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import io.github.leewyatt.rxcontrols.layout.RXFlowPane;
+import io.github.leewyatt.rxcontrols.layout.RXDashboardPane;
 import io.github.leewyatt.rxcontrols.layout.RXMasonryPane;
 import io.github.leewyatt.rxcontrols.layout.RXRow;
 import io.github.leewyatt.rxcontrols.layout.RXTilePane;
@@ -358,6 +359,7 @@ import io.github.leewyatt.rxcontrols.samples.showcase.RXHoldButtonShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXImagePaneShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXImageViewShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXIntegerFieldShowcase;
+import io.github.leewyatt.rxcontrols.samples.showcase.RXDashboardPaneShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXKanbanViewShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXLineButtonShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXLineLabelShowcase;
@@ -713,6 +715,7 @@ final class SamplerCatalog {
                 .withSamples(RXTilePaneSamples::create));
         list.add(single(c, RXMasonryPane.class, RXMasonryPaneShowcase::new, RXMasonryPaneDemo.class)
                 .withSamples(RXMasonryPaneSamples::create));
+        list.add(single(c, RXDashboardPane.class, RXDashboardPaneShowcase::new, null));
 
         c = SamplerCategory.MOTION;
         list.add(single(c, RXBursts.class, RXBurstsShowcase::new, RXBurstsDemo.class)

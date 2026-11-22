@@ -1,0 +1,20 @@
+.dashboard-scroller > .viewport {
+    -fx-background-color: transparent;
+}
+
+.rx-dashboard-pane {
+    -fx-padding: 12px;
+}
+
+.rx-dashboard-card .card-title {
+    -fx-font-weight: bold;
+}
+
+.rx-dashboard-card .kpi-value {
+    -fx-font-size: 1.8em;
+    -fx-font-weight: bold;
+}
+
+.rx-dashboard-card .kpi-delta {
+    -fx-text-fill: -rx-success;
+}
