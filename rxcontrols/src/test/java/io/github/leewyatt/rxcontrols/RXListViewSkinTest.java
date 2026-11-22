@@ -1275,71 +1275,6 @@ public class RXListViewSkinTest {
 
     // Each row's content height, deterministic and different from the 48px estimate so a
     // correction is forced; varies 40..115 across items.
-    /**
-     * Verifies a view switched to a new render scale shows the scroll bar a view built at
-     * that scale shows, for every pair of five scales. A bar that kept the breadth it
-     * measured at the old scale is off the new pixel grid, and so are the rows beside it.
-     */
-    @Test
-    public void scaleSwitchMeasuresTheScrollBarAgain() throws Exception {
-        onFx(() -> {
-            double[] scales = {1.0, 1.25, 1.5, 1.75, 2.0};
-            int changed = 0;
-            for (double from : scales) {
-                for (double to : scales) {
-                    if (from == to) {
-                        continue;
-                    }
-                    RXListView<String> fresh = items(200);
-                    scaledHost(fresh, to);
-                    RXListView<String> switched = items(200);
-                    Stage stage = scaledHost(switched, from);
-                    double before = verticalBar(switched).getWidth();
-                    stage.setRenderScaleX(to);
-                    stage.setRenderScaleY(to);
-                    pump((Region) switched.getParent());
-                    String at = "from " + from + " to " + to;
-                    ScrollBar expected = verticalBar(fresh);
-                    ScrollBar actual = verticalBar(switched);
-                    if (expected.getWidth() != before) {
-                        changed++;
-                    }
-                    assertEquals(expected.getWidth(), actual.getWidth(), 1.0e-9, at + ": breadth of the bar");
-                    assertEquals(expected.getLayoutX(), actual.getLayoutX(), 1.0e-9, at + ": x of the bar");
-                    assertEquals(cellByIndex(fresh, 0).getWidth(), cellByIndex(switched, 0).getWidth(), 1.0e-9,
-                            at + ": width of a row");
-                }
-            }
-            assertTrue(changed > 0, "setup: the breadth of the bar depends on the render scale");
-        });
-    }
-
-    /**
-     * Verifies a disposed skin no longer watches the render scale: the watch listens on
-     * the view, which would keep the skin reachable.
-     */
-    @Test
-    public void disposedSkinStopsWatchingTheRenderScale() throws Exception {
-        List<WeakReference<Object>> disposed = new ArrayList<>();
-        List<Object> kept = new ArrayList<>();
-        onFx(() -> {
-            RXListView<String> view = items(20);
-            scaledHost(view, 1.25);
-            StackPane root = (StackPane) view.getParent();
-            disposed.add(new WeakReference<>(view.getSkin()));
-            view.setSkin(null);
-            pump(root);
-            root.getChildren().remove(view);
-            kept.add(view);
-        });
-        for (int i = 0; i < 50 && disposed.get(0).get() != null; i++) {
-            System.gc();
-            Thread.sleep(20);
-        }
-        assertNull(disposed.get(0).get(), "the disposed skin is not kept by the view");
-        assertEquals(1, kept.size(), "the view itself is still reachable");
-    }
-
     private static double measuredHeightOf(int item) {
         return 40.0 + (item % 4) * 25.0;
     }
@@ -1698,6 +1633,73 @@ public class RXListViewSkinTest {
             assertEquals(Boolean.FALSE,
                     view.queryAccessibleAttribute(AccessibleAttribute.MULTIPLE_SELECTION));
         });
+    }
+
+    // ==================== Render scale ====================
+
+    /**
+     * Verifies a view switched to a new render scale shows the scroll bar a view built at
+     * that scale shows, for every pair of five scales. A bar that kept the breadth it
+     * measured at the old scale is off the new pixel grid, and so are the rows beside it.
+     */
+    @Test
+    public void scaleSwitchMeasuresTheScrollBarAgain() throws Exception {
+        onFx(() -> {
+            double[] scales = {1.0, 1.25, 1.5, 1.75, 2.0};
+            int changed = 0;
+            for (double from : scales) {
+                for (double to : scales) {
+                    if (from == to) {
+                        continue;
+                    }
+                    RXListView<String> fresh = items(200);
+                    scaledHost(fresh, to);
+                    RXListView<String> switched = items(200);
+                    Stage stage = scaledHost(switched, from);
+                    double before = verticalBar(switched).getWidth();
+                    stage.setRenderScaleX(to);
+                    stage.setRenderScaleY(to);
+                    pump((Region) switched.getParent());
+                    String at = "from " + from + " to " + to;
+                    ScrollBar expected = verticalBar(fresh);
+                    ScrollBar actual = verticalBar(switched);
+                    if (expected.getWidth() != before) {
+                        changed++;
+                    }
+                    assertEquals(expected.getWidth(), actual.getWidth(), 1.0e-9, at + ": breadth of the bar");
+                    assertEquals(expected.getLayoutX(), actual.getLayoutX(), 1.0e-9, at + ": x of the bar");
+                    assertEquals(cellByIndex(fresh, 0).getWidth(), cellByIndex(switched, 0).getWidth(), 1.0e-9,
+                            at + ": width of a row");
+                }
+            }
+            assertTrue(changed > 0, "setup: the breadth of the bar depends on the render scale");
+        });
+    }
+
+    /**
+     * Verifies a disposed skin no longer watches the render scale: the watch listens on
+     * the view, which would keep the skin reachable.
+     */
+    @Test
+    public void disposedSkinStopsWatchingTheRenderScale() throws Exception {
+        List<WeakReference<Object>> disposed = new ArrayList<>();
+        List<Object> kept = new ArrayList<>();
+        onFx(() -> {
+            RXListView<String> view = items(20);
+            scaledHost(view, 1.25);
+            StackPane root = (StackPane) view.getParent();
+            disposed.add(new WeakReference<>(view.getSkin()));
+            view.setSkin(null);
+            pump(root);
+            root.getChildren().remove(view);
+            kept.add(view);
+        });
+        for (int i = 0; i < 50 && disposed.get(0).get() != null; i++) {
+            System.gc();
+            Thread.sleep(20);
+        }
+        assertNull(disposed.get(0).get(), "the disposed skin is not kept by the view");
+        assertEquals(1, kept.size(), "the view itself is still reachable");
     }
 
     // ==================== Helpers ====================

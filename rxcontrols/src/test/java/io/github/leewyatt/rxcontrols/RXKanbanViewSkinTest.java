@@ -2063,7 +2063,7 @@ public class RXKanbanViewSkinTest {
         });
     }
 
-    // ==================== Helpers ====================
+    // ==================== Render scale ====================
 
     /**
      * Verifies a board switched to a new render scale lays out like one built at that
@@ -2145,8 +2145,11 @@ public class RXKanbanViewSkinTest {
         assertEquals(1, kept.size(), "the board itself is still reachable");
     }
 
-    // Lays the board out in a stage of the given render scale, narrow enough for the
-    // board to scroll sideways. The stage is never shown: it only supplies the scale.
+    // ==================== Helpers ====================
+
+    // Lays the board out in a stage of the given render scale, 700 wide: three default
+    // columns scroll sideways in it, two do not. The stage is never shown: it only
+    // supplies the scale.
     private static Stage scaledHost(RXKanbanView<?> board, double scale) {
         StackPane root = new StackPane(board);
         Stage stage = new Stage();
