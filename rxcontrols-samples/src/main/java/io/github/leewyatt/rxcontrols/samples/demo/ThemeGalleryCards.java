@@ -85,6 +85,7 @@ import io.github.leewyatt.rxcontrols.RXQuarterView;
 import io.github.leewyatt.rxcontrols.RXRadioButton;
 import io.github.leewyatt.rxcontrols.RXRadioToggleButton;
 import io.github.leewyatt.rxcontrols.RXRangeSlider;
+import io.github.leewyatt.rxcontrols.RXRating;
 import io.github.leewyatt.rxcontrols.RXReactionButton;
 import io.github.leewyatt.rxcontrols.RXRibbonBadge;
 import io.github.leewyatt.rxcontrols.RXRipplePane;
@@ -283,6 +284,7 @@ final class ThemeGalleryCards {
         list.add(card("RXRadioButton", "Radio button with halo and ripple feedback.", buildRXRadioButton()));
         list.add(card("RXRadioToggleButton", "Toggle buttons that select like radio buttons.", buildRXRadioToggleButton()));
         list.add(card("RXRangeSlider", "Slider with a low and a high thumb.", buildRXRangeSlider()));
+        list.add(card("RXRating", "Star rating with half steps and exact averages.", buildRXRating()));
         list.add(card("RXReactionButton", "Like / favorite toggle that bursts when selected.", buildRXReactionButton()));
         list.add(card("RXRibbonBadge", "Text ribbon folded over the edge of a card.", buildRXRibbonBadge()));
         list.add(card("RXRipplePane", "Container with ripple and hover feedback.", buildRXRipplePane()));
@@ -1631,6 +1633,21 @@ final class ThemeGalleryCards {
                 RXMenuItem.of("Save"), RXMenuItem.separator(), delete);
         list.setMaxSize(220.0, Region.USE_PREF_SIZE);
         return list;
+    }
+
+    private static Node buildRXRating() {
+        RXRating editable = new RXRating(3.5);
+        editable.setStep(RXRating.Step.HALF);
+        editable.setAccessibleText("Your rating");
+        RXRating average = new RXRating(3.7);
+        average.setReadOnly(true);
+        average.setAccessibleText("Average rating");
+        RXRating disabled = new RXRating(2.0);
+        disabled.setDisable(true);
+        disabled.setAccessibleText("Disabled rating");
+        VBox box = new VBox(12.0, editable, average, disabled);
+        box.setAlignment(Pos.CENTER);
+        return box;
     }
 
     private static Node buildRXReactionButton() {

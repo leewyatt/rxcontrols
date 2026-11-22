@@ -487,6 +487,39 @@
 
 /*******************************************************************************
  *                                                                             *
+ * RXRating                                                                    *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .rx-rating.teal {
+    -rx-rating-color: #14b8a6;
+}
+
+.example-card .rx-rating.violet {
+    -rx-rating-color: #8b5cf6;
+}
+
+.example-card .rx-rating.large {
+    -rx-gap: 6px;
+}
+
+.example-card .rx-rating.large > .item > .empty,
+.example-card .rx-rating.large > .item > .filled {
+    -fx-pref-width: 30px;
+    -fx-pref-height: 28.5px;
+}
+
+.example-card .rx-rating.small {
+    -rx-gap: 2px;
+}
+
+.example-card .rx-rating.small > .item > .empty,
+.example-card .rx-rating.small > .item > .filled {
+    -fx-pref-width: 14px;
+    -fx-pref-height: 13.3px;
+}
+
+/*******************************************************************************
+ *                                                                             *
  * RXChip / RXChipSet                                                          *
  *                                                                             *
  ******************************************************************************/

@@ -1,0 +1,26 @@
+.rating-preview {
+    -fx-padding: 42px 56px;
+}
+
+.rating-preview .state-label {
+    -fx-font-family: monospace;
+    -fx-font-size: 12px;
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.rating-preview .description {
+    -fx-font-size: 14px;
+    -fx-text-fill: -showcase-caption-color;
+    -fx-padding: 12px 16px;
+    -fx-background-color: -fx-background;
+    -fx-background-radius: 8px;
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-style: dashed;
+    -fx-border-radius: 8px;
+}
+
+.rx-rating.showcase-large > .item > .empty,
+.rx-rating.showcase-large > .item > .filled {
+    -fx-pref-width: 36px;
+    -fx-pref-height: 34px;
+}
