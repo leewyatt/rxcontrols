@@ -17,6 +17,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -1667,43 +1668,210 @@ public class RXMasonryPaneTest {
     }
 
     /**
+     * Verifies a child that cannot be resized, as a shape or an image view, keeps its
+     * size and is placed in its slot by the pane's horizontal alignment and its margin.
+     */
+    @Test
+    public void nonResizableChildrenArePlacedInTheirSlots() throws Exception {
+        runOnFx(() -> {
+            for (boolean fillWidth : new boolean[] {false, true}) {
+                for (double scale : new double[] {1.0, 1.5}) {
+                    Rectangle[] shapes = new Rectangle[6];
+                    for (int i = 0; i < shapes.length; i++) {
+                        shapes[i] = new Rectangle(40.0, 20.0);
+                    }
+                    RXMasonryPane.setMargin(shapes[4], new Insets(4.0, 6.0, 0.0, 10.0));
+                    RXMasonryPane pane = new RXMasonryPane(shapes);
+                    pane.setColumnWidth(100.0);
+                    pane.setHgap(10.0);
+                    pane.setVgap(6.0);
+                    pane.setAnimated(false);
+                    pane.setFillWidth(fillWidth);
+                    pane.setPrefColumns(3);
+                    stageFor(pane).setRenderScaleX(scale);
+                    double[] offsets = {0.0, 30.0, 60.0};
+                    double[] marginedOffsets = {10.0, 32.0, 54.0};
+                    Pos[] alignments = {Pos.TOP_LEFT, Pos.TOP_CENTER, Pos.TOP_RIGHT};
+                    for (int a = 0; a < alignments.length; a++) {
+                        pane.setAlignment(alignments[a]);
+                        layout(pane, pane.prefWidth(-1), 400.0);
+                        for (int i = 0; i < shapes.length; i++) {
+                            String at = (fillWidth ? "filled, " : "fixed, ") + alignments[a] + ", scale " + scale
+                                    + ", shape " + i;
+                            double offset = i == 4 ? marginedOffsets[a] : offsets[a];
+                            assertClose((i % 3) * 110.0 + offset, shapes[i].getLayoutX(), at + ": x");
+                            assertClose(i < 3 ? 0.0 : i == 4 ? 30.0 : 26.0, shapes[i].getLayoutY(), at + ": y");
+                            assertClose(40.0, shapes[i].getLayoutBounds().getWidth(), at + ": width");
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a minimum width of the child's own that is a rounding error above a grid
+     * line counts as on it. At 1.5 a column of 217 snaps to 217.33; that plus 40 comes to
+     * 386.00000000000006 device pixels, which ceiled as Region does would be 387.
+     */
+    @Test
+    public void ownMinimumARoundingErrorAboveTheGridStaysOnIt() throws Exception {
+        runOnFx(() -> {
+            for (boolean fillWidth : new boolean[] {false, true}) {
+                Region card = card(60.0, 30.0);
+                RXMasonryPane pane = pane(217.0, 10.0, 6.0, card);
+                pane.setAnimated(false);
+                pane.setFillWidth(fillWidth);
+                stageFor(pane).setRenderScaleX(1.5);
+                double minimum = pane.snapSizeX(217.0) + 40.0;
+                assertTrue(minimum * 1.5 > 386.0, "setup: the minimum is above its grid line");
+                card.setMinWidth(minimum);
+                layout(pane, pane.snapSizeX(217.0), 400.0);
+                assertEquals(386.0 / 1.5, card.getWidth(), 1.0e-9, fillWidth ? "filled" : "fixed");
+            }
+        });
+    }
+
+    /**
+     * Verifies a child's height is snapped on the vertical grid, as its block is, where
+     * the two render scales differ: at 1.25 by 1.5 a child of 30.3 is 46 device pixels
+     * high and the next block starts a gap below it. A negative top margin moves a child
+     * up without taking from its height.
+     */
+    @Test
+    public void childHeightIsSnappedOnTheVerticalGrid() throws Exception {
+        runOnFx(() -> {
+            for (boolean fillWidth : new boolean[] {false, true}) {
+                String at = fillWidth ? "filled" : "fixed";
+                Region first = card(60.0, 30.3);
+                Region second = card(60.0, 20.0);
+                Region third = card(60.0, 20.0);
+                RXMasonryPane.setMargin(second, new Insets(-4.0, 0.0, 0.0, 0.0));
+                RXMasonryPane pane = pane(60.0, 10.0, 6.0, first, second, third);
+                pane.setAnimated(false);
+                pane.setFillWidth(fillWidth);
+                Stage stage = stageFor(pane);
+                stage.setRenderScaleX(1.25);
+                stage.setRenderScaleY(1.5);
+                layout(pane, 60.0, 400.0);
+                assertEquals(46.0 / 1.5, first.getHeight(), 1.0e-9, at + ": height of the first child");
+                assertEquals(first.getHeight() + 6.0 - 4.0, second.getLayoutY(), 1.0e-9,
+                        at + ": y of the second child");
+                assertEquals(20.0, second.getHeight(), 1.0e-9, at + ": height of the second child");
+                assertEquals(second.getLayoutY() + 20.0 + 6.0, third.getLayoutY(), 1.0e-9,
+                        at + ": y of the third child");
+            }
+        });
+    }
+
+    /**
+     * Verifies a child whose height depends on its width is given the height its block was
+     * measured with when its width is off the pixel grid: at 1.5 a preferred width of 40.3
+     * is laid out 40.67 wide, where the child would ask for a pixel less than its block.
+     */
+    @Test
+    public void biasedChildOffTheGridIsAsHighAsItsBlock() throws Exception {
+        runOnFx(() -> {
+            WidthRecordingRegion biased = new WidthRecordingRegion();
+            biased.setPrefWidth(40.3);
+            Region next = card(40.0, 20.0);
+            RXMasonryPane pane = pane(100.0, 10.0, 6.0, biased, next);
+            pane.setAnimated(false);
+            pane.setFillWidth(false);
+            stageFor(pane).setRenderScaleX(1.5);
+            layout(pane, 100.0, 400.0);
+            assertEquals(61.0 / 1.5, biased.getWidth(), 1.0e-9, "setup: the width is off the preferred width");
+            assertEquals(Math.ceil(6000.0 / 40.3), biased.getHeight(), 1.0e-9, "the height of the block");
+            assertEquals(biased.getHeight() + 6.0, next.getLayoutY(), 1.0e-9, "the next block starts a gap below");
+        });
+    }
+
+    /**
+     * Verifies a child whose width depends on its height is asked for its widths at the
+     * height it is given: its minimum width at that height takes it past a narrower slot.
+     */
+    @Test
+    public void verticallyBiasedChildIsMeasuredAtItsHeight() throws Exception {
+        runOnFx(() -> {
+            for (boolean fillWidth : new boolean[] {false, true}) {
+                Region biased = new Region() {
+                    @Override
+                    public Orientation getContentBias() {
+                        return Orientation.VERTICAL;
+                    }
+
+                    @Override
+                    protected double computePrefHeight(double width) {
+                        return 40.0;
+                    }
+
+                    @Override
+                    protected double computeMinWidth(double height) {
+                        return height < 0.0 ? 10.0 : 80.0;
+                    }
+
+                    @Override
+                    protected double computePrefWidth(double height) {
+                        return 80.0;
+                    }
+                };
+                RXMasonryPane pane = pane(60.0, 10.0, 6.0, biased);
+                pane.setAnimated(false);
+                pane.setFillWidth(fillWidth);
+                layout(pane, 60.0, 400.0);
+                assertEquals(80.0, biased.getWidth(), 1.0e-9, fillWidth ? "filled" : "fixed");
+                assertEquals(40.0, biased.getHeight(), 1.0e-9, fillWidth ? "filled" : "fixed");
+            }
+        });
+    }
+
+    /**
      * Verifies a layout pass sets the width of a child once, and a pass that changes
      * nothing sets none: a child ceiled past its slot and pulled back was resized twice
-     * on every pass, and laid out again each time.
+     * on every pass, and laid out again each time. Columns of 60 with a gap of 10 meet
+     * that when they are filled, columns of 63 with no gap when their width is fixed.
      */
     @Test
     public void passResizesAChildAtMostOnce() throws Exception {
         runOnFx(() -> {
-            for (boolean fillWidth : new boolean[] {false, true}) {
-                for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
-                    CountingRegion[] cards = new CountingRegion[24];
-                    for (int i = 0; i < cards.length; i++) {
-                        cards[i] = new CountingRegion();
-                        cards[i].setPrefSize(5000.0, 20.0 + (i * 13) % 50);
-                        RXMasonryPane.setColumnSpan(cards[i], i % 5 == 2 ? 2 : i % 11 == 6 ? 3 : 1);
-                    }
-                    RXMasonryPane pane = paddedFilledPane(cards);
-                    pane.setFillWidth(fillWidth);
-                    stageFor(pane).setRenderScaleX(scale);
-                    for (double width = 300.0; width <= 520.0; width += 0.25) {
-                        String at = (fillWidth ? "filled" : "fixed") + ", scale " + scale + ", width " + width;
-                        for (CountingRegion card : cards) {
-                            card.widthChanges = 0;
-                        }
-                        layout(pane, width, 800.0);
+            double[][] geometries = {{60.0, 10.0}, {63.0, 0.0}};
+            for (double[] geometry : geometries) {
+                for (boolean fillWidth : new boolean[] {false, true}) {
+                    for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
+                        CountingRegion[] cards = new CountingRegion[24];
                         for (int i = 0; i < cards.length; i++) {
-                            assertTrue(cards[i].widthChanges <= 1,
-                                    at + ": card " + i + " resized " + cards[i].widthChanges + " times");
+                            cards[i] = new CountingRegion();
+                            cards[i].setPrefSize(5000.0, 20.0 + (i * 13) % 50);
+                            RXMasonryPane.setColumnSpan(cards[i], i % 5 == 2 ? 2 : i % 11 == 6 ? 3 : 1);
                         }
-                        for (CountingRegion card : cards) {
-                            card.widthChanges = 0;
-                            card.layouts = 0;
-                        }
-                        pane.requestLayout();
-                        pane.layout();
-                        for (int i = 0; i < cards.length; i++) {
-                            assertEquals(0, cards[i].widthChanges, at + ": card " + i + " resized on a repeated pass");
-                            assertEquals(0, cards[i].layouts, at + ": card " + i + " laid out on a repeated pass");
+                        RXMasonryPane pane = paddedFilledPane(cards);
+                        pane.setColumnWidth(geometry[0]);
+                        pane.setHgap(geometry[1]);
+                        pane.setFillWidth(fillWidth);
+                        stageFor(pane).setRenderScaleX(scale);
+                        for (double width = 300.0; width <= 520.0; width += 0.25) {
+                            String at = (fillWidth ? "filled" : "fixed") + ", scale " + scale + ", columns of "
+                                    + geometry[0] + ", gap " + geometry[1] + ", width " + width;
+                            for (CountingRegion card : cards) {
+                                card.widthChanges = 0;
+                            }
+                            layout(pane, width, 800.0);
+                            for (int i = 0; i < cards.length; i++) {
+                                assertTrue(cards[i].widthChanges <= 1,
+                                        at + ": card " + i + " resized " + cards[i].widthChanges + " times");
+                            }
+                            for (CountingRegion card : cards) {
+                                card.widthChanges = 0;
+                                card.layouts = 0;
+                            }
+                            pane.requestLayout();
+                            pane.layout();
+                            for (int i = 0; i < cards.length; i++) {
+                                assertEquals(0, cards[i].widthChanges,
+                                        at + ": card " + i + " resized on a repeated pass");
+                                assertEquals(0, cards[i].layouts,
+                                        at + ": card " + i + " laid out on a repeated pass");
+                            }
                         }
                     }
                 }

@@ -1650,13 +1650,15 @@ public class RXMasonryPane extends Pane {
     }
 
     // Sizes and places a child in its slot as layoutInArea does without fillHeight and top
-    // aligned, except for how the width is snapped. A slot is on the pixel grid already,
+    // aligned, except for how the size is snapped. A slot is on the pixel grid already,
     // and at fractional scales JavaFX 17 ceils such a width a whole device pixel wider:
     // the child would run past its slot. Resizing it back afterwards would change its
     // width twice on every pass, and a child that follows its width at once, as a wrapping
     // label does, would ask for another layout from inside each pass, so the pane would
     // lay out on every pulse. The width is ceiled with the grid's tolerance instead and
-    // set once; only a minimum width above the slot takes a child past it.
+    // set once; only a minimum width above the slot takes a child past it. The height is
+    // snapped on the vertical grid, as the child's block is: JavaFX 17 snaps it with the
+    // horizontal scale, which leaves a child off its block where the two scales differ.
     private void layoutInSlot(Node child, double areaX, double areaY, double areaWidth, double areaHeight,
                               Insets margin, boolean fillWidth, HPos hpos) {
         if (child.isResizable()) {
@@ -1685,7 +1687,9 @@ public class RXMasonryPane extends Pane {
     // the child's preferred width, within the child's own bounds, on the pixel grid.
     // Ceiling then clamping equals clamping then ceiling, but each side ceils its own way:
     // the slot adds up grid values and is ceiled with the grid's tolerance, while a size of
-    // the child's own takes at least a device pixel.
+    // the child's own takes at least a device pixel. That size is ceiled with the tolerance
+    // too: a container's is often a sum of snapped sizes itself, and ceiled as Region does
+    // it would come out a device pixel wider than the parts it adds up.
     private double fittedWidth(Node child, double slotWidth, double heightHint, boolean fillWidth) {
         double wanted = PixelGrid.ceilX(this, slotWidth);
         if (!fillWidth) {
