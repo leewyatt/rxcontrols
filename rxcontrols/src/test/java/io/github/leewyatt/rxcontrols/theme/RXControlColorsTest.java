@@ -20,6 +20,7 @@ import io.github.leewyatt.rxcontrols.RXKanbanView;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
 import io.github.leewyatt.rxcontrols.RXRangeSlider;
+import io.github.leewyatt.rxcontrols.RXRating;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
@@ -1126,6 +1127,8 @@ public class RXControlColorsTest {
             sampleBothWays("seek track", RXSeekBar::new, track, asRoot, nested);
             sampleBothWays("slider track", RXSlider::new, track, asRoot, nested);
             sampleBothWays("range slider track", RXRangeSlider::new, track, asRoot, nested);
+            sampleBothWays("rating empty icon", RXRating::new,
+                    control -> ThemeColorSamples.hex(fill(control.lookup(".empty"))), asRoot, nested);
             sampleBothWays("wave container", RXWaveProgressIndicator::new,
                     control -> ThemeColorSamples.hex(fill(control.lookup(".wave-container"))), asRoot, nested);
             sampleBothWays("circular track", RXCircularProgressIndicator::new,

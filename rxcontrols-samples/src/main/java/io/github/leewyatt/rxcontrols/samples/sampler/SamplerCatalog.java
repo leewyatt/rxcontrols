@@ -70,6 +70,7 @@ import io.github.leewyatt.rxcontrols.RXQuarterRangeView;
 import io.github.leewyatt.rxcontrols.RXQuarterView;
 import io.github.leewyatt.rxcontrols.RXRadioButton;
 import io.github.leewyatt.rxcontrols.RXRangeSlider;
+import io.github.leewyatt.rxcontrols.RXRating;
 import io.github.leewyatt.rxcontrols.RXReactionButton;
 import io.github.leewyatt.rxcontrols.RXRibbonBadge;
 import io.github.leewyatt.rxcontrols.RXRipplePane;
@@ -177,6 +178,7 @@ import io.github.leewyatt.rxcontrols.samples.demo.RXQuarterRangeViewDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXQuarterViewDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXRadioButtonDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXRangeSliderDemo;
+import io.github.leewyatt.rxcontrols.samples.demo.RXRatingDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXReactionButtonDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXRowDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXSeekBarDemo;
@@ -273,6 +275,7 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXQuarterRangeSamples
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXQuarterSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRadioButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRangeSliderSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRatingSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXReactionButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRibbonBadgeSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRipplePaneSamples;
@@ -382,6 +385,7 @@ import io.github.leewyatt.rxcontrols.samples.showcase.RXQuarterRangeViewShowcase
 import io.github.leewyatt.rxcontrols.samples.showcase.RXQuarterViewShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXRadioButtonShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXRangeSliderShowcase;
+import io.github.leewyatt.rxcontrols.samples.showcase.RXRatingShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXReactionButtonShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXRibbonBadgeShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXRipplePaneShowcase;
@@ -488,6 +492,8 @@ final class SamplerCatalog {
                 .withSamples(RXRangeSliderSamples::create));
         list.add(single(c, RXSeekBar.class, RXSeekBarShowcase::new, RXSeekBarDemo.class)
                 .withSamples(RXSeekBarSamples::create));
+        list.add(single(c, RXRating.class, RXRatingShowcase::new, RXRatingDemo.class)
+                .withSamples(RXRatingSamples::create));
         list.add(single(c, RXChip.class, RXChipShowcase::new, null)
                 .withSamples(RXChipSamples::create));
         list.add(single(c, RXChipSet.class, RXChipSetShowcase::new, null)

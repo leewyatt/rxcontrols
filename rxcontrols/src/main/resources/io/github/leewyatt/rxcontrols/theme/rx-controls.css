@@ -25,7 +25,7 @@
 .rx-material-decimal-field, .rx-material-double-field, .rx-material-integer-field,
 .rx-material-long-field, .rx-material-text-field, .rx-material-password-field,
 .rx-password-field, .rx-placeholder, .rx-quarter-picker, .rx-quarter-range-picker, .rx-quarter-range-view, .rx-quarter-view,
-.rx-radio-button, .rx-radio-toggle-button,
+.rx-radio-button, .rx-radio-toggle-button, .rx-rating,
 .rx-reaction-button, .rx-ribbon-badge, .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-selection-box, .rx-sidebar, .rx-snackbar-host, .rx-speed-dial,
 .rx-slider, .rx-range-slider,
@@ -228,6 +228,8 @@
 .rx-theme-atlantafx.rx-radio-button,
 .rx-theme-atlantafx .rx-radio-toggle-button,
 .rx-theme-atlantafx.rx-radio-toggle-button,
+.rx-theme-atlantafx .rx-rating,
+.rx-theme-atlantafx.rx-rating,
 .rx-theme-atlantafx .rx-reaction-button,
 .rx-theme-atlantafx.rx-reaction-button,
 .rx-theme-atlantafx .rx-ribbon-badge,
@@ -3048,6 +3050,65 @@
 .rx-theme-atlantafx .rx-reaction-button:focus-shown,
 .rx-theme-atlantafx.rx-reaction-button:focus-shown {
     -fx-border-color: -rx-focus;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXRating                                                                    *
+ *                                                                             *
+ ******************************************************************************/
+.rx-rating {
+    -rx-rating-color: -rx-warning;
+    -rx-rating-empty-color: -rx-outline-variant;
+}
+
+.rx-theme-atlantafx .rx-rating,
+.rx-theme-atlantafx.rx-rating {
+    -rx-rating-empty-color: -color-border-default;
+}
+
+.rx-rating:read-only {
+    -fx-focus-traversable: false;
+}
+
+.rx-rating > .item > .empty,
+.rx-rating > .item > .filled {
+    -fx-pref-width: 20px;
+    -fx-pref-height: 19px;
+    -fx-shape: "M12 2.6 L14.53 9.12 L21.51 9.51 L16.09 13.93 L17.88 20.69 L12 16.9 L6.12 20.69 L7.91 13.93 L2.49 9.51 L9.47 9.12 Z";
+}
+
+.rx-rating > .item > .empty {
+    -fx-background-color: -rx-rating-empty-color;
+}
+
+.rx-rating > .item > .filled {
+    -fx-background-color: -rx-rating-color;
+}
+
+.rx-rating > .item:target {
+    -fx-scale-x: 1.15;
+    -fx-scale-y: 1.15;
+}
+
+/* The focus mark is a small glow around each icon. :focus-shown is set by the skin:
+   focus, unless it came from a pointer press and no key has been pressed since. */
+.rx-rating:focus-shown > .item {
+    -fx-effect: dropshadow(three-pass-box, -rx-focus, 4, 0.3, 0, 0);
+}
+
+.rx-rating:disabled {
+    -fx-opacity: 0.4;
+}
+
+.rx-rating.heart {
+    -rx-rating-color: -rx-danger;
+}
+
+.rx-rating.heart > .item > .empty,
+.rx-rating.heart > .item > .filled {
+    -fx-pref-height: 18px;
+    -fx-shape: "M12 20.5 C12 20.5 3 14.5 3 8.75 C3 5.85 5.3 3.75 7.9 3.75 C9.7 3.75 11.2 4.75 12 6.2 C12.8 4.75 14.3 3.75 16.1 3.75 C18.7 3.75 21 5.85 21 8.75 C21 14.5 12 20.5 12 20.5 Z";
 }
 
 /*******************************************************************************
