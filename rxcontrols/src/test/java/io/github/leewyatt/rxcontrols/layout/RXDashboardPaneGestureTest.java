@@ -9,6 +9,7 @@ import javafx.event.EventType;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -47,7 +48,7 @@ public class RXDashboardPaneGestureTest {
     private static final PseudoClass DRAGGING = PseudoClass.getPseudoClass("dragging");
 
     @BeforeAll
-    public static void startToolkit() throws InterruptedException {
+    public static void startToolkit() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
         try {
             Platform.startup(latch::countDown);
@@ -57,6 +58,8 @@ public class RXDashboardPaneGestureTest {
         if (!latch.await(5, TimeUnit.SECONDS)) {
             throw new AssertionError("JavaFX toolkit did not start");
         }
+        // Creating a control installs Modena, which the default card style looks colors up in.
+        fx(Label::new);
     }
 
     // ==================== Dragging ====================

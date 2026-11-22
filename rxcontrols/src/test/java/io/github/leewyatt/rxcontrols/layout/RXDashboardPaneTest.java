@@ -5,11 +5,13 @@ import io.github.leewyatt.rxcontrols.layout.RXDashboardPane.CollisionPolicy;
 import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.css.PseudoClass;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
 import javafx.scene.layout.Region;
 import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
@@ -45,7 +47,7 @@ public class RXDashboardPaneTest {
     private static final double EPSILON = 1e-6;
 
     @BeforeAll
-    public static void startToolkit() throws InterruptedException {
+    public static void startToolkit() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
         try {
             Platform.startup(latch::countDown);
@@ -55,6 +57,8 @@ public class RXDashboardPaneTest {
         if (!latch.await(5, TimeUnit.SECONDS)) {
             throw new AssertionError("JavaFX toolkit did not start");
         }
+        // Creating a control installs Modena, which the default card style looks colors up in.
+        fx(Label::new);
     }
 
     // ==================== Defaults ====================
@@ -458,6 +462,125 @@ public class RXDashboardPaneTest {
     }
 
     @Test
+    public void anInvalidStyleSheetColumnCountIsIgnored() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = caseOne();
+            stageFor(pane);
+            layout(pane, 400.0, 300.0);
+            RXDashboardLayout before = pane.getLayout();
+            pane.setStyle("-rx-column-count: 0;");
+            pane.applyCss();
+            assertEquals(4, pane.getColumnCount());
+            assertEquals(before, pane.getLayout());
+            pane.setStyle("-rx-column-count: 6;");
+            pane.applyCss();
+            assertEquals(6, pane.getColumnCount());
+            // As if the style sheet set no column count: JavaFX gives back the value set in code.
+            pane.setStyle("-rx-column-count: -3;");
+            pane.applyCss();
+            assertEquals(4, pane.getColumnCount());
+            assertEquals(before, pane.getLayout());
+        });
+    }
+
+    @Test
+    public void unbindingFromAnInvalidValueRestoresTheLastValidCount() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = caseOne();
+            SimpleIntegerProperty source = new SimpleIntegerProperty(4);
+            pane.columnCountProperty().bind(source);
+            source.set(0);
+            pane.columnCountProperty().unbind();
+            assertEquals(4, pane.getColumnCount());
+            assertThrows(IllegalArgumentException.class, () -> pane.setColumnCount(0));
+        });
+    }
+
+    @Test
+    public void addingThatPushesMakesTheResultTheBase() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = pane(12);
+            RXDashboardCard a = card("A", 1, 1);
+            RXDashboardCard b = card("B", 1, 1);
+            pane.getCards().addAll(a, b);
+            layout(pane, 600.0, 400.0);
+            pane.applyLayout(layout(12, "A", 0, 0, 6, 1, "B", 6, 0, 6, 1));
+            pane.setColumnCount(5);
+            pane.getCards().add(new RXDashboardCard("N", null, 0, 0, 1, 1));
+            assertPlacement(a, 0, 1, 3, 1);
+            pane.setColumnCount(12);
+            // Converted from the layout after the push, at 5 columns, as an edit would be.
+            assertPlacement(b, 7, 0, 5, 1);
+        });
+    }
+
+    @Test
+    public void aColumnChangeAfterApplyLayoutGivesTheSnapshotCardsPriority() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = pane(12);
+            RXDashboardCard unnamed = new RXDashboardCard(null, null, 0, 0, 6, 1);
+            RXDashboardCard snapshotCard = card("S", 1, 1);
+            snapshotCard.setMinColumnSpan(3);
+            pane.getCards().addAll(unnamed, snapshotCard);
+            layout(pane, 600.0, 400.0);
+            pane.applyLayout(layout(12, "S", 6, 0, 6, 1));
+            assertPlacement(unnamed, 0, 0, 6, 1);
+            pane.setColumnCount(5);
+            assertPlacement(snapshotCard, 2, 0, 3, 1);
+            assertPlacement(unnamed, 0, 1, 3, 1);
+        });
+    }
+
+    @Test
+    public void aCardShuttledBetweenDashboardsDuringANotificationEndsInTheLastOne() throws Exception {
+        fx(() -> {
+            RXDashboardPane first = caseOne();
+            RXDashboardPane second = pane(4);
+            RXDashboardCard c = find(first, "C");
+            boolean[] once = {true};
+            first.layoutProperty().addListener((obs, old, value) -> {
+                if (once[0]) {
+                    once[0] = false;
+                    second.getCards().add(c);
+                    first.getCards().add(c);
+                }
+            });
+            first.moveCard(find(first, "A"), 0, 2);
+            assertFalse(second.getCards().contains(c));
+            assertTrue(first.getCards().contains(c));
+            assertSame(first, c.getParent());
+            assertEquals(RXDashboardLayout.builder(4).build(), second.getLayout());
+            assertTrue(first.getLayout().getPlacements().containsKey("C"));
+        });
+    }
+
+    @Test
+    public void editingACardJustAddedFromAListenerThrowsIllegalState() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = caseOne();
+            RXDashboardCard added = card("N", 1, 1);
+            List<Throwable> errors = new ArrayList<>();
+            Thread thread = Thread.currentThread();
+            Thread.UncaughtExceptionHandler previous = thread.getUncaughtExceptionHandler();
+            thread.setUncaughtExceptionHandler((t, e) -> errors.add(e));
+            try {
+                pane.layoutProperty().addListener((obs, old, value) -> {
+                    if (!pane.getCards().contains(added)) {
+                        pane.getCards().add(added);
+                        pane.moveCard(added, 0, 0);
+                    }
+                });
+                pane.moveCard(find(pane, "A"), 0, 2);
+            } finally {
+                thread.setUncaughtExceptionHandler(previous);
+            }
+            assertEquals(1, errors.size());
+            assertTrue(errors.get(0) instanceof IllegalStateException, errors.toString());
+            assertSame(pane, added.getParent());
+        });
+    }
+
+    @Test
     public void columnCountsAboveTheCapCountAsTheCap() throws Exception {
         fx(() -> {
             RXDashboardPane pane = pane(5000);
@@ -492,12 +615,16 @@ public class RXDashboardPaneTest {
             Thread thread = Thread.currentThread();
             Thread.UncaughtExceptionHandler previous = thread.getUncaughtExceptionHandler();
             thread.setUncaughtExceptionHandler((t, e) -> errors.add(e));
+            ChangeListener<Number> compacting = (obs, old, value) -> pane.compact();
+            ChangeListener<RXDashboardLayout> applying = (obs, old, value) -> pane.applyLayout(value);
             try {
-                a.columnProperty().addListener((obs, old, value) -> pane.compact());
-                pane.layoutProperty().addListener((obs, old, value) -> pane.applyLayout(value));
+                a.columnProperty().addListener(compacting);
+                pane.layoutProperty().addListener(applying);
                 pane.moveCard(a, 1, 0);
             } finally {
                 thread.setUncaughtExceptionHandler(previous);
+                a.columnProperty().removeListener(compacting);
+                pane.layoutProperty().removeListener(applying);
             }
             assertEquals(2, errors.size());
             assertTrue(errors.stream().allMatch(e -> e instanceof IllegalStateException), errors.toString());

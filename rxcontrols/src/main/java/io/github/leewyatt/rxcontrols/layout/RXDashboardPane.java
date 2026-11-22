@@ -29,6 +29,7 @@ import javafx.css.StyleableBooleanProperty;
 import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableIntegerProperty;
 import javafx.css.StyleableObjectProperty;
+import javafx.css.StyleOrigin;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
 import javafx.css.converter.DurationConverter;
@@ -49,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  * An editable dashboard: cards on a grid of a fixed number of columns and rows of a fixed height, which the user can
@@ -129,6 +131,8 @@ public class RXDashboardPane extends Region {
     // A listener that changes the cards on every notification would otherwise loop forever.
     private static final int MAX_RECONCILE_ROUNDS = 100;
 
+    private static final Logger LOGGER = Logger.getLogger(RXDashboardPane.class.getName());
+
     /**
      * How the pane resolves an edit whose area covers other cards.
      */
@@ -151,10 +155,12 @@ public class RXDashboardPane extends Region {
     private final ObservableList<RXDashboardCard> cards = FXCollections.observableArrayList();
     // The distinct cards of the list, in its order, that the pane has taken in.
     private final List<RXDashboardCard> members = new ArrayList<>();
-    // Per card, what a column-count change starts from, so a round trip with no edit in between restores every card:
-    // the last placement not formed by a column-count change and the column count it was formed at, or, for a card
-    // placed by its own request and not edited since, that request, which refers to whatever the column count is.
+    // The base layout a column-count change converts from, so a round trip with no edit in between restores the
+    // layout: per card, the last placement not formed by a column-count change and the column count it was formed at.
+    // A card the base does not hold (added since without pushing anything, or left out of an applied snapshot) is
+    // placed as a card a snapshot lacks. Before the pane is first laid out, a card holds its own request instead.
     private final Map<RXDashboardCard, BaseEntry> base = new IdentityHashMap<>();
+    private boolean laidOutOnce;
     private int effectiveColumns = DEFAULT_COLUMN_COUNT;
     private boolean requestsInBase;
     private int lastValidColumnCount = DEFAULT_COLUMN_COUNT;
@@ -277,6 +283,26 @@ public class RXDashboardPane extends Region {
             reconcile();
         }
 
+        // Throwing here would make the CSS engine reset the property to its initial value, 12, and the layout would
+        // be converted to 12 columns.
+        @Override
+        public void applyStyle(StyleOrigin origin, Number value) {
+            if (value == null || value.intValue() < 1) {
+                LOGGER.warning("Ignored -rx-column-count below 1: " + value);
+                return;
+            }
+            super.applyStyle(origin, value);
+        }
+
+        // A binding left at an invalid value would leave the property there for good.
+        @Override
+        public void unbind() {
+            super.unbind();
+            if (get() < 1) {
+                set(lastValidColumnCount);
+            }
+        }
+
         @Override
         public CssMetaData<RXDashboardPane, Number> getCssMetaData() {
             return StyleableProperties.COLUMN_COUNT;
@@ -305,7 +331,8 @@ public class RXDashboardPane extends Region {
      *
      * <p>A value below 1 is rejected with {@link IllegalArgumentException} and the property goes back to its last
      * valid value. When the property is bound to an invalid value it cannot go back: the pane keeps laying out with
-     * the last valid count until a valid value arrives.</p>
+     * the last valid count until a valid value arrives, and unbinding it then restores the last valid value. A style
+     * sheet value below 1 is ignored with a logged warning, as if the style sheet set no column count.</p>
      *
      * @return the column-count property
      */
@@ -875,8 +902,9 @@ public class RXDashboardPane extends Region {
      * @throws IllegalStateException    if called from a listener on a card's placement or on {@code layout}
      */
     public boolean moveCard(RXDashboardCard card, int column, int row) {
-        Placement current = placementOf(card);
+        Objects.requireNonNull(card, "card cannot be null");
         checkNotNotifying();
+        Placement current = placementOf(card);
         return edit(card, current.withPosition(column, row));
     }
 
@@ -896,8 +924,9 @@ public class RXDashboardPane extends Region {
      * @throws IllegalStateException    if called from a listener on a card's placement or on {@code layout}
      */
     public boolean resizeCard(RXDashboardCard card, int columnSpan, int rowSpan) {
-        Placement current = placementOf(card);
+        Objects.requireNonNull(card, "card cannot be null");
         checkNotNotifying();
+        Placement current = placementOf(card);
         int keepColumn = Math.max(1, Math.min(columnSpan, effectiveColumns - current.column()));
         return edit(card, current.withSpan(keepColumn, rowSpan));
     }
@@ -929,7 +958,7 @@ public class RXDashboardPane extends Region {
      *     its place if it is free, otherwise goes to the first free area with its span.</li>
      * </ul>
      * Locked cards are moved like any other. The snapshot also becomes the layout later column-count changes convert
-     * from.
+     * from; they handle the cards it does not mention by the last rule.
      *
      * @param layout the snapshot to apply
      * @throws NullPointerException  if {@code layout} is {@code null}
@@ -950,12 +979,7 @@ public class RXDashboardPane extends Region {
         Map<RXDashboardCard, Placement> result = DashboardSolver.arrange(items(), target, layout.getColumnCount(),
                 effectiveColumns, effectiveColumns);
         base.clear();
-        for (RXDashboardCard card : members) {
-            Placement wanted = target.get(card);
-            base.put(card, wanted != null
-                    ? new BaseEntry(wanted, layout.getColumnCount())
-                    : new BaseEntry(result.get(card), effectiveColumns));
-        }
+        target.forEach((card, placement) -> base.put(card, new BaseEntry(placement, layout.getColumnCount())));
         commit(result);
     }
 
@@ -1111,9 +1135,15 @@ public class RXDashboardPane extends Region {
     private void reconcileOnce() {
         List<RXDashboardCard> current = distinctCards();
         Set<RXDashboardCard> listed = identitySet(current);
-        Set<RXDashboardCard> known = identitySet(members);
+        // A member another dashboard took over (during a notification, say) is taken in again like a new card.
+        Set<RXDashboardCard> known = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (RXDashboardCard card : members) {
+            if (card.owner == this) {
+                known.add(card);
+            }
+        }
         for (RXDashboardCard card : new ArrayList<>(members)) {
-            if (!listed.contains(card)) {
+            if (!listed.contains(card) || !known.contains(card)) {
                 detach(card);
             }
         }
@@ -1152,18 +1182,22 @@ public class RXDashboardPane extends Region {
             Placement request = card.requestedPlacement();
             attach(card);
             Map<RXDashboardCard, Placement> result = place(work, card, request, columns);
-            // A card pushed by the new one starts later conversions from where it was pushed to, unless it is itself
-            // placed by its request, which a conversion places again the same way.
+            // Pushing a card makes the result the base, unless every card pushed still holds its request: a
+            // column-count change places those again, pushes included.
             for (Map.Entry<RXDashboardCard, Placement> entry : work.entrySet()) {
                 BaseEntry entryBase = base.get(entry.getKey());
-                Placement after = result.get(entry.getKey());
-                if (!entry.getValue().equals(after) && (entryBase == null || !entryBase.isRequest())) {
-                    base.put(entry.getKey(), new BaseEntry(after, columns));
+                if (!entry.getValue().equals(result.get(entry.getKey()))
+                        && (entryBase == null || !entryBase.isRequest())) {
+                    rebaseAll = true;
                 }
             }
             work = result;
-            base.put(card, BaseEntry.request(request));
-            requestsInBase = true;
+            if (laidOutOnce) {
+                base.remove(card);
+            } else {
+                base.put(card, BaseEntry.request(request));
+                requestsInBase = true;
+            }
         }
         members.clear();
         members.addAll(current);
@@ -1179,30 +1213,29 @@ public class RXDashboardPane extends Region {
         commit(ordered);
     }
 
-    // A column-count change: cards with a formed base are converted from it and corrected as by applyLayout; cards
-    // placed by their request are then placed by it again, in list order, as if added at the new count.
+    // A column-count change applies the base layout again at the new count, as applyLayout would: the cards it holds
+    // are converted and corrected first, the others then try their own place, converted, or take the first free area.
+    // Cards still holding their request are placed by it last, in list order, as if added at the new count.
     private Map<RXDashboardCard, Placement> convert(Map<RXDashboardCard, Placement> work, int oldColumns,
                                                     int columns) {
-        Map<RXDashboardCard, Placement> formed = new LinkedHashMap<>();
+        Map<RXDashboardCard, Placement> arranged = new LinkedHashMap<>();
         Map<RXDashboardCard, Placement> target = new LinkedHashMap<>();
         List<RXDashboardCard> requested = new ArrayList<>();
         work.forEach((card, placement) -> {
             BaseEntry entry = base.get(card);
-            if (entry == null || entry.isRequest()) {
+            if (entry != null && entry.isRequest()) {
                 requested.add(card);
             } else {
-                formed.put(card, placement);
-                target.put(card, DashboardSolver.rescale(entry.placement(), entry.columns(), columns));
+                arranged.put(card, placement);
+                if (entry != null) {
+                    target.put(card, DashboardSolver.rescale(entry.placement(), entry.columns(), columns));
+                }
             }
         });
-        Map<RXDashboardCard, Placement> result = DashboardSolver.arrange(items(formed), target, columns, oldColumns,
-                columns);
+        Map<RXDashboardCard, Placement> result = DashboardSolver.arrange(items(arranged), target, columns,
+                oldColumns, columns);
         for (RXDashboardCard card : requested) {
-            BaseEntry entry = base.get(card);
-            Placement now = work.get(card);
-            Placement request = entry != null ? entry.placement() : new Placement(-1, -1, now.columnSpan(),
-                    now.rowSpan());
-            result = place(result, card, request, columns);
+            result = place(result, card, base.get(card).placement(), columns);
         }
         Map<RXDashboardCard, Placement> ordered = new LinkedHashMap<>();
         for (RXDashboardCard card : work.keySet()) {
@@ -1509,6 +1542,7 @@ public class RXDashboardPane extends Region {
 
     // Once laid out, the layout the requests produced is what later column-count changes convert from.
     private void formRequests() {
+        laidOutOnce = true;
         if (!requestsInBase) {
             return;
         }
