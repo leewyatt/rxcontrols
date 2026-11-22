@@ -64,11 +64,9 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     // A first-letter type-ahead burst resets after this idle gap.
     private static final long TYPE_AHEAD_RESET_MS = 1000L;
 
-    // Variable-height measure: below this px difference a re-measured row matches the
-    // cached height (no churn). Cap consecutive no-progress re-pack passes so a non-
-    // deterministic-height cell can never spin layout forever; a pass that measures a new
-    // item resets the counter, so a genuine multi-step convergence still completes.
-    private static final double HEIGHT_EPSILON = 0.5;
+    // Cap consecutive no-progress re-pack passes so a non-deterministic-height cell can
+    // never spin layout forever; a pass that measures a new item resets the counter, so a
+    // genuine multi-step convergence still completes.
     private static final int MAX_STALLED_REPACK_PASSES = 8;
 
     // Key for the shift-range selection anchor, stashed in the control's property
@@ -589,7 +587,9 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     // prefix-sum rebuild that variable rows inherently cost (opt-in via fixedCellSize <= 0).
     private RXListRowPlan buildVariablePlan(RXListView<T> control) {
         int count = itemCount();
-        double estimated = snapSizeY(estimatedCellSizeOrDefault(control));
+        // Unsnapped like a measured height: each is snapped once below, and snapped twice
+        // JavaFX can ceil a height a device pixel further than a measured row's.
+        double estimated = estimatedCellSizeOrDefault(control);
         heightCache.ensureCapacity(count, estimated);
         double[] heights = new double[count];
         for (int i = 0; i < count; i++) {
@@ -809,7 +809,10 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         if (!isVariableHeight(getSkinnable()) || !Double.isFinite(measuredHeight) || measuredHeight < 0.0) {
             return;
         }
-        if (heightCache.record(index, measuredHeight, HEIGHT_EPSILON)) {
+        // The viewport reports only a height that differs on the current grid from the one
+        // placed, so the cache takes it as it is: compared unsnapped with the stored height,
+        // a change that crosses a pixel boundary can be small enough to be dropped.
+        if (heightCache.record(index, measuredHeight, 0.0)) {
             heightsDirty = true;
         }
     }

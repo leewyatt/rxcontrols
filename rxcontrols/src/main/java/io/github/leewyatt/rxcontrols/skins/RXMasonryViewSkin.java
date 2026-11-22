@@ -85,7 +85,6 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
     // (mirrors ListView's CellBehaviorBase anchor) so it needs no new API.
     private static final String ANCHOR_KEY = "rx-masonry-view-selection-anchor";
 
-    private static final double HEIGHT_EPSILON = 0.5;
     // Safety net: cap consecutive re-pack iterations that make NO progress (no newly
     // measured item — only known heights re-flipping) so a pathological non-deterministic-
     // height cell can never spin layout forever. An iteration that measures new items
@@ -1224,7 +1223,10 @@ public class RXMasonryViewSkin<T> extends RXSkinBase<RXMasonryView<T>> {
         if (!estimatedPath() || !Double.isFinite(measuredHeight) || measuredHeight < 0.0) {
             return;
         }
-        if (heightCache.record(index, measuredHeight, HEIGHT_EPSILON)) {
+        // The viewport reports only a height that differs on the current grid from the one
+        // placed, so the cache takes it as it is: compared unsnapped with the stored height,
+        // a change that crosses a pixel boundary can be small enough to be dropped.
+        if (heightCache.record(index, measuredHeight, 0.0)) {
             heightsDirty = true;
         }
     }

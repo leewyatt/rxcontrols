@@ -1744,7 +1744,7 @@ public class RXListViewSkinTest {
 
     /**
      * Verifies rows of measured heights meet without overlapping in a view that does not
-     * snap to pixels, and keep the heights they ask for when snapping is off from the start.
+     * snap to pixels, at the heights they ask for.
      */
     @Test
     public void unsnappedVariableRowsMeetWithoutOverlapping() throws Exception {
@@ -1752,16 +1752,7 @@ public class RXListViewSkinTest {
             for (double scale : new double[] {1.0, 1.25, 1.5, 1.75, 2.0}) {
                 for (boolean turnedOff : new boolean[] {false, true}) {
                     String at = "scale " + scale + (turnedOff ? ", turned off after a layout" : ", off from the start");
-                    RXListView<Integer> view = intItems(200);
-                    view.setFixedCellSize(0);
-                    view.setCellFactory(v -> new RXListCell<>() {
-                        @Override
-                        protected void updateItem(Integer item, boolean empty) {
-                            super.updateItem(item, empty);
-                            setText(empty || item == null ? null : String.valueOf(item));
-                            setPrefHeight(empty || item == null ? Region.USE_COMPUTED_SIZE : 20.3 + (item % 3) * 7.1);
-                        }
-                    });
+                    RXListView<Integer> view = fractionalHeightView(200);
                     view.setSnapToPixel(turnedOff);
                     scaledHost(view, scale);
                     Region root = (Region) view.getParent();
@@ -1774,11 +1765,9 @@ public class RXListViewSkinTest {
                     for (int i = 1; i < rows.size(); i++) {
                         RXListCell<?> above = rows.get(i - 1);
                         RXListCell<?> below = rows.get(i);
-                        if (!turnedOff) {
-                            int item = (Integer) above.getItem();
-                            assertEquals(20.3 + (item % 3) * 7.1, above.getHeight(), 1e-9,
-                                    at + ": the height of row " + item);
-                        }
+                        int item = (Integer) above.getItem();
+                        assertEquals(fractionalHeightOf(item), above.getHeight(), 1e-9,
+                                at + ": the height of row " + item);
                         assertEquals(above.getLayoutY() + above.getHeight(), below.getLayoutY(), 1e-9,
                                 at + ": row " + below.getIndex() + " starts where the one above ends");
                     }
@@ -1831,6 +1820,16 @@ public class RXListViewSkinTest {
         onFx(() -> {
             RXListView<Integer> fixedRows = intItems(50);
             fixedRows.setFixedCellSize(128.5);
+            RXListView<Integer> measuredRows = intItems(50);
+            measuredRows.setFixedCellSize(0);
+            measuredRows.setCellFactory(v -> new RXListCell<>() {
+                @Override
+                protected void updateItem(Integer item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setText(empty || item == null ? null : String.valueOf(item));
+                    setPrefHeight(empty || item == null ? Region.USE_COMPUTED_SIZE : 128.5);
+                }
+            });
             RXListView<Integer> headers = intItems(50);
             headers.setFixedCellSize(20.0);
             headers.setSectionKeyFactory(item -> item / 5);
@@ -1842,8 +1841,8 @@ public class RXListViewSkinTest {
             sticky.setSectionHeaderHeight(128.5);
             sticky.setStickySectionHeader(true);
 
-            String[] names = {"fixed rows", "section headers", "sticky header"};
-            RXListView<?>[] views = {fixedRows, headers, sticky};
+            String[] names = {"fixed rows", "measured rows", "section headers", "sticky header"};
+            RXListView<?>[] views = {fixedRows, measuredRows, headers, sticky};
             for (int v = 0; v < views.length; v++) {
                 RXListView<?> view = views[v];
                 StackPane root = new StackPane(view);
@@ -1884,6 +1883,184 @@ public class RXListViewSkinTest {
                 }
             }
         });
+    }
+
+    // ==================== Measured heights on a new grid ====================
+
+    /**
+     * Verifies rows of measured heights take the height their content asks for on the
+     * pixel grid after the grid changes: a new render scale, or snapping turned off or on.
+     * A height kept as measured on the old grid stayed there, as a correction under half
+     * a pixel is skipped: at 1.25, a row of 20.3 px stayed 20.8 px high after snapping
+     * was turned off.
+     */
+    @Test
+    public void measuredRowsTakeTheirHeightOnANewGrid() throws Exception {
+        onFx(() -> {
+            double[] scales = {1.0, 1.25, 1.5, 1.75, 2.0};
+            for (double from : scales) {
+                for (double to : scales) {
+                    if (from == to) {
+                        continue;
+                    }
+                    RXListView<Integer> view = fractionalHeightView(200);
+                    Stage stage = scaledHost(view, from);
+                    stage.setRenderScaleX(to);
+                    stage.setRenderScaleY(to);
+                    pump((Region) view.getParent());
+                    assertRowsTakeTheirHeight(view, "from " + from + " to " + to);
+                }
+                for (boolean on : new boolean[] {false, true}) {
+                    RXListView<Integer> view = fractionalHeightView(200);
+                    view.setSnapToPixel(!on);
+                    scaledHost(view, from);
+                    view.setSnapToPixel(on);
+                    pump((Region) view.getParent());
+                    assertRowsTakeTheirHeight(view, "scale " + from + ", snapping turned " + (on ? "on" : "off"));
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a measured row takes the height its content asks for when a narrower width
+     * makes it ask for a little more: 20.9 px wide, 21.2 px narrow, which snap to different
+     * device pixels at scales 1 and 1.75. The cache once compared the two unsnapped, found
+     * them within half a pixel and kept the row a device pixel short.
+     */
+    @Test
+    public void measuredRowTakesASmallChangeAcrossAPixel() throws Exception {
+        onFx(() -> {
+            for (double scale : new double[] {1.0, 1.75}) {
+                RXListView<Integer> view = intItems(200);
+                view.setFixedCellSize(0);
+                view.setCellFactory(v -> new RXListCell<>() {
+                    @Override
+                    protected void updateItem(Integer item, boolean empty) {
+                        super.updateItem(item, empty);
+                        setText(empty || item == null ? null : String.valueOf(item));
+                    }
+
+                    @Override
+                    protected double computePrefHeight(double width) {
+                        return width >= 0.0 && width < 460.0 ? 21.2 : 20.9;
+                    }
+                });
+                StackPane root = new StackPane(view);
+                Stage stage = new Stage();
+                stage.setScene(new Scene(root, 520, 300));
+                stage.setRenderScaleX(scale);
+                stage.setRenderScaleY(scale);
+                root.resize(520, 300);
+                pump(root);
+                assertEquals(view.snapSizeY(20.9), shownRows(view).get(0).getHeight(), 1e-9,
+                        "scale " + scale + ": setup: the wide height");
+
+                root.resize(400, 300);
+                pump(root);
+
+                List<RXListCell<?>> rows = shownRows(view);
+                assertTrue(rows.size() >= 5, "scale " + scale + ": setup: rows in view");
+                for (int i = 0; i < rows.size(); i++) {
+                    RXListCell<?> row = rows.get(i);
+                    assertEquals(view.snapSizeY(21.2), row.getHeight(), 1e-9,
+                            "scale " + scale + ": the height of row " + row.getIndex());
+                    if (i > 0) {
+                        RXListCell<?> above = rows.get(i - 1);
+                        assertEquals(above.getLayoutY() + above.getHeight(), row.getLayoutY(), 1e-9,
+                                "scale " + scale + ": row " + row.getIndex() + " starts where the one above ends");
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies rows of measured heights keep the scroll range of fixed rows as high when
+     * the estimate is exact, before and after every row has been measured: a row not yet
+     * measured takes the height a measured one does. At 1.75 an estimate of 128.5 was
+     * snapped twice, to 226 device pixels against the 225 of a measured row, and the range
+     * shrank as the rows were scrolled through.
+     */
+    @Test
+    public void exactEstimateKeepsTheScrollRange() throws Exception {
+        onFx(() -> {
+            RXListView<Integer> fixedRows = intItems(200);
+            fixedRows.setFixedCellSize(128.5);
+            RXListView<Integer> measuredRows = intItems(200);
+            measuredRows.setFixedCellSize(0);
+            measuredRows.setEstimatedCellSize(128.5);
+            measuredRows.setCellFactory(v -> new RXListCell<>() {
+                @Override
+                protected void updateItem(Integer item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setText(empty || item == null ? null : String.valueOf(item));
+                    setPrefHeight(empty || item == null ? Region.USE_COMPUTED_SIZE : 128.5);
+                }
+            });
+            double[] ranges = new double[2];
+            RXListView<?>[] views = {fixedRows, measuredRows};
+            for (int v = 0; v < views.length; v++) {
+                StackPane root = new StackPane(views[v]);
+                Stage stage = new Stage();
+                stage.setScene(new Scene(root, 520, 700));
+                stage.setRenderScaleX(1.75);
+                stage.setRenderScaleY(1.75);
+                root.resize(520, 700);
+                pump(root);
+                ranges[v] = verticalBar(views[v]).getMax();
+            }
+            assertEquals(ranges[0], ranges[1], 1e-9, "before any row is measured but the first");
+
+            ScrollBar bar = verticalBar(measuredRows);
+            Region root = (Region) measuredRows.getParent();
+            for (double value = 0.0; value < bar.getMax(); value += 300.0) {
+                bar.setValue(value);
+                pump(root);
+            }
+            bar.setValue(bar.getMax());
+            pump(root);
+            bar.setValue(0.0);
+            pump(root);
+            assertEquals(ranges[0], bar.getMax(), 1e-9, "after every row is measured");
+        });
+    }
+
+    // Every row in view is as high as its content on the view's grid, below the one above.
+    private static void assertRowsTakeTheirHeight(RXListView<?> view, String at) {
+        List<RXListCell<?>> rows = shownRows(view);
+        assertTrue(rows.size() >= 5, at + ": setup: rows in view");
+        for (int i = 0; i < rows.size(); i++) {
+            RXListCell<?> row = rows.get(i);
+            int item = (Integer) row.getItem();
+            assertEquals(view.snapSizeY(fractionalHeightOf(item)), row.getHeight(), 1e-9,
+                    at + ": the height of row " + item);
+            if (i > 0) {
+                RXListCell<?> above = rows.get(i - 1);
+                assertEquals(above.getLayoutY() + above.getHeight(), row.getLayoutY(), 1e-9,
+                        at + ": row " + item + " starts where the one above ends");
+            }
+        }
+    }
+
+    private static double fractionalHeightOf(int item) {
+        return 20.3 + (item % 3) * 7.1;
+    }
+
+    // A variable-height view whose rows ask for heights off the pixel grid at every
+    // fractional scale, all well away from the 48 px estimate.
+    private static RXListView<Integer> fractionalHeightView(int count) {
+        RXListView<Integer> view = intItems(count);
+        view.setFixedCellSize(0);
+        view.setCellFactory(v -> new RXListCell<>() {
+            @Override
+            protected void updateItem(Integer item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : String.valueOf(item));
+                setPrefHeight(empty || item == null ? Region.USE_COMPUTED_SIZE : fractionalHeightOf(item));
+            }
+        });
+        return view;
     }
 
     // ==================== Helpers ====================

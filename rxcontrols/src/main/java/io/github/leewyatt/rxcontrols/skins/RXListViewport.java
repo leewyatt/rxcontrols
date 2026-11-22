@@ -542,9 +542,13 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
         if (cell.getScene() != null) {
             cell.applyCss();
         }
-        double real = snapSizeY(cell.prefHeight(width));
-        if (Math.abs(real - placedHeight) > MEASURE_EPSILON) {
-            heightSink.onMeasured(itemIndex, real);
+        // Reports the content's own height; the skin snaps what it stores each time it
+        // lays the cells out. A height reported snapped stays on the grid it was measured
+        // on, and after a snapToPixel or render scale change this check skips correcting
+        // it whenever the difference is under half a pixel.
+        double content = cell.prefHeight(width);
+        if (Math.abs(snapSizeY(content) - placedHeight) > MEASURE_EPSILON) {
+            heightSink.onMeasured(itemIndex, content);
         }
     }
 

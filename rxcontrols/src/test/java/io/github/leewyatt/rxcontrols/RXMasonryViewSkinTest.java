@@ -1336,15 +1336,26 @@ public class RXMasonryViewSkinTest {
      * Verifies cells are as high as the placement has them, each starting where the one
      * above ends, for a height JavaFX 17 moves a device pixel further when it is snapped
      * twice: at 1.75, 128.5 snaps to 225 device pixels and 225 to 226. The viewport snapped
-     * the placed heights again, and each cell lay a device pixel over the next.
+     * the placed heights again, and each cell lay a device pixel over the next. Heights from
+     * a provider and measured heights.
      */
     @Test
     public void placedHeightsAreNotSnappedAgain() throws Exception {
         onFx(() -> {
             RXMasonryView<Integer> provided = gallery(60);
             provided.setCellHeightProvider(context -> 128.5);
-            String[] names = {"provided heights"};
-            RXMasonryView<?>[] views = {provided};
+            RXMasonryView<Integer> measured = gallery(60);
+            measured.setCellHeightProvider(null);
+            measured.setEstimatedCellHeight(60.0);
+            measured.setCellFactory(v -> new RXMasonryCell<>() {
+                @Override
+                protected void updateItem(Integer item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setPrefHeight(empty || item == null ? Region.USE_COMPUTED_SIZE : 128.5);
+                }
+            });
+            String[] names = {"provided heights", "measured heights"};
+            RXMasonryView<?>[] views = {provided, measured};
             for (int v = 0; v < views.length; v++) {
                 RXMasonryView<?> view = views[v];
                 view.setColumnWidth(120.0);
@@ -1377,6 +1388,164 @@ public class RXMasonryViewSkinTest {
                 }
             }
         });
+    }
+
+    // ==================== Measured heights on a new grid ====================
+
+    /**
+     * Verifies measured cells take the height their content asks for on the pixel grid
+     * after the grid changes: a new render scale, or snapping turned off or on. A height
+     * kept as measured on the old grid stayed there, as a correction under half a pixel is
+     * skipped: at 1.25, a cell of 20.3 px stayed 20.8 px high after snapping was turned off.
+     */
+    @Test
+    public void measuredCellsTakeTheirHeightOnANewGrid() throws Exception {
+        onFx(() -> {
+            double[] scales = {1.0, 1.25, 1.5, 1.75, 2.0};
+            for (double from : scales) {
+                for (double to : scales) {
+                    if (from == to) {
+                        continue;
+                    }
+                    RXMasonryView<Integer> view = fractionalHeightGallery(200);
+                    Stage stage = scaledStage(view, from);
+                    stage.setRenderScaleX(to);
+                    stage.setRenderScaleY(to);
+                    pump((Region) view.getParent());
+                    assertCellsTakeTheirHeight(view, "from " + from + " to " + to);
+                }
+                for (boolean on : new boolean[] {false, true}) {
+                    RXMasonryView<Integer> view = fractionalHeightGallery(200);
+                    view.setSnapToPixel(!on);
+                    scaledStage(view, from);
+                    view.setSnapToPixel(on);
+                    pump((Region) view.getParent());
+                    assertCellsTakeTheirHeight(view, "scale " + from + ", snapping turned " + (on ? "on" : "off"));
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a measured cell takes the height its content asks for when a narrower
+     * column makes it ask for a little more: 20.9 px wide, 21.2 px narrow, which snap to
+     * different device pixels at scales 1 and 1.75. The cache once compared the two
+     * unsnapped, found them within half a pixel and kept the cell a device pixel short.
+     */
+    @Test
+    public void measuredCellTakesASmallChangeAcrossAPixel() throws Exception {
+        onFx(() -> {
+            for (double scale : new double[] {1.0, 1.75}) {
+                ObservableList<Integer> items = FXCollections.observableArrayList();
+                for (int i = 0; i < 200; i++) {
+                    items.add(i);
+                }
+                RXMasonryView<Integer> view = new RXMasonryView<>(items);
+                view.setColumnCount(3);
+                view.setVgap(0.0);
+                view.setAnimated(false);
+                view.setEstimatedCellHeight(60.0);
+                view.setCellFactory(v -> new RXMasonryCell<>() {
+                    @Override
+                    protected double computePrefHeight(double width) {
+                        return width >= 0.0 && width < 145.0 ? 21.2 : 20.9;
+                    }
+                });
+                StackPane root = new StackPane(view);
+                Stage stage = new Stage();
+                stage.setScene(new Scene(root, 520, 300));
+                stage.setRenderScaleX(scale);
+                stage.setRenderScaleY(scale);
+                root.resize(520, 300);
+                pump(root);
+                assertEquals(view.snapSizeY(20.9), cellByIndex(view, 0).getHeight(), 1e-9,
+                        "scale " + scale + ": setup: the wide height");
+
+                root.resize(400, 300);
+                pump(root);
+
+                Map<Double, List<RXMasonryCell<?>>> columns = new TreeMap<>();
+                for (Node node : view.lookupAll(".rx-masonry-cell")) {
+                    if (node instanceof RXMasonryCell<?> cell && cell.isVisible() && !cell.isEmpty()) {
+                        assertEquals(view.snapSizeY(21.2), cell.getHeight(), 1e-9,
+                                "scale " + scale + ": the height of cell " + cell.getIndex());
+                        columns.computeIfAbsent(cell.getLayoutX(), x -> new ArrayList<>()).add(cell);
+                    }
+                }
+                assertEquals(3, columns.size(), "scale " + scale + ": setup: three columns");
+                for (List<RXMasonryCell<?>> column : columns.values()) {
+                    column.sort(Comparator.comparingDouble(Node::getLayoutY));
+                    for (int i = 1; i < column.size(); i++) {
+                        RXMasonryCell<?> above = column.get(i - 1);
+                        assertEquals(above.getLayoutY() + above.getHeight(), column.get(i).getLayoutY(), 1e-9,
+                                "scale " + scale + ": cell " + column.get(i).getIndex()
+                                        + " starts where the one above ends");
+                    }
+                }
+            }
+        });
+    }
+
+    // Every cell in view is as high as its content on the view's grid; in each column a
+    // cell starts where the one above ends (the gallery has no vertical gap).
+    private static void assertCellsTakeTheirHeight(RXMasonryView<?> view, String at) {
+        Map<Double, List<RXMasonryCell<?>>> columns = new TreeMap<>();
+        for (Node node : view.lookupAll(".rx-masonry-cell")) {
+            if (node instanceof RXMasonryCell<?> cell && cell.isVisible() && !cell.isEmpty()) {
+                assertEquals(view.snapSizeY(fractionalHeightOf(cell.getIndex())), cell.getHeight(), 1e-9,
+                        at + ": the height of cell " + cell.getIndex());
+                columns.computeIfAbsent(cell.getLayoutX(), x -> new ArrayList<>()).add(cell);
+            }
+        }
+        assertTrue(columns.size() >= 2, at + ": setup: several columns");
+        for (List<RXMasonryCell<?>> column : columns.values()) {
+            column.sort(Comparator.comparingDouble(Node::getLayoutY));
+            assertTrue(column.size() >= 3, at + ": setup: cells in a column");
+            for (int i = 1; i < column.size(); i++) {
+                RXMasonryCell<?> above = column.get(i - 1);
+                assertEquals(above.getLayoutY() + above.getHeight(), column.get(i).getLayoutY(), 1e-9,
+                        at + ": cell " + column.get(i).getIndex() + " starts where the one above ends");
+            }
+        }
+    }
+
+    private static double fractionalHeightOf(int item) {
+        return 20.3 + (item % 3) * 7.1;
+    }
+
+    // Measured cells (no height provider) that ask for heights off the pixel grid at every
+    // fractional scale, all well away from the estimate.
+    private static RXMasonryView<Integer> fractionalHeightGallery(int count) {
+        ObservableList<Integer> items = FXCollections.observableArrayList();
+        for (int i = 0; i < count; i++) {
+            items.add(i);
+        }
+        RXMasonryView<Integer> view = new RXMasonryView<>(items);
+        view.setColumnWidth(60.0);
+        view.setVgap(0.0);
+        view.setAnimated(false);
+        view.setEstimatedCellHeight(60.0);
+        view.setCellFactory(v -> new RXMasonryCell<>() {
+            @Override
+            protected void updateItem(Integer item, boolean empty) {
+                super.updateItem(item, empty);
+                setPrefHeight(empty || item == null ? Region.USE_COMPUTED_SIZE : fractionalHeightOf(item));
+            }
+        });
+        return view;
+    }
+
+    // Lays the view out in a stage of the given render scale. The stage is never shown:
+    // it only supplies the scale.
+    private static Stage scaledStage(RXMasonryView<?> view, double scale) {
+        StackPane root = new StackPane(view);
+        Stage stage = new Stage();
+        stage.setScene(new Scene(root, 520, 260));
+        stage.setRenderScaleX(scale);
+        stage.setRenderScaleY(scale);
+        root.resize(520, 260);
+        pump(root);
+        return stage;
     }
 
     // ==================== Estimated path: measure-time re-pack ====================
