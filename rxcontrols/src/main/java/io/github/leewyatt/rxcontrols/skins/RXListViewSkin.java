@@ -10,6 +10,7 @@ import io.github.leewyatt.rxcontrols.RXListVisibleRange;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import io.github.leewyatt.rxcontrols.event.RXListViewActionEvent;
 import io.github.leewyatt.rxcontrols.internal.RXIndexedSelectionMutationGuard;
+import io.github.leewyatt.rxcontrols.internal.RenderScaleWatch;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.ListChangeListener;
@@ -192,6 +193,10 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
         disposer.registerListener(control.converterProperty(), this::onConverterChanged);
         disposer.registerListener(control.fixedCellSizeProperty(), this::onFixedCellSizeChanged);
         disposer.registerListener(control.estimatedCellSizeProperty(), this::requestLayoutPass);
+        // Region lays nothing out when the render scale changes, and the scroll bar would
+        // keep the breadth it measured at the old one, off the new pixel grid.
+        RenderScaleWatch scaleWatch = new RenderScaleWatch(control, this::onRenderScaleChanged);
+        disposer.registerDisposeTask(scaleWatch::dispose);
         disposer.registerListener(control.smoothScrollingProperty(), viewport::stopSmoothScrolling);
         disposer.registerListener(control.smoothScrollModeProperty(), viewport::resetSmoothScrolling);
         disposer.registerListener(control.placeholderProperty(), this::onPlaceholderChanged);
@@ -224,6 +229,11 @@ public class RXListViewSkin<T> extends RXSkinBase<RXListView<T>> {
     // (so the skin rebuilds the row plan and republishes the metrics).
     private void requestLayoutPass() {
         viewport.requestLayout();
+    }
+
+    private void onRenderScaleChanged() {
+        viewport.remeasureScrollBar();
+        requestLayoutPass();
     }
 
     // The converter re-sources the default cell's text, which can change a row's line
