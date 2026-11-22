@@ -165,6 +165,10 @@ final class DashboardGesture {
      * @param grid the grid of the pass
      */
     void layoutCard(DashboardGrid grid) {
+        if (!started) {
+            return;
+        }
+        RXDashboardCard card = this.card;
         Placement start = startLayout.get(card);
         double x = grid.columnX(start.column());
         double y = grid.rowY(start.row());
@@ -187,6 +191,10 @@ final class DashboardGesture {
             height = card.snapSizeY(height);
         }
         card.resize(width, height);
+        // A listener reached from the resize may have ended the gesture.
+        if (!started) {
+            return;
+        }
         card.relocate(x, y);
         if (edge == null) {
             follow();
@@ -230,10 +238,13 @@ final class DashboardGesture {
 
     // A primary press while a gesture is in progress means its release never arrived.
     private void pressedDuringGesture(MouseEvent event) {
-        swallowClick = false;
-        if (started && event.getButton() == MouseButton.PRIMARY) {
+        if (event.getButton() != MouseButton.PRIMARY) {
+            return;
+        }
+        if (started) {
             cancel();
         }
+        swallowClick = false;
     }
 
     private void pressed(MouseEvent event) {
@@ -323,7 +334,7 @@ final class DashboardGesture {
     }
 
     private void clicked(MouseEvent event) {
-        if (swallowClick) {
+        if (swallowClick && event.getButton() == MouseButton.PRIMARY) {
             swallowClick = false;
             event.consume();
         }

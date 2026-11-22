@@ -547,6 +547,65 @@ public class RXDashboardPaneGestureTest {
     }
 
     @Test
+    public void anotherButtonDuringADragDoesNotLetTheClickThrough() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            Region content = new Region();
+            List<MouseButton> clicks = new ArrayList<>();
+            content.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> clicks.add(event.getButton()));
+            board.a.setContent(content);
+            board.layout();
+            Point2D start = board.press(content, 10, 10);
+            board.drag(content, start.getX() + 100, start.getY());
+            board.fire(content, MouseEvent.MOUSE_PRESSED, start.add(100, 0), MouseButton.SECONDARY);
+            board.fire(content, MouseEvent.MOUSE_RELEASED, start.add(100, 0), MouseButton.SECONDARY);
+            board.fire(content, MouseEvent.MOUSE_CLICKED, start.add(100, 0), MouseButton.SECONDARY);
+            board.release(content, start.getX() + 100, start.getY());
+            board.fire(content, MouseEvent.MOUSE_CLICKED, start.add(100, 0), MouseButton.PRIMARY);
+            assertPlacement(board.a, 1, 0, 2, 1);
+            assertEquals(List.of(MouseButton.SECONDARY), clicks);
+        });
+    }
+
+    @Test
+    public void aGestureEndedFromItsOwnLayoutPassThrowsNothing() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            board.a.layoutYProperty().addListener((obs, old, value) -> board.a.setLocked(true));
+            Point2D start = board.press(board.c, 5, 5);
+            board.drag(board.c, start.getX() - 200, start.getY() - 100);
+            board.layout();
+            board.layout();
+            assertFalse(board.c.getPseudoClassStates().contains(DRAGGING));
+
+            Board resizing = new Board();
+            Region right = handle(resizing.a, "right");
+            resizing.a.widthProperty().addListener((obs, old, value) -> resizing.a.setLocked(true));
+            Point2D from = resizing.press(right, 4, 40);
+            resizing.drag(right, from.getX() + 60, from.getY());
+            resizing.layout();
+            resizing.layout();
+            assertFalse(resizing.a.getPseudoClassStates().contains(PseudoClass.getPseudoClass("resizing")));
+        });
+    }
+
+    @Test
+    public void anIdTheSnapshotDoesNotUseCanChangeDuringADrag() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            RXDashboardCard anonymous = new RXDashboardCard(null, null, 3, 0, 1, 1);
+            board.pane.getCards().add(anonymous);
+            board.layout();
+            Point2D start = board.press(board.a, 5, 5);
+            board.drag(board.a, start.getX() + 100, start.getY());
+            anonymous.setCardId("");
+            assertTrue(board.a.getPseudoClassStates().contains(DRAGGING));
+            board.release(board.a, start.getX() + 100, start.getY());
+            assertPlacement(board.a, 1, 0, 2, 1);
+        });
+    }
+
+    @Test
     public void aPressDuringAGestureCancelsIt() throws Exception {
         fx(() -> {
             Board board = new Board();

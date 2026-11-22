@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -369,9 +370,10 @@ public class RXDashboardPaneTest {
             RXDashboardPane pane = pane(12);
             pane.getCards().addAll(new RXDashboardCard("A", null, 0, 0, 5, 1),
                     new RXDashboardCard("B", null, 5, 0, 7, 1), new RXDashboardCard("C", null, 1, 1, 3, 2));
+            layout(pane, 600.0, 400.0);
             RXDashboardLayout original = pane.getLayout();
             pane.setColumnCount(4);
-            assertEquals(4, pane.getLayout().getColumnCount());
+            assertEquals(layout(4, "A", 0, 0, 2, 1, "B", 2, 0, 2, 1, "C", 0, 1, 1, 2), pane.getLayout());
             pane.getCards().add(card("D", 1, 1));
             pane.setColumnCount(12);
             RXDashboardLayout back = pane.getLayout();
@@ -635,6 +637,74 @@ public class RXDashboardPaneTest {
             ordered.applyLayout(saved);
             assertPlacement(find(ordered, "S"), 0, 0, 4, 1);
             assertPlacement(other, 4, 0, 4, 1);
+        });
+    }
+
+    @Test
+    public void aLateColumnCountGivesWhatSettingItFirstGives() throws Exception {
+        fx(() -> {
+            // Each scenario: a snapshot of S applied, then cards added before the count arrives.
+            int[][] requests = {{0, 0, 4, 2}, {2, 0, 4, 1}};
+            for (int[] r : requests) {
+                RXDashboardLayout late = scenario(r, false);
+                RXDashboardLayout first = scenario(r, true);
+                assertEquals(first, late, "request " + Arrays.toString(r));
+            }
+            RXDashboardLayout late = overlapping(false);
+            assertEquals(overlapping(true), late);
+        });
+    }
+
+    // S restored from a 24-column snapshot, then N added with a request; the 24 columns come from a style sheet after
+    // everything (late) or are set in code before anything (first).
+    private static RXDashboardLayout scenario(int[] request, boolean countFirst) {
+        RXDashboardPane pane = new RXDashboardPane();
+        if (countFirst) {
+            pane.setColumnCount(24);
+        } else {
+            pane.setStyle("-rx-column-count: 24;");
+        }
+        pane.getCards().add(card("S", 1, 1));
+        pane.applyLayout(layout(24, "S", 1, 0, 3, 1));
+        pane.getCards().add(new RXDashboardCard("N", null, request[0], request[1], request[2], request[3]));
+        stageFor(pane);
+        pane.applyCss();
+        layout(pane, 900.0, 400.0);
+        assertEquals(24, pane.getColumnCount());
+        return pane.getLayout();
+    }
+
+    // Several requested cards that overlap one another and the snapshot cards.
+    private static RXDashboardLayout overlapping(boolean countFirst) {
+        RXDashboardPane pane = new RXDashboardPane();
+        if (countFirst) {
+            pane.setColumnCount(24);
+        } else {
+            pane.setStyle("-rx-column-count: 24;");
+        }
+        pane.getCards().addAll(card("S", 1, 1), card("T", 1, 1), new RXDashboardCard("N1", null, 2, 0, 6, 1),
+                new RXDashboardCard("N2", null, 12, 0, 4, 2), new RXDashboardCard("N3", null, 14, 1, 4, 1));
+        pane.applyLayout(layout(24, "S", 0, 0, 4, 1, "T", 13, 0, 4, 1));
+        pane.getCards().add(new RXDashboardCard("N4", null, 15, 0, 3, 1));
+        pane.moveCard(find(pane, "N1"), 1, 0);
+        stageFor(pane);
+        pane.applyCss();
+        layout(pane, 900.0, 400.0);
+        return pane.getLayout();
+    }
+
+    @Test
+    public void aPaneNeverLaidOutStopsKeepingHistoryPastItsLimit() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = caseOne();
+            RXDashboardCard churn = card("X", 1, 1);
+            for (int i = 0; i < 400; i++) {
+                pane.getCards().add(churn);
+                pane.getCards().remove(churn);
+            }
+            pane.setColumnCount(8);
+            assertEquals(8, pane.getLayout().getColumnCount());
+            assertNoOverlap(pane);
         });
     }
 

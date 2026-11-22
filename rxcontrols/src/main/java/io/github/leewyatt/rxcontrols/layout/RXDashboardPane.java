@@ -131,6 +131,10 @@ public class RXDashboardPane extends Region {
     // A listener that changes the cards on every notification would otherwise loop forever.
     private static final int MAX_RECONCILE_ROUNDS = 100;
 
+    // Operations the pane keeps for a late column count or policy before its first layout; a pane changed this often
+    // without ever being laid out stops keeping them, so a hidden pane does not hold on to cards it no longer has.
+    private static final int HISTORY_LIMIT = 512;
+
     private static final Logger LOGGER = Logger.getLogger(RXDashboardPane.class.getName());
 
     /**
@@ -158,16 +162,18 @@ public class RXDashboardPane extends Region {
     // The base layout a column-count change converts from, so a round trip with no edit in between restores the
     // layout: per card, the last placement not formed by a column-count change and the column count it was formed at.
     // Adding a card that pushes nothing records only that card. A card the base does not hold (left out of an applied
-    // snapshot) is placed as a card a snapshot lacks. Before the pane is first laid out, a card holds its own request
-    // instead.
+    // snapshot) is placed as a card a snapshot lacks.
     private final Map<RXDashboardCard, BaseEntry> base = new IdentityHashMap<>();
-    private boolean laidOutOnce;
-    // Set when the collision policy changes before the first layout: cards still holding their request are placed by
-    // it again, since FXML sets the policy after adding the cards.
-    private boolean replayRequests;
+    // Until the first layout pass, every operation that placed cards, in order. FXML sets a pane's attributes after
+    // its children and a style sheet's column count arrives with the first CSS pass, so the column count or the
+    // collision policy may change after cards were placed; the pane then places them all again from this history, as
+    // if the new value had been set first. Null once the pane has been laid out, once anything was placed after such a
+    // column count (it refers to that count, not to a later one), or once the history outgrew its limit.
+    private List<History> history = new ArrayList<>();
+    private boolean replayPending;
+    private boolean columnsReplayed;
     private CollisionPolicy lastPolicy = DEFAULT_COLLISION_POLICY;
     private int effectiveColumns = DEFAULT_COLUMN_COUNT;
-    private boolean requestsInBase;
     private int lastValidColumnCount = DEFAULT_COLUMN_COUNT;
     // Depth of the placement and layout notifications in progress; changes arriving meanwhile wait for the end.
     private int notifying;
@@ -185,19 +191,16 @@ public class RXDashboardPane extends Region {
     // Marks the area a dragged or resized card lands on. Unmanaged, so showing it requests no layout.
     private final Region placeholder = new Region();
 
-    // columns is 0 for a request: a card added with a requested position (or none) and spans, placed by the add rules
-    // again at the new count. Requests last until the pane is first laid out: FXML applies an element's attributes
-    // after its children and a style sheet's column count arrives with the first CSS pass, so a pane's column count
-    // may come after its cards, whose requests must not be scaled from the count they happened to be added at.
     private record BaseEntry(Placement placement, int columns) {
+    }
 
-        static BaseEntry request(Placement request) {
-            return new BaseEntry(request, 0);
-        }
+    private enum Step {
+        ADDED, REMOVED, APPLIED, MOVED, RESIZED, COMPACTED
+    }
 
-        boolean isRequest() {
-            return columns == 0;
-        }
+    // One operation of the history: the card and what was asked for (the request it was added with, the position it
+    // was moved to, the spans it was resized to), or the snapshot applied.
+    private record History(Step step, RXDashboardCard card, Placement asked, RXDashboardLayout layout) {
     }
 
     // ==================== Constructors ====================
@@ -335,9 +338,11 @@ public class RXDashboardPane extends Region {
      * still share it, and overlaps and overflows are then corrected as by {@link #applyLayout}. The conversion always
      * starts from the last layout not produced by a column-count change, so changing the count and changing it back
      * with no edit in between restores the layout exactly, and a column count set by a style sheet after a snapshot
-     * was applied still yields the snapshot. Until the pane is first laid out, cards placed by the position and span
-     * they requested when added are placed by that request again at the new count instead: FXML sets the count after
-     * adding the cards, and a style sheet sets it at the first CSS pass. Values above 4096 count as 4096.
+     * was applied still yields the snapshot. Until the pane is first laid out, a change instead places every card
+     * again as if the count had been set before the first card was added, repeating in order the cards added and
+     * removed, the snapshots applied and the edits made so far: FXML sets the count after adding the cards, and a
+     * style sheet sets it at the first CSS pass. That ends with the first layout, or once the layout is changed after
+     * such a change, since what comes after a count was set refers to that count. Values above 4096 count as 4096.
      *
      * <p>A value below 1 is rejected with {@link IllegalArgumentException} and the property goes back to its last
      * valid value. When the property is bound to an invalid value it cannot go back: the pane keeps laying out with
@@ -567,8 +572,8 @@ public class RXDashboardPane extends Region {
                     }
                     lastPolicy = policy;
                     gesture.cancel();
-                    if (!laidOutOnce && requestsInBase) {
-                        replayRequests = true;
+                    if (history != null) {
+                        replayPending = true;
                         reconcile();
                     }
                 }
@@ -577,8 +582,8 @@ public class RXDashboardPane extends Region {
     /**
      * How an edit whose area covers other cards is resolved, for user gestures, code and cards added with a
      * requested position alike. {@link CollisionPolicy#PUSH PUSH} by default; {@code null} counts as
-     * {@code PUSH}. Until the pane is first laid out, a change also places the cards added so far by their requests
-     * again, as if added under the new policy: FXML sets the policy after adding the cards.
+     * {@code PUSH}. Until the pane is first laid out, a change places every card again as if the policy had been set
+     * before the first card was added: FXML sets the policy after adding the cards.
      *
      * @return the collision-policy property
      */
@@ -929,6 +934,7 @@ public class RXDashboardPane extends Region {
         Objects.requireNonNull(card, "card cannot be null");
         checkNotNotifying();
         Placement current = placementOf(card);
+        record(Step.MOVED, card, new Placement(column, row, 1, 1), null);
         return edit(card, current.withPosition(column, row));
     }
 
@@ -951,8 +957,8 @@ public class RXDashboardPane extends Region {
         Objects.requireNonNull(card, "card cannot be null");
         checkNotNotifying();
         Placement current = placementOf(card);
-        int keepColumn = Math.max(1, Math.min(columnSpan, effectiveColumns - current.column()));
-        return edit(card, current.withSpan(keepColumn, rowSpan));
+        record(Step.RESIZED, card, new Placement(0, 0, columnSpan, rowSpan), null);
+        return edit(card, resizeRequest(current, columnSpan, rowSpan, effectiveColumns));
     }
 
     /**
@@ -964,6 +970,7 @@ public class RXDashboardPane extends Region {
     public void compact() {
         checkNotNotifying();
         gesture.cancel();
+        record(Step.COMPACTED, null, null, null);
         commitEdit(DashboardSolver.compact(items()));
     }
 
@@ -992,30 +999,51 @@ public class RXDashboardPane extends Region {
         Objects.requireNonNull(layout, "layout cannot be null");
         checkNotNotifying();
         gesture.cancel();
+        record(Step.APPLIED, null, null, layout);
+        Map<RXDashboardCard, Placement> target = targetsOf(layout, members);
+        Map<RXDashboardCard, Placement> result = DashboardSolver.arrange(items(), target, layout.getColumnCount(),
+                effectiveColumns, effectiveColumns);
+        base.clear();
+        target.forEach((card, placement) -> base.put(card, new BaseEntry(placement, layout.getColumnCount())));
+        commit(result);
+    }
+
+    // The snapshot placement of each card the snapshot names, by the cards' IDs: the first card with an ID uses it.
+    private static Map<RXDashboardCard, Placement> targetsOf(RXDashboardLayout layout,
+                                                           Iterable<RXDashboardCard> cards) {
+        Map<String, RXDashboardCard> byId = new LinkedHashMap<>();
+        for (RXDashboardCard card : cards) {
+            if (RXDashboardLayout.isUsableId(card.getCardId())) {
+                byId.putIfAbsent(card.getCardId(), card);
+            }
+        }
         Map<RXDashboardCard, Placement> target = new LinkedHashMap<>();
-        Map<String, RXDashboardCard> byId = cardsById();
         layout.getPlacements().forEach((id, placement) -> {
             RXDashboardCard card = byId.get(id);
             if (card != null) {
                 target.put(card, placement);
             }
         });
-        Map<RXDashboardCard, Placement> result = DashboardSolver.arrange(items(), target, layout.getColumnCount(),
-                effectiveColumns, effectiveColumns);
-        // Before the first layout, the cards the snapshot leaves out keep their requests: the column count may still
-        // arrive from a style sheet.
-        Map<RXDashboardCard, BaseEntry> requests = new IdentityHashMap<>();
-        if (!laidOutOnce) {
-            base.forEach((card, entry) -> {
-                if (entry.isRequest() && !target.containsKey(card)) {
-                    requests.put(card, entry);
-                }
-            });
+        return target;
+    }
+
+    // A resize keeps the top-left cell where the grid allows: the column span is first limited to the columns left.
+    private static Placement resizeRequest(Placement current, int columnSpan, int rowSpan, int columns) {
+        return current.withSpan(Math.max(1, Math.min(columnSpan, columns - current.column())), rowSpan);
+    }
+
+    private void record(Step step, RXDashboardCard card, Placement asked, RXDashboardLayout layout) {
+        if (history == null) {
+            return;
         }
-        base.clear();
-        base.putAll(requests);
-        target.forEach((card, placement) -> base.put(card, new BaseEntry(placement, layout.getColumnCount())));
-        commit(result);
+        if (columnsReplayed) {
+            history = null;
+            return;
+        }
+        history.add(new History(step, card, asked, layout));
+        if (history.size() > HISTORY_LIMIT) {
+            history = null;
+        }
     }
 
     private boolean edit(RXDashboardCard card, Placement requested) {
@@ -1170,7 +1198,7 @@ public class RXDashboardPane extends Region {
     }
 
     private boolean changesLayout() {
-        if (replayRequests || resolvedColumnCount() != effectiveColumns || !distinctCards().equals(members)) {
+        if (replayPending || resolvedColumnCount() != effectiveColumns || !distinctCards().equals(members)) {
             return true;
         }
         for (RXDashboardCard card : members) {
@@ -1195,6 +1223,7 @@ public class RXDashboardPane extends Region {
         }
         for (RXDashboardCard card : new ArrayList<>(members)) {
             if (!listed.contains(card) || !known.contains(card)) {
+                record(Step.REMOVED, card, null, null);
                 detach(card);
             }
         }
@@ -1212,13 +1241,18 @@ public class RXDashboardPane extends Region {
         if (columns != effectiveColumns) {
             int oldColumns = effectiveColumns;
             effectiveColumns = columns;
-            work = convert(work, oldColumns, columns);
+            if (history != null) {
+                work = replay(work, oldColumns, columns);
+                columnsReplayed = true;
+            } else {
+                work = convert(work, oldColumns, columns);
+            }
             // The grid changes even when no card's cells do.
             requestLayout();
-        } else if (replayRequests) {
-            work = convert(work, columns, columns);
+        } else if (replayPending && history != null) {
+            work = replay(work, columns, columns);
         }
-        replayRequests = false;
+        replayPending = false;
 
         for (RXDashboardCard card : new ArrayList<>(work.keySet())) {
             Placement now = work.get(card);
@@ -1235,23 +1269,14 @@ public class RXDashboardPane extends Region {
             }
             Placement request = card.requestedPlacement();
             attach(card);
+            record(Step.ADDED, card, request, null);
             Map<RXDashboardCard, Placement> result = place(work, card, request, columns);
-            // Pushing a card makes the result the base, unless every card pushed still holds its request: a
-            // column-count change places those again, pushes included.
-            for (Map.Entry<RXDashboardCard, Placement> entry : work.entrySet()) {
-                BaseEntry entryBase = base.get(entry.getKey());
-                if (!entry.getValue().equals(result.get(entry.getKey()))
-                        && (entryBase == null || !entryBase.isRequest())) {
-                    rebaseAll = true;
-                }
+            // Pushing a card makes the result the base, as an edit does; otherwise only the new card joins it.
+            if (movesAny(work, result)) {
+                rebaseAll = true;
             }
             work = result;
-            if (laidOutOnce) {
-                base.put(card, new BaseEntry(result.get(card), columns));
-            } else {
-                base.put(card, BaseEntry.request(request));
-                requestsInBase = true;
-            }
+            base.put(card, new BaseEntry(result.get(card), columns));
         }
         members.clear();
         members.addAll(current);
@@ -1269,62 +1294,111 @@ public class RXDashboardPane extends Region {
 
     // A column-count change applies the base layout again at the new count, as applyLayout would: the cards it holds
     // are converted and corrected first, the others then try their own place, converted, or take the first free area.
-    // Cards still holding their request are placed by it last, in list order, as if added at the new count; they may
-    // push one another but yield to the cards placed before them, which a snapshot or an edit put where they are.
     private Map<RXDashboardCard, Placement> convert(Map<RXDashboardCard, Placement> work, int oldColumns,
                                                     int columns) {
-        Map<RXDashboardCard, Placement> arranged = new LinkedHashMap<>();
         Map<RXDashboardCard, Placement> target = new LinkedHashMap<>();
-        List<RXDashboardCard> requested = new ArrayList<>();
         work.forEach((card, placement) -> {
             BaseEntry entry = base.get(card);
-            if (entry != null && entry.isRequest()) {
-                requested.add(card);
-            } else {
-                arranged.put(card, placement);
-                if (entry != null) {
-                    target.put(card, DashboardSolver.rescale(entry.placement(), entry.columns(), columns));
-                }
+            if (entry != null) {
+                target.put(card, DashboardSolver.rescale(entry.placement(), entry.columns(), columns));
             }
         });
-        Map<RXDashboardCard, Placement> result = DashboardSolver.arrange(items(arranged), target, columns,
-                oldColumns, columns);
-        Set<RXDashboardCard> settled = identitySet(new ArrayList<>(arranged.keySet()));
-        for (RXDashboardCard card : requested) {
-            result = place(result, card, base.get(card).placement(), columns, settled);
+        return DashboardSolver.arrange(items(work), target, columns, oldColumns, columns);
+    }
+
+    // Before the first layout: every card placed again from the history, at the given column count and under the
+    // current policy, the base layout rebuilt by the same rules on the way; what setting both before the first card
+    // would have produced. Should the history not account for a card, the base layout is converted instead.
+    private Map<RXDashboardCard, Placement> replay(Map<RXDashboardCard, Placement> work, int oldColumns,
+                                                   int columns) {
+        Map<RXDashboardCard, Placement> state = new LinkedHashMap<>();
+        Map<RXDashboardCard, BaseEntry> rebuilt = new IdentityHashMap<>();
+        for (History step : history) {
+            RXDashboardCard card = step.card();
+            Map<RXDashboardCard, Placement> result = state;
+            switch (step.step()) {
+                case ADDED -> {
+                    result = place(state, card, step.asked(), columns);
+                    if (movesAny(state, result)) {
+                        rebuild(rebuilt, result, columns);
+                    }
+                    rebuilt.put(card, new BaseEntry(result.get(card), columns));
+                }
+                case REMOVED -> {
+                    result = new LinkedHashMap<>(state);
+                    result.remove(card);
+                    rebuilt.remove(card);
+                }
+                case APPLIED -> {
+                    RXDashboardLayout snapshot = step.layout();
+                    Map<RXDashboardCard, Placement> target = targetsOf(snapshot, state.keySet());
+                    result = DashboardSolver.arrange(items(state), target, snapshot.getColumnCount(), columns, columns);
+                    rebuilt.clear();
+                    target.forEach((c, p) -> rebuilt.put(c, new BaseEntry(p, snapshot.getColumnCount())));
+                }
+                case MOVED, RESIZED -> {
+                    Placement now = state.get(card);
+                    if (now != null) {
+                        Placement asked = step.step() == Step.MOVED
+                                ? now.withPosition(step.asked().column(), step.asked().row())
+                                : resizeRequest(now, step.asked().columnSpan(), step.asked().rowSpan(), columns);
+                        Map<RXDashboardCard, Placement> solved = DashboardSolver.solve(items(state), card,
+                                DashboardSolver.clamp(item(card, asked), asked, columns), isBlocking(), columns);
+                        if (solved != null) {
+                            result = solved;
+                        }
+                    }
+                    if (movesAny(state, result)) {
+                        rebuild(rebuilt, result, columns);
+                    }
+                }
+                case COMPACTED -> {
+                    result = DashboardSolver.compact(items(state));
+                    if (movesAny(state, result)) {
+                        rebuild(rebuilt, result, columns);
+                    }
+                }
+            }
+            state = result;
         }
+        if (!state.keySet().equals(work.keySet())) {
+            history = null;
+            return convert(work, oldColumns, columns);
+        }
+        base.clear();
+        base.putAll(rebuilt);
         Map<RXDashboardCard, Placement> ordered = new LinkedHashMap<>();
         for (RXDashboardCard card : work.keySet()) {
-            ordered.put(card, result.get(card));
+            ordered.put(card, state.get(card));
         }
         return ordered;
+    }
+
+    private static boolean movesAny(Map<RXDashboardCard, Placement> before, Map<RXDashboardCard, Placement> after) {
+        for (Map.Entry<RXDashboardCard, Placement> entry : before.entrySet()) {
+            if (!entry.getValue().equals(after.get(entry.getKey()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void rebuild(Map<RXDashboardCard, BaseEntry> rebuilt, Map<RXDashboardCard, Placement> placements,
+                                int columns) {
+        rebuilt.clear();
+        placements.forEach((card, placement) -> rebuilt.put(card, new BaseEntry(placement, columns)));
     }
 
     // Places a card by its request: a requested position solved by the policy (or the first free area when the policy
     // rejects it), no position the first free area; the spans come from the request.
     private Map<RXDashboardCard, Placement> place(Map<RXDashboardCard, Placement> work, RXDashboardCard card,
                                                   Placement request, int columns) {
-        return place(work, card, request, columns, Collections.emptySet());
-    }
-
-    // As above, with some cards held where they are as if locked: a request covering one of them goes to the first
-    // free area instead of pushing it.
-    private Map<RXDashboardCard, Placement> place(Map<RXDashboardCard, Placement> work, RXDashboardCard card,
-                                                  Placement request, int columns, Set<RXDashboardCard> held) {
-        List<Item<RXDashboardCard>> others = new ArrayList<>();
-        work.forEach((other, placement) -> {
-            if (other != card) {
-                Item<RXDashboardCard> item = item(other, placement);
-                others.add(held.contains(other)
-                        ? new Item<>(other, placement, true, item.minColumnSpan(), item.maxColumnSpan(),
-                                item.minRowSpan(), item.maxRowSpan())
-                        : item);
-            }
-        });
+        Map<RXDashboardCard, Placement> others = new LinkedHashMap<>(work);
+        others.remove(card);
         Item<RXDashboardCard> added = item(card, request);
         return request.column() >= 0 && request.row() >= 0
-                ? DashboardSolver.add(others, added, request, isBlocking(), columns)
-                : DashboardSolver.addAtFirstFit(others, added, columns);
+                ? DashboardSolver.add(items(others), added, request, isBlocking(), columns)
+                : DashboardSolver.addAtFirstFit(items(others), added, columns);
     }
 
     // An edit by the pane itself (a span limit raised): solved by the policy, or the card to the first free area.
@@ -1379,9 +1453,18 @@ public class RXDashboardPane extends Region {
         }
     }
 
-    // Called by a card when its ID, span limits or lock change. A lock changes what the preview of a gesture may push.
+    // Called by a card when its span limits or lock change. A lock changes what the preview of a gesture may push.
     void cardChanged(boolean lockChanged) {
         if (lockChanged) {
+            gesture.cancel();
+        }
+        reconcile();
+    }
+
+    // Called by a card when its ID changes. A gesture reports the layout it started from, so one going on is
+    // cancelled when the change shows in the snapshot.
+    void cardIdChanged() {
+        if (gesture.isActive() && !snapshot().equals(layout.get())) {
             gesture.cancel();
         }
         reconcile();
@@ -1532,7 +1615,8 @@ public class RXDashboardPane extends Region {
 
     @Override
     protected void layoutChildren() {
-        formRequests();
+        // From the first layout on, a column-count or policy change converts the layout the user sees.
+        history = null;
         // Sampled before anything below can reach a listener that takes the pane out of its scene.
         int sceneChangesAtStart = membership.sceneChanges();
         Scene scene = getScene();
@@ -1541,7 +1625,6 @@ public class RXDashboardPane extends Region {
         boolean animate = isAnimated() && isAnimationDurationPositive() && membership.continuesIn(scene);
         boolean collectMoves = animate || animator.hasActiveState();
         List<RXDashboardCard> laidOut = new ArrayList<>(members);
-        RXDashboardCard held = gesture.card();
         boolean resizeOnly = false;
         if (isAnimated()) {
             resizeOnly = resizeGate.isResizeOnly(getWidth(), ownPrefWidth(), structure(laidOut));
@@ -1556,7 +1639,8 @@ public class RXDashboardPane extends Region {
                 continue;
             }
             membership.laidOut(card);
-            if (card == held) {
+            // Asked again for every card: a listener reached from laying out an earlier card may have ended it.
+            if (card == gesture.card()) {
                 gesture.layoutCard(grid);
                 continue;
             }
@@ -1622,21 +1706,6 @@ public class RXDashboardPane extends Region {
             placeholder.resizeRelocate(grid.columnX(target.column()), grid.rowY(target.row()),
                     grid.spanWidth(target.column(), target.columnSpan()),
                     grid.spanHeight(target.row(), target.rowSpan()));
-        }
-    }
-
-    // Once laid out, the layout the requests produced is what later column-count changes convert from.
-    private void formRequests() {
-        laidOutOnce = true;
-        if (!requestsInBase) {
-            return;
-        }
-        requestsInBase = false;
-        for (RXDashboardCard card : members) {
-            BaseEntry entry = base.get(card);
-            if (entry != null && entry.isRequest() && card.placement != null) {
-                base.put(card, new BaseEntry(card.placement, effectiveColumns));
-            }
         }
     }
 
