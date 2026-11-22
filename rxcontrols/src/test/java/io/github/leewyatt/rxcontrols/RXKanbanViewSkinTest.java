@@ -40,6 +40,7 @@ import javafx.stage.Stage;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -2063,6 +2064,148 @@ public class RXKanbanViewSkinTest {
     }
 
     // ==================== Helpers ====================
+
+    /**
+     * Verifies a board switched to a new render scale lays out like one built at that
+     * scale, for every pair of five scales: the scroll bar of each column and the board's
+     * own are measured again, and the columns move to the new pixel grid.
+     */
+    @Test
+    public void scaleSwitchMeasuresTheScrollBarsAgain() throws Exception {
+        onFx(() -> {
+            double[] scales = {1.0, 1.25, 1.5, 1.75, 2.0};
+            for (double from : scales) {
+                for (double to : scales) {
+                    if (from == to) {
+                        continue;
+                    }
+                    RXKanbanView<String> fresh = board("A", 60, "B", 60, "C", 60);
+                    scaledHost(fresh, to);
+                    RXKanbanView<String> switched = board("A", 60, "B", 60, "C", 60);
+                    Stage stage = scaledHost(switched, from);
+                    stage.setRenderScaleX(to);
+                    stage.setRenderScaleY(to);
+                    pump((Region) switched.getParent());
+                    List<String> expected = scrollBarsAndColumns(fresh);
+                    assertEquals(7, expected.size(), "setup: three column bars, the board's bar and three columns");
+                    assertEquals(expected, scrollBarsAndColumns(switched), "from " + from + " to " + to);
+                }
+            }
+        });
+    }
+
+    /**
+     * Verifies a column that keeps its size across a render scale change has its scroll
+     * bar measured again all the same: nothing lays such a column out unless the skin
+     * asks. With a padding of whole pixels and a header of a fixed height, on a board
+     * that does not scroll sideways, the columns are the same at 1.0 and 2.0.
+     */
+    @Test
+    public void scaleSwitchReachesAColumnThatKeepsItsSize() throws Exception {
+        onFx(() -> {
+            RXKanbanView<String> fresh = fixedHeaderBoard();
+            scaledHost(fresh, 2.0);
+            RXKanbanView<String> switched = fixedHeaderBoard();
+            Stage stage = scaledHost(switched, 1.0);
+            List<String> before = viewports(switched);
+            double breadthBefore = verticalBars(switched).get(0).getWidth();
+            stage.setRenderScaleX(2.0);
+            stage.setRenderScaleY(2.0);
+            pump((Region) switched.getParent());
+            assertEquals(before, viewports(switched), "setup: the columns keep their size");
+            assertNotEquals(breadthBefore, verticalBars(fresh).get(0).getWidth(), 1.0e-9,
+                    "setup: the breadth of the bar depends on the render scale");
+            assertEquals(scrollBarsAndColumns(fresh), scrollBarsAndColumns(switched));
+        });
+    }
+
+    /**
+     * Verifies a disposed skin no longer watches the render scale: the watch listens on
+     * the board, which would keep the skin reachable.
+     */
+    @Test
+    public void disposedSkinStopsWatchingTheRenderScale() throws Exception {
+        List<WeakReference<Object>> disposed = new ArrayList<>();
+        List<Object> kept = new ArrayList<>();
+        onFx(() -> {
+            RXKanbanView<String> board = board("A", 6, "B", 6);
+            scaledHost(board, 1.25);
+            StackPane root = (StackPane) board.getParent();
+            disposed.add(new WeakReference<>(board.getSkin()));
+            board.setSkin(null);
+            pump(root);
+            root.getChildren().remove(board);
+            kept.add(board);
+        });
+        for (int i = 0; i < 50 && disposed.get(0).get() != null; i++) {
+            System.gc();
+            Thread.sleep(20);
+        }
+        assertNull(disposed.get(0).get(), "the disposed skin is not kept by the board");
+        assertEquals(1, kept.size(), "the board itself is still reachable");
+    }
+
+    // Lays the board out in a stage of the given render scale, narrow enough for the
+    // board to scroll sideways. The stage is never shown: it only supplies the scale.
+    private static Stage scaledHost(RXKanbanView<?> board, double scale) {
+        StackPane root = new StackPane(board);
+        Stage stage = new Stage();
+        stage.setScene(new Scene(root, 700, 300));
+        stage.setRenderScaleX(scale);
+        stage.setRenderScaleY(scale);
+        pump(root);
+        return stage;
+    }
+
+    private static RXKanbanView<String> fixedHeaderBoard() {
+        RXKanbanView<String> board = board("A", 60, "B", 60);
+        board.setPadding(new Insets(8.0));
+        board.setColumnHeaderFactory(column -> {
+            Region header = new Region();
+            header.setPrefHeight(30.0);
+            return header;
+        });
+        return board;
+    }
+
+    private static List<ScrollBar> verticalBars(RXKanbanView<?> board) {
+        List<ScrollBar> bars = new ArrayList<>();
+        for (Node node : board.lookupAll(".scroll-bar")) {
+            if (node instanceof ScrollBar bar && bar.getOrientation() == Orientation.VERTICAL && bar.isVisible()) {
+                bars.add(bar);
+            }
+        }
+        return bars;
+    }
+
+    private static List<String> viewports(RXKanbanView<?> board) {
+        List<String> rows = new ArrayList<>();
+        for (Node node : board.lookupAll(".viewport")) {
+            rows.add(inScene("viewport", node));
+        }
+        return rows;
+    }
+
+    // Every visible scroll bar and every column with its bounds in the scene, to a
+    // thousandth of a pixel: scene bounds carry float precision.
+    private static List<String> scrollBarsAndColumns(RXKanbanView<?> board) {
+        List<String> rows = new ArrayList<>();
+        for (Node node : board.lookupAll(".scroll-bar")) {
+            if (node instanceof ScrollBar bar && bar.isVisible()) {
+                rows.add(inScene(bar.getOrientation() + " bar", bar));
+            }
+        }
+        for (Node node : board.lookupAll(".column")) {
+            rows.add(inScene("column", node));
+        }
+        return rows;
+    }
+
+    private static String inScene(String name, Node node) {
+        Bounds bounds = node.localToScene(node.getLayoutBounds());
+        return String.format("%s x %.3f y %.3f w %.3f h %.3f", name, bounds.getMinX(), bounds.getMinY(),
+                bounds.getWidth(), bounds.getHeight());
+    }
 
     private static RXKanbanView<String> threeColumnBoard() {
         RXKanbanView<String> board = new RXKanbanView<>();

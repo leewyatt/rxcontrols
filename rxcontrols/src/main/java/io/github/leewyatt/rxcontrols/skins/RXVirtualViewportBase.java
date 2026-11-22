@@ -316,7 +316,13 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
         requestLayoutBranch(vbar);
     }
 
-    private static void requestLayoutBranch(Node node) {
+    /**
+     * Requests the layout of a node and of every parent below it, so each of them
+     * measures itself again.
+     *
+     * @param node the root of the branch
+     */
+    static void requestLayoutBranch(Node node) {
         if (node instanceof Parent parent) {
             parent.requestLayout();
             for (Node child : parent.getChildrenUnmodifiable()) {

@@ -10,6 +10,7 @@ import io.github.leewyatt.rxcontrols.ScrollAxis;
 import io.github.leewyatt.rxcontrols.ScrollBoundaryPolicy;
 import io.github.leewyatt.rxcontrols.event.RXCardActionEvent;
 import io.github.leewyatt.rxcontrols.internal.PixelGrid;
+import io.github.leewyatt.rxcontrols.internal.RenderScaleWatch;
 import io.github.leewyatt.rxcontrols.internal.smooth.RXSmoothScrollEngine;
 import io.github.leewyatt.rxcontrols.internal.smooth.RXSmoothScrollable;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
@@ -167,6 +168,10 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         disposer.registerEventHandler(control, MouseEvent.MOUSE_CLICKED, this::onMouseClicked);
         disposer.registerEventHandler(control, KeyEvent.KEY_PRESSED, this::onKeyPressed);
         disposer.registerDisposeTask(this::detachColumns);
+        // Region lays nothing out when the render scale changes: the scroll bars would keep
+        // the breadth they measured at the old one, and the columns its pixel grid.
+        RenderScaleWatch scaleWatch = new RenderScaleWatch(control, this::onRenderScaleChanged);
+        disposer.registerDisposeTask(scaleWatch::dispose);
 
         onPlaceholderChanged();
         reconcileColumns();
@@ -191,6 +196,18 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
     // while the box's own size is unchanged; dirty every box so the new padding applies.
     private void onColumnContentPaddingChanged() {
         for (KanbanColumnBox<T> box : boxes) {
+            box.requestLayout();
+        }
+        getSkinnable().requestLayout();
+    }
+
+    // A column box and its viewport are skipped by the pulse while their own size does
+    // not change, so each is asked to lay out again along with the board.
+    private void onRenderScaleChanged() {
+        RXVirtualViewportBase.requestLayoutBranch(hbar);
+        for (KanbanColumnBox<T> box : boxes) {
+            box.getViewport().remeasureScrollBar();
+            box.getViewport().requestLayout();
             box.requestLayout();
         }
         getSkinnable().requestLayout();
