@@ -81,6 +81,16 @@ import java.util.Set;
  * when it may be taller than the window. Its preferred width makes each cell square; its minimum width is
  * {@link #minColumnWidthProperty() minColumnWidth} per column.</p>
  *
+ * <p><b>Gestures.</b> While the pane is {@link #editableProperty() editable}, the user drags a card by pressing
+ * anywhere on it that its content does not take for itself (table rows, scroll bars and buttons do; charts and labels
+ * do not), or on its {@link RXDashboardCard#dragHandleProperty() drag handle}, and resizes it from its right edge,
+ * bottom edge or bottom-right corner. A press moves nothing until the pointer has travelled a few pixels. During the
+ * gesture a placeholder marks the cells the card will take, the other cards make room as the collision policy says,
+ * and nothing is committed: releasing commits the layout and fires {@link RXDashboardEvent#LAYOUT_CHANGED}, Esc or
+ * switching to another window cancels it. Near the top or bottom of an enclosing {@code ScrollPane}'s viewport, the
+ * scroll pane scrolls. Changing the cards, the column count or the layout from code during a gesture cancels it
+ * first.</p>
+ *
  * <p><b>Saving and restoring.</b> {@link #layoutProperty() layout} holds a snapshot of the committed layout,
  * keyed by {@link RXDashboardCard#cardIdProperty() card ID}, and changes after every change, from the user and from
  * code; save it from a listener on that property. {@link #applyLayout} restores a snapshot, correcting whatever does
