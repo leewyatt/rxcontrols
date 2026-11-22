@@ -299,18 +299,28 @@ public class RXRatingTest {
         });
     }
 
-    /** Verifies the rating picks nothing outside its bounds, and a release there commits nothing. */
+    /** Verifies the rating picks only its bounds, and the focus ring band outside them takes no input. */
     @Test
-    public void nothingOutsideTheBoundsIsPicked() throws Exception {
+    public void onlyTheLayoutBoundsTakeInput() throws Exception {
         runOnFx(() -> {
             RXRating rating = laidOut(new RXRating());
             double above = -4.0;
-            assertTrue(rating.contains(3 * PITCH + 10.0, 1.0));
+            double x = 3 * PITCH + 10.0;
+            assertTrue(rating.contains(x, 1.0));
             assertTrue(rating.contains(ICON + 2.0, 9.0));
-            assertFalse(rating.contains(3 * PITCH + 10.0, above));
+            assertFalse(rating.contains(x, above));
             assertFalse(rating.contains(-4.0, 9.0));
-            fire(rating, MouseEvent.MOUSE_PRESSED, 3 * PITCH + 10.0, MouseButton.PRIMARY, false);
-            fireAt(rating, MouseEvent.MOUSE_RELEASED, 3 * PITCH + 10.0, above, MouseButton.PRIMARY, false);
+
+            rating.pseudoClassStateChanged(PseudoClass.getPseudoClass("focus-shown"), true);
+            rating.applyCss();
+            assertTrue(rating.contains(x, above));
+            assertEquals(5 * ICON + 4 * 4.0, rating.prefWidth(-1), EPSILON);
+            fireAt(rating, MouseEvent.MOUSE_MOVED, x, above, MouseButton.NONE, false);
+            assertNull(rating.getHoverValue());
+            fireAt(rating, MouseEvent.MOUSE_PRESSED, x, above, MouseButton.PRIMARY, false);
+            fireAt(rating, MouseEvent.MOUSE_RELEASED, x, above, MouseButton.PRIMARY, false);
+            fire(rating, MouseEvent.MOUSE_PRESSED, x, MouseButton.PRIMARY, false);
+            fireAt(rating, MouseEvent.MOUSE_RELEASED, x, above, MouseButton.PRIMARY, false);
             assertNull(rating.getValue());
         });
     }

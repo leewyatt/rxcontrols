@@ -212,9 +212,11 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
                 && !control.valueProperty().isBound() && !items.isEmpty();
     }
 
-    // The same area that picks the rating, so a click lands wherever a preview shows.
+    // The layout bounds, not the picked area: the focus ring and a scaled icon reach
+    // past them and come and go, and a preview there would promise a click that a
+    // vanished ring no longer delivers.
     private boolean inside(MouseEvent event) {
-        return getSkinnable().contains(event.getX(), event.getY());
+        return getSkinnable().getLayoutBounds().contains(event.getX(), event.getY());
     }
 
     // A touch never hovers: a lifted finger may never send an exit.
@@ -230,7 +232,7 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
             }
             pressed = false;
         }
-        if (interactive()) {
+        if (interactive() && inside(event)) {
             previewAt(event.getX());
         } else {
             clearPreview();
@@ -238,7 +240,7 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
     }
 
     private void onPressed(MouseEvent event) {
-        if (event.getButton() != MouseButton.PRIMARY || !interactive()) {
+        if (event.getButton() != MouseButton.PRIMARY || !interactive() || !inside(event)) {
             return;
         }
         RXRating control = getSkinnable();
