@@ -299,6 +299,82 @@ public class RXRatingTest {
         });
     }
 
+    /** Verifies a click in the focus ring band around the icons commits what its preview shows. */
+    @Test
+    public void ringBandCommitsWhatItPreviews() throws Exception {
+        runOnFx(() -> {
+            RXRating rating = laidOut(new RXRating());
+            double above = -4.0;
+            assertTrue(rating.contains(3 * PITCH + 10.0, above));
+            fireAt(rating, MouseEvent.MOUSE_MOVED, 3 * PITCH + 10.0, above, MouseButton.NONE, false);
+            assertEquals(4.0, rating.getHoverValue(), EPSILON);
+            fireAt(rating, MouseEvent.MOUSE_PRESSED, 3 * PITCH + 10.0, above, MouseButton.PRIMARY, false);
+            fireAt(rating, MouseEvent.MOUSE_RELEASED, 3 * PITCH + 10.0, above, MouseButton.PRIMARY, false);
+            assertEquals(4.0, rating.getValue(), EPSILON);
+        });
+    }
+
+    /** Verifies a move with the button up after a press whose release was lost previews again. */
+    @Test
+    public void lostReleaseDoesNotBlockThePreview() throws Exception {
+        runOnFx(() -> {
+            RXRating rating = laidOut(new RXRating());
+            fire(rating, MouseEvent.MOUSE_PRESSED, 10.0, MouseButton.PRIMARY, false);
+            fire(rating, MouseEvent.MOUSE_MOVED, 3 * PITCH + 10.0, MouseButton.NONE, false);
+            assertEquals(4.0, rating.getHoverValue(), EPSILON);
+            Event.fireEvent(rating, key(KeyCode.RIGHT));
+            assertEquals(1.0, rating.getValue(), EPSILON);
+        });
+    }
+
+    /** Verifies a listener that puts the old value back leaves the action unfired. */
+    @Test
+    public void revertedCommitFiresNoAction() throws Exception {
+        runOnFx(() -> {
+            RXRating rating = laidOut(new RXRating(1.0));
+            Recorder recorder = new Recorder(rating);
+            rating.valueProperty().addListener((obs, was, now) -> {
+                if (now == null || now != 1.0) {
+                    rating.setValue(1.0);
+                }
+            });
+            click(rating, 3 * PITCH + 10.0);
+            assertEquals(1.0, rating.getValue(), EPSILON);
+            assertEquals(0, recorder.actions.size());
+        });
+    }
+
+    /** Verifies binding the value ends a preview, and the bound source redraws without an action. */
+    @Test
+    public void bindingEndsThePreviewAndTheSourceRedraws() throws Exception {
+        runOnFx(() -> {
+            RXRating rating = laidOut(new RXRating(1.0));
+            Recorder recorder = new Recorder(rating);
+            fire(rating, MouseEvent.MOUSE_MOVED, 3 * PITCH + 10.0, MouseButton.NONE, false);
+            assertEquals(4.0, rating.getHoverValue(), EPSILON);
+            SimpleObjectProperty<Double> source = new SimpleObjectProperty<>(2.0);
+            rating.valueProperty().bind(source);
+            assertNull(rating.getHoverValue());
+            assertFills(rating, 1.0, 1.0, 0.0, 0.0, 0.0);
+            source.set(3.5);
+            assertFills(rating, 1.0, 1.0, 1.0, 0.5, 0.0);
+            assertEquals(0, recorder.actions.size());
+        });
+    }
+
+    /** Verifies a null step picks and steps in whole icons. */
+    @Test
+    public void nullStepActsAsWhole() throws Exception {
+        runOnFx(() -> {
+            RXRating rating = laidOut(new RXRating());
+            rating.setStep(null);
+            click(rating, 2 * PITCH + 5.0);
+            assertEquals(3.0, rating.getValue(), EPSILON);
+            Event.fireEvent(rating, key(KeyCode.RIGHT));
+            assertEquals(4.0, rating.getValue(), EPSILON);
+        });
+    }
+
     /** Verifies a read-only, a disabled and a bound rating take no pointer or keyboard input. */
     @Test
     public void readOnlyDisabledAndBoundTakeNoInput() throws Exception {
@@ -419,6 +495,28 @@ public class RXRatingTest {
         });
     }
 
+    /** Verifies each key commit fires one action that sees the new value, and a chord does nothing. */
+    @Test
+    public void keyCommitFiresOnceAndChordsAreLeftAlone() throws Exception {
+        runOnFx(() -> {
+            RXRating rating = laidOut(new RXRating(1.0));
+            Recorder recorder = new Recorder(rating);
+            Event.fireEvent(rating, key(KeyCode.RIGHT));
+            Event.fireEvent(rating, key(KeyCode.END));
+            Event.fireEvent(rating, key(KeyCode.BACK_SPACE));
+            List<Double> expected = new ArrayList<>(List.of(2.0, 5.0));
+            expected.add(null);
+            assertEquals(expected, recorder.actions);
+
+            rating.setValue(1.0);
+            KeyEvent chord = altKey(KeyCode.RIGHT);
+            Event.fireEvent(rating, chord);
+            assertEquals(1.0, rating.getValue(), EPSILON);
+            assertFalse(chord.isConsumed());
+            assertEquals(expected, recorder.actions);
+        });
+    }
+
     /** Verifies a key commit takes the icons back from a hover preview. */
     @Test
     public void keyCommitEndsThePreview() throws Exception {
@@ -513,6 +611,36 @@ public class RXRatingTest {
         });
     }
 
+    /** Verifies listeners registered before the skin may remove it without the old skin failing. */
+    @Test
+    public void skinRemovedByAnEarlierListenerDoesNotFail() throws Exception {
+        runOnFx(() -> {
+            List<Throwable> errors = new ArrayList<>();
+            Thread thread = Thread.currentThread();
+            Thread.UncaughtExceptionHandler previous = thread.getUncaughtExceptionHandler();
+            thread.setUncaughtExceptionHandler((t, error) -> errors.add(error));
+            try {
+                RXRating byValue = new RXRating();
+                byValue.valueProperty().addListener(observable -> byValue.setSkin(null));
+                click(laidOut(byValue), 10.0);
+                assertEquals(1.0, byValue.getValue(), EPSILON);
+
+                RXRating byHover = new RXRating();
+                byHover.hoverValueProperty().addListener(observable -> byHover.setSkin(null));
+                fire(laidOut(byHover), MouseEvent.MOUSE_MOVED, 10.0, MouseButton.NONE, false);
+                assertNull(byHover.getHoverValue());
+
+                RXRating byMax = new RXRating();
+                byMax.maxProperty().addListener(observable -> byMax.setSkin(null));
+                laidOut(byMax).setMax(8);
+                assertEquals(0, byMax.getChildrenUnmodifiable().size());
+            } finally {
+                thread.setUncaughtExceptionHandler(previous);
+            }
+            assertEquals(List.of(), errors);
+        });
+    }
+
     // ==================== Helpers ====================
 
     /** Records every committed-value change and the value each action saw. */
@@ -585,7 +713,11 @@ public class RXRatingTest {
 
     private static void fire(Node target, EventType<MouseEvent> type, double localX, MouseButton button,
                              boolean synthesized) {
-        double localY = target.getLayoutBounds().getHeight() / 2.0;
+        fireAt(target, type, localX, target.getLayoutBounds().getHeight() / 2.0, button, synthesized);
+    }
+
+    private static void fireAt(Node target, EventType<MouseEvent> type, double localX, double localY,
+                               MouseButton button, boolean synthesized) {
         Point2D scene = target.localToScene(localX, localY);
         boolean primaryDown = button == MouseButton.PRIMARY && type != MouseEvent.MOUSE_RELEASED;
         MouseEvent event = new MouseEvent(type, localX, localY, scene.getX(), scene.getY(), button, 1,
@@ -594,6 +726,10 @@ public class RXRatingTest {
                 synthesized, false, true,
                 new PickResult(target, scene.getX(), scene.getY()));
         Event.fireEvent(target, event);
+    }
+
+    private static KeyEvent altKey(KeyCode code) {
+        return new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, false, false, true, false);
     }
 
     private static KeyEvent key(KeyCode code) {

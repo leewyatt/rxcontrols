@@ -54,7 +54,6 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
 
     // ==================== Nodes ====================
 
-    private final Region hitArea = new Region();
     private final List<Item> items = new ArrayList<>();
 
     // ==================== State ====================
@@ -96,17 +95,14 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
         }
         activated = true;
 
-        hitArea.setManaged(false);
-        hitArea.setPickOnBounds(true);
-        getChildren().add(hitArea);
         syncItems();
 
-        disposer.registerListener(control.valueProperty(), this::updateFill);
-        disposer.registerListener(control.hoverValueProperty(), this::onHoverValueChanged);
-        disposer.registerListener(control.maxProperty(), this::onMaxChanged);
-        disposer.registerListener(control.stepProperty(), this::clearPreview);
-        disposer.registerListener(control.readOnlyProperty(), this::cancelPointer);
-        disposer.registerListener(control.disabledProperty(), this::cancelPointer);
+        disposer.registerListener(control.valueProperty(), live(this::onValueChanged));
+        disposer.registerListener(control.hoverValueProperty(), live(this::onHoverValueChanged));
+        disposer.registerListener(control.maxProperty(), live(this::onMaxChanged));
+        disposer.registerListener(control.stepProperty(), live(this::clearPreview));
+        disposer.registerListener(control.readOnlyProperty(), live(this::cancelPointer));
+        disposer.registerListener(control.disabledProperty(), live(this::cancelPointer));
 
         disposer.registerEventHandler(control, MouseEvent.MOUSE_ENTERED, this::onPointerMoved);
         disposer.registerEventHandler(control, MouseEvent.MOUSE_MOVED, this::onPointerMoved);
@@ -119,6 +115,16 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
         FocusShownTracker.install(control, disposer);
 
         control.requestLayout();
+    }
+
+    // A listener removed while its property is notifying still gets that notification,
+    // so an earlier listener that replaced the skin would reach this one after dispose.
+    private Runnable live(Runnable action) {
+        return () -> {
+            if (!disposed) {
+                action.run();
+            }
+        };
     }
 
     // ==================== Items ====================
@@ -141,6 +147,14 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
             getChildren().add(added.node);
         }
         updateTarget();
+        updateFill();
+    }
+
+    // Binding the value invalidates it: the bound source takes the icons from a preview.
+    private void onValueChanged() {
+        if (getSkinnable().valueProperty().isBound()) {
+            cancelPointer();
+        }
         updateFill();
     }
 
@@ -189,15 +203,18 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
                 && !control.valueProperty().isBound() && !items.isEmpty();
     }
 
+    // The same area that picks the rating, so a click lands wherever a preview shows.
     private boolean inside(MouseEvent event) {
-        return getSkinnable().getLayoutBounds().contains(event.getX(), event.getY());
+        return getSkinnable().contains(event.getX(), event.getY());
     }
 
     // A touch never hovers: a lifted finger may never send an exit.
     private void onPointerMoved(MouseEvent event) {
-        if (event.isSynthesized() || pressed) {
+        if (event.isSynthesized() || (pressed && event.isPrimaryButtonDown())) {
             return;
         }
+        // A move with the button up means the release never arrived.
+        pressed = false;
         if (interactive()) {
             previewAt(event.getX());
         } else {
@@ -221,7 +238,7 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
         if (!pressed) {
             return;
         }
-        if (inside(event)) {
+        if (inside(event) && interactive()) {
             previewAt(event.getX());
         } else {
             clearPreview();
@@ -317,6 +334,10 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
         if (pressed || !interactive()) {
             return;
         }
+        // Chords belong to accelerators and to the platform.
+        if (event.isShiftDown() || event.isControlDown() || event.isAltDown() || event.isMetaDown()) {
+            return;
+        }
         RXRating control = getSkinnable();
         boolean mirrored = control.getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT;
         KeyCode code = event.getCode();
@@ -381,8 +402,8 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
             return;
         }
         control.setValue(value);
-        // A value listener may have replaced this skin.
-        if (disposed) {
+        // A value listener may have replaced this skin or put the old value back.
+        if (disposed || !Objects.equals(control.getValue(), value)) {
             return;
         }
         control.fireEvent(new ActionEvent());
@@ -417,8 +438,6 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
 
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
-        RXRating control = getSkinnable();
-        hitArea.resizeRelocate(0.0, 0.0, control.getWidth(), control.getHeight());
         double itemWidth = itemWidth();
         double itemHeight = itemHeight();
         double pitch = itemWidth + gap();
@@ -484,7 +503,6 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
         pressed = false;
         clearedValue = null;
         // SkinBase leaves its nodes in the control; the next skin must not find them.
-        getChildren().remove(hitArea);
         for (Item item : items) {
             getChildren().remove(item.node);
         }
@@ -540,7 +558,7 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
             return;
         }
         double step = stepSize();
-        double target = Math.floor(RXMath.clamp(value, 0.0, items.size()) / step + HALF_STEP) * step;
+        double target = Math.round(RXMath.clamp(value, 0.0, items.size()) / step) * step;
         if (target >= step) {
             commit(target);
         } else if (getSkinnable().isClearable()) {
@@ -562,7 +580,7 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
 
         private Item() {
             node.getStyleClass().add("item");
-            // The hit area under the icons takes every pointer event.
+            // The rating itself takes every pointer event, in the gaps as on the icons.
             node.setMouseTransparent(true);
             empty.getStyleClass().add("empty");
             empty.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
