@@ -299,17 +299,31 @@ public class RXRatingTest {
         });
     }
 
-    /** Verifies a click in the focus ring band around the icons commits what its preview shows. */
+    /** Verifies the rating picks nothing outside its bounds, and a release there commits nothing. */
     @Test
-    public void ringBandCommitsWhatItPreviews() throws Exception {
+    public void nothingOutsideTheBoundsIsPicked() throws Exception {
         runOnFx(() -> {
             RXRating rating = laidOut(new RXRating());
             double above = -4.0;
-            assertTrue(rating.contains(3 * PITCH + 10.0, above));
-            fireAt(rating, MouseEvent.MOUSE_MOVED, 3 * PITCH + 10.0, above, MouseButton.NONE, false);
-            assertEquals(4.0, rating.getHoverValue(), EPSILON);
-            fireAt(rating, MouseEvent.MOUSE_PRESSED, 3 * PITCH + 10.0, above, MouseButton.PRIMARY, false);
+            assertTrue(rating.contains(3 * PITCH + 10.0, 1.0));
+            assertTrue(rating.contains(ICON + 2.0, 9.0));
+            assertFalse(rating.contains(3 * PITCH + 10.0, above));
+            assertFalse(rating.contains(-4.0, 9.0));
+            fire(rating, MouseEvent.MOUSE_PRESSED, 3 * PITCH + 10.0, MouseButton.PRIMARY, false);
             fireAt(rating, MouseEvent.MOUSE_RELEASED, 3 * PITCH + 10.0, above, MouseButton.PRIMARY, false);
+            assertNull(rating.getValue());
+        });
+    }
+
+    /** Verifies an enter that arrives just ahead of the release does not drop the click. */
+    @Test
+    public void enterAheadOfTheReleaseKeepsTheClick() throws Exception {
+        runOnFx(() -> {
+            RXRating rating = laidOut(new RXRating());
+            fire(rating, MouseEvent.MOUSE_PRESSED, 10.0, MouseButton.PRIMARY, false);
+            fire(rating, MouseEvent.MOUSE_DRAGGED, 400.0, MouseButton.PRIMARY, false);
+            fire(rating, MouseEvent.MOUSE_ENTERED, 3 * PITCH + 10.0, MouseButton.NONE, false);
+            fire(rating, MouseEvent.MOUSE_RELEASED, 3 * PITCH + 10.0, MouseButton.PRIMARY, false);
             assertEquals(4.0, rating.getValue(), EPSILON);
         });
     }
@@ -352,6 +366,8 @@ public class RXRatingTest {
             Recorder recorder = new Recorder(rating);
             fire(rating, MouseEvent.MOUSE_MOVED, 3 * PITCH + 10.0, MouseButton.NONE, false);
             assertEquals(4.0, rating.getHoverValue(), EPSILON);
+            // A code write under the preview must not hide the later bind from the skin.
+            rating.setValue(1.5);
             SimpleObjectProperty<Double> source = new SimpleObjectProperty<>(2.0);
             rating.valueProperty().bind(source);
             assertNull(rating.getHoverValue());
@@ -634,6 +650,19 @@ public class RXRatingTest {
                 byMax.maxProperty().addListener(observable -> byMax.setSkin(null));
                 laidOut(byMax).setMax(8);
                 assertEquals(0, byMax.getChildrenUnmodifiable().size());
+
+                // The preview a key or a new max ends reports to a listener that removes the skin.
+                RXRating byKey = laidOut(new RXRating());
+                fire(byKey, MouseEvent.MOUSE_MOVED, 10.0, MouseButton.NONE, false);
+                byKey.hoverValueProperty().addListener(observable -> byKey.setSkin(null));
+                Event.fireEvent(byKey, key(KeyCode.RIGHT));
+                assertNull(byKey.getValue());
+
+                RXRating byNewMax = laidOut(new RXRating());
+                fire(byNewMax, MouseEvent.MOUSE_MOVED, 10.0, MouseButton.NONE, false);
+                byNewMax.hoverValueProperty().addListener(observable -> byNewMax.setSkin(null));
+                byNewMax.setMax(8);
+                assertEquals(0, byNewMax.getChildrenUnmodifiable().size());
             } finally {
                 thread.setUncaughtExceptionHandler(previous);
             }

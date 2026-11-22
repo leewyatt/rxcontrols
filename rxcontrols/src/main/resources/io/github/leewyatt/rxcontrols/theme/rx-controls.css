@@ -3057,14 +3057,9 @@
  * RXRating                                                                    *
  *                                                                             *
  ******************************************************************************/
-/* The border is the focus ring; its negative insets keep it out of the layout. */
 .rx-rating {
     -rx-rating-color: -rx-warning;
     -rx-rating-empty-color: -rx-outline-variant;
-    -fx-border-color: transparent;
-    -fx-border-width: 2px;
-    -fx-border-insets: -5px;
-    -fx-border-radius: 6px;
 }
 
 .rx-theme-atlantafx .rx-rating,
@@ -3096,10 +3091,15 @@
     -fx-scale-y: 1.15;
 }
 
-/* :focus-shown is set by the skin: focus, unless it came from a pointer press and
-   no key has been pressed since. */
+/* The ring exists only while shown: a border outside the bounds also picks there,
+   over the neighbours. Its negative insets keep it out of the layout. :focus-shown
+   is set by the skin: focus, unless it came from a pointer press and no key has been
+   pressed since. */
 .rx-rating:focus-shown {
     -fx-border-color: -rx-focus;
+    -fx-border-width: 2px;
+    -fx-border-insets: -5px;
+    -fx-border-radius: 6px;
 }
 
 .rx-rating:disabled {

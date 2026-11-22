@@ -59,7 +59,7 @@ import java.util.List;
  * rating.</p>
  *
  * <p><b>Read-only.</b> A {@link #readOnlyProperty() read-only} rating shows its value at
- * full contrast, takes no input and is skipped by focus traversal; a disabled one is
+ * full contrast, takes no input and by default is skipped by focus traversal; a disabled one is
  * dimmed. A rating whose value is bound takes no input either.</p>
  *
  * <p>CSS: style class {@code rx-rating}; pseudo-classes {@code :read-only} and
@@ -342,7 +342,8 @@ public class RXRating extends Control {
 
     /**
      * Whether the rating only shows its value. A read-only rating keeps its normal
-     * look, takes no input and is skipped by focus traversal.
+     * look, takes no input and, unless {@code focusTraversable} is set from code, is
+     * skipped by focus traversal.
      *
      * @return the read-only property
      */

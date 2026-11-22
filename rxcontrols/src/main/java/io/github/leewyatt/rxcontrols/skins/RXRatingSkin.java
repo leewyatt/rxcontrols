@@ -131,6 +131,10 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
 
     private void onMaxChanged() {
         cancelPointer();
+        // A hover value listener may have replaced this skin.
+        if (disposed) {
+            return;
+        }
         syncItems();
         getSkinnable().requestLayout();
     }
@@ -154,6 +158,9 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
     private void onValueChanged() {
         if (getSkinnable().valueProperty().isBound()) {
             cancelPointer();
+            if (disposed) {
+                return;
+            }
         }
         updateFill();
     }
@@ -174,7 +181,9 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
     private void updateFill() {
         RXRating control = getSkinnable();
         Double hover = control.getHoverValue();
-        double shown = shownValue(hover != null ? hover : control.getValue());
+        // Read even under a preview: a value left invalid reports no later change.
+        Double value = control.getValue();
+        double shown = shownValue(hover != null ? hover : value);
         if (Double.isNaN(shown)) {
             shown = 0.0;
         }
@@ -210,11 +219,17 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
 
     // A touch never hovers: a lifted finger may never send an exit.
     private void onPointerMoved(MouseEvent event) {
-        if (event.isSynthesized() || (pressed && event.isPrimaryButtonDown())) {
+        if (event.isSynthesized()) {
             return;
         }
-        // A move with the button up means the release never arrived.
-        pressed = false;
+        if (pressed) {
+            // An enter may come just ahead of the release that ends this press; a move
+            // is only sent with every button up, so the release never arrived.
+            if (event.getEventType() != MouseEvent.MOUSE_MOVED) {
+                return;
+            }
+            pressed = false;
+        }
         if (interactive()) {
             previewAt(event.getX());
         } else {
@@ -229,6 +244,10 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
         RXRating control = getSkinnable();
         if (control.isFocusTraversable()) {
             control.requestFocus();
+            // A focus listener may have replaced this skin.
+            if (disposed) {
+                return;
+            }
         }
         pressed = true;
         previewAt(event.getX());
@@ -364,6 +383,10 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
     // The keyboard takes the icons back from a hover preview until the pointer moves again.
     private void keyCommit(Runnable change) {
         clearPreview();
+        // A hover value listener may have replaced this skin.
+        if (disposed) {
+            return;
+        }
         change.run();
     }
 
@@ -390,8 +413,6 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
             commit(target);
         } else if (getSkinnable().isClearable()) {
             commit(null);
-        } else if (current > step) {
-            commit(step);
         }
     }
 
