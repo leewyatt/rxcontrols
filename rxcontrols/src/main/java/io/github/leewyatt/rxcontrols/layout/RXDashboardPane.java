@@ -157,10 +157,15 @@ public class RXDashboardPane extends Region {
     private final List<RXDashboardCard> members = new ArrayList<>();
     // The base layout a column-count change converts from, so a round trip with no edit in between restores the
     // layout: per card, the last placement not formed by a column-count change and the column count it was formed at.
-    // A card the base does not hold (added since without pushing anything, or left out of an applied snapshot) is
-    // placed as a card a snapshot lacks. Before the pane is first laid out, a card holds its own request instead.
+    // Adding a card that pushes nothing records only that card. A card the base does not hold (left out of an applied
+    // snapshot) is placed as a card a snapshot lacks. Before the pane is first laid out, a card holds its own request
+    // instead.
     private final Map<RXDashboardCard, BaseEntry> base = new IdentityHashMap<>();
     private boolean laidOutOnce;
+    // Set when the collision policy changes before the first layout: cards still holding their request are placed by
+    // it again, since FXML sets the policy after adding the cards.
+    private boolean replayRequests;
+    private CollisionPolicy lastPolicy = DEFAULT_COLLISION_POLICY;
     private int effectiveColumns = DEFAULT_COLUMN_COUNT;
     private boolean requestsInBase;
     private int lastValidColumnCount = DEFAULT_COLUMN_COUNT;
@@ -256,9 +261,10 @@ public class RXDashboardPane extends Region {
      * by the {@link #collisionPolicyProperty() collisionPolicy}, or at the first free area when it requests none or
      * the policy rejects its request; several cards added at once are placed in list order. Removing a card leaves
      * the others where they are. A card added to another dashboard leaves this one. {@code null} elements and a
-     * card's second occurrence are ignored. The order matters only for cards that share an ID (the first one keeps
-     * it) and for where cards without a snapshot entry go when a layout is applied; the cards are shown and focused
-     * in reading order whatever it is.
+     * card's second occurrence are ignored. The order decides which of several cards sharing an ID keeps it (the
+     * first), and the order cards are placed in whenever the pane places several by the same rule: cards added
+     * together, cards a snapshot or a column-count change leaves to find their own place, cards placed again by their
+     * requests. The cards are shown and focused in reading order whatever it is.
      *
      * @return the live list of cards
      */
@@ -277,6 +283,10 @@ public class RXDashboardPane extends Region {
                     set(lastValidColumnCount);
                     throw new IllegalArgumentException("columnCount must be at least 1: " + value);
                 }
+                return;
+            }
+            // A bound property is invalidated on every change of its source, even to the same value.
+            if (value == lastValidColumnCount) {
                 return;
             }
             lastValidColumnCount = value;
@@ -547,14 +557,24 @@ public class RXDashboardPane extends Region {
             new SimpleObjectProperty<>(this, "collisionPolicy", DEFAULT_COLLISION_POLICY) {
                 @Override
                 protected void invalidated() {
+                    CollisionPolicy policy = get() == null ? CollisionPolicy.PUSH : get();
+                    if (policy == lastPolicy) {
+                        return;
+                    }
+                    lastPolicy = policy;
                     gesture.cancel();
+                    if (!laidOutOnce && requestsInBase) {
+                        replayRequests = true;
+                        reconcile();
+                    }
                 }
             };
 
     /**
      * How an edit whose area covers other cards is resolved, for user gestures, code and cards added with a
      * requested position alike. {@link CollisionPolicy#PUSH PUSH} by default; {@code null} counts as
-     * {@code PUSH}.
+     * {@code PUSH}. Until the pane is first laid out, a change also places the cards added so far by their requests
+     * again, as if added under the new policy: FXML sets the policy after adding the cards.
      *
      * @return the collision-policy property
      */
@@ -978,7 +998,18 @@ public class RXDashboardPane extends Region {
         });
         Map<RXDashboardCard, Placement> result = DashboardSolver.arrange(items(), target, layout.getColumnCount(),
                 effectiveColumns, effectiveColumns);
+        // Before the first layout, the cards the snapshot leaves out keep their requests: the column count may still
+        // arrive from a style sheet.
+        Map<RXDashboardCard, BaseEntry> requests = new IdentityHashMap<>();
+        if (!laidOutOnce) {
+            base.forEach((card, entry) -> {
+                if (entry.isRequest() && !target.containsKey(card)) {
+                    requests.put(card, entry);
+                }
+            });
+        }
         base.clear();
+        base.putAll(requests);
         target.forEach((card, placement) -> base.put(card, new BaseEntry(placement, layout.getColumnCount())));
         commit(result);
     }
@@ -1082,7 +1113,7 @@ public class RXDashboardPane extends Region {
         Map<String, RXDashboardCard> byId = new LinkedHashMap<>();
         for (RXDashboardCard card : members) {
             String id = card.getCardId();
-            if (id != null && !id.isEmpty() && card.placement != null) {
+            if (RXDashboardLayout.isUsableId(id) && card.placement != null) {
                 byId.putIfAbsent(id, card);
             }
         }
@@ -1115,8 +1146,10 @@ public class RXDashboardPane extends Region {
             reconcilePending = true;
             return;
         }
-        // The preview was solved from a layout that no longer holds.
-        gesture.cancel();
+        // A preview in progress is stale only when reconciling will move a card or change the grid.
+        if (changesLayout()) {
+            gesture.cancel();
+        }
         reconciling = true;
         try {
             int rounds = 0;
@@ -1130,6 +1163,20 @@ public class RXDashboardPane extends Region {
         } finally {
             reconciling = false;
         }
+    }
+
+    private boolean changesLayout() {
+        if (replayRequests || resolvedColumnCount() != effectiveColumns || !distinctCards().equals(members)) {
+            return true;
+        }
+        for (RXDashboardCard card : members) {
+            Placement placement = card.placement;
+            if (card.owner != this || placement == null
+                    || !DashboardSolver.clamp(item(card, placement), placement, effectiveColumns).equals(placement)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void reconcileOnce() {
@@ -1164,7 +1211,10 @@ public class RXDashboardPane extends Region {
             work = convert(work, oldColumns, columns);
             // The grid changes even when no card's cells do.
             requestLayout();
+        } else if (replayRequests) {
+            work = convert(work, columns, columns);
         }
+        replayRequests = false;
 
         for (RXDashboardCard card : new ArrayList<>(work.keySet())) {
             Placement now = work.get(card);
@@ -1193,7 +1243,7 @@ public class RXDashboardPane extends Region {
             }
             work = result;
             if (laidOutOnce) {
-                base.remove(card);
+                base.put(card, new BaseEntry(result.get(card), columns));
             } else {
                 base.put(card, BaseEntry.request(request));
                 requestsInBase = true;
@@ -1305,8 +1355,11 @@ public class RXDashboardPane extends Region {
         }
     }
 
-    // Called by a card when its ID, span limits or lock change.
-    void cardChanged() {
+    // Called by a card when its ID, span limits or lock change. A lock changes what the preview of a gesture may push.
+    void cardChanged(boolean lockChanged) {
+        if (lockChanged) {
+            gesture.cancel();
+        }
         reconcile();
     }
 

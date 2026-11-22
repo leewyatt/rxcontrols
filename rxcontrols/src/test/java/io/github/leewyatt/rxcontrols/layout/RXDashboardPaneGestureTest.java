@@ -4,6 +4,8 @@ import io.github.leewyatt.rxcontrols.event.RXDashboardEvent;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardLayout.Placement;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardPane.CollisionPolicy;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.css.PseudoClass;
 import javafx.event.EventType;
 import javafx.geometry.Point2D;
@@ -544,6 +546,29 @@ public class RXDashboardPaneGestureTest {
     }
 
     @Test
+    public void bindingsThatRecomputeTheSameValueDoNotCancel() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            board.pane.columnCountProperty().bind(Bindings.createIntegerBinding(
+                    () -> board.pane.getWidth() < 200 ? 2 : 4, board.pane.widthProperty()));
+            SimpleBooleanProperty source = new SimpleBooleanProperty(false);
+            board.c.lockedProperty().bind(Bindings.createBooleanBinding(() -> false, source));
+            board.c.minColumnSpanProperty().bind(Bindings.createIntegerBinding(() -> 1, source));
+            board.b.cardIdProperty().bind(Bindings.createStringBinding(() -> "B", source));
+            board.pane.collisionPolicyProperty().bind(Bindings.createObjectBinding(() -> CollisionPolicy.PUSH, source));
+            Point2D start = board.press(board.a, 5, 5);
+            board.drag(board.a, start.getX() + 100, start.getY());
+            board.pane.resize(396, board.pane.getHeight());
+            board.pane.layout();
+            source.set(true);
+            source.set(false);
+            assertTrue(board.a.getPseudoClassStates().contains(DRAGGING));
+            board.release(board.a, start.getX() + 100, start.getY());
+            assertPlacement(board.a, 1, 0, 2, 1);
+        });
+    }
+
+    @Test
     public void removingTheDraggedCardCancelsAndGivesItsStateBack() throws Exception {
         fx(() -> {
             Board board = new Board();
@@ -600,7 +625,7 @@ public class RXDashboardPaneGestureTest {
                 card.getCardId());
     }
 
-    // Case 1 of the design research on a 4-column pane with 100 px cells and no gaps, in an unshown stage.
+    // A(0,0,2,1), B(2,0,1,1), C(2,1,1,1) on a 4-column pane with 100 px cells and no gaps, in an unshown stage.
     private static final class Board {
         final RXDashboardPane pane = new RXDashboardPane();
         final RXDashboardCard a = new RXDashboardCard("A", null, 0, 0, 2, 1);

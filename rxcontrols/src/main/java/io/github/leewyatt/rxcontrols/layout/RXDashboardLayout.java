@@ -290,7 +290,8 @@ public final class RXDashboardLayout {
          * @param rowSpan    the number of rows the card spans
          * @return this builder
          * @throws NullPointerException     if {@code cardId} is {@code null}
-         * @throws IllegalArgumentException if {@code cardId} is empty or was already added
+         * @throws IllegalArgumentException if {@code cardId} is empty, contains an unpaired surrogate character, or
+         *                                  was already added
          */
         public Builder card(String cardId, int column, int row, int columnSpan, int rowSpan) {
             return card(cardId, new Placement(column, row, columnSpan, rowSpan));
@@ -303,13 +304,14 @@ public final class RXDashboardLayout {
          * @param placement the placement
          * @return this builder
          * @throws NullPointerException     if {@code cardId} or {@code placement} is {@code null}
-         * @throws IllegalArgumentException if {@code cardId} is empty or was already added
+         * @throws IllegalArgumentException if {@code cardId} is empty, contains an unpaired surrogate character, or
+         *                                  was already added
          */
         public Builder card(String cardId, Placement placement) {
             Objects.requireNonNull(cardId, "cardId cannot be null");
             Objects.requireNonNull(placement, "placement cannot be null");
-            if (cardId.isEmpty()) {
-                throw new IllegalArgumentException("cardId cannot be empty");
+            if (!isUsableId(cardId)) {
+                throw new IllegalArgumentException("cardId must be non-empty, well-formed text: " + cardId);
             }
             if (placements.putIfAbsent(cardId, placement) != null) {
                 throw new IllegalArgumentException("Duplicate cardId: " + cardId);
@@ -329,6 +331,25 @@ public final class RXDashboardLayout {
     }
 
     // ==================== Helpers ====================
+
+    // An ID the text encoding carries unchanged: not empty, and no unpaired surrogate, which UTF-8 cannot represent.
+    static boolean isUsableId(String id) {
+        if (id == null || id.isEmpty()) {
+            return false;
+        }
+        for (int i = 0; i < id.length(); i++) {
+            char c = id.charAt(i);
+            if (Character.isHighSurrogate(c)) {
+                if (i + 1 >= id.length() || !Character.isLowSurrogate(id.charAt(i + 1))) {
+                    return false;
+                }
+                i++;
+            } else if (Character.isLowSurrogate(c)) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     private static void encodeId(String id, StringBuilder text) {
         for (int i = 0; i < id.length(); i++) {
@@ -359,8 +380,8 @@ public final class RXDashboardLayout {
                 if (i + 2 >= encoded.length()) {
                     throw new IllegalArgumentException("Incomplete escape in card ID: " + abbreviate(encoded));
                 }
-                int high = Character.digit(encoded.charAt(i + 1), 16);
-                int low = Character.digit(encoded.charAt(i + 2), 16);
+                int high = hexDigit(encoded.charAt(i + 1));
+                int low = hexDigit(encoded.charAt(i + 2));
                 if (high < 0 || low < 0) {
                     throw new IllegalArgumentException("Invalid escape in card ID: " + abbreviate(encoded));
                 }
@@ -385,6 +406,20 @@ public final class RXDashboardLayout {
         } catch (CharacterCodingException e) {
             throw new IllegalArgumentException("Card ID is not valid UTF-8: " + abbreviate(encoded), e);
         }
+    }
+
+    // Only ASCII hex digits, as encode() writes them; Character.digit also takes other Unicode digits.
+    private static int hexDigit(char c) {
+        if (c >= '0' && c <= '9') {
+            return c - '0';
+        }
+        if (c >= 'a' && c <= 'f') {
+            return c - 'a' + 10;
+        }
+        if (c >= 'A' && c <= 'F') {
+            return c - 'A' + 10;
+        }
+        return -1;
     }
 
     // Splits on every separator, keeping empty parts, so a stray separator shows up as an empty segment.

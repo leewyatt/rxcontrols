@@ -21,7 +21,7 @@ public class RXDashboardLayoutTest {
     private static final String EXAMPLE = "rxdash/1;columns=4;trend=0,0,3,2;customers=3,0,1,1;kpi=3,1,1,1";
 
     /**
-     * Verifies the encoded text of the research example.
+     * Verifies the encoded text of a three-card layout written in shuffled order.
      */
     @Test
     public void encodesTheExample() {
@@ -131,6 +131,8 @@ public class RXDashboardLayoutTest {
         assertThrows(NullPointerException.class, () -> builder.card(null, 0, 0, 1, 1));
         assertThrows(NullPointerException.class, () -> builder.card("a", null));
         assertThrows(IllegalArgumentException.class, () -> builder.card("", 0, 0, 1, 1));
+        assertThrows(IllegalArgumentException.class, () -> builder.card("lone\uD800", 0, 0, 1, 1));
+        assertThrows(IllegalArgumentException.class, () -> builder.card("\uDC00lone", 0, 0, 1, 1));
         builder.card("a", 0, 0, 1, 1);
         assertThrows(IllegalArgumentException.class, () -> builder.card("a", 1, 0, 1, 1));
         RXDashboardLayout first = builder.build();
@@ -174,6 +176,7 @@ public class RXDashboardLayoutTest {
                 "rxdash/1;columns=4;a%C3=0,0,1,1",
                 "rxdash/1;columns=4;a=b=0,0,1,1",
                 "rxdash/1;columns=4;a=-,0,1,1",
+                "rxdash/1;columns=4;%\uFF14\uFF11=0,0,1,1",
         };
         for (String text : damaged) {
             assertThrows(IllegalArgumentException.class, () -> RXDashboardLayout.decode(text), text);

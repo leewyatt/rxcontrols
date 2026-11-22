@@ -581,6 +581,49 @@ public class RXDashboardPaneTest {
     }
 
     @Test
+    public void cardsAddedAfterTheFirstLayoutRoundTripToo() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = pane(12);
+            pane.getCards().addAll(new RXDashboardCard("A", null, 0, 0, 5, 1),
+                    new RXDashboardCard("B", null, 5, 0, 7, 1));
+            layout(pane, 600.0, 400.0);
+            RXDashboardCard x = new RXDashboardCard("X", null, 5, 1, 1, 1);
+            RXDashboardCard y = card("Y", 1, 1);
+            pane.getCards().addAll(x, y);
+            RXDashboardLayout before = pane.getLayout();
+            pane.setColumnCount(4);
+            pane.setColumnCount(12);
+            assertEquals(before, pane.getLayout());
+            pane.setColumnCount(6);
+            pane.setColumnCount(12);
+            assertEquals(before, pane.getLayout());
+        });
+    }
+
+    @Test
+    public void applyLayoutBeforeTheFirstLayoutKeepsTheRequestsOfOtherCards() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = pane(12);
+            RXDashboardCard fresh = new RXDashboardCard("N", null, 20, 0, 4, 1);
+            pane.getCards().addAll(card("S", 1, 1), fresh);
+            pane.applyLayout(layout(24, "S", 0, 0, 4, 1));
+            pane.setColumnCount(24);
+            assertPlacement(fresh, 20, 0, 4, 1);
+            assertPlacement(find(pane, "S"), 0, 0, 4, 1);
+        });
+    }
+
+    @Test
+    public void idsTheEncodingCannotCarryCountAsNone() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = caseOne();
+            find(pane, "B").setCardId("broken\uD800");
+            assertEquals(layout(4, "A", 0, 0, 2, 1, "C", 2, 1, 1, 1), pane.getLayout());
+            assertEquals(pane.getLayout(), RXDashboardLayout.decode(pane.getLayout().encode()));
+        });
+    }
+
+    @Test
     public void columnCountsAboveTheCapCountAsTheCap() throws Exception {
         fx(() -> {
             RXDashboardPane pane = pane(5000);
@@ -897,9 +940,25 @@ public class RXDashboardPaneTest {
         });
     }
 
+    @Test
+    public void fxmlHonoursTheCollisionPolicySetAfterTheCards() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = load("""
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <?import io.github.leewyatt.rxcontrols.layout.RXDashboardPane?>
+                    <?import io.github.leewyatt.rxcontrols.layout.RXDashboardCard?>
+                    <RXDashboardPane xmlns="http://javafx.com/javafx/17" columnCount="4" collisionPolicy="BLOCK">
+                        <RXDashboardCard cardId="a" column="0" row="0" columnSpan="2"/>
+                        <RXDashboardCard cardId="b" column="1" row="0" columnSpan="2"/>
+                    </RXDashboardPane>
+                    """);
+            assertEquals(layout(4, "a", 0, 0, 2, 1, "b", 2, 0, 2, 1), pane.getLayout());
+        });
+    }
+
     // ==================== Helpers ====================
 
-    // Case 1 of the design research: 4 columns, A(0,0,2,1), B(2,0,1,1), C(2,1,1,1).
+    // 4 columns: A(0,0,2,1), B(2,0,1,1), C(2,1,1,1).
     private static RXDashboardPane caseOne() {
         RXDashboardPane pane = pane(4);
         pane.getCards().addAll(new RXDashboardCard("A", null, 0, 0, 2, 1),

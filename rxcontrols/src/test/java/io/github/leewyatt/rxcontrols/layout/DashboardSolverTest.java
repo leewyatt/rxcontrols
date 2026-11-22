@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link DashboardSolver}: the push and block rules on the three cases of the design research (collision
+ * Tests for {@link DashboardSolver}: the push and block rules on three small cases (collision
  * and making room, locking and cancelling, column conversion and restoring), compacting, the corrections applied
  * to a restored snapshot, adding with and without a requested position, and a randomized run that no sequence of
  * operations ever leaves two cards overlapping.
@@ -27,7 +27,7 @@ public class DashboardSolverTest {
     private static final int FOUR = 4;
     private static final int TWELVE = 12;
 
-    // ==================== Case 1: collision and making room ====================
+    // ==================== Collision and making room ====================
 
     /**
      * Verifies that dragging A one cell right pushes B and C down, and is rejected when blocking.
@@ -118,7 +118,7 @@ public class DashboardSolverTest {
                 "A", p(0, 1, 2, 1), "B", p(2, 0, 1, 1), "C", p(2, 1, 1, 1));
     }
 
-    // ==================== Case 2: locking ====================
+    // ==================== Locking ====================
 
     /**
      * Verifies that a candidate on a locked card is rejected for dragging and for widening alike.
@@ -188,7 +188,7 @@ public class DashboardSolverTest {
                 "L", p(0, 2, 2, 1), "A", p(0, 3, 1, 1), "B", p(2, 0, 1, 2), "C", p(3, 0, 1, 1));
     }
 
-    // ==================== Case 3: columns and restoring ====================
+    // ==================== Columns and restoring ====================
 
     /**
      * Verifies the 12 to 4 conversion and back, edits made at 4 columns, and a layout that does not divide.

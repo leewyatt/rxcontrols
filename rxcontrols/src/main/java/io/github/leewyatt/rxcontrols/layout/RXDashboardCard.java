@@ -18,6 +18,8 @@ import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.layout.Region;
 
+import java.util.Objects;
+
 /**
  * A card on an {@link RXDashboardPane}: a container for one content node that the pane places on its grid and the
  * user can drag and resize.
@@ -139,11 +141,19 @@ public class RXDashboardCard extends Region {
 
     // ==================== Card ID ====================
 
+    // The listeners below act only on a real change: a bound property is invalidated on every change of its source,
+    // even when the value it recomputes is the same, and each change reaches the pane.
     private final StringProperty cardId = new SimpleStringProperty(this, "cardId") {
+        private String last;
+
         @Override
         protected void invalidated() {
+            if (Objects.equals(last, get())) {
+                return;
+            }
+            last = get();
             if (owner != null) {
-                owner.cardChanged();
+                owner.cardChanged(false);
             }
         }
     };
@@ -153,7 +163,8 @@ public class RXDashboardCard extends Region {
      * restored onto new card instances in a later run. It is separate from {@link Node#idProperty() id}. A
      * {@code null} or empty ID means the card has none: it is left out of snapshots, and restoring a snapshot keeps
      * it where it is when that place is free. When several cards of a pane share an ID, the first of them in
-     * {@link RXDashboardPane#getCards()} uses it and the others count as having none.
+     * {@link RXDashboardPane#getCards()} uses it and the others count as having none. An ID with an unpaired
+     * surrogate character, which the text encoding cannot carry, also counts as none.
      *
      * @return the card-id property
      */
@@ -317,12 +328,18 @@ public class RXDashboardCard extends Region {
     // ==================== Locked ====================
 
     private final BooleanProperty locked = new SimpleBooleanProperty(this, "locked") {
+        private boolean last;
+
         @Override
         protected void invalidated() {
-            pseudoClassStateChanged(LOCKED_PSEUDO_CLASS, get());
+            if (last == get()) {
+                return;
+            }
+            last = get();
+            pseudoClassStateChanged(LOCKED_PSEUDO_CLASS, last);
             requestLayout();
             if (owner != null) {
-                owner.cardChanged();
+                owner.cardChanged(true);
             }
         }
     };
@@ -359,14 +376,7 @@ public class RXDashboardCard extends Region {
 
     // ==================== Move Enabled ====================
 
-    private final BooleanProperty moveEnabled = new SimpleBooleanProperty(this, "moveEnabled", true) {
-        @Override
-        protected void invalidated() {
-            if (owner != null) {
-                owner.cardGestureFlagsChanged(RXDashboardCard.this);
-            }
-        }
-    };
+    private final BooleanProperty moveEnabled = gestureSwitch("moveEnabled");
 
     /**
      * Whether the user can drag the card. When off, the card still makes room when another card is pushed onto it,
@@ -398,14 +408,7 @@ public class RXDashboardCard extends Region {
 
     // ==================== Resize Enabled ====================
 
-    private final BooleanProperty resizeEnabled = new SimpleBooleanProperty(this, "resizeEnabled", true) {
-        @Override
-        protected void invalidated() {
-            if (owner != null) {
-                owner.cardGestureFlagsChanged(RXDashboardCard.this);
-            }
-        }
-    };
+    private final BooleanProperty resizeEnabled = gestureSwitch("resizeEnabled");
 
     /**
      * Whether the user can resize the card from its right edge, bottom edge or bottom-right corner. When off, the card
@@ -561,12 +564,35 @@ public class RXDashboardCard extends Region {
         maxRowSpan.set(value);
     }
 
-    private IntegerProperty spanLimit(String name, int initial) {
-        return new SimpleIntegerProperty(this, name, initial) {
+    private BooleanProperty gestureSwitch(String name) {
+        return new SimpleBooleanProperty(this, name, true) {
+            private boolean last = true;
+
             @Override
             protected void invalidated() {
+                if (last == get()) {
+                    return;
+                }
+                last = get();
                 if (owner != null) {
-                    owner.cardChanged();
+                    owner.cardGestureFlagsChanged(RXDashboardCard.this);
+                }
+            }
+        };
+    }
+
+    private IntegerProperty spanLimit(String name, int initial) {
+        return new SimpleIntegerProperty(this, name, initial) {
+            private int last = initial;
+
+            @Override
+            protected void invalidated() {
+                if (last == get()) {
+                    return;
+                }
+                last = get();
+                if (owner != null) {
+                    owner.cardChanged(false);
                 }
             }
         };

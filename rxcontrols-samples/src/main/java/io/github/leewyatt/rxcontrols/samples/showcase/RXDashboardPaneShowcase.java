@@ -6,7 +6,10 @@ import io.github.leewyatt.rxcontrols.layout.RXDashboardLayout;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardPane;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardPane.CollisionPolicy;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import javafx.beans.binding.Bindings;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -57,6 +60,7 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
     private RXDashboardPane dashboard;
     private RXDashboardLayout saved;
     private final Map<RXDashboardCard, Node> titles = new LinkedHashMap<>();
+    private final DoubleProperty cardPadding = new SimpleDoubleProperty(8.0);
     private int extraCards;
 
     @Override
@@ -78,7 +82,7 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
                 card("trend", "Sales trend", chart()),
                 card("customers", "Customers", table()),
                 card("kpi", "Closed this month", kpi()),
-                new RXDashboardCard("shape", circle()));
+                bindPadding(new RXDashboardCard("shape", circle())));
         dashboard.applyLayout(DEFAULTS);
         saved = dashboard.getLayout();
         ScrollPane scroller = new ScrollPane(dashboard);
@@ -112,12 +116,8 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
         hgap.valueProperty().addListener((obs, old, value) -> dashboard.setHgap(value.doubleValue()));
         Slider vgap = createSlider(0, 24, dashboard.getVgap());
         vgap.valueProperty().addListener((obs, old, value) -> dashboard.setVgap(value.doubleValue()));
-        Slider padding = createSlider(0, 16, 8);
-        padding.valueProperty().addListener((obs, old, value) -> {
-            for (RXDashboardCard card : dashboard.getCards()) {
-                card.setPadding(new Insets(value.doubleValue()));
-            }
-        });
+        Slider padding = createSlider(0, 16, cardPadding.get());
+        cardPadding.bind(padding.valueProperty());
         Slider minColumn = createSlider(0, 200, dashboard.getMinColumnWidth());
         minColumn.valueProperty().addListener(
                 (obs, old, value) -> dashboard.setMinColumnWidth(value.doubleValue()));
@@ -195,7 +195,7 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
         Button remove = new Button("Remove last");
         remove.setOnAction(e -> {
             if (!dashboard.getCards().isEmpty()) {
-                dashboard.getCards().remove(dashboard.getCards().size() - 1);
+                titles.remove(dashboard.getCards().remove(dashboard.getCards().size() - 1));
             }
         });
         HBox cardButtons = new HBox(8.0, add, remove);
@@ -228,7 +228,13 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
         VBox box = new VBox(6.0, titleLabel, body);
         VBox.setVgrow(body, Priority.ALWAYS);
         RXDashboardCard card = new RXDashboardCard(id, box);
+        bindPadding(card);
         titles.put(card, titleLabel);
+        return card;
+    }
+
+    private RXDashboardCard bindPadding(RXDashboardCard card) {
+        card.paddingProperty().bind(Bindings.createObjectBinding(() -> new Insets(cardPadding.get()), cardPadding));
         return card;
     }
 
