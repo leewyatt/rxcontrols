@@ -528,6 +528,25 @@ public class RXDashboardPaneGestureTest {
     }
 
     @Test
+    public void aCancelledDragDoesNotClickTheContentEither() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            Region content = new Region();
+            int[] clicks = {0};
+            content.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> clicks[0]++);
+            board.a.setContent(content);
+            board.layout();
+            Point2D start = board.press(content, 10, 10);
+            board.drag(content, start.getX() + 20, start.getY());
+            board.pane.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ESCAPE, false, false, false,
+                    false));
+            board.release(content, start.getX() + 20, start.getY());
+            board.fire(content, MouseEvent.MOUSE_CLICKED, start, MouseButton.PRIMARY);
+            assertEquals(0, clicks[0]);
+        });
+    }
+
+    @Test
     public void aPressDuringAGestureCancelsIt() throws Exception {
         fx(() -> {
             Board board = new Board();
@@ -634,6 +653,7 @@ public class RXDashboardPaneGestureTest {
             assertCancelledBy(board -> board.pane.setCollisionPolicy(CollisionPolicy.BLOCK));
             assertCancelledBy(board -> board.a.setLocked(true));
             assertCancelledBy(board -> board.a.setMoveEnabled(false));
+            assertCancelledBy(board -> board.b.setCardId("B2"));
             assertCancelledBy(board -> ((StackPane) board.pane.getScene().getRoot()).getChildren().clear());
         });
     }

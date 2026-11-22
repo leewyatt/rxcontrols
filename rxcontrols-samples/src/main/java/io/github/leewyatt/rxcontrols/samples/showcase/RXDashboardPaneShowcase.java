@@ -7,8 +7,10 @@ import io.github.leewyatt.rxcontrols.layout.RXDashboardPane;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardPane.CollisionPolicy;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -34,9 +36,7 @@ import javafx.scene.shape.Circle;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -59,8 +59,8 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
 
     private RXDashboardPane dashboard;
     private RXDashboardLayout saved;
-    private final Map<RXDashboardCard, Node> titles = new LinkedHashMap<>();
     private final DoubleProperty cardPadding = new SimpleDoubleProperty(8.0);
+    private final BooleanProperty dragByTitle = new SimpleBooleanProperty();
     private int extraCards;
 
     @Override
@@ -149,8 +149,7 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
         CheckBox locked = new CheckBox("Lock the customer table");
         locked.selectedProperty().addListener((obs, old, value) -> withCard("customers", card -> card.setLocked(value)));
         CheckBox handles = new CheckBox("Drag by the title bars only");
-        handles.selectedProperty().addListener(
-                (obs, old, value) -> titles.forEach((card, title) -> card.setDragHandle(value ? title : null)));
+        handles.selectedProperty().bindBidirectional(dragByTitle);
         CheckBox minSpan = new CheckBox("Trend chart at least 2 columns");
         minSpan.selectedProperty().addListener(
                 (obs, old, value) -> withCard("trend", card -> card.setMinColumnSpan(value ? 2 : 1)));
@@ -195,7 +194,7 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
         Button remove = new Button("Remove last");
         remove.setOnAction(e -> {
             if (!dashboard.getCards().isEmpty()) {
-                titles.remove(dashboard.getCards().remove(dashboard.getCards().size() - 1));
+                dashboard.getCards().remove(dashboard.getCards().size() - 1);
             }
         });
         HBox cardButtons = new HBox(8.0, add, remove);
@@ -229,7 +228,7 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
         VBox.setVgrow(body, Priority.ALWAYS);
         RXDashboardCard card = new RXDashboardCard(id, box);
         bindPadding(card);
-        titles.put(card, titleLabel);
+        card.dragHandleProperty().bind(Bindings.when(dragByTitle).then((Node) titleLabel).otherwise((Node) null));
         return card;
     }
 

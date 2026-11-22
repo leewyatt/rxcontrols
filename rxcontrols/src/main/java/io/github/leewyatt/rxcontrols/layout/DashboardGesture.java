@@ -78,8 +78,9 @@ final class DashboardGesture {
     private Scene watchedScene;
     private Window watchedWindow;
     private Timeline autoScroll;
-    // The click JavaFX generates for the release that ends a gesture: the card followed the pointer, so press and
-    // release land on the same node. It is not a click on the content.
+    // The click JavaFX generates for the release of a press that started a gesture, committed or cancelled: the card
+    // followed the pointer, so press and release land on the same node. It is not a click on the content. The next
+    // press clears it.
     private boolean swallowClick;
 
     private final EventHandler<KeyEvent> escapeFilter = event -> {
@@ -315,7 +316,6 @@ final class DashboardGesture {
             lastSceneX = event.getSceneX();
             lastSceneY = event.getSceneY();
             track();
-            swallowClick = true;
             commit();
         } else {
             forgetPress();
@@ -345,6 +345,7 @@ final class DashboardGesture {
             return false;
         }
         started = true;
+        swallowClick = true;
         startLayout = pane.committedPlacements();
         preview = new LinkedHashMap<>(startLayout);
         candidate = card.placement;

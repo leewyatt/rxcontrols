@@ -177,6 +177,8 @@ public class RXDashboardLayoutTest {
                 "rxdash/1;columns=4;a=b=0,0,1,1",
                 "rxdash/1;columns=4;a=-,0,1,1",
                 "rxdash/1;columns=4;%\uFF14\uFF11=0,0,1,1",
+                "rxdash/1;columns=4;a\uD800=0,0,1,1",
+                "rxdash/1;columns=4;\uDC00a=0,0,1,1",
         };
         for (String text : damaged) {
             assertThrows(IllegalArgumentException.class, () -> RXDashboardLayout.decode(text), text);

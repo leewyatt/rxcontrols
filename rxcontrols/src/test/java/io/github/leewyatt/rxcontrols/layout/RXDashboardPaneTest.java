@@ -614,6 +614,31 @@ public class RXDashboardPaneTest {
     }
 
     @Test
+    public void requestsKeptThroughApplyLayoutYieldToTheSnapshot() throws Exception {
+        fx(() -> {
+            RXDashboardLayout saved = layout(24, "S", 0, 0, 4, 1);
+            RXDashboardPane styled = pane(12);
+            styled.setStyle("-rx-column-count: 24;");
+            RXDashboardCard fresh = new RXDashboardCard("N", null, 2, 0, 4, 1);
+            styled.getCards().addAll(card("S", 1, 1), fresh);
+            styled.applyLayout(saved);
+            stageFor(styled);
+            styled.applyCss();
+            layout(styled, 900.0, 400.0);
+            assertEquals(24, styled.getColumnCount());
+            assertPlacement(find(styled, "S"), 0, 0, 4, 1);
+            assertPlacement(fresh, 4, 0, 4, 1);
+
+            RXDashboardPane ordered = pane(24);
+            RXDashboardCard other = new RXDashboardCard("N", null, 2, 0, 4, 1);
+            ordered.getCards().addAll(card("S", 1, 1), other);
+            ordered.applyLayout(saved);
+            assertPlacement(find(ordered, "S"), 0, 0, 4, 1);
+            assertPlacement(other, 4, 0, 4, 1);
+        });
+    }
+
+    @Test
     public void idsTheEncodingCannotCarryCountAsNone() throws Exception {
         fx(() -> {
             RXDashboardPane pane = caseOne();

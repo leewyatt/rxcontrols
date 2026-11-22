@@ -392,6 +392,8 @@ public final class RXDashboardLayout {
                 if (Character.isHighSurrogate(c) && end < encoded.length()
                         && Character.isLowSurrogate(encoded.charAt(end))) {
                     end++;
+                } else if (Character.isSurrogate(c)) {
+                    throw new IllegalArgumentException("Unpaired surrogate in card ID: " + abbreviate(encoded));
                 }
                 bytes.writeBytes(encoded.substring(i, end).getBytes(StandardCharsets.UTF_8));
                 i = end;

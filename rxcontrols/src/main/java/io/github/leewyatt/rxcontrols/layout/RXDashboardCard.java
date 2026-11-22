@@ -153,7 +153,8 @@ public class RXDashboardCard extends Region {
             }
             last = get();
             if (owner != null) {
-                owner.cardChanged(false);
+                // The layout before a gesture names the cards by ID; a gesture going on would report a stale one.
+                owner.cardChanged(true);
             }
         }
     };

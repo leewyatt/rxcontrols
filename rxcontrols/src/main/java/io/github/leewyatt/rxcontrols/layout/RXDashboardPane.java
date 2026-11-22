@@ -1269,7 +1269,8 @@ public class RXDashboardPane extends Region {
 
     // A column-count change applies the base layout again at the new count, as applyLayout would: the cards it holds
     // are converted and corrected first, the others then try their own place, converted, or take the first free area.
-    // Cards still holding their request are placed by it last, in list order, as if added at the new count.
+    // Cards still holding their request are placed by it last, in list order, as if added at the new count; they may
+    // push one another but yield to the cards placed before them, which a snapshot or an edit put where they are.
     private Map<RXDashboardCard, Placement> convert(Map<RXDashboardCard, Placement> work, int oldColumns,
                                                     int columns) {
         Map<RXDashboardCard, Placement> arranged = new LinkedHashMap<>();
@@ -1288,8 +1289,9 @@ public class RXDashboardPane extends Region {
         });
         Map<RXDashboardCard, Placement> result = DashboardSolver.arrange(items(arranged), target, columns,
                 oldColumns, columns);
+        Set<RXDashboardCard> settled = identitySet(new ArrayList<>(arranged.keySet()));
         for (RXDashboardCard card : requested) {
-            result = place(result, card, base.get(card).placement(), columns);
+            result = place(result, card, base.get(card).placement(), columns, settled);
         }
         Map<RXDashboardCard, Placement> ordered = new LinkedHashMap<>();
         for (RXDashboardCard card : work.keySet()) {
@@ -1302,12 +1304,27 @@ public class RXDashboardPane extends Region {
     // rejects it), no position the first free area; the spans come from the request.
     private Map<RXDashboardCard, Placement> place(Map<RXDashboardCard, Placement> work, RXDashboardCard card,
                                                   Placement request, int columns) {
-        Map<RXDashboardCard, Placement> others = new LinkedHashMap<>(work);
-        others.remove(card);
+        return place(work, card, request, columns, Collections.emptySet());
+    }
+
+    // As above, with some cards held where they are as if locked: a request covering one of them goes to the first
+    // free area instead of pushing it.
+    private Map<RXDashboardCard, Placement> place(Map<RXDashboardCard, Placement> work, RXDashboardCard card,
+                                                  Placement request, int columns, Set<RXDashboardCard> held) {
+        List<Item<RXDashboardCard>> others = new ArrayList<>();
+        work.forEach((other, placement) -> {
+            if (other != card) {
+                Item<RXDashboardCard> item = item(other, placement);
+                others.add(held.contains(other)
+                        ? new Item<>(other, placement, true, item.minColumnSpan(), item.maxColumnSpan(),
+                                item.minRowSpan(), item.maxRowSpan())
+                        : item);
+            }
+        });
         Item<RXDashboardCard> added = item(card, request);
         return request.column() >= 0 && request.row() >= 0
-                ? DashboardSolver.add(items(others), added, request, isBlocking(), columns)
-                : DashboardSolver.addAtFirstFit(items(others), added, columns);
+                ? DashboardSolver.add(others, added, request, isBlocking(), columns)
+                : DashboardSolver.addAtFirstFit(others, added, columns);
     }
 
     // An edit by the pane itself (a span limit raised): solved by the policy, or the card to the first free area.
