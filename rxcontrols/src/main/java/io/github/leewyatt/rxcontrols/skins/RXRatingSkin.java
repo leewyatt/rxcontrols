@@ -49,6 +49,10 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
     private static final PseudoClass TARGET = PseudoClass.getPseudoClass("target");
     private static final double WHOLE_STEP = 1.0;
     private static final double HALF_STEP = 0.5;
+    /** The keyboard step for any-fraction input, and the least the pointer picks there. */
+    private static final double TENTH_STEP = 0.1;
+    /** Absorbs the rounding of a value that sits on the step grid. */
+    private static final double GRID_TOLERANCE = 1.0e-9;
     /** How far the clip reaches past the icon on its uncut sides, so no edge pixel is lost. */
     private static final double CLIP_MARGIN = 2.0;
 
@@ -146,7 +150,7 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
             getChildren().remove(removed.node);
         }
         while (items.size() < count) {
-            Item added = new Item();
+            Item added = new Item(items.size() + 1);
             items.add(added);
             getChildren().add(added.node);
         }
@@ -200,8 +204,14 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
         return RXMath.clamp(value, 0.0, items.size());
     }
 
-    private double stepSize() {
-        return getSkinnable().getStep() == RXRating.Step.HALF ? HALF_STEP : WHOLE_STEP;
+    /** Steps per icon the keyboard moves in: its own step if set, else the pointer's. */
+    private int keyDivisions() {
+        RXRating control = getSkinnable();
+        RXRating.Step step = control.getKeyboardStep() != null ? control.getKeyboardStep() : control.getStep();
+        if (step == RXRating.Step.HALF) {
+            return 2;
+        }
+        return step == RXRating.Step.ANY ? 10 : 1;
     }
 
     // ==================== Pointer ====================
@@ -339,13 +349,19 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
                 break;
             }
         }
-        if (stepSize() == WHOLE_STEP) {
+        RXRating.Step step = getSkinnable().getStep();
+        if (step != RXRating.Step.HALF && step != RXRating.Step.ANY) {
             return index + WHOLE_STEP;
         }
         Item item = items.get(index);
         double iconWidth = item.iconWidth();
         double iconLeft = item.node.getLayoutX() + (item.node.getLayoutBounds().getWidth() - iconWidth) / 2.0;
-        return x <= iconLeft + iconWidth * HALF_STEP ? index + HALF_STEP : index + WHOLE_STEP;
+        if (step == RXRating.Step.HALF) {
+            return x <= iconLeft + iconWidth * HALF_STEP ? index + HALF_STEP : index + WHOLE_STEP;
+        }
+        double fraction = iconWidth > 0.0 ? RXMath.clamp0To1((x - iconLeft) / iconWidth) : WHOLE_STEP;
+        // The pointer never picks zero: before the first icon it picks the least value.
+        return Math.max(TENTH_STEP, index + fraction);
     }
 
     // ==================== Keyboard ====================
@@ -371,7 +387,7 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
         } else if (code == KeyCode.LEFT || code == KeyCode.KP_LEFT) {
             keyCommit(mirrored ? this::increase : this::decrease);
         } else if (code == KeyCode.HOME) {
-            keyCommit(() -> commit(stepSize()));
+            keyCommit(() -> commit(WHOLE_STEP / keyDivisions()));
         } else if (code == KeyCode.END) {
             keyCommit(() -> commit((double) items.size()));
         } else if ((code == KeyCode.DELETE || code == KeyCode.BACK_SPACE) && control.isClearable()) {
@@ -394,25 +410,26 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
 
     /** Raises the value to the next step above it; a missing value becomes the smallest step. */
     private void increase() {
-        double step = stepSize();
+        int divisions = keyDivisions();
         double current = shownValue(getSkinnable().getValue());
         if (Double.isNaN(current)) {
-            commit(step);
+            commit(WHOLE_STEP / divisions);
         } else if (current < items.size()) {
-            commit(Math.min(items.size(), (Math.floor(current / step) + 1.0) * step));
+            double next = (Math.floor(current * divisions + GRID_TOLERANCE) + 1.0) / divisions;
+            commit(Math.min(items.size(), next));
         }
     }
 
     /** Lowers the value to the next step below it; below the smallest step it clears, if allowed. */
     private void decrease() {
-        double step = stepSize();
+        int divisions = keyDivisions();
         double current = shownValue(getSkinnable().getValue());
         if (Double.isNaN(current)) {
             return;
         }
-        double target = (Math.ceil(current / step) - 1.0) * step;
-        if (target >= step) {
-            commit(target);
+        double steps = Math.ceil(current * divisions - GRID_TOLERANCE) - 1.0;
+        if (steps >= 1.0) {
+            commit(steps / divisions);
         } else if (getSkinnable().isClearable()) {
             commit(null);
         }
@@ -580,14 +597,14 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
         if (!Double.isFinite(value)) {
             return;
         }
-        double step = stepSize();
-        double target = Math.round(RXMath.clamp(value, 0.0, items.size()) / step) * step;
-        if (target >= step) {
-            commit(target);
+        int divisions = keyDivisions();
+        long steps = Math.round(RXMath.clamp(value, 0.0, items.size()) * divisions);
+        if (steps >= 1) {
+            commit((double) steps / divisions);
         } else if (getSkinnable().isClearable()) {
             commit(null);
         } else {
-            commit(step);
+            commit(WHOLE_STEP / divisions);
         }
     }
 
@@ -601,8 +618,9 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
         private final Rectangle clip = new Rectangle();
         private final StackPane node = new StackPane(empty, filled);
 
-        private Item() {
-            node.getStyleClass().add("item");
+        private Item(int number) {
+            // The numbered class lets a stylesheet give each position its own icon.
+            node.getStyleClass().addAll("item", "item-" + number);
             // The rating itself takes every pointer event, in the gaps as on the icons.
             node.setMouseTransparent(true);
             empty.getStyleClass().add("empty");

@@ -72,10 +72,14 @@ public class RXRatingTest {
             assertNull(rating.getHoverValue());
             assertEquals(5, rating.getMax());
             assertEquals(RXRating.Step.WHOLE, rating.getStep());
+            assertNull(rating.getKeyboardStep());
             assertTrue(rating.isClearable());
             assertFalse(rating.isReadOnly());
             assertEquals(AccessibleRole.SLIDER, rating.getAccessibleRole());
             assertTrue(rating.getStyleClass().contains("rx-rating"));
+            List<Node> items = items(laidOut(rating));
+            assertTrue(items.get(0).getStyleClass().contains("item-1"));
+            assertTrue(items.get(4).getStyleClass().contains("item-5"));
             assertEquals(3.5, new RXRating(3.5).getValue(), EPSILON);
         });
     }
@@ -220,6 +224,70 @@ public class RXRatingTest {
         });
     }
 
+    /** Verifies the any step picks the exact place in an icon, never zero, and whole values in a gap. */
+    @Test
+    public void anyStepPicksTheExactPlace() throws Exception {
+        runOnFx(() -> {
+            RXRating rating = laidOut(new RXRating());
+            rating.setStep(RXRating.Step.ANY);
+            fire(rating, MouseEvent.MOUSE_MOVED, 2 * PITCH + 5.0, MouseButton.NONE, false);
+            assertEquals(2.25, rating.getHoverValue(), EPSILON);
+            fire(rating, MouseEvent.MOUSE_MOVED, 2 * PITCH + 6.0, MouseButton.NONE, false);
+            assertEquals(2.3, rating.getHoverValue(), EPSILON);
+            rating.setClearable(false);
+            assertEquals(0.1, pick(rating, 0.0), EPSILON);
+            assertEquals(3.7, pick(rating, 3 * PITCH + 14.0), EPSILON);
+            assertEquals(2.0, pick(rating, PITCH + ICON + 1.0), EPSILON);
+            assertEquals(2.0, pick(rating, PITCH + ICON + 3.0), EPSILON);
+            assertEquals(5.0, pick(rating, 4 * PITCH + ICON), EPSILON);
+
+            rating.setClearable(true);
+            rating.setValue(null);
+            click(rating, 3 * PITCH + 14.0);
+            click(rating, 3 * PITCH + 14.0);
+            assertNull(rating.getValue());
+        });
+    }
+
+    /** Verifies the keyboard moves in tenths under the any step, and by its own step once set. */
+    @Test
+    public void keyboardStepFollowsTheStepUnlessSet() throws Exception {
+        runOnFx(() -> {
+            RXRating rating = laidOut(new RXRating(0.2));
+            rating.setStep(RXRating.Step.ANY);
+            Event.fireEvent(rating, key(KeyCode.RIGHT));
+            assertEquals(0.3, rating.getValue(), 0.0);
+            rating.setValue(3.46);
+            Event.fireEvent(rating, key(KeyCode.RIGHT));
+            assertEquals(3.5, rating.getValue(), 0.0);
+            rating.setValue(3.46);
+            Event.fireEvent(rating, key(KeyCode.LEFT));
+            assertEquals(3.4, rating.getValue(), 0.0);
+            Event.fireEvent(rating, key(KeyCode.HOME));
+            assertEquals(0.1, rating.getValue(), 0.0);
+            Event.fireEvent(rating, key(KeyCode.LEFT));
+            assertNull(rating.getValue());
+
+            rating.setKeyboardStep(RXRating.Step.HALF);
+            rating.setValue(3.46);
+            Event.fireEvent(rating, key(KeyCode.RIGHT));
+            assertEquals(3.5, rating.getValue(), 0.0);
+            Event.fireEvent(rating, key(KeyCode.RIGHT));
+            assertEquals(4.0, rating.getValue(), 0.0);
+
+            rating.setStep(RXRating.Step.HALF);
+            rating.setKeyboardStep(RXRating.Step.WHOLE);
+            rating.setValue(2.5);
+            Event.fireEvent(rating, key(KeyCode.RIGHT));
+            assertEquals(3.0, rating.getValue(), 0.0);
+            rating.setKeyboardStep(RXRating.Step.ANY);
+            Event.fireEvent(rating, key(KeyCode.RIGHT));
+            assertEquals(3.1, rating.getValue(), 0.0);
+            rating.executeAccessibleAction(AccessibleAction.SET_VALUE, 2.26);
+            assertEquals(2.3, rating.getValue(), 0.0);
+        });
+    }
+
     /** Verifies a point in the gap belongs to the nearest icon, the middle to the earlier one. */
     @Test
     public void gapBelongsToTheNearestIcon() throws Exception {
@@ -299,28 +367,27 @@ public class RXRatingTest {
         });
     }
 
-    /** Verifies the focus ring band outside the layout bounds is picked but previews and commits nothing. */
+    /** Verifies the focus mark changes no size, and a point outside the layout bounds previews and commits nothing. */
     @Test
     public void onlyTheLayoutBoundsTakeInput() throws Exception {
         runOnFx(() -> {
             RXRating rating = laidOut(new RXRating());
-            double above = -4.0;
+            double below = rating.getHeight() + 4.0;
             double x = 3 * PITCH + 10.0;
             assertTrue(rating.contains(x, 1.0));
             assertTrue(rating.contains(ICON + 2.0, 9.0));
-            assertFalse(rating.contains(x, above));
+            assertFalse(rating.contains(x, below));
             assertFalse(rating.contains(-4.0, 9.0));
 
             rating.pseudoClassStateChanged(PseudoClass.getPseudoClass("focus-shown"), true);
             rating.applyCss();
-            assertTrue(rating.contains(x, above));
             assertEquals(5 * ICON + 4 * 4.0, rating.prefWidth(-1), EPSILON);
-            fireAt(rating, MouseEvent.MOUSE_MOVED, x, above, MouseButton.NONE, false);
+            fireAt(rating, MouseEvent.MOUSE_MOVED, x, below, MouseButton.NONE, false);
             assertNull(rating.getHoverValue());
-            fireAt(rating, MouseEvent.MOUSE_PRESSED, x, above, MouseButton.PRIMARY, false);
-            fireAt(rating, MouseEvent.MOUSE_RELEASED, x, above, MouseButton.PRIMARY, false);
+            fireAt(rating, MouseEvent.MOUSE_PRESSED, x, below, MouseButton.PRIMARY, false);
+            fireAt(rating, MouseEvent.MOUSE_RELEASED, x, below, MouseButton.PRIMARY, false);
             fire(rating, MouseEvent.MOUSE_PRESSED, x, MouseButton.PRIMARY, false);
-            fireAt(rating, MouseEvent.MOUSE_RELEASED, x, above, MouseButton.PRIMARY, false);
+            fireAt(rating, MouseEvent.MOUSE_RELEASED, x, below, MouseButton.PRIMARY, false);
             assertNull(rating.getValue());
         });
     }

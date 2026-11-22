@@ -3091,15 +3091,10 @@
     -fx-scale-y: 1.15;
 }
 
-/* The ring exists only while shown: a border outside the bounds also picks there,
-   over the neighbours. Its negative insets keep it out of the layout. :focus-shown
-   is set by the skin: focus, unless it came from a pointer press and no key has been
-   pressed since. */
-.rx-rating:focus-shown {
-    -fx-border-color: -rx-focus;
-    -fx-border-width: 2px;
-    -fx-border-insets: -5px;
-    -fx-border-radius: 6px;
+/* The focus mark is a small glow around each icon. :focus-shown is set by the skin:
+   focus, unless it came from a pointer press and no key has been pressed since. */
+.rx-rating:focus-shown > .item {
+    -fx-effect: dropshadow(three-pass-box, -rx-focus, 4, 0.3, 0, 0);
 }
 
 .rx-rating:disabled {

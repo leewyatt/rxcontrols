@@ -215,7 +215,7 @@ Sampler 适合比较职责相近的组件、交互式验证属性、切换主题
 | `RXSlider` | 带刻度、halo 和可配置数值气泡的 Material 单值 Slider。 |
 | `RXRangeSlider` | 带整段拖动和最小间距的 low/high 双 thumb 范围编辑器。 |
 | `RXSeekBar` | 带主进度、secondary/buffer 进度和 seeking 状态的归一化媒体进度条。 |
-| `RXRating` | 星级评分：任意小数精确绘制，输入支持整星或半星，悬停只预览不提交。 |
+| `RXRating` | 星级评分：任意小数精确绘制，输入支持整星、半星或任意小数，悬停只预览不提交。 |
 | `RXSelectionBox<T>` | 支持搜索和 section 的应用值选择框。 |
 | `RXDigit` | 纯展示的单个七段数码字形。 |
 

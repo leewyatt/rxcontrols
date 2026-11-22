@@ -42,7 +42,9 @@ import java.util.List;
  * rated.</p>
  *
  * <p><b>Input.</b> The step limits what the user can pick, never what is shown: whole
- * icons, or halves. Hovering previews the value a click would commit in
+ * icons, halves, or with {@link Step#ANY} the exact place under the pointer. That value
+ * is not rounded, so it depends on the icon size, and clicking the very same value
+ * again to clear it is unlikely; round it for display as needed. Hovering previews the value a click would commit in
  * {@link #hoverValueProperty() hoverValue} and never touches {@code value}; leaving the
  * rating ends the preview. A click commits the previewed value. With
  * {@link #clearableProperty() clearable}, committing the current value again clears
@@ -53,8 +55,9 @@ import java.util.List;
  * from code does not fire it, so it is the place to save a rating.</p>
  *
  * <p><b>Keyboard</b> (while focused): Right / Up raise and Left / Down lower the value
- * by one step, Left and Right mirrored under right-to-left orientation; a value off the
- * step grid moves to the neighboring grid value. Home picks the smallest value, End the
+ * by one {@link #keyboardStepProperty() keyboard step} (the step, unless set apart; a
+ * tenth for {@link Step#ANY}), Left and Right mirrored under right-to-left orientation;
+ * a value off that grid moves to the neighboring grid value. Home picks the smallest value, End the
  * largest. Lowering the smallest value, and Delete / Backspace, clear a clearable
  * rating.</p>
  *
@@ -65,6 +68,8 @@ import java.util.List;
  * <p>CSS: style class {@code rx-rating}; pseudo-classes {@code :read-only} and
  * {@code :previewing}. Each icon is an {@code .item} holding an {@code .empty} and a
  * {@code .filled} shape region; the item a click would land on has {@code :target}.
+ * Each item also carries its position, counted from one like the values, as
+ * {@code .item-1}, {@code .item-2} and so on, so every position can have its own icon.
  * {@code -rx-rating-color} and {@code -rx-rating-empty-color} set the colors,
  * {@code -fx-shape} and {@code -fx-pref-width} / {@code -fx-pref-height} on the two
  * regions set the icon and its size, and {@code -rx-gap} the space between icons. The
@@ -79,7 +84,12 @@ public class RXRating extends Control {
         /** Whole icons: 1, 2, 3 … */
         WHOLE,
         /** Half icons: 0.5, 1, 1.5 … */
-        HALF
+        HALF,
+        /**
+         * Any fraction: the pointer picks the exact place inside an icon, and the
+         * keyboard moves in tenths.
+         */
+        ANY
     }
 
     // ==================== Constants ====================
@@ -233,8 +243,8 @@ public class RXRating extends Control {
     private final ObjectProperty<Step> step = new SimpleObjectProperty<>(this, "step", DEFAULT_STEP);
 
     /**
-     * What the user can pick: whole icons or halves. It does not change how the value
-     * is drawn. {@code null} is treated as {@link #DEFAULT_STEP}.
+     * What the user can pick: whole icons, halves or any fraction. It does not change
+     * how the value is drawn. {@code null} is treated as {@link #DEFAULT_STEP}.
      *
      * @return the step property
      */
@@ -258,6 +268,39 @@ public class RXRating extends Control {
      */
     public final void setStep(Step value) {
         step.set(value);
+    }
+
+    // ==================== Keyboard Step ====================
+
+    private final ObjectProperty<Step> keyboardStep = new SimpleObjectProperty<>(this, "keyboardStep");
+
+    /**
+     * How far one key press moves the value: a whole icon, a half, or a tenth for
+     * {@link Step#ANY}. {@code null}, the initial value, follows the
+     * {@link #stepProperty() step}. Assistive technologies move by the same amount.
+     *
+     * @return the keyboard step property
+     */
+    public final ObjectProperty<Step> keyboardStepProperty() {
+        return keyboardStep;
+    }
+
+    /**
+     * Returns the keyboard step.
+     *
+     * @return the keyboard step, {@code null} when it follows the step
+     */
+    public final Step getKeyboardStep() {
+        return keyboardStep.get();
+    }
+
+    /**
+     * Sets the keyboard step.
+     *
+     * @param value the keyboard step, {@code null} to follow the step
+     */
+    public final void setKeyboardStep(Step value) {
+        keyboardStep.set(value);
     }
 
     // ==================== Hover Value ====================

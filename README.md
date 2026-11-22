@@ -215,7 +215,7 @@ The following sections list the directly usable public UI components. Companion 
 | `RXSlider` | Material single-value Slider with ticks, halo, and configurable value indicator. |
 | `RXRangeSlider` | Two-thumb low/high range editor with range dragging and minimum gap support. |
 | `RXSeekBar` | Normalized media seek bar with primary progress, secondary/buffer progress, and seeking state. |
-| `RXRating` | Star rating that draws any fraction exactly, takes whole or half steps, and previews on hover without committing. |
+| `RXRating` | Star rating that draws any fraction exactly, takes whole, half or free-fraction steps, and previews on hover without committing. |
 | `RXSelectionBox<T>` | Searchable, section-capable selection field for application values. |
 | `RXDigit` | Decorative single seven-segment numeric glyph. |
 
