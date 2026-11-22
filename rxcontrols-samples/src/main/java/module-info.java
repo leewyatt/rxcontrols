@@ -8,6 +8,7 @@ open module rxcontrols.samples {
     requires javafx.swing;
     requires java.desktop;
     requires java.logging;
+    requires java.prefs;
     requires atlantafx.base;
 
     exports io.github.leewyatt.rxcontrols.samples.demo.carousel;

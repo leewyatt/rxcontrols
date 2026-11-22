@@ -2,17 +2,23 @@ package io.github.leewyatt.rxcontrols.layout;
 
 import io.github.leewyatt.rxcontrols.layout.RXDashboardCard.Edge;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardLayout.Placement;
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.beans.InvalidationListener;
 import javafx.event.EventHandler;
 import javafx.event.EventTarget;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Window;
+import javafx.util.Duration;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -29,6 +35,9 @@ import java.util.Map;
  * other cards out by, and the placeholder marks it. Releasing commits the preview; Esc, the window losing focus, the
  * pane leaving its scene and any change to the pane's cards or layout cancel it, and every card glides back from
  * where it shows.</p>
+ *
+ * <p>While the pointer is near the top or bottom of the viewport of a {@link ScrollPane} the pane sits in, that scroll
+ * pane scrolls, faster the closer the pointer gets, and keeps scrolling while the pointer rests there.</p>
  */
 final class DashboardGesture {
 
@@ -36,6 +45,12 @@ final class DashboardGesture {
      * Pointer travel, in pixels, before a press becomes a drag.
      */
     static final double DRAG_THRESHOLD = 6.0;
+
+    // How close to the viewport's top or bottom the pointer starts scrolling, and the most one tick scrolls, in
+    // pixels; the same as dragging on a kanban board.
+    private static final double AUTO_SCROLL_EDGE = 28.0;
+    private static final double AUTO_SCROLL_MAX_STEP = 22.0;
+    private static final Duration AUTO_SCROLL_TICK = Duration.millis(16.0);
 
     private final RXDashboardPane pane;
 
@@ -61,6 +76,7 @@ final class DashboardGesture {
 
     private Scene watchedScene;
     private Window watchedWindow;
+    private Timeline autoScroll;
 
     private final EventHandler<KeyEvent> escapeFilter = event -> {
         if (event.getCode() == KeyCode.ESCAPE && started) {
@@ -172,6 +188,8 @@ final class DashboardGesture {
         if (started) {
             end();
             pane.requestLayout();
+        } else {
+            forgetPress();
         }
     }
 
@@ -229,6 +247,7 @@ final class DashboardGesture {
             }
             if (!start()) {
                 armed = false;
+                forgetPress();
                 return;
             }
         }
@@ -244,7 +263,15 @@ final class DashboardGesture {
         if (started) {
             commit();
             event.consume();
+        } else {
+            forgetPress();
         }
+    }
+
+    // A press that never became a gesture holds on to no card.
+    private void forgetPress() {
+        card = null;
+        edge = null;
     }
 
     // ==================== Lifecycle ====================
@@ -276,8 +303,13 @@ final class DashboardGesture {
         return true;
     }
 
-    // Follows the pointer and re-solves when it reaches another cell.
+    // Follows the pointer, re-solves when it reaches another cell, and scrolls when it nears a viewport edge.
     private void update() {
+        updateAutoScroll();
+        track();
+    }
+
+    private void track() {
         if (edge == null) {
             follow();
         } else if (pane.isLiveResize()) {
@@ -374,6 +406,7 @@ final class DashboardGesture {
         RXDashboardCard ended = card;
         started = false;
         armed = false;
+        stopAutoScroll();
         unwatch();
         if (ended.getParent() == pane) {
             pane.glideFrom(ended, ended.getLayoutX() + ended.getTranslateX(),
@@ -418,6 +451,84 @@ final class DashboardGesture {
             watchedWindow.focusedProperty().removeListener(focusListener);
             watchedWindow = null;
         }
+    }
+
+    // ==================== Auto-scroll ====================
+
+    private void updateAutoScroll() {
+        if (scrollStep() != 0.0) {
+            if (autoScroll == null) {
+                autoScroll = new Timeline(new KeyFrame(AUTO_SCROLL_TICK, event -> autoScrollTick()));
+                autoScroll.setCycleCount(Animation.INDEFINITE);
+            }
+            if (autoScroll.getStatus() != Animation.Status.RUNNING) {
+                autoScroll.play();
+            }
+        } else {
+            stopAutoScroll();
+        }
+    }
+
+    private void stopAutoScroll() {
+        if (autoScroll != null) {
+            autoScroll.stop();
+        }
+    }
+
+    private void autoScrollTick() {
+        ScrollPane scroller = enclosingScrollPane();
+        double step = scrollStep();
+        if (!started || scroller == null || step == 0.0) {
+            stopAutoScroll();
+            return;
+        }
+        Node content = scroller.getContent();
+        double scrollable = content == null ? 0.0
+                : content.getLayoutBounds().getHeight() - scroller.getViewportBounds().getHeight();
+        double range = scroller.getVmax() - scroller.getVmin();
+        if (!(scrollable > 0.0) || !(range > 0.0)) {
+            stopAutoScroll();
+            return;
+        }
+        double value = scroller.getVvalue() + step * range / scrollable;
+        double clamped = Math.max(scroller.getVmin(), Math.min(scroller.getVmax(), value));
+        if (clamped == scroller.getVvalue()) {
+            return;
+        }
+        if (!scroller.vvalueProperty().isBound()) {
+            scroller.setVvalue(clamped);
+        }
+        // The pane moved under a pointer that did not: follow it again.
+        track();
+    }
+
+    // Pixels to scroll this tick: negative toward the top, positive toward the bottom, 0 outside the edge bands.
+    private double scrollStep() {
+        ScrollPane scroller = enclosingScrollPane();
+        if (!started || scroller == null) {
+            return 0.0;
+        }
+        Point2D origin = scroller.localToScene(scroller.snappedLeftInset(), scroller.snappedTopInset());
+        double top = origin.getY();
+        double bottom = top + scroller.getViewportBounds().getHeight();
+        if (lastSceneY < top + AUTO_SCROLL_EDGE) {
+            double depth = Math.min(1.0, (top + AUTO_SCROLL_EDGE - lastSceneY) / AUTO_SCROLL_EDGE);
+            return -Math.max(1.0, depth * AUTO_SCROLL_MAX_STEP);
+        }
+        if (lastSceneY > bottom - AUTO_SCROLL_EDGE) {
+            double depth = Math.min(1.0, (lastSceneY - (bottom - AUTO_SCROLL_EDGE)) / AUTO_SCROLL_EDGE);
+            return Math.max(1.0, depth * AUTO_SCROLL_MAX_STEP);
+        }
+        return 0.0;
+    }
+
+    private ScrollPane enclosingScrollPane() {
+        for (Parent parent = pane.getParent(); parent != null; parent = parent.getParent()) {
+            if (parent instanceof ScrollPane scroller) {
+                return scroller;
+            }
+        }
+        return null;
     }
 
     // ==================== Hit testing ====================

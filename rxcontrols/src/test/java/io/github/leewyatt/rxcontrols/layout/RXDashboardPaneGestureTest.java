@@ -9,6 +9,7 @@ import javafx.event.EventType;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -431,6 +432,52 @@ public class RXDashboardPaneGestureTest {
             assertPlacement(board.b, 2, 0, 1, 1);
             assertTrue(events.isEmpty());
         });
+    }
+
+    // ==================== Auto-scroll ====================
+
+    @Test
+    public void restingNearTheViewportEdgeScrollsUntilRelease() throws Exception {
+        RXDashboardPane pane = new RXDashboardPane();
+        RXDashboardCard top = new RXDashboardCard("top", null, 0, 0, 1, 1);
+        ScrollPane scroller = new ScrollPane(pane);
+        AtomicReference<Board> helperRef = new AtomicReference<>();
+        AtomicReference<Point2D> pressed = new AtomicReference<>();
+        fx(() -> {
+            Board helper = new Board();
+            helperRef.set(helper);
+            pane.setColumnCount(4);
+            pane.setRowHeight(100);
+            pane.setHgap(0);
+            pane.setVgap(0);
+            pane.getCards().add(top);
+            for (int row = 1; row < 8; row++) {
+                pane.getCards().add(new RXDashboardCard("r" + row, null, 0, row, 1, 1));
+            }
+            scroller.setFitToWidth(true);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(scroller, 400, 300));
+            scroller.applyCss();
+            scroller.layout();
+            scroller.layout();
+            Point2D start = helper.press(top, 50, 50);
+            pressed.set(start);
+            double bottom = scroller.localToScene(0, scroller.snappedTopInset()).getY()
+                    + scroller.getViewportBounds().getHeight();
+            helper.drag(top, start.getX() + 100, bottom - 4);
+            assertEquals(0.0, scroller.getVvalue(), EPSILON, "scrolls on the next tick");
+        });
+        Thread.sleep(300);
+        AtomicReference<Double> value = new AtomicReference<>();
+        fx(() -> {
+            assertTrue(scroller.getVvalue() > 0.0, "scrolled while the pointer rested");
+            assertTrue(top.getPseudoClassStates().contains(DRAGGING));
+            Point2D start = pressed.get();
+            helperRef.get().release(top, start.getX() + 100, start.getY());
+            value.set(scroller.getVvalue());
+        });
+        Thread.sleep(150);
+        fx(() -> assertEquals(value.get(), scroller.getVvalue(), EPSILON, "stops with the gesture"));
     }
 
     // ==================== Event handlers ====================

@@ -160,6 +160,8 @@ Sampler 适合比较职责相近的组件、交互式验证属性、切换主题
 | `RXFlowPane` | 可换行流式布局，分别控制整体、run 和 item 的对齐。 |
 | `RXTilePane` | 面向现有节点的非虚拟化响应式瓦片网格，支持分布与重排动画。 |
 | `RXMasonryPane` | 面向现有节点的非虚拟化瀑布流，支持跨列和响应式列数。 |
+| `RXDashboardPane` | 可编辑仪表盘：固定列数、固定行高的网格，最终用户拖动、拉伸卡片，布局可保存为快照并恢复。 |
+| `RXDashboardCard` | 与 `RXDashboardPane` 配套的卡片容器：内容、稳定 ID、锁定、跨度上下限和可选的拖动把手。 |
 | `RXRow` | 根据断点解析列规格的响应式栅格行。 |
 | `RXCol` | 与 `RXRow` 配套使用的栅格列和内容宿主。 |
 
@@ -372,6 +374,9 @@ View 可以直接嵌入页面；对应 Picker 会增加文本字段、解析、�
 - `RXFlowPane`
 - `RXTilePane`
 - `RXMasonryPane`
+- `RXDashboardPane`
+- `RXDashboardCard`
+- `RXDashboardLayout`
 - `RXRow`
 - `RXCol`
 
@@ -448,6 +453,7 @@ View 可以直接嵌入页面；对应 Picker 会增加文本字段、解析、�
 - `RXCardMovedEvent`
 - `RXChipEvent`
 - `RXColumnMovedEvent`
+- `RXDashboardEvent`
 - `RXDialogEvent`
 - `RXDrawerEvent`
 - `RXListViewActionEvent`

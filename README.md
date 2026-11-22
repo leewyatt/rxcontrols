@@ -160,6 +160,8 @@ The following sections list the directly usable public UI components. Companion 
 | `RXFlowPane` | Wrapping flow layout with separate block, run, and item alignment controls. |
 | `RXTilePane` | Non-virtualized responsive tile grid for existing nodes, with distribution and reorder animation. |
 | `RXMasonryPane` | Non-virtualized masonry layout for existing nodes, including spans and breakpoint-aware columns. |
+| `RXDashboardPane` | Editable dashboard: cards on a grid of fixed columns and row height that users drag and resize, with layout snapshots to save and restore. |
+| `RXDashboardCard` | Card container used with `RXDashboardPane`: content, stable ID, lock, span limits and an optional drag handle. |
 | `RXRow` | Responsive grid row that resolves breakpoint-specific column specifications. |
 | `RXCol` | Grid column/content host used with `RXRow`. |
 
@@ -372,6 +374,9 @@ Package `io.github.leewyatt.rxcontrols.layout`:
 - `RXFlowPane`
 - `RXTilePane`
 - `RXMasonryPane`
+- `RXDashboardPane`
+- `RXDashboardCard`
+- `RXDashboardLayout`
 - `RXRow`
 - `RXCol`
 
@@ -448,6 +453,7 @@ Package `io.github.leewyatt.rxcontrols.event`:
 - `RXCardMovedEvent`
 - `RXChipEvent`
 - `RXColumnMovedEvent`
+- `RXDashboardEvent`
 - `RXDialogEvent`
 - `RXDrawerEvent`
 - `RXListViewActionEvent`

@@ -154,6 +154,7 @@ import io.github.leewyatt.rxcontrols.samples.demo.RXHoldButtonDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXImagePaneDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXImageViewDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXIntegerFieldDemo;
+import io.github.leewyatt.rxcontrols.samples.demo.RXDashboardPaneDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXKanbanViewDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXLineButtonDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXListViewDemo;
@@ -715,7 +716,7 @@ final class SamplerCatalog {
                 .withSamples(RXTilePaneSamples::create));
         list.add(single(c, RXMasonryPane.class, RXMasonryPaneShowcase::new, RXMasonryPaneDemo.class)
                 .withSamples(RXMasonryPaneSamples::create));
-        list.add(single(c, RXDashboardPane.class, RXDashboardPaneShowcase::new, null));
+        list.add(single(c, RXDashboardPane.class, RXDashboardPaneShowcase::new, RXDashboardPaneDemo.class));
 
         c = SamplerCategory.MOTION;
         list.add(single(c, RXBursts.class, RXBurstsShowcase::new, RXBurstsDemo.class)
