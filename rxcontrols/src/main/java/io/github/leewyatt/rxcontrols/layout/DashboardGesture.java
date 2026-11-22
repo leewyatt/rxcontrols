@@ -169,6 +169,7 @@ final class DashboardGesture {
             return;
         }
         RXDashboardCard card = this.card;
+        Edge edge = this.edge;
         Placement start = startLayout.get(card);
         double x = grid.columnX(start.column());
         double y = grid.rowY(start.row());
@@ -190,13 +191,13 @@ final class DashboardGesture {
             width = card.snapSizeX(width);
             height = card.snapSizeY(height);
         }
+        // A listener reached from each write may have ended the gesture.
         card.resize(width, height);
-        // A listener reached from the resize may have ended the gesture.
         if (!started) {
             return;
         }
         card.relocate(x, y);
-        if (edge == null) {
+        if (started && edge == null) {
             follow();
         }
     }
@@ -453,12 +454,16 @@ final class DashboardGesture {
 
     // The translate that keeps the grabbed point under the pointer, from the card's current layout position.
     private void follow() {
-        if (card.translateXProperty().isBound() || card.translateYProperty().isBound()) {
+        RXDashboardCard held = card;
+        if (!started || held.translateXProperty().isBound() || held.translateYProperty().isBound()) {
             return;
         }
         Point2D local = pane.sceneToLocal(lastSceneX, lastSceneY);
-        card.setTranslateX(local.getX() - grabX - card.getLayoutX());
-        card.setTranslateY(local.getY() - grabY - card.getLayoutY());
+        held.setTranslateX(local.getX() - grabX - held.getLayoutX());
+        // A listener reached from the first write may have ended the gesture and given the translate back.
+        if (started) {
+            held.setTranslateY(local.getY() - grabY - held.getLayoutY());
+        }
     }
 
     private void commit() {

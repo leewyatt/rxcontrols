@@ -590,6 +590,37 @@ public class RXDashboardPaneGestureTest {
     }
 
     @Test
+    public void aGestureEndedWhileItsCardIsPlacedThrowsNothing() throws Exception {
+        fx(() -> {
+            // The pane narrows during each gesture, so its card is placed again; a listener on the card ends it.
+            Board moved = new Board();
+            moved.c.layoutXProperty().addListener((obs, old, value) -> moved.c.setLocked(true));
+            Point2D start = moved.press(moved.c, 5, 5);
+            moved.drag(moved.c, start.getX() - 150, start.getY() + 10);
+            moved.pane.resize(300, moved.pane.getHeight());
+            moved.pane.layout();
+            assertFalse(moved.c.getPseudoClassStates().contains(DRAGGING));
+
+            Board translated = new Board();
+            start = translated.press(translated.c, 5, 5);
+            translated.drag(translated.c, start.getX() - 150, start.getY() + 10);
+            translated.c.translateXProperty().addListener((obs, old, value) -> translated.c.setLocked(true));
+            translated.pane.resize(300, translated.pane.getHeight());
+            translated.pane.layout();
+            assertFalse(translated.c.getPseudoClassStates().contains(DRAGGING));
+
+            Board resized = new Board();
+            Region right = handle(resized.b, "right");
+            resized.b.layoutXProperty().addListener((obs, old, value) -> resized.b.setLocked(true));
+            start = resized.press(right, 4, 40);
+            resized.drag(right, start.getX() + 60, start.getY());
+            resized.pane.resize(300, resized.pane.getHeight());
+            resized.pane.layout();
+            assertFalse(resized.b.getPseudoClassStates().contains(PseudoClass.getPseudoClass("resizing")));
+        });
+    }
+
+    @Test
     public void anIdTheSnapshotDoesNotUseCanChangeDuringADrag() throws Exception {
         fx(() -> {
             Board board = new Board();

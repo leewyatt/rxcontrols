@@ -694,6 +694,84 @@ public class RXDashboardPaneTest {
     }
 
     @Test
+    public void aLateColumnCountKeepsCardsPutBackAndTheListOrder() throws Exception {
+        fx(() -> {
+            for (int scenario = 0; scenario < 4; scenario++) {
+                assertEquals(beforeFirstLayout(scenario, true), beforeFirstLayout(scenario, false),
+                        "scenario " + scenario);
+            }
+            String restored = beforeFirstLayout(0, false);
+            assertTrue(restored.contains("S=" + new Placement(1, 0, 3, 1)), restored);
+            assertTrue(restored.contains("T=" + new Placement(5, 0, 7, 2)), restored);
+            assertTrue(restored.contains("U=" + new Placement(13, 1, 5, 1)), restored);
+        });
+    }
+
+    // Operations before the first layout, with the 24 columns set in code first or arriving from a style sheet last.
+    private static String beforeFirstLayout(int scenario, boolean countFirst) {
+        RXDashboardPane pane = new RXDashboardPane();
+        if (countFirst) {
+            pane.setColumnCount(24);
+        } else {
+            pane.setStyle("-rx-column-count: 24;");
+        }
+        switch (scenario) {
+            case 0 -> {
+                // A restored snapshot, then every card taken out and put back.
+                pane.getCards().addAll(card("S", 1, 1), card("T", 1, 1), card("U", 1, 1));
+                pane.applyLayout(layout(24, "S", 1, 0, 3, 1, "T", 5, 0, 7, 2, "U", 13, 1, 5, 1));
+                List<RXDashboardCard> again = new ArrayList<>(pane.getCards());
+                pane.getCards().clear();
+                pane.getCards().addAll(again);
+            }
+            case 1 -> {
+                pane.getCards().addAll(card("a", 4, 1), card("b", 4, 1), card("c", 4, 1), card("d", 4, 1));
+                List<RXDashboardCard> again = new ArrayList<>(pane.getCards());
+                pane.getCards().clear();
+                pane.getCards().addAll(again);
+            }
+            case 2 -> {
+                // A snapshot places the cards it leaves out in the list order of the time.
+                pane.getCards().add(card("u1", 2, 1));
+                pane.getCards().add(0, card("u2", 2, 1));
+                pane.getCards().add(card("S", 1, 1));
+                pane.applyLayout(layout(24, "S", 0, 0, 6, 1));
+            }
+            default -> {
+                // Of two cards with one ID, the first in the list then takes the snapshot's place.
+                pane.getCards().add(new RXDashboardCard("A", null, 0, 0, 2, 1));
+                pane.getCards().add(0, new RXDashboardCard("A", null, 3, 0, 2, 1));
+                pane.applyLayout(layout(24, "A", 10, 0, 4, 1));
+                pane.getCards().add(card("B", 1, 1));
+            }
+        }
+        stageFor(pane);
+        pane.applyCss();
+        layout(pane, 900.0, 400.0);
+        assertEquals(24, pane.getColumnCount());
+        // Every card's cells, so that two cards with one ID are both compared.
+        StringBuilder placed = new StringBuilder();
+        for (RXDashboardCard card : pane.getCards()) {
+            placed.append(card.getCardId()).append('=').append(placement(card)).append(';');
+        }
+        return placed.toString();
+    }
+
+    @Test
+    public void aPolicyChangedAfterTheCountPlacesTheCardsAgain() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = new RXDashboardPane();
+            pane.setColumnCount(24);
+            RXDashboardCard a = new RXDashboardCard("a", null, 0, 0, 2, 1);
+            RXDashboardCard b = new RXDashboardCard("b", null, 1, 0, 2, 1);
+            pane.getCards().addAll(a, b);
+            pane.setCollisionPolicy(CollisionPolicy.BLOCK);
+            assertPlacement(a, 0, 0, 2, 1);
+            assertPlacement(b, 2, 0, 2, 1);
+        });
+    }
+
+    @Test
     public void aPaneNeverLaidOutStopsKeepingHistoryPastItsLimit() throws Exception {
         fx(() -> {
             RXDashboardPane pane = caseOne();
