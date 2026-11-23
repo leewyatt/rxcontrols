@@ -9,7 +9,6 @@ import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.FXCollections;
@@ -17,55 +16,51 @@ import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.chart.LineChart;
-import javafx.scene.chart.NumberAxis;
-import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Slider;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
 import javafx.util.Duration;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
- * Showcase for {@link RXDashboardPane}. A CRM-style board of four cards (a line chart, a customer table whose columns
- * resize and reorder, a KPI card and a 160 px circle that overflows narrow cards) inside a {@code ScrollPane}, with
- * controls for the grid (columns, row height, gaps, minimum column width), editing (collision policy, keeping the cards
- * packed upward, editable, live resize, a locked card, title-bar drag handles with an open-hand cursor on cards that
- * can be dragged), animation, and the layout itself: save, restore, defaults, compact (only useful with packing off),
- * adding and removing cards, the encoded snapshot and the last user edit.
+ * Showcase for {@link RXDashboardPane}. Six plain cards, each a numbered title over one line, inside a
+ * {@code ScrollPane}. A card that can move says so at its bottom left and shows an open hand, a locked card says it is
+ * locked, and a card that can be resized shows a grip in its bottom-right resize handle; all three follow the card's
+ * pseudo-classes and handles, so they change with the editing switches. Controls cover the grid (columns, row height,
+ * gaps, card padding, minimum column width), editing (collision policy, keeping the cards packed upward, editable, live
+ * resize, a locked card, a card that cannot move, one that cannot be resized, a minimum span, dragging by the title
+ * only), animation, and the layout itself: save, restore, defaults, compact (only useful with packing off), adding and
+ * removing cards, the encoded snapshot and the last user edit.
  */
 public class RXDashboardPaneShowcase extends RXShowcaseApplication {
 
     private static final PseudoClass DRAG_BY_TITLE = PseudoClass.getPseudoClass("drag-by-title");
 
     private static final RXDashboardLayout DEFAULTS = RXDashboardLayout.builder(4)
-            .card("trend", 0, 0, 2, 2)
-            .card("customers", 2, 0, 2, 2)
-            .card("kpi", 0, 2, 1, 1)
-            .card("shape", 1, 2, 1, 1)
+            .card("weather", 0, 0, 2, 1)
+            .card("sales", 2, 0, 1, 2)
+            .card("tasks", 3, 0, 1, 1)
+            .card("storage", 0, 1, 1, 1)
+            .card("team", 1, 1, 1, 1)
+            .card("release", 3, 1, 1, 1)
             .build();
 
     private RXDashboardPane dashboard;
     private RXDashboardLayout saved;
     private final DoubleProperty cardPadding = new SimpleDoubleProperty(8.0);
     private final BooleanProperty dragByTitle = new SimpleBooleanProperty();
-    private int extraCards;
+    private int cardCount;
 
     @Override
     protected String title() {
@@ -81,12 +76,14 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
     protected Node createPreview() {
         dashboard = new RXDashboardPane();
         dashboard.setColumnCount(4);
-        dashboard.setRowHeight(160.0);
+        dashboard.setRowHeight(120.0);
         dashboard.getCards().addAll(
-                card("trend", "Sales trend", chart()),
-                card("customers", "Customers", table()),
-                card("kpi", "Closed this month", kpi()),
-                bindPadding(new RXDashboardCard("shape", circle())));
+                card("weather", "Weather", "Temperature 26°"),
+                card("sales", "Sales", "Revenue $48.2k"),
+                card("tasks", "Tasks", "18 of 25 done"),
+                card("storage", "Storage", "640 GB of 1 TB used"),
+                card("team", "Team", "3 online, 1 away"),
+                card("release", "Release", "Version 3.2 in testing"));
         dashboard.applyLayout(DEFAULTS);
         saved = dashboard.getLayout();
         dragByTitle.addListener((obs, old, value) -> dashboard.pseudoClassStateChanged(DRAG_BY_TITLE, value));
@@ -153,21 +150,29 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
         editable.selectedProperty().bindBidirectional(dashboard.editableProperty());
         CheckBox liveResize = new CheckBox("Live resize");
         liveResize.selectedProperty().bindBidirectional(dashboard.liveResizeProperty());
-        CheckBox locked = new CheckBox("Lock the customer table");
-        locked.selectedProperty().addListener((obs, old, value) -> withCard("customers", card -> card.setLocked(value)));
-        CheckBox handles = new CheckBox("Drag by the title bars only");
-        handles.selectedProperty().bindBidirectional(dragByTitle);
-        CheckBox minSpan = new CheckBox("Trend chart at least 2 columns");
+        CheckBox locked = new CheckBox("Lock #2 Sales");
+        locked.selectedProperty().addListener((obs, old, value) -> withCard("sales", card -> card.setLocked(value)));
+        CheckBox fixed = new CheckBox("#1 Weather cannot move");
+        fixed.selectedProperty().addListener(
+                (obs, old, value) -> withCard("weather", card -> card.setMoveEnabled(!value)));
+        CheckBox sized = new CheckBox("#3 Tasks cannot be resized");
+        sized.selectedProperty().addListener(
+                (obs, old, value) -> withCard("tasks", card -> card.setResizeEnabled(!value)));
+        CheckBox minSpan = new CheckBox("#5 Team at least 2 columns");
         minSpan.selectedProperty().addListener(
-                (obs, old, value) -> withCard("trend", card -> card.setMinColumnSpan(value ? 2 : 1)));
+                (obs, old, value) -> withCard("team", card -> card.setMinColumnSpan(value ? 2 : 1)));
+        CheckBox handles = new CheckBox("Drag by the title only");
+        handles.selectedProperty().bindBidirectional(dragByTitle);
         return createGrid(
                 row("Collision", policy),
                 row(autoCompact),
                 row(editable),
                 row(liveResize),
                 row(locked),
-                row(handles),
-                row(minSpan));
+                row(fixed),
+                row(sized),
+                row(minSpan),
+                row(handles));
     }
 
     private Node animationSection() {
@@ -195,11 +200,7 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
         layoutButtons.setAlignment(Pos.CENTER_LEFT);
 
         Button add = new Button("Add card");
-        add.setOnAction(e -> {
-            extraCards++;
-            dashboard.getCards().add(card("note-" + extraCards, "Note " + extraCards,
-                    new Label("Added card " + extraCards)));
-        });
+        add.setOnAction(e -> dashboard.getCards().add(card("note-" + (cardCount + 1), "Note", "Added by Add card")));
         Button remove = new Button("Remove last");
         remove.setOnAction(e -> {
             if (!dashboard.getCards().isEmpty()) {
@@ -229,16 +230,39 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
 
     // ==================== Cards ====================
 
-    private RXDashboardCard card(String id, String title, Node body) {
-        Label titleLabel = new Label(title);
-        titleLabel.getStyleClass().add("card-title");
-        titleLabel.setMaxWidth(Double.MAX_VALUE);
-        VBox box = new VBox(6.0, titleLabel, body);
-        VBox.setVgrow(body, Priority.ALWAYS);
+    // A plain card: a numbered title over one line, and at the bottom left what the user can do with it: move it (an
+    // open hand and "Drag to move", or "Drag the title"), or nothing while it is locked. The style sheet shows each
+    // hint by the card's pseudo-classes, and draws the resize grip in the card's own corner handle.
+    private RXDashboardCard card(String id, String name, String description) {
+        cardCount++;
+        Label title = new Label("#" + cardCount + "  " + name);
+        title.getStyleClass().add("card-title");
+        title.setMaxWidth(Double.MAX_VALUE);
+        Label line = new Label(description);
+        line.getStyleClass().add("card-description");
+
+        Label move = new Label();
+        move.textProperty().bind(Bindings.when(dragByTitle).then("Drag the title").otherwise("Drag to move"));
+        move.setGraphic(symbol("move-symbol"));
+        move.getStyleClass().add("move-hint");
+        Label lock = new Label("Locked", symbol("lock-symbol"));
+        lock.getStyleClass().add("lock-hint");
+        StackPane hints = new StackPane(move, lock);
+        hints.setAlignment(Pos.BOTTOM_LEFT);
+        VBox.setVgrow(hints, Priority.ALWAYS);
+
+        VBox box = new VBox(4.0, title, line, hints);
         RXDashboardCard card = new RXDashboardCard(id, box);
         bindPadding(card);
-        card.dragHandleProperty().bind(Bindings.when(dragByTitle).then((Node) titleLabel).otherwise((Node) null));
+        card.dragHandleProperty().bind(Bindings.when(dragByTitle).then((Node) title).otherwise((Node) null));
         return card;
+    }
+
+    private static Region symbol(String styleClass) {
+        Region symbol = new Region();
+        symbol.getStyleClass().addAll("hint-symbol", styleClass);
+        symbol.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return symbol;
     }
 
     private RXDashboardCard bindPadding(RXDashboardCard card) {
@@ -255,63 +279,6 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
         }
     }
 
-    private static Node chart() {
-        LineChart<Number, Number> chart = new LineChart<>(new NumberAxis(), new NumberAxis());
-        chart.setAnimated(false);
-        chart.setLegendVisible(false);
-        chart.setCreateSymbols(false);
-        Random random = new Random(11);
-        for (int s = 0; s < 3; s++) {
-            XYChart.Series<Number, Number> series = new XYChart.Series<>();
-            double value = 40.0 + s * 20.0;
-            for (int i = 0; i < 40; i++) {
-                value += random.nextGaussian() * 4.0;
-                series.getData().add(new XYChart.Data<>(i, value));
-            }
-            chart.getData().add(series);
-        }
-        return chart;
-    }
-
-    private static Node table() {
-        record Customer(String name, String city, String owner, int deals, String stage) {
-        }
-        String[] cities = {"Shanghai", "Beijing", "Shenzhen", "Hangzhou", "Chengdu"};
-        String[] stages = {"Lead", "Opportunity", "Quote", "Won"};
-        TableView<Customer> table = new TableView<>();
-        List<Customer> rows = new ArrayList<>();
-        for (int i = 1; i <= 50; i++) {
-            rows.add(new Customer("Customer " + i, cities[i % cities.length], "Rep " + (i % 7 + 1), i * 3 % 17,
-                    stages[i % stages.length]));
-        }
-        table.setItems(FXCollections.observableList(rows));
-        List<Function<Customer, String>> values = List.of(Customer::name, Customer::city, Customer::owner,
-                c -> Integer.toString(c.deals()), Customer::stage);
-        String[] names = {"Customer", "City", "Owner", "Deals", "Stage"};
-        for (int i = 0; i < names.length; i++) {
-            Function<Customer, String> value = values.get(i);
-            TableColumn<Customer, String> column = new TableColumn<>(names[i]);
-            column.setCellValueFactory(data -> new ReadOnlyObjectWrapper<>(value.apply(data.getValue())));
-            column.setPrefWidth(90.0);
-            table.getColumns().add(column);
-        }
-        return table;
-    }
-
-    private static Node kpi() {
-        Label value = new Label("$ 1,284,000");
-        value.getStyleClass().add("kpi-value");
-        Label delta = new Label("+12.5% on last month");
-        delta.getStyleClass().add("kpi-delta");
-        return new VBox(4.0, value, delta);
-    }
-
-    private static Node circle() {
-        Circle circle = new Circle(80.0, Color.web("#60a5fa", 0.85));
-        circle.setStroke(Color.web("#1d4ed8"));
-        return circle;
-    }
-
     // ==================== Helpers ====================
 
     private Slider intSlider(int min, int max, int value) {
@@ -321,6 +288,11 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
         slider.setSnapToTicks(true);
         slider.setBlockIncrement(1);
         return slider;
+    }
+
+    @Override
+    protected double sceneWidth() {
+        return 1200;
     }
 
     /**
