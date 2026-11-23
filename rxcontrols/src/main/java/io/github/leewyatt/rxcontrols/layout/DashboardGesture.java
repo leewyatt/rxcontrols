@@ -33,9 +33,11 @@ import java.util.Map;
  * position stays where the gesture started; a resized card keeps its top-left corner and, with live resize on,
  * takes the size the pointer gives it, within its span limits. Whenever the pointer reaches another cell, the edit
  * is solved from the layout the gesture started with; an accepted candidate becomes the preview the pane lays the
- * other cards out by, and the placeholder marks it. Releasing commits the preview; Esc, the window losing focus, the
- * pane leaving its scene and any change to the pane's cards or layout cancel it, and every card glides back from
- * where it shows.</p>
+ * other cards out by, and the placeholder marks where the card is in it. When the cards pack upward under
+ * {@code PUSH}, a drag is instead worked out step by step: each change of the pointer's place on the grid takes one
+ * step from the previous step's layout, and the pointer coming back over the cell the card started from brings the
+ * starting layout back. Releasing commits the preview as shown; Esc, the window losing focus, the pane leaving its
+ * scene and any change to the pane's cards or layout cancel it, and every card glides back from where it shows.</p>
  *
  * <p>While the pointer is near the top or bottom of the viewport of a {@link ScrollPane} the pane sits in, that scroll
  * pane scrolls, faster the closer the pointer gets, and keeps scrolling while the pointer rests there.</p>
@@ -73,6 +75,12 @@ final class DashboardGesture {
     private Map<RXDashboardCard, Placement> startLayout;
     private Map<RXDashboardCard, Placement> preview;
     private Placement candidate;
+    // A drag worked out step by step, in the pane's virtual grid; created at the first step, as it needs a grid.
+    private DashboardDrag<RXDashboardCard> steps;
+    // Where the card was on the virtual grid at the last step, and whether its target was the cell it started from.
+    private double stepX;
+    private double stepY;
+    private boolean home;
     private RXDashboardLayout layoutBefore;
 
     private Scene watchedScene;
@@ -150,12 +158,12 @@ final class DashboardGesture {
     }
 
     /**
-     * Returns the area the placeholder marks.
+     * Returns the area the placeholder marks: where the edited card is in the preview.
      *
-     * @return the candidate area, or {@code null} when no gesture is in progress
+     * @return the card's area in the preview, or {@code null} when no gesture is in progress
      */
-    Placement candidate() {
-        return started ? candidate : null;
+    Placement landing() {
+        return started ? preview.get(card) : null;
     }
 
     /**
@@ -327,7 +335,10 @@ final class DashboardGesture {
         if (started) {
             lastSceneX = event.getSceneX();
             lastSceneY = event.getSceneY();
-            track();
+            // A stepwise drag commits the preview as shown: a last step would land somewhere never shown.
+            if (edge != null || !pane.dragsStepwise()) {
+                track();
+            }
             if (started) {
                 commit();
             }
@@ -366,6 +377,10 @@ final class DashboardGesture {
         startLayout = pane.committedPlacements();
         preview = new LinkedHashMap<>(startLayout);
         candidate = held.placement;
+        steps = null;
+        stepX = Double.NaN;
+        stepY = Double.NaN;
+        home = true;
         layoutBefore = pane.getLayout();
         // A listener reached from each change to the card below may end the gesture at once.
         pane.releaseFromAnimation(held);
@@ -409,6 +424,10 @@ final class DashboardGesture {
         }
         Point2D local = pane.sceneToLocal(lastSceneX, lastSceneY);
         Placement start = startLayout.get(card);
+        if (edge == null && pane.dragsStepwise()) {
+            step(grid, start, local);
+            return;
+        }
         Placement next = edge == null ? dragCandidate(grid, start, local) : resizeCandidate(grid, start, local);
         if (next.equals(candidate)) {
             return;
@@ -420,6 +439,45 @@ final class DashboardGesture {
         candidate = next;
         preview = solved;
         pane.requestLayout();
+    }
+
+    // One step of a stepwise drag, taken only when the card's place on the grid changed since the last one: a pane
+    // that moves or scrolls under a resting pointer does not repeat it.
+    private void step(DashboardGrid grid, Placement start, Point2D local) {
+        double x = RXDashboardPane.virtualX(grid, local.getX() - grabX);
+        double y = RXDashboardPane.virtualY(grid, local.getY() - grabY);
+        if (!Double.isFinite(x) || !Double.isFinite(y) || x == stepX && y == stepY) {
+            return;
+        }
+        stepX = x;
+        stepY = y;
+        if (steps == null) {
+            steps = pane.stepwiseDrag(startLayout, card, grid);
+        }
+        int[] target = steps.target(x, y);
+        int column = Math.max(0, Math.min(target[0], grid.columnCount() - start.columnSpan()));
+        int row = Math.max(0, target[1]);
+        if (column == start.column() && row == start.row()) {
+            // Coming back over the starting cell brings the starting layout back; the lean starts from here.
+            if (!home) {
+                steps = pane.stepwiseDrag(startLayout, card, grid);
+                steps.anchor(x, y);
+                show(startLayout);
+            }
+            home = true;
+            return;
+        }
+        home = false;
+        steps.step(x, y);
+        show(steps.layout());
+    }
+
+    private void show(Map<RXDashboardCard, Placement> layout) {
+        if (!layout.equals(preview)) {
+            preview = new LinkedHashMap<>(layout);
+            candidate = preview.get(card);
+            pane.requestLayout();
+        }
     }
 
     // The cell nearest to the card's top-left corner as it follows the pointer.
@@ -519,6 +577,7 @@ final class DashboardGesture {
         edge = null;
         startLayout = null;
         preview = null;
+        steps = null;
         candidate = null;
         layoutBefore = null;
     }

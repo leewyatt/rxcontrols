@@ -53,6 +53,25 @@ final class DashboardGrid {
     }
 
     /**
+     * Returns the distance from one column's left edge to the next one's, averaged over the grid: the column width
+     * and the gap after it. With a single column, its width.
+     *
+     * @return the horizontal pitch
+     */
+    double columnPitch() {
+        return columnCount > 1 ? (columnX(columnCount - 1) - columnX(0)) / (columnCount - 1) : spanWidth(0, 1);
+    }
+
+    /**
+     * Returns the distance from one row's top edge to the next one's: the row height and the gap after it.
+     *
+     * @return the vertical pitch
+     */
+    double rowPitch() {
+        return rowHeight + vgap;
+    }
+
+    /**
      * Returns the left edge of a column.
      *
      * @param column the column

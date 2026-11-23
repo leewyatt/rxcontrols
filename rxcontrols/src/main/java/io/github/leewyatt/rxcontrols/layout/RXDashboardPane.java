@@ -139,10 +139,11 @@ public class RXDashboardPane extends Region {
     // without ever being laid out stops keeping them, so a hidden pane does not hold on to cards it no longer has.
     private static final int HISTORY_LIMIT = 512;
 
-    // The regular grid a move by code is dragged on, in virtual pixels: a cell and the margin inside it. Fixed, so the
-    // result does not depend on the pane's size.
+    // The regular grid a drag is worked out on step by step, in virtual pixels: a cell, and the margin inside it as a
+    // share of the cell, at most. A move by code uses the largest margin; a gesture half the gaps, up to that.
     private static final double VIRTUAL_CELL = 100.0;
-    private static final double VIRTUAL_MARGIN = 10.0;
+    private static final double MAX_MARGIN_SHARE = 0.1;
+    private static final double VIRTUAL_MARGIN = VIRTUAL_CELL * MAX_MARGIN_SHARE;
 
     private static final Logger LOGGER = Logger.getLogger(RXDashboardPane.class.getName());
 
@@ -1710,6 +1711,30 @@ public class RXDashboardPane extends Region {
         animator.forget(card);
     }
 
+    // Whether a drag is worked out step by step: when the cards pack under PUSH.
+    boolean dragsStepwise() {
+        return lastAutoCompact && !isBlocking();
+    }
+
+    // A drag worked out step by step from the given layout, on the virtual grid the gesture converts the pointer to.
+    DashboardDrag<RXDashboardCard> stepwiseDrag(Map<RXDashboardCard, Placement> start, RXDashboardCard card,
+                                               DashboardGrid grid) {
+        double marginX = VIRTUAL_CELL * Math.min(gapOrZero(getHgap()) / 2.0 / grid.columnPitch(), MAX_MARGIN_SHARE);
+        double marginY = VIRTUAL_CELL * Math.min(gapOrZero(getVgap()) / 2.0 / grid.rowPitch(), MAX_MARGIN_SHARE);
+        return new DashboardDrag<>(items(start), card, effectiveColumns, VIRTUAL_CELL, VIRTUAL_CELL, marginX,
+                marginY);
+    }
+
+    // A pane x on the virtual grid of a stepwise drag: column c's left edge is c cells.
+    static double virtualX(DashboardGrid grid, double x) {
+        return (x - grid.columnX(0)) / grid.columnPitch() * VIRTUAL_CELL;
+    }
+
+    // A pane y on the virtual grid of a stepwise drag: row r's top edge is r cells.
+    static double virtualY(DashboardGrid grid, double y) {
+        return (y - grid.rowY(0)) / grid.rowPitch() * VIRTUAL_CELL;
+    }
+
     Map<RXDashboardCard, Placement> solveFrom(Map<RXDashboardCard, Placement> start, RXDashboardCard card,
                                               Placement candidate) {
         Map<RXDashboardCard, Placement> solved = DashboardSolver.solve(items(start), card, candidate, isBlocking(),
@@ -1907,7 +1932,7 @@ public class RXDashboardPane extends Region {
     }
 
     private void layoutPlaceholder() {
-        Placement target = gesture.candidate();
+        Placement target = gesture.landing();
         placeholder.setVisible(target != null);
         if (target != null) {
             placeholder.resizeRelocate(grid.columnX(target.column()), grid.rowY(target.row()),
