@@ -242,6 +242,7 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXChipSetSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCircularProgressIndicatorSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXClipPathImageViewSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXCopyButtonSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDashboardPaneSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDateRangeSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDateSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXDateTimeRangeSamples;
@@ -716,7 +717,8 @@ final class SamplerCatalog {
                 .withSamples(RXTilePaneSamples::create));
         list.add(single(c, RXMasonryPane.class, RXMasonryPaneShowcase::new, RXMasonryPaneDemo.class)
                 .withSamples(RXMasonryPaneSamples::create));
-        list.add(single(c, RXDashboardPane.class, RXDashboardPaneShowcase::new, RXDashboardPaneDemo.class));
+        list.add(single(c, RXDashboardPane.class, RXDashboardPaneShowcase::new, RXDashboardPaneDemo.class)
+                .withSamples(RXDashboardPaneSamples::create));
 
         c = SamplerCategory.MOTION;
         list.add(single(c, RXBursts.class, RXBurstsShowcase::new, RXBurstsDemo.class)
