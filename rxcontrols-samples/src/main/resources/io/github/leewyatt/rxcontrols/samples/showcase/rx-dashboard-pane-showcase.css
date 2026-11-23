@@ -1,0 +1,68 @@
+.dashboard-scroller > .viewport {
+    -fx-background-color: transparent;
+}
+
+.rx-dashboard-pane {
+    -fx-padding: 12px;
+}
+
+.rx-dashboard-card:draggable {
+    -fx-cursor: open-hand;
+}
+
+.rx-dashboard-card .card-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface;
+}
+
+.rx-dashboard-card .card-description {
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.rx-dashboard-card .move-hint,
+.rx-dashboard-card .lock-hint {
+    visibility: hidden;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-graphic-text-gap: 5px;
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.rx-dashboard-card:draggable .move-hint {
+    visibility: visible;
+}
+
+.rx-dashboard-pane:editable > .rx-dashboard-card:locked .lock-hint {
+    visibility: visible;
+}
+
+.rx-dashboard-card .hint-symbol {
+    -fx-pref-width: 12px;
+    -fx-pref-height: 12px;
+    -fx-background-color: -rx-primary;
+}
+
+.rx-dashboard-card .lock-hint > .hint-symbol {
+    -fx-background-color: -rx-on-surface-secondary;
+}
+
+.rx-dashboard-card .move-symbol {
+    -fx-shape: "M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z";
+}
+
+.rx-dashboard-card .lock-symbol {
+    -fx-shape: "M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z";
+}
+
+.rx-dashboard-pane:drag-by-title > .rx-dashboard-card:draggable {
+    -fx-cursor: default;
+}
+
+.rx-dashboard-pane:drag-by-title > .rx-dashboard-card:draggable .card-title {
+    -fx-cursor: open-hand;
+}
+
+.rx-dashboard-pane:drag-by-title > .rx-dashboard-card:dragging .card-title {
+    -fx-cursor: closed-hand;
+}

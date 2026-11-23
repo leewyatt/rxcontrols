@@ -532,6 +532,393 @@
 
 /*******************************************************************************
  *                                                                             *
+ * RXDashboardPane                                                             *
+ *                                                                             *
+ ******************************************************************************/
+.example-card .numbered-board,
+.example-card .live-board {
+    -fx-background-color: -rx-surface-variant;
+    -fx-background-radius: 12px;
+}
+
+.example-card .numbered-board {
+    -fx-padding: 10px;
+}
+
+.example-card .numbered-board > .rx-dashboard-card {
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+}
+
+.example-card .numbered-board > .rx-dashboard-card:draggable,
+.example-card .live-board > .rx-dashboard-card:draggable {
+    -fx-cursor: open-hand;
+}
+
+.example-card .numbered-board .card-number {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.example-card .numbered-board > .rx-dashboard-card:dragging .card-number,
+.example-card .numbered-board > .rx-dashboard-card:resizing .card-number {
+    -fx-text-fill: -rx-primary;
+}
+
+.example-card .live-board {
+    -fx-padding: 14px;
+}
+
+.example-card .live-board > .rx-dashboard-card {
+    -fx-background-radius: 12px;
+    -fx-border-radius: 12px;
+    -fx-padding: 12px 14px;
+}
+
+.example-card .live-board > .rx-dashboard-card:locked {
+    -fx-border-color: -rx-primary;
+}
+
+.example-card .live-board .card-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface;
+}
+
+.example-card .live-board .card-icon {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+}
+
+.example-card .live-board .primary.card-icon {
+    -fx-background-color: -rx-primary;
+}
+
+.example-card .live-board .success.card-icon {
+    -fx-background-color: -rx-success;
+}
+
+.example-card .live-board .warning.card-icon {
+    -fx-background-color: -rx-warning;
+}
+
+.example-card .live-board .danger.card-icon {
+    -fx-background-color: -rx-danger;
+}
+
+.example-card .live-board .muted.card-icon {
+    -fx-background-color: -rx-on-surface-secondary;
+}
+
+.example-card .live-board .pin-button {
+    -fx-padding: 4px;
+}
+
+.example-card .live-board .pin-button:hover {
+    -fx-background-color: -rx-primary-bg;
+}
+
+.example-card .live-board .pin-button > .pin-icon {
+    -fx-pref-width: 14px;
+    -fx-pref-height: 14px;
+    -fx-background-color: -rx-on-surface-disabled;
+    -fx-rotate: 45;
+}
+
+.example-card .live-board .pin-button:hover > .pin-icon,
+.example-card .live-board > .rx-dashboard-card:locked .pin-button > .pin-icon {
+    -fx-background-color: -rx-primary;
+}
+
+.example-card .live-board > .rx-dashboard-card:locked .pin-button > .pin-icon {
+    -fx-rotate: 0;
+}
+
+.example-card .live-board .card-strong {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface;
+}
+
+.example-card .live-board .card-muted {
+    -fx-font-size: 12px;
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.example-card .live-board .card-rule {
+    -fx-pref-height: 1px;
+    -fx-min-height: 1px;
+    -fx-max-height: 1px;
+    -fx-background-color: -rx-outline-variant;
+}
+
+.example-card .live-board .delta-chip {
+    -fx-padding: 3px 9px;
+    -fx-background-color: -rx-success;
+    -fx-background-radius: 999px;
+    -fx-text-fill: -rx-on-primary;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.example-card .live-board .live-badge {
+    -fx-padding: 2px 8px;
+    -fx-background-color: -rx-primary-bg;
+    -fx-background-radius: 999px;
+}
+
+.example-card .live-board .live-text {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-danger;
+}
+
+.example-card .live-board .stock-price .label {
+    -fx-font-size: 30px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface;
+}
+
+.example-card .live-board .stock:down .delta-chip {
+    -fx-background-color: -rx-danger;
+}
+
+.example-card .live-board .stock:narrow .stock-price .label {
+    -fx-font-size: 22px;
+}
+
+.example-card .live-board .stock:narrow .delta-chip {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+    -fx-text-fill: -rx-success;
+}
+
+.example-card .live-board .stock:narrow:down .delta-chip {
+    -fx-background-color: transparent;
+    -fx-text-fill: -rx-danger;
+}
+
+.example-card .live-board .sparkline > .line {
+    -fx-stroke: -rx-success;
+    -fx-stroke-width: 2px;
+    -fx-stroke-line-join: round;
+}
+
+.example-card .live-board .sparkline > .area {
+    -fx-fill: linear-gradient(to bottom, -rx-success, transparent);
+    -fx-opacity: 0.22;
+}
+
+.example-card .live-board .sparkline > .dot {
+    -fx-fill: -rx-success;
+}
+
+.example-card .live-board .stock:down .sparkline > .line {
+    -fx-stroke: -rx-danger;
+}
+
+.example-card .live-board .stock:down .sparkline > .area {
+    -fx-fill: linear-gradient(to bottom, -rx-danger, transparent);
+}
+
+.example-card .live-board .stock:down .sparkline > .dot {
+    -fx-fill: -rx-danger;
+}
+
+.example-card .live-board .stat-caption {
+    -fx-font-size: 11px;
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.example-card .live-board .stat-value {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface;
+}
+
+.example-card .live-board .weather-temperature {
+    -fx-font-size: 40px;
+    -fx-text-fill: -rx-on-surface;
+}
+
+.example-card .live-board .hour-temperature {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface;
+}
+
+.example-card .live-board .sky.large {
+    -fx-pref-width: 50px;
+    -fx-pref-height: 44px;
+}
+
+.example-card .live-board .sky.small {
+    -fx-pref-width: 20px;
+    -fx-pref-height: 18px;
+}
+
+.example-card .live-board .sky .sun-icon {
+    -fx-background-color: -rx-warning;
+}
+
+.example-card .live-board .sky .cloud-icon {
+    -fx-background-color: -rx-on-surface-disabled;
+}
+
+.example-card .live-board .sky .drop-icon {
+    -fx-background-color: -rx-primary;
+}
+
+.example-card .live-board .sky.large .sun-icon {
+    -fx-pref-width: 34px;
+    -fx-pref-height: 34px;
+}
+
+.example-card .live-board .sky.large .cloud-icon {
+    -fx-pref-width: 38px;
+    -fx-pref-height: 38px;
+}
+
+.example-card .live-board .sky.large .drop-icon {
+    -fx-pref-width: 30px;
+    -fx-pref-height: 30px;
+}
+
+.example-card .live-board .sky.small .sun-icon,
+.example-card .live-board .sky.small .cloud-icon,
+.example-card .live-board .sky.small .drop-icon {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+}
+
+.example-card .live-board .sky.small .behind {
+    -fx-pref-width: 12px;
+    -fx-pref-height: 12px;
+}
+
+.example-card .live-board .step-name {
+    -fx-font-size: 12px;
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.example-card .live-board .step-name:done {
+    -fx-text-fill: -rx-on-surface;
+}
+
+.example-card .live-board .step-name:current {
+    -fx-text-fill: -rx-primary;
+    -fx-font-weight: bold;
+}
+
+.example-card .live-board .stage-chip {
+    -fx-padding: 2px 9px;
+    -fx-background-color: -rx-warning;
+    -fx-background-radius: 999px;
+    -fx-text-fill: -rx-on-primary;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.example-card .live-board .stage-chip:done {
+    -fx-background-color: -rx-success;
+}
+
+.example-card .live-board .rx-avatar > .text-wrapper > .label {
+    -fx-font-size: 11px;
+}
+
+.example-card .live-board .primary.rx-avatar {
+    -rx-avatar-fill: -rx-primary;
+}
+
+.example-card .live-board .success.rx-avatar {
+    -rx-avatar-fill: -rx-success;
+}
+
+.example-card .live-board .warning.rx-avatar {
+    -rx-avatar-fill: -rx-warning;
+}
+
+.example-card .live-board .danger.rx-avatar {
+    -rx-avatar-fill: -rx-danger;
+}
+
+.example-card .live-board .avatar-more {
+    -fx-pref-width: 32px;
+    -fx-pref-height: 32px;
+    -fx-alignment: center;
+    -fx-background-color: -rx-surface-variant;
+    -fx-background-radius: 50%;
+    -fx-border-color: -rx-outline-variant;
+    -fx-border-radius: 50%;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.example-card .live-board .metric {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -rx-on-surface;
+}
+
+.example-card .live-board .bar {
+    -fx-background-color: -rx-primary-bg;
+    -fx-background-radius: 3px 3px 0 0;
+}
+
+.example-card .live-board .bar.today {
+    -fx-background-color: -rx-primary;
+}
+
+.example-card .live-board .rx-wave-progress-indicator > .wave-container .progress-label {
+    -fx-font-size: 14px;
+}
+
+.example-card .live-board .setting-row {
+    -fx-padding: 5px 0;
+}
+
+.example-card .live-board .setting-row.ruled {
+    -fx-border-color: -rx-outline-variant;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.example-card .live-board .setting-badge {
+    -fx-pref-width: 28px;
+    -fx-pref-height: 28px;
+    -fx-background-radius: 8px;
+}
+
+.example-card .live-board .setting-badge > .symbol {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+    -fx-background-color: -rx-on-primary;
+}
+
+.example-card .live-board .primary.setting-badge {
+    -fx-background-color: -rx-primary;
+}
+
+.example-card .live-board .warning.setting-badge {
+    -fx-background-color: -rx-warning;
+}
+
+.example-card .live-board .danger.setting-badge {
+    -fx-background-color: -rx-danger;
+}
+
+.example-card .live-board .setting-row:off .setting-badge {
+    -fx-background-color: -rx-outline-variant;
+}
+
+.example-card .live-board .setting-row:off .setting-badge > .symbol {
+    -fx-background-color: -rx-on-surface-secondary;
+}
+
+/*******************************************************************************
+ *                                                                             *
  * Icons                                                                       *
  *                                                                             *
  ******************************************************************************/
@@ -618,4 +1005,48 @@
 
 .example-card .camera-icon {
     -fx-shape: "M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .pin-icon {
+    -fx-shape: "M16 9V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v5c0 1.66-1.34 3-3 3v2h5.97v7l1 1 1-1v-7H19v-2c-1.66 0-3-1.34-3-3zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .chart-icon {
+    -fx-shape: "M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .cloud-icon {
+    -fx-shape: "M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .drop-icon {
+    -fx-shape: "M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .flag-icon {
+    -fx-shape: "M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .storage-icon {
+    -fx-shape: "M2 20h20v-4H2v4zm2-3h2v2H4v-2zM2 4v4h20V4H2zm4 3H4V5h2v2zm-4 7h20v-4H2v4zm2-3h2v2H4v-2zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .group-icon {
+    -fx-shape: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .bulb-icon {
+    -fx-shape: "M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .snow-icon {
+    -fx-shape: "M22 11h-4.17l3.24-3.24-1.41-1.42L15 11h-2V9l4.66-4.66-1.42-1.41L13 6.17V2h-2v4.17L7.76 2.93 6.34 4.34 11 9v2H9L4.34 6.34 2.93 7.76 6.17 11H2v2h4.17l-3.24 3.24 1.41 1.42L9 13h2v2l-4.66 4.66 1.42 1.41L11 17.83V22h2v-4.17l3.24 3.24 1.42-1.41L13 15v-2h2l4.66 4.66 1.41-1.42L17.83 13H22zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .moon-icon {
+    -fx-shape: "M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1zM0 0L0 0M24 24L24 24";
+}
+
+.example-card .money-icon {
+    -fx-shape: "M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4zM0 0L0 0M24 24L24 24";
 }
