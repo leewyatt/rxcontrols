@@ -29,9 +29,15 @@ import java.util.Map;
  *     can reach.</li>
  * </ol>
  *
- * <p>Collisions are looked up in the order the cards are held in, which the steps re-sort as they go; on a board
- * without locked cards a pushed card makes room across the whole width of its rows, so that a wide card cannot leap
- * over smaller ones. A diagonal step that covers too little is tried again along the axis it moves most on.</p>
+ * <p>Collisions are looked up in the order the cards are held in, which the steps re-sort as they go; a drag starts
+ * with the cards in reading order of where they are, whatever came before. On a board without locked cards a pushed
+ * card makes room across the whole width of its rows, so that a wide card cannot leap over smaller ones. A diagonal
+ * step that covers too little is tried again along the axis it moves most on. A step that would leave two cards
+ * overlapping, which pushing past locked cards can, is not taken. A chain of pushes that does not settle is
+ * abandoned.</p>
+ *
+ * <p>The margin inside a cell is capped at a tenth of the cell, rounded, for the target cell's lean and the dragged
+ * rectangle; the rectangles the first step measures cover against use the margin as given.</p>
  *
  * @param <K> the card key
  */
@@ -43,6 +49,9 @@ final class DashboardDrag<K> {
     // The share of a card the dragged card must cover, measured from the side it comes from, before it counts.
     private static final double COVER_NEEDED = 0.5;
 
+    // The largest margin, as a share of the cell, that a target cell leans back by.
+    private static final double MARGIN_CAP = 0.1;
+
     private static final Comparator<Box<?>> TOP_DOWN =
             Comparator.comparingInt((Box<?> box) -> box.y).thenComparingInt(box -> box.x);
 
@@ -52,21 +61,29 @@ final class DashboardDrag<K> {
     private final int columns;
     private final double cellWidth;
     private final double cellHeight;
-    private final double marginX;
-    private final double marginY;
+    // The margins, capped.
+    private final double cappedX;
+    private final double cappedY;
     private final boolean anyLocked;
+    // Kept to take back a step that left cards overlapping.
+    private final List<Box<K>> before = new ArrayList<>();
+    private int[] beforeCells = new int[0];
     private double lastLeft;
     private double lastTop;
     private boolean skippedDown;
 
+    // ==================== Construction ====================
+
     /**
+     * Starts a drag from a layout.
+     *
      * @param items      the cards at the start of the drag, a layout free of overlaps
      * @param moving     the key of the dragged card, which is not locked
      * @param columns    the column count
      * @param cellWidth  the horizontal pitch of a cell in pixels
      * @param cellHeight the vertical pitch of a cell in pixels
-     * @param marginX    the horizontal margin inside a cell in pixels, at most a tenth of the pitch
-     * @param marginY    the vertical margin inside a cell in pixels, at most a tenth of the pitch
+     * @param marginX    the horizontal margin inside a cell in pixels
+     * @param marginY    the vertical margin inside a cell in pixels
      */
     DashboardDrag(List<Item<K>> items, K moving, int columns, double cellWidth, double cellHeight, double marginX,
                   double marginY) {
@@ -90,12 +107,14 @@ final class DashboardDrag<K> {
         this.columns = columns;
         this.cellWidth = cellWidth;
         this.cellHeight = cellHeight;
-        this.marginX = marginX;
-        this.marginY = marginY;
+        cappedX = Math.min(marginX, Math.round(cellWidth * MARGIN_CAP));
+        cappedY = Math.min(marginY, Math.round(cellHeight * MARGIN_CAP));
         lastLeft = mover.x * cellWidth;
         lastTop = mover.y * cellHeight;
-        measure();
+        measure(marginX, marginY);
     }
+
+    // ==================== Stepping ====================
 
     /**
      * Restarts the lean of the target cell from the given element position, as after an accepted step.
@@ -116,8 +135,8 @@ final class DashboardDrag<K> {
      * @return the column and row, the column not yet kept inside the grid
      */
     int[] target(double left, double top) {
-        double x = left + (left > lastLeft ? -marginX : marginX);
-        double y = top + (top > lastTop ? -marginY : marginY);
+        double x = left + (left > lastLeft ? -cappedX : cappedX);
+        double y = top + (top > lastTop ? -cappedY : cappedY);
         return new int[] {(int) Math.round(x / cellWidth), (int) Math.round(y / cellHeight)};
     }
 
@@ -133,16 +152,55 @@ final class DashboardDrag<K> {
         if (mover.x == cell[0] && mover.y == cell[1]) {
             return false;
         }
-        Rect dragged = new Rect(left + marginX, top + marginY, mover.w * cellWidth - marginX - marginX,
-                mover.h * cellHeight - marginY - marginY);
+        Rect dragged = new Rect(left + cappedX, top + cappedY, mover.w * cellWidth - cappedX - cappedX,
+                mover.h * cellHeight - cappedY - cappedY);
+        boolean wasSkippedDown = skippedDown;
+        keep();
         boolean accepted = move(mover, cell[0], cell[1], null, false, true, dragged);
+        if (overlapping()) {
+            restore();
+            skippedDown = wasSkippedDown;
+            return false;
+        }
         if (accepted) {
             lastLeft = left;
             lastTop = top;
-            measure();
+            measure(cappedX, cappedY);
             skippedDown = false;
         }
         return accepted;
+    }
+
+    private void keep() {
+        before.clear();
+        before.addAll(boxes);
+        beforeCells = new int[boxes.size() * 2];
+        for (int i = 0; i < before.size(); i++) {
+            beforeCells[2 * i] = before.get(i).x;
+            beforeCells[2 * i + 1] = before.get(i).y;
+        }
+    }
+
+    private void restore() {
+        boxes.clear();
+        boxes.addAll(before);
+        for (int i = 0; i < boxes.size(); i++) {
+            boxes.get(i).x = beforeCells[2 * i];
+            boxes.get(i).y = beforeCells[2 * i + 1];
+        }
+    }
+
+    private boolean overlapping() {
+        for (int i = 0; i < boxes.size(); i++) {
+            Box<K> a = boxes.get(i);
+            Spot spot = new Spot(a.x, a.y, a.w, a.h);
+            for (int j = i + 1; j < boxes.size(); j++) {
+                if (spot.overlaps(boxes.get(j))) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -240,7 +298,7 @@ final class DashboardDrag<K> {
                 return moved;
             }
             boolean stepped;
-            if (other.locked || box == mover && !skippedDown && to.y > box.y && fitsAbove(other, box, to)) {
+            if (other.locked || (box == mover && !skippedDown && to.y > box.y && fitsAbove(other, box, to))) {
                 if (box == mover) {
                     skippedDown = skippedDown || to.y > box.y;
                 }
@@ -396,10 +454,10 @@ final class DashboardDrag<K> {
     }
 
     // Every card's rectangle in grid pixels, as of the last accepted step.
-    private void measure() {
+    private void measure(double insetX, double insetY) {
         for (Box<K> box : boxes) {
-            box.rect = new Rect(box.x * cellWidth + marginX, box.y * cellHeight + marginY,
-                    box.w * cellWidth - marginX - marginX, box.h * cellHeight - marginY - marginY);
+            box.rect = new Rect(box.x * cellWidth + insetX, box.y * cellHeight + insetY,
+                    box.w * cellWidth - insetX - insetX, box.h * cellHeight - insetY - insetY);
         }
     }
 

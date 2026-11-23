@@ -139,11 +139,10 @@ public class RXDashboardPane extends Region {
     // without ever being laid out stops keeping them, so a hidden pane does not hold on to cards it no longer has.
     private static final int HISTORY_LIMIT = 512;
 
-    // The regular grid a drag is worked out on step by step, in virtual pixels: a cell, and the margin inside it as a
-    // share of the cell, at most. A move by code uses the largest margin; a gesture half the gaps, up to that.
+    // The regular grid a drag is worked out on step by step, in virtual pixels: a cell, and the margin inside a cell a
+    // move by code uses (the largest the drag leans by). A gesture uses half the gaps.
     private static final double VIRTUAL_CELL = 100.0;
-    private static final double MAX_MARGIN_SHARE = 0.1;
-    private static final double VIRTUAL_MARGIN = VIRTUAL_CELL * MAX_MARGIN_SHARE;
+    private static final double VIRTUAL_MARGIN = 10.0;
 
     private static final Logger LOGGER = Logger.getLogger(RXDashboardPane.class.getName());
 
@@ -1719,8 +1718,8 @@ public class RXDashboardPane extends Region {
     // A drag worked out step by step from the given layout, on the virtual grid the gesture converts the pointer to.
     DashboardDrag<RXDashboardCard> stepwiseDrag(Map<RXDashboardCard, Placement> start, RXDashboardCard card,
                                                DashboardGrid grid) {
-        double marginX = VIRTUAL_CELL * Math.min(gapOrZero(getHgap()) / 2.0 / grid.columnPitch(), MAX_MARGIN_SHARE);
-        double marginY = VIRTUAL_CELL * Math.min(gapOrZero(getVgap()) / 2.0 / grid.rowPitch(), MAX_MARGIN_SHARE);
+        double marginX = VIRTUAL_CELL * gapOrZero(getHgap()) / 2.0 / grid.columnPitch();
+        double marginY = VIRTUAL_CELL * gapOrZero(getVgap()) / 2.0 / grid.rowPitch();
         return new DashboardDrag<>(items(start), card, effectiveColumns, VIRTUAL_CELL, VIRTUAL_CELL, marginX,
                 marginY);
     }
