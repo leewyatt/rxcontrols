@@ -4,7 +4,6 @@ import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXBadge;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCheckBox;
-import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.RXMenuButton;
 import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
 import io.github.leewyatt.rxcontrols.RXSwitchButton;
@@ -41,7 +40,6 @@ import javafx.scene.shape.ClosePath;
 import javafx.scene.shape.LineTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
-import javafx.scene.shape.StrokeLineCap;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -62,8 +60,8 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.widt
 /**
  * The RXDashboardPane page: a clean board of numbered cards in a resizable frame whose column count follows its
  * width, with packing, the collision policy, adding and removing cards, and save and restore; and a live board of
- * stock, weather, sprint, storage, release, team and revenue cards that are pinned in place with a lock, where the
- * stock and release cards fit what they show to their size.
+ * stock, weather, room, storage, release, team and revenue cards that are pinned in place with a lock, where the
+ * stock, release, weather and room cards fit what they show to their size.
  */
 public final class RXDashboardPaneSamples {
 
@@ -71,6 +69,7 @@ public final class RXDashboardPaneSamples {
     private static final PseudoClass DONE = PseudoClass.getPseudoClass("done");
     private static final PseudoClass CURRENT = PseudoClass.getPseudoClass("current");
     private static final PseudoClass NARROW = PseudoClass.getPseudoClass("narrow");
+    private static final PseudoClass OFF = PseudoClass.getPseudoClass("off");
 
     private static final int NUMBERED_CARDS = 11;
     private static final RXDashboardLayout NUMBERED = RXDashboardLayout.builder(6)
@@ -80,13 +79,15 @@ public final class RXDashboardPaneSamples {
             .build();
 
     private static final RXDashboardLayout LIVE = RXDashboardLayout.builder(4)
-            .card("stock", 0, 0, 2, 2).card("weather", 2, 0, 1, 2).card("sprint", 3, 0, 1, 1)
+            .card("stock", 0, 0, 2, 2).card("weather", 2, 0, 1, 2).card("home", 3, 0, 1, 1)
             .card("storage", 3, 1, 1, 1).card("release", 0, 2, 2, 1).card("team", 2, 2, 1, 1)
             .card("revenue", 3, 2, 1, 1)
             .build();
 
     // A card narrower than this shows a compact form of its content.
     private static final double NARROW_CARD = 300.0;
+    // A card shorter than this, about one row, leaves out what only fits two.
+    private static final double TALL_CARD = 240.0;
 
     private static final double OPEN_PRICE = 181.90;
     private static final int PRICE_POINTS = 48;
@@ -109,18 +110,19 @@ public final class RXDashboardPaneSamples {
                 List.of("Dashboards and home screens where users arrange and resize widgets on a grid, and the arrangement is kept.",
                         "For a fixed responsive grid use RXRow / RXCol; for cards of free heights use RXMasonryPane."),
                 List.of(
+                        SampleCard.canvas("Live board",
+                                "Drag a card anywhere on it; the grab cursor shows only on cards that can move, "
+                                        + "the pin locks a card in place and Edit layout makes the board read-only. "
+                                        + "The quote, release, weather and room cards fit their size: on one column "
+                                        + "the quote shows just the price, the change and a small trend and the "
+                                        + "release drops its step names; on one row the weather drops its hourly "
+                                        + "forecast and the room keeps two switches of three.",
+                                live(life)),
                         SampleCard.canvas("Numbered cards",
                                 "Drag a card, or pull its right or bottom edge: the others make room and pack upward. "
                                         + "Narrow the frame and the columns go from 6 to 4 to 2; widen it and the "
                                         + "layout comes back as it was. Save takes a snapshot that Restore applies.",
-                                numbered()),
-                        SampleCard.canvas("Live board",
-                                "Drag a card anywhere on it; the grab cursor shows only on cards that can move, "
-                                        + "the pin locks a card in place and Edit layout makes the board read-only. "
-                                        + "The quote and release cards fit their size: on one column the quote "
-                                        + "shows just the price, the change and a small trend, and the release drops "
-                                        + "its step names; a minimum span keeps the weather card two rows tall.",
-                                live(life))),
+                                numbered())),
                 LayoutKit.STYLESHEET);
     }
 
@@ -131,6 +133,11 @@ public final class RXDashboardPaneSamples {
         InvalidationListener fit = obs -> action.accept(card.getWidth(), card.getHeight());
         card.widthProperty().addListener(fit);
         card.heightProperty().addListener(fit);
+    }
+
+    private static void setShown(Node part, boolean shown) {
+        part.setVisible(shown);
+        part.setManaged(shown);
     }
 
     // The column count follows the board's width, as a responsive dashboard's would.
@@ -209,15 +216,20 @@ public final class RXDashboardPaneSamples {
         StockQuote quote = new StockQuote(life);
         RXDashboardCard stock = card("stock", "RXC", "chart-icon", "success", quote.body(), liveBadge());
         quote.adaptTo(stock);
-        RXDashboardCard weather = card("weather", "Lisbon", "sun-icon", "warning", weather());
-        weather.setMinRowSpan(2);
+        VBox hourly = hourly();
+        RXDashboardCard weather = card("weather", "Lisbon", "sun-icon", "warning", weather(hourly));
+        followSize(weather, (width, height) -> setShown(hourly, height >= TALL_CARD));
         Label stage = text("", "stage-chip");
         stage.setMinWidth(Region.USE_PREF_SIZE);
         ReleaseTrack track = new ReleaseTrack(life, stage);
         RXDashboardCard release = card("release", "Release 3.2", "flag-icon", "primary", track.body(), stage);
         track.adaptTo(release);
-        board.getCards().addAll(stock, weather,
-                card("sprint", "Sprint 24", "check-icon", "primary", sprint()),
+        HBox quiet = setting("moon-icon", "danger", "Do not disturb", "Until 07:00", false, true);
+        VBox switches = new VBox(setting("bulb-icon", "warning", "Lights", "4 lamps on", true, false),
+                setting("snow-icon", "primary", "Climate", "Cooling to 22°", true, true), quiet);
+        RXDashboardCard home = card("home", "Living room", "home-icon", "primary", switches);
+        followSize(home, (width, height) -> setShown(quiet, height >= TALL_CARD));
+        board.getCards().addAll(stock, weather, home,
                 card("storage", "Storage", "storage-icon", "muted", storage()),
                 release,
                 card("team", "On call", "group-icon", "danger", team()),
@@ -291,8 +303,6 @@ public final class RXDashboardPaneSamples {
      */
     private static final class StockQuote {
 
-        private static final double ROOMY_HEIGHT = 240.0;
-
         private final Random random = new Random(7L);
         private final List<Double> prices = new ArrayList<>();
         private final RXTransitionLabel quote = new RXTransitionLabel();
@@ -354,11 +364,9 @@ public final class RXDashboardPaneSamples {
 
         private void fit(double width, double height) {
             narrow = width < NARROW_CARD;
-            boolean roomy = !narrow && height >= ROOMY_HEIGHT;
-            for (Node part : List.of(company, stats)) {
-                part.setVisible(roomy);
-                part.setManaged(roomy);
-            }
+            boolean roomy = !narrow && height >= TALL_CARD;
+            setShown(company, roomy);
+            setShown(stats, roomy);
             quote.setPrefSize(narrow ? 100.0 : 150.0, narrow ? 30.0 : 40.0);
             body.pseudoClassStateChanged(NARROW, narrow);
             show();
@@ -464,19 +472,23 @@ public final class RXDashboardPaneSamples {
 
     // ==================== Weather ====================
 
-    private static Node weather() {
+    // The weather now; a card about one row tall leaves out the hourly forecast.
+    private static Node weather(Node hourly) {
         Label temperature = text("24°", "weather-temperature");
         HBox now = new HBox(12.0, sky("partly", "large"), temperature);
         now.setAlignment(Pos.CENTER_LEFT);
-        VBox forecast = new VBox(9.0,
-                hour("15:00", "sun", "25°"), hour("16:00", "partly", "24°"), hour("17:00", "cloud", "22°"),
-                hour("18:00", "rain", "20°"), hour("19:00", "rain", "19°"));
+        return new VBox(6.0, now, text("Partly cloudy", "card-strong"), text("H 27°  ·  L 18°", "card-muted"),
+                hourly);
+    }
+
+    private static VBox hourly() {
         Region rule = new Region();
         rule.getStyleClass().add("card-rule");
-        VBox body = new VBox(6.0, now, text("Partly cloudy", "card-strong"), text("H 27°  ·  L 18°", "card-muted"),
-                rule, forecast);
-        VBox.setMargin(rule, new Insets(4.0, 0.0, 4.0, 0.0));
-        return body;
+        VBox hourly = new VBox(9.0, rule,
+                hour("15:00", "sun", "25°"), hour("16:00", "partly", "24°"), hour("17:00", "cloud", "22°"),
+                hour("18:00", "rain", "20°"), hour("19:00", "rain", "19°"));
+        hourly.setPadding(new Insets(4.0, 0.0, 0.0, 0.0));
+        return hourly;
     }
 
     private static Node hour(String time, String sky, String temperature) {
@@ -507,21 +519,39 @@ public final class RXDashboardPaneSamples {
         return symbol;
     }
 
-    // ==================== Sprint ====================
+    // ==================== Room ====================
 
-    private static Node sprint() {
-        RXCircularProgressIndicator ring = new RXCircularProgressIndicator(0.72);
-        ring.setPrefSize(76.0, 76.0);
-        ring.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        ring.setTrackStrokeWidth(7.0);
-        ring.setProgressStrokeWidth(7.0);
-        ring.setStrokeLineCap(StrokeLineCap.ROUND);
-        ring.setTextFactory(value -> Math.round(value * 100.0) + "%");
-        VBox texts = new VBox(4.0, text("18 of 25 tasks", "card-strong"), text("3 days left", "card-muted"));
-        texts.setAlignment(Pos.CENTER_LEFT);
-        HBox body = new HBox(14.0, ring, texts);
-        body.setAlignment(Pos.CENTER_LEFT);
-        return body;
+    // A setting row: a badge in the setting's color, the setting over its state, and a switch. Switched off, the badge
+    // turns gray and the state reads Off. A card about one row tall leaves out the third row.
+    private static HBox setting(String glyph, String tone, String title, String state, boolean on, boolean ruled) {
+        StackPane badge = new StackPane(icon(glyph));
+        badge.getStyleClass().addAll("setting-badge", tone);
+        badge.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        badge.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        Label name = text(title, "card-strong");
+        Label hint = text("", "card-muted");
+        VBox texts = new VBox(1.0, name, hint);
+        texts.setMinWidth(0.0);
+        HBox.setHgrow(texts, Priority.ALWAYS);
+        RXSwitchButton toggle = new RXSwitchButton();
+        toggle.setMinWidth(Region.USE_PREF_SIZE);
+        // The switch takes its own press, so pulling its thumb never drags the card.
+        toggle.addEventHandler(MouseEvent.MOUSE_PRESSED, Event::consume);
+
+        HBox row = new HBox(10.0, badge, texts, toggle);
+        row.getStyleClass().add("setting-row");
+        if (ruled) {
+            row.getStyleClass().add("ruled");
+        }
+        row.setAlignment(Pos.CENTER_LEFT);
+        Runnable show = () -> {
+            hint.setText(toggle.isSelected() ? state : "Off");
+            row.pseudoClassStateChanged(OFF, !toggle.isSelected());
+        };
+        toggle.setSelected(on);
+        toggle.selectedProperty().addListener(obs -> show.run());
+        show.run();
+        return row;
     }
 
     // ==================== Storage ====================
@@ -591,8 +621,7 @@ public final class RXDashboardPaneSamples {
         void adaptTo(Region card) {
             followSize(card, (width, height) -> {
                 narrow = width < NARROW_CARD;
-                nameRow.setVisible(!narrow);
-                nameRow.setManaged(!narrow);
+                setShown(nameRow, !narrow);
                 show();
             });
         }
