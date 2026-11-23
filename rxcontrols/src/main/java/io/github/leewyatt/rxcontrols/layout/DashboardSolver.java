@@ -16,9 +16,10 @@ import java.util.TreeSet;
  * function is pure: it reads its arguments, never changes them, and returns a new map whose keys follow the order
  * of the items passed in. Keys identify cards; the pane passes its cards, which compare by identity.
  *
- * <p>Cards only ever move straight down when pushed, and only straight up when compacted; nothing moves sideways,
- * and locked cards never move. A preview is always solved from the layout a gesture started with, so dragging a
- * card away and back again restores every neighbour.</p>
+ * <p>Here cards only ever move straight down when pushed, and only straight up when compacted; nothing moves
+ * sideways, and locked cards never move. Solving from the layout a gesture started with makes dragging a card away and
+ * back again restore every neighbour. A drag that keeps the cards packed upward, which may exchange cards sideways, is
+ * worked out step by step by {@link DashboardDrag} instead.</p>
  */
 final class DashboardSolver {
 

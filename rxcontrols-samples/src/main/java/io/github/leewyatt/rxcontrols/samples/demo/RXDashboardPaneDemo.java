@@ -37,8 +37,8 @@ import java.util.prefs.Preferences;
  * Demo for {@link RXDashboardPane}: a CRM home page whose layout the user arranges and keeps. Four KPI cards, a sales
  * trend chart, a customer table and a pipeline chart sit on a 4-column board. "Edit layout" switches dragging and
  * resizing on; the layout is saved to the user's preferences whenever it changes and restored at the next start, so
- * closing and reopening the demo shows the board as it was left. "Compact" closes the holes pushes leave behind and
- * "Reset layout" goes back to the default arrangement.
+ * closing and reopening the demo shows the board as it was left. The cards stay packed upward, so moving or resizing
+ * one never leaves a hole above another. "Reset layout" goes back to the default arrangement.
  */
 public class RXDashboardPaneDemo extends Application {
 
@@ -75,7 +75,7 @@ public class RXDashboardPaneDemo extends Application {
                 card("pipeline", "Pipeline by stage", pipelineChart()));
 
         // Restore the saved layout when it can be read, the defaults otherwise; then save every change, whether the
-        // user dragged a card or a button compacted the board.
+        // user dragged a card or a button reset the board.
         Preferences preferences = Preferences.userNodeForPackage(RXDashboardPaneDemo.class);
         dashboard.applyLayout(readLayout(preferences.get(LAYOUT_KEY, null)));
         dashboard.layoutProperty().addListener(
@@ -83,13 +83,10 @@ public class RXDashboardPaneDemo extends Application {
 
         ToggleButton edit = new ToggleButton("Edit layout");
         edit.selectedProperty().bindBidirectional(dashboard.editableProperty());
-        Button compact = new Button("Compact");
-        compact.disableProperty().bind(edit.selectedProperty().not());
-        compact.setOnAction(e -> dashboard.compact());
         Button reset = new Button("Reset layout");
         reset.setOnAction(e -> dashboard.applyLayout(DEFAULT_LAYOUT));
         Label hint = new Label("Turn on Edit layout, then drag a card or pull its right or bottom edge.");
-        HBox toolbar = new HBox(8.0, edit, compact, reset, hint);
+        HBox toolbar = new HBox(8.0, edit, reset, hint);
         toolbar.setAlignment(Pos.CENTER_LEFT);
         toolbar.setPadding(new Insets(10, 12, 0, 12));
 

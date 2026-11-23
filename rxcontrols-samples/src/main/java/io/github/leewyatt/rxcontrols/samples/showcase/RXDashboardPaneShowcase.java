@@ -45,8 +45,9 @@ import java.util.function.Function;
  * Showcase for {@link RXDashboardPane}. A CRM-style board of four cards (a line chart, a customer table whose
  * columns resize and reorder, a KPI card and a 160 px circle that overflows narrow cards) inside a
  * {@code ScrollPane}, with controls for the grid (columns, row height, gaps, minimum column width), editing (collision
- * policy, editable, live resize, a locked card, title-bar drag handles), animation, and the layout itself: save,
- * restore, defaults, compact, adding and removing cards, the encoded snapshot and the last user edit.
+ * policy, keeping the cards packed upward, editable, live resize, a locked card, title-bar drag handles), animation,
+ * and the layout itself: save, restore, defaults, compact (only useful with packing off), adding and removing cards,
+ * the encoded snapshot and the last user edit.
  */
 public class RXDashboardPaneShowcase extends RXShowcaseApplication {
 
@@ -142,6 +143,8 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
         policy.setValue(dashboard.getCollisionPolicy());
         policy.valueProperty().addListener((obs, old, value) -> dashboard.setCollisionPolicy(value));
 
+        CheckBox autoCompact = new CheckBox("Keep the cards packed upward");
+        autoCompact.selectedProperty().bindBidirectional(dashboard.autoCompactProperty());
         CheckBox editable = new CheckBox("Editable");
         editable.selectedProperty().bindBidirectional(dashboard.editableProperty());
         CheckBox liveResize = new CheckBox("Live resize");
@@ -155,6 +158,7 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
                 (obs, old, value) -> withCard("trend", card -> card.setMinColumnSpan(value ? 2 : 1)));
         return createGrid(
                 row("Collision", policy),
+                row(autoCompact),
                 row(editable),
                 row(liveResize),
                 row(locked),
@@ -182,6 +186,7 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
         defaults.setOnAction(e -> dashboard.applyLayout(DEFAULTS));
         Button compact = new Button("Compact");
         compact.setOnAction(e -> dashboard.compact());
+        compact.disableProperty().bind(dashboard.autoCompactProperty());
         HBox layoutButtons = new HBox(8.0, save, restore, defaults, compact);
         layoutButtons.setAlignment(Pos.CENTER_LEFT);
 
