@@ -758,6 +758,45 @@ public class RXDashboardPaneTest {
     }
 
     @Test
+    public void aCardTakenOutBeforeALateCountAsksForTheCellsItLeft() throws Exception {
+        fx(() -> {
+            for (boolean afterFirstLayout : new boolean[] {false, true}) {
+                // A style sheet's count is still 12 until the CSS pass, so only the last layout saved is compared.
+                List<String> late = putBackAfterTheCount(false, afterFirstLayout);
+                List<String> first = putBackAfterTheCount(true, afterFirstLayout);
+                assertEquals(first.get(first.size() - 1), late.get(late.size() - 1),
+                        "put back after the first layout: " + afterFirstLayout);
+                assertEquals(layout(24, "S", 1, 0, 3, 1, "T", 6, 0, 6, 2).encode(), late.get(late.size() - 1));
+            }
+        });
+    }
+
+    // A restored layout, one card taken out before the 24 columns arrive and put back afterwards; returns every layout
+    // an autosave listener would have written.
+    private static List<String> putBackAfterTheCount(boolean countFirst, boolean afterFirstLayout) {
+        RXDashboardPane pane = new RXDashboardPane();
+        if (countFirst) {
+            pane.setColumnCount(24);
+        } else {
+            pane.setStyle("-rx-column-count: 24;");
+        }
+        RXDashboardCard s = card("S", 1, 1);
+        pane.getCards().addAll(s, card("T", 1, 1));
+        pane.applyLayout(layout(24, "S", 1, 0, 3, 1, "T", 6, 0, 6, 2));
+        List<String> saved = new ArrayList<>();
+        pane.layoutProperty().addListener((obs, old, value) -> saved.add(value.encode()));
+        pane.getCards().remove(s);
+        stageFor(pane);
+        pane.applyCss();
+        if (afterFirstLayout) {
+            layout(pane, 900.0, 400.0);
+        }
+        pane.getCards().add(s);
+        layout(pane, 900.0, 400.0);
+        return saved;
+    }
+
+    @Test
     public void aPolicyChangedAfterTheCountPlacesTheCardsAgain() throws Exception {
         fx(() -> {
             RXDashboardPane pane = new RXDashboardPane();

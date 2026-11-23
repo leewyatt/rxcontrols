@@ -621,6 +621,38 @@ public class RXDashboardPaneGestureTest {
     }
 
     @Test
+    public void aGestureEndedByItsOwnCardsChangesThrowsNothing() throws Exception {
+        fx(() -> {
+            // Ended while following the pointer.
+            Board followed = new Board();
+            followed.c.translateXProperty().addListener((obs, old, value) -> followed.c.setLocked(true));
+            Point2D start = followed.press(followed.c, 5, 5);
+            followed.drag(followed.c, start.getX() - 150, start.getY() + 10);
+            followed.drag(followed.c, start.getX() - 160, start.getY() + 10);
+            assertFalse(followed.c.getPseudoClassStates().contains(DRAGGING));
+            assertEquals(0.0, followed.c.getTranslateX());
+
+            // Ended while the gesture starts: the card's stacking is given back.
+            Board raised = new Board();
+            double viewOrder = raised.c.getViewOrder();
+            raised.c.viewOrderProperty().addListener((obs, old, value) -> raised.c.setLocked(true));
+            start = raised.press(raised.c, 5, 5);
+            raised.drag(raised.c, start.getX() - 150, start.getY() + 10);
+            assertFalse(raised.c.getPseudoClassStates().contains(DRAGGING));
+            assertEquals(viewOrder, raised.c.getViewOrder());
+
+            // Ended by the release's last move.
+            Board released = new Board();
+            start = released.press(released.c, 5, 5);
+            released.drag(released.c, start.getX() - 150, start.getY() + 10);
+            released.c.translateXProperty().addListener((obs, old, value) -> released.pane.setEditable(false));
+            released.release(released.c, start.getX() - 170, start.getY() + 10);
+            assertFalse(released.c.getPseudoClassStates().contains(DRAGGING));
+            assertPlacement(released.c, 2, 1, 1, 1);
+        });
+    }
+
+    @Test
     public void anIdTheSnapshotDoesNotUseCanChangeDuringADrag() throws Exception {
         fx(() -> {
             Board board = new Board();

@@ -328,7 +328,9 @@ final class DashboardGesture {
             lastSceneX = event.getSceneX();
             lastSceneY = event.getSceneY();
             track();
-            commit();
+            if (started) {
+                commit();
+            }
         } else {
             forgetPress();
         }
@@ -358,23 +360,31 @@ final class DashboardGesture {
         }
         started = true;
         swallowClick = true;
+        RXDashboardCard held = card;
+        boolean drag = edge == null;
+        viewOrderBefore = held.getViewOrder();
         startLayout = pane.committedPlacements();
         preview = new LinkedHashMap<>(startLayout);
-        candidate = card.placement;
+        candidate = held.placement;
         layoutBefore = pane.getLayout();
-        pane.releaseFromAnimation(card);
-        viewOrderBefore = card.getViewOrder();
-        if (!card.viewOrderProperty().isBound()) {
-            card.setViewOrder(viewOrderBefore - 1.0);
+        // A listener reached from each change to the card below may end the gesture at once.
+        pane.releaseFromAnimation(held);
+        if (started && !held.viewOrderProperty().isBound()) {
+            held.setViewOrder(viewOrderBefore - 1.0);
         }
-        card.pseudoClassStateChanged(edge == null ? RXDashboardCard.DRAGGING_PSEUDO_CLASS
-                : RXDashboardCard.RESIZING_PSEUDO_CLASS, true);
+        if (started) {
+            held.pseudoClassStateChanged(drag ? RXDashboardCard.DRAGGING_PSEUDO_CLASS
+                    : RXDashboardCard.RESIZING_PSEUDO_CLASS, true);
+        }
+        if (!started) {
+            return false;
+        }
         watch(pane.getScene());
-        if (edge == null) {
+        if (drag) {
             follow();
         }
         pane.requestLayout();
-        return true;
+        return started;
     }
 
     // Follows the pointer, re-solves when it reaches another cell, and scrolls when it nears a viewport edge.
@@ -386,6 +396,10 @@ final class DashboardGesture {
     private void track() {
         if (edge == null) {
             follow();
+            // A listener reached from moving the card may have ended the gesture.
+            if (!started) {
+                return;
+            }
         } else if (pane.isLiveResize()) {
             pane.requestLayout();
         }

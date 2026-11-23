@@ -349,9 +349,12 @@ public class RXDashboardPane extends Region {
      * was applied still yields the snapshot. Until the pane is first laid out, a change instead places every card
      * again as if the count had been set before the first card was added, repeating in order the cards added and
      * removed, the snapshots applied and the edits made so far, with the cards' current locks and span limits: FXML
-     * sets the count after adding the cards, and a style sheet sets it at the first CSS pass. A change that comes
-     * after the layout was changed following an earlier change converts instead, since what came after a count was
-     * set refers to that count; so does every change once the pane has been laid out. Values above 4096 count as
+     * sets the count after adding the cards, and a style sheet sets it at the first CSS pass. A card taken out
+     * meanwhile and not yet in another dashboard is given the cells it would have left, which it requests when added
+     * again. A change that comes after the layout was changed following an earlier change converts instead, since
+     * what came after a count was set refers to that count; so does every change once the pane has been laid out, or
+     * once more than 512 cards were added, removed or edited, or snapshots applied, before it. Values above 4096
+     * count as
      * 4096.
      *
      * <p>A value below 1 is rejected with {@link IllegalArgumentException} and the property goes back to its last
@@ -594,8 +597,8 @@ public class RXDashboardPane extends Region {
      * requested position alike. {@link CollisionPolicy#PUSH PUSH} by default; {@code null} counts as
      * {@code PUSH}. Until the pane is first laid out, a change places every card again as if the policy had been set
      * before the first card was added, with the cards' current locks and span limits: FXML sets the policy after
-     * adding the cards. That stops once a column-count change had to convert the layout instead (see
-     * {@link #columnCountProperty()}).
+     * adding the cards. That stops once a column-count change had to convert the layout instead, or after more than
+     * 512 such operations (see {@link #columnCountProperty()}); a change then applies to later edits only.
      *
      * @return the collision-policy property
      */
@@ -1329,7 +1332,9 @@ public class RXDashboardPane extends Region {
         // Where each removed card was, live and in the replay: a card put back asks for the position it left, which
         // it published at the count of the time.
         Map<RXDashboardCard, Placement[]> removedAt = new IdentityHashMap<>();
-        for (History step : history) {
+        Map<RXDashboardCard, Integer> removedStep = new IdentityHashMap<>();
+        for (int index = 0; index < history.size(); index++) {
+            History step = history.get(index);
             RXDashboardCard card = step.card();
             Map<RXDashboardCard, Placement> result = state;
             switch (step.step()) {
@@ -1347,6 +1352,7 @@ public class RXDashboardPane extends Region {
                 }
                 case REMOVED -> {
                     removedAt.put(card, new Placement[] {step.asked(), state.get(card)});
+                    removedStep.put(card, index);
                     result = new LinkedHashMap<>(state);
                     result.remove(card);
                     rebuilt.remove(card);
@@ -1401,6 +1407,16 @@ public class RXDashboardPane extends Region {
         }
         base.clear();
         base.putAll(rebuilt);
+        // A card still out shows the cells it left at the old count; it would request them when added again.
+        for (Map.Entry<RXDashboardCard, Integer> removed : removedStep.entrySet()) {
+            RXDashboardCard card = removed.getKey();
+            Placement[] left = removedAt.get(card);
+            if (!state.containsKey(card) && card.owner == null && left[0] != null && left[1] != null
+                    && card.requestedPlacement().equals(left[0])) {
+                history.set(removed.getValue(), History.of(Step.REMOVED, card, left[1]));
+                card.publish(left[1]);
+            }
+        }
         Map<RXDashboardCard, Placement> ordered = new LinkedHashMap<>();
         for (RXDashboardCard card : work.keySet()) {
             ordered.put(card, state.get(card));
