@@ -533,10 +533,12 @@ public class RXDashboardPaneTest {
             pane.setStyle("-rx-column-count: 6;");
             pane.applyCss();
             assertEquals(6, pane.getColumnCount());
-            // As if the style sheet set no column count: JavaFX gives back the value set in code.
+            // As if the style sheet set no column count: JavaFX gives back the value set in code, which the pane
+            // takes at its next layout pass.
             pane.setStyle("-rx-column-count: -3;");
             pane.applyCss();
             assertEquals(4, pane.getColumnCount());
+            layout(pane, 400.0, 300.0);
             assertEquals(before, pane.getLayout());
         });
     }
@@ -1233,6 +1235,140 @@ public class RXDashboardPaneTest {
                     </RXDashboardPane>
                     """);
             assertEquals(layout(4, "a", 0, 0, 2, 1, "b", 2, 0, 2, 1), pane.getLayout());
+        });
+    }
+
+    @Test
+    public void aStyleRebuildKeepsTheColumnCountUntilTheStyleSheetsApplyAgain() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = caseOne();
+            pane.setStyle("-rx-column-count: 6;");
+            stageFor(pane);
+            pane.applyCss();
+            layout(pane, 400.0, 300.0);
+            List<RXDashboardLayout> layouts = new ArrayList<>();
+            pane.layoutProperty().addListener((obs, old, value) -> layouts.add(value));
+            // Rebuilding the styles hands back the count set in code until the next CSS pass.
+            pane.setStyle("-rx-column-count: 6; -fx-padding: 1;");
+            assertEquals(4, pane.getColumnCount());
+            assertTrue(pane.moveCard(pane.getCards().get(1), 5, 0));
+            RXDashboardLayout moved = pane.getLayout();
+            assertEquals(6, moved.getColumnCount());
+            pane.applyCss();
+            layout(pane, 400.0, 300.0);
+            assertEquals(6, pane.getColumnCount());
+            assertEquals(moved, pane.getLayout());
+            assertEquals(List.of(moved), layouts);
+        });
+    }
+
+    @Test
+    public void applyingTheLayoutShownIsNoEdit() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = caseOne();
+            layout(pane, 400.0, 300.0);
+            RXDashboardLayout four = pane.getLayout();
+            pane.setColumnCount(2);
+            pane.applyLayout(pane.getLayout());
+            pane.setColumnCount(4);
+            assertEquals(four, pane.getLayout());
+        });
+    }
+
+    @Test
+    public void togglingEditableSkipsNullsAndRepeatsInTheList() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = caseOne();
+            RXDashboardCard a = pane.getCards().get(0);
+            pane.getCards().addAll(null, a);
+            PseudoClass draggable = PseudoClass.getPseudoClass("draggable");
+            pane.setEditable(false);
+            assertFalse(a.getPseudoClassStates().contains(draggable));
+            pane.setEditable(true);
+            assertTrue(a.getPseudoClassStates().contains(draggable));
+        });
+    }
+
+    @Test
+    public void aCardTakenByAnotherDashboardWhilePublishedShowsItsPlacementThere() throws Exception {
+        fx(() -> {
+            RXDashboardPane p = pane(4);
+            RXDashboardPane q = pane(4);
+            RXDashboardCard x = new RXDashboardCard("x", null, 1, 0, 1, 1);
+            p.getCards().add(x);
+            x.columnProperty().addListener((obs, old, value) -> {
+                if (!q.getCards().contains(x)) {
+                    q.getCards().add(x);
+                }
+            });
+            p.setColumnCount(12);
+            assertSame(q, x.getParent());
+            assertEquals(q.getLayout().getPlacement("x"),
+                    new Placement(x.getColumn(), x.getRow(), x.getColumnSpan(), x.getRowSpan()));
+        });
+    }
+
+    @Test
+    public void aCardMovedAwayWhileTheListIsTakenInLeavesNoTrace() throws Exception {
+        fx(() -> {
+            RXDashboardPane p = pane(4);
+            RXDashboardPane q = pane(4);
+            RXDashboardCard x = card("x", 2, 1);
+            x.columnProperty().addListener((obs, old, value) -> {
+                if (!p.getCards().contains(x)) {
+                    p.getCards().add(x);
+                }
+            });
+            q.getCards().add(x);
+            assertTrue(q.getCards().isEmpty());
+            assertSame(p, x.getParent());
+            assertTrue(q.getLayout().getPlacements().isEmpty());
+            assertTrue(q.getChildrenUnmodifiable().stream().noneMatch(child -> child == x));
+            assertEquals(p.getLayout().getPlacement("x"),
+                    new Placement(x.getColumn(), x.getRow(), x.getColumnSpan(), x.getRowSpan()));
+        });
+    }
+
+    @Test
+    public void aRenderScaleChangeLaysTheCardContentOutAgain() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = pane(1);
+            pane.setAnimated(false);
+            pane.setRowHeight(80.0);
+            Region content = new Region();
+            RXDashboardCard card = new RXDashboardCard("a", content, 0, 0, 1, 1);
+            card.setStyle("-fx-padding: 8.4px;");
+            pane.getCards().add(card);
+            Stage stage = stageFor(pane);
+            stage.setRenderScaleX(1.25);
+            stage.setRenderScaleY(1.25);
+            pane.applyCss();
+            // Moving the content in the card's first pass asks for one more.
+            layout(pane, 400.0, 300.0);
+            layout(pane, 400.0, 300.0);
+            assertFalse(card.isNeedsLayout());
+            double width = card.getWidth();
+            stage.setRenderScaleX(1.0);
+            stage.setRenderScaleY(1.0);
+            layout(pane, 400.0, 300.0);
+            // The card keeps its size; its insets snap to the new grid.
+            assertEquals(width, card.getWidth(), EPSILON);
+            assertEquals(card.snappedLeftInset(), content.getLayoutX(), EPSILON);
+            assertEquals(card.snappedTopInset(), content.getLayoutY(), EPSILON);
+        });
+    }
+
+    @Test
+    public void aStepwiseDragAsksForNoRowBeyondTheLastOne() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = caseOne();
+            pane.setSnapToPixel(false);
+            pane.setRowHeight(0.25);
+            layout(pane, 400.0, 300.0);
+            DashboardGrid grid = pane.computeGrid();
+            double last = RXDashboardPane.virtualY(grid, grid.rowY(DashboardSolver.MAX_ROW));
+            assertEquals(last, RXDashboardPane.virtualY(grid, 1.0e12), last * 1e-9);
+            assertTrue(RXDashboardPane.virtualY(grid, grid.rowY(10)) < last);
         });
     }
 

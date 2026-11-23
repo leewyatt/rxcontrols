@@ -145,6 +145,12 @@ public class RXDashboardLayoutTest {
      * Verifies that damaged text and unknown format versions are rejected with IllegalArgumentException.
      */
     @Test
+    public void ignoresWhitespaceAroundTheText() {
+        RXDashboardLayout layout = RXDashboardLayout.builder(4).card("a b", 0, 0, 2, 1).build();
+        assertEquals(layout, RXDashboardLayout.decode(" \t" + layout.encode() + "\r\n"));
+    }
+
+    @Test
     public void rejectsDamagedText() {
         assertThrows(NullPointerException.class, () -> RXDashboardLayout.decode(null));
         String[] damaged = {
@@ -160,7 +166,6 @@ public class RXDashboardLayoutTest {
                 "rxdash/1;columns=+4",
                 "rxdash/1;columns=99999999999",
                 "rxdash/1;cols=4",
-                " rxdash/1;columns=4",
                 "rxdash/1;columns=4;",
                 "rxdash/1;columns=4;a",
                 "rxdash/1;columns=4;=0,0,1,1",

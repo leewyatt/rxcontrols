@@ -114,7 +114,7 @@ final class DashboardGesture {
         // A press and the drags before the threshold bubble, so content that takes them for itself keeps them. Once a
         // gesture has started, filters take its drags first and see its release even when content consumes it.
         pane.addEventHandler(MouseEvent.MOUSE_PRESSED, this::pressed);
-        pane.addEventFilter(MouseEvent.MOUSE_PRESSED, this::pressedDuringGesture);
+        pane.addEventFilter(MouseEvent.MOUSE_PRESSED, this::beforePress);
         pane.addEventHandler(MouseEvent.MOUSE_DRAGGED, this::dragged);
         pane.addEventFilter(MouseEvent.MOUSE_DRAGGED, this::draggedDuringGesture);
         pane.addEventFilter(MouseEvent.MOUSE_RELEASED, this::released);
@@ -245,14 +245,13 @@ final class DashboardGesture {
         }
     }
 
-    // A primary press while a gesture is in progress means its release never arrived.
-    private void pressedDuringGesture(MouseEvent event) {
+    // A primary press ends what the last one left behind: a gesture whose release never arrived, or a card armed by a
+    // press whose release went elsewhere (to another window, say). Runs before content can consume the press.
+    private void beforePress(MouseEvent event) {
         if (event.getButton() != MouseButton.PRIMARY) {
             return;
         }
-        if (started) {
-            cancel();
-        }
+        cancel();
         swallowClick = false;
     }
 
@@ -305,7 +304,7 @@ final class DashboardGesture {
     }
 
     private void dragged(MouseEvent event) {
-        if (!armed || started) {
+        if (!armed || started || !event.isPrimaryButtonDown()) {
             return;
         }
         lastSceneX = event.getSceneX();
@@ -540,13 +539,8 @@ final class DashboardGesture {
 
     private void commit() {
         RXDashboardCard edited = card;
-        Map<RXDashboardCard, Placement> result = preview;
-        boolean changed = !result.equals(startLayout);
-        RXDashboardLayout before = layoutBefore;
-        end();
-        if (changed) {
-            pane.commitUserEdit(result, edited, before);
-        }
+        Map<RXDashboardCard, Placement> result = preview.equals(startLayout) ? null : preview;
+        pane.commitUserEdit(this::end, result, edited, layoutBefore);
         pane.requestLayout();
     }
 

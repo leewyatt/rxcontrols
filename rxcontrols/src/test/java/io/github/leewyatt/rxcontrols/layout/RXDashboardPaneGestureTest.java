@@ -20,6 +20,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -891,6 +892,101 @@ public class RXDashboardPaneGestureTest {
             assertFalse(board.a.getPseudoClassStates().contains(DRAGGING));
             assertNull(board.a.getParent());
             assertEquals(0, board.b.getRow());
+        });
+    }
+
+    @Test
+    public void aPressTakenByContentLetsGoOfACardArmedEarlier() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            Region content = new Region();
+            content.addEventHandler(MouseEvent.MOUSE_PRESSED, MouseEvent::consume);
+            board.b.setContent(content);
+            board.layout();
+            // The release of this press goes to another window.
+            board.press(board.a, 5, 5);
+            Point2D start = board.press(content, 5, 5);
+            board.drag(content, start.getX() - 150, start.getY() + 150);
+            assertFalse(board.a.getPseudoClassStates().contains(DRAGGING));
+            board.release(content, start.getX() - 150, start.getY() + 150);
+            assertPlacement(board.a, 0, 0, 2, 1);
+        });
+    }
+
+    @Test
+    public void aDragWithThePrimaryButtonUpMovesNothing() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            // The release of this press goes to another window.
+            Point2D start = board.press(board.a, 5, 5);
+            board.fire(board.a, MouseEvent.MOUSE_DRAGGED, start.add(100, 0), MouseButton.SECONDARY);
+            assertFalse(board.a.getPseudoClassStates().contains(DRAGGING));
+            assertPlacement(board.a, 0, 0, 2, 1);
+        });
+    }
+
+    @Test
+    public void aCardIsPickedWhereItPaintsNotAcrossItsOverflowingContent() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            board.b.setContent(new Circle(150.0));
+            board.layout();
+            // Inside A, inside the box around B's circle, outside the circle.
+            Point2D point = board.pane.localToScene(105.0, 5.0);
+            assertTrue(board.b.getBoundsInParent().contains(board.pane.sceneToLocal(point)));
+            assertFalse(board.b.contains(board.b.sceneToLocal(point)));
+            assertTrue(board.a.contains(board.a.sceneToLocal(point)));
+        });
+    }
+
+    @Test
+    public void handlesStayInsideACardNarrowerThanThem() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = new RXDashboardPane();
+            pane.setColumnCount(30);
+            pane.setRowHeight(40.0);
+            pane.setHgap(10.0);
+            pane.setVgap(10.0);
+            RXDashboardCard tall = new RXDashboardCard("L", null, 0, 0, 1, 2);
+            RXDashboardCard small = new RXDashboardCard("R", null, 1, 0, 1, 1);
+            pane.getCards().addAll(tall, small);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(pane));
+            pane.applyCss();
+            pane.resize(400.0, 300.0);
+            pane.layout();
+            assertTrue(small.getWidth() < 8.0, "a card narrower than a handle: " + small.getWidth());
+            for (RXDashboardCard card : List.of(tall, small)) {
+                for (String edge : List.of("right", "bottom", "corner")) {
+                    Region handle = handle(card, edge);
+                    assertTrue(handle.getLayoutX() >= 0.0 && handle.getLayoutY() >= 0.0,
+                            card.getCardId() + " " + edge + " at " + handle.getLayoutX() + "," + handle.getLayoutY());
+                }
+            }
+        });
+    }
+
+    @Test
+    public void aCardAddedWhileTheDraggedCardIsGivenBackIsPlacedAfterTheCommit() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            RXDashboardCard d = new RXDashboardCard("D", null, 3, 0, 1, 1);
+            board.a.viewOrderProperty().addListener((obs, old, value) -> {
+                if (value.doubleValue() == 0.0 && !board.pane.getCards().contains(d)) {
+                    board.pane.getCards().add(d);
+                }
+            });
+            List<RXDashboardEvent> events = board.events();
+            Point2D start = board.press(board.a, 5, 5);
+            board.drag(board.a, start.getX() + 100, start.getY());
+            board.layout();
+            board.release(board.a, start.getX() + 100, start.getY());
+            board.layout();
+            assertEquals(1, events.size());
+            assertPlacement(board.a, 1, 0, 2, 1);
+            assertPlacement(board.b, 2, 1, 1, 1);
+            assertPlacement(d, 3, 0, 1, 1);
+            assertTrue(board.pane.moveCard(board.b, 0, 2));
         });
     }
 
