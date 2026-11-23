@@ -182,8 +182,9 @@ public class RXDashboardPane extends Region {
     // pushes nothing records only that card. A card the base does not hold (left out of an applied snapshot) is placed
     // as a card a snapshot lacks.
     private final Map<RXDashboardCard, BaseEntry> base = new IdentityHashMap<>();
-    // The layout shown at each column count since the last edit (any change of the base), so changing the count and
-    // changing it back restores the layout exactly, whatever locks, packing or removals came in between.
+    // The layout shown at each column count since the last edit (anything but a column-count change moving cards
+    // already there), restored when the count comes back: without the cards removed since, with those added since
+    // placed as cards a snapshot lacks, and then packed as the current locks and autoCompact say.
     private final Map<Integer, Map<RXDashboardCard, Placement>> shown = new HashMap<>();
     // Until the first layout pass, every operation that placed cards, in order. FXML sets a pane's attributes after
     // its children and a style sheet's column count arrives with the first CSS pass, so the column count, the
@@ -374,20 +375,22 @@ public class RXDashboardPane extends Region {
      * from the last layout not produced by a column-count change, so a column count set by a style sheet after a
      * snapshot was applied still yields the snapshot (packed upward, with {@link #autoCompactProperty() autoCompact}).
      * Going back to a count shown since the last edit restores the layout shown there instead, so changing the count
-     * and changing it back with no edit in between restores the layout exactly. Edits are what moves cards for another
-     * reason: gestures, {@link #moveCard}, {@link #resizeCard}, {@link #compact()}, {@link #applyLayout}, a span
-     * limit, an added card that pushes others and cards packing upward (with {@code autoCompact}, adding a card always
-     * counts). Locking or unlocking cards, turning {@code autoCompact} off and removing cards are not: cards removed
+     * and changing it back with no edit in between restores the layout exactly. Edits are what moves cards already
+     * there for another reason: gestures, {@link #moveCard}, {@link #resizeCard}, {@link #compact()},
+     * {@link #applyLayout}, a span limit, an added card that pushes others, and cards packing upward after an unlock, a
+     * removal or turning {@code autoCompact} on. Locking or unlocking cards, turning {@code autoCompact} on or off and
+     * adding or removing cards are not edits when they move no other card. Back at a count shown before, cards removed
      * meanwhile are left out, cards added meanwhile are placed as {@code applyLayout} places cards a snapshot does not
-     * mention, and with {@code autoCompact} a card unlocked meanwhile then packs upward. Until the pane is first laid
-     * out, a change instead places every card again as if the count had been set before the
-     * first card was added, repeating in order the cards added and removed, the snapshots applied and the edits made
-     * so far, with the cards' current locks and span limits: FXML sets the count after adding the cards, and a style
-     * sheet sets it at the first CSS pass. A card taken out meanwhile and not yet in another dashboard is given the
-     * cells it would have left, which it requests when added again. A change that comes after the layout was changed
-     * following an earlier change converts instead, since what came after a count was set refers to that count; so
-     * does every change once the pane has been laid out, or once more than 512 cards were added, removed or edited,
-     * or snapshots applied, before it. Values above 4096 count as 4096.
+     * mention, and with {@code autoCompact} the cards then pack upward under the current locks: a card unlocked
+     * meanwhile, cards below one removed meanwhile and holes left while {@code autoCompact} was off close up. Until the
+     * pane is first laid out, a change instead places every card again as if the count had been set before the first
+     * card was added, repeating in order the cards added and removed, the snapshots applied and the edits made so far,
+     * with the cards' current locks and span limits: FXML sets the count after adding the cards, and a style sheet sets
+     * it at the first CSS pass. A card taken out meanwhile and not yet in another dashboard is given the cells it would
+     * have left, which it requests when added again. A change that comes after the layout was changed following an
+     * earlier change converts instead, since what came after a count was set refers to that count; so does every change
+     * once the pane has been laid out, or once more than 512 cards were added, removed or edited, or snapshots applied,
+     * before it. Values above 4096 count as 4096.
      *
      * <p>A value below 1 is rejected with {@link IllegalArgumentException} and the property goes back to its last
      * valid value. When the property is bound to an invalid value it cannot go back: the pane keeps laying out with
@@ -1434,6 +1437,8 @@ public class RXDashboardPane extends Region {
             }
         }
         boolean rebaseAll = false;
+        // Whether cards already there moved: an edit, after which the layouts shown at other counts no longer apply.
+        boolean edited = false;
 
         int columns = resolvedColumnCount();
         // A conversion keeps the base; a replay rebuilds it, so what follows in this round counts as usual.
@@ -1465,9 +1470,11 @@ public class RXDashboardPane extends Region {
             if (!clamped.equals(now)) {
                 work = placeEdited(work, card, clamped);
                 rebaseAll = true;
+                edited = true;
             }
         }
 
+        Map<RXDashboardCard, Placement> before = new LinkedHashMap<>(work);
         for (RXDashboardCard card : current) {
             if (known.contains(card)) {
                 continue;
@@ -1477,20 +1484,25 @@ public class RXDashboardPane extends Region {
             record(History.of(Step.ADDED, card, request));
             batch = true;
             Map<RXDashboardCard, Placement> result = place(work, card, request, columns);
-            // Pushing a card makes the result the base, as an edit does; otherwise only the new card joins it. With
-            // packing it is always an edit: the new card takes its place in the packed layout, which a base still
-            // holding a snapshot's holes would not convert consistently with.
-            if (movesAny(work, result) || lastAutoCompact) {
+            // Pushing a card is an edit, and the result becomes the base; otherwise only the new card joins it. With
+            // packing the base follows the packed layout either way, as a base still holding a snapshot's holes would
+            // not convert consistently with where the new card went; moving nothing else, it is no edit.
+            if (movesAny(work, result)) {
+                rebaseAll = true;
+                edited = true;
+            } else if (lastAutoCompact) {
                 rebaseAll = true;
             }
             work = result;
             base.put(card, new BaseEntry(result.get(card), columns));
         }
-        // Packing what a removal, an unlock, a span limit or an addition left: an edit, so the base follows; a
-        // column-count conversion packs too but keeps converting from the base, or a round trip would not restore.
+        // Packing what a removal, an unlock, a span limit or an addition left: an edit when it moves a card that was
+        // there before, so the base follows; a column-count change packs too but keeps the base, or a round trip would
+        // not restore.
         Map<RXDashboardCard, Placement> packedWork = packed(work);
         if (!converted && movesAny(work, packedWork)) {
             rebaseAll = true;
+            edited |= movesAny(before, packedWork);
         }
         work = packedWork;
         if (batch) {
@@ -1503,7 +1515,11 @@ public class RXDashboardPane extends Region {
             ordered.put(card, work.get(card));
         }
         if (rebaseAll) {
-            newBase();
+            if (edited) {
+                newBase();
+            } else {
+                base.clear();
+            }
             for (RXDashboardCard card : members) {
                 base.put(card, new BaseEntry(ordered.get(card), columns));
             }

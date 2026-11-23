@@ -583,6 +583,86 @@ public class RXDashboardPaneAutoCompactTest {
     }
 
     @Test
+    public void applyingASnapshotAtAnotherCountReplacesTheLayoutsShownBefore() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = pane(4);
+            pane.getCards().addAll(card("a", 0, 0, 1, 1), card("b", 1, 0, 1, 1));
+            laidOut(pane);
+            pane.setColumnCount(2);
+            RXDashboardLayout snapshot = RXDashboardLayout.builder(4).card("a", 2, 0, 2, 1).card("b", 0, 0, 2, 1)
+                    .build();
+            pane.applyLayout(snapshot);
+            pane.setColumnCount(4);
+            assertEquals(snapshot, pane.getLayout());
+        });
+    }
+
+    @Test
+    public void aCardAddedAwayIsConvertedWhenTheCountComesBack() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = pane(4);
+            pane.setAutoCompact(false);
+            pane.getCards().addAll(card("a", 0, 0, 2, 1), card("b", 2, 0, 2, 1));
+            laidOut(pane);
+            pane.setColumnCount(2);
+            pane.getCards().add(card("n", 1, 3, 1, 1));
+            pane.setColumnCount(4);
+            assertEquals(List.of("0,0,2", "2,0,2", "2,3,2"), cellsInOrder(pane));
+        });
+    }
+
+    @Test
+    public void addingACardAwayThatMovesNoOtherKeepsTheLayoutsShownBefore() throws Exception {
+        fx(() -> {
+            for (boolean compact : new boolean[] {false, true}) {
+                // Placed in the first free area, or asking for a far row it then packs up from.
+                for (int row : new int[] {-1, 20}) {
+                    RXDashboardPane pane = pane(12);
+                    pane.setAutoCompact(compact);
+                    pane.getCards().addAll(card("a", 0, 0, 4, 1), card("b", 4, 0, 4, 1), card("c", 8, 0, 4, 1),
+                            card("d", 0, 1, 6, 1), card("e", 6, 1, 6, 1));
+                    laidOut(pane);
+                    List<String> before = cellsInOrder(pane);
+                    pane.setColumnCount(1);
+                    pane.getCards().add(card("n", row < 0 ? -1 : 0, row, 1, 1));
+                    pane.setColumnCount(12);
+                    assertEquals(before, cellsInOrder(pane).subList(0, 5), "packing " + compact + ", row " + row);
+                    assertNoOverlap(pane);
+                }
+            }
+        });
+    }
+
+    @Test
+    public void aRemovalAwayThatMakesCardsPackIsAnEdit() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = pane(4);
+            RXDashboardCard a = card("a", 0, 0, 1, 1);
+            pane.getCards().addAll(a, card("b", 0, 1, 1, 1));
+            laidOut(pane);
+            pane.setColumnCount(2);
+            pane.getCards().remove(a);
+            pane.setColumnCount(4);
+            // Converted from the layout the removal left at 2 columns, not restored from the one shown at 4.
+            assertEquals(List.of("0,0,2"), cellsInOrder(pane));
+        });
+    }
+
+    @Test
+    public void aCardAddedWithPackingAfterASnapshotWithHolesKeepsItsOrderAtANewCount() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = pane(4);
+            pane.getCards().add(card("a", -1, -1, 4, 1));
+            pane.applyLayout(RXDashboardLayout.builder(4).card("a", 0, 1, 4, 1).build());
+            laidOut(pane);
+            pane.getCards().add(0, card("n", -1, -1, 4, 1));
+            assertEquals(Map.of("a", "0,0", "n", "0,1"), cells(pane));
+            pane.setColumnCount(2);
+            assertEquals(Map.of("a", "0,0", "n", "0,1"), cells(pane));
+        });
+    }
+
+    @Test
     public void aRemovedCardIsNotKeptByTheLayoutsShownBefore() throws Exception {
         List<WeakReference<RXDashboardCard>> removed = new ArrayList<>();
         List<RXDashboardPane> kept = new ArrayList<>();
