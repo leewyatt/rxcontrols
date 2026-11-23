@@ -13,6 +13,7 @@ import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.FXCollections;
+import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -42,14 +43,16 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * Showcase for {@link RXDashboardPane}. A CRM-style board of four cards (a line chart, a customer table whose
- * columns resize and reorder, a KPI card and a 160 px circle that overflows narrow cards) inside a
- * {@code ScrollPane}, with controls for the grid (columns, row height, gaps, minimum column width), editing (collision
- * policy, keeping the cards packed upward, editable, live resize, a locked card, title-bar drag handles), animation,
- * and the layout itself: save, restore, defaults, compact (only useful with packing off), adding and removing cards,
- * the encoded snapshot and the last user edit.
+ * Showcase for {@link RXDashboardPane}. A CRM-style board of four cards (a line chart, a customer table whose columns
+ * resize and reorder, a KPI card and a 160 px circle that overflows narrow cards) inside a {@code ScrollPane}, with
+ * controls for the grid (columns, row height, gaps, minimum column width), editing (collision policy, keeping the cards
+ * packed upward, editable, live resize, a locked card, title-bar drag handles with an open-hand cursor on cards that
+ * can be dragged), animation, and the layout itself: save, restore, defaults, compact (only useful with packing off),
+ * adding and removing cards, the encoded snapshot and the last user edit.
  */
 public class RXDashboardPaneShowcase extends RXShowcaseApplication {
+
+    private static final PseudoClass DRAG_BY_TITLE = PseudoClass.getPseudoClass("drag-by-title");
 
     private static final RXDashboardLayout DEFAULTS = RXDashboardLayout.builder(4)
             .card("trend", 0, 0, 2, 2)
@@ -86,6 +89,7 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
                 bindPadding(new RXDashboardCard("shape", circle())));
         dashboard.applyLayout(DEFAULTS);
         saved = dashboard.getLayout();
+        dragByTitle.addListener((obs, old, value) -> dashboard.pseudoClassStateChanged(DRAG_BY_TITLE, value));
         ScrollPane scroller = new ScrollPane(dashboard);
         scroller.setFitToWidth(true);
         scroller.getStyleClass().add("dashboard-scroller");

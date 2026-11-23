@@ -102,6 +102,43 @@ public class RXDashboardPaneTest {
         });
     }
 
+    @Test
+    public void draggableFollowsTheDashboardTheMoveSwitchAndTheLock() throws Exception {
+        fx(() -> {
+            RXDashboardCard card = card("a", 1, 1);
+            assertFalse(draggable(card), "not on a dashboard");
+            RXDashboardPane pane = pane(4);
+            pane.getCards().add(card);
+            assertTrue(draggable(card));
+            card.setResizeEnabled(false);
+            assertTrue(draggable(card), "resizing is another switch");
+            card.setLocked(true);
+            assertFalse(draggable(card), "locked");
+            card.setLocked(false);
+            assertTrue(draggable(card));
+            card.setMoveEnabled(false);
+            assertFalse(draggable(card), "move switch off");
+            card.setMoveEnabled(true);
+            assertTrue(draggable(card));
+            pane.setEditable(false);
+            assertFalse(draggable(card), "dashboard not editable");
+            pane.setEditable(true);
+            assertTrue(draggable(card));
+            RXDashboardPane readOnly = pane(4);
+            readOnly.setEditable(false);
+            readOnly.getCards().add(card);
+            assertFalse(draggable(card), "taken by a dashboard that is not editable");
+            pane.getCards().add(card);
+            assertTrue(draggable(card), "back on the editable one");
+            pane.getCards().remove(card);
+            assertFalse(draggable(card), "removed");
+        });
+    }
+
+    private static boolean draggable(RXDashboardCard card) {
+        return card.getPseudoClassStates().contains(PseudoClass.getPseudoClass("draggable"));
+    }
+
     // ==================== Adding and removing ====================
 
     @Test

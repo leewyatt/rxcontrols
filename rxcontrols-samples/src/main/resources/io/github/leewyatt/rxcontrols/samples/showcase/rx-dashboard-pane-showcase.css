@@ -10,6 +10,14 @@
     -fx-font-weight: bold;
 }
 
+.rx-dashboard-pane:drag-by-title > .rx-dashboard-card:draggable .card-title {
+    -fx-cursor: open-hand;
+}
+
+.rx-dashboard-pane:drag-by-title > .rx-dashboard-card:dragging .card-title {
+    -fx-cursor: closed-hand;
+}
+
 .rx-dashboard-card .kpi-value {
     -fx-font-size: 1.8em;
     -fx-font-weight: bold;

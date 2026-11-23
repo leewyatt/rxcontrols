@@ -48,7 +48,9 @@ import java.util.Objects;
  * <p>The pane drives the card's {@code translateX}, {@code translateY} and {@code viewOrder} while it animates or
  * drags the card, and sets the {@code :dragging} and {@code :resizing} pseudo-classes; applications should not
  * change these. The card needs a background fill, transparent or not, for presses on its empty parts to reach it;
- * the default style gives it one. Style class {@code rx-dashboard-card}; pseudo-classes {@code :dragging},
+ * the default style gives it one. Style class {@code rx-dashboard-card}; pseudo-classes {@code :draggable} (the user
+ * can drag the card now: its dashboard is {@link RXDashboardPane#editableProperty() editable}, it is
+ * {@link #moveEnabledProperty() move-enabled} and not {@link #lockedProperty() locked}), {@code :dragging},
  * {@code :resizing}, {@code :locked}.</p>
  */
 public class RXDashboardCard extends Region {
@@ -57,6 +59,7 @@ public class RXDashboardCard extends Region {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-dashboard-card";
     private static final PseudoClass LOCKED_PSEUDO_CLASS = PseudoClass.getPseudoClass("locked");
+    private static final PseudoClass DRAGGABLE_PSEUDO_CLASS = PseudoClass.getPseudoClass("draggable");
     static final PseudoClass DRAGGING_PSEUDO_CLASS = PseudoClass.getPseudoClass("dragging");
     static final PseudoClass RESIZING_PSEUDO_CLASS = PseudoClass.getPseudoClass("resizing");
 
@@ -338,6 +341,7 @@ public class RXDashboardCard extends Region {
             }
             last = get();
             pseudoClassStateChanged(LOCKED_PSEUDO_CLASS, last);
+            updateDraggable();
             requestLayout();
             if (owner != null) {
                 owner.cardChanged(true);
@@ -576,6 +580,7 @@ public class RXDashboardCard extends Region {
                     return;
                 }
                 last = get();
+                updateDraggable();
                 if (owner != null) {
                     owner.cardGestureFlagsChanged(RXDashboardCard.this);
                 }
@@ -608,6 +613,14 @@ public class RXDashboardCard extends Region {
      * The node a drag must start on, for content that has its own drag gestures. {@code null}, the default, lets a
      * drag start anywhere on the card where the content does not consume the press. The handle is meant to be the
      * content or a node inside it, a title bar say; a press on the handle or on any node inside it starts a drag.
+     *
+     * <p>A cursor on the handle shows where a drag starts, and {@code :draggable} limits it to cards the user can
+     * drag now. During a drag the cursor comes from the pressed node or its nearest ancestor with a cursor, so a
+     * handle with its own cursor also needs one for {@code :dragging}:</p>
+     * <pre>{@code
+     * .rx-dashboard-card:draggable .title-bar { -fx-cursor: open-hand; }
+     * .rx-dashboard-card:dragging .title-bar { -fx-cursor: closed-hand; }
+     * }</pre>
      *
      * @return the drag-handle property
      */
@@ -701,6 +714,13 @@ public class RXDashboardCard extends Region {
     }
 
     // ==================== Pane hooks ====================
+
+    // Sets :draggable from the card's dashboard, its move switch and its lock; the pane calls it when the card joins
+    // or leaves it and when its editable state changes.
+    void updateDraggable() {
+        pseudoClassStateChanged(DRAGGABLE_PSEUDO_CLASS,
+                owner != null && owner.isEditable() && isMoveEnabled() && !isLocked());
+    }
 
     // The edge a press on this node pulls, or null when the node is not one of a card's resize handles.
     static Edge edgeOf(Node node) {

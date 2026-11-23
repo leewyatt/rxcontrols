@@ -724,6 +724,7 @@ public class RXDashboardPane extends Region {
                 gesture.cancel();
             }
             for (RXDashboardCard card : members) {
+                card.updateDraggable();
                 card.requestLayout();
             }
         }
@@ -1731,6 +1732,7 @@ public class RXDashboardPane extends Region {
         }
         card.owner = this;
         card.placement = null;
+        card.updateDraggable();
         // Its handles show by this pane's editable state, even if its size stays the same.
         card.requestLayout();
         if (card.getParent() != this) {
@@ -1754,6 +1756,7 @@ public class RXDashboardPane extends Region {
         if (card.owner == this) {
             card.owner = null;
             card.placement = null;
+            card.updateDraggable();
             card.requestLayout();
         }
     }
