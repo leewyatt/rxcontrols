@@ -179,7 +179,8 @@ public class RXDashboardPane extends Region {
     // The base layout a column-count change converts from, so a round trip with no edit in between restores the
     // layout: per card, the last placement not formed by a column-count change and the column count it was formed at.
     // Adding a card that pushes nothing records only that card. After applyLayout it holds the snapshot's cards as the
-    // snapshot has them and, as secondary entries, the others where the snapshot's rules put them, before packing.
+    // snapshot has them and, as secondary entries, the others where the snapshot's rules put them, before packing. Each
+    // entry also keeps the card's lock and packing at that time, which conversions go by.
     private final Map<RXDashboardCard, BaseEntry> base = new IdentityHashMap<>();
     // Until the first layout pass, every operation that placed cards, in order. FXML sets a pane's attributes after
     // its children and a style sheet's column count arrives with the first CSS pass, so the column count, the
@@ -192,9 +193,6 @@ public class RXDashboardPane extends Region {
     private boolean columnsReplayed;
     private boolean placedAfterColumns;
     private int historyOperations;
-    // Set when packing stops working on some cards (packing turned off, a card locked while packing): the base layout,
-    // which may still hold an applied snapshot's holes that packing used to close, becomes the layout as shown.
-    private boolean rebasePending;
     private CollisionPolicy lastPolicy = DEFAULT_COLLISION_POLICY;
     private boolean lastAutoCompact = DEFAULT_AUTO_COMPACT;
     private int effectiveColumns = DEFAULT_COLUMN_COUNT;
@@ -216,12 +214,10 @@ public class RXDashboardPane extends Region {
     private final Region placeholder = new Region();
 
     // A secondary entry is a card an applied snapshot did not name: a conversion places it after the snapshot's cards,
-    // trying the place recorded here first.
-    private record BaseEntry(Placement placement, int columns, boolean secondary) {
-
-        BaseEntry(Placement placement, int columns) {
-            this(placement, columns, false);
-        }
+    // trying the place recorded here first. locked and packed are the card's state when the entry formed (locked, and
+    // packed upward): a conversion arranges and packs by them, so locking, unlocking or turning packing on or off,
+    // which move nothing by themselves, do not change where a column round trip leads.
+    private record BaseEntry(Placement placement, int columns, boolean secondary, boolean locked, boolean packed) {
     }
 
     // SETTLED closes the additions and removals one reconciliation made together: the cards pack upward once, after
@@ -378,7 +374,9 @@ public class RXDashboardPane extends Region {
      * still share it, and overlaps and overflows are then corrected as by {@link #applyLayout}. The conversion always
      * starts from the last layout not produced by a column-count change, so changing the count and changing it back
      * with no edit in between restores the layout exactly, and a column count set by a style sheet after a snapshot
-     * was applied still yields the snapshot (packed upward, with {@link #autoCompactProperty() autoCompact}). Until
+     * was applied still yields the snapshot (packed upward, with {@link #autoCompactProperty() autoCompact}). Locking
+     * or unlocking a card and turning {@code autoCompact} on or off are not edits here: the conversion treats each
+     * card as locked and packed as it was when that layout formed. Until
      * the pane is first laid out, a change instead places every card again as if the count had been set before the
      * first card was added, repeating in order the cards added and removed, the snapshots applied and the edits made
      * so far, with the cards' current locks and span limits: FXML sets the count after adding the cards, and a style
@@ -667,8 +665,6 @@ public class RXDashboardPane extends Region {
             gesture.cancel();
             if (history != null) {
                 replayPending = true;
-            } else if (!lastAutoCompact) {
-                rebasePending = true;
             }
             reconcile();
         }
@@ -1138,10 +1134,16 @@ public class RXDashboardPane extends Region {
 
     // The base an applied snapshot leaves: its cards as it has them, at its column count, and the cards it does not
     // name where its rules put them, at the pane's, so a column round trip restores those as well.
-    private static void baseFromSnapshot(Map<RXDashboardCard, BaseEntry> into, Map<RXDashboardCard, Placement> target,
-                                         int snapshotColumns, Map<RXDashboardCard, Placement> arranged, int columns) {
+    private void baseFromSnapshot(Map<RXDashboardCard, BaseEntry> into, Map<RXDashboardCard, Placement> target,
+                                  int snapshotColumns, Map<RXDashboardCard, Placement> arranged, int columns) {
         arranged.forEach((card, placement) -> into.put(card, target.containsKey(card)
-                ? new BaseEntry(target.get(card), snapshotColumns) : new BaseEntry(placement, columns, true)));
+                ? formed(card, target.get(card), snapshotColumns, false) : formed(card, placement, columns, true)));
+    }
+
+    // A base entry for a card as it is now.
+    private BaseEntry formed(RXDashboardCard card, Placement placement, int columns, boolean secondary) {
+        boolean locked = card.isLocked();
+        return new BaseEntry(placement, columns, secondary, locked, lastAutoCompact && !locked);
     }
 
     // The snapshot placement of each card the snapshot names, by the cards' IDs: the first card with an ID uses it.
@@ -1299,7 +1301,7 @@ public class RXDashboardPane extends Region {
     private void rebase(Map<RXDashboardCard, Placement> result) {
         base.clear();
         for (RXDashboardCard card : members) {
-            base.put(card, new BaseEntry(result.get(card), effectiveColumns));
+            base.put(card, formed(card, result.get(card), effectiveColumns, false));
         }
     }
 
@@ -1485,7 +1487,7 @@ public class RXDashboardPane extends Region {
                 rebaseAll = true;
             }
             work = result;
-            base.put(card, new BaseEntry(result.get(card), columns));
+            base.put(card, formed(card, result.get(card), columns, false));
         }
         // Packing what a removal, an unlock, a span limit or an addition left: an edit, so the base follows; a
         // column-count conversion packs too but keeps converting from the base, or a round trip would not restore.
@@ -1494,10 +1496,6 @@ public class RXDashboardPane extends Region {
             rebaseAll = true;
         }
         work = packedWork;
-        if (rebasePending) {
-            rebaseAll = true;
-            rebasePending = false;
-        }
         if (batch) {
             record(History.of(Step.SETTLED, null, null));
         }
@@ -1509,7 +1507,7 @@ public class RXDashboardPane extends Region {
         }
         if (rebaseAll) {
             for (RXDashboardCard card : members) {
-                base.put(card, new BaseEntry(ordered.get(card), columns));
+                base.put(card, formed(card, ordered.get(card), columns, false));
             }
         }
         commit(ordered);
@@ -1518,23 +1516,42 @@ public class RXDashboardPane extends Region {
     // A column-count change applies the base layout again at the new count, as applyLayout would: the cards it holds
     // are converted and corrected first, the others then try their own place, converted, or take the first free area.
     // A card a snapshot did not name tries the place the base recorded for it, not the one a previous conversion gave
-    // it, so a round trip restores it too.
+    // it, so a round trip restores it too. Locks and packing count as they were when each entry formed.
     private Map<RXDashboardCard, Placement> convert(Map<RXDashboardCard, Placement> work, int oldColumns,
                                                     int columns) {
         Map<RXDashboardCard, Placement> target = new LinkedHashMap<>();
-        Map<RXDashboardCard, Placement> own = new LinkedHashMap<>();
-        work.forEach((card, placement) -> {
+        List<Item<RXDashboardCard>> arranging = new ArrayList<>();
+        for (Map.Entry<RXDashboardCard, Placement> slot : work.entrySet()) {
+            RXDashboardCard card = slot.getKey();
             BaseEntry entry = base.get(card);
+            Placement own;
             if (entry == null) {
-                own.put(card, DashboardSolver.rescale(placement, oldColumns, columns));
+                own = DashboardSolver.rescale(slot.getValue(), oldColumns, columns);
             } else if (entry.secondary()) {
-                own.put(card, DashboardSolver.rescale(entry.placement(), entry.columns(), columns));
+                own = DashboardSolver.rescale(entry.placement(), entry.columns(), columns);
             } else {
                 target.put(card, DashboardSolver.rescale(entry.placement(), entry.columns(), columns));
-                own.put(card, placement);
+                own = slot.getValue();
             }
-        });
-        return DashboardSolver.arrange(items(own), target, columns, columns, columns);
+            arranging.add(asFormed(card, own, entry == null ? card.isLocked() : entry.locked()));
+        }
+        Map<RXDashboardCard, Placement> arranged = DashboardSolver.arrange(arranging, target, columns, columns,
+                columns);
+        List<Item<RXDashboardCard>> packing = new ArrayList<>();
+        for (RXDashboardCard card : work.keySet()) {
+            BaseEntry entry = base.get(card);
+            boolean packs = entry == null ? lastAutoCompact && !card.isLocked() : entry.packed();
+            // compact() leaves locked items where they are: a card formed without packing is held like one.
+            packing.add(asFormed(card, arranged.get(card), !packs));
+        }
+        return DashboardSolver.compact(packing);
+    }
+
+    // A card's solver item with a given lock.
+    private Item<RXDashboardCard> asFormed(RXDashboardCard card, Placement placement, boolean locked) {
+        Item<RXDashboardCard> item = item(card, placement);
+        return new Item<>(card, placement, locked, item.minColumnSpan(), item.maxColumnSpan(), item.minRowSpan(),
+                item.maxRowSpan());
     }
 
     // Before the first layout: every card placed again from the history, at the given column count and under the
@@ -1565,7 +1582,7 @@ public class RXDashboardPane extends Region {
                     result = place(state, card, request, columns);
                     pushed |= movesAny(state, result);
                     added = true;
-                    rebuilt.put(card, new BaseEntry(result.get(card), columns));
+                    rebuilt.put(card, formed(card, result.get(card), columns, false));
                 }
                 case REMOVED -> {
                     removedAt.put(card, new Placement[] {step.asked(), state.get(card)});
@@ -1667,10 +1684,10 @@ public class RXDashboardPane extends Region {
         return false;
     }
 
-    private static void rebuild(Map<RXDashboardCard, BaseEntry> rebuilt, Map<RXDashboardCard, Placement> placements,
-                                int columns) {
+    private void rebuild(Map<RXDashboardCard, BaseEntry> rebuilt, Map<RXDashboardCard, Placement> placements,
+                         int columns) {
         rebuilt.clear();
-        placements.forEach((card, placement) -> rebuilt.put(card, new BaseEntry(placement, columns)));
+        placements.forEach((card, placement) -> rebuilt.put(card, formed(card, placement, columns, false)));
     }
 
     // Places a card by its request: a requested position solved by the policy (or the first free area when the policy
@@ -1741,7 +1758,6 @@ public class RXDashboardPane extends Region {
     void cardChanged(boolean lockChanged) {
         if (lockChanged) {
             gesture.cancel();
-            rebasePending |= lastAutoCompact;
         }
         reconcile();
     }

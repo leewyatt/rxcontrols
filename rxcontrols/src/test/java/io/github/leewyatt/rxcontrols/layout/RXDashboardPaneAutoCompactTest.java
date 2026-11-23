@@ -386,6 +386,93 @@ public class RXDashboardPaneAutoCompactTest {
     }
 
     @Test
+    public void lockingOrTurningPackingOffAtAConvertedCountKeepsTheRoundTrip() throws Exception {
+        fx(() -> {
+            for (String change : new String[] {"lock", "unlock", "packing off"}) {
+                RXDashboardPane pane = pane(4);
+                RXDashboardCard b = card("b", 1, 0, 1, 1);
+                b.setLocked(change.equals("unlock"));
+                pane.getCards().addAll(card("a", 0, 0, 1, 1), b, card("c", 2, 0, 1, 1), card("d", 3, 0, 1, 1),
+                        card("e", 0, 1, 3, 1));
+                laidOut(pane);
+                Map<String, String> before = cells(pane);
+                List<String> spans = cellsInOrder(pane);
+                pane.setColumnCount(2);
+                switch (change) {
+                    case "lock" -> b.setLocked(true);
+                    case "unlock" -> b.setLocked(false);
+                    default -> pane.setAutoCompact(false);
+                }
+                pane.setColumnCount(4);
+                assertEquals(before, cells(pane), change);
+                assertEquals(spans, cellsInOrder(pane), change);
+            }
+        });
+    }
+
+    @Test
+    public void aSnapshotFromAnotherCountStillComesBackAfterALockOrPackingOff() throws Exception {
+        fx(() -> {
+            RXDashboardLayout saved = RXDashboardLayout.builder(12).card("a", 0, 0, 4, 1).card("b", 4, 0, 4, 1)
+                    .card("c", 8, 0, 4, 1).card("d", 0, 1, 12, 1).build();
+            for (boolean lock : new boolean[] {false, true}) {
+                RXDashboardPane pane = pane(5);
+                RXDashboardCard b = card("b", -1, -1, 1, 1);
+                pane.getCards().addAll(card("a", -1, -1, 1, 1), b, card("c", -1, -1, 1, 1),
+                        card("d", -1, -1, 1, 1));
+                pane.applyLayout(saved);
+                laidOut(pane);
+                if (lock) {
+                    b.setLocked(true);
+                } else {
+                    pane.setAutoCompact(false);
+                }
+                pane.setColumnCount(12);
+                assertEquals(saved, pane.getLayout(), lock ? "locked" : "packing off");
+            }
+        });
+    }
+
+    @Test
+    public void aCardLockedAfterASnapshotWasCorrectedKeepsItsPlaceInARoundTrip() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = pane(4);
+            pane.setAutoCompact(false);
+            RXDashboardCard b = card("b", -1, -1, 1, 1);
+            pane.getCards().addAll(card("a", -1, -1, 1, 1), b);
+            pane.applyLayout(RXDashboardLayout.builder(12).card("a", 0, 0, 6, 1).card("b", 4, 0, 6, 1).build());
+            laidOut(pane);
+            Map<String, String> before = cells(pane);
+            b.setLocked(true);
+            pane.setColumnCount(2);
+            pane.setColumnCount(4);
+            assertEquals(before, cells(pane));
+        });
+    }
+
+    @Test
+    public void aSnapshotAppliedBeforeALateCountKeepsTheCardsItDoesNotNameInARoundTrip() throws Exception {
+        fx(() -> {
+            for (boolean compact : new boolean[] {false, true}) {
+                RXDashboardPane pane = new RXDashboardPane();
+                pane.setAutoCompact(compact);
+                pane.setStyle("-rx-column-count: 4;");
+                // Column 2 of 4 converts lossily through 3 columns: only the base brings it back.
+                pane.getCards().addAll(card("a", -1, -1, 2, 1), card(null, 2, 0, 1, 1), card("b", -1, -1, 2, 1));
+                pane.applyLayout(RXDashboardLayout.builder(4).card("a", 0, 0, 2, 1).card("b", 0, 1, 2, 1).build());
+                Stage stage = new Stage();
+                stage.setScene(new Scene(new StackPane(pane), 400, 600));
+                pane.applyCss();
+                laidOut(pane);
+                List<String> before = cellsInOrder(pane);
+                pane.setColumnCount(3);
+                pane.setColumnCount(4);
+                assertEquals(before, cellsInOrder(pane), "packing " + compact);
+            }
+        });
+    }
+
+    @Test
     public void cardsASnapshotDoesNotNameComeBackAfterAColumnRoundTrip() throws Exception {
         fx(() -> {
             for (boolean compact : new boolean[] {false, true}) {
