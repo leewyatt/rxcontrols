@@ -868,6 +868,8 @@ public class RXDashboardPaneGestureTest {
         final RXDashboardCard c = new RXDashboardCard("C", null, 2, 1, 1, 1);
 
         Board() {
+            // These tests pin down gestures without packing; the packing ones live in their own test class.
+            pane.setAutoCompact(false);
             pane.setColumnCount(4);
             pane.setRowHeight(100);
             pane.setHgap(0);

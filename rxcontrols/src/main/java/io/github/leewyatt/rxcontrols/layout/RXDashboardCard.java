@@ -348,7 +348,8 @@ public class RXDashboardCard extends Region {
      * Whether the card is locked. The user can neither drag nor resize a locked card, and no other card pushes it or
      * lands on it: an edit whose area covers a locked card is rejected. Code can still move and resize a locked card
      * ({@link RXDashboardPane#moveCard}, {@link RXDashboardPane#resizeCard}); {@link RXDashboardPane#compact()}
-     * leaves it where it is. Off by default; sets the {@code :locked} pseudo-class.
+     * and {@link RXDashboardPane#autoCompactProperty() autoCompact} leave it where it is, so cards below it stop under
+     * it even when the rows above it are free. Off by default; sets the {@code :locked} pseudo-class.
      *
      * @return the locked property
      */

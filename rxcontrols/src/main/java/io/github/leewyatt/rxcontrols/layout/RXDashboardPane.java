@@ -61,10 +61,13 @@ import java.util.logging.Logger;
  * ({@link #moveCard}, {@link #resizeCard}, {@link #compact()}, {@link #applyLayout}) or user gestures, all of which
  * resolve collisions by the same rules and are complete when they return. Under the default
  * {@link CollisionPolicy#PUSH PUSH} policy, the edited card takes the cells it asks for and every card in the way
- * moves straight down, as far as needed, possibly pushing others in turn; nothing moves sideways or up, and holes
+ * moves straight down, as far as needed, possibly pushing others in turn. By default
+ * ({@link #autoCompactProperty() autoCompact}) the cards are then packed upward, so no hole stays above a card; while
+ * dragging, a card also exchanges places with a touching neighbour of a matching size in its row or column, and
+ * dragged down onto cards that could take its place it goes below them. With {@code autoCompact} off, nothing moves sideways or up, and holes
  * left behind stay until the application calls {@link #compact()}. An edit whose area covers a
- * {@link RXDashboardCard#lockedProperty() locked} card is rejected. Under {@link CollisionPolicy#BLOCK BLOCK} an edit
- * whose area covers any other card is rejected.</p>
+ * {@link RXDashboardCard#lockedProperty() locked} card is rejected; locked cards never move by themselves. Under
+ * {@link CollisionPolicy#BLOCK BLOCK} an edit whose area covers any other card is rejected.</p>
  *
  * <pre>{@code
  * RXDashboardPane dashboard = new RXDashboardPane();
@@ -124,6 +127,7 @@ public class RXDashboardPane extends Region {
     private static final double DEFAULT_GAP = 10.0;
     private static final double DEFAULT_MIN_COLUMN_WIDTH = 0.0;
     private static final CollisionPolicy DEFAULT_COLLISION_POLICY = CollisionPolicy.PUSH;
+    private static final boolean DEFAULT_AUTO_COMPACT = true;
     private static final boolean DEFAULT_ANIMATED = true;
     private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(200.0);
     private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_BOTH;
@@ -135,6 +139,11 @@ public class RXDashboardPane extends Region {
     // without ever being laid out stops keeping them, so a hidden pane does not hold on to cards it no longer has.
     private static final int HISTORY_LIMIT = 512;
 
+    // The regular grid a move by code is dragged on, in virtual pixels: a cell and the margin inside it. Fixed, so the
+    // result does not depend on the pane's size.
+    private static final double VIRTUAL_CELL = 100.0;
+    private static final double VIRTUAL_MARGIN = 10.0;
+
     private static final Logger LOGGER = Logger.getLogger(RXDashboardPane.class.getName());
 
     /**
@@ -144,12 +153,15 @@ public class RXDashboardPane extends Region {
 
         /**
          * The edited card takes the area; every card in the way moves straight down until it is clear, pushing
-         * others in turn. Locked cards are never pushed: an area covering one is rejected.
+         * others in turn. Locked cards are never pushed: an area covering one is rejected. With
+         * {@link #autoCompactProperty() autoCompact}, a drag or {@link #moveCard} may also exchange the card with a
+         * neighbour, and the cards then pack upward.
          */
         PUSH,
 
         /**
-         * An area covering any other card is rejected; nothing else moves.
+         * An area covering any other card is rejected; no card is pushed or exchanged. With
+         * {@link #autoCompactProperty() autoCompact}, the other cards still pack upward after an edit.
          */
         BLOCK
     }
@@ -175,6 +187,7 @@ public class RXDashboardPane extends Region {
     private boolean columnsReplayed;
     private boolean placedAfterColumns;
     private CollisionPolicy lastPolicy = DEFAULT_COLLISION_POLICY;
+    private boolean lastAutoCompact = DEFAULT_AUTO_COMPACT;
     private int effectiveColumns = DEFAULT_COLUMN_COUNT;
     private int lastValidColumnCount = DEFAULT_COLUMN_COUNT;
     // Depth of the placement and layout notifications in progress; changes arriving meanwhile wait for the end.
@@ -624,6 +637,61 @@ public class RXDashboardPane extends Region {
         collisionPolicy.set(value);
     }
 
+    // ==================== Auto Compact ====================
+
+    private final BooleanProperty autoCompact = new SimpleBooleanProperty(this, "autoCompact", DEFAULT_AUTO_COMPACT) {
+        @Override
+        protected void invalidated() {
+            if (get() == lastAutoCompact) {
+                return;
+            }
+            lastAutoCompact = get();
+            gesture.cancel();
+            if (history != null) {
+                replayPending = true;
+            }
+            reconcile();
+        }
+    };
+
+    /**
+     * Whether the cards are kept packed upward, on by default. After every change, from the user or from code, each
+     * card that is not locked rises as far as nothing is in its way, so the layout never keeps a hole above a card:
+     * dragging a card into empty space below drops it at the highest row it can reach, and removing a card or making
+     * one smaller lets the cards below it move up. While dragging, a card that covers more than half of a touching
+     * neighbour exchanges places with it when both have the same size and share a row or column, or share a row and
+     * have the same height, or share a column and have the same width; a card dragged down onto cards that could
+     * take its place goes below them. Locked cards never move and hold up the cards below them.
+     * {@link #applyLayout} packs the snapshot it applies, so {@link #getLayout()} may then differ from it. Turning it
+     * on packs the layout at once; turning it off moves nothing. Until the pane is first laid out, a change places
+     * every card again as if it had been set before the first card was added, as for the collision policy: FXML sets
+     * it after adding the cards. Not settable from CSS: a style sheet's value flips back to the initial value
+     * whenever the pane's styles are rebuilt, which would pack away holes the user left on purpose.
+     *
+     * @return the auto-compact property
+     */
+    public final BooleanProperty autoCompactProperty() {
+        return autoCompact;
+    }
+
+    /**
+     * Returns whether the cards are kept packed upward.
+     *
+     * @return whether the layout is kept compact
+     */
+    public final boolean isAutoCompact() {
+        return autoCompact.get();
+    }
+
+    /**
+     * Sets whether the cards are kept packed upward.
+     *
+     * @param value whether to keep the layout compact
+     */
+    public final void setAutoCompact(boolean value) {
+        autoCompact.set(value);
+    }
+
     // ==================== Editable ====================
 
     private final BooleanProperty editable = new SimpleBooleanProperty(this, "editable", true) {
@@ -932,15 +1000,18 @@ public class RXDashboardPane extends Region {
     // ==================== Editing by code ====================
 
     /**
-     * Moves a card so its top-left cell is at the given column and row, keeping its span. The position is first
+     * Moves a card toward the given column and row for its top-left cell, keeping its span. The position is first
      * clamped into the grid. Other cards make room by the {@link #collisionPolicyProperty() collisionPolicy}; the
-     * card itself may be locked.
+     * card itself may be locked. With {@link #autoCompactProperty() autoCompact} under {@code PUSH}, the card is moved
+     * as a user dragging it there in a straight line would move it, cell by cell, exchanging places and passing
+     * cards on the way, and then everything packs upward; where it ends up depends on where it started and may differ
+     * from the requested cell, as may the result of a hand-drawn drag to the same cell.
      *
      * @param card   a card of this dashboard
      * @param column the new column
      * @param row    the new row
-     * @return {@code true} if the card is at the clamped position afterwards, {@code false} if the move was rejected
-     *         (it covers another locked card, or any card under {@code BLOCK}) and nothing changed
+     * @return {@code true} if the layout changed; {@code false} if the move was rejected (it covers another locked
+     *         card, or any card under {@code BLOCK}) or left every card where it was
      * @throws NullPointerException     if {@code card} is {@code null}
      * @throws IllegalArgumentException if {@code card} is not one of this dashboard's cards
      * @throws IllegalStateException    if called from a listener on a card's placement or on {@code layout}
@@ -950,7 +1021,17 @@ public class RXDashboardPane extends Region {
         checkNotNotifying();
         Placement current = placementOf(card);
         record(History.of(Step.MOVED, card, new Placement(column, row, 1, 1)));
-        return edit(card, current.withPosition(column, row));
+        if (dragsByCode(card)) {
+            gesture.cancel();
+            Placement target = DashboardSolver.clamp(item(card, current), current.withPosition(column, row),
+                    effectiveColumns);
+            Map<RXDashboardCard, Placement> result = dragAlong(committedPlacements(), card, target, effectiveColumns);
+            boolean changed = changesPlacements(result);
+            commitEdit(result);
+            return changed;
+        }
+        Map<RXDashboardCard, Placement> before = committedPlacements();
+        return edit(card, current.withPosition(column, row)) && !before.equals(committedPlacements());
     }
 
     /**
@@ -979,11 +1060,16 @@ public class RXDashboardPane extends Region {
     /**
      * Moves every card that is not locked straight up as far as it goes, top to bottom, left to right, closing the
      * holes pushes leave behind. Locked cards stay; no card changes column. Compacting twice changes nothing more.
+     * With {@link #autoCompactProperty() autoCompact} the layout is always compact, so this changes nothing and does
+     * not interrupt a gesture.
      *
      * @throws IllegalStateException if called from a listener on a card's placement or on {@code layout}
      */
     public void compact() {
         checkNotNotifying();
+        if (lastAutoCompact) {
+            return;
+        }
         gesture.cancel();
         record(History.of(Step.COMPACTED, null, null));
         commitEdit(DashboardSolver.compact(items()));
@@ -1003,8 +1089,9 @@ public class RXDashboardPane extends Region {
      *     <li>cards the snapshot does not mention (new ones, or ones without an ID) follow in list order: each keeps
      *     its place if it is free, otherwise goes to the first free area with its span.</li>
      * </ul>
-     * Locked cards are moved like any other. The snapshot also becomes the layout later column-count changes convert
-     * from; they handle the cards it does not mention by the last rule.
+     * Locked cards are moved like any other. With {@link #autoCompactProperty() autoCompact} the result then packs
+     * upward, so a snapshot with holes is not kept as it was. The snapshot also becomes the layout later column-count
+     * changes convert from; they handle the cards it does not mention by the last rule.
      *
      * @param layout the snapshot to apply
      * @throws NullPointerException  if {@code layout} is {@code null}
@@ -1017,8 +1104,8 @@ public class RXDashboardPane extends Region {
         Map<RXDashboardCard, Placement> target = targetsOf(layout, members);
         record(new History(Step.APPLIED, null, null, Map.copyOf(target), layout.getColumnCount(),
                 List.copyOf(members)));
-        Map<RXDashboardCard, Placement> result = DashboardSolver.arrange(items(), target, layout.getColumnCount(),
-                effectiveColumns, effectiveColumns);
+        Map<RXDashboardCard, Placement> result = packed(DashboardSolver.arrange(items(), target,
+                layout.getColumnCount(), effectiveColumns, effectiveColumns));
         base.clear();
         target.forEach((card, placement) -> base.put(card, new BaseEntry(placement, layout.getColumnCount())));
         commit(result);
@@ -1069,8 +1156,58 @@ public class RXDashboardPane extends Region {
         if (result == null) {
             return false;
         }
-        commitEdit(result);
+        commitEdit(packed(result));
         return true;
+    }
+
+    // Whether a move by code is a straight drag: when the cards pack under PUSH and the card is not locked (a locked
+    // card would not pack, so it is placed where asked).
+    private boolean dragsByCode(RXDashboardCard card) {
+        return lastAutoCompact && !isBlocking() && !card.isLocked();
+    }
+
+    // A move by code with packing: the card is dragged in a straight line from its cell to the target, one cell per
+    // step, on a regular grid of virtual pixels, as a user dragging it there would. Rows below every card are all
+    // alike, so the walk stops a card's height below the lowest one.
+    private Map<RXDashboardCard, Placement> dragAlong(Map<RXDashboardCard, Placement> work, RXDashboardCard card,
+                                                     Placement target, int columns) {
+        Placement from = work.get(card);
+        int bottom = from.row();
+        for (Map.Entry<RXDashboardCard, Placement> entry : work.entrySet()) {
+            if (entry.getKey() != card) {
+                bottom = Math.max(bottom, entry.getValue().row() + entry.getValue().rowSpan());
+            }
+        }
+        int toColumn = target.column();
+        int toRow = Math.min(target.row(), bottom + from.rowSpan());
+        DashboardDrag<RXDashboardCard> drag = new DashboardDrag<>(items(work), card, columns, VIRTUAL_CELL,
+                VIRTUAL_CELL, VIRTUAL_MARGIN, VIRTUAL_MARGIN);
+        // The cells of a straight line, each next to the previous one (sideways, up or down, or diagonally).
+        int x = from.column();
+        int y = from.row();
+        int dx = Math.abs(toColumn - x);
+        int dy = -Math.abs(toRow - y);
+        int sx = x < toColumn ? 1 : -1;
+        int sy = y < toRow ? 1 : -1;
+        int error = dx + dy;
+        while (x != toColumn || y != toRow) {
+            int doubled = 2 * error;
+            if (doubled >= dy) {
+                error += dy;
+                x += sx;
+            }
+            if (doubled <= dx) {
+                error += dx;
+                y += sy;
+            }
+            drag.step(x * VIRTUAL_CELL, y * VIRTUAL_CELL);
+        }
+        return drag.layout();
+    }
+
+    // The layout packed upward when the pane keeps it compact.
+    private Map<RXDashboardCard, Placement> packed(Map<RXDashboardCard, Placement> work) {
+        return lastAutoCompact ? DashboardSolver.compact(items(work)) : work;
     }
 
     private Placement placementOf(RXDashboardCard card) {
@@ -1253,7 +1390,8 @@ public class RXDashboardPane extends Region {
         boolean rebaseAll = false;
 
         int columns = resolvedColumnCount();
-        if (columns != effectiveColumns) {
+        boolean converted = columns != effectiveColumns;
+        if (converted) {
             int oldColumns = effectiveColumns;
             effectiveColumns = columns;
             if (history != null && !placedAfterColumns) {
@@ -1294,6 +1432,13 @@ public class RXDashboardPane extends Region {
             work = result;
             base.put(card, new BaseEntry(result.get(card), columns));
         }
+        // Packing what a removal, an unlock, a span limit or an addition left: an edit, so the base follows; a
+        // column-count conversion packs too but keeps converting from the base, or a round trip would not restore.
+        Map<RXDashboardCard, Placement> packedWork = packed(work);
+        if (!converted && movesAny(work, packedWork)) {
+            rebaseAll = true;
+        }
+        work = packedWork;
         members.clear();
         members.addAll(current);
         Map<RXDashboardCard, Placement> ordered = new LinkedHashMap<>();
@@ -1344,7 +1489,7 @@ public class RXDashboardPane extends Region {
                     if (left != null && request.equals(left[0]) && left[1] != null) {
                         request = left[1];
                     }
-                    result = place(state, card, request, columns);
+                    result = packed(place(state, card, request, columns));
                     if (movesAny(state, result)) {
                         rebuild(rebuilt, result, columns);
                     }
@@ -1353,9 +1498,13 @@ public class RXDashboardPane extends Region {
                 case REMOVED -> {
                     removedAt.put(card, new Placement[] {step.asked(), state.get(card)});
                     removedStep.put(card, index);
-                    result = new LinkedHashMap<>(state);
-                    result.remove(card);
+                    Map<RXDashboardCard, Placement> rest = new LinkedHashMap<>(state);
+                    rest.remove(card);
                     rebuilt.remove(card);
+                    result = packed(rest);
+                    if (movesAny(rest, result)) {
+                        rebuild(rebuilt, result, columns);
+                    }
                 }
                 case APPLIED -> {
                     // In the order and with the matching of the time it was applied.
@@ -1372,7 +1521,8 @@ public class RXDashboardPane extends Region {
                             target.put(c, p);
                         }
                     });
-                    result = DashboardSolver.arrange(items(ordered), target, step.columns(), columns, columns);
+                    result = packed(DashboardSolver.arrange(items(ordered), target, step.columns(), columns,
+                            columns));
                     rebuilt.clear();
                     target.forEach((c, p) -> rebuilt.put(c, new BaseEntry(p, step.columns())));
                 }
@@ -1382,10 +1532,15 @@ public class RXDashboardPane extends Region {
                         Placement asked = step.step() == Step.MOVED
                                 ? now.withPosition(step.asked().column(), step.asked().row())
                                 : resizeRequest(now, step.asked().columnSpan(), step.asked().rowSpan(), columns);
-                        Map<RXDashboardCard, Placement> solved = DashboardSolver.solve(items(state), card,
-                                DashboardSolver.clamp(item(card, asked), asked, columns), isBlocking(), columns);
-                        if (solved != null) {
-                            result = solved;
+                        Placement clamped = DashboardSolver.clamp(item(card, asked), asked, columns);
+                        if (step.step() == Step.MOVED && dragsByCode(card)) {
+                            result = dragAlong(state, card, clamped, columns);
+                        } else {
+                            Map<RXDashboardCard, Placement> solved = DashboardSolver.solve(items(state), card,
+                                    clamped, isBlocking(), columns);
+                            if (solved != null) {
+                                result = packed(solved);
+                            }
                         }
                     }
                     if (movesAny(state, result)) {
@@ -1557,7 +1712,9 @@ public class RXDashboardPane extends Region {
 
     Map<RXDashboardCard, Placement> solveFrom(Map<RXDashboardCard, Placement> start, RXDashboardCard card,
                                               Placement candidate) {
-        return DashboardSolver.solve(items(start), card, candidate, isBlocking(), effectiveColumns);
+        Map<RXDashboardCard, Placement> solved = DashboardSolver.solve(items(start), card, candidate, isBlocking(),
+                effectiveColumns);
+        return solved == null ? null : packed(solved);
     }
 
     void glideFrom(RXDashboardCard card, double x, double y) {

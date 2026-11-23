@@ -76,6 +76,7 @@ public class RXDashboardPaneTest {
             assertEquals(10.0, pane.getVgap());
             assertEquals(0.0, pane.getMinColumnWidth());
             assertSame(CollisionPolicy.PUSH, pane.getCollisionPolicy());
+            assertTrue(pane.isAutoCompact());
             assertTrue(pane.isEditable());
             assertTrue(pane.isLiveResize());
             assertTrue(pane.isAnimated());
@@ -643,22 +644,25 @@ public class RXDashboardPaneTest {
     @Test
     public void aLateColumnCountGivesWhatSettingItFirstGives() throws Exception {
         fx(() -> {
-            // Each scenario: a snapshot of S applied, then cards added before the count arrives.
+            // Each scenario: a snapshot of S applied, then cards added before the count arrives; with and without
+            // packing.
             int[][] requests = {{0, 0, 4, 2}, {2, 0, 4, 1}};
-            for (int[] r : requests) {
-                RXDashboardLayout late = scenario(r, false);
-                RXDashboardLayout first = scenario(r, true);
-                assertEquals(first, late, "request " + Arrays.toString(r));
+            for (boolean compact : new boolean[] {false, true}) {
+                for (int[] r : requests) {
+                    RXDashboardLayout late = scenario(r, false, compact);
+                    RXDashboardLayout first = scenario(r, true, compact);
+                    assertEquals(first, late, "request " + Arrays.toString(r) + ", packing " + compact);
+                }
+                assertEquals(overlapping(true, compact), overlapping(false, compact), "packing " + compact);
             }
-            RXDashboardLayout late = overlapping(false);
-            assertEquals(overlapping(true), late);
         });
     }
 
     // S restored from a 24-column snapshot, then N added with a request; the 24 columns come from a style sheet after
     // everything (late) or are set in code before anything (first).
-    private static RXDashboardLayout scenario(int[] request, boolean countFirst) {
+    private static RXDashboardLayout scenario(int[] request, boolean countFirst, boolean compact) {
         RXDashboardPane pane = new RXDashboardPane();
+        pane.setAutoCompact(compact);
         if (countFirst) {
             pane.setColumnCount(24);
         } else {
@@ -675,8 +679,9 @@ public class RXDashboardPaneTest {
     }
 
     // Several requested cards that overlap one another and the snapshot cards.
-    private static RXDashboardLayout overlapping(boolean countFirst) {
+    private static RXDashboardLayout overlapping(boolean countFirst, boolean compact) {
         RXDashboardPane pane = new RXDashboardPane();
+        pane.setAutoCompact(compact);
         if (countFirst) {
             pane.setColumnCount(24);
         } else {
@@ -696,11 +701,13 @@ public class RXDashboardPaneTest {
     @Test
     public void aLateColumnCountKeepsCardsPutBackAndTheListOrder() throws Exception {
         fx(() -> {
-            for (int scenario = 0; scenario < 4; scenario++) {
-                assertEquals(beforeFirstLayout(scenario, true), beforeFirstLayout(scenario, false),
-                        "scenario " + scenario);
+            for (boolean compact : new boolean[] {false, true}) {
+                for (int scenario = 0; scenario < 4; scenario++) {
+                    assertEquals(beforeFirstLayout(scenario, true, compact), beforeFirstLayout(scenario, false, compact),
+                            "scenario " + scenario + ", packing " + compact);
+                }
             }
-            String restored = beforeFirstLayout(0, false);
+            String restored = beforeFirstLayout(0, false, false);
             assertTrue(restored.contains("S=" + new Placement(1, 0, 3, 1)), restored);
             assertTrue(restored.contains("T=" + new Placement(5, 0, 7, 2)), restored);
             assertTrue(restored.contains("U=" + new Placement(13, 1, 5, 1)), restored);
@@ -708,8 +715,9 @@ public class RXDashboardPaneTest {
     }
 
     // Operations before the first layout, with the 24 columns set in code first or arriving from a style sheet last.
-    private static String beforeFirstLayout(int scenario, boolean countFirst) {
+    private static String beforeFirstLayout(int scenario, boolean countFirst, boolean compact) {
         RXDashboardPane pane = new RXDashboardPane();
+        pane.setAutoCompact(compact);
         if (countFirst) {
             pane.setColumnCount(24);
         } else {
@@ -760,21 +768,24 @@ public class RXDashboardPaneTest {
     @Test
     public void aCardTakenOutBeforeALateCountAsksForTheCellsItLeft() throws Exception {
         fx(() -> {
-            for (boolean afterFirstLayout : new boolean[] {false, true}) {
-                // A style sheet's count is still 12 until the CSS pass, so only the last layout saved is compared.
-                List<String> late = putBackAfterTheCount(false, afterFirstLayout);
-                List<String> first = putBackAfterTheCount(true, afterFirstLayout);
-                assertEquals(first.get(first.size() - 1), late.get(late.size() - 1),
-                        "put back after the first layout: " + afterFirstLayout);
-                assertEquals(layout(24, "S", 1, 0, 3, 1, "T", 6, 0, 6, 2).encode(), late.get(late.size() - 1));
+            for (boolean compact : new boolean[] {false, true}) {
+                for (boolean afterFirstLayout : new boolean[] {false, true}) {
+                    // A style sheet's count is still 12 until the CSS pass, so only the last layout saved is compared.
+                    List<String> late = putBackAfterTheCount(false, afterFirstLayout, compact);
+                    List<String> first = putBackAfterTheCount(true, afterFirstLayout, compact);
+                    assertEquals(first.get(first.size() - 1), late.get(late.size() - 1),
+                            "put back after the first layout: " + afterFirstLayout + ", packing " + compact);
+                    assertEquals(layout(24, "S", 1, 0, 3, 1, "T", 6, 0, 6, 2).encode(), late.get(late.size() - 1));
+                }
             }
         });
     }
 
     // A restored layout, one card taken out before the 24 columns arrive and put back afterwards; returns every layout
     // an autosave listener would have written.
-    private static List<String> putBackAfterTheCount(boolean countFirst, boolean afterFirstLayout) {
+    private static List<String> putBackAfterTheCount(boolean countFirst, boolean afterFirstLayout, boolean compact) {
         RXDashboardPane pane = new RXDashboardPane();
+        pane.setAutoCompact(compact);
         if (countFirst) {
             pane.setColumnCount(24);
         } else {
@@ -800,6 +811,7 @@ public class RXDashboardPaneTest {
     public void aPolicyChangedAfterTheCountPlacesTheCardsAgain() throws Exception {
         fx(() -> {
             RXDashboardPane pane = new RXDashboardPane();
+            pane.setAutoCompact(false);
             pane.setColumnCount(24);
             RXDashboardCard a = new RXDashboardCard("a", null, 0, 0, 2, 1);
             RXDashboardCard b = new RXDashboardCard("b", null, 1, 0, 2, 1);
@@ -1136,7 +1148,7 @@ public class RXDashboardPaneTest {
                     <?import io.github.leewyatt.rxcontrols.layout.RXDashboardPane?>
                     <?import io.github.leewyatt.rxcontrols.layout.RXDashboardCard?>
                     <?import javafx.scene.layout.Region?>
-                    <RXDashboardPane xmlns="http://javafx.com/javafx/17" columnCount="4" rowHeight="180">
+                    <RXDashboardPane xmlns="http://javafx.com/javafx/17" columnCount="4" rowHeight="180" autoCompact="false">
                         <RXDashboardCard cardId="trend" column="0" row="0" columnSpan="2" rowSpan="1">
                             <content><Region/></content>
                         </RXDashboardCard>
@@ -1159,7 +1171,7 @@ public class RXDashboardPaneTest {
                     <?xml version="1.0" encoding="UTF-8"?>
                     <?import io.github.leewyatt.rxcontrols.layout.RXDashboardPane?>
                     <?import io.github.leewyatt.rxcontrols.layout.RXDashboardCard?>
-                    <RXDashboardPane xmlns="http://javafx.com/javafx/17" columnCount="4" collisionPolicy="BLOCK">
+                    <RXDashboardPane xmlns="http://javafx.com/javafx/17" columnCount="4" collisionPolicy="BLOCK" autoCompact="false">
                         <RXDashboardCard cardId="a" column="0" row="0" columnSpan="2"/>
                         <RXDashboardCard cardId="b" column="1" row="0" columnSpan="2"/>
                     </RXDashboardPane>
@@ -1178,8 +1190,10 @@ public class RXDashboardPaneTest {
         return pane;
     }
 
+    // Most tests here pin down the rules without packing; the packing ones live in their own test class.
     private static RXDashboardPane pane(int columns) {
         RXDashboardPane pane = new RXDashboardPane();
+        pane.setAutoCompact(false);
         pane.setColumnCount(columns);
         return pane;
     }
