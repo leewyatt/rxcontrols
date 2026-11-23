@@ -45,13 +45,13 @@ import java.util.Objects;
  * To keep content inside, give the card a minimum span, put the content in a {@code ScrollPane}, or clip the content
  * node.</p>
  *
- * <p>The pane drives the card's {@code translateX}, {@code translateY} and {@code viewOrder} while it animates or
- * drags the card, and sets the {@code :dragging} and {@code :resizing} pseudo-classes; applications should not
- * change these. The card needs a background fill, transparent or not, for presses on its empty parts to reach it;
- * the default style gives it one. Style class {@code rx-dashboard-card}; pseudo-classes {@code :draggable} (the user
- * can drag the card now: its dashboard is {@link RXDashboardPane#editableProperty() editable}, it is
- * {@link #moveEnabledProperty() move-enabled} and not {@link #lockedProperty() locked}), {@code :dragging},
- * {@code :resizing}, {@code :locked}.</p>
+ * <p>The pane drives the card's {@code translateX}, {@code translateY} and {@code viewOrder} while it animates or drags
+ * the card, and sets the {@code :dragging} and {@code :resizing} pseudo-classes; applications should not change these.
+ * The card needs a background fill, transparent or not, for presses on its empty parts to reach it; the default style
+ * gives it one, and makes a card being dragged slightly translucent. Style class {@code rx-dashboard-card};
+ * pseudo-classes {@code :draggable} (the user can drag the card now: its dashboard is
+ * {@link RXDashboardPane#editableProperty() editable}, it is {@link #moveEnabledProperty() move-enabled} and not
+ * {@link #lockedProperty() locked}), {@code :dragging}, {@code :resizing}, {@code :locked}.</p>
  */
 public class RXDashboardCard extends Region {
 

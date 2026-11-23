@@ -67,6 +67,29 @@ public class RXDashboardPaneGestureTest {
     // ==================== Dragging ====================
 
     @Test
+    public void aDraggedCardTurnsTranslucentAlsoAfterFadingIn() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            RXDashboardCard added = new RXDashboardCard("D", null, 3, 0, 1, 1);
+            board.pane.getCards().add(added);
+            board.layout();
+            assertEquals(0.0, added.getOpacity(), EPSILON, "fading in");
+            board.pane.setAnimated(false);
+            board.pane.setAnimated(true);
+            for (RXDashboardCard card : List.of(board.a, added)) {
+                Point2D start = board.press(card, 5, 5);
+                double x = card == added ? start.getX() - 100 : start.getX() + 100;
+                board.drag(card, x, start.getY());
+                card.applyCss();
+                assertTrue(card.getOpacity() < 1.0, card.getCardId() + " translucent while dragged");
+                board.release(card, x, start.getY());
+                card.applyCss();
+                assertEquals(1.0, card.getOpacity(), EPSILON, card.getCardId() + " opaque again");
+            }
+        });
+    }
+
+    @Test
     public void dragPushesNeighboursAndCommitsOnRelease() throws Exception {
         fx(() -> {
             Board board = new Board();

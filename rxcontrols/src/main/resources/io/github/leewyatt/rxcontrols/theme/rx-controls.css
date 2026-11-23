@@ -4316,6 +4316,7 @@
 
 .rx-dashboard-card:dragging {
     -fx-cursor: closed-hand;
+    -fx-opacity: 0.85;
 }
 
 .rx-dashboard-card > .resize-handle.right {
