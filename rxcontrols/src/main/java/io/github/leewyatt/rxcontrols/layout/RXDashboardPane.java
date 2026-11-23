@@ -723,8 +723,10 @@ public class RXDashboardPane extends Region {
             if (!get()) {
                 gesture.cancel();
             }
-            for (RXDashboardCard card : members) {
-                card.updateDraggable();
+            // The list, not the members: a card being taken in, whose attaching may run this, is not a member yet.
+            // A copy, as a listener reached from here may change the list.
+            for (RXDashboardCard card : new ArrayList<>(cards)) {
+                card.updateGestureStates();
                 card.requestLayout();
             }
         }
@@ -1732,7 +1734,7 @@ public class RXDashboardPane extends Region {
         }
         card.owner = this;
         card.placement = null;
-        card.updateDraggable();
+        card.updateGestureStates();
         // Its handles show by this pane's editable state, even if its size stays the same.
         card.requestLayout();
         if (card.getParent() != this) {
@@ -1756,7 +1758,7 @@ public class RXDashboardPane extends Region {
         if (card.owner == this) {
             card.owner = null;
             card.placement = null;
-            card.updateDraggable();
+            card.updateGestureStates();
             card.requestLayout();
         }
     }

@@ -4331,6 +4331,26 @@
     -fx-cursor: se-resize;
 }
 
+.rx-dashboard-card > .resize-grip {
+    -fx-background-color: -rx-on-surface-disabled;
+    -fx-background-insets: 4px;
+    -fx-shape: "M22 11v3l-8 8h-3zM22 16v3l-3 3h-3z";
+    -fx-opacity: 0;
+}
+
+.rx-dashboard-card:resizable:hover > .resize-grip,
+.rx-dashboard-card:resizable:resizing > .resize-grip {
+    -fx-opacity: 1;
+}
+
+.rx-dashboard-card:resizable:resizing > .resize-grip {
+    -fx-background-color: -rx-primary;
+}
+
+.rx-dashboard-card:resizable:dragging > .resize-grip {
+    -fx-opacity: 0;
+}
+
 .rx-dashboard-pane > .placeholder {
     -fx-background-color: -rx-primary-bg;
     -fx-background-radius: 6;

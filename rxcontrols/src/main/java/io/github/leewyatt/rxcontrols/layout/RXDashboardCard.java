@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.layout;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardLayout.Placement;
+import javafx.beans.InvalidationListener;
 import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
@@ -18,6 +19,7 @@ import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.layout.Region;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -51,7 +53,21 @@ import java.util.Objects;
  * gives it one, and makes a card being dragged slightly translucent. Style class {@code rx-dashboard-card};
  * pseudo-classes {@code :draggable} (the user can drag the card now: its dashboard is
  * {@link RXDashboardPane#editableProperty() editable}, it is {@link #moveEnabledProperty() move-enabled} and not
- * {@link #lockedProperty() locked}), {@code :dragging}, {@code :resizing}, {@code :locked}.</p>
+ * {@link #lockedProperty() locked}), {@code :resizable} (likewise, with {@link #resizeEnabledProperty() resizeEnabled}
+ * in place of moveEnabled), {@code :dragging}, {@code :resizing}, {@code :locked}.</p>
+ *
+ * <p>A resize grip, style class {@code resize-grip}, marks the card's bottom-right corner, where the user pulls to
+ * resize it. It takes no part in layout and never receives mouse events, and the style sheet alone decides when it
+ * shows: the default style shows it while the pointer is over a {@code :resizable} card, except while the card is
+ * dragged. To show it on every resizable card, use
+ * {@code .rx-dashboard-card:resizable > .resize-grip { -fx-opacity: 1; }}, followed by
+ * {@code .rx-dashboard-card:dragging > .resize-grip { -fx-opacity: 0; }} to keep it hidden while the card is dragged,
+ * since an application style sheet overrides every rule of the default one; to hide it, use
+ * {@code .rx-dashboard-card > .resize-grip { visibility: hidden; }}. Its shape, color and size come from
+ * {@code -fx-shape}, {@code -fx-background-color} and {@code -fx-pref-width} / {@code -fx-pref-height}; the default
+ * style draws the shape {@code 4px} inside its box with {@code -fx-background-insets}. Presses are taken by the corner
+ * resize handle ({@code .resize-handle.corner}, 16 px square by default) above it, so a larger grip needs a corner
+ * handle at least as large.</p>
  */
 public class RXDashboardCard extends Region {
 
@@ -60,6 +76,7 @@ public class RXDashboardCard extends Region {
     private static final String DEFAULT_STYLE_CLASS = "rx-dashboard-card";
     private static final PseudoClass LOCKED_PSEUDO_CLASS = PseudoClass.getPseudoClass("locked");
     private static final PseudoClass DRAGGABLE_PSEUDO_CLASS = PseudoClass.getPseudoClass("draggable");
+    private static final PseudoClass RESIZABLE_PSEUDO_CLASS = PseudoClass.getPseudoClass("resizable");
     static final PseudoClass DRAGGING_PSEUDO_CLASS = PseudoClass.getPseudoClass("dragging");
     static final PseudoClass RESIZING_PSEUDO_CLASS = PseudoClass.getPseudoClass("resizing");
 
@@ -83,6 +100,7 @@ public class RXDashboardCard extends Region {
     private final ResizeHandle rightHandle = new ResizeHandle(Edge.RIGHT, "right");
     private final ResizeHandle bottomHandle = new ResizeHandle(Edge.BOTTOM, "bottom");
     private final ResizeHandle cornerHandle = new ResizeHandle(Edge.CORNER, "corner");
+    private final ResizeGrip resizeGrip = new ResizeGrip();
 
     // ==================== Constructors ====================
 
@@ -122,7 +140,14 @@ public class RXDashboardCard extends Region {
                            @NamedArg(value = "columnSpan", defaultValue = "1") int columnSpan,
                            @NamedArg(value = "rowSpan", defaultValue = "1") int rowSpan) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        getChildren().addAll(rightHandle, bottomHandle, cornerHandle);
+        getChildren().addAll(resizeGrip, rightHandle, bottomHandle, cornerHandle);
+        // These parts take no part in layout, so a new preferred size (from a style sheet, say) would not reach the
+        // card on its own.
+        InvalidationListener relayout = obs -> requestLayout();
+        for (Region part : List.of(resizeGrip, rightHandle, bottomHandle, cornerHandle)) {
+            part.prefWidthProperty().addListener(relayout);
+            part.prefHeightProperty().addListener(relayout);
+        }
         boolean positioned = column >= 0 && row >= 0;
         this.column.set(positioned ? column : NO_POSITION);
         this.row.set(positioned ? row : NO_POSITION);
@@ -341,7 +366,7 @@ public class RXDashboardCard extends Region {
             }
             last = get();
             pseudoClassStateChanged(LOCKED_PSEUDO_CLASS, last);
-            updateDraggable();
+            updateGestureStates();
             requestLayout();
             if (owner != null) {
                 owner.cardChanged(true);
@@ -418,8 +443,8 @@ public class RXDashboardCard extends Region {
 
     /**
      * Whether the user can resize the card from its right edge, bottom edge or bottom-right corner. When off, the card
-     * shows no resize handles; it still makes room when another card is pushed onto it, and code can still resize
-     * it. On by default.
+     * shows no resize handles or grip; it still makes room when another card is pushed onto it, and code can still
+     * resize it. On by default.
      *
      * @return the resize-enabled property
      */
@@ -580,7 +605,7 @@ public class RXDashboardCard extends Region {
                     return;
                 }
                 last = get();
-                updateDraggable();
+                updateGestureStates();
                 if (owner != null) {
                     owner.cardGestureFlagsChanged(RXDashboardCard.this);
                 }
@@ -651,6 +676,7 @@ public class RXDashboardCard extends Region {
     @Override
     protected void layoutChildren() {
         layoutHandles();
+        layoutGrip();
         Node node = getContent();
         if (node == null || node.getParent() != this) {
             return;
@@ -684,7 +710,7 @@ public class RXDashboardCard extends Region {
     // keeps its thickness but never lies over a neighbour, which may be drawn and picked above it. The corner square
     // takes the bottom-right end of both. They show only where the user may resize the card.
     private void layoutHandles() {
-        boolean shown = owner != null && owner.isEditable() && isResizeEnabled() && !isLocked();
+        boolean shown = canResize();
         rightHandle.setVisible(shown);
         bottomHandle.setVisible(shown);
         cornerHandle.setVisible(shown);
@@ -708,6 +734,14 @@ public class RXDashboardCard extends Region {
         bottomHandle.resizeRelocate(0.0, bottomStart, Math.max(0.0, cornerX), thicknessY);
     }
 
+    // The grip lies in the card's bottom-right corner, under the corner handle, whether or not it shows.
+    private void layoutGrip() {
+        double gripWidth = snapSizeX(resizeGrip.prefWidth(-1));
+        double gripHeight = snapSizeY(resizeGrip.prefHeight(-1));
+        resizeGrip.resizeRelocate(snapPositionX(getWidth() - gripWidth), snapPositionY(getHeight() - gripHeight),
+                gripWidth, gripHeight);
+    }
+
     // The area size within [min, max], the minimum winning over a smaller maximum.
     private static double fit(double area, double min, double max) {
         return Math.max(min, Math.min(area, Math.max(min, max)));
@@ -715,11 +749,19 @@ public class RXDashboardCard extends Region {
 
     // ==================== Pane hooks ====================
 
-    // Sets :draggable from the card's dashboard, its move switch and its lock; the pane calls it when the card joins
-    // or leaves it and when its editable state changes.
-    void updateDraggable() {
-        pseudoClassStateChanged(DRAGGABLE_PSEUDO_CLASS,
-                owner != null && owner.isEditable() && isMoveEnabled() && !isLocked());
+    // Sets :draggable and :resizable from the card's dashboard, its switches and its lock; the pane calls it when the
+    // card joins or leaves it and when its editable state changes.
+    void updateGestureStates() {
+        pseudoClassStateChanged(DRAGGABLE_PSEUDO_CLASS, canEdit() && isMoveEnabled());
+        pseudoClassStateChanged(RESIZABLE_PSEUDO_CLASS, canResize());
+    }
+
+    private boolean canResize() {
+        return canEdit() && isResizeEnabled();
+    }
+
+    private boolean canEdit() {
+        return owner != null && owner.isEditable() && !isLocked();
     }
 
     // The edge a press on this node pulls, or null when the node is not one of a card's resize handles.
@@ -769,6 +811,32 @@ public class RXDashboardCard extends Region {
         @Override
         protected double computePrefHeight(double width) {
             return edge == Edge.CORNER ? DEFAULT_CORNER_SIZE : DEFAULT_THICKNESS;
+        }
+    }
+
+    // ==================== Resize grip ====================
+
+    // The mark in the card's bottom-right corner. Presses reach the corner handle above it; the style sheet draws it
+    // and decides when it shows. Its default size is its preferred size, which -fx-pref-width and -fx-pref-height
+    // change.
+    private static final class ResizeGrip extends Region {
+
+        private static final double DEFAULT_SIZE = 16.0;
+
+        ResizeGrip() {
+            getStyleClass().add("resize-grip");
+            setManaged(false);
+            setMouseTransparent(true);
+        }
+
+        @Override
+        protected double computePrefWidth(double height) {
+            return DEFAULT_SIZE;
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            return DEFAULT_SIZE;
         }
     }
 }

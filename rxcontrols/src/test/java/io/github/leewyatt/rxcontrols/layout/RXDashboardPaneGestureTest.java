@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests for dragging cards on an {@link RXDashboardPane}, driven by synthetic mouse and key events on an unshown
  * stage: the threshold, the card following the pointer, the preview and placeholder, committing with exactly one
  * event, the event's contents and what its handlers may do, cancelling (Esc, changes to the pane, leaving the scene)
- * with no event, and the switches that stop a drag from starting.
+ * with no event, the switches that stop a drag from starting, and the resize handles and grip.
  */
 public class RXDashboardPaneGestureTest {
 
@@ -299,6 +299,56 @@ public class RXDashboardPaneGestureTest {
     }
 
     // ==================== Resizing ====================
+
+    @Test
+    public void theResizeGripLiesInTheCornerAndShowsOnResizableCardsUnderThePointer() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            RXDashboardCard card = board.a;
+            Region grip = grip(card);
+            Region corner = handle(card, "corner");
+            assertFalse(grip.isManaged());
+            assertTrue(grip.isMouseTransparent());
+            assertTrue(card.getChildrenUnmodifiable().indexOf(grip) < card.getChildrenUnmodifiable().indexOf(corner),
+                    "under the corner handle");
+            assertEquals(card.getWidth(), grip.getLayoutX() + grip.getWidth(), EPSILON);
+            assertEquals(card.getHeight(), grip.getLayoutY() + grip.getHeight(), EPSILON);
+            assertTrue(grip.getWidth() > 0.0 && grip.getHeight() > 0.0);
+
+            PseudoClass hover = PseudoClass.getPseudoClass("hover");
+            assertEquals(0.0, gripOpacity(card, grip), EPSILON, "hidden until the pointer is over the card");
+            card.pseudoClassStateChanged(hover, true);
+            assertEquals(1.0, gripOpacity(card, grip), EPSILON, "shown under the pointer");
+            card.pseudoClassStateChanged(DRAGGING, true);
+            assertEquals(0.0, gripOpacity(card, grip), EPSILON, "hidden while dragged");
+            card.pseudoClassStateChanged(DRAGGING, false);
+            card.setLocked(true);
+            assertEquals(0.0, gripOpacity(card, grip), EPSILON, "hidden on a locked card");
+            card.setLocked(false);
+            card.setResizeEnabled(false);
+            assertEquals(0.0, gripOpacity(card, grip), EPSILON, "hidden on a card that cannot be resized");
+            card.setResizeEnabled(true);
+            card.pseudoClassStateChanged(hover, false);
+            card.pseudoClassStateChanged(PseudoClass.getPseudoClass("resizing"), true);
+            assertEquals(1.0, gripOpacity(card, grip), EPSILON, "shown while resized");
+        });
+    }
+
+    @Test
+    public void aNewSizeForTheGripOrAHandleLaysTheCardOutAgain() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            Region grip = grip(board.a);
+            Region corner = handle(board.a, "corner");
+            grip.setPrefSize(24.0, 24.0);
+            board.layout();
+            assertEquals(24.0, grip.getWidth(), EPSILON);
+            assertEquals(board.a.getWidth(), grip.getLayoutX() + grip.getWidth(), EPSILON);
+            corner.setPrefSize(24.0, 24.0);
+            board.layout();
+            assertEquals(24.0, corner.getWidth(), EPSILON, "no gap: the corner handle lies inside the card");
+        });
+    }
 
     @Test
     public void handlesStraddleTheEdgesAndShowOnlyWhereResizingIsAllowed() throws Exception {
@@ -845,6 +895,20 @@ public class RXDashboardPaneGestureTest {
     }
 
     // ==================== Helpers ====================
+
+    private static Region grip(RXDashboardCard card) {
+        for (Node child : card.getChildrenUnmodifiable()) {
+            if (child.getStyleClass().contains("resize-grip")) {
+                return (Region) child;
+            }
+        }
+        throw new AssertionError("no resize grip");
+    }
+
+    private static double gripOpacity(RXDashboardCard card, Region grip) {
+        card.applyCss();
+        return grip.getOpacity();
+    }
 
     private static Region handle(RXDashboardCard card, String edge) {
         for (Node child : card.getChildrenUnmodifiable()) {

@@ -103,40 +103,58 @@ public class RXDashboardPaneTest {
     }
 
     @Test
-    public void draggableFollowsTheDashboardTheMoveSwitchAndTheLock() throws Exception {
+    public void draggableAndResizableFollowTheDashboardTheSwitchesAndTheLock() throws Exception {
         fx(() -> {
             RXDashboardCard card = card("a", 1, 1);
-            assertFalse(draggable(card), "not on a dashboard");
+            assertGestures(card, false, false, "not on a dashboard");
             RXDashboardPane pane = pane(4);
             pane.getCards().add(card);
-            assertTrue(draggable(card));
+            assertGestures(card, true, true, "on an editable dashboard");
             card.setResizeEnabled(false);
-            assertTrue(draggable(card), "resizing is another switch");
-            card.setLocked(true);
-            assertFalse(draggable(card), "locked");
-            card.setLocked(false);
-            assertTrue(draggable(card));
+            assertGestures(card, true, false, "resize switch off");
+            card.setResizeEnabled(true);
             card.setMoveEnabled(false);
-            assertFalse(draggable(card), "move switch off");
+            assertGestures(card, false, true, "move switch off");
             card.setMoveEnabled(true);
-            assertTrue(draggable(card));
+            card.setLocked(true);
+            assertGestures(card, false, false, "locked");
+            card.setLocked(false);
+            assertGestures(card, true, true, "unlocked");
             pane.setEditable(false);
-            assertFalse(draggable(card), "dashboard not editable");
+            assertGestures(card, false, false, "dashboard not editable");
             pane.setEditable(true);
-            assertTrue(draggable(card));
+            assertGestures(card, true, true, "editable again");
             RXDashboardPane readOnly = pane(4);
             readOnly.setEditable(false);
             readOnly.getCards().add(card);
-            assertFalse(draggable(card), "taken by a dashboard that is not editable");
+            assertGestures(card, false, false, "taken by a dashboard that is not editable");
             pane.getCards().add(card);
-            assertTrue(draggable(card), "back on the editable one");
+            assertGestures(card, true, true, "back on the editable one");
             pane.getCards().remove(card);
-            assertFalse(draggable(card), "removed");
+            assertGestures(card, false, false, "removed");
         });
     }
 
-    private static boolean draggable(RXDashboardCard card) {
-        return card.getPseudoClassStates().contains(PseudoClass.getPseudoClass("draggable"));
+    @Test
+    public void turningEditingOffWhileACardIsTakenInReachesThatCard() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = pane(4);
+            RXDashboardCard card = card("a", 1, 1);
+            card.parentProperty().addListener((obs, old, parent) -> {
+                if (parent == pane) {
+                    pane.setEditable(false);
+                }
+            });
+            pane.getCards().add(card);
+            assertGestures(card, false, false, "editing turned off while it was taken in");
+        });
+    }
+
+    private static void assertGestures(RXDashboardCard card, boolean draggable, boolean resizable, String context) {
+        assertEquals(draggable, card.getPseudoClassStates().contains(PseudoClass.getPseudoClass("draggable")),
+                ":draggable, " + context);
+        assertEquals(resizable, card.getPseudoClassStates().contains(PseudoClass.getPseudoClass("resizable")),
+                ":resizable, " + context);
     }
 
     // ==================== Adding and removing ====================
@@ -1169,8 +1187,9 @@ public class RXDashboardPaneTest {
             assertSame(a, second.getParent());
             a.setContent(null);
             assertFalse(a.getChildrenUnmodifiable().contains(second));
-            assertTrue(a.getChildrenUnmodifiable().stream().allMatch(
-                    child -> child.getStyleClass().contains("resize-handle")));
+            assertTrue(a.getChildrenUnmodifiable().stream().allMatch(child -> child.getStyleClass()
+                    .contains("resize-handle") || child.getStyleClass().contains("resize-grip")),
+                    "only the card's own nodes");
             assertPlacement(a, 0, 0, 2, 1);
         });
     }
