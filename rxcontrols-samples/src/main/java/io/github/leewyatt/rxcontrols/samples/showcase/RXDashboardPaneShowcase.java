@@ -36,12 +36,12 @@ import java.util.function.Consumer;
 /**
  * Showcase for {@link RXDashboardPane}. Six plain cards, each a numbered title over one line, inside a
  * {@code ScrollPane}. A card that can move says so at its bottom left and shows an open hand, a locked card says it is
- * locked, and a card that can be resized shows a grip in its bottom-right resize handle; all three follow the card's
- * pseudo-classes and handles, so they change with the editing switches. Controls cover the grid (columns, row height,
- * gaps, card padding, minimum column width), editing (collision policy, keeping the cards packed upward, editable, live
- * resize, a locked card, a card that cannot move, one that cannot be resized, a minimum span, dragging by the title
- * only), animation, and the layout itself: save, restore, defaults, compact (only useful with packing off), adding and
- * removing cards, the encoded snapshot and the last user edit.
+ * locked, and a card that can be resized shows the dashboard's resize grip in its bottom-right corner while the pointer
+ * is over it; all three follow the card's pseudo-classes, so they change with the editing switches. Controls cover the
+ * grid (columns, row height, gaps, card padding, minimum column width), editing (collision policy, keeping the cards
+ * packed upward, editable, live resize, a locked card, a card that cannot move, one that cannot be resized, a minimum
+ * span, dragging by the title only), animation, and the layout itself: save, restore, defaults, compact (only useful
+ * with packing off), adding and removing cards, the encoded snapshot and the last user edit.
  */
 public class RXDashboardPaneShowcase extends RXShowcaseApplication {
 
@@ -232,7 +232,7 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
 
     // A plain card: a numbered title over one line, and at the bottom left what the user can do with it: move it (an
     // open hand and "Drag to move", or "Drag the title"), or nothing while it is locked. The style sheet shows each
-    // hint by the card's pseudo-classes, and draws the resize grip in the card's own corner handle.
+    // hint by the card's pseudo-classes.
     private RXDashboardCard card(String id, String name, String description) {
         cardCount++;
         Label title = new Label("#" + cardCount + "  " + name);
