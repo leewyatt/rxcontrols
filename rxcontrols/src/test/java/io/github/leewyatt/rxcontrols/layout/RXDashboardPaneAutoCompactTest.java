@@ -363,6 +363,150 @@ public class RXDashboardPaneAutoCompactTest {
     }
 
     @Test
+    public void lockingACardOrTurningPackingOffKeepsTheRoundTrip() throws Exception {
+        fx(() -> {
+            for (boolean lock : new boolean[] {false, true}) {
+                RXDashboardPane pane = pane(4);
+                RXDashboardCard b = card("b", -1, -1, 2, 1);
+                pane.getCards().addAll(card("a", -1, -1, 2, 1), b);
+                pane.applyLayout(RXDashboardLayout.builder(4).card("a", 0, 0, 2, 1).card("b", 0, 3, 2, 1).build());
+                laidOut(pane);
+                if (lock) {
+                    b.setLocked(true);
+                } else {
+                    pane.setAutoCompact(false);
+                }
+                Map<String, String> before = cells(pane);
+                assertEquals(cells("a:0,0 b:0,1"), before);
+                pane.setColumnCount(2);
+                pane.setColumnCount(4);
+                assertEquals(before, cells(pane), lock ? "locked" : "packing off");
+            }
+        });
+    }
+
+    @Test
+    public void cardsASnapshotDoesNotNameComeBackAfterAColumnRoundTrip() throws Exception {
+        fx(() -> {
+            for (boolean compact : new boolean[] {false, true}) {
+                RXDashboardPane pane = pane(4);
+                pane.setAutoCompact(compact);
+                pane.getCards().addAll(card("a", -1, -1, 2, 1), card("b", -1, -1, 2, 1), card(null, 0, 1, 1, 1));
+                pane.applyLayout(RXDashboardLayout.builder(4).card("a", 0, 0, 2, 1).card("b", 2, 0, 2, 1).build());
+                laidOut(pane);
+                List<String> before = cellsInOrder(pane);
+                pane.setColumnCount(1);
+                pane.setColumnCount(4);
+                assertEquals(before, cellsInOrder(pane), "packing " + compact);
+            }
+        });
+    }
+
+    @Test
+    public void aRemovalAndALateCountTakenInTogetherGiveWhatSettingTheCountFirstGives() throws Exception {
+        fx(() -> assertEquals(removalWithCount(false), removalWithCount(true)));
+    }
+
+    // A listener removes a card and sets the count while a move is being committed, so both are taken in together;
+    // the count was set first, or arrives then. The layout, at 2 columns, and back.
+    private static List<Map<String, String>> removalWithCount(boolean late) {
+        RXDashboardPane pane = new RXDashboardPane();
+        if (!late) {
+            pane.setColumnCount(6);
+        }
+        RXDashboardCard b = card("b", 0, 0, 1, 1);
+        RXDashboardCard z = card("z", 3, 0, 1, 1);
+        pane.getCards().addAll(b, card("x", 0, 1, 1, 1), card("y", 1, 0, 1, 1), z);
+        boolean[] once = {true};
+        pane.layoutProperty().addListener((obs, old, value) -> {
+            if (once[0]) {
+                once[0] = false;
+                pane.getCards().remove(b);
+                pane.setColumnCount(6);
+            }
+        });
+        pane.moveCard(z, 4, 0);
+        laidOut(pane);
+        List<Map<String, String>> results = new ArrayList<>();
+        results.add(cells(pane));
+        pane.setColumnCount(2);
+        results.add(cells(pane));
+        pane.setColumnCount(6);
+        results.add(cells(pane));
+        return results;
+    }
+
+    @Test
+    public void manyCardsAddedOneByOneStillGiveWhatSettingTheCountFirstGives() throws Exception {
+        fx(() -> assertEquals(oneByOne(false), oneByOne(true)));
+    }
+
+    // 300 cards added one at a time before the first layout, the 6 columns set first or from a style sheet late.
+    private static Map<String, String> oneByOne(boolean late) {
+        RXDashboardPane pane = new RXDashboardPane();
+        if (late) {
+            pane.setStyle("-rx-column-count: 6;");
+        } else {
+            pane.setColumnCount(6);
+        }
+        for (int i = 0; i < 300; i++) {
+            pane.getCards().add(card("c" + i, (i * 5) % 7, i % 4, 1 + i % 3, 1));
+        }
+        Stage stage = new Stage();
+        stage.setScene(new Scene(new StackPane(pane), 600, 600));
+        pane.applyCss();
+        laidOut(pane);
+        return cells(pane);
+    }
+
+    @Test
+    public void randomHistoriesGiveWhatSettingTheCountFirstGives() throws Exception {
+        fx(() -> {
+            for (boolean compact : new boolean[] {false, true}) {
+                for (long seed = 1; seed <= 120; seed++) {
+                    assertEquals(randomHistory(seed, compact, false), randomHistory(seed, compact, true),
+                            "seed " + seed + ", packing " + compact);
+                }
+            }
+        });
+    }
+
+    // Cards added together with requests that may overlap (and push), one more alone, one removed, one moved, the 4
+    // columns set first or from a style sheet late; then the layout, at 2 columns, and back.
+    private static List<Map<String, String>> randomHistory(long seed, boolean compact, boolean late) {
+        Random random = new Random(seed);
+        RXDashboardPane pane = new RXDashboardPane();
+        pane.setAutoCompact(compact);
+        if (late) {
+            pane.setStyle("-rx-column-count: 4;");
+        } else {
+            pane.setColumnCount(4);
+        }
+        int count = 3 + random.nextInt(4);
+        List<RXDashboardCard> cards = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            int span = 1 + random.nextInt(2);
+            cards.add(card("c" + i, random.nextInt(5 - span), random.nextInt(4), span, 1 + random.nextInt(2)));
+        }
+        pane.getCards().addAll(cards);
+        pane.getCards().add(card("solo", random.nextInt(3), random.nextInt(4), 2, 1));
+        pane.getCards().remove(cards.get(random.nextInt(count)));
+        RXDashboardCard moved = pane.getCards().get(random.nextInt(pane.getCards().size()));
+        pane.moveCard(moved, random.nextInt(4), random.nextInt(5));
+        Stage stage = new Stage();
+        stage.setScene(new Scene(new StackPane(pane), 400, 600));
+        pane.applyCss();
+        laidOut(pane);
+        List<Map<String, String>> results = new ArrayList<>();
+        results.add(cells(pane));
+        pane.setColumnCount(2);
+        results.add(cells(pane));
+        pane.setColumnCount(4);
+        results.add(cells(pane));
+        return results;
+    }
+
+    @Test
     public void compactingBeforePackingIsTurnedOffLateIsKept() throws Exception {
         fx(() -> {
             RXDashboardPane late = pane(4);
@@ -488,6 +632,15 @@ public class RXDashboardPaneAutoCompactTest {
         Map<String, String> cells = new TreeMap<>();
         for (RXDashboardCard card : pane.getCards()) {
             cells.put(card.getCardId(), card.getColumn() + "," + card.getRow());
+        }
+        return cells;
+    }
+
+    // Each card's column and row, in list order (cards without an ID are told apart by place).
+    private static List<String> cellsInOrder(RXDashboardPane pane) {
+        List<String> cells = new ArrayList<>();
+        for (RXDashboardCard card : pane.getCards()) {
+            cells.add(card.getColumn() + "," + card.getRow() + "," + card.getColumnSpan());
         }
         return cells;
     }

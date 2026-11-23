@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.layout.RXDashboardPane.CollisionPolicy;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.event.EventType;
+import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -244,6 +245,39 @@ public class RXDashboardPaneAutoCompactGestureTest {
         });
     }
 
+    @Test
+    public void theTargetCellLeansBackByHalfTheGapFromTheGridsInnerEdge() throws Exception {
+        fx(() -> {
+            // Cells every 100 pixels with a 12 pixel gap and a 30 pixel inset: a card dragged right reaches the next
+            // column once past the middle by half the gap, 56 pixels, counted from the first column's edge.
+            Board early = new Board(4, 12, 30, card("A", 0, 0, 1, 1), card("B", 3, 0, 1, 1));
+            Point2D start = early.press("A");
+            early.dragBy(start, 53, 0);
+            assertEquals(new Placement(0, 0, 1, 1), early.placeholder());
+
+            Board late = new Board(4, 12, 30, card("A", 0, 0, 1, 1), card("B", 3, 0, 1, 1));
+            start = late.press("A");
+            late.dragBy(start, 58, 0);
+            assertEquals(new Placement(1, 0, 1, 1), late.placeholder());
+        });
+    }
+
+    @Test
+    public void afterComingBackTheDragGoesOnAsIfItHadJustStarted() throws Exception {
+        fx(() -> {
+            Board wandered = new Board(4, card("1", 0, 0, 1, 1), card("2", 0, 1, 2, 1), card("3", 1, 2, 1, 2));
+            Point2D start = wandered.press("2");
+            wandered.dragBy(start, 100, 100);
+            wandered.dragFrom(start.add(100, 100), -100, -100);
+            wandered.dragFrom(start, 100, 0);
+
+            Board fresh = new Board(4, card("1", 0, 0, 1, 1), card("2", 0, 1, 2, 1), card("3", 1, 2, 1, 2));
+            Point2D again = fresh.press("2");
+            fresh.dragBy(again, 100, 0);
+            assertEquals(fresh.preview(), wandered.preview());
+        });
+    }
+
     // ==================== Boards ====================
 
     private static Board rowOfFour() {
@@ -282,28 +316,42 @@ public class RXDashboardPaneAutoCompactGestureTest {
         return cells;
     }
 
-    // A pane of 100 by 100 pixel cells without gaps, in a shown-less stage, laid out.
+    // A pane whose cells repeat every 100 pixels both ways, the gap included, with an inset all round, in a shown-less
+    // stage, laid out.
     private static final class Board {
         final RXDashboardPane pane = new RXDashboardPane();
         private final int columns;
+        private final double gap;
+        private final double inset;
 
         Board(int columns, RXDashboardCard... cards) {
+            this(columns, 0.0, 0.0, cards);
+        }
+
+        Board(int columns, double gap, double inset, RXDashboardCard... cards) {
             this.columns = columns;
+            this.gap = gap;
+            this.inset = inset;
             pane.setColumnCount(columns);
-            pane.setRowHeight(100);
-            pane.setHgap(0);
-            pane.setVgap(0);
+            pane.setRowHeight(100 - gap);
+            pane.setHgap(gap);
+            pane.setVgap(gap);
+            pane.setPadding(new Insets(inset));
             pane.setAnimationDuration(Duration.millis(200));
             pane.getCards().addAll(cards);
             Stage stage = new Stage();
-            stage.setScene(new Scene(new StackPane(pane), columns * 100.0, 900));
+            stage.setScene(new Scene(new StackPane(pane), width(), 900));
             pane.getScene().getRoot().applyCss();
             layout();
             layout();
         }
 
+        private double width() {
+            return columns * 100.0 - gap + 2 * inset;
+        }
+
         void layout() {
-            pane.resize(columns * 100.0, Math.max(300, pane.prefHeight(-1)));
+            pane.resize(width(), Math.max(300, pane.prefHeight(-1)));
             pane.layout();
         }
 
@@ -336,8 +384,8 @@ public class RXDashboardPaneAutoCompactGestureTest {
             Map<String, String> cells = new TreeMap<>();
             for (RXDashboardCard card : pane.getCards()) {
                 Placement shown = card.getPseudoClassStates().contains(DRAGGING) ? placeholder()
-                        : new Placement((int) Math.round(card.getLayoutX() / 100), (int) Math.round(card.getLayoutY()
-                        / 100), card.getColumnSpan(), card.getRowSpan());
+                        : new Placement((int) Math.round((card.getLayoutX() - inset) / 100),
+                        (int) Math.round((card.getLayoutY() - inset) / 100), card.getColumnSpan(), card.getRowSpan());
                 cells.put(card.getCardId(), shown.column() + "," + shown.row());
             }
             return cells;
@@ -346,9 +394,10 @@ public class RXDashboardPaneAutoCompactGestureTest {
         Placement placeholder() {
             layout();
             Region placeholder = (Region) pane.getChildrenUnmodifiable().get(0);
-            return new Placement((int) Math.round(placeholder.getLayoutX() / 100),
-                    (int) Math.round(placeholder.getLayoutY() / 100), (int) Math.round(placeholder.getWidth() / 100),
-                    (int) Math.round(placeholder.getHeight() / 100));
+            return new Placement((int) Math.round((placeholder.getLayoutX() - inset) / 100),
+                    (int) Math.round((placeholder.getLayoutY() - inset) / 100),
+                    (int) Math.round((placeholder.getWidth() + gap) / 100),
+                    (int) Math.round((placeholder.getHeight() + gap) / 100));
         }
 
         Point2D press(String id) {
