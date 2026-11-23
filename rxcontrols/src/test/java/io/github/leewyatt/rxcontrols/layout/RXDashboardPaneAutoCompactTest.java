@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -470,6 +472,138 @@ public class RXDashboardPaneAutoCompactTest {
                 assertEquals(before, cellsInOrder(pane), "packing " + compact);
             }
         });
+    }
+
+    @Test
+    public void removingACardBetweenColumnChangesKeepsTheRoundTrip() throws Exception {
+        fx(() -> {
+            for (String held : new String[] {"packing off", "locked"}) {
+                for (boolean removeAway : new boolean[] {false, true}) {
+                    RXDashboardPane pane = pane(4);
+                    RXDashboardCard a = card("a", 0, 0, 4, 1);
+                    RXDashboardCard b = card("b", 0, 1, 4, 1);
+                    pane.getCards().addAll(a, b, card("c", 0, 2, 2, 1));
+                    laidOut(pane);
+                    if (held.equals("locked")) {
+                        b.setLocked(true);
+                    } else {
+                        pane.setAutoCompact(false);
+                    }
+                    String context = held + ", removed at " + (removeAway ? "2 columns" : "4 columns");
+                    if (removeAway) {
+                        pane.setColumnCount(2);
+                        pane.getCards().remove(a);
+                        pane.setColumnCount(4);
+                    } else {
+                        pane.getCards().remove(a);
+                    }
+                    assertEquals(List.of("0,1,4", "0,2,2"), cellsInOrder(pane), context);
+                    pane.setColumnCount(2);
+                    pane.setColumnCount(4);
+                    assertEquals(List.of("0,1,4", "0,2,2"), cellsInOrder(pane), context);
+                }
+            }
+        });
+    }
+
+    @Test
+    public void aRoundTripFromAConvertedCountRestoresItAfterALockOrPackingOff() throws Exception {
+        fx(() -> {
+            for (boolean lock : new boolean[] {false, true}) {
+                RXDashboardPane pane = pane(4);
+                pane.setAutoCompact(false);
+                RXDashboardCard w = card("w", 0, 1, 2, 1);
+                pane.getCards().addAll(card("s", 1, 0, 2, 1), w);
+                laidOut(pane);
+                pane.setAutoCompact(true);
+                pane.setColumnCount(2);
+                if (lock) {
+                    w.setLocked(true);
+                } else {
+                    pane.setAutoCompact(false);
+                }
+                Map<String, String> before = cells(pane);
+                pane.setColumnCount(4);
+                pane.setColumnCount(2);
+                assertEquals(before, cells(pane), lock ? "locked" : "packing off");
+            }
+        });
+    }
+
+    @Test
+    public void aCardAddedAtAConvertedCountKeepsItsPlaceInARoundTrip() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = pane(4);
+            pane.getCards().addAll(card("s", 1, 0, 2, 1), card("w", 0, 1, 2, 1));
+            laidOut(pane);
+            pane.setAutoCompact(false);
+            pane.setColumnCount(2);
+            pane.getCards().add(card("y", 0, 1, 1, 1));
+            Map<String, String> before = cells(pane);
+            pane.setColumnCount(3);
+            pane.setColumnCount(2);
+            assertEquals(before, cells(pane));
+        });
+    }
+
+    @Test
+    public void aCardUnlockedAtAnotherCountPacksUpwardWhenTheCountComesBack() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = pane(4);
+            RXDashboardCard x = card("x", 3, 0, 1, 1);
+            pane.getCards().addAll(card("a", 0, 0, 2, 1), card("b", 2, 0, 1, 1), x);
+            laidOut(pane);
+            x.setLocked(true);
+            pane.moveCard(x, 3, 2);
+            pane.setColumnCount(1);
+            Map<String, String> away = cells(pane);
+            x.setLocked(false);
+            assertEquals(away, cells(pane), "unlocking moves nothing at one column");
+            pane.setColumnCount(4);
+            assertEquals("3,0", cells(pane).get("x"));
+            pane.setColumnCount(1);
+            pane.setColumnCount(4);
+            assertEquals("3,0", cells(pane).get("x"));
+        });
+    }
+
+    @Test
+    public void anEditAtAnotherCountReplacesTheLayoutsShownBefore() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = pane(4);
+            pane.setAutoCompact(false);
+            RXDashboardCard a = card("a", 0, 0, 1, 1);
+            pane.getCards().addAll(a, card("b", 1, 0, 1, 1));
+            laidOut(pane);
+            pane.setColumnCount(2);
+            pane.moveCard(a, 0, 3);
+            pane.setColumnCount(4);
+            assertEquals(List.of("0,3,2", "2,0,2"), cellsInOrder(pane));
+        });
+    }
+
+    @Test
+    public void aRemovedCardIsNotKeptByTheLayoutsShownBefore() throws Exception {
+        List<WeakReference<RXDashboardCard>> removed = new ArrayList<>();
+        List<RXDashboardPane> kept = new ArrayList<>();
+        fx(() -> {
+            RXDashboardPane pane = pane(4);
+            RXDashboardCard a = card("a", 0, 0, 1, 1);
+            pane.getCards().addAll(a, card("b", 1, 0, 1, 1));
+            laidOut(pane);
+            pane.setColumnCount(2);
+            pane.setColumnCount(4);
+            pane.getCards().remove(a);
+            laidOut(pane);
+            removed.add(new WeakReference<>(a));
+            kept.add(pane);
+        });
+        for (int i = 0; i < 50 && removed.get(0).get() != null; i++) {
+            System.gc();
+            Thread.sleep(10L);
+        }
+        assertNull(removed.get(0).get(), "a removed card must not stay reachable from the pane");
+        assertEquals(1, kept.get(0).getCards().size());
     }
 
     @Test
