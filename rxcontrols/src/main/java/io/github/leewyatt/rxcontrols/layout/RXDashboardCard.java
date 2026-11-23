@@ -29,7 +29,8 @@ import java.util.Objects;
  * through the pane: user gestures, {@link RXDashboardPane#moveCard}, {@link RXDashboardPane#resizeCard},
  * {@link RXDashboardPane#compact()} and {@link RXDashboardPane#applyLayout}. A position given to the constructor is a
  * request the pane honours, by its collision rules, when the card is added; without one the card goes to the first
- * free area.</p>
+ * free area. With {@link RXDashboardPane#autoCompactProperty() autoCompact} the card then rises as far as nothing is
+ * in its way, so its row may end up above the one it asked for.</p>
  *
  * <pre>{@code
  * RXDashboardCard trend = new RXDashboardCard("trend", salesChart);

@@ -182,6 +182,68 @@ public class RXDashboardPaneAutoCompactGestureTest {
         });
     }
 
+    @Test
+    public void comingBackRestoresTheStartEvenWhereRetracingTheStepsWouldNot() throws Exception {
+        fx(() -> {
+            Board board = new Board(4, card("1", 0, 0, 1, 1), card("2", 0, 1, 2, 1), card("3", 1, 2, 1, 2));
+            Map<String, String> before = board.cells();
+            Point2D start = board.press("2");
+            board.dragBy(start, 100, 100);
+            assertTrue(!before.equals(board.preview()), "the drag changed the layout");
+            board.dragFrom(start.add(100, 100), -100, -100);
+            assertEquals(before, board.preview());
+            board.release(start);
+            assertEquals(before, board.cells());
+        });
+    }
+
+    @Test
+    public void thePlaceholderMarksWhereAResizedCardRises() throws Exception {
+        fx(() -> {
+            Board board = new Board(4, card("A", 1, 0, 1, 1), card("C", 0, 1, 2, 1));
+            Region right = handle(board.find("C"), "right");
+            Point2D start = board.pressOn(right, 4, 40);
+            board.dragBy(start, -100, 0);
+            assertEquals(new Placement(0, 0, 1, 1), board.placeholder());
+            board.release(start.add(-100, 0));
+            assertEquals(cells("A:1,0 C:0,0"), board.cells());
+        });
+    }
+
+    @Test
+    public void underBlockThePlaceholderMarksThePackedPlace() throws Exception {
+        fx(() -> {
+            Board board = new Board(4, card("A", 0, 0, 1, 1), card("B", 0, 1, 1, 1));
+            board.pane.setCollisionPolicy(CollisionPolicy.BLOCK);
+            Point2D start = board.press("B");
+            board.dragBy(start, 200, 200);
+            assertEquals(new Placement(2, 0, 1, 1), board.placeholder());
+        });
+    }
+
+    @Test
+    public void draggingNextToALockedCardNeverLeavesCardsOverlapping() throws Exception {
+        fx(() -> {
+            RXDashboardCard locked = card("L", 2, 2, 3, 1);
+            locked.setLocked(true);
+            Board board = new Board(5, locked, card("S", 2, 0, 1, 1), card("T", 2, 3, 2, 3));
+            Point2D start = board.press("T");
+            board.dragBy(start, -150, -400);
+            board.release(start.add(-150, -400));
+            List<RXDashboardCard> cards = board.pane.getCards();
+            for (int i = 0; i < cards.size(); i++) {
+                for (int j = i + 1; j < cards.size(); j++) {
+                    RXDashboardCard a = cards.get(i);
+                    RXDashboardCard b = cards.get(j);
+                    assertTrue(a.getColumn() + a.getColumnSpan() <= b.getColumn()
+                            || b.getColumn() + b.getColumnSpan() <= a.getColumn()
+                            || a.getRow() + a.getRowSpan() <= b.getRow() || b.getRow() + b.getRowSpan() <= a.getRow(),
+                            a.getCardId() + " overlaps " + b.getCardId());
+                }
+            }
+        });
+    }
+
     // ==================== Boards ====================
 
     private static Board rowOfFour() {

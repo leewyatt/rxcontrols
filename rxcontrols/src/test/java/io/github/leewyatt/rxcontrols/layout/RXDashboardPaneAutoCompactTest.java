@@ -3,7 +3,10 @@ package io.github.leewyatt.rxcontrols.layout;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardPane.CollisionPolicy;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.layout.StackPane;
+import javafx.stage.Stage;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -11,7 +14,10 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -26,7 +32,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for {@link RXDashboardPane} keeping its cards packed upward ({@code autoCompact}), without gestures: adding,
  * removing, unlocking and resizing cards, moving them by code as a straight drag, the {@code BLOCK} policy, applying a
- * snapshot with holes, turning packing on and off, column-count round trips, changes from listeners and FXML.
+ * snapshot with holes, turning packing on and off, column-count round trips, changes from listeners and FXML, cards
+ * added together, and a late column count or autoCompact giving what setting it first gives.
  */
 public class RXDashboardPaneAutoCompactTest {
 
@@ -250,6 +257,173 @@ public class RXDashboardPaneAutoCompactTest {
         });
     }
 
+    @Test
+    public void aMoveNextToALockedCardNeverLeavesCardsOverlapping() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = pane(5);
+            RXDashboardCard locked = card("L", 2, 2, 3, 1);
+            locked.setLocked(true);
+            RXDashboardCard tall = card("T", 2, 3, 2, 3);
+            pane.getCards().addAll(locked, card("S", 2, 0, 1, 1), tall);
+            Map<String, String> before = cells(pane);
+            pane.moveCard(tall, 4, 0);
+            assertNoOverlap(pane);
+            assertEquals(before, cells(pane), "the only way up would cover the locked card");
+        });
+    }
+
+    @Test
+    public void aCardAddedAfterASnapshotWithHolesKeepsTheColumnRoundTrip() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = pane(4);
+            pane.getCards().addAll(card("A", -1, -1, 1, 1), card("B", -1, -1, 1, 1));
+            pane.applyLayout(RXDashboardLayout.builder(4).card("A", 0, 0, 1, 1).card("B", 0, 3, 1, 1).build());
+            laidOut(pane);
+            pane.getCards().add(card("C", 0, 2, 1, 1));
+            Map<String, String> before = cells(pane);
+            assertEquals(cells("A:0,0 B:0,1 C:0,2"), before);
+            pane.setColumnCount(2);
+            pane.setColumnCount(4);
+            assertEquals(before, cells(pane));
+        });
+    }
+
+    @Test
+    public void cardsAddedTogetherGiveTheSameLayoutWhetherTheSettingsComeLateOrFirst() throws Exception {
+        fx(() -> {
+            for (boolean compact : new boolean[] {false, true}) {
+                for (int late = 0; late < 3; late++) {
+                    assertEquals(together(compact, -1), together(compact, late),
+                            "packing " + compact + ", late setting " + late);
+                }
+            }
+        });
+    }
+
+    // Cards added together (one with a removal in between) and a move, the 4 columns and autoCompact set first (-1) or
+    // one of them arriving late before the first layout: 0 the count from a style sheet, 1 autoCompact, 2 both. Then a
+    // column round trip after the first layout, which shows the base layout the history left.
+    private static List<Map<String, String>> together(boolean compact, int late) {
+        RXDashboardPane pane = new RXDashboardPane();
+        if (late != 0 && late != 2) {
+            pane.setColumnCount(4);
+        } else {
+            pane.setStyle("-rx-column-count: 4;");
+        }
+        if (late < 1) {
+            pane.setAutoCompact(compact);
+        }
+        RXDashboardCard b = card("B", 0, 3, 1, 1);
+        pane.getCards().addAll(card("A", 0, 0, 2, 1), b, card("C", 0, 2, 1, 1), card("D", 2, 4, 2, 2));
+        pane.getCards().remove(b);
+        pane.getCards().addAll(b, card("E", 3, 1, 1, 1));
+        // A move made from the layout the additions left, packed or not.
+        pane.moveCard(find(pane, "E"), 1, 2);
+        if (late >= 1) {
+            pane.setAutoCompact(compact);
+        }
+        Stage stage = new Stage();
+        stage.setScene(new Scene(new StackPane(pane), 400, 600));
+        pane.applyCss();
+        laidOut(pane);
+        List<Map<String, String>> results = new ArrayList<>();
+        results.add(cells(pane));
+        pane.setColumnCount(2);
+        pane.setColumnCount(4);
+        results.add(cells(pane));
+        return results;
+    }
+
+    @Test
+    public void aMoveRightAfterCardsAddedTogetherStartsFromThePackedLayoutLateOrFirst() throws Exception {
+        fx(() -> {
+            Map<String, String> first = moveAfterAdding(false);
+            assertEquals(cells("c0:1,0 c1:2,4 c2:1,5 c3:2,2 c4:2,0"), first);
+            assertEquals(first, moveAfterAdding(true));
+        });
+    }
+
+    // Five cards added together, then one moved, with the 4 columns set first or from a style sheet late.
+    private static Map<String, String> moveAfterAdding(boolean late) {
+        RXDashboardPane pane = new RXDashboardPane();
+        if (late) {
+            pane.setStyle("-rx-column-count: 4;");
+        } else {
+            pane.setColumnCount(4);
+        }
+        RXDashboardCard moved = card("c2", 1, 1, 2, 1);
+        pane.getCards().addAll(card("c0", 1, 2, 1, 1), card("c1", 2, 4, 1, 1), moved, card("c3", 2, 2, 1, 2),
+                card("c4", 2, 2, 2, 2));
+        pane.moveCard(moved, 1, 5);
+        Stage stage = new Stage();
+        stage.setScene(new Scene(new StackPane(pane), 400, 600));
+        pane.applyCss();
+        laidOut(pane);
+        return cells(pane);
+    }
+
+    @Test
+    public void compactingBeforePackingIsTurnedOffLateIsKept() throws Exception {
+        fx(() -> {
+            RXDashboardPane late = pane(4);
+            late.getCards().addAll(card("A", 0, 0, 1, 1), card("B", 0, 3, 1, 1));
+            late.compact();
+            late.setAutoCompact(false);
+
+            RXDashboardPane first = new RXDashboardPane();
+            first.setAutoCompact(false);
+            first.setColumnCount(4);
+            first.getCards().addAll(card("A", 0, 0, 1, 1), card("B", 0, 3, 1, 1));
+            first.compact();
+            assertEquals(cells(first), cells(late));
+            assertEquals(cells("A:0,0 B:0,1"), cells(late));
+        });
+    }
+
+    @Test
+    public void aFarMoveFollowsTheStraightLineAllTheWay() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = pane(6);
+            RXDashboardCard x = card("X", 0, 0, 1, 1);
+            pane.getCards().add(x);
+            for (int i = 1; i <= 5; i++) {
+                pane.getCards().add(card("r" + i, i, 0, 1, 1));
+            }
+            for (int i = 0; i <= 5; i++) {
+                pane.getCards().add(card("s" + i, i, 1, 1, 1));
+            }
+            assertTrue(pane.moveCard(x, 5, 1000));
+            Map<String, String> cells = cells(pane);
+            assertEquals("5,2", cells.get("X"));
+            assertEquals("0,0", cells.get("s0"));
+            for (int i = 1; i <= 5; i++) {
+                assertEquals(i + ",1", cells.get("s" + i), "s" + i);
+            }
+        });
+    }
+
+    @Test
+    public void columnRoundTripsRestoreRandomPackedLayouts() throws Exception {
+        fx(() -> {
+            Random random = new Random(20261124);
+            for (int board = 0; board < 200; board++) {
+                RXDashboardPane pane = pane(12);
+                int count = 3 + random.nextInt(10);
+                for (int i = 0; i < count; i++) {
+                    int span = 1 + random.nextInt(6);
+                    pane.getCards().add(card("c" + i, random.nextInt(13 - span), random.nextInt(6), span,
+                            1 + random.nextInt(3)));
+                }
+                laidOut(pane);
+                Map<String, String> before = cells(pane);
+                int narrow = 1 + random.nextInt(11);
+                pane.setColumnCount(narrow);
+                pane.setColumnCount(12);
+                assertEquals(before, cells(pane), "board " + board + " via " + narrow + " columns");
+            }
+        });
+    }
+
     // ==================== Boards ====================
 
     // 4 columns: 1 2 3 4 in the first row, T and U (two columns each) below.
@@ -275,6 +449,20 @@ public class RXDashboardPaneAutoCompactTest {
         RXDashboardPane pane = new RXDashboardPane();
         pane.setColumnCount(columns);
         return pane;
+    }
+
+    private static void assertNoOverlap(RXDashboardPane pane) {
+        List<RXDashboardCard> cards = pane.getCards();
+        for (int i = 0; i < cards.size(); i++) {
+            for (int j = i + 1; j < cards.size(); j++) {
+                RXDashboardCard a = cards.get(i);
+                RXDashboardCard b = cards.get(j);
+                boolean apart = a.getColumn() + a.getColumnSpan() <= b.getColumn()
+                        || b.getColumn() + b.getColumnSpan() <= a.getColumn()
+                        || a.getRow() + a.getRowSpan() <= b.getRow() || b.getRow() + b.getRowSpan() <= a.getRow();
+                assertTrue(apart, a.getCardId() + " overlaps " + b.getCardId());
+            }
+        }
     }
 
     private static void laidOut(RXDashboardPane pane) {
