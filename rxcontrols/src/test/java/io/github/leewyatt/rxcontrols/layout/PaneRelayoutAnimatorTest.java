@@ -5,6 +5,8 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.css.StyleOrigin;
+import javafx.css.StyleableProperty;
 import javafx.scene.layout.Region;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -20,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -338,6 +341,51 @@ public class PaneRelayoutAnimatorTest {
                 && node.getOpacity() > 0.6 - EPSILON);
 
         runOnFx(() -> assertEquals(0.6, node.getOpacity(), EPSILON, "fade target is entry opacity"));
+    }
+
+    /**
+     * Verifies every way a fade or an exit ends gives the opacity back with the style origin it had: a node whose
+     * opacity no code set stays under its user-agent style sheet, and a value set in code stays the caller's.
+     */
+    @Test
+    public void settledOpacityKeepsItsStyleOrigin() throws Exception {
+        PaneRelayoutAnimator animator = new PaneRelayoutAnimator();
+        Region styled = new Region();
+        Region set = new Region();
+        Region leaving = new Region();
+        AtomicBoolean removed = new AtomicBoolean(false);
+        runOnFx(() -> {
+            set.setOpacity(0.6);
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(styled, 0.0, 8.0, true),
+                    new PaneRelayoutAnimator.Move(set, 0.0, 8.0, true)), true, SHORT, Interpolator.EASE_BOTH);
+            animator.runExit(leaving, true, SHORT, Interpolator.EASE_BOTH, -8.0, () -> removed.set(true));
+        });
+        waitUntil(() -> removed.get() && !animator.isTracked(styled) && !animator.isTracked(set));
+        runOnFx(() -> {
+            assertNull(opacityOrigin(styled), "fade finished");
+            assertEquals(1.0, styled.getOpacity(), EPSILON);
+            assertEquals(StyleOrigin.USER, opacityOrigin(set), "a value set in code stays the caller's");
+            assertEquals(0.6, set.getOpacity(), EPSILON);
+            assertNull(opacityOrigin(leaving), "exit finished");
+            assertEquals(1.0, leaving.getOpacity(), EPSILON);
+
+            Region stopped = new Region();
+            Region forgotten = new Region();
+            Region stoppedExit = new Region();
+            animator.runRelayout(List.of(new PaneRelayoutAnimator.Move(stopped, 0.0, 8.0, true),
+                    new PaneRelayoutAnimator.Move(forgotten, 0.0, 8.0, true)), true, DURATION, Interpolator.EASE_BOTH);
+            animator.runExit(stoppedExit, true, DURATION, Interpolator.EASE_BOTH, -8.0, () -> { });
+            animator.forget(forgotten);
+            animator.stopAll();
+            assertNull(opacityOrigin(forgotten), "forgotten mid-fade");
+            assertNull(opacityOrigin(stopped), "stopped mid-fade");
+            assertNull(opacityOrigin(stoppedExit), "stopped mid-exit");
+            assertEquals(1.0, stopped.getOpacity(), EPSILON);
+        });
+    }
+
+    private static StyleOrigin opacityOrigin(Region node) {
+        return ((StyleableProperty<?>) node.opacityProperty()).getStyleOrigin();
     }
 
     /**

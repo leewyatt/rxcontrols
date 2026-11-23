@@ -4,6 +4,8 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
+import javafx.css.StyleOrigin;
+import javafx.css.StyleableProperty;
 import javafx.scene.Node;
 import javafx.util.Duration;
 
@@ -33,9 +35,10 @@ import java.util.Set;
  * records the node's translate as its resting translate; every glide ends there, and
  * every way out of tracking (finishing, settling, dropping, forgetting, an exit ending)
  * writes it back; an exit starts where the node shows and gets it back when it ends. A
- * faded node likewise returns to the opacity it had before the fade, and nodes the
- * animator never tracked are never written, so caller-set values survive layout
- * passes. While the animator holds a node, a caller write to the same channel (one
+ * faded node likewise returns to the opacity it had before the fade, with the style
+ * origin it had, so an opacity no code set stays under the node's style sheets, and
+ * nodes the animator never tracked are never written, so caller-set values survive
+ * layout passes. While the animator holds a node, a caller write to the same channel (one
  * assignment or a running animation of its own) is not supported: the animator may
  * overwrite it, and settling restores the value recorded before. Callers submit moves
  * through {@link #addRelayoutMove} and {@link #addEnterMove}, which measure motion
@@ -105,13 +108,16 @@ final class PaneRelayoutAnimator {
 
     // targetOpacity is the opacity the fade tween ends at (the value the node had
     // before the animator wrote 0); NaN for pure-translate moves, whose opacity is
-    // never touched. restX / restY is the translate the node had when first taken over.
-    private record MoveState(boolean fade, double targetOpacity, double restX, double restY) {
+    // never touched. targetOrigin is where that value came from, given back with it.
+    // restX / restY is the translate the node had when first taken over.
+    private record MoveState(boolean fade, double targetOpacity, StyleOrigin targetOrigin, double restX,
+                             double restY) {
     }
 
     // baseOpacity is the opacity restored when the exit ends, so a node pulled out
-    // mid-exit keeps its caller-set value; restX / restY likewise for translate.
-    private record ExitState(Timeline timeline, Runnable onFinished, double baseOpacity,
+    // mid-exit keeps its caller-set value, and baseOrigin where it came from;
+    // restX / restY likewise for translate.
+    private record ExitState(Timeline timeline, Runnable onFinished, double baseOpacity, StyleOrigin baseOrigin,
                              double restX, double restY) {
     }
 
@@ -241,7 +247,8 @@ final class PaneRelayoutAnimator {
             // A fade still in flight resumes from the live mid-fade value: no opacity
             // write, the timeline interpolates from the current value at play time.
             double targetOpacity = !fade ? Double.NaN : continuedFade ? previous.targetOpacity() : node.getOpacity();
-            MoveState state = new MoveState(fade, targetOpacity, restX, restY);
+            StyleOrigin targetOrigin = !fade ? null : continuedFade ? previous.targetOrigin() : opacityOrigin(node);
+            MoveState state = new MoveState(fade, targetOpacity, targetOrigin, restX, restY);
             activeMoves.put(node, state);
             node.setTranslateX(move.fromTranslateX());
             if (stops != stopsAtStart) {
@@ -255,7 +262,7 @@ final class PaneRelayoutAnimator {
             }
             if (fade && !continuedFade && ownsStill(node, state)) {
                 if (node.opacityProperty().isBound()) {
-                    state = new MoveState(false, Double.NaN, restX, restY);
+                    state = new MoveState(false, Double.NaN, null, restX, restY);
                     activeMoves.put(node, state);
                 } else {
                     node.setOpacity(move.resumesFade() ? move.fromOpacity() : 0.0);
@@ -374,9 +381,9 @@ final class PaneRelayoutAnimator {
             if (tracked != null || existing != null) {
                 restoreTranslate(node, restX, restY);
                 if (existing != null) {
-                    restoreOpacity(node, existing.baseOpacity());
+                    restoreOpacity(node, existing.baseOpacity(), existing.baseOrigin());
                 } else if (tracked.fade()) {
-                    restoreOpacity(node, tracked.targetOpacity());
+                    restoreOpacity(node, tracked.targetOpacity(), tracked.targetOrigin());
                 }
             }
             onFinished.run();
@@ -384,12 +391,16 @@ final class PaneRelayoutAnimator {
         }
 
         double baseOpacity;
+        StyleOrigin baseOrigin;
         if (existing != null) {
             baseOpacity = existing.baseOpacity();
+            baseOrigin = existing.baseOrigin();
         } else if (tracked != null && tracked.fade()) {
             baseOpacity = tracked.targetOpacity();
+            baseOrigin = tracked.targetOrigin();
         } else {
             baseOpacity = node.getOpacity();
+            baseOrigin = opacityOrigin(node);
         }
         // The exit starts where the node shows: a glide offset left stays, and the node
         // drifts from there. Its resting translate comes back when the exit ends.
@@ -397,7 +408,7 @@ final class PaneRelayoutAnimator {
                 new KeyValue(node.opacityProperty(), 0.0, interpolator),
                 new KeyValue(node.translateYProperty(), node.getTranslateY() + exitTranslateY, interpolator)));
         timeline.setOnFinished(event -> finishExit(node));
-        exits.put(node, new ExitState(timeline, onFinished, baseOpacity, restX, restY));
+        exits.put(node, new ExitState(timeline, onFinished, baseOpacity, baseOrigin, restX, restY));
         timeline.play();
     }
 
@@ -418,7 +429,7 @@ final class PaneRelayoutAnimator {
             return false;
         }
         exit.timeline().stop();
-        activeMoves.put(node, new MoveState(true, exit.baseOpacity(), exit.restX(), exit.restY()));
+        activeMoves.put(node, new MoveState(true, exit.baseOpacity(), exit.baseOrigin(), exit.restX(), exit.restY()));
         return true;
     }
 
@@ -449,9 +460,9 @@ final class PaneRelayoutAnimator {
             restoreTranslate(node, exit.restX(), exit.restY());
         }
         if (tracked != null && tracked.fade()) {
-            restoreOpacity(node, tracked.targetOpacity());
+            restoreOpacity(node, tracked.targetOpacity(), tracked.targetOrigin());
         } else if (exit != null) {
-            restoreOpacity(node, exit.baseOpacity());
+            restoreOpacity(node, exit.baseOpacity(), exit.baseOrigin());
         }
     }
 
@@ -688,7 +699,7 @@ final class PaneRelayoutAnimator {
         }
         state.timeline().stop();
         restoreTranslate(node, state.restX(), state.restY());
-        restoreOpacity(node, state.baseOpacity());
+        restoreOpacity(node, state.baseOpacity(), state.baseOrigin());
         state.onFinished().run();
     }
 
@@ -705,7 +716,7 @@ final class PaneRelayoutAnimator {
         }
         restoreTranslate(node, state.restX(), state.restY());
         if (state.fade()) {
-            restoreOpacity(node, state.targetOpacity());
+            restoreOpacity(node, state.targetOpacity(), state.targetOrigin());
         }
     }
 
@@ -720,10 +731,24 @@ final class PaneRelayoutAnimator {
         }
     }
 
-    private static void restoreOpacity(Node node, double value) {
-        if (!node.opacityProperty().isBound()) {
+    // Gives the opacity back as it was before the animator wrote it, value and origin: a node whose opacity no code
+    // had set stays under its style sheets, which skip a property set in code (style origin USER) when their value
+    // comes from the user-agent style sheet.
+    @SuppressWarnings("unchecked")
+    private static void restoreOpacity(Node node, double value, StyleOrigin origin) {
+        if (node.opacityProperty().isBound()) {
+            return;
+        }
+        if (node.opacityProperty() instanceof StyleableProperty<?> styleable) {
+            ((StyleableProperty<Number>) styleable).applyStyle(origin, value);
+        } else {
             node.setOpacity(value);
         }
+    }
+
+    private static StyleOrigin opacityOrigin(Node node) {
+        return node.opacityProperty() instanceof StyleableProperty<?> styleable ? styleable.getStyleOrigin()
+                : StyleOrigin.USER;
     }
 
     // Allocates only when a move has to be dropped or downgraded.
