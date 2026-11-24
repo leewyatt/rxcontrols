@@ -81,8 +81,9 @@ final class ViewportReorderAnimator {
      * Sub-pixel deltas, and any delta while the owner no longer animates, snap
      * immediately. {@code onFinished} runs after the transforms are reset, on a
      * natural finish or a snap, so the caller can un-pin / recycle. If writing the
-     * start position throws (a bound translate), the exception propagates and the
-     * node is put back on its slot.
+     * start position throws (a bound translate, or an error from a listener), the
+     * throwable propagates and, as with a snap, the node is put back on its slot on
+     * both writable axes, whatever they held before the call.
      */
     void animate(Node node, double fromDx, double fromDy, Duration duration, Interpolator interpolator,
                  Consumer<Node> onFinished) {
@@ -111,11 +112,13 @@ final class ViewportReorderAnimator {
                 return;
             }
             glide.play();
-        } catch (RuntimeException failure) {
-            // Still registered only if no listener took the node over. This call
-            // already stopped any earlier glide, so nothing else would bring the node
-            // back: withdraw this start and reset both writable axes, not only the
-            // one it wrote.
+        } catch (Throwable failure) {
+            // Any throwable, errors from listeners included: a registration left
+            // behind would have a later cancel or snapAll act on a glide that never
+            // played. Still registered only if no listener took the node over. This
+            // call already stopped any earlier glide, so nothing else would bring the
+            // node back: withdraw this start and reset both writable axes, not only
+            // the one it wrote.
             if (running.remove(node, glide)) {
                 resetTranslate(node);
             }

@@ -296,7 +296,8 @@ public class ViewportReorderAnimatorTest {
 
     /**
      * Verifies a start on a bound axis is reported, leaves no glide behind for a
-     * later snapAll, and puts the node back on its slot whichever axis is bound.
+     * later snapAll, and puts the node back on its slot on both writable axes
+     * whichever axis is bound, like a snap does.
      */
     @Test
     public void startOnABoundAxisThrowsAndPutsTheNodeBack() throws Exception {
@@ -304,10 +305,13 @@ public class ViewportReorderAnimatorTest {
         runOnFx(() -> {
             ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
             Region xBound = new Region();
+            xBound.setTranslateY(37.0);
             xBound.translateXProperty().bind(new SimpleDoubleProperty(0.0));
             assertThrows(RuntimeException.class,
                     () -> animator.animate(xBound, 100.0, 100.0, LONG_GLIDE, Interpolator.LINEAR, n -> { }),
                     "writing a start position into a bound translate is reported");
+            assertEquals(0.0, xBound.getTranslateY(), EPSILON,
+                    "the writable axis the start never reached is back on its slot too");
             assertDoesNotThrow(animator::snapAll, "the failed start left no glide to reset");
 
             // X is written before the bound Y throws: it has to go back too.
@@ -323,6 +327,31 @@ public class ViewportReorderAnimatorTest {
         Thread.sleep(200);
 
         runOnFx(() -> assertEquals(0.0, boundY.get().getTranslateX(), EPSILON, "no failed glide plays later"));
+    }
+
+    /**
+     * Verifies a start interrupted by an error from a listener leaves no glide
+     * registered for a later cancel to act on.
+     */
+    @Test
+    public void startInterruptedByAnErrorLeavesNothingRegistered() throws Exception {
+        runOnFx(() -> {
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
+            Region node = new Region();
+            AtomicBoolean fired = new AtomicBoolean();
+            node.translateXProperty().addListener((obs, was, now) -> {
+                if (!fired.getAndSet(true)) {
+                    throw new AssertionError("listener failure");
+                }
+            });
+            assertThrows(AssertionError.class,
+                    () -> animator.animate(node, 100.0, 100.0, LONG_GLIDE, Interpolator.LINEAR, n -> { }),
+                    "the listener's error reaches the caller");
+
+            node.setTranslateX(51.0);
+            animator.cancel(node);
+            assertEquals(51.0, node.getTranslateX(), EPSILON, "cancel finds no glide to reset");
+        });
     }
 
     /**
