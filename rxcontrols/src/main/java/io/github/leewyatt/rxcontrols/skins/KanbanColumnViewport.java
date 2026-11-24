@@ -67,7 +67,7 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
     // system) so a dragged card has somewhere to land. -1 means none.
     private int dropGapIndex = -1;
 
-    private final ViewportReorderAnimator reorderAnimator = new ViewportReorderAnimator();
+    private final ViewportReorderAnimator reorderAnimator = new ViewportReorderAnimator(this::animationEnabled);
     // Cells mid-glide, pinned: a same-card re-placement keeps the glide running,
     // while any rebind to a different card or a park cancels the glide first.
     private final Set<RXKanbanCardCell<T>> animating = Collections.newSetFromMap(new IdentityHashMap<>());

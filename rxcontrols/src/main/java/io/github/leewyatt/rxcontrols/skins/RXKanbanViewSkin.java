@@ -97,7 +97,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
     // Column reorder: FLIP the boxes from their pre-reorder visual x to the new layout
     // x. Populated by the column drag support on commit, consumed by the next layout.
     private final Map<KanbanColumnBox<T>, Double> pendingColumnFlipFromX = new IdentityHashMap<>();
-    private final ViewportReorderAnimator columnAnimator = new ViewportReorderAnimator();
+    private final ViewportReorderAnimator columnAnimator = new ViewportReorderAnimator(this::animationEnabled);
     private final KanbanColumnDragSupport<T> columnDragSupport;
 
     // Live make-way preview while a column header is being dragged: the dragged column

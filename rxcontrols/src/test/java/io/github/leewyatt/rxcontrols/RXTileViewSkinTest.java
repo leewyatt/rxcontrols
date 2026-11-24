@@ -42,8 +42,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -3254,6 +3256,39 @@ public class RXTileViewSkinTest {
             view.setMaxColumns(6);
             pump(root);
             assertFalse(anyCellTranslated(view, 12), "a non-positive duration disables the glide");
+        });
+    }
+
+    /**
+     * Verifies a reorder pass during which a moving cell's first glide write turns
+     * animation off, by a null duration or by animated=false, completes with every
+     * cell at its slot.
+     */
+    @Test
+    public void turningAnimationOffDuringAReorderPassSnapsTheRestOfIt() throws Exception {
+        List<Consumer<RXTileView<String>>> turnOffs =
+                List.of(v -> v.setAnimationDuration(null), v -> v.setAnimated(false));
+        onFx(() -> {
+            for (Consumer<RXTileView<String>> turnOff : turnOffs) {
+                RXTileView<String> view = tiles(12);
+                view.setMaxColumns(4);
+                view.setAnimated(true);
+                StackPane root = host(view, 700, 400);
+                pump(root);
+                RXTileCell<?> moving = cellByIndex(view, 5);
+                AtomicBoolean fired = new AtomicBoolean();
+                moving.translateXProperty().addListener((obs, was, now) -> {
+                    if (!fired.getAndSet(true)) {
+                        turnOff.accept(view);
+                    }
+                });
+
+                view.setMaxColumns(6);
+                pump(root);
+
+                assertTrue(fired.get(), "setup: the cell for item 5 started to glide");
+                assertFalse(anyCellTranslated(view, 12), "every cell sits at its slot once animation is off");
+            }
         });
     }
 

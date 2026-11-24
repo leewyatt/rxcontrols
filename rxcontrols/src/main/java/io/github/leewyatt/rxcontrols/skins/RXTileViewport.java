@@ -64,7 +64,7 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
     // a different item or a park cancels the glide first.
     private final Set<RXTileCell<T>> animating = new HashSet<>();
     private final Set<RXTileSectionCell> animatingHeaders = new HashSet<>();
-    private final ViewportReorderAnimator reorderAnimator = new ViewportReorderAnimator();
+    private final ViewportReorderAnimator reorderAnimator = new ViewportReorderAnimator(this::animationEnabled);
     // True for the duration of one fillVisibleRows when a column-count change should
     // glide cells/headers from their old positions to the new ones.
     private boolean reorderPass;

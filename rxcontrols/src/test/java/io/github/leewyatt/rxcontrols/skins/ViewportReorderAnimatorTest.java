@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -57,7 +58,7 @@ public class ViewportReorderAnimatorTest {
     @Test
     public void subPixelDeltaSnapsAndFinishesSynchronously() throws Exception {
         runOnFx(() -> {
-            ViewportReorderAnimator animator = new ViewportReorderAnimator();
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
             Region node = new Region();
             AtomicInteger finished = new AtomicInteger();
 
@@ -77,7 +78,7 @@ public class ViewportReorderAnimatorTest {
     @Test
     public void cancelResetsTransformsWithoutOnFinished() throws Exception {
         runOnFx(() -> {
-            ViewportReorderAnimator animator = new ViewportReorderAnimator();
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
             Region node = new Region();
             AtomicInteger finished = new AtomicInteger();
 
@@ -101,7 +102,7 @@ public class ViewportReorderAnimatorTest {
     @Test
     public void snapAllStopsEverythingWithoutOnFinished() throws Exception {
         runOnFx(() -> {
-            ViewportReorderAnimator animator = new ViewportReorderAnimator();
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
             Region a = new Region();
             Region b = new Region();
             AtomicInteger finished = new AtomicInteger();
@@ -125,7 +126,7 @@ public class ViewportReorderAnimatorTest {
     @Test
     public void reAimReplacesTweenWithoutSpuriousFinish() throws Exception {
         runOnFx(() -> {
-            ViewportReorderAnimator animator = new ViewportReorderAnimator();
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
             Region node = new Region();
             AtomicInteger finished = new AtomicInteger();
             AtomicReference<Region> lastFinished = new AtomicReference<>();
@@ -160,7 +161,7 @@ public class ViewportReorderAnimatorTest {
         AtomicReference<Region> glided = new AtomicReference<>();
         AtomicReference<Region> reference = new AtomicReference<>();
         runOnFx(() -> {
-            animator.set(new ViewportReorderAnimator());
+            animator.set(new ViewportReorderAnimator(() -> true));
             glided.set(new Region());
             reference.set(new Region());
             animator.get().animate(glided.get(), 0.0, 100.0, duration, tangent, n -> { });
@@ -188,7 +189,7 @@ public class ViewportReorderAnimatorTest {
     public void glideStoppedByATranslateListenerLeavesBothAxesAtZero() throws Exception {
         AtomicReference<Region> node = new AtomicReference<>();
         runOnFx(() -> {
-            ViewportReorderAnimator animator = new ViewportReorderAnimator();
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
             Region region = new Region();
             animator.animate(region, 100.0, 100.0, LONG_GLIDE, Interpolator.LINEAR, n -> { });
             // Whichever axis the tween writes first stops it before the other is written.
@@ -202,6 +203,99 @@ public class ViewportReorderAnimatorTest {
         runOnFx(() -> {
             assertEquals(0.0, node.get().getTranslateX(), EPSILON, "the axis written first is reset");
             assertEquals(0.0, node.get().getTranslateY(), EPSILON, "the other axis is never written");
+        });
+    }
+
+    /**
+     * Verifies a glide cancelled by a listener while its start position is written
+     * never plays and fires no finish callback.
+     */
+    @Test
+    public void glideCancelledDuringItsStartWriteNeverPlays() throws Exception {
+        AtomicReference<Region> node = new AtomicReference<>();
+        AtomicInteger finished = new AtomicInteger();
+        runOnFx(() -> {
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
+            Region region = new Region();
+            AtomicBoolean fired = new AtomicBoolean();
+            region.translateXProperty().addListener((obs, was, now) -> {
+                if (!fired.getAndSet(true)) {
+                    animator.snapAll();
+                }
+            });
+            animator.animate(region, 100.0, 100.0, LONG_GLIDE, Interpolator.LINEAR, n -> finished.incrementAndGet());
+            assertEquals(0.0, region.getTranslateX(), EPSILON, "the cancel resets the axis being written");
+            assertEquals(0.0, region.getTranslateY(), EPSILON, "the other axis is never written");
+            node.set(region);
+        });
+
+        Thread.sleep(200);
+
+        runOnFx(() -> {
+            assertEquals(0.0, node.get().getTranslateX(), EPSILON, "no glide plays afterwards");
+            assertEquals(0.0, node.get().getTranslateY(), EPSILON);
+            assertEquals(0, finished.get(), "a cancelled glide fires no finish callback");
+        });
+    }
+
+    /**
+     * Verifies a glide requested while the owner does not animate snaps at once and
+     * finishes exactly once, even with a duration no key frame accepts.
+     */
+    @Test
+    public void glideRequestedWhileTheOwnerDoesNotAnimateSnaps() throws Exception {
+        runOnFx(() -> {
+            AtomicInteger finished = new AtomicInteger();
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> false);
+            Region node = new Region();
+            animator.animate(node, 100.0, 100.0, null, Interpolator.LINEAR, n -> finished.incrementAndGet());
+            assertEquals(0.0, node.getTranslateX(), EPSILON, "the node snaps to its slot");
+            assertEquals(0.0, node.getTranslateY(), EPSILON);
+            assertEquals(1, finished.get(), "the snap reports the glide finished");
+        });
+    }
+
+    /**
+     * Verifies a glide starts from the translate a listener left on the node while
+     * the start position was written, like a plain {@code KeyValue} tween does.
+     */
+    @Test
+    public void glideStartsFromTheTranslateTheNodeActuallyHas() throws Exception {
+        Duration duration = Duration.seconds(2.0);
+        AtomicReference<ViewportReorderAnimator> animator = new AtomicReference<>();
+        AtomicReference<Region> glided = new AtomicReference<>();
+        AtomicReference<Region> reference = new AtomicReference<>();
+        runOnFx(() -> {
+            animator.set(new ViewportReorderAnimator(() -> true));
+            glided.set(new Region());
+            reference.set(new Region());
+            pullBackOnFirstHundred(glided.get());
+            pullBackOnFirstHundred(reference.get());
+            animator.get().animate(glided.get(), 0.0, 100.0, duration, Interpolator.LINEAR, n -> { });
+            reference.get().setTranslateY(100.0);
+            new Timeline(new KeyFrame(duration,
+                    new KeyValue(reference.get().translateYProperty(), 0.0, Interpolator.LINEAR))).play();
+        });
+
+        Thread.sleep(400);
+
+        runOnFx(() -> {
+            double expected = reference.get().getTranslateY();
+            assertTrue(expected > 0.0 && expected < 40.0,
+                    "setup: the reference tween starts from the moved value and is mid-flight: " + expected);
+            assertEquals(expected, glided.get().getTranslateY(), 0.1,
+                    "the glide starts where the listener left the node");
+            animator.get().cancel(glided.get());
+        });
+    }
+
+    // Moves the node to 40 the first time its translateY becomes 100.
+    private static void pullBackOnFirstHundred(Region region) {
+        AtomicBoolean fired = new AtomicBoolean();
+        region.translateYProperty().addListener((obs, was, now) -> {
+            if (now.doubleValue() == 100.0 && !fired.getAndSet(true)) {
+                region.setTranslateY(40.0);
+            }
         });
     }
 
