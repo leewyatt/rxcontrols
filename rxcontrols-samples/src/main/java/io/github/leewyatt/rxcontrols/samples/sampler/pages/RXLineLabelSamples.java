@@ -18,7 +18,7 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.icon;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.MediaKit.text;
 
 /**
- * The RXLineLabel page: links inside running text, a footer menu, section headings,
+ * The RXLineLabel page: links inside running text, section headings, a footer menu,
  * a choice of line animations and line colors and thickness.
  */
 public final class RXLineLabelSamples {
@@ -40,12 +40,12 @@ public final class RXLineLabelSamples {
                         SampleCard.wide("Links in text",
                                 "Line labels sit in a TextFlow beside plain text; hover the highlighted words.",
                                 paragraph()),
-                        SampleCard.medium("Footer menu",
-                                "Columns of quiet links; the underline grows from the left with UNDERLINE_LEFT_TO_RIGHT.",
-                                footer()),
                         SampleCard.medium("Section headings",
                                 "lineThickness 3 and lineGap 6 give a heading a bolder line further from the text.",
                                 headings()),
+                        SampleCard.medium("Footer menu",
+                                "Columns of quiet links; the underline grows from the left with UNDERLINE_LEFT_TO_RIGHT.",
+                                footer()),
                         SampleCard.medium("Line animations",
                                 "lineAnimation picks the lines; UNDERLINE_CENTER_OUT is the default.",
                                 animations()),
