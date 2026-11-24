@@ -129,6 +129,42 @@ public class RXSegmentedStepIndicatorTitleTest {
     }
 
     @Test
+    public void factoryWithoutAnyTitleAddsNoSpace() throws Exception {
+        onFx(() -> {
+            RXSegmentedStepIndicator plain = new RXSegmentedStepIndicator(NAMES.size());
+            plain.setSegmentGap(12.0);
+            host(plain, 412.0);
+
+            for (TitleSide side : TitleSide.values()) {
+                RXSegmentedStepIndicator indicator = new RXSegmentedStepIndicator(NAMES.size());
+                indicator.setSegmentGap(12.0);
+                indicator.setTitleSide(side);
+                indicator.setTitleFactory(i -> null);
+                host(indicator, 412.0);
+
+                assertEquals(plain.prefHeight(-1), indicator.prefHeight(-1), side + " pref height");
+                assertEquals(plain.prefWidth(-1), indicator.prefWidth(-1), side + " pref width");
+                assertEquals(0.0, parts(indicator, "track").get(0).getLayoutY(), side + " segment y");
+                for (Region title : parts(indicator, "title")) {
+                    assertEquals(0.0, title.getHeight(), side + " title box height");
+                }
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void titleNodeWithoutHeightKeepsTheGap() throws Exception {
+        onFx(() -> {
+            RXSegmentedStepIndicator indicator = new RXSegmentedStepIndicator(NAMES.size());
+            indicator.setTitleFactory(i -> i == 2 ? new Region() : null);
+            host(indicator, 412.0);
+            assertEquals(SEGMENT_HEIGHT + TITLE_GAP, indicator.prefHeight(-1));
+            return null;
+        });
+    }
+
+    @Test
     public void throwingFactoryIsReportedAndLeavesThatTitleEmpty() throws Exception {
         onFx(() -> {
             Thread thread = Thread.currentThread();
