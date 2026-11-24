@@ -9,6 +9,8 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -38,10 +40,12 @@ import java.util.List;
  * factory} adds a title to each segment, above or below the row.
  *
  * <p>Every step counts as an equal share of the row, so the filled part is
- * {@code (selectedIndex + segmentProgress) / stepCount} of the whole. Once the
- * last step is done, setting {@code selectedIndex} to {@code stepCount} shows
- * every step as completed. The control has the {@code :empty} pseudo-class
- * when it renders no segments and {@code :completed} when every step is
+ * {@code (selectedIndex + segmentProgress) / stepCount} of the whole, with
+ * {@code selectedIndex} kept within the steps and {@code segmentProgress}
+ * within {@code [0, 1]}. When that reaches the whole row, that is when the last
+ * step is selected and its progress is {@code 1}, the indicator is
+ * {@link #completedProperty() completed}. The control has the {@code :empty}
+ * pseudo-class when it renders no segments and {@code :completed} while it is
  * completed.</p>
  *
  * <p>The indicator is intentionally passive: clicking a segment fires
@@ -109,7 +113,7 @@ public class RXSegmentedStepIndicator extends Control {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setStepCount(stepCount);
         updateEmptyPseudoClass();
-        updateCompletedPseudoClass();
+        updateCompleted();
     }
 
     /**
@@ -137,9 +141,11 @@ public class RXSegmentedStepIndicator extends Control {
     }
 
     // Compared with stepCount, not the rendered segments: with more steps than
-    // MAX_STEP_COUNT, an index past the rendered segments is still a step to do.
-    private void updateCompletedPseudoClass() {
-        pseudoClassStateChanged(PSEUDO_CLASS_COMPLETED, getStepCount() > 0 && getSelectedIndex() >= getStepCount());
+    // MAX_STEP_COUNT, the last rendered segment is not the last step.
+    private void updateCompleted() {
+        int steps = getStepCount();
+        setCompleted(steps > 0 && getSelectedIndex() >= steps - 1
+                && RXMath.clamp0To1(getSegmentProgress()) >= 1.0);
     }
 
     private int renderedStepCount() {
@@ -152,7 +158,7 @@ public class RXSegmentedStepIndicator extends Control {
         @Override
         protected void invalidated() {
             updateEmptyPseudoClass();
-            updateCompletedPseudoClass();
+            updateCompleted();
         }
     };
 
@@ -189,19 +195,15 @@ public class RXSegmentedStepIndicator extends Control {
     private final IntegerProperty selectedIndex = new SimpleIntegerProperty(this, "selectedIndex", 0) {
         @Override
         protected void invalidated() {
-            updateCompletedPseudoClass();
+            updateCompleted();
         }
     };
 
     /**
      * Index of the current step. Segments before it are completed, its own
      * segment fills by {@link #segmentProgressProperty()}, and the segments
-     * after it are upcoming. Once the last step is done, set it to
-     * {@link #stepCountProperty() stepCount} to show every step as completed;
-     * the control then has the {@code :completed} pseudo-class. Larger values
-     * render the same way, negative values select the first segment, and an
-     * index below {@code stepCount} but past the rendered segments selects the
-     * last rendered one.
+     * after it are upcoming. When at least one segment is rendered, values
+     * outside the rendered range are clamped for rendering only.
      *
      * @return the selected-index property
      */
@@ -229,11 +231,17 @@ public class RXSegmentedStepIndicator extends Control {
 
     // ==================== Segment Progress ====================
 
-    private final DoubleProperty segmentProgress = new SimpleDoubleProperty(this, "segmentProgress", 0.0);
+    private final DoubleProperty segmentProgress = new SimpleDoubleProperty(this, "segmentProgress", 0.0) {
+        @Override
+        protected void invalidated() {
+            updateCompleted();
+        }
+    };
 
     /**
      * Fill ratio of the selected segment. Values outside {@code [0, 1]} are
-     * clamped for rendering only. It has no effect once every step is completed.
+     * clamped for rendering only. Reaching {@code 1} on the last step completes
+     * the indicator; see {@link #completedProperty()}.
      *
      * @return the segment-progress property
      */
@@ -257,6 +265,43 @@ public class RXSegmentedStepIndicator extends Control {
      */
     public final void setSegmentProgress(double value) {
         segmentProgress.set(value);
+    }
+
+    // ==================== Completed ====================
+
+    private final ReadOnlyBooleanWrapper completed = new ReadOnlyBooleanWrapper(this, "completed") {
+        @Override
+        protected void invalidated() {
+            pseudoClassStateChanged(PSEUDO_CLASS_COMPLETED, get());
+        }
+    };
+
+    /**
+     * Whether every step is completed: the last step is selected, counting an
+     * index past it as the last step, and its
+     * {@link #segmentProgressProperty() segmentProgress} is {@code 1} or more.
+     * Read-only; to complete the indicator, select the last step and set its
+     * progress to {@code 1}. While completed, every segment has the
+     * {@code :completed} pseudo-class, none is {@code :selected}, and the
+     * control has the {@code :completed} pseudo-class.
+     *
+     * @return the completed property
+     */
+    public final ReadOnlyBooleanProperty completedProperty() {
+        return completed.getReadOnlyProperty();
+    }
+
+    /**
+     * Returns whether every step is completed.
+     *
+     * @return {@code true} if every step is completed
+     */
+    public final boolean isCompleted() {
+        return completed.get();
+    }
+
+    private void setCompleted(boolean value) {
+        completed.set(value);
     }
 
     // ==================== Segment Gap ====================

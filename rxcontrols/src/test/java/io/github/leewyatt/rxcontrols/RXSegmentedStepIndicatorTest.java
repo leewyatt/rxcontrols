@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests the RXSegmentedStepIndicator skin lifecycle and the state in which every step is completed.
+ * Tests the RXSegmentedStepIndicator skin lifecycle and its completed state.
  */
 public class RXSegmentedStepIndicatorTest {
 
@@ -91,13 +91,30 @@ public class RXSegmentedStepIndicatorTest {
     // ==================== Completed state ====================
 
     @Test
-    public void selectedIndexAtTheStepCountCompletesEverySegment() {
+    public void indexPastTheLastStepIsClampedAndKeepsTheProgress() {
+        RXSegmentedStepIndicator indicator = new RXSegmentedStepIndicator(5);
+        indicator.setSegmentProgress(0.39);
+        StackPane root = laidOut(indicator);
+        indicator.setSelectedIndex(5);
+        root.layout();
+
+        Region lastTrack = parts(indicator, "track").get(4);
+        Region lastFill = parts(indicator, "segment-fill").get(4);
+        assertFalse(indicator.getPseudoClassStates().contains(COMPLETED));
+        assertTrue(lastTrack.getPseudoClassStates().contains(SELECTED));
+        assertEquals(lastFill.getWidth() * 0.39, ((Rectangle) lastFill.getClip()).getWidth(), 1e-9);
+    }
+
+    @Test
+    public void lastStepAtFullProgressCompletesEverySegment() {
         RXSegmentedStepIndicator indicator = new RXSegmentedStepIndicator(3);
         indicator.setTitleFactory(i -> new Label("Step " + i));
         StackPane root = laidOut(indicator);
-        indicator.setSelectedIndex(3);
+        indicator.setSelectedIndex(2);
+        indicator.setSegmentProgress(1.0);
         root.layout();
 
+        assertTrue(indicator.isCompleted());
         assertTrue(indicator.getPseudoClassStates().contains(COMPLETED));
         for (Node part : indicator.getChildrenUnmodifiable()) {
             assertTrue(part.getPseudoClassStates().contains(COMPLETED), part + " is not completed");
@@ -111,26 +128,31 @@ public class RXSegmentedStepIndicatorTest {
     }
 
     @Test
-    public void selectedIndexPastTheStepCountAlsoCompletes() {
+    public void completedFollowsTheStepCountIndexAndProgress() {
         RXSegmentedStepIndicator indicator = new RXSegmentedStepIndicator(3);
-        laidOut(indicator);
-        indicator.setSelectedIndex(7);
+        indicator.setSelectedIndex(2);
+        indicator.setSegmentProgress(1.0);
+        assertTrue(indicator.isCompleted());
 
-        assertTrue(indicator.getPseudoClassStates().contains(COMPLETED));
-        assertTrue(parts(indicator, "track").get(2).getPseudoClassStates().contains(COMPLETED));
-    }
-
-    @Test
-    public void completedStateFollowsTheStepCount() {
-        RXSegmentedStepIndicator indicator = new RXSegmentedStepIndicator(3);
-        indicator.setSelectedIndex(3);
-        assertTrue(indicator.getPseudoClassStates().contains(COMPLETED));
-
-        indicator.setStepCount(5);
+        indicator.setSegmentProgress(0.5);
+        assertFalse(indicator.isCompleted());
         assertFalse(indicator.getPseudoClassStates().contains(COMPLETED));
+
+        indicator.setSegmentProgress(Double.NaN);
+        assertFalse(indicator.isCompleted());
+
+        indicator.setSegmentProgress(1.5);
+        assertTrue(indicator.isCompleted());
+
+        indicator.setSelectedIndex(1);
+        assertFalse(indicator.isCompleted());
+
+        indicator.setSelectedIndex(2);
+        indicator.setStepCount(5);
+        assertFalse(indicator.isCompleted());
 
         indicator.setStepCount(0);
-        assertFalse(indicator.getPseudoClassStates().contains(COMPLETED));
+        assertFalse(indicator.isCompleted());
         assertTrue(indicator.getPseudoClassStates().contains(EMPTY));
     }
 
@@ -139,16 +161,17 @@ public class RXSegmentedStepIndicatorTest {
         int stepCount = RXSegmentedStepIndicator.MAX_STEP_COUNT + 5;
         RXSegmentedStepIndicator indicator = new RXSegmentedStepIndicator(stepCount);
         indicator.setSelectedIndex(stepCount - 3);
+        indicator.setSegmentProgress(1.0);
         laidOut(indicator);
         List<Region> tracks = parts(indicator, "track");
         Region last = tracks.get(tracks.size() - 1);
 
         assertEquals(RXSegmentedStepIndicator.MAX_STEP_COUNT, tracks.size());
-        assertFalse(indicator.getPseudoClassStates().contains(COMPLETED));
+        assertFalse(indicator.isCompleted());
         assertTrue(last.getPseudoClassStates().contains(SELECTED));
 
-        indicator.setSelectedIndex(stepCount);
-        assertTrue(indicator.getPseudoClassStates().contains(COMPLETED));
+        indicator.setSelectedIndex(stepCount - 1);
+        assertTrue(indicator.isCompleted());
         assertTrue(last.getPseudoClassStates().contains(COMPLETED));
     }
 
@@ -158,7 +181,7 @@ public class RXSegmentedStepIndicatorTest {
         indicator.setSelectedIndex(-2);
         laidOut(indicator);
 
-        assertFalse(indicator.getPseudoClassStates().contains(COMPLETED));
+        assertFalse(indicator.isCompleted());
         assertTrue(parts(indicator, "track").get(0).getPseudoClassStates().contains(SELECTED));
     }
 

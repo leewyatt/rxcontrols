@@ -116,6 +116,10 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
             applyFills();
         });
         disposer.registerListener(control.segmentProgressProperty(), this::applyFills);
+        disposer.registerListener(control.completedProperty(), () -> {
+            updateSegmentStates();
+            applyFills();
+        });
         disposer.registerListener(control.segmentGapProperty(), control::requestLayout);
         disposer.registerListener(control.segmentHeightProperty(), control::requestLayout);
         disposer.registerListener(control.titleSideProperty(), control::requestLayout);
@@ -277,7 +281,7 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
     // within the segments.
     private int renderedSelectedIndex(int n) {
         RXSegmentedStepIndicator control = getSkinnable();
-        if (control.getSelectedIndex() >= control.getStepCount()) {
+        if (control.isCompleted()) {
             return n;
         }
         return RXMath.clamp(control.getSelectedIndex(), 0, n - 1);
