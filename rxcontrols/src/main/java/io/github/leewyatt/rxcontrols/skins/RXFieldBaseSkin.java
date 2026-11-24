@@ -35,6 +35,7 @@ import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Skin;
 import javafx.scene.control.TextField;
 import javafx.scene.control.skin.TextFieldSkin;
 import javafx.scene.layout.StackPane;
@@ -70,10 +71,11 @@ import javafx.scene.text.HitInfo;
  * field's minimum width is honored.
  * <p>
  * On JavaFX 17, {@code setSkin} ignores a new skin of the same class as the
- * installed one, after the new skin's constructor has already attached its
- * nodes and taken the slot nodes into its own wrappers. To change the slots or
- * the padding, change the values of the observables given here instead of
- * installing another instance.
+ * installed one after its constructor has run. This skin fills the slots only
+ * once it is installed, so such a skin leaves the slot nodes where they are,
+ * but the text nodes that the JavaFX {@code TextFieldSkin} constructor adds stay
+ * in the control. To change the slots or the padding, change the values of the
+ * observables given here instead of installing another instance.
  * <p>
  * {@code effectiveTextPadding} resolves to the active text-editor inner
  * padding. A {@code null} value is treated as {@link Insets#EMPTY}, and a
@@ -106,6 +108,9 @@ public class RXFieldBaseSkin extends TextFieldSkin {
 
     private StackPane leadingWrapper;
     private StackPane trailingWrapper;
+
+    /** Pending hook that fills the slots once this skin actually attaches. */
+    private ChangeListener<Skin<?>> pendingAttachListener;
 
     private final ChangeListener<Boolean> wrapperNeedsLayoutListener = (obs, oldVal, newVal) -> {
         if (Boolean.TRUE.equals(newVal)) {
@@ -155,13 +160,37 @@ public class RXFieldBaseSkin extends TextFieldSkin {
             }
         });
 
-        updateLeading();
-        updateTrailing();
+        // The slots take the user's nodes only once this skin attaches: JFX17's
+        // setSkin ignores a new skin of the installed class after its constructor
+        // has run, and taking the nodes here would pull them out of the installed
+        // skin's wrappers.
+        pendingAttachListener = (obs, oldSkin, newSkin) -> {
+            if (newSkin == this) {
+                control.skinProperty().removeListener(pendingAttachListener);
+                pendingAttachListener = null;
+                updateLeading();
+                updateTrailing();
+            } else if (newSkin != null) {
+                // Another skin won; this instance will never attach.
+                control.skinProperty().removeListener(pendingAttachListener);
+                pendingAttachListener = null;
+            }
+        };
+        control.skinProperty().addListener(pendingAttachListener);
+        disposer.registerDisposeTask(() -> {
+            if (pendingAttachListener != null) {
+                control.skinProperty().removeListener(pendingAttachListener);
+                pendingAttachListener = null;
+            }
+        });
     }
 
     // ==================== Children / pseudo-class wiring ====================
 
     private void updateLeading() {
+        if (control.getSkin() != this) {
+            return;
+        }
         leadingWrapper = updateWrapper(leadingWrapper, effectiveLeading.getValue(),
                 Pos.CENTER_LEFT, LEADING_WRAPPER_CLASS);
         reclaimOrphan(trailingWrapper, effectiveTrailing.getValue());
@@ -169,6 +198,9 @@ public class RXFieldBaseSkin extends TextFieldSkin {
     }
 
     private void updateTrailing() {
+        if (control.getSkin() != this) {
+            return;
+        }
         trailingWrapper = updateWrapper(trailingWrapper, effectiveTrailing.getValue(),
                 Pos.CENTER_RIGHT, TRAILING_WRAPPER_CLASS);
         reclaimOrphan(leadingWrapper, effectiveLeading.getValue());

@@ -20,6 +20,7 @@ public class RXMaterialTextFieldSkin extends RXMaterialFieldBaseSkin {
                 control.trailingProperty(),
                 control.textPaddingProperty(),
                 control.labelTextProperty(),
+                control.labelGraphicProperty(),
                 control.helperTextProperty(),
                 control.errorTextProperty(),
                 control.invalidProperty(),

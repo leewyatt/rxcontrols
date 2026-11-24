@@ -87,6 +87,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
 
     private final ObservableValue<Node> userTrailing;
     private final ObservableValue<String> labelText;
+    private final ObservableValue<Node> labelGraphic;
     private final ObservableValue<String> helperText;
     private final ObservableValue<String> errorText;
     private final ObservableValue<Boolean> invalid;
@@ -126,8 +127,8 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
 
     // ==================== Animation state ====================
 
-    /** Pending hook that stamps labelFor once this skin actually attaches. */
-    private ChangeListener<Skin<?>> pendingLabelForListener;
+    /** Pending hook that stamps labelFor and sets the label graphic once this skin actually attaches. */
+    private ChangeListener<Skin<?>> pendingAttachListener;
 
     /** 0 = resting (placeholder), 1 = floated. */
     private final DoubleProperty floatProgress = new SimpleDoubleProperty(this, "floatProgress", 0.0);
@@ -148,6 +149,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
      * @param userTrailing      trailing-node observable (effective trailing node)
      * @param userTextPadding   text-padding observable (effective text padding)
      * @param labelText         floating-label text observable
+     * @param labelGraphic      floating-label graphic observable
      * @param helperText        helper-text observable
      * @param errorText         error-text observable
      * @param invalid           invalid-state observable
@@ -164,6 +166,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
                                       ObservableValue<Node> userTrailing,
                                       ObservableValue<Insets> userTextPadding,
                                       ObservableValue<String> labelText,
+                                      ObservableValue<Node> labelGraphic,
                                       ObservableValue<String> helperText,
                                       ObservableValue<String> errorText,
                                       ObservableValue<Boolean> invalid,
@@ -177,8 +180,8 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         // The effective-right relay must exist before super(...) and cannot
         // reference this; a private constructor receives it and wires the
         // trailing composition afterward.
-        this(control, userLeading, userTrailing, userTextPadding, labelText, helperText,
-                errorText, invalid, floatingLabel, animated, animationDuration,
+        this(control, userLeading, userTrailing, userTextPadding, labelText, labelGraphic,
+                helperText, errorText, invalid, floatingLabel, animated, animationDuration,
                 labelFloatScale, labelGap, supportingGap, showClearButton,
                 new SimpleObjectProperty<>());
     }
@@ -188,6 +191,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
                                     ObservableValue<Node> userTrailing,
                                     ObservableValue<Insets> userTextPadding,
                                     ObservableValue<String> labelText,
+                                    ObservableValue<Node> labelGraphic,
                                     ObservableValue<String> helperText,
                                     ObservableValue<String> errorText,
                                     ObservableValue<Boolean> invalid,
@@ -204,6 +208,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         this.userTrailing = userTrailing;
         this.showClearButton = showClearButton;
         this.labelText = labelText;
+        this.labelGraphic = labelGraphic;
         this.helperText = helperText;
         this.errorText = errorText;
         this.invalid = invalid;
@@ -228,19 +233,24 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         // after that teardown. A same-class ghost skin (JFX17 setSkin
         // short-circuit) never attaches and so never stamps. The user-owned
         // accessibleText property is deliberately left untouched: writing it
-        // would throw if the user bound it and clobber user values.
-        pendingLabelForListener = (obs, oldSkin, newSkin) -> {
+        // would throw if the user bound it and clobber user values. The label
+        // graphic and the trailing composition wait for the attach too, so a
+        // skin that never attaches does not take the user's nodes away from the
+        // live skin.
+        pendingAttachListener = (obs, oldSkin, newSkin) -> {
             if (newSkin == this) {
-                control.skinProperty().removeListener(pendingLabelForListener);
-                pendingLabelForListener = null;
+                control.skinProperty().removeListener(pendingAttachListener);
+                pendingAttachListener = null;
+                labelNode.setGraphic(labelGraphic.getValue());
+                updateTrailing();
                 syncLabelFor();
             } else if (newSkin != null) {
                 // Another skin won; this instance will never attach.
-                control.skinProperty().removeListener(pendingLabelForListener);
-                pendingLabelForListener = null;
+                control.skinProperty().removeListener(pendingAttachListener);
+                pendingAttachListener = null;
             }
         };
-        control.skinProperty().addListener(pendingLabelForListener);
+        control.skinProperty().addListener(pendingAttachListener);
 
         activationLine.getStyleClass().add(ACTIVATION_LINE_CLASS);
         activationLine.setManaged(false);
@@ -284,6 +294,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         disposer.registerBinding(labelNode.fontProperty(), control.fontProperty());
 
         disposer.registerListener(labelText, this::onLabelSourceChanged);
+        disposer.registerListener(labelGraphic, this::onLabelGraphicChanged);
         disposer.registerListener(control.promptTextProperty(), this::onLabelSourceChanged);
         disposer.registerListener(helperText, this::onSupportingChanged);
         disposer.registerListener(errorText, this::onSupportingChanged);
@@ -315,14 +326,15 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         disposer.registerDisposeTask(clearFade::stop);
         // Decoration nodes are added to the control's (shared) children, and
         // SkinBase.dispose() does not clear them. Remove them (and detach their
-        // transforms, the LABELED_BY hook, and the trailing box's children —
-        // including any user trailing node) on dispose so nothing lingers,
+        // transforms, the LABELED_BY hook, the user's label graphic and the
+        // trailing box's children — including any user trailing node) on
+        // dispose so nothing lingers,
         // mirroring what RXFieldBaseSkin does for its wrappers. (builtinTrailing
         // itself rides inside the base's trailing-wrapper, which the base releases.)
         disposer.registerDisposeTask(() -> {
-            if (pendingLabelForListener != null) {
-                control.skinProperty().removeListener(pendingLabelForListener);
-                pendingLabelForListener = null;
+            if (pendingAttachListener != null) {
+                control.skinProperty().removeListener(pendingAttachListener);
+                pendingAttachListener = null;
             }
             // Always detach the internal label's labelFor: Label.labelFor keeps
             // a mnemonic listener on the target (unconditional, even with
@@ -333,6 +345,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
             // stamp WITH an internal label source is unsupported (Node.labeledBy
             // is a single slot — the last writer wins, no restore on teardown).
             labelNode.setLabelFor(null);
+            labelNode.setGraphic(null);
             labelNode.getTransforms().remove(labelScale);
             accentLine.getTransforms().remove(accentScale);
             builtinTrailing.getChildren().clear();
@@ -341,7 +354,6 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
 
         labelNode.setText(effectiveLabelText());
         updateSupporting();
-        updateTrailing();
         // Initial state snaps (no opening animation). Apply the pose explicitly
         // so the decoration is established by code, not by relying on set()
         // firing the listener (a no-op when the target equals the default 0).
@@ -359,6 +371,15 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     private void onLabelSourceChanged() {
         labelNode.setText(effectiveLabelText());
         syncLabelFor();
+        getSkinnable().requestLayout();
+    }
+
+    private void onLabelGraphicChanged() {
+        if (getSkinnable().getSkin() != this) {
+            return;
+        }
+        labelNode.setGraphic(labelGraphic.getValue());
+        // The label is unmanaged, so its own layout request stops at the label.
         getSkinnable().requestLayout();
     }
 
@@ -427,9 +448,8 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     /**
      * Built-in trailing affordances placed between the user trailing node and the
      * clear button (e.g. a password reveal button). The default is none;
-     * subclasses override and manage their own visible / managed state. Must
-     * tolerate being called during {@code super(...)} before subclass fields are
-     * initialized (return an empty list then).
+     * subclasses override and manage their own visible / managed state. Called
+     * only once the skin is installed, after every constructor has finished.
      *
      * @return the affordance nodes, in display order
      */
@@ -443,6 +463,9 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     }
 
     private void updateTrailing() {
+        if (getSkinnable().getSkin() != this) {
+            return;
+        }
         Node user = userTrailing.getValue();
         builtinTrailing.getChildren().clear();
         if (user != null) {

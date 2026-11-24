@@ -40,6 +40,7 @@ public class RXMaterialPasswordFieldSkin extends RXMaterialFieldBaseSkin {
                 control.trailingProperty(),
                 control.textPaddingProperty(),
                 control.labelTextProperty(),
+                control.labelGraphicProperty(),
                 control.helperTextProperty(),
                 control.errorTextProperty(),
                 control.invalidProperty(),
@@ -68,19 +69,13 @@ public class RXMaterialPasswordFieldSkin extends RXMaterialFieldBaseSkin {
         shieldFromEditorMouse(revealButton);
         disposer.registerListener(control.showRevealButtonProperty(), this::refreshTrailing);
         disposer.registerDisposeTask(maskSupport::dispose);
-
-        // The reveal button field was null during super()'s updateTrailing; rebuild
-        // the trailing composition now that it exists.
-        refreshTrailing();
     }
 
     @Override
     protected List<Node> builtinTrailingAffordances() {
-        // Present only when enabled; null during super() before the field
-        // exists; withheld once the mask support has degraded (the toggle
-        // could no longer change the display).
-        if (revealButton == null || !showRevealButtonEnabled()
-                || (maskSupport != null && maskSupport.isFailed())) {
+        // Present only when enabled; withheld once the mask support has
+        // degraded (the toggle could no longer change the display).
+        if (!showRevealButtonEnabled() || maskSupport.isFailed()) {
             return List.of();
         }
         return List.of(revealButton);

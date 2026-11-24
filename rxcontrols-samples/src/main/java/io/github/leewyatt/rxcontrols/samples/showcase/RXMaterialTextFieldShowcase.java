@@ -18,7 +18,8 @@ import java.util.List;
  *
  * <p>Exercises the text-field styleable + runtime properties: floating label +
  * scale, animation toggle + duration, invalid / helper / error supporting text,
- * leading / trailing nodes, and the built-in clear button. The theme bar (Modena /
+ * leading / trailing nodes, a label graphic on either side of the label text,
+ * and the built-in clear button. The theme bar (Modena /
  * AtlantaFX) shows the role-token theming. The password sibling has its own
  * {@link RXMaterialPasswordFieldShowcase}.</p>
  */
@@ -111,6 +112,20 @@ public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
         trailingBox.selectedProperty().addListener((obs, oldV, newV) ->
                 field.setTrailing(newV ? icon("person-icon") : null));
 
+        CheckBox labelGraphicBox = new CheckBox();
+        labelGraphicBox.selectedProperty().addListener((obs, oldV, newV) ->
+                field.setLabelGraphic(newV ? icon("label-icon") : null));
+
+        CheckBox graphicAfterBox = new CheckBox();
+        graphicAfterBox.disableProperty().bind(labelGraphicBox.selectedProperty().not());
+        graphicAfterBox.selectedProperty().addListener((obs, oldV, newV) -> {
+            if (newV) {
+                field.getStyleClass().add("graphic-after-label");
+            } else {
+                field.getStyleClass().remove("graphic-after-label");
+            }
+        });
+
         CheckBox editableBox = new CheckBox();
         editableBox.setSelected(field.isEditable());
         field.editableProperty().bind(editableBox.selectedProperty());
@@ -124,6 +139,8 @@ public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
                 row("Clear button", clearBox),
                 row("Leading icon", leadingBox),
                 row("Trailing icon", trailingBox),
+                row("Label graphic", labelGraphicBox),
+                row("Graphic after text", graphicAfterBox),
                 row("Editable", editableBox),
                 row("Disabled", disableBox));
     }
