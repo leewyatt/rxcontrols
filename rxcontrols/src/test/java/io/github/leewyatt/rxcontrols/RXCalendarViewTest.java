@@ -10,7 +10,10 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -330,7 +333,34 @@ public class RXCalendarViewTest {
         assertEquals(1, actions.get());
     }
 
+    /**
+     * Verifies a disabled day is drawn on a band that an enabled day of an adjacent month lacks.
+     */
+    @Test
+    public void disabledDayHasBandAdjacentDayDoesNot() {
+        RXCalendarView view = newView(null);
+        view.setMinDate(LocalDate.of(2026, 11, 5));
+        view.applyCss();
+        DateCell disabled = dayCell(view, LocalDate.of(2026, 11, 4));
+        DateCell adjacent = dayCells(view).stream()
+                .filter(cell -> LocalDate.of(2026, 12, 1).equals(cell.getItem()))
+                .findFirst().orElseThrow();
+
+        assertTrue(disabled.isDisabled());
+        assertFalse(adjacent.isDisabled());
+        assertTrue(PickerTestSupport.hasPseudoClass(adjacent, "adjacent"));
+        assertTrue(hasVisibleFill(disabled));
+        assertFalse(hasVisibleFill(adjacent));
+        assertEquals(1.0, disabled.lookup(".text").getOpacity());
+    }
+
     // ==================== Helpers ====================
+
+    private static boolean hasVisibleFill(Region region) {
+        Background background = region.getBackground();
+        return background != null && background.getFills().stream()
+                .anyMatch(fill -> fill.getFill() instanceof Color && ((Color) fill.getFill()).getOpacity() > 0);
+    }
 
     private static RXCalendarView newView(LocalDate value) {
         RXCalendarView view = new RXCalendarView(value);

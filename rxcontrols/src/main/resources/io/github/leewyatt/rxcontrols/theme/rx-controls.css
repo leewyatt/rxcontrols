@@ -4914,6 +4914,29 @@
     -fx-text-fill: -rx-on-surface-disabled;
 }
 
+/* Disabled cells sit on a band that runs on into the next disabled cell; an adjacent
+   month's day has the same faded text but no band. The range rules below draw over
+   the band. */
+.rx-calendar-panel .date-cell:disabled {
+    -fx-text-fill: -rx-on-surface-disabled;
+    -fx-background-color: -rx-surface-variant;
+    -fx-background-insets: 0.166667em 0;
+    -fx-background-radius: 0;
+    -fx-cursor: default;
+}
+
+.rx-calendar-panel .month-cell:disabled,
+.rx-calendar-panel .quarter-cell:disabled,
+.rx-calendar-panel .year-cell:disabled,
+.rx-calendar-panel .decade-cell:disabled {
+    -fx-background-insets: 0.916667em 0;
+}
+
+/* Modena also fades the text of a disabled date cell; the text color already does. */
+.rx-calendar-panel .date-cell:disabled > * {
+    -fx-opacity: 1;
+}
+
 .rx-calendar-panel .date-cell:today {
     -fx-border-color: -rx-primary;
 }
@@ -4966,11 +4989,6 @@
     -fx-border-color: -rx-primary;
     -fx-border-insets: 0.166667em;
     -fx-border-radius: 3;
-}
-
-.rx-calendar-panel .date-cell:disabled {
-    -fx-text-fill: -rx-on-surface-secondary;
-    -fx-cursor: default;
 }
 
 /* No shape here: a selected cell keeps the shape of its own level. */
