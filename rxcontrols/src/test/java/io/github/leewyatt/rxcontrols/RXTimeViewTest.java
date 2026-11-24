@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.datetime.TimeEndpointTarget;
+import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -229,6 +230,23 @@ public class RXTimeViewTest {
         ((TimeEndpointTarget) view.getSkin()).setOtherEndpoint(LocalTime.of(18, 30));
         PickerTestSupport.click(cell(view, ".hour-column", "07"));
         assertEquals(LocalTime.of(19, 30), view.getValue());
+    }
+
+    /**
+     * Verifies the columns stay centered in a view wider than they need, as in a picker
+     * popup whose Now / OK footer is wider than two columns.
+     */
+    @Test
+    public void columnsStayCenteredInWiderView() {
+        RXTimeView view = newView();
+        Bounds viewBounds = view.localToScene(view.getLayoutBounds());
+        Node hourColumn = view.lookup(".hour-column");
+        Node minuteColumn = view.lookup(".minute-column");
+        Bounds hour = hourColumn.localToScene(hourColumn.getLayoutBounds());
+        Bounds minute = minuteColumn.localToScene(minuteColumn.getLayoutBounds());
+
+        assertTrue(viewBounds.getWidth() > view.prefWidth(-1) + 1.0, "the view is wider than its columns");
+        assertEquals(hour.getMinX() - viewBounds.getMinX(), viewBounds.getMaxX() - minute.getMaxX(), 1.0);
     }
 
     // ==================== Helpers ====================
