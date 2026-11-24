@@ -8,7 +8,12 @@ import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.css.PseudoClass;
+import javafx.geometry.HPos;
+import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Point2D;
+import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.AccessibleAction;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
@@ -20,7 +25,6 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -33,8 +37,9 @@ import java.util.Locale;
 
 /**
  * Skin for {@link RXMenuList}: renders each item into a focusable cell inside a
- * non-virtualized {@code VBox}, drives roving keyboard focus (Down/Up wrap and
- * skip non-focusable items, Home/End, type-ahead), activates on Enter/Space,
+ * non-virtualized {@code VBox}, lines the selection marks and graphics up in
+ * list-wide columns so all labels start together, drives roving keyboard focus
+ * (Down/Up wrap and skip non-focusable items, Home/End, type-ahead), activates on Enter/Space,
  * wires the pointer-press and keyboard-center ripple, and maps command-menu
  * accessibility roles. Escape/Tab dismissal belongs to the hosting popup and is
  * not handled here.
@@ -50,12 +55,14 @@ public class RXMenuListSkin extends RXSkinBase<RXMenuList> {
     // disabledItemsFocusable (APG) mode where the cell is not JavaFX-disabled.
     private static final PseudoClass DISABLED_PSEUDO_CLASS = PseudoClass.getPseudoClass("disabled");
 
-    private final VBox container = new VBox();
+    private final VBox container = new ItemsContainer();
     private final ScrollPane scroller = new ScrollPane(container);
     private final IdentityHashMap<RXMenuItem, Region> cellByItem = new IdentityHashMap<>();
     private final List<Runnable> cellTeardowns = new ArrayList<>();
     private final StringBuilder typeAheadBuffer = new StringBuilder();
     private long lastTypeAheadTime;
+    private double selectionColumnWidth;
+    private double graphicColumnWidth;
 
     /**
      * Creates the skin.
@@ -403,8 +410,72 @@ public class RXMenuListSkin extends RXSkinBase<RXMenuList> {
         container.getChildren().clear();
     }
 
+    // ==================== Columns ====================
+    // As in the platform ContextMenu, the selection marks and the graphics sit in two
+    // list-wide columns: a column is as wide as its widest entry and every command row
+    // reserves it, so all labels start at the same x when only some items are
+    // selectable or carry a graphic. A column no item uses takes no space.
+
+    private void measureColumns() {
+        double selection = 0;
+        double graphic = 0;
+        for (Node node : container.getChildren()) {
+            if (node instanceof CommandCell cell) {
+                selection = Math.max(selection, cell.selectionPrefWidth());
+                graphic = Math.max(graphic, cell.graphicPrefWidth());
+            }
+        }
+        selectionColumnWidth = selection;
+        graphicColumnWidth = graphic;
+    }
+
+    // Measures the columns from the rows' parts rather than from the rows' own cached
+    // sizes, which may still hold the previous column widths.
+    private final class ItemsContainer extends VBox {
+
+        @Override
+        protected double computePrefWidth(double height) {
+            measureColumns();
+            double width = 0;
+            for (Node child : getManagedChildren()) {
+                width = Math.max(width, child instanceof CommandCell cell
+                        ? cell.widthFor(cell.label.prefWidth(-1))
+                        : child.prefWidth(-1));
+            }
+            return snappedLeftInset() + width + snappedRightInset();
+        }
+
+        @Override
+        protected double computeMinWidth(double height) {
+            measureColumns();
+            double width = 0;
+            for (Node child : getManagedChildren()) {
+                width = Math.max(width, child instanceof CommandCell cell
+                        ? cell.widthFor(cell.label.minWidth(-1))
+                        : child.minWidth(-1));
+            }
+            return snappedLeftInset() + width + snappedRightInset();
+        }
+
+        @Override
+        protected void layoutChildren() {
+            measureColumns();
+            // A row whose content did not change keeps its layout and its cached sizes,
+            // so a row laid out with other column widths is laid out again. While this
+            // container is laying out, the request does not travel further up.
+            for (Node child : getChildren()) {
+                if (child instanceof CommandCell cell && cell.isLaidOutForOtherColumns()) {
+                    cell.requestLayout();
+                }
+            }
+            super.layoutChildren();
+        }
+    }
+
     // ==================== Command cell ====================
 
+    // An HBox for its -fx-spacing / -fx-alignment / -fx-fill-height CSS; the horizontal
+    // layout is its own, placing the selection mark and the graphic in the list columns.
     private final class CommandCell extends HBox {
 
         private final RXMenuItem item;
@@ -413,7 +484,10 @@ public class RXMenuListSkin extends RXSkinBase<RXMenuList> {
         private final RippleDecoration ripple;
         private final SkinDisposer itemDisposer = new SkinDisposer();
         private Node graphicNode;
+        private Region leading;
         private Region indicatorMark;
+        private double laidOutSelectionColumn = -1;
+        private double laidOutGraphicColumn = -1;
 
         private CommandCell(RXMenuItem item) {
             this.item = item;
@@ -424,7 +498,6 @@ public class RXMenuListSkin extends RXSkinBase<RXMenuList> {
 
             // label keeps Label's built-in ".label"; trailing needs a local name
             // to be distinguished (it is also a Label) for the accelerator slot.
-            HBox.setHgrow(label, Priority.ALWAYS);
             label.setMaxWidth(Double.MAX_VALUE);
             trailing.getStyleClass().add("trailing");
 
@@ -445,7 +518,8 @@ public class RXMenuListSkin extends RXSkinBase<RXMenuList> {
             // A selectable item reserves a leading indicator slot (checkmark for a
             // checkbox, dot for a radio) shown by CSS under :checked.
             if (item.isSelectable()) {
-                getChildren().add(buildLeadingIndicator(item));
+                leading = buildLeadingIndicator(item);
+                getChildren().add(leading);
             }
             getChildren().addAll(label, trailing);
             setGraphicNode(item.getGraphic());
@@ -498,11 +572,96 @@ public class RXMenuListSkin extends RXSkinBase<RXMenuList> {
         }
 
         @Override
+        protected double computePrefWidth(double height) {
+            return widthFor(label.prefWidth(-1));
+        }
+
+        @Override
+        protected double computeMinWidth(double height) {
+            return widthFor(label.minWidth(-1));
+        }
+
+        @Override
         protected void layoutChildren() {
-            super.layoutChildren();
-            // The ripple layer is unmanaged, so HBox never sizes it; size and clip
-            // it to the cell each layout pass (mirrors RippleCellSkinBase).
+            laidOutSelectionColumn = selectionColumnWidth;
+            laidOutGraphicColumn = graphicColumnWidth;
+            double spacing = snapSpaceX(getSpacing());
+            double top = snappedTopInset();
+            double height = getHeight() - top - snappedBottomInset();
+            VPos vpos = rowVpos();
+            boolean fill = isFillHeight();
+
+            double x = snappedLeftInset();
+            if (leading != null) {
+                layoutInArea(leading, x, top, selectionColumnWidth, height, 0, Insets.EMPTY,
+                        false, fill, HPos.LEFT, vpos);
+            }
+            if (selectionColumnWidth > 0) {
+                x += selectionColumnWidth + spacing;
+            }
+            if (graphicNode != null) {
+                layoutInArea(graphicNode, x, top, graphicColumnWidth, height, 0, Insets.EMPTY,
+                        false, fill, HPos.LEFT, vpos);
+            }
+            if (graphicColumnWidth > 0) {
+                x += graphicColumnWidth + spacing;
+            }
+
+            double right = getWidth() - snappedRightInset();
+            if (trailing.isManaged()) {
+                double trailingWidth = snapSizeX(trailing.prefWidth(-1));
+                layoutInArea(trailing, right - trailingWidth, top, trailingWidth, height, 0, Insets.EMPTY,
+                        false, fill, HPos.RIGHT, vpos);
+                right -= trailingWidth + spacing;
+            }
+            layoutInArea(label, x, top, Math.max(0, right - x), height, 0, Insets.EMPTY,
+                    true, fill, HPos.LEFT, vpos);
+
+            // The ripple layer is unmanaged, so the row layout never sizes it; size and
+            // clip it to the cell each layout pass (mirrors RippleCellSkinBase).
             ripple.layout(getWidth(), getHeight());
+        }
+
+        private double selectionPrefWidth() {
+            return leading == null ? 0 : snapSizeX(leading.prefWidth(-1));
+        }
+
+        private double graphicPrefWidth() {
+            if (graphicNode == null) {
+                return 0;
+            }
+            double height = graphicNode.getContentBias() == Orientation.VERTICAL
+                    ? snapSizeY(graphicNode.prefHeight(-1)) : -1;
+            return snapSizeX(graphicNode.prefWidth(height));
+        }
+
+        // The row width for a given label width with the current list columns.
+        private double widthFor(double labelWidth) {
+            double spacing = snapSpaceX(getSpacing());
+            double width = snappedLeftInset() + snapSizeX(labelWidth) + snappedRightInset();
+            if (selectionColumnWidth > 0) {
+                width += selectionColumnWidth + spacing;
+            }
+            if (graphicColumnWidth > 0) {
+                width += graphicColumnWidth + spacing;
+            }
+            if (trailing.isManaged()) {
+                width += spacing + snapSizeX(trailing.prefWidth(-1));
+            }
+            return width;
+        }
+
+        private boolean isLaidOutForOtherColumns() {
+            return laidOutSelectionColumn != selectionColumnWidth || laidOutGraphicColumn != graphicColumnWidth;
+        }
+
+        private VPos rowVpos() {
+            Pos alignment = getAlignment();
+            if (alignment == null) {
+                return VPos.TOP;
+            }
+            // A shared baseline would need every part's baseline; such rows are centered.
+            return alignment.getVpos() == VPos.BASELINE ? VPos.CENTER : alignment.getVpos();
         }
 
         private void onMousePressed(MouseEvent event) {

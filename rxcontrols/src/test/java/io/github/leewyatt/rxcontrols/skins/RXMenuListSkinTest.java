@@ -18,6 +18,7 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
@@ -426,6 +427,18 @@ public class RXMenuListSkinTest {
         });
     }
 
+    /** The popup's minimum menu width does not apply to an inline list. */
+    @Test
+    public void inlineListKeepsItsContentWidth() throws Exception {
+        runOnFx(() -> {
+            RXMenuList list = new RXMenuList();
+            list.getItems().add(RXMenuItem.of("A"));
+            hostFor(list);
+
+            assertTrue(list.getWidth() < 112.0, "width " + list.getWidth());
+        });
+    }
+
     /**
      * The cell's layout pass sizes the unmanaged ripple layer to the cell, so
      * the press ripple and hover state overlay actually render.
@@ -726,7 +739,134 @@ public class RXMenuListSkinTest {
         });
     }
 
+    // ==================== Label columns ====================
+
+    /** Plain, radio, icon and icon-plus-check rows all start their labels at the same x. */
+    @Test
+    public void mixedRowsShareOneLabelColumn() throws Exception {
+        runOnFx(() -> {
+            RXMenuItem iconAndCheck = new RXMenuItem("Line numbers", icon(20.0));
+            iconAndCheck.setSelectable(true);
+            RXMenuList list = new RXMenuList();
+            list.getItems().addAll(RXMenuItem.of("Plain"), RXMenuItem.radio("Radio", new ToggleGroup()),
+                    RXMenuItem.of("Icon", icon(16.0)), RXMenuItem.separator(), iconAndCheck);
+            hostFor(list);
+
+            Region iconAndCheckCell = (Region) cellsOf(list).get(4);
+            Region slot = (Region) iconAndCheckCell.lookup(".leading");
+            double spacing = ((HBox) iconAndCheckCell).getSpacing();
+            double expected = iconAndCheckCell.snappedLeftInset() + slot.getWidth() + spacing + 20.0 + spacing;
+            for (int index : new int[]{0, 1, 2, 4}) {
+                assertEquals(expected, labelOf(cellsOf(list).get(index)).getLayoutX(), 0.01,
+                        labelText(cellsOf(list).get(index)));
+            }
+        });
+    }
+
+    /** As in the platform menu, marks and graphics keep a column each even when no item has both. */
+    @Test
+    public void marksAndGraphicsKeepAColumnEach() throws Exception {
+        runOnFx(() -> {
+            RXMenuItem check = new RXMenuItem("Word wrap");
+            check.setSelectable(true);
+            RXMenuList list = new RXMenuList();
+            list.getItems().addAll(RXMenuItem.of("Copy", icon(16.0)), check, RXMenuItem.of("Plain"));
+            hostFor(list);
+
+            Region checkCell = (Region) cellsOf(list).get(1);
+            double spacing = ((HBox) checkCell).getSpacing();
+            double expected = checkCell.snappedLeftInset() + ((Region) checkCell.lookup(".leading")).getWidth()
+                    + spacing + 16.0 + spacing;
+            for (Node cell : cellsOf(list)) {
+                assertEquals(expected, labelOf(cell).getLayoutX(), 0.01, labelText(cell));
+            }
+        });
+    }
+
+    /** A menu of one kind reserves no column it does not use. */
+    @Test
+    public void singleKindMenusReserveNoUnusedColumn() throws Exception {
+        runOnFx(() -> {
+            RXMenuList plain = new RXMenuList();
+            plain.getItems().addAll(RXMenuItem.of("A"), RXMenuItem.of("B"));
+            RXMenuList icons = new RXMenuList();
+            icons.getItems().addAll(RXMenuItem.of("A", icon(16.0)), RXMenuItem.of("B", icon(16.0)));
+            RXMenuList radios = new RXMenuList();
+            ToggleGroup group = new ToggleGroup();
+            radios.getItems().addAll(RXMenuItem.radio("A", group), RXMenuItem.radio("B", group));
+            hostFor(plain);
+            hostFor(icons);
+            hostFor(radios);
+
+            Region plainCell = (Region) cellsOf(plain).get(0);
+            assertEquals(plainCell.snappedLeftInset(), labelOf(plainCell).getLayoutX(), 0.01);
+            Region iconCell = (Region) cellsOf(icons).get(0);
+            assertEquals(iconCell.snappedLeftInset() + 16.0 + ((HBox) iconCell).getSpacing(),
+                    labelOf(iconCell).getLayoutX(), 0.01);
+            Region radioCell = (Region) cellsOf(radios).get(0);
+            assertEquals(radioCell.snappedLeftInset() + ((Region) radioCell.lookup(".leading")).getWidth()
+                    + ((HBox) radioCell).getSpacing(), labelOf(radioCell).getLayoutX(), 0.01);
+        });
+    }
+
+    /** A graphic set after the first layout moves the other rows' labels into line too. */
+    @Test
+    public void graphicSetLaterRealignsTheOtherRows() throws Exception {
+        runOnFx(() -> {
+            RXMenuItem first = RXMenuItem.of("First");
+            RXMenuList list = new RXMenuList();
+            list.getItems().addAll(first, RXMenuItem.of("Second"));
+            // A fixed width keeps the rows' size unchanged, so only the column moves them.
+            list.setPrefWidth(300.0);
+            Pane host = hostFor(list);
+            // The scroll pane needs a second pass to settle; start from clean rows, as
+            // between two pulses of a shown window.
+            host.layout();
+            assertFalse(((Region) cellsOf(list).get(1)).isNeedsLayout());
+
+            first.setGraphic(icon(16.0));
+            host.applyCss();
+            host.layout();
+
+            double firstX = labelOf(cellsOf(list).get(0)).getLayoutX();
+            assertTrue(firstX > ((Region) cellsOf(list).get(0)).snappedLeftInset());
+            assertEquals(firstX, labelOf(cellsOf(list).get(1)).getLayoutX(), 0.01);
+        });
+    }
+
+    /** At its preferred width every label gets its full width and accelerators end at the right inset. */
+    @Test
+    public void preferredWidthMakesRoomForTheColumns() throws Exception {
+        runOnFx(() -> {
+            RXMenuItem copy = RXMenuItem.of("Copy", icon(16.0));
+            copy.setAccelerator(KeyCombination.keyCombination("Shortcut+C"));
+            RXMenuList list = new RXMenuList();
+            list.getItems().addAll(copy, RXMenuItem.of("A much longer label without an icon"));
+            hostFor(list);
+
+            for (Node node : cellsOf(list)) {
+                Label label = labelOf(node);
+                assertTrue(label.getWidth() >= label.prefWidth(-1) - 0.01, label.getText());
+            }
+            Region copyCell = (Region) cellsOf(list).get(0);
+            Region trailing = (Region) copyCell.lookup(".trailing");
+            assertEquals(copyCell.getWidth() - copyCell.snappedRightInset(),
+                    trailing.getLayoutX() + trailing.getWidth(), 0.01);
+        });
+    }
+
     // ==================== Helpers ====================
+
+    private static Label labelOf(Node cell) {
+        return (Label) cell.lookup(".label");
+    }
+
+    private static Region icon(double size) {
+        Region icon = new Region();
+        icon.setPrefSize(size, size);
+        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return icon;
+    }
 
     private static List<Node> cellsOf(RXMenuList list) {
         return ((VBox) list.lookup(".container")).getChildrenUnmodifiable();

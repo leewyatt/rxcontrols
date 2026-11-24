@@ -3879,7 +3879,7 @@
 }
 .rx-menu-item {
     -fx-padding: 8 12 8 12;
-    -fx-spacing: 12;
+    -fx-spacing: 8;
     -fx-alignment: CENTER_LEFT;
     -fx-min-height: 32;
     -fx-background-radius: 4;
@@ -3900,8 +3900,8 @@
 /* Leading selection slot for checkbox / radio items; the indicator is hidden
    until :checked. The slot reserves width so text stays aligned either way. */
 .rx-menu-item > .leading {
-    -fx-min-width: 18;
-    -fx-pref-width: 18;
+    -fx-min-width: 14;
+    -fx-pref-width: 14;
     -fx-alignment: CENTER;
 }
 .rx-menu-item > .leading > .checkmark {
@@ -3943,7 +3943,7 @@
     -fx-pref-height: 9;
     -fx-min-height: 9;
     -fx-background-color: -rx-outline-variant;
-    -fx-background-insets: 4 8 4 8;
+    -fx-background-insets: 4 0 4 0;
 }
 .rx-menu-list .menu-header {
     -fx-text-fill: -rx-on-surface-secondary;
@@ -3954,6 +3954,11 @@
    the surface fill, border, radius and elevation (shadow on the content, not the shell). */
 .rx-menu-popup {
     -fx-background-color: transparent;
+}
+/* Material's 112px menu minimum: a menu of short labels does not hug its text on the
+   trailing side. Popup only; an inline .rx-menu-list keeps its content width. */
+.rx-menu-popup .rx-menu-list {
+    -fx-min-width: 112;
 }
 /* The max-height scroll wrapper is transparent so the menu surface shows through;
    no border / inset / padding of its own. */
