@@ -7,3 +7,25 @@
     -fx-pref-height: 16px;
     -fx-shape: "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z";
 }
+
+.example-card .mail-glyph {
+    -fx-shape: "M0 0H20V16H0Z M2 3.2V14H18V3.2L10 9Z M3.6 2L10 6.6L16.4 2Z";
+}
+
+.example-card .rx-material-text-field > .label > .glyph {
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-pref-width: 13px;
+    -fx-pref-height: 13px;
+}
+
+.example-card .rx-material-text-field > .label > .mail-glyph {
+    -fx-pref-width: 16px;
+}
+
+.example-card .rx-material-text-field:focused > .label > .glyph {
+    -fx-background-color: -rx-primary;
+}
+
+.example-card .rx-material-text-field:invalid > .label > .glyph {
+    -fx-background-color: -rx-danger;
+}

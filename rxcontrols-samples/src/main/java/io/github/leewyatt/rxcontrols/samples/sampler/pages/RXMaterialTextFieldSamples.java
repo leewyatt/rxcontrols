@@ -33,7 +33,8 @@ public final class RXMaterialTextFieldSamples {
                         "For a plain field that fits a dense toolbar or table, use RXTextField."),
                 List.of(
                         SampleCard.medium("Floating label",
-                                "The label sits inside an empty field and floats above it once the field has focus or text.",
+                                "The label and its labelGraphic icon sit inside an empty field and float above it "
+                                        + "once the field has focus or text.",
                                 floatingLabels()),
                         SampleCard.medium("Helper text",
                                 "A line under the field tells users what to enter before they make a mistake.",
@@ -55,8 +56,10 @@ public final class RXMaterialTextFieldSamples {
 
     private static Node floatingLabels() {
         RXMaterialTextField empty = field("Email");
+        empty.setLabelGraphic(FieldSlots.glyph("mail-glyph"));
         RXMaterialTextField filled = field("Full name");
         filled.setText("Ada Lovelace");
+        filled.setLabelGraphic(FieldSlots.glyph("person-glyph"));
         return new VBox(16.0, empty, filled);
     }
 
