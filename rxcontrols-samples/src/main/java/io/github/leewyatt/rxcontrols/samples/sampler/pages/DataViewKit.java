@@ -78,6 +78,12 @@ final class DataViewKit {
     }
 
     static void paint(Label avatar, String paletteClass) {
+        // Any style class change resets the CSS-set background at once, and a cell's
+        // updateItem can run after the CSS pass (a selection change re-runs it during
+        // layout): re-adding the same class would draw one frame without the color.
+        if (avatar.getStyleClass().contains(paletteClass)) {
+            return;
+        }
         avatar.getStyleClass().removeAll(PALETTE);
         avatar.getStyleClass().add(paletteClass);
     }
