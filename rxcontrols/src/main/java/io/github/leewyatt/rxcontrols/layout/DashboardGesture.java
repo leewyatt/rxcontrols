@@ -12,6 +12,8 @@ import javafx.beans.Observable;
 import javafx.beans.value.ChangeListener;
 import javafx.event.EventHandler;
 import javafx.event.EventTarget;
+import javafx.geometry.BoundingBox;
+import javafx.geometry.Bounds;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -897,9 +899,12 @@ final class DashboardGesture {
         if (!started || scroller == null) {
             return 0.0;
         }
-        Point2D origin = scroller.localToScene(scroller.snappedLeftInset(), scroller.snappedTopInset());
-        double top = origin.getY();
-        double bottom = top + scroller.getViewportBounds().getHeight();
+        // The viewport as drawn: a scaled ancestor scales it too.
+        Bounds viewport = scroller.localToScene(new BoundingBox(scroller.snappedLeftInset(),
+                scroller.snappedTopInset(), scroller.getViewportBounds().getWidth(),
+                scroller.getViewportBounds().getHeight()));
+        double top = viewport.getMinY();
+        double bottom = viewport.getMaxY();
         if (lastSceneY < top + AUTO_SCROLL_EDGE) {
             return -scrollSpeed((top + AUTO_SCROLL_EDGE - lastSceneY) / AUTO_SCROLL_EDGE);
         }

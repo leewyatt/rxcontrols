@@ -24,9 +24,11 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Circle;
+import javafx.scene.transform.Scale;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.Duration;
@@ -1273,6 +1275,56 @@ public class RXDashboardPaneGestureTest {
             assertTrue(scrolled > 0.5 * fullSpeed * seconds,
                     "at full speed later: " + scrolled + " px in " + seconds + " s");
             helperRef.get().release(top, resting.get().getX(), resting.get().getY());
+        });
+    }
+
+    @Test
+    public void theAutoScrollBandsSitAtTheEdgesOfAScaledViewport() throws Exception {
+        RXDashboardPane pane = new RXDashboardPane();
+        ScrollPane scroller = new ScrollPane(pane);
+        RXDashboardCard top = new RXDashboardCard("top", null, 0, 0, 1, 1);
+        AtomicReference<Board> helperRef = new AtomicReference<>();
+        AtomicReference<Point2D> bandRef = new AtomicReference<>();
+        AtomicReference<Double> scrolledRef = new AtomicReference<>();
+        fx(() -> {
+            pane.setColumnCount(4);
+            pane.setRowHeight(100);
+            pane.setAutoCompact(false);
+            pane.getCards().add(top);
+            for (int row = 1; row < 40; row++) {
+                pane.getCards().add(new RXDashboardCard("r" + row, null, 0, row, 1, 1));
+            }
+            scroller.setFitToWidth(true);
+            StackPane zoom = new StackPane(scroller);
+            zoom.setPrefSize(400, 300);
+            zoom.getTransforms().add(new Scale(1.5, 1.5));
+            Stage stage = new Stage();
+            stage.setScene(new Scene(new Pane(zoom), 600, 450));
+            zoom.applyCss();
+            zoom.getParent().layout();
+            zoom.layout();
+            Board helper = new Board();
+            helperRef.set(helper);
+            Point2D start = helper.press(top, 50, 50);
+            double viewportTop = scroller.localToScene(0, scroller.snappedTopInset()).getY();
+            double viewportBottom = scroller.localToScene(0, scroller.snappedTopInset()
+                    + scroller.getViewportBounds().getHeight()).getY();
+            // Two thirds of the way down the viewport as drawn: clear of the band at its bottom edge.
+            double clear = viewportTop + (viewportBottom - viewportTop) * 2.0 / 3.0;
+            bandRef.set(new Point2D(start.getX() + 100, viewportBottom - 5));
+            helper.drag(top, start.getX() + 100, start.getY());
+            helper.drag(top, start.getX() + 100, clear);
+            scrolledRef.set(scrolledPixels(scroller));
+        });
+        Thread.sleep(150);
+        fx(() -> {
+            assertEquals(scrolledRef.get(), scrolledPixels(scroller), "no scrolling clear of the bands");
+            helperRef.get().drag(top, bandRef.get().getX(), bandRef.get().getY());
+        });
+        Thread.sleep(150);
+        fx(() -> {
+            assertTrue(scrolledPixels(scroller) > scrolledRef.get(), "scrolls in the band at the drawn bottom edge");
+            helperRef.get().release(top, bandRef.get().getX(), bandRef.get().getY());
         });
     }
 

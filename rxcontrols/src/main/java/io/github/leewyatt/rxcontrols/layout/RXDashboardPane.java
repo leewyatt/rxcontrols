@@ -90,9 +90,11 @@ import java.util.logging.Logger;
  * preview (the held card where it would land) needs; while a dragged card points at cells that cover another card, it
  * also reaches down to those cells, so the card can be placed below the others. Inside a {@code ScrollPane}, a column
  * count that follows the width should follow one the vertical scroll bar does not change, such as the scroll pane's
- * own width, as a new count cancels the gesture. Do not put the pane directly in a {@code Group}: a group's bounds
- * follow the card being dragged, its shadow included, and a parent placing the group by them moves the pane under the
- * pointer again and again. To scale the dashboard, scale the pane itself or a {@code Region} around it.</p>
+ * own width, as a new count cancels the gesture. Do not put the pane directly in a {@code Group}, nor directly among
+ * a {@code Popup}'s content: their bounds follow the card being dragged, its shadow included, and a parent or popup
+ * placing them by those bounds moves the pane under the pointer again and again (in a popup, until the stack
+ * overflows). To scale the dashboard, scale the pane itself or a {@code Region} around it; to show it in a popup, put
+ * it in a {@code Region} clipped to the region's own size.</p>
  *
  * <p><b>Gestures.</b> While the pane is {@link #editableProperty() editable}, the user drags a card by pressing
  * anywhere on it that its content does not take for itself (table rows, scroll bars and buttons do; charts and labels
