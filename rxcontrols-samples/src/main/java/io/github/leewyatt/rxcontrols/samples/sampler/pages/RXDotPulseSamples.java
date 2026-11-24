@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXDotPulse;
 import io.github.leewyatt.rxcontrols.RXDotPulse.AnimationMode;
 import io.github.leewyatt.rxcontrols.RXPasswordField;
+import io.github.leewyatt.rxcontrols.RXTaskButton;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import javafx.animation.PauseTransition;
 import javafx.geometry.Insets;
@@ -52,7 +53,8 @@ public final class RXDotPulseSamples {
                                 "Send a message and the reply bubble shows bouncing dots until the answer arrives.",
                                 chat()),
                         SampleCard.large("Signing in",
-                                "Dots replace the button text while the request runs.",
+                                "An RXTaskButton with the dots as its pendingIndicator: they replace the text while"
+                                        + " the request runs.",
                                 signIn()),
                         SampleCard.wide("Animation modes",
                                 "BOUNCE (the default), PULSE and FADE.",
@@ -146,22 +148,26 @@ public final class RXDotPulseSamples {
         password.setText("correct-horse");
         Label welcome = text("", "muted");
 
-        RXButton signIn = solid("Sign in", "teal");
+        RXDotPulse dots = new RXDotPulse();
+        dots.getStyleClass().add("on-solid");
+        dots.setDotSize(6.0);
+        dots.setDotGap(5.0);
+        // A control inside the button would otherwise take the Tab key and the
+        // clicks that land on it.
+        dots.setFocusTraversable(false);
+        dots.setMouseTransparent(true);
+
+        RXTaskButton signIn = new RXTaskButton("Sign in");
+        signIn.getStyleClass().addAll("solid", "teal");
+        signIn.setPendingIndicator(dots);
+        signIn.setSucceededText("Signed in");
         signIn.setMaxWidth(Double.MAX_VALUE);
         signIn.setOnAction(event -> {
-            RXDotPulse dots = new RXDotPulse();
-            dots.getStyleClass().add("on-solid");
-            dots.setDotSize(6.0);
-            dots.setDotGap(5.0);
-            signIn.setGraphic(dots);
-            signIn.setText(null);
-            signIn.setMouseTransparent(true);
+            RXTaskButton.Run run = signIn.start();
             welcome.setText("");
             PauseTransition request = new PauseTransition(Duration.seconds(1.8));
             request.setOnFinished(done -> {
-                signIn.setGraphic(null);
-                signIn.setText("Sign in");
-                signIn.setMouseTransparent(false);
+                run.succeed();
                 welcome.setText("Welcome back, Lee Wyatt.");
             });
             request.play();
