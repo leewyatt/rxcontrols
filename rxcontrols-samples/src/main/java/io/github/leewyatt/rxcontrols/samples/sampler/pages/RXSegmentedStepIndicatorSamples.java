@@ -56,13 +56,13 @@ public final class RXSegmentedStepIndicatorSamples {
                         "For a single task's progress without steps, use RXSegmentedProgressBar."),
                 List.of(
                         SampleCard.wide("Checkout",
-                                "Step names sit above the segments with titleSide TOP. Next and Back move selectedIndex, and placing the order sets it to the step count so every step reads as completed. Clicking a finished step or its name goes back to it, because the indicator only reports the click.",
+                                "Step names sit above the segments with titleSide TOP. Next and Back move selectedIndex, and placing the order fills the last step, which completes the indicator. Clicking a finished step or its name goes back to it, because the indicator only reports the click.",
                                 checkout()),
                         SampleCard.large("Onboarding",
                                 "A short tour on thin segments; Skip jumps to the last step.",
                                 onboarding()),
                         SampleCard.large("Step in progress",
-                                "Each step's segment fills as its fields are filled, and Next moves on once they all are; Save moves past the last step, so every step reads as completed. CSS shapes each title's mark by the step's state.",
+                                "Each step's segment fills as its fields are filled, and Next moves on once they all are; Save fills the last step, which completes the indicator. CSS shapes each title's mark by the step's state.",
                                 profileStep()),
                         SampleCard.large("Video chapters",
                                 "Point at a segment to see its chapter name; click it to jump there.",
@@ -78,7 +78,6 @@ public final class RXSegmentedStepIndicatorSamples {
     private static Node checkout() {
         RXSegmentedStepIndicator steps = new RXSegmentedStepIndicator(CHECKOUT.size());
         steps.setSelectedIndex(1);
-        steps.setSegmentProgress(1.0);
         steps.setSegmentHeight(6.0);
         steps.setTitleSide(TitleSide.TOP);
         steps.setTitleFactory(i -> new Label(CHECKOUT.get(i)));
@@ -90,12 +89,12 @@ public final class RXSegmentedStepIndicatorSamples {
         RXButton next = solid("Continue", "indigo");
         Runnable update = () -> {
             int index = steps.getSelectedIndex();
-            boolean placed = index == CHECKOUT.size();
+            boolean placed = steps.isCompleted();
             title.setText(placed ? "Order placed" : CHECKOUT.get(index));
             body.setText(placed ? "We sent the receipt to lee@example.com." : CHECKOUT_TEXT.get(index));
             back.setDisable(index == 0 || placed);
             next.setDisable(placed);
-            next.setText(index >= CHECKOUT.size() - 1 ? "Place order" : "Continue");
+            next.setText(index == CHECKOUT.size() - 1 ? "Place order" : "Continue");
         };
         RXButton restart = plain("Start over");
         FocusHandOff.onDisable(back, next);
@@ -104,9 +103,13 @@ public final class RXSegmentedStepIndicatorSamples {
             steps.setSelectedIndex(steps.getSelectedIndex() - 1);
             update.run();
         });
-        // Placing the order moves past the last step, so every step shows as completed.
+        // Placing the order fills the last step, which completes the indicator.
         next.setOnAction(event -> {
-            steps.setSelectedIndex(steps.getSelectedIndex() + 1);
+            if (steps.getSelectedIndex() == CHECKOUT.size() - 1) {
+                steps.setSegmentProgress(1.0);
+            } else {
+                steps.setSelectedIndex(steps.getSelectedIndex() + 1);
+            }
             update.run();
         });
         steps.setOnSegmentClicked(event -> {
@@ -116,6 +119,7 @@ public final class RXSegmentedStepIndicatorSamples {
             }
         });
         restart.setOnAction(event -> {
+            steps.setSegmentProgress(0.0);
             steps.setSelectedIndex(0);
             update.run();
         });
@@ -215,25 +219,25 @@ public final class RXSegmentedStepIndicatorSamples {
         Label filled = text("", "muted");
         RXButton back = plain("Back");
         RXButton next = solid("Next", "violet");
+        boolean[] saved = {false};
 
         Runnable update = () -> {
-            // Saving moves selectedIndex past Review; the card keeps showing the Review page.
-            boolean saved = steps.getSelectedIndex() == PROFILE_STEPS.size();
-            int index = saved ? PROFILE_STEPS.size() - 1 : steps.getSelectedIndex();
+            int index = steps.getSelectedIndex();
             List<TextField> fields = stepFields.get(index);
             long count = fields.stream().filter(f -> !f.getText().isBlank()).count();
             boolean review = fields.isEmpty();
-            steps.setSegmentProgress(review ? 0.0 : count / (double) fields.size());
+            // Review has no fields: saving fills it, which completes the indicator.
+            steps.setSegmentProgress(review ? (saved[0] ? 1.0 : 0.0) : count / (double) fields.size());
             for (int i = 0; i < pages.size(); i++) {
                 pages.get(i).setVisible(i == index);
             }
-            summary.setText(saved ? "Profile saved for " + name.getText() + "."
+            summary.setText(saved[0] ? "Profile saved for " + name.getText() + "."
                     : email.getText() + "\n" + name.getText() + "  ·  " + handle.getText() + "  ·  " + city.getText());
             filled.setText(review ? "" : count + " of " + fields.size() + " fields");
             back.setVisible(index > 0);
-            back.setDisable(saved);
+            back.setDisable(saved[0]);
             next.setText(review ? "Save" : "Next");
-            next.setDisable(review ? saved : count < fields.size());
+            next.setDisable(review ? saved[0] : count < fields.size());
         };
         stepFields.forEach(fields -> fields.forEach(f -> f.textProperty().addListener((obs, o, n) -> update.run())));
 
@@ -255,7 +259,7 @@ public final class RXSegmentedStepIndicatorSamples {
         next.setOnAction(event -> {
             if (steps.getSelectedIndex() == PROFILE_STEPS.size() - 1) {
                 box.requestFocus();
-                steps.setSelectedIndex(PROFILE_STEPS.size());
+                saved[0] = true;
                 update.run();
             } else {
                 goTo.accept(steps.getSelectedIndex() + 1);
@@ -343,15 +347,22 @@ public final class RXSegmentedStepIndicatorSamples {
         Label state = text("", "copy");
         RXButton finish = solid("Finish set", "lime");
         Runnable update = () -> {
-            boolean done = steps.getSelectedIndex() == SET_COUNT;
+            boolean done = steps.isCompleted();
             state.setText(done ? "Workout done, well played" : "Set " + (steps.getSelectedIndex() + 1)
                     + " of " + SET_COUNT + ": 12 push-ups");
             finish.setText(done ? "Again" : "Finish set");
         };
-        // Finishing the last set moves past it, so every block shows as completed.
+        // Finishing the last set fills it, which completes the indicator.
         finish.setOnAction(event -> {
             int index = steps.getSelectedIndex();
-            steps.setSelectedIndex(index == SET_COUNT ? 0 : index + 1);
+            if (steps.isCompleted()) {
+                steps.setSelectedIndex(0);
+                steps.setSegmentProgress(0.0);
+            } else if (index == SET_COUNT - 1) {
+                steps.setSegmentProgress(1.0);
+            } else {
+                steps.setSelectedIndex(index + 1);
+            }
             update.run();
         });
         update.run();

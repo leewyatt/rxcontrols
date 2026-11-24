@@ -25,8 +25,9 @@ import java.util.List;
  * <p>Exercises every configurable property: step count, selected index,
  * selected-segment progress, content padding, segment gap, segment height,
  * and the segment titles (factory, side, gap, alignment, and truncation of
- * long titles). It also logs {@code CLICKED} and {@code ENTERED} events so
- * the indicator can be verified as a passive event source.</p>
+ * long titles), and shows the read-only completed state. It also logs
+ * {@code CLICKED} and {@code ENTERED} events so the indicator can be verified
+ * as a passive event source.</p>
  *
  * <p>For a minimal "few lines of code" example see
  * {@link RXSegmentedStepIndicatorDemo}.</p>
@@ -133,7 +134,7 @@ public class RXSegmentedStepIndicatorShowcase extends RXShowcaseApplication {
         });
         Label stepValue = createValueLabel(stepSlider, "%.0f");
 
-        selectedSlider = createSlider(0.0, mainIndicator.getStepCount(),
+        selectedSlider = createSlider(0.0, mainIndicator.getStepCount() - 1.0,
                 mainIndicator.getSelectedIndex());
         configureIntegerSlider(selectedSlider);
         selectedSlider.valueProperty().addListener((obs, oldV, newV) ->
@@ -151,12 +152,18 @@ public class RXSegmentedStepIndicatorShowcase extends RXShowcaseApplication {
         progressValue.setMinWidth(VALUE_LABEL_MIN_WIDTH);
         progressValue.setAlignment(Pos.CENTER_RIGHT);
 
+        // Read-only: the last step at 100% completes the indicator.
+        Label completedValue = new Label();
+        completedValue.getStyleClass().add("value-label");
+        completedValue.textProperty().bind(mainIndicator.completedProperty().asString());
+
         updateSelectedSliderRange();
 
         return createGrid(
                 row("Steps", stepSlider, stepValue),
                 row("Selected Index", selectedSlider, selectedValue),
-                row("Segment Progress", progressSlider, progressValue));
+                row("Segment Progress", progressSlider, progressValue),
+                row("Completed", completedValue));
     }
 
     private Node buildGeometryGrid() {
@@ -244,9 +251,8 @@ public class RXSegmentedStepIndicatorShowcase extends RXShowcaseApplication {
         if (selectedSlider == null || stepSlider == null) {
             return;
         }
-        // The top value equals the step count: every step completed.
         int steps = stepSlider.valueProperty().intValue();
-        double max = steps;
+        double max = Math.max(0, steps - 1);
         selectedSlider.setMax(max);
         selectedSlider.setDisable(steps == 0);
         if (selectedSlider.getValue() > max) {
