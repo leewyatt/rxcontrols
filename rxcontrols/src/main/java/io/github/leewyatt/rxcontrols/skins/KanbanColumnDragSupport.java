@@ -8,6 +8,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.collections.ObservableList;
 import javafx.geometry.Bounds;
+import javafx.scene.Parent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.util.Duration;
@@ -18,10 +19,10 @@ import java.util.List;
 /**
  * Pointer drag-and-drop for reordering whole kanban columns, owned by
  * {@link RXKanbanViewSkin}. Dragging a column's header translates the real column box
- * to follow the pointer (columns are all realized — no virtualization), computes an
- * insertion index from the other columns' centers, and on release fires a vetoable
- * {@link RXColumnMovedEvent} before reordering the columns list by index. Boxes glide
- * (FLIP) from their pre-reorder positions to the new order.
+ * to follow the pointer (columns are all realized — no virtualization), lets it take a
+ * neighbour's place once it covers more than half of that neighbour, and on release
+ * fires a vetoable {@link RXColumnMovedEvent} before reordering the columns list by
+ * index. Boxes glide (FLIP) from their pre-reorder positions to the new order.
  *
  * @param <T> the card type
  */
@@ -75,6 +76,9 @@ final class KanbanColumnDragSupport<T> {
         sourceColumn = box.getColumn();
         sourceIndex = skin.columnBoxes().indexOf(box);
         pressSceneX = event.getSceneX();
+        // Measured from where the box shows now, even mid-glide, so the grabbed point
+        // stays under the pointer once the drag starts.
+        grabDx = pressSceneX - parentSceneMinX() - (box.getLayoutX() + box.getTranslateX());
         armed = sourceIndex >= 0;
     }
 
@@ -86,7 +90,7 @@ final class KanbanColumnDragSupport<T> {
             if (Math.abs(event.getSceneX() - pressSceneX) < DRAG_THRESHOLD) {
                 return;
             }
-            startDrag(event.getSceneX());
+            startDrag();
         }
         updateDrag(event.getSceneX());
         event.consume();
@@ -102,7 +106,7 @@ final class KanbanColumnDragSupport<T> {
             armed = false;
             return;
         }
-        finishDrag(event.getSceneX());
+        finishDrag();
         event.consume();
     }
 
@@ -129,33 +133,40 @@ final class KanbanColumnDragSupport<T> {
 
     // ==================== Lifecycle ====================
 
-    private void startDrag(double sceneX) {
+    private void startDrag() {
         started = true;
+        // A column grabbed mid-glide would otherwise have its translate rewritten by the
+        // glide every frame, and snapped to zero when the glide ends.
+        skin.stopColumnGlide(sourceBox);
         sourceBox.setColumnDragging(true);
         sourceBox.toFront();
-        Bounds boxScene = sourceBox.localToScene(sourceBox.getBoundsInLocal());
-        grabDx = pressSceneX - boxScene.getMinX();
     }
 
     private void updateDrag(double sceneX) {
         lastPointerSceneX = sceneX;
         moveBox(sceneX);
         // Open (and glide neighbours to) a make-way gap at the current hover index.
-        skin.setColumnReorderPreview(sourceIndex, computeTargetIndex(sceneX));
+        skin.setColumnReorderPreview(sourceIndex, computeTargetIndex());
         updateAutoScroll(sceneX);
     }
 
     private void moveBox(double sceneX) {
         // Desired box left in the parent's local space, then expressed as a translate
         // over the layout x the skin assigned.
-        Bounds parentScene = sourceBox.getParent().localToScene(sourceBox.getParent().getBoundsInLocal());
-        double wantedLocalX = sceneX - grabDx - parentScene.getMinX();
+        double wantedLocalX = sceneX - grabDx - parentSceneMinX();
         sourceBox.setTranslateX(wantedLocalX - sourceBox.getLayoutX());
     }
 
-    private void finishDrag(double sceneX) {
+    private double parentSceneMinX() {
+        Parent parent = sourceBox.getParent();
+        return parent.localToScene(parent.getBoundsInLocal()).getMinX();
+    }
+
+    // Commits the order the preview shows: the box sits where the last drag event or
+    // auto-scroll tick put it.
+    private void finishDrag() {
         stopAutoScroll();
-        int visibleTarget = computeTargetIndex(sceneX);
+        int visibleTarget = computeTargetIndex();
         int fromIndex = sourceIndex;
         RXKanbanColumn<T> column = sourceColumn;
 
@@ -221,22 +232,25 @@ final class KanbanColumnDragSupport<T> {
         return result;
     }
 
-    // Insertion index in the source-removed coordinate system: how many other columns'
-    // centers sit left of the pointer.
-    private int computeTargetIndex(double sceneX) {
+    // Insertion index in the source-removed coordinate system, read from where the dragged
+    // column shows (not the pointer, so the grab point does not matter): a neighbour
+    // changes sides once the dragged column covers more than half of it. Neighbours are
+    // measured at their model-order slots, which the preview's glides never move, so the
+    // target cannot feed back on the gap it opens.
+    private int computeTargetIndex() {
+        double left = sourceBox.getLayoutX() + sourceBox.getTranslateX();
+        double right = left + sourceBox.getWidth();
         int index = 0;
         for (int i = 0; i < skin.columnBoxes().size(); i++) {
-            if (i == sourceIndex) {
-                continue;
-            }
-            KanbanColumnBox<T> box = skin.columnBoxes().get(i);
-            if (!box.isVisible()) {
+            if (i == sourceIndex || !skin.columnBoxes().get(i).isVisible()) {
                 // A hidden neighbor has no on-board position to compare against.
                 continue;
             }
-            Bounds b = box.localToScene(box.getBoundsInLocal());
-            double center = (b.getMinX() + b.getMaxX()) / 2.0;
-            if (center < sceneX) {
+            double center = skin.columnSlotCenterX(i);
+            // Before the source: stays before until the left edge passes its center.
+            // After the source: moves before once the right edge passes its center.
+            // A NaN center (no slot laid out yet) leaves the neighbour where it is.
+            if (i < sourceIndex ? !(left < center) : right > center) {
                 index++;
             }
         }
@@ -305,6 +319,8 @@ final class KanbanColumnDragSupport<T> {
             skin.scrollBoardBy(step);
             control.layout();
             moveBox(lastPointerSceneX);
+            // The board scrolled under a resting pointer: the column now covers other slots.
+            skin.setColumnReorderPreview(sourceIndex, computeTargetIndex());
         }
     }
 }

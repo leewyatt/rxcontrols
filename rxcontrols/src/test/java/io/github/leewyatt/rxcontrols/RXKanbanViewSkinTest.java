@@ -2065,6 +2065,96 @@ public class RXKanbanViewSkinTest {
         });
     }
 
+    /**
+     * Verifies a dragged column takes a neighbour's place once it covers more than half
+     * of it, in both directions, whatever the grab point.
+     */
+    @Test
+    public void columnTakesNeighbourPlaceOnceItCoversMoreThanHalf() throws Exception {
+        onFx(() -> {
+            for (double beyond : new double[]{-2.0, 2.0}) {
+                boolean passes = beyond > 0.0;
+
+                // Grabbed near its left edge and moved right: its right edge meets B's center.
+                RXKanbanView<String> right = threeColumnBoard();
+                right.setAnimated(false);
+                right.setColumnReorderEnabled(true);
+                pump(host(right, 1200, 500));
+                Region a = boxOf(right, "A");
+                Region b = boxOf(right, "B");
+                double dx = b.getLayoutX() + b.getWidth() / 2.0 - (a.getLayoutX() + a.getWidth()) + beyond;
+                dragHeaderBy(right, "A", 4.0, dx);
+                pump(right);
+                assertEquals(passes ? List.of("B", "A", "C") : List.of("A", "B", "C"),
+                        right.getColumns().stream().map(RXKanbanColumn::getTitle).toList(),
+                        "A's right edge " + beyond + " px past B's center");
+
+                // Grabbed near its right edge and moved left: its left edge meets B's center.
+                RXKanbanView<String> left = threeColumnBoard();
+                left.setAnimated(false);
+                left.setColumnReorderEnabled(true);
+                pump(host(left, 1200, 500));
+                Region c = boxOf(left, "C");
+                Region b2 = boxOf(left, "B");
+                double dx2 = b2.getLayoutX() + b2.getWidth() / 2.0 - c.getLayoutX() - beyond;
+                dragHeaderBy(left, "C", c.getWidth() - 4.0, dx2);
+                pump(left);
+                assertEquals(passes ? List.of("A", "C", "B") : List.of("A", "B", "C"),
+                        left.getColumns().stream().map(RXKanbanColumn::getTitle).toList(),
+                        "C's left edge " + beyond + " px past B's center");
+            }
+        });
+    }
+
+    /**
+     * Verifies a column grabbed while it still glides into place stays under the pointer
+     * after the glide would have ended.
+     */
+    @Test
+    public void columnGrabbedMidGlideStaysUnderThePointer() throws Exception {
+        final double durationMillis = 1200.0;
+        AtomicReference<RXKanbanView<String>> board = new AtomicReference<>();
+        AtomicReference<StackPane> root = new AtomicReference<>();
+        AtomicReference<double[]> expected = new AtomicReference<>();
+        onFx(() -> {
+            board.set(threeColumnBoard());
+            board.get().setColumnReorderEnabled(true);
+            board.get().setAnimationDuration(Duration.millis(durationMillis));
+            board.get().setAnimationInterpolator(Interpolator.LINEAR);
+            board.get().setAnimated(true);
+            root.set(host(board.get(), 1200, 500));
+            pump(root.get());
+            // Drop A just past half of B, so it glides the rest of the way into its new slot.
+            Region a = boxOf(board.get(), "A");
+            Region b = boxOf(board.get(), "B");
+            double dx = b.getLayoutX() + b.getWidth() / 2.0 - (a.getLayoutX() + a.getWidth()) + 2.0;
+            dragHeaderBy(board.get(), "A", 4.0, dx);
+            pump(root.get());
+        });
+        waitForFx(durationMillis / 4.0);
+        onFx(() -> {
+            Region a = boxOf(board.get(), "A");
+            assertTrue(Math.abs(a.getTranslateX()) > 1.0, "A is mid-glide: " + a.getTranslateX());
+            double shownX = a.getLayoutX() + a.getTranslateX();
+            Node header = headerOf(board.get(), "A");
+            Bounds hb = header.localToScene(header.getBoundsInLocal());
+            double px = hb.getMinX() + 4.0;
+            double sy = (hb.getMinY() + hb.getMaxY()) / 2.0;
+            header.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, px, sy, header));
+            board.get().fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, px + 12.0, sy, board.get()));
+            board.get().fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, px + 20.0, sy, board.get()));
+            expected.set(new double[]{shownX + 20.0, px + 20.0, sy});
+        });
+        waitForFx(durationMillis);
+        onFx(() -> {
+            Region a = boxOf(board.get(), "A");
+            assertEquals(expected.get()[0], a.getLayoutX() + a.getTranslateX(), 1.0,
+                    "the grabbed column stays where the pointer holds it");
+            board.get().fireEvent(mouse(MouseEvent.MOUSE_RELEASED, expected.get()[1], expected.get()[2],
+                    board.get()));
+        });
+    }
+
     // ==================== Render scale ====================
 
     /**
@@ -2333,6 +2423,21 @@ public class RXKanbanViewSkinTest {
         board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + 12.0, sy, board));
         board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, targetX, sy, board));
         board.fireEvent(mouse(MouseEvent.MOUSE_RELEASED, targetX, sy, board));
+    }
+
+    // Presses the column's header grabX px right of the column's left edge, drags by dx
+    // and releases there.
+    private static void dragHeaderBy(RXKanbanView<?> board, String title, double grabX, double dx) {
+        Node header = headerOf(board, title);
+        Region box = boxOf(board, title);
+        Bounds bb = box.localToScene(box.getLayoutBounds());
+        Bounds hb = header.localToScene(header.getBoundsInLocal());
+        double sx = bb.getMinX() + grabX;
+        double sy = (hb.getMinY() + hb.getMaxY()) / 2.0;
+        header.fireEvent(mouse(MouseEvent.MOUSE_PRESSED, sx, sy, header));
+        board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + Math.signum(dx) * 12.0, sy, board));
+        board.fireEvent(mouse(MouseEvent.MOUSE_DRAGGED, sx + dx, sy, board));
+        board.fireEvent(mouse(MouseEvent.MOUSE_RELEASED, sx + dx, sy, board));
     }
 
     private static RXKanbanView<String> twoColumnBoard() {

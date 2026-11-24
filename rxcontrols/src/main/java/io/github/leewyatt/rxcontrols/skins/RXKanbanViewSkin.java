@@ -750,6 +750,22 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
         return boxes;
     }
 
+    // Center x of a column's slot in the model-order layout, in the columns host's
+    // coordinates, or NaN before a layout has sized it. The reorder preview glides the
+    // boxes but never moves these slots.
+    double columnSlotCenterX(int index) {
+        if (index < 0 || index >= cachedColumnX.length) {
+            return Double.NaN;
+        }
+        return cachedColumnX[index] + cachedColumnW[index] / 2.0 - boardScrollX;
+    }
+
+    // Stops a column's reorder glide and resets its translate, so a drag that grabs it
+    // mid-glide is the only writer of that translate.
+    void stopColumnGlide(KanbanColumnBox<T> box) {
+        columnAnimator.cancel(box);
+    }
+
     // The column box whose header contains the target, when column reordering is
     // enabled — the arm point for a column drag. Returns null for a card / body press.
     KanbanColumnBox<T> headerBoxAt(EventTarget target) {
