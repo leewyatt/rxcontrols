@@ -3321,6 +3321,59 @@ public class RXTileViewSkinTest {
         });
     }
 
+    /**
+     * Verifies a cell whose glide failed on its bound translateY, after X was already
+     * written, is back on its slot once the binding is gone and the view relays out.
+     */
+    @Test
+    public void cellIsBackOnItsSlotAfterAGlideFailedOnItsSecondAxis() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(12);
+            view.setMaxColumns(4);
+            view.setAnimated(true);
+            StackPane root = host(view, 700, 400);
+            pump(root);
+            RXTileCell<?> moving = cellByIndex(view, 5);
+            moving.translateYProperty().bind(new SimpleDoubleProperty(0.0));
+
+            view.setMaxColumns(6);
+            assertThrows(RuntimeException.class, () -> pump(root),
+                    "the glide's start write into the bound translateY is reported");
+            moving.translateYProperty().unbind();
+            view.setAnimated(false);
+            pump(root);
+
+            assertEquals(0.0, moving.getTranslateX(), 1e-9, "the X written before the failure is undone");
+            assertFalse(anyCellTranslated(view, 12), "every cell sits at its slot");
+        });
+    }
+
+    /**
+     * Verifies a skin disposes completely when a cell's translate is bound after
+     * its glide started.
+     */
+    @Test
+    public void skinDisposesWhenATranslateIsBoundMidGlide() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(12);
+            view.setMaxColumns(4);
+            view.setAnimated(true);
+            view.setAnimationDuration(Duration.seconds(30.0));
+            StackPane root = host(view, 700, 400);
+            pump(root);
+            view.setMaxColumns(6);
+            pump(root);
+            RXTileCell<?> moving = cellByIndex(view, 5);
+            assertTrue(Math.abs(moving.getTranslateX()) > 0.5, "setup: the cell for item 5 is gliding");
+            moving.translateXProperty().bind(new SimpleDoubleProperty(0.0));
+
+            Skin<?> skin = view.getSkin();
+            assertDoesNotThrow(skin::dispose, "dispose leaves the bound axis to its binding");
+            assertNull(moving.getParent(), "dispose released the cells");
+            assertEquals(0.0, moving.getTranslateY(), 1e-9, "the other axis is back on its slot");
+        });
+    }
+
     @Test
     public void sectionHeadersGlideVerticallyOnReorder() throws Exception {
         onFx(() -> {

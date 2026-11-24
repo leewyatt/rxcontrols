@@ -9,9 +9,7 @@ import javafx.beans.value.WritableDoubleValue;
 import javafx.scene.Node;
 import javafx.util.Duration;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -26,7 +24,7 @@ import java.util.function.Consumer;
  * virtualized cell be re-aimed mid-glide without disturbing the others, and let a
  * cell that finishes be recycled on its own.
  *
- * <p>Two guarantees hold whatever runs in between, listeners on the glided
+ * <p>These guarantees hold whatever runs in between, listeners on the glided
  * translate included:
  * <ul>
  *   <li>A glide that was cancelled or replaced, even while its start position was
@@ -38,6 +36,15 @@ import java.util.function.Consumer;
  *   <li>Each glide starts only if the owner still animates at that moment. Settings
  *   can change in the middle of a layout pass that already decided to glide, and
  *   a disabled owner's duration may be one no {@link KeyFrame} accepts.</li>
+ *   <li>A bound translate axis belongs to its binding. Starting a glide on it
+ *   throws, as writing any bound property does; nothing else writes it: the
+ *   tween skips it, and every reset (a snap, a cancel, {@link #snapAll}, a
+ *   finish, a start that failed) leaves it as is and still resets the other
+ *   axis. Resets therefore never throw, and a glide bound mid-flight still
+ *   finishes.</li>
+ *   <li>A node this animator took over is, once any call returns or throws,
+ *   either driven by a playing glide or back on its slot on every writable
+ *   axis, unless a listener started a newer glide on it.</li>
  * </ul>
  *
  * <p>The tween itself is a plain {@link KeyValue} that starts from the node's actual
@@ -73,7 +80,9 @@ final class ViewportReorderAnimator {
      * for the node it is stopped and replaced (re-aim, not restart-from-scratch).
      * Sub-pixel deltas, and any delta while the owner no longer animates, snap
      * immediately. {@code onFinished} runs after the transforms are reset, on a
-     * natural finish or a snap, so the caller can un-pin / recycle.
+     * natural finish or a snap, so the caller can un-pin / recycle. If writing the
+     * start position throws (a bound translate), the exception propagates and the
+     * node is put back on its slot.
      */
     void animate(Node node, double fromDx, double fromDy, Duration duration, Interpolator interpolator,
                  Consumer<Node> onFinished) {
@@ -83,8 +92,7 @@ final class ViewportReorderAnimator {
         }
         boolean subPixel = Math.abs(fromDx) < MOVE_EPSILON && Math.abs(fromDy) < MOVE_EPSILON;
         if (subPixel || !animationEnabled.getAsBoolean()) {
-            node.setTranslateX(0);
-            node.setTranslateY(0);
+            resetTranslate(node);
             onFinished.accept(node);
             return;
         }
@@ -93,7 +101,6 @@ final class ViewportReorderAnimator {
         // to its new slot; the start position shows the old one in this same frame.
         Glide glide = new Glide(node, duration, interpolator, onFinished);
         running.put(node, glide);
-        boolean playing = false;
         try {
             node.setTranslateX(fromDx);
             if (!glide.ownsNode()) {
@@ -104,14 +111,15 @@ final class ViewportReorderAnimator {
                 return;
             }
             glide.play();
-            playing = true;
-        } finally {
-            if (!playing) {
-                // A start that never played (cancelled, replaced, or a write that threw,
-                // as on a bound translate) must not stay registered: snapAll would
-                // write to the node again.
-                running.remove(node, glide);
+        } catch (RuntimeException failure) {
+            // Still registered only if no listener took the node over. This call
+            // already stopped any earlier glide, so nothing else would bring the node
+            // back: withdraw this start and reset both writable axes, not only the
+            // one it wrote.
+            if (running.remove(node, glide)) {
+                resetTranslate(node);
             }
+            throw failure;
         }
     }
 
@@ -130,30 +138,33 @@ final class ViewportReorderAnimator {
             return;
         }
         prior.stop();
-        node.setTranslateX(0);
-        node.setTranslateY(0);
+        resetTranslate(node);
     }
 
     /**
      * Stops every running glide and snaps all nodes to their final state. Used on
      * animation disable, cell-pool rebuild and disposal. {@code onFinished} is not
-     * invoked; the caller must clear its own pin-set. A reset that throws (a bound
-     * translate) does not stop the others; the first failure is rethrown once every
-     * node has been reset.
+     * invoked; the caller must clear its own pin-set.
      */
     void snapAll() {
-        // Released and stopped before any reset: none of them owns its node if it
-        // pulses late, and none is left frozen mid-glide when a reset throws.
+        // Released before stopping, so none of them still owns its node if it pulses late.
         Map<Node, Glide> stopped = new HashMap<>(running);
         running.clear();
-        List<Runnable> resets = new ArrayList<>();
         for (Map.Entry<Node, Glide> entry : stopped.entrySet()) {
             entry.getValue().stop();
-            Node node = entry.getKey();
-            resets.add(() -> node.setTranslateX(0));
-            resets.add(() -> node.setTranslateY(0));
+            resetTranslate(entry.getKey());
         }
-        SkinDisposer.disposeInOrder(resets.toArray(new Runnable[0]));
+    }
+
+    // Puts the node back on its slot. A bound axis belongs to its binding and is left
+    // as is, so a reset never throws and always reaches the other axis.
+    private static void resetTranslate(Node node) {
+        if (!node.translateXProperty().isBound()) {
+            node.setTranslateX(0);
+        }
+        if (!node.translateYProperty().isBound()) {
+            node.setTranslateY(0);
+        }
     }
 
     // ==================== Glide ====================
@@ -190,14 +201,14 @@ final class ViewportReorderAnimator {
                 return;
             }
             running.remove(node);
-            node.setTranslateX(0);
-            node.setTranslateY(0);
+            resetTranslate(node);
             finishCallback.accept(node);
         }
 
         // The tween's target for one translate axis: it reads the node's property, so
         // the tween starts wherever the node actually is, and writes to it only while
-        // this glide still owns the node.
+        // this glide still owns the node and the axis is not bound. A throwing frame
+        // write would keep JavaFX from ever finishing the glide.
         private final class Axis implements WritableDoubleValue {
 
             private final DoubleProperty translate;
@@ -213,7 +224,7 @@ final class ViewportReorderAnimator {
 
             @Override
             public void set(double newValue) {
-                if (ownsNode()) {
+                if (ownsNode() && !translate.isBound()) {
                     translate.set(newValue);
                 }
             }
