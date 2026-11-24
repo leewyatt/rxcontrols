@@ -138,6 +138,108 @@ public class RXMaterialTextFieldTest {
         });
     }
 
+    @Test
+    public void sameNodeMigratesThroughTheLabelGraphic() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            Label icon = new Label("@");
+            field.setLeading(icon);
+            field.setLabelGraphic(icon);
+            assertNull(field.getLeading());
+            assertSame(icon, field.getLabelGraphic());
+            field.setTrailing(icon);
+            assertNull(field.getLabelGraphic());
+            assertSame(icon, field.getTrailing());
+        });
+    }
+
+    // ==================== Label graphic ====================
+
+    @Test
+    public void labelGraphicRidesInTheFloatingLabel() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            field.setLabelText("Name");
+            field.setLabelFloatScale(0.5);
+            inScene(field);
+            Label label = floatingLabel(field);
+            double plainWidth = label.getWidth();
+
+            Region icon = new Region();
+            icon.setPrefSize(12, 12);
+            field.setLabelGraphic(icon);
+            field.getScene().getRoot().applyCss();
+            field.getScene().getRoot().layout();
+            assertSame(label, icon.getParent());
+            assertTrue(label.getWidth() > plainWidth, "the field relays out the wider label");
+
+            field.setText("Ada");
+            field.getScene().getRoot().layout();
+            assertEquals(6.0, icon.localToScene(icon.getLayoutBounds()).getHeight(), 0.01,
+                    "the graphic scales with the floated label");
+
+            field.setLabelGraphic(null);
+            field.getScene().getRoot().layout();
+            assertNull(icon.getParent());
+            assertEquals(plainWidth, label.getWidth(), 0.01);
+        });
+    }
+
+    @Test
+    public void disposeReleasesTheLabelGraphic() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            field.setLabelText("Name");
+            Region icon = tinyNode();
+            field.setLabelGraphic(icon);
+            inScene(field);
+            assertNotNull(icon.getParent());
+
+            field.setSkin(null);
+            assertNull(icon.getParent());
+        });
+    }
+
+    @Test
+    public void unattachedSkinLeavesTheLabelGraphicAlone() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            field.setLabelText("Name");
+            Region icon = tinyNode();
+            field.setLabelGraphic(icon);
+            inScene(field);
+            Label live = floatingLabel(field);
+
+            new RXMaterialTextFieldSkin(field);
+            field.setLabelGraphic(null);
+            field.setLabelGraphic(icon);
+            field.getScene().getRoot().applyCss();
+            field.getScene().getRoot().layout();
+            assertSame(live, icon.getParent());
+        });
+    }
+
+    @Test
+    public void skinReplacementCarriesTheLabelGraphic() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            field.setLabelText("Name");
+            Region icon = tinyNode();
+            field.setLabelGraphic(icon);
+            inScene(field);
+
+            double widthWithGraphic = floatingLabel(field).getWidth();
+
+            field.setSkin(new RXMaterialTextFieldSkin(field) { });
+            field.getScene().getRoot().applyCss();
+            field.getScene().getRoot().layout();
+            Label label = floatingLabel(field);
+            assertSame(icon, label.getGraphic());
+            assertSame(label, icon.getParent());
+            assertEquals(widthWithGraphic, label.getWidth(), 0.01);
+        });
+    }
+
     // ==================== Pseudo-classes ====================
 
     @Test

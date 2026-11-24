@@ -13,6 +13,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Rectangle;
@@ -130,6 +131,23 @@ public class RXMaterialPasswordFieldTest {
             field.setTrailing(icon);
             assertNull(field.getLeading());
             assertSame(icon, field.getTrailing());
+        });
+    }
+
+    @Test
+    public void labelGraphicShowsInTheFloatingLabel() {
+        runOnFx(() -> {
+            RXMaterialPasswordField field = new RXMaterialPasswordField();
+            field.setLabelText("Password");
+            Region icon = new Region();
+            field.setLeading(icon);
+            field.setLabelGraphic(icon);
+            assertNull(field.getLeading());
+
+            inScene(field);
+            assertSame(floatingLabel(field), icon.getParent());
+            field.setSkin(null);
+            assertNull(icon.getParent());
         });
     }
 

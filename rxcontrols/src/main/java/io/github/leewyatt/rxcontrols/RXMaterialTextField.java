@@ -97,16 +97,21 @@ public class RXMaterialTextField extends TextField {
     public RXMaterialTextField(String text) {
         super(text);
         getStyleClass().add(DEFAULT_STYLE_CLASS);
-        leading.addListener((obs, oldVal, newVal) -> {
-            if (newVal != null && newVal == trailing.get() && !trailing.isBound()) {
-                trailing.set(null);
+        leading.addListener((obs, oldVal, newVal) -> releaseFromOtherSlots(newVal, leading));
+        trailing.addListener((obs, oldVal, newVal) -> releaseFromOtherSlots(newVal, trailing));
+        labelGraphic.addListener((obs, oldVal, newVal) -> releaseFromOtherSlots(newVal, labelGraphic));
+    }
+
+    // A node has one parent: the slot that last received it keeps it.
+    private void releaseFromOtherSlots(Node node, ObjectProperty<Node> owner) {
+        if (node == null) {
+            return;
+        }
+        for (ObjectProperty<Node> slot : List.of(leading, trailing, labelGraphic)) {
+            if (slot != owner && slot.get() == node && !slot.isBound()) {
+                slot.set(null);
             }
-        });
-        trailing.addListener((obs, oldVal, newVal) -> {
-            if (newVal != null && newVal == leading.get() && !leading.isBound()) {
-                leading.set(null);
-            }
-        });
+        }
     }
 
     /**
@@ -162,6 +167,45 @@ public class RXMaterialTextField extends TextField {
      */
     public final void setLabelText(String value) {
         labelText.set(value);
+    }
+
+    // ==================== labelGraphic ====================
+
+    private final ObjectProperty<Node> labelGraphic = new SimpleObjectProperty<>(this, "labelGraphic");
+
+    /**
+     * Decorative node shown beside the floating-label text, such as an icon or
+     * a required marker. It floats and scales with the label and, like the
+     * label, ignores the mouse; a clickable icon belongs in the
+     * {@link #trailingProperty() trailing} slot. It sits left of the text by
+     * default; {@code -fx-content-display} and {@code -fx-graphic-text-gap} on
+     * the {@code > .label} child move it and set the gap. It is hidden while the
+     * field has no label (blank {@code labelText} and {@code promptText}). The
+     * same {@link Node} instance assigned to another slot migrates: setting it
+     * here clears the leading or trailing slot (bound slots are left untouched).
+     *
+     * @return the label-graphic property
+     */
+    public final ObjectProperty<Node> labelGraphicProperty() {
+        return labelGraphic;
+    }
+
+    /**
+     * Returns the node shown beside the floating-label text.
+     *
+     * @return the label graphic, or {@code null}
+     */
+    public final Node getLabelGraphic() {
+        return labelGraphic.get();
+    }
+
+    /**
+     * Sets the node shown beside the floating-label text.
+     *
+     * @param value the label graphic, may be {@code null}
+     */
+    public final void setLabelGraphic(Node value) {
+        labelGraphic.set(value);
     }
 
     // ==================== helperText ====================
@@ -486,8 +530,9 @@ public class RXMaterialTextField extends TextField {
     /**
      * Custom node rendered before the text area (e.g. a leading icon). Coexists
      * with the built-in trailing affordances. The same {@link Node} instance
-     * assigned to both slots migrates: setting it here clears the trailing slot
-     * (bound slots are left untouched), mirroring {@link RXTextField}.
+     * assigned to another slot migrates: setting it here clears the trailing or
+     * label-graphic slot (bound slots are left untouched), mirroring
+     * {@link RXTextField}.
      *
      * @return the leading-node property
      */
@@ -520,8 +565,8 @@ public class RXMaterialTextField extends TextField {
     /**
      * Custom node rendered after the text area. Coexists with the built-in
      * clear affordance (the user node sits before the built-in icons). The same
-     * {@link Node} instance assigned to both slots migrates: setting it here
-     * clears the leading slot (bound slots are left untouched).
+     * {@link Node} instance assigned to another slot migrates: setting it here
+     * clears the leading or label-graphic slot (bound slots are left untouched).
      *
      * @return the trailing-node property
      */
