@@ -1,6 +1,9 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.scene.layout.Region;
 import javafx.util.Duration;
@@ -20,7 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Direct tests for {@link ViewportReorderAnimator}: the terminal-path contracts the
  * viewports rely on for their recycler pin-sets — sub-pixel synchronous finish,
  * cancel / snapAll never invoking {@code onFinished}, and re-aim replacing a
- * running tween without a spurious terminal callback.
+ * running tween without a spurious terminal callback — plus the tween's shape under
+ * a tangent interpolator and a stopped glide never writing again.
  */
 public class ViewportReorderAnimatorTest {
 
@@ -141,6 +145,63 @@ public class ViewportReorderAnimatorTest {
             animator.cancel(node);
             assertEquals(0, finished.get());
             assertNull(lastFinished.get());
+        });
+    }
+
+    /**
+     * Verifies a glide under a tangent interpolator moves exactly like a plain
+     * translate {@code KeyValue} tween started in the same frame.
+     */
+    @Test
+    public void tangentInterpolatorShapesTheGlideLikeAPlainKeyValue() throws Exception {
+        Interpolator tangent = Interpolator.TANGENT(Duration.millis(250.0), 0.0);
+        Duration duration = Duration.seconds(2.0);
+        AtomicReference<ViewportReorderAnimator> animator = new AtomicReference<>();
+        AtomicReference<Region> glided = new AtomicReference<>();
+        AtomicReference<Region> reference = new AtomicReference<>();
+        runOnFx(() -> {
+            animator.set(new ViewportReorderAnimator());
+            glided.set(new Region());
+            reference.set(new Region());
+            animator.get().animate(glided.get(), 0.0, 100.0, duration, tangent, n -> { });
+            reference.get().setTranslateY(100.0);
+            new Timeline(new KeyFrame(duration,
+                    new KeyValue(reference.get().translateYProperty(), 0.0, tangent))).play();
+        });
+
+        Thread.sleep(400);
+
+        runOnFx(() -> {
+            double expected = reference.get().getTranslateY();
+            assertTrue(expected > 0.0 && expected < 100.0, "setup: the reference tween is mid-flight: " + expected);
+            assertEquals(expected, glided.get().getTranslateY(), 0.1,
+                    "the glide follows the tangent curve of a plain KeyValue tween");
+            animator.get().cancel(glided.get());
+        });
+    }
+
+    /**
+     * Verifies a glide stopped by a listener on its first translate write leaves both
+     * axes at zero.
+     */
+    @Test
+    public void glideStoppedByATranslateListenerLeavesBothAxesAtZero() throws Exception {
+        AtomicReference<Region> node = new AtomicReference<>();
+        runOnFx(() -> {
+            ViewportReorderAnimator animator = new ViewportReorderAnimator();
+            Region region = new Region();
+            animator.animate(region, 100.0, 100.0, LONG_GLIDE, Interpolator.LINEAR, n -> { });
+            // Whichever axis the tween writes first stops it before the other is written.
+            region.translateXProperty().addListener((obs, was, now) -> animator.snapAll());
+            region.translateYProperty().addListener((obs, was, now) -> animator.snapAll());
+            node.set(region);
+        });
+
+        Thread.sleep(200);
+
+        runOnFx(() -> {
+            assertEquals(0.0, node.get().getTranslateX(), EPSILON, "the axis written first is reset");
+            assertEquals(0.0, node.get().getTranslateY(), EPSILON, "the other axis is never written");
         });
     }
 

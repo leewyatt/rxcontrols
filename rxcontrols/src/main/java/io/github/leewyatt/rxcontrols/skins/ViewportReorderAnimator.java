@@ -1,7 +1,11 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import javafx.animation.Interpolator;
-import javafx.animation.Transition;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.value.WritableDoubleValue;
 import javafx.scene.Node;
 import javafx.util.Duration;
 
@@ -13,17 +17,21 @@ import java.util.function.Consumer;
  * Reorder glide animator shared by the virtualized viewports and the kanban board
  * ({@link RXTileViewport}, {@code RXMasonryViewport}, {@code KanbanColumnViewport}
  * and {@code RXKanbanViewSkin}'s column boxes). Each node gets its own one-shot
- * glide that tweens {@code translateX/translateY} from a captured FLIP delta back
- * to zero, while layout owns the authoritative {@code layoutX/layoutY}.
- * Independent per-node glides (rather than one shared timeline) let a virtualized
- * cell be re-aimed mid-glide without disturbing the others, and let a cell that
- * finishes be recycled on its own.
+ * {@link Timeline} that tweens {@code translateX/translateY} from a captured FLIP
+ * delta back to zero, while layout owns the authoritative {@code layoutX/layoutY}.
+ * Independent per-node timelines (rather than one shared timeline) let a
+ * virtualized cell be re-aimed mid-glide without disturbing the others, and let a
+ * cell that finishes be recycled on its own.
  *
- * <p>A glide writes to its node only while it is the node's current glide. JavaFX
- * still pulses an animation that another animation's handler stopped earlier in
- * the same frame (a handler that lays the viewport out, such as a drag's
- * auto-scroll tick, cancels glides that way), and that late pulse would put a
- * stale translate back on a node already reset, recycled or re-aimed.
+ * <p>A glide writes to its node only while it is the node's current glide, checked
+ * on every write of each axis. JavaFX still pulses an animation that another
+ * animation's handler stopped earlier in the same frame (a handler that lays the
+ * viewport out, such as a drag's auto-scroll tick, cancels glides that way), and
+ * a listener on one axis can stop the glide before the other axis is written;
+ * either write would put a stale translate back on a node already reset,
+ * recycled or re-aimed. The tween itself stays a plain {@link KeyValue} over the
+ * real translate values, so every interpolator, tangent ones included, shapes it
+ * as it would shape the node's own property.
  *
  * <p>This class only manages the tween + transform cleanup; the viewport owns the
  * recycler pin-set (a gliding cell must not be parked or rebound without first
@@ -32,7 +40,7 @@ import java.util.function.Consumer;
  */
 final class ViewportReorderAnimator {
 
-    // Sub-pixel moves are snapped rather than animated (no 0-frame glide churn).
+    // Sub-pixel moves are snapped rather than animated (no 0-frame Timeline churn).
     private static final double MOVE_EPSILON = 0.5;
 
     private final Map<Node, Glide> running = new HashMap<>();
@@ -103,42 +111,79 @@ final class ViewportReorderAnimator {
 
     // ==================== Glide ====================
 
-    private final class Glide extends Transition {
+    private final class Glide {
 
         private final Node node;
-        private final double fromDx;
-        private final double fromDy;
+        private final Timeline timeline;
         private final Consumer<Node> finishCallback;
 
         Glide(Node node, double fromDx, double fromDy, Duration duration, Interpolator interpolator,
               Consumer<Node> finishCallback) {
             this.node = node;
-            this.fromDx = fromDx;
-            this.fromDy = fromDy;
             this.finishCallback = finishCallback;
-            setCycleDuration(duration);
-            setInterpolator(interpolator);
-            setOnFinished(event -> finish());
+            timeline = new Timeline(new KeyFrame(duration,
+                    new KeyValue(new Axis(node.translateXProperty(), fromDx), 0.0, interpolator),
+                    new KeyValue(new Axis(node.translateYProperty(), fromDy), 0.0, interpolator)));
+            timeline.setOnFinished(event -> finish());
         }
 
-        // frac has already been through the interpolator.
-        @Override
-        protected void interpolate(double frac) {
-            if (running.get(node) != this) {
-                return;
-            }
-            node.setTranslateX(fromDx * (1.0 - frac));
-            node.setTranslateY(fromDy * (1.0 - frac));
+        void play() {
+            timeline.play();
+        }
+
+        void stop() {
+            timeline.stop();
+        }
+
+        private boolean ownsNode() {
+            return running.get(node) == this;
         }
 
         private void finish() {
-            if (running.get(node) != this) {
+            if (!ownsNode()) {
                 return;
             }
             running.remove(node);
             node.setTranslateX(0);
             node.setTranslateY(0);
             finishCallback.accept(node);
+        }
+
+        // The tween's target for one translate axis. It starts at the captured delta,
+        // the value the tween reads at its start, and passes each value on to the
+        // node's property while this glide still owns the node.
+        private final class Axis implements WritableDoubleValue {
+
+            private final DoubleProperty translate;
+            private double value;
+
+            Axis(DoubleProperty translate, double from) {
+                this.translate = translate;
+                this.value = from;
+            }
+
+            @Override
+            public double get() {
+                return value;
+            }
+
+            @Override
+            public void set(double newValue) {
+                value = newValue;
+                if (ownsNode()) {
+                    translate.set(newValue);
+                }
+            }
+
+            @Override
+            public Number getValue() {
+                return value;
+            }
+
+            @Override
+            public void setValue(Number newValue) {
+                set(newValue == null ? 0.0 : newValue.doubleValue());
+            }
         }
     }
 }
