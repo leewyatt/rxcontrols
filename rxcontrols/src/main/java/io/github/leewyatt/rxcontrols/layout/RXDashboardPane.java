@@ -99,9 +99,10 @@ import java.util.logging.Logger;
  * bottom edge or bottom-right corner. A press moves nothing until the pointer has travelled a few pixels. During the
  * gesture a placeholder marks the cells the card will take, the other cards make room as the collision policy says,
  * and nothing is committed: releasing commits the layout and fires {@link RXDashboardEvent#LAYOUT_CHANGED}, Esc or
- * switching to another window cancels it. Near the top or bottom of an enclosing {@code ScrollPane}'s viewport, the
- * scroll pane scrolls. Changing the cards, the column count or the layout from code during a gesture cancels it
- * first.</p>
+ * switching to another window cancels it, and so does disabling or hiding the card, the pane or one of its ancestors.
+ * Near the top or bottom of an enclosing {@code ScrollPane}'s viewport, the scroll pane scrolls, starting slowly and
+ * faster the deeper the pointer goes. Changing the cards, the column count or the layout from code during a gesture
+ * cancels it first.</p>
  *
  * <p><b>Saving and restoring.</b> {@link #layoutProperty() layout} holds a snapshot of the committed layout,
  * keyed by {@link RXDashboardCard#cardIdProperty() card ID}, and changes after every change, from the user and from

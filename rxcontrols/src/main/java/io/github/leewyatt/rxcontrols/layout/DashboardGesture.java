@@ -3,11 +3,13 @@ package io.github.leewyatt.rxcontrols.layout;
 import io.github.leewyatt.rxcontrols.internal.PixelGrid;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardCard.Edge;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardLayout.Placement;
+import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
+import javafx.beans.value.ChangeListener;
 import javafx.event.EventHandler;
 import javafx.event.EventTarget;
 import javafx.geometry.Point2D;
@@ -55,6 +57,7 @@ final class DashboardGesture {
     private static final double AUTO_SCROLL_EDGE = 28.0;
     private static final double AUTO_SCROLL_MAX_STEP = 22.0;
     private static final Duration AUTO_SCROLL_TICK = Duration.millis(16.0);
+    private static final Duration AUTO_SCROLL_RAMP = Duration.millis(500.0);
 
     private final RXDashboardPane pane;
 
@@ -86,7 +89,11 @@ final class DashboardGesture {
 
     private Scene watchedScene;
     private Window watchedWindow;
+    private RXDashboardCard watchedCard;
+    private RXTreeShowingProperty watchedCardShowing;
     private Timeline autoScroll;
+    // When the current run of auto-scroll started, in System.nanoTime().
+    private long autoScrollStart;
     private boolean paneMovedSinceLayout;
     private double paneWidthAtLayout;
     private double paneHeightAtLayout;
@@ -117,6 +124,19 @@ final class DashboardGesture {
 
     // The window showing another scene sends its input there, and holding on would keep the old scene alive.
     private final InvalidationListener windowListener = observable -> cancel();
+
+    // A card disabled or no longer shown (it, the pane or an ancestor hidden, the window closed) can no longer be
+    // handled, and an edit made through it now would be one the user did not see.
+    private final ChangeListener<Boolean> cardDisabledListener = (obs, wasDisabled, disabled) -> {
+        if (disabled) {
+            cancel();
+        }
+    };
+    private final ChangeListener<Boolean> cardShowingListener = (obs, wasShowing, showing) -> {
+        if (!showing) {
+            cancel();
+        }
+    };
 
     DashboardGesture(RXDashboardPane pane) {
         this.pane = pane;
@@ -654,6 +674,10 @@ final class DashboardGesture {
         if (watchedWindow != null) {
             watchedWindow.focusedProperty().addListener(focusListener);
         }
+        watchedCard = card;
+        watchedCard.disabledProperty().addListener(cardDisabledListener);
+        watchedCardShowing = new RXTreeShowingProperty(watchedCard);
+        watchedCardShowing.addListener(cardShowingListener);
     }
 
     private void unwatch() {
@@ -667,6 +691,13 @@ final class DashboardGesture {
             watchedWindow.focusedProperty().removeListener(focusListener);
             watchedWindow = null;
         }
+        if (watchedCard != null) {
+            watchedCard.disabledProperty().removeListener(cardDisabledListener);
+            watchedCardShowing.removeListener(cardShowingListener);
+            watchedCardShowing.dispose();
+            watchedCard = null;
+            watchedCardShowing = null;
+        }
     }
 
     // ==================== Auto-scroll ====================
@@ -677,7 +708,8 @@ final class DashboardGesture {
                 autoScroll = new Timeline(new KeyFrame(AUTO_SCROLL_TICK, event -> autoScrollTick()));
                 autoScroll.setCycleCount(Animation.INDEFINITE);
             }
-            if (autoScroll.getStatus() != Animation.Status.RUNNING) {
+            if (!isAutoScrolling()) {
+                autoScrollStart = System.nanoTime();
                 autoScroll.play();
             }
         } else {
@@ -729,14 +761,28 @@ final class DashboardGesture {
         double top = origin.getY();
         double bottom = top + scroller.getViewportBounds().getHeight();
         if (lastSceneY < top + AUTO_SCROLL_EDGE) {
-            double depth = Math.min(1.0, (top + AUTO_SCROLL_EDGE - lastSceneY) / AUTO_SCROLL_EDGE);
-            return -Math.max(1.0, depth * AUTO_SCROLL_MAX_STEP);
+            return -scrollSpeed((top + AUTO_SCROLL_EDGE - lastSceneY) / AUTO_SCROLL_EDGE);
         }
         if (lastSceneY > bottom - AUTO_SCROLL_EDGE) {
-            double depth = Math.min(1.0, (lastSceneY - (bottom - AUTO_SCROLL_EDGE)) / AUTO_SCROLL_EDGE);
-            return Math.max(1.0, depth * AUTO_SCROLL_MAX_STEP);
+            return scrollSpeed((lastSceneY - (bottom - AUTO_SCROLL_EDGE)) / AUTO_SCROLL_EDGE);
         }
         return 0.0;
+    }
+
+    // Faster the deeper the pointer is in the band, and building up over the first moments of a run: a gesture that
+    // starts in the band, pulling the bottom edge of a card at the bottom of the viewport say, does not set off at
+    // full speed.
+    private double scrollSpeed(double depth) {
+        double ramp = 0.0;
+        if (isAutoScrolling()) {
+            double elapsedMillis = (System.nanoTime() - autoScrollStart) / 1.0e6;
+            ramp = Math.min(1.0, elapsedMillis / AUTO_SCROLL_RAMP.toMillis());
+        }
+        return Math.max(1.0, Math.min(1.0, depth) * ramp * AUTO_SCROLL_MAX_STEP);
+    }
+
+    private boolean isAutoScrolling() {
+        return autoScroll != null && autoScroll.getStatus() == Animation.Status.RUNNING;
     }
 
     private ScrollPane enclosingScrollPane() {
