@@ -248,6 +248,9 @@ public final class RXSegmentedStepIndicatorSamples {
         // traversal, and the page's scroll pane scrolls to wherever it lands. So focus
         // moves first, straight to where the user goes on: the step's first empty field.
         IntConsumer goTo = index -> {
+            // Progress first: arriving on the last step with the previous step's full
+            // progress would complete the indicator until update() resets it.
+            steps.setSegmentProgress(0.0);
             steps.setSelectedIndex(index);
             for (int i = 0; i < pages.size(); i++) {
                 pages.get(i).setVisible(i == index);
