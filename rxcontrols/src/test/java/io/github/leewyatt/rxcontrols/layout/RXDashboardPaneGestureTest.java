@@ -811,6 +811,58 @@ public class RXDashboardPaneGestureTest {
         });
     }
 
+    @Test
+    public void autoScrollCarriesTheHeldCardBelowTheLastRow() throws Exception {
+        RXDashboardPane pane = new RXDashboardPane();
+        ScrollPane scroller = new ScrollPane(pane);
+        RXDashboardCard held = new RXDashboardCard("held", null, 2, 8, 1, 1);
+        AtomicReference<Point2D> resting = new AtomicReference<>();
+        AtomicReference<Board> helperRef = new AtomicReference<>();
+        fx(() -> {
+            pane.setColumnCount(4);
+            pane.setRowHeight(100);
+            pane.setHgap(0);
+            pane.setVgap(0);
+            pane.setAutoCompact(false);
+            for (int row = 0; row < 12; row++) {
+                pane.getCards().add(new RXDashboardCard("r" + row, null, 0, row, 1, 1));
+            }
+            pane.getCards().add(held);
+            scroller.setFitToWidth(true);
+            Stage stage = new Stage();
+            stage.setScene(new Scene(scroller, 400, 700));
+            scroller.applyCss();
+            scroller.layout();
+            scroller.layout();
+            scroller.setVvalue(0.7);
+            scroller.layout();
+            scroller.layout();
+            Board helper = new Board();
+            helperRef.set(helper);
+            Point2D start = helper.press(held, 50, 50);
+            double bottom = scroller.localToScene(0, scroller.snappedTopInset()).getY()
+                    + scroller.getViewportBounds().getHeight();
+            Point2D rest = new Point2D(start.getX(), bottom - 12);
+            resting.set(rest);
+            helper.drag(held, start.getX(), start.getY() + 10);
+            helper.drag(held, rest.getX(), rest.getY());
+            scroller.layout();
+        });
+        // The pointer rests in the bottom band; the scroll pane scrolls and lays out as pulses would.
+        for (int tick = 0; tick < 40; tick++) {
+            Thread.sleep(40);
+            fx(scroller::layout);
+        }
+        fx(() -> {
+            Point2D inCard = held.sceneToLocal(resting.get());
+            assertEquals(50.0, inCard.getX(), 1.0, "the card stays under the pointer");
+            assertEquals(50.0, inCard.getY(), 1.0, "the card stays under the pointer");
+            Region placeholder = (Region) pane.getChildrenUnmodifiable().get(0);
+            assertTrue(placeholder.getLayoutY() / 100 >= 12, "below the last row: " + placeholder.getLayoutY());
+            helperRef.get().release(held, resting.get().getX(), resting.get().getY());
+        });
+    }
+
     // ==================== Robustness ====================
 
     @Test

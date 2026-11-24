@@ -90,7 +90,8 @@ final class DashboardGesture {
     private boolean paneMovedSinceLayout;
     private double paneWidthAtLayout;
     private double paneHeightAtLayout;
-    private Point2D paneOriginAtLayout;
+    // Where the pane's origin was in the scene when the cells were last worked out or the pane last laid out.
+    private Point2D lastPaneOrigin;
     // The click JavaFX generates for the release of a press that started a gesture, committed or cancelled: the card
     // followed the pointer, so press and release land on the same node. It is not a click on the content. The next
     // press clears it.
@@ -270,11 +271,11 @@ final class DashboardGesture {
             return;
         }
         boolean resized = pane.getWidth() != paneWidthAtLayout || pane.getHeight() != paneHeightAtLayout;
-        // Where the pane's origin was at the last pass, in its coordinates now: how far the pane has moved since.
-        Point2D formerOrigin = pane.sceneToLocal(paneOriginAtLayout);
+        // Where the pane's origin was, in its coordinates now: how far the pane has moved since.
+        Point2D formerOrigin = pane.sceneToLocal(lastPaneOrigin);
         paneWidthAtLayout = pane.getWidth();
         paneHeightAtLayout = pane.getHeight();
-        paneOriginAtLayout = pane.localToScene(0.0, 0.0);
+        lastPaneOrigin = pane.localToScene(0.0, 0.0);
         if (!paneMovedSinceLayout) {
             return;
         }
@@ -442,7 +443,7 @@ final class DashboardGesture {
         layoutBefore = pane.getLayout();
         paneWidthAtLayout = pane.getWidth();
         paneHeightAtLayout = pane.getHeight();
-        paneOriginAtLayout = pane.localToScene(0.0, 0.0);
+        lastPaneOrigin = pane.localToScene(0.0, 0.0);
         // A listener reached from each change to the card below may end the gesture at once.
         pane.releaseFromAnimation(held);
         if (started && !held.viewOrderProperty().isBound()) {
@@ -470,6 +471,9 @@ final class DashboardGesture {
     }
 
     private void track() {
+        // The cells are worked out from where the pane is now, so a growth later compensates only the moves after
+        // this: an auto-scroll tick's move is the pointer travelling over the grid, not to be undone.
+        lastPaneOrigin = pane.localToScene(0.0, 0.0);
         if (edge == null) {
             follow();
             // A listener reached from moving the card may have ended the gesture.

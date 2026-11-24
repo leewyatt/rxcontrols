@@ -89,7 +89,9 @@ import java.util.logging.Logger;
  * {@link #minColumnWidthProperty() minColumnWidth} per column. While the user drags or resizes a card in the last row,
  * the pane is a row taller, to let the card go below; inside a {@code ScrollPane}, a column count that follows the
  * width should follow one the vertical scroll bar does not change, such as the scroll pane's own width, as a new
- * count cancels the gesture.</p>
+ * count cancels the gesture. Do not put the pane directly in a {@code Group}: a group's bounds follow the card being
+ * dragged, its shadow included, and a parent placing the group by them moves the pane under the pointer again and
+ * again. To scale the dashboard, scale the pane itself or a {@code Region} around it.</p>
  *
  * <p><b>Gestures.</b> While the pane is {@link #editableProperty() editable}, the user drags a card by pressing
  * anywhere on it that its content does not take for itself (table rows, scroll bars and buttons do; charts and labels
