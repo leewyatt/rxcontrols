@@ -234,13 +234,15 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         // short-circuit) never attaches and so never stamps. The user-owned
         // accessibleText property is deliberately left untouched: writing it
         // would throw if the user bound it and clobber user values. The label
-        // graphic waits for the attach too, so a skin that never attaches does
-        // not take the user's node away from the live label.
+        // graphic and the trailing composition wait for the attach too, so a
+        // skin that never attaches does not take the user's nodes away from the
+        // live skin.
         pendingAttachListener = (obs, oldSkin, newSkin) -> {
             if (newSkin == this) {
                 control.skinProperty().removeListener(pendingAttachListener);
                 pendingAttachListener = null;
                 labelNode.setGraphic(labelGraphic.getValue());
+                updateTrailing();
                 syncLabelFor();
             } else if (newSkin != null) {
                 // Another skin won; this instance will never attach.
@@ -352,7 +354,6 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
 
         labelNode.setText(effectiveLabelText());
         updateSupporting();
-        updateTrailing();
         // Initial state snaps (no opening animation). Apply the pose explicitly
         // so the decoration is established by code, not by relying on set()
         // firing the listener (a no-op when the target equals the default 0).
@@ -447,9 +448,8 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     /**
      * Built-in trailing affordances placed between the user trailing node and the
      * clear button (e.g. a password reveal button). The default is none;
-     * subclasses override and manage their own visible / managed state. Must
-     * tolerate being called during {@code super(...)} before subclass fields are
-     * initialized (return an empty list then).
+     * subclasses override and manage their own visible / managed state. Called
+     * only once the skin is installed, after every constructor has finished.
      *
      * @return the affordance nodes, in display order
      */
@@ -463,6 +463,9 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     }
 
     private void updateTrailing() {
+        if (getSkinnable().getSkin() != this) {
+            return;
+        }
         Node user = userTrailing.getValue();
         builtinTrailing.getChildren().clear();
         if (user != null) {

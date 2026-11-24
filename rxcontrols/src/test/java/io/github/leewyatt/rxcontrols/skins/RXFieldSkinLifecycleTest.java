@@ -23,6 +23,7 @@ import javafx.scene.text.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -33,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -136,6 +138,57 @@ public class RXFieldSkinLifecycleTest {
         });
     }
 
+    /**
+     * Verifies a skin that is built but never installed leaves the side nodes in
+     * the installed skin, also when a slot changes afterwards.
+     */
+    @Test
+    public void uninstalledSkinLeavesSideNodesAlone() {
+        runOnFx(() -> {
+            RXTextField field = new RXTextField();
+            Label left = new Label("L");
+            Label right = new Label("R");
+            field.setLeading(left);
+            field.setTrailing(right);
+            field.setSkin(new RXTextFieldSkin(field));
+            Node leftWrapper = left.getParent();
+            Node rightWrapper = right.getParent();
+
+            // Same class as the installed skin: JFX17 ignores this setSkin.
+            field.setSkin(new RXTextFieldSkin(field));
+            assertSame(leftWrapper, left.getParent());
+            assertSame(rightWrapper, right.getParent());
+
+            field.setLeading(null);
+            field.setLeading(left);
+            assertEquals(1, field.getChildrenUnmodifiable().stream()
+                    .filter(n -> n.getStyleClass().contains("leading-wrapper"))
+                    .count());
+        });
+    }
+
+    /**
+     * Verifies an uninstalled Material skin leaves the user trailing node in the
+     * installed skin's trailing box.
+     */
+    @Test
+    public void uninstalledMaterialSkinLeavesSideNodesAlone() {
+        runOnFx(() -> {
+            RXMaterialTextField field = new RXMaterialTextField();
+            Label left = new Label("L");
+            Label right = new Label("R");
+            field.setLeading(left);
+            field.setTrailing(right);
+            field.setSkin(new RXMaterialTextFieldSkin(field));
+            Node leftWrapper = left.getParent();
+            Node rightBox = right.getParent();
+
+            new RXMaterialTextFieldSkin(field);
+            assertSame(leftWrapper, left.getParent());
+            assertSame(rightBox, right.getParent());
+        });
+    }
+
     @Test
     public void swappingToAPlainSkinClearsTheSkinPseudoClasses() {
         runOnFx(() -> {
@@ -211,8 +264,11 @@ public class RXFieldSkinLifecycleTest {
             };
 
             RXMaterialPasswordFieldSkin skin = new RXMaterialPasswordFieldSkin(field);
-            Node revealButton = field.lookup(".reveal-button");
-            assertNotNull(revealButton, "reveal button exists before the degraded attach");
+            // An uninstalled skin composes nothing into the control, so take the
+            // button from the skin itself.
+            List<Node> affordances = skin.builtinTrailingAffordances();
+            assertEquals(1, affordances.size(), "reveal button exists before the degraded attach");
+            Node revealButton = affordances.get(0);
 
             field.setSkin(skin);
 
