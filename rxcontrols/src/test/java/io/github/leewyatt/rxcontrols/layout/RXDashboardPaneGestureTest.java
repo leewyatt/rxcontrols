@@ -19,6 +19,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Circle;
@@ -703,6 +704,66 @@ public class RXDashboardPaneGestureTest {
             assertFalse(root.isNeedsLayout());
             helper.release(handle, start.getX(), start.getY() + 60);
             assertEquals(shownRowSpan, bottom.getRowSpan());
+        });
+    }
+
+    @Test
+    public void nudgesOverABottomAnchoredPaneDoNotCarryTheHeldCardAway() throws Exception {
+        fx(() -> {
+            for (boolean resize : new boolean[] {false, true}) {
+                for (boolean borderPane : new boolean[] {false, true}) {
+                    RXDashboardPane pane = new RXDashboardPane();
+                    pane.setAutoCompact(false);
+                    pane.setColumnCount(4);
+                    pane.setRowHeight(100);
+                    pane.setHgap(0);
+                    pane.setVgap(0);
+                    RXDashboardCard bottom = null;
+                    for (int row = 0; row < 4; row++) {
+                        bottom = new RXDashboardCard("r" + row, null, 0, row, 1, 1);
+                        pane.getCards().add(bottom);
+                    }
+                    // Both keep the pane's bottom edge in place: the pane moves up under the pointer as it grows.
+                    Region root;
+                    if (borderPane) {
+                        BorderPane border = new BorderPane();
+                        border.setBottom(pane);
+                        root = border;
+                    } else {
+                        pane.setMaxHeight(Region.USE_PREF_SIZE);
+                        StackPane stack = new StackPane(pane);
+                        stack.setAlignment(Pos.BOTTOM_CENTER);
+                        root = stack;
+                    }
+                    Stage stage = new Stage();
+                    stage.setScene(new Scene(root, 400, 3000));
+                    root.applyCss();
+                    root.layout();
+                    root.layout();
+                    Board helper = new Board();
+                    Node target = resize ? handle(bottom, "bottom") : bottom;
+                    Point2D start = resize ? helper.press(target, 40, ((Region) target).getHeight() / 2)
+                            : helper.press(target, 50, 50);
+                    helper.drag(target, start.getX(), start.getY() + 8);
+                    root.layout();
+                    root.layout();
+                    helper.drag(target, start.getX(), start.getY() + 60);
+                    root.layout();
+                    root.layout();
+                    for (int nudge = 1; nudge <= 5; nudge++) {
+                        helper.drag(target, start.getX() + nudge % 2, start.getY() + 60);
+                        root.layout();
+                        root.layout();
+                    }
+                    helper.release(target, start.getX(), start.getY() + 60);
+                    String parent = borderPane ? "BorderPane " : "StackPane ";
+                    if (resize) {
+                        assertPlacement(bottom, 0, 3, 1, 2);
+                    } else {
+                        assertEquals(4, bottom.getRow(), parent + "drag");
+                    }
+                }
+            }
         });
     }
 

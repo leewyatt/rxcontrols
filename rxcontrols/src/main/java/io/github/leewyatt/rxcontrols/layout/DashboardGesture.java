@@ -90,6 +90,7 @@ final class DashboardGesture {
     private boolean paneMovedSinceLayout;
     private double paneWidthAtLayout;
     private double paneHeightAtLayout;
+    private Point2D paneOriginAtLayout;
     // The click JavaFX generates for the release of a press that started a gesture, committed or cancelled: the card
     // followed the pointer, so press and release land on the same node. It is not a click on the content. The next
     // press clears it.
@@ -264,20 +265,29 @@ final class DashboardGesture {
      * Called by the pane as it starts laying out its cards, with its grid for this pass in place.
      */
     void layoutStarting() {
+        if (!started) {
+            paneMovedSinceLayout = false;
+            return;
+        }
         boolean resized = pane.getWidth() != paneWidthAtLayout || pane.getHeight() != paneHeightAtLayout;
+        // Where the pane's origin was at the last pass, in its coordinates now: how far the pane has moved since.
+        Point2D formerOrigin = pane.sceneToLocal(paneOriginAtLayout);
         paneWidthAtLayout = pane.getWidth();
         paneHeightAtLayout = pane.getHeight();
+        paneOriginAtLayout = pane.localToScene(0.0, 0.0);
         if (!paneMovedSinceLayout) {
             return;
         }
         paneMovedSinceLayout = false;
         // A move that comes with a new size is the parent placing the pane again after it grew or shrank, often by
-        // the preview's rows. A parent that keeps the pane's bottom edge in place moves it up as it grows, and working
-        // the cells out again from there would grow it again on every pass. The card still follows the pointer; the
-        // cells are worked out again at the pointer's next move.
-        if (started && !resized) {
-            track();
+        // the preview's rows. A parent that keeps the pane's bottom edge in place moves it up as it grows; taken as
+        // the pointer moving over the grid, that would grow it again at every pass or pointer event. The held card
+        // moves with the cells instead, and the pointer keeps its place on the grid.
+        if (resized) {
+            grabX += formerOrigin.getX();
+            grabY += formerOrigin.getY();
         }
+        track();
     }
 
     // A primary press ends what the last one left behind: a gesture whose release never arrived, or a card armed by a
@@ -432,6 +442,7 @@ final class DashboardGesture {
         layoutBefore = pane.getLayout();
         paneWidthAtLayout = pane.getWidth();
         paneHeightAtLayout = pane.getHeight();
+        paneOriginAtLayout = pane.localToScene(0.0, 0.0);
         // A listener reached from each change to the card below may end the gesture at once.
         pane.releaseFromAnimation(held);
         if (started && !held.viewOrderProperty().isBound()) {
