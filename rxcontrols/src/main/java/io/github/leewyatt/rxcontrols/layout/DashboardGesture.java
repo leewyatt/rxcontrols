@@ -26,6 +26,7 @@ import javafx.util.Duration;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * The user gestures of an {@link RXDashboardPane}: dragging a card and resizing it. One instance per pane.
@@ -81,6 +82,8 @@ final class DashboardGesture {
     private Placement candidate;
     // A drag worked out step by step, in the pane's virtual grid; created at the first step, as it needs a grid.
     private DashboardDrag<RXDashboardCard> steps;
+    // The cells a dragged card points at, while they cover another card: the pane grows to take them in.
+    private Placement collidingTarget;
     // Where the card was on the virtual grid at the last step, and whether its target was the cell it started from.
     private double stepX;
     private double stepY;
@@ -168,6 +171,15 @@ final class DashboardGesture {
      */
     RXDashboardCard card() {
         return started ? card : null;
+    }
+
+    /**
+     * Returns the cells a dragged card points at while they cover another card, or {@code null}.
+     *
+     * @return the colliding target of the drag in progress
+     */
+    Placement collidingTarget() {
+        return started ? collidingTarget : null;
     }
 
     /**
@@ -303,8 +315,10 @@ final class DashboardGesture {
         // A move that comes with a new size is the parent placing the pane again after it grew or shrank, often by
         // the preview's rows. A parent that keeps the pane's bottom edge in place moves it up as it grows; taken as
         // the pointer moving over the grid, that would grow it again at every pass or pointer event. The held card
-        // moves with the cells instead, and the pointer keeps its place on the grid.
-        if (resized) {
+        // moves with the cells instead, and the pointer keeps its place on the grid. A pixel or less is rounding (a
+        // scroll pane placing its content again after it grew), not taken in, or the card would creep away from the
+        // pointer over a long auto-scroll.
+        if (resized && (Math.abs(formerOrigin.getX()) > 1.0 || Math.abs(formerOrigin.getY()) > 1.0)) {
             grabX += formerOrigin.getX();
             grabY += formerOrigin.getY();
         }
@@ -456,6 +470,7 @@ final class DashboardGesture {
         startLayout = pane.committedPlacements();
         preview = new LinkedHashMap<>(startLayout);
         candidate = held.placement;
+        collidingTarget = null;
         steps = null;
         stepX = Double.NaN;
         stepY = Double.NaN;
@@ -514,6 +529,9 @@ final class DashboardGesture {
             return;
         }
         Placement next = edge == null ? dragCandidate(grid, start, local) : resizeCandidate(grid, start, local);
+        if (edge == null) {
+            aimAt(next);
+        }
         if (next.equals(candidate)) {
             return;
         }
@@ -523,6 +541,7 @@ final class DashboardGesture {
         }
         candidate = next;
         preview = solved;
+        collidingTarget = null;
         pane.requestLayout();
     }
 
@@ -542,19 +561,48 @@ final class DashboardGesture {
         int[] target = steps.target(x, y);
         int column = Math.max(0, Math.min(target[0], grid.columnCount() - start.columnSpan()));
         int row = Math.max(0, target[1]);
+        aimAt(start.withPosition(column, row));
         if (column == start.column() && row == start.row()) {
             // Coming back over the starting cell brings the starting layout back; the lean starts from here.
             if (!home) {
                 steps = pane.stepwiseDrag(startLayout, card, grid);
                 steps.anchor(x, y);
+                landed();
                 show(startLayout);
             }
             home = true;
             return;
         }
         home = false;
-        steps.step(x, y);
+        if (steps.step(x, y)) {
+            landed();
+        }
         show(steps.layout());
+    }
+
+    // Cells pointed at that cover another card in the preview shown so far: the pane takes them in, so the pointer can
+    // go on down to place the card below the others, until a move is accepted. Over free cells it does not; the
+    // preview alone says how tall the pane is.
+    private void aimAt(Placement target) {
+        Placement colliding = null;
+        for (Map.Entry<RXDashboardCard, Placement> entry : preview.entrySet()) {
+            if (entry.getKey() != card && DashboardSolver.overlaps(target, entry.getValue())) {
+                colliding = target;
+                break;
+            }
+        }
+        if (!Objects.equals(colliding, collidingTarget)) {
+            collidingTarget = colliding;
+            pane.requestLayout();
+        }
+    }
+
+    // A move was accepted: the preview says how tall the pane is again.
+    private void landed() {
+        if (collidingTarget != null) {
+            collidingTarget = null;
+            pane.requestLayout();
+        }
     }
 
     private void show(Map<RXDashboardCard, Placement> layout) {
@@ -659,6 +707,7 @@ final class DashboardGesture {
         preview = null;
         steps = null;
         candidate = null;
+        collidingTarget = null;
         layoutBefore = null;
     }
 

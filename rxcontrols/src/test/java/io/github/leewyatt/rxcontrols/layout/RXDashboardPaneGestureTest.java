@@ -260,7 +260,7 @@ public class RXDashboardPaneGestureTest {
     }
 
     @Test
-    public void thePaneGrowsByARowWhileDragging() throws Exception {
+    public void thePaneIsAsTallAsThePreviewNeeds() throws Exception {
         fx(() -> {
             Board board = new Board();
             double height = board.pane.prefHeight(-1);
@@ -268,12 +268,13 @@ public class RXDashboardPaneGestureTest {
             board.drag(board.c, start.getX(), start.getY() + 30);
             board.layout();
             assertEquals(new Placement(2, 1, 1, 1), board.candidate());
-            assertEquals(height + 100.0, board.pane.prefHeight(-1), EPSILON);
+            assertEquals(height, board.pane.prefHeight(-1), EPSILON, "C has not left its row");
             board.drag(board.c, start.getX(), start.getY() + 100);
             board.layout();
             assertEquals(new Placement(2, 2, 1, 1), board.candidate());
+            assertEquals(height + 100.0, board.pane.prefHeight(-1), EPSILON, "C would land a row lower");
             board.release(board.c, start.getX(), start.getY() + 100);
-            assertEquals(height + 100.0, board.pane.prefHeight(-1), EPSILON, "C now ends a row lower");
+            assertEquals(height + 100.0, board.pane.prefHeight(-1), EPSILON);
         });
     }
 
@@ -796,23 +797,158 @@ public class RXDashboardPaneGestureTest {
     }
 
     @Test
-    public void thePaneGrowsByARowOnlyWhileTheHeldCardReachesTheLastRow() throws Exception {
+    public void aCardDraggedIntoFreeCellsGrowsThePaneOnlyWhereItWouldLand() throws Exception {
         fx(() -> {
-            Board board = new Board();
-            double height = board.pane.prefHeight(-1);
-            Point2D start = board.press(board.a, 5, 5);
-            board.drag(board.a, start.getX(), start.getY() + 30);
-            assertTrue(board.a.getPseudoClassStates().contains(DRAGGING));
-            assertEquals(height, board.pane.prefHeight(-1), EPSILON, "A is above the last row");
-            board.release(board.a, start.getX(), start.getY() + 30);
-
-            start = board.press(board.c, 5, 5);
-            board.drag(board.c, start.getX(), start.getY() + 30);
-            assertTrue(board.c.getPseudoClassStates().contains(DRAGGING));
-            assertEquals(height + 100.0, board.pane.prefHeight(-1), EPSILON, "C is in the last row");
-            board.release(board.c, start.getX(), start.getY() + 30);
-            assertEquals(height, board.pane.prefHeight(-1), EPSILON);
+            // Packing: dragged below its own cell, the card would rise back, so the pane keeps its height.
+            RXDashboardPane pane = packedPane(new RXDashboardCard("A", null, 0, 0, 2, 1),
+                    new RXDashboardCard("B", null, 2, 0, 1, 1));
+            Board helper = new Board();
+            RXDashboardCard b = pane.getCards().get(1);
+            double height = pane.prefHeight(-1);
+            Point2D start = helper.press(b, 50, 50);
+            for (int dy = 5; dy <= 160; dy += 5) {
+                helper.drag(b, start.getX(), start.getY() + dy);
+                pane.layout();
+            }
+            assertTrue(b.getPseudoClassStates().contains(DRAGGING));
+            assertEquals(height, pane.prefHeight(-1), EPSILON, "B rises back into its row");
+            // Under A, the card cannot rise: the pane grows by the row it would land in, and by no more.
+            for (int dx = -5; dx >= -200; dx -= 5) {
+                helper.drag(b, start.getX() + dx, start.getY() + 160);
+                pane.layout();
+            }
+            assertEquals(height + 100.0, pane.prefHeight(-1), EPSILON, "B would land under A");
+            helper.release(b, start.getX() - 200, start.getY() + 160);
+            assertPlacement(b, 0, 1, 1, 1);
+            assertEquals(height + 100.0, pane.prefHeight(-1), EPSILON);
         });
+    }
+
+    @Test
+    public void aCardDraggedOntoOthersTakesThePaneDownToTheCellsItPointsAt() throws Exception {
+        fx(() -> {
+            for (boolean packing : new boolean[] {false, true}) {
+                assertDraggedOntoALockedCard(packing);
+            }
+        });
+    }
+
+    // With packing the drag goes through the stepwise path, without it through the direct one; both check the cells.
+    private static void assertDraggedOntoALockedCard(boolean packing) {
+        RXDashboardPane pane = new RXDashboardPane();
+        pane.setAutoCompact(packing);
+        pane.setColumnCount(4);
+        pane.setRowHeight(100);
+        pane.setHgap(0);
+        pane.setVgap(0);
+        RXDashboardCard tall = new RXDashboardCard("T", null, 0, 0, 1, 2);
+        RXDashboardCard locked = new RXDashboardCard("L", null, 1, 1, 1, 1);
+        locked.setLocked(true);
+        pane.getCards().addAll(tall, locked);
+        new Stage().setScene(new Scene(new StackPane(pane), 400, 600));
+        pane.applyCss();
+        pane.resize(400, 300);
+        pane.layout();
+        Board helper = new Board();
+        double height = pane.prefHeight(-1);
+        // Over the locked card the move is refused, but the pane reaches down to the cells pointed at, and gives
+        // the rows back when the gesture ends.
+        Point2D start = helper.press(tall, 50, 50);
+        helper.drag(tall, start.getX() + 100, start.getY() + 100);
+        assertEquals(height + 100.0, pane.prefHeight(-1), EPSILON, "T points at (1,1) to (1,2)");
+        pane.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ESCAPE, false, false, false, false));
+        assertEquals(height, pane.prefHeight(-1), EPSILON, "cancelled");
+        helper.release(tall, start.getX() + 100, start.getY() + 100);
+
+        start = helper.press(tall, 50, 50);
+        helper.drag(tall, start.getX() + 100, start.getY() + 100);
+        assertEquals(height + 100.0, pane.prefHeight(-1), EPSILON, "T points at (1,1) to (1,2)");
+        helper.drag(tall, start.getX() + 100, start.getY());
+        assertEquals(height, pane.prefHeight(-1), EPSILON, "T points at (1,0) to (1,1)");
+        // Over free cells only the preview counts.
+        helper.drag(tall, start.getX() + 200, start.getY());
+        assertEquals(height, pane.prefHeight(-1), EPSILON);
+        helper.release(tall, start.getX() + 200, start.getY());
+        assertPlacement(tall, 2, 0, 1, 2);
+        assertEquals(height, pane.prefHeight(-1), EPSILON);
+    }
+
+    @Test
+    public void aMoveAcceptedAfterAimingAtOtherCardsGivesTheRowsBack() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = new RXDashboardPane();
+            pane.setColumnCount(4);
+            pane.setRowHeight(100);
+            pane.setHgap(0);
+            pane.setVgap(0);
+            pane.setAnimated(false);
+            RXDashboardCard held = new RXDashboardCard("H", null, 1, 3, 2, 2);
+            pane.getCards().addAll(new RXDashboardCard("P", null, 0, 0, 1, 1),
+                    new RXDashboardCard("Q", null, 1, 0, 1, 1), new RXDashboardCard("R", null, 1, 1, 1, 2), held,
+                    new RXDashboardCard("B", null, 2, 5, 2, 3));
+            new Stage().setScene(new Scene(new StackPane(pane), 400, 2000));
+            pane.applyCss();
+            pane.resize(400, pane.prefHeight(-1));
+            pane.layout();
+            Board helper = new Board();
+            Point2D start = helper.press(held, 20, 20);
+            // A diagonal drag: first H points at cells covering B, then it rises to (2,0) and B packs under it.
+            for (int step = 1; step <= 6; step++) {
+                helper.drag(held, start.getX() + 9 * step, start.getY() + 15 * step);
+                pane.resize(400, pane.prefHeight(-1));
+                pane.layout();
+            }
+            Region placeholder = (Region) pane.getChildrenUnmodifiable().get(0);
+            assertEquals(new Placement(2, 0, 2, 2), new Placement((int) Math.round(placeholder.getLayoutX() / 100),
+                    (int) Math.round(placeholder.getLayoutY() / 100), 2, 2));
+            assertEquals(500.0, pane.prefHeight(-1), EPSILON, "B ends on row 4: five rows, no more");
+            helper.release(held, start.getX() + 54, start.getY() + 90);
+        });
+    }
+
+    @Test
+    public void resizingAddsNoRowsForTheCellsItPointsAt() throws Exception {
+        fx(() -> {
+            RXDashboardPane pane = new RXDashboardPane();
+            pane.setAutoCompact(false);
+            pane.setColumnCount(4);
+            pane.setRowHeight(100);
+            pane.setHgap(0);
+            pane.setVgap(0);
+            RXDashboardCard top = new RXDashboardCard("T", null, 0, 0, 1, 1);
+            RXDashboardCard locked = new RXDashboardCard("L", null, 0, 1, 1, 1);
+            locked.setLocked(true);
+            pane.getCards().addAll(top, locked);
+            new Stage().setScene(new Scene(new StackPane(pane), 400, 600));
+            pane.applyCss();
+            pane.resize(400, 300);
+            pane.layout();
+            Board helper = new Board();
+            double height = pane.prefHeight(-1);
+            Region bottom = handle(top, "bottom");
+            Point2D start = helper.press(bottom, 40, bottom.getHeight() / 2);
+            helper.drag(bottom, start.getX(), start.getY() + 250);
+            assertTrue(top.getPseudoClassStates().contains(PseudoClass.getPseudoClass("resizing")));
+            assertEquals(height, pane.prefHeight(-1), EPSILON, "pulled over the locked card, refused");
+            helper.release(bottom, start.getX(), start.getY() + 250);
+            assertPlacement(top, 0, 0, 1, 1);
+        });
+    }
+
+    // A 4-column pane that packs upward, with 100 px cells and no gaps, laid out in an unshown stage.
+    private static RXDashboardPane packedPane(RXDashboardCard... cards) {
+        RXDashboardPane pane = new RXDashboardPane();
+        pane.setColumnCount(4);
+        pane.setRowHeight(100);
+        pane.setHgap(0);
+        pane.setVgap(0);
+        pane.getCards().addAll(cards);
+        new Stage().setScene(new Scene(new StackPane(pane), 400, 600));
+        pane.applyCss();
+        pane.resize(400, 300);
+        pane.layout();
+        pane.layout();
+        return pane;
     }
 
     @Test
@@ -916,21 +1052,23 @@ public class RXDashboardPaneGestureTest {
             Point2D start = helper.press(held, 50, 50);
             double bottom = scroller.localToScene(0, scroller.snappedTopInset()).getY()
                     + scroller.getViewportBounds().getHeight();
-            Point2D rest = new Point2D(start.getX(), bottom - 12);
+            // Past the viewport's bottom edge: the card goes on below the last row once it is half a row past it.
+            Point2D rest = new Point2D(start.getX(), bottom + 40);
             resting.set(rest);
             helper.drag(held, start.getX(), start.getY() + 10);
             helper.drag(held, rest.getX(), rest.getY());
             scroller.layout();
         });
-        // The pointer rests in the bottom band; the scroll pane scrolls and lays out as pulses would.
+        // The pointer rests past the bottom edge; the scroll pane scrolls and lays out as pulses would.
         for (int tick = 0; tick < 40; tick++) {
             Thread.sleep(40);
             fx(scroller::layout);
         }
         fx(() -> {
+            // Exactly: rounding as the scroll pane places the growing pane again must not creep into the grab.
             Point2D inCard = held.sceneToLocal(resting.get());
-            assertEquals(50.0, inCard.getX(), 1.0, "the card stays under the pointer");
-            assertEquals(50.0, inCard.getY(), 1.0, "the card stays under the pointer");
+            assertEquals(50.0, inCard.getX(), 0.5, "the card stays under the pointer");
+            assertEquals(50.0, inCard.getY(), 0.5, "the card stays under the pointer");
             Region placeholder = (Region) pane.getChildrenUnmodifiable().get(0);
             assertTrue(placeholder.getLayoutY() / 100 >= 12, "below the last row: " + placeholder.getLayoutY());
             helperRef.get().release(held, resting.get().getX(), resting.get().getY());

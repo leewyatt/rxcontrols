@@ -82,16 +82,17 @@ import java.util.logging.Logger;
  * }</pre>
  *
  * <p><b>Geometry.</b> The columns share the content width equally, with {@link #hgapProperty() hgap} between them;
- * every row is {@link #rowHeightProperty() rowHeight} high, with {@link #vgapProperty() vgap} between rows, so a wider
- * window makes cards wider but never taller. Every edge lands on the device-pixel grid. The pane's preferred height
- * is that of its rows and its minimum height equals it: the pane is not squeezed, so put it in a {@code ScrollPane}
- * when it may be taller than the window. Its preferred width makes each cell square; its minimum width is
- * {@link #minColumnWidthProperty() minColumnWidth} per column. While the user drags or resizes a card in the last row,
- * the pane is a row taller, to let the card go below; inside a {@code ScrollPane}, a column count that follows the
- * width should follow one the vertical scroll bar does not change, such as the scroll pane's own width, as a new
- * count cancels the gesture. Do not put the pane directly in a {@code Group}: a group's bounds follow the card being
- * dragged, its shadow included, and a parent placing the group by them moves the pane under the pointer again and
- * again. To scale the dashboard, scale the pane itself or a {@code Region} around it.</p>
+ * every row is {@link #rowHeightProperty() rowHeight} high, with {@link #vgapProperty() vgap} between rows, so a
+ * wider window makes cards wider but never taller. Every edge lands on the device-pixel grid. The pane's preferred
+ * height is that of its rows and its minimum height equals it: the pane is not squeezed, so put it in a
+ * {@code ScrollPane} when it may be taller than the window. Its preferred width makes each cell square; its minimum
+ * width is {@link #minColumnWidthProperty() minColumnWidth} per column. During a gesture the pane is as tall as the
+ * preview (the held card where it would land) needs; while a dragged card points at cells that cover another card, it
+ * also reaches down to those cells, so the card can be placed below the others. Inside a {@code ScrollPane}, a column
+ * count that follows the width should follow one the vertical scroll bar does not change, such as the scroll pane's
+ * own width, as a new count cancels the gesture. Do not put the pane directly in a {@code Group}: a group's bounds
+ * follow the card being dragged, its shadow included, and a parent placing the group by them moves the pane under the
+ * pointer again and again. To scale the dashboard, scale the pane itself or a {@code Region} around it.</p>
  *
  * <p><b>Gestures.</b> While the pane is {@link #editableProperty() editable}, the user drags a card by pressing
  * anywhere on it that its content does not take for itself (table rows, scroll bars and buttons do; charts and labels
@@ -2030,10 +2031,9 @@ public class RXDashboardPane extends Region {
         return computePrefHeight(width);
     }
 
-    // The rows the shown layout uses: the largest bottom row of any card, plus one while the card the user holds
-    // reaches the last row, so it can be taken below. Only then: a pane growing whenever a gesture starts would bring
-    // up an enclosing scroll pane's scroll bar, narrowing the pane, and a column count that follows the width would
-    // change and cancel the gesture.
+    // The rows the shown layout uses: the largest bottom row of any card, the held one where it would land. While a
+    // dragged card points at cells that cover another card, also the rows down to those cells, so the pointer can go
+    // on down to place it below the others.
     private int rowCount() {
         int rows = 0;
         for (RXDashboardCard card : members) {
@@ -2042,9 +2042,8 @@ public class RXDashboardPane extends Region {
                 rows = Math.max(rows, placement.row() + placement.rowSpan());
             }
         }
-        RXDashboardCard held = gesture.card();
-        Placement shown = held == null ? null : gesture.displayedPlacement(held);
-        return shown != null && shown.row() + shown.rowSpan() >= rows ? rows + 1 : rows;
+        Placement target = gesture.collidingTarget();
+        return target == null ? rows : Math.max(rows, target.row() + target.rowSpan());
     }
 
     // ==================== Layout ====================
