@@ -72,8 +72,9 @@ public final class RXDrawerPaneSamples {
                         "For a menu that is always visible use RXSidebar; for a question that needs an answer use RXDialog."),
                 List.of(
                         SampleCard.large("Order details",
-                                "side RIGHT (the default) with a backdrop, open on the first order: a click on the "
-                                        + "dimmed list, Close or Esc closes the drawer.",
+                                "side RIGHT (the default) with a backdrop, open on the first order: Details or a "
+                                        + "click on a row opens an order; a click on the dimmed list, Close or Esc "
+                                        + "closes the drawer.",
                                 orders()),
                         SampleCard.large("Navigation menu",
                                 "side LEFT; picking a page sets the title and calls close(). While the drawer is "
@@ -109,11 +110,8 @@ public final class RXDrawerPaneSamples {
         close.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> drawer.close());
         HBox head = new HBox(number, spacer(), close);
         head.setAlignment(Pos.CENTER_LEFT);
-        RXButton done = solid("Close", "sky");
-        done.setMaxWidth(Double.MAX_VALUE);
-        done.setOnAction(event -> drawer.close());
         VBox details = new VBox(10.0, head, status, text("Item", "muted"), product,
-                text("Total", "muted"), total, spacer(), done);
+                text("Total", "muted"), total, spacer(), closeButton(drawer));
         details.setPadding(new Insets(14.0, 16.0, 16.0, 16.0));
         drawer.setDrawerContent(details);
 
@@ -127,14 +125,17 @@ public final class RXDrawerPaneSamples {
         list.setPadding(new Insets(10.0, 12.0, 10.0, 12.0));
         list.getChildren().add(text("Recent orders", "headline", "list-title"));
         for (String[] order : ORDERS) {
-            HBox row = new HBox(10.0, text(order[0], "muted"), text(order[1], "copy"), spacer(),
-                    pill(order[3], order[4]), text(order[2], "copy"));
-            row.setAlignment(Pos.CENTER_LEFT);
-            row.getStyleClass().addAll("list-row", "clickable");
-            row.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+            Runnable open = () -> {
                 show.accept(order);
                 drawer.open();
-            });
+            };
+            RXButton detailsButton = plain("Details");
+            detailsButton.setOnAction(event -> open.run());
+            HBox row = new HBox(10.0, text(order[0], "muted"), text(order[1], "copy"), spacer(),
+                    pill(order[3], order[4]), text(order[2], "copy"), detailsButton);
+            row.setAlignment(Pos.CENTER_LEFT);
+            row.getStyleClass().addAll("list-row", "clickable");
+            row.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> open.run());
             list.getChildren().add(row);
         }
         drawer.setContent(list);
@@ -179,6 +180,7 @@ public final class RXDrawerPaneSamples {
             });
             items.getChildren().add(row);
         }
+        items.getChildren().addAll(spacer(), closeButton(drawer));
         drawer.setDrawerContent(items);
         drawer.open();
         return frame(FRAME_WIDTH, FRAME_HEIGHT, drawer);
@@ -196,14 +198,15 @@ public final class RXDrawerPaneSamples {
         drawer.setPrefDrawerWidth(150.0);
 
         VBox panel = new VBox(10.0, text("Filters", "headline"),
-                new RXCheckBox("In stock"), new RXCheckBox("On sale"), new RXCheckBox("Free shipping"));
+                new RXCheckBox("In stock"), new RXCheckBox("On sale"), new RXCheckBox("Free shipping"),
+                spacer(), closeButton(drawer));
         panel.setPadding(new Insets(14.0));
         drawer.setDrawerContent(panel);
 
-        RXButton toggle = plain("Filters");
-        toggle.setGraphic(icon("tune-icon"));
-        toggle.setOnAction(event -> drawer.toggle());
-        HBox bar = new HBox(10.0, text("24 products", "headline"), spacer(), beckon(toggle, drawer));
+        RXButton open = plain("Open Drawer");
+        open.setGraphic(icon("tune-icon"));
+        open.setOnAction(event -> drawer.open());
+        HBox bar = new HBox(10.0, text("24 products", "headline"), spacer(), beckon(open, drawer));
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.getStyleClass().add("frame-bar");
 
@@ -269,6 +272,13 @@ public final class RXDrawerPaneSamples {
     }
 
     // ==================== Shared ====================
+
+    private static RXButton closeButton(RXDrawerPane drawer) {
+        RXButton close = solid("Close", "sky");
+        close.setMaxWidth(Double.MAX_VALUE);
+        close.setOnAction(event -> drawer.close());
+        return close;
+    }
 
     // A beam runs round the button that brings the drawer back, only while it is closed.
     private static Node beckon(Node button, RXDrawerPane drawer) {
