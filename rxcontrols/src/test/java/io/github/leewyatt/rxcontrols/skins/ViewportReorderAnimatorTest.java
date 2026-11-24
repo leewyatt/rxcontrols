@@ -5,19 +5,24 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.scene.layout.Region;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -286,6 +291,53 @@ public class ViewportReorderAnimatorTest {
             assertEquals(expected, glided.get().getTranslateY(), 0.1,
                     "the glide starts where the listener left the node");
             animator.get().cancel(glided.get());
+        });
+    }
+
+    /**
+     * Verifies a start whose position write throws leaves no glide behind for a
+     * later snapAll to write to the node again.
+     */
+    @Test
+    public void startThatThrowsLeavesNothingForSnapAll() throws Exception {
+        runOnFx(() -> {
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
+            Region node = new Region();
+            node.translateXProperty().bind(new SimpleDoubleProperty(0.0));
+            assertThrows(RuntimeException.class,
+                    () -> animator.animate(node, 100.0, 100.0, LONG_GLIDE, Interpolator.LINEAR, n -> { }),
+                    "writing a start position into a bound translate is reported");
+            assertDoesNotThrow(animator::snapAll, "the failed start left no glide to reset");
+        });
+    }
+
+    /**
+     * Verifies snapAll resets every node and every axis even when one reset throws,
+     * and still reports that failure.
+     */
+    @Test
+    public void snapAllResetsTheRestWhenOneResetThrows() throws Exception {
+        List<Region> nodes = new ArrayList<>();
+        runOnFx(() -> {
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
+            for (int i = 0; i < 10; i++) {
+                Region node = new Region();
+                animator.animate(node, 100.0, 100.0, LONG_GLIDE, Interpolator.LINEAR, n -> { });
+                nodes.add(node);
+            }
+            // Bound mid-glide: resetting its X is the step that throws.
+            nodes.get(0).translateXProperty().bind(new SimpleDoubleProperty(5.0));
+            assertThrows(RuntimeException.class, animator::snapAll, "the failed reset is still reported");
+        });
+
+        Thread.sleep(200);
+
+        runOnFx(() -> {
+            assertEquals(0.0, nodes.get(0).getTranslateY(), EPSILON, "the failing node's other axis is reset");
+            for (int i = 1; i < nodes.size(); i++) {
+                assertEquals(0.0, nodes.get(i).getTranslateX(), EPSILON, "node " + i + " is reset");
+                assertEquals(0.0, nodes.get(i).getTranslateY(), EPSILON, "node " + i + " is reset");
+            }
         });
     }
 

@@ -9,7 +9,9 @@ import javafx.beans.value.WritableDoubleValue;
 import javafx.scene.Node;
 import javafx.util.Duration;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -91,15 +93,26 @@ final class ViewportReorderAnimator {
         // to its new slot; the start position shows the old one in this same frame.
         Glide glide = new Glide(node, duration, interpolator, onFinished);
         running.put(node, glide);
-        node.setTranslateX(fromDx);
-        if (!glide.ownsNode()) {
-            return;
+        boolean playing = false;
+        try {
+            node.setTranslateX(fromDx);
+            if (!glide.ownsNode()) {
+                return;
+            }
+            node.setTranslateY(fromDy);
+            if (!glide.ownsNode()) {
+                return;
+            }
+            glide.play();
+            playing = true;
+        } finally {
+            if (!playing) {
+                // A start that never played (cancelled, replaced, or a write that threw,
+                // as on a bound translate) must not stay registered: snapAll would
+                // write to the node again.
+                running.remove(node, glide);
+            }
         }
-        node.setTranslateY(fromDy);
-        if (!glide.ownsNode()) {
-            return;
-        }
-        glide.play();
     }
 
     /**
@@ -124,17 +137,23 @@ final class ViewportReorderAnimator {
     /**
      * Stops every running glide and snaps all nodes to their final state. Used on
      * animation disable, cell-pool rebuild and disposal. {@code onFinished} is not
-     * invoked; the caller must clear its own pin-set.
+     * invoked; the caller must clear its own pin-set. A reset that throws (a bound
+     * translate) does not stop the others; the first failure is rethrown once every
+     * node has been reset.
      */
     void snapAll() {
-        // Released before stopping, so none of them still owns its node if it pulses late.
+        // Released and stopped before any reset: none of them owns its node if it
+        // pulses late, and none is left frozen mid-glide when a reset throws.
         Map<Node, Glide> stopped = new HashMap<>(running);
         running.clear();
+        List<Runnable> resets = new ArrayList<>();
         for (Map.Entry<Node, Glide> entry : stopped.entrySet()) {
             entry.getValue().stop();
-            entry.getKey().setTranslateX(0);
-            entry.getKey().setTranslateY(0);
+            Node node = entry.getKey();
+            resets.add(() -> node.setTranslateX(0));
+            resets.add(() -> node.setTranslateY(0));
         }
+        SkinDisposer.disposeInOrder(resets.toArray(new Runnable[0]));
     }
 
     // ==================== Glide ====================
