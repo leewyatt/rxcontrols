@@ -301,6 +301,134 @@ public class RXLrcViewTest {
     }
 
     @Test
+    public void wheelAtFirstLineLeavesUpwardScrollToParent() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.ZERO);
+        assertWheelChainsWithoutBrowsing(view, 35.0);
+    }
+
+    @Test
+    public void wheelAtLastLineLeavesDownwardScrollToParent() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(14.0));
+        assertWheelChainsWithoutBrowsing(view, -35.0);
+    }
+
+    @Test
+    public void wheelPastFirstLineStopsThereThenLeavesScrollToParent() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(2.0));
+        Pane content = content(view);
+        Node viewport = viewport(view);
+        AtomicBoolean scrollBubbled = new AtomicBoolean(false);
+        view.addEventHandler(ScrollEvent.SCROLL, event -> scrollBubbled.set(true));
+        double before = content.getTranslateY();
+
+        try {
+            viewport.fireEvent(scrollEvent(500.0));
+
+            assertFalse(scrollBubbled.get(), "the input that reaches the first line is used");
+            double atFirstLine = content.getTranslateY();
+            assertTrue(atFirstLine > before + EPSILON);
+
+            viewport.fireEvent(scrollEvent(35.0));
+
+            assertTrue(scrollBubbled.get(), "further input at the first line goes to the parent");
+            assertEquals(atFirstLine, content.getTranslateY(), EPSILON);
+
+            scrollBubbled.set(false);
+            viewport.fireEvent(scrollEvent(-35.0));
+
+            assertFalse(scrollBubbled.get(), "input back toward the lyrics is used again");
+            assertTrue(content.getTranslateY() < atFirstLine - EPSILON);
+        } finally {
+            view.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void wheelAtFirstLineStillReachesParentAfterRelayout() {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(2.0));
+        Pane content = content(view);
+        Node viewport = viewport(view);
+        AtomicBoolean scrollBubbled = new AtomicBoolean(false);
+        view.addEventHandler(ScrollEvent.SCROLL, event -> scrollBubbled.set(true));
+
+        try {
+            viewport.fireEvent(scrollEvent(500.0));
+            // The relayout re-derives the browse offset, which can round a hair inside the bound.
+            resizeRoot(view, 260.0, 300.0);
+            double atFirstLine = content.getTranslateY();
+
+            viewport.fireEvent(scrollEvent(35.0));
+
+            assertTrue(scrollBubbled.get());
+            assertEquals(atFirstLine, content.getTranslateY(), EPSILON);
+        } finally {
+            view.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void wheelStopsAtFirstLineWithoutRubberBand() {
+        RXLrcView instant = createLaidOutView(longDocument(), Duration.seconds(2.0));
+        RXLrcView animated = createLaidOutView(longDocument(), Duration.seconds(2.0));
+        animated.setAnimated(true);
+
+        try {
+            viewport(instant).fireEvent(scrollEvent(500.0));
+            viewport(animated).fireEvent(scrollEvent(500.0));
+
+            // Without animation any overshoot is pulled back at once; with it, an overshoot
+            // would still show here, before the rebound runs.
+            assertEquals(content(instant).getTranslateY(), content(animated).getTranslateY(), EPSILON);
+        } finally {
+            instant.getSkin().dispose();
+            animated.getSkin().dispose();
+        }
+    }
+
+    @Test
+    public void wheelBrowsingLetsLineEmphasisFinish() throws InterruptedException {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+        view.setAnimated(true);
+        view.setAnimationDuration(Duration.millis(200.0));
+        Pane content = content(view);
+        Node viewport = viewport(view);
+
+        try {
+            view.setCurrentTime(Duration.seconds(6.0));
+            viewport.fireEvent(scrollEvent(-35.0));
+            waitForFxMillis(600.0);
+
+            int index = view.getCurrentLineIndex();
+            assertEquals(view.getCurrentLineScale(), content.getChildren().get(index).getScaleX(), EPSILON);
+            assertEquals(1.0, content.getChildren().get(index - 1).getScaleX(), EPSILON);
+        } finally {
+            view.getSkin().dispose();
+        }
+    }
+
+    private static void assertWheelChainsWithoutBrowsing(RXLrcView view, double deltaY) {
+        Pane content = content(view);
+        Node viewport = viewport(view);
+        AtomicBoolean scrollBubbled = new AtomicBoolean(false);
+        view.addEventHandler(ScrollEvent.SCROLL, event -> scrollBubbled.set(true));
+        double before = content.getTranslateY();
+
+        try {
+            viewport.fireEvent(scrollEvent(deltaY));
+
+            assertTrue(scrollBubbled.get());
+            assertEquals(before, content.getTranslateY(), EPSILON);
+
+            // Not browsing: the view still follows playback without waiting for a recovery.
+            view.setCurrentTime(Duration.seconds(6.0));
+            relayout(view);
+            assertCurrentLineCenterAt(view, view.getCurrentLinePosition());
+        } finally {
+            view.getSkin().dispose();
+        }
+    }
+
+    @Test
     public void emptyPlaceholderCanDragAndReboundsToCenter() {
         RXLrcView view = createLaidOutView(LrcDocument.empty(), Duration.ZERO);
         Node placeholder = placeholder(view);
