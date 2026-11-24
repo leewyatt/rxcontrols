@@ -829,7 +829,10 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
                 && !(deltaY < 0.0 && offset > min + GEOMETRY_EPSILON)) {
             return;
         }
-        stopAllAnimations();
+        // As with a drag, browsing takes over the scroll only; a line emphasis still
+        // running from the last line change is left to finish.
+        scrollAnim.stop();
+        stopManualAnimations();
         dragging = false;
         manualBrowsing = true;
         manualOffsetY.set(deltaY > 0.0 ? Math.min(offset + deltaY, max) : Math.max(offset + deltaY, min));

@@ -385,6 +385,27 @@ public class RXLrcViewTest {
         }
     }
 
+    @Test
+    public void wheelBrowsingLetsLineEmphasisFinish() throws InterruptedException {
+        RXLrcView view = createLaidOutView(longDocument(), Duration.seconds(4.0));
+        view.setAnimated(true);
+        view.setAnimationDuration(Duration.millis(200.0));
+        Pane content = content(view);
+        Node viewport = viewport(view);
+
+        try {
+            view.setCurrentTime(Duration.seconds(6.0));
+            viewport.fireEvent(scrollEvent(-35.0));
+            waitForFxMillis(600.0);
+
+            int index = view.getCurrentLineIndex();
+            assertEquals(view.getCurrentLineScale(), content.getChildren().get(index).getScaleX(), EPSILON);
+            assertEquals(1.0, content.getChildren().get(index - 1).getScaleX(), EPSILON);
+        } finally {
+            view.getSkin().dispose();
+        }
+    }
+
     private static void assertWheelChainsWithoutBrowsing(RXLrcView view, double deltaY) {
         Pane content = content(view);
         Node viewport = viewport(view);
