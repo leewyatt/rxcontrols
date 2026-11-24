@@ -307,8 +307,18 @@
     -fx-font-size: 13px;
 }
 
-.example-card .rx-switch-button > .symbol {
-    -fx-background-color: -fx-text-base-color;
+.example-card .rx-switch-button.theme-switch > .track > .thumb > .icon {
+    -fx-pref-width: 12px;
+    -fx-pref-height: 12px;
+    -fx-background-color: #f59e0b;
+    -fx-shape: "M12 7a5 5 0 1 0 0 10a5 5 0 1 0 0-10zM11 1.5h2V5h-2zM11 19h2v3.5h-2zM1.5 11H5v2H1.5zM19 11h3.5v2H19zM7.76 6.34L5.28 3.87 3.87 5.28 6.34 7.76zM17.66 7.76L20.13 5.28 18.72 3.87 16.24 6.34zM7.76 17.66L5.28 20.13 3.87 18.72 6.34 16.24zM17.66 16.24L20.13 18.72 18.72 20.13 16.24 17.66z";
+    -fx-scale-x: 1;
+    -fx-scale-y: 1;
+}
+
+.example-card .rx-switch-button.theme-switch:selected > .track > .thumb > .icon {
+    -fx-background-color: -rx-primary;
+    -fx-shape: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z";
 }
 
 .example-card .theme-preview {
@@ -354,10 +364,6 @@
 
 .example-card .location-icon {
     -fx-shape: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5zM0 0L0 0M24 24L24 24";
-}
-
-.example-card .moon-icon {
-    -fx-shape: "M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1zM0 0L0 0M24 24L24 24";
 }
 
 .example-card .mail-icon {
