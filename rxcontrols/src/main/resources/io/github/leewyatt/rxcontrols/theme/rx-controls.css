@@ -2423,6 +2423,35 @@
     -fx-background-radius: 2px;
 }
 
+.rx-segmented-step-indicator > .title {
+    -fx-alignment: center-left;
+}
+
+.rx-segmented-step-indicator > .title > .label {
+    -fx-font-size: 0.917em;
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.rx-segmented-step-indicator > .title:completed > .label {
+    -fx-text-fill: -rx-on-surface;
+}
+
+.rx-segmented-step-indicator > .title:selected > .label {
+    -fx-text-fill: -rx-filled-color;
+}
+
+/* Modena switches its default text from black to #333 at 60% background brightness,
+   where it matches the secondary text; upcoming titles take a lighter gray there
+   (#6a6a6a, 4.9:1 on #f4f4f4) and keep the secondary text below it. */
+.rx-segmented-step-indicator > .title:upcoming > .label {
+    -fx-text-fill: ladder(-fx-background, -rx-on-surface-secondary 59%, derive(-fx-mid-text-color, 45%) 60%);
+}
+
+.rx-theme-atlantafx .rx-segmented-step-indicator > .title:upcoming > .label,
+.rx-theme-atlantafx.rx-segmented-step-indicator > .title:upcoming > .label {
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
 /*******************************************************************************
  *                                                                             *
  * RXDigit                                                                     *
@@ -2610,8 +2639,8 @@
     -rx-segment-height: 8px;
 }
 
-.rx-segmented-step-indicator > .track,
-.rx-segmented-step-indicator > .segment-fill {
+.segmented-progress-navigator > .rx-segmented-step-indicator > .track,
+.segmented-progress-navigator > .rx-segmented-step-indicator > .segment-fill {
     -fx-background-radius: 0px;
 }
 

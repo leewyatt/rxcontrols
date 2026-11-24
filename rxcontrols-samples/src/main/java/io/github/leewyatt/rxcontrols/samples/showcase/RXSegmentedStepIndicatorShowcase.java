@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
+import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator.TitleSide;
 import io.github.leewyatt.rxcontrols.samples.demo.RXSegmentedStepIndicatorDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
@@ -8,10 +9,13 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.util.Callback;
 
 import java.util.List;
 
@@ -19,14 +23,18 @@ import java.util.List;
  * Showcase application for {@link RXSegmentedStepIndicator}.
  *
  * <p>Exercises every configurable property: step count, selected index,
- * selected-segment progress, content padding, segment gap, and segment
- * height. It also logs {@code CLICKED} and {@code ENTERED} events so the
- * indicator can be verified as a passive event source.</p>
+ * selected-segment progress, content padding, segment gap, segment height,
+ * and the segment titles (factory, side, gap, alignment, and truncation of
+ * long titles), and shows the read-only completed state. It also logs
+ * {@code CLICKED} and {@code ENTERED} events so the indicator can be verified
+ * as a passive event source.</p>
  *
  * <p>For a minimal "few lines of code" example see
  * {@link RXSegmentedStepIndicatorDemo}.</p>
  */
 public class RXSegmentedStepIndicatorShowcase extends RXShowcaseApplication {
+
+    private static final List<String> TITLES = List.of("Account", "Profile", "Payment", "Review", "Done");
 
     private final StringProperty eventLog =
             new SimpleStringProperty(this, "eventLog", "No segment event");
@@ -38,6 +46,7 @@ public class RXSegmentedStepIndicatorShowcase extends RXShowcaseApplication {
     private Slider paddingSlider;
     private Slider gapSlider;
     private Slider heightSlider;
+    private Slider titleGapSlider;
 
     // ==================== Showcase wiring ====================
 
@@ -72,6 +81,7 @@ public class RXSegmentedStepIndicatorShowcase extends RXShowcaseApplication {
         mainIndicator.setPrefWidth(360.0);
         mainIndicator.setSelectedIndex(2);
         mainIndicator.setSegmentProgress(0.45);
+        mainIndicator.setTitleFactory(titleFactory(false));
         mainIndicator.setOnSegmentEntered(event ->
                 eventLog.set("Entered segment " + event.getSegmentIndex()));
         mainIndicator.setOnSegmentClicked(event -> {
@@ -95,6 +105,7 @@ public class RXSegmentedStepIndicatorShowcase extends RXShowcaseApplication {
         return List.of(
                 section("State", buildStateGrid()),
                 section("Geometry", buildGeometryGrid()),
+                section("Titles", buildTitleGrid()),
                 section("Events", buildEventGrid()));
     }
 
@@ -141,12 +152,18 @@ public class RXSegmentedStepIndicatorShowcase extends RXShowcaseApplication {
         progressValue.setMinWidth(VALUE_LABEL_MIN_WIDTH);
         progressValue.setAlignment(Pos.CENTER_RIGHT);
 
+        // Read-only: the last step at 100% completes the indicator.
+        Label completedValue = new Label();
+        completedValue.getStyleClass().add("value-label");
+        completedValue.textProperty().bind(mainIndicator.completedProperty().asString());
+
         updateSelectedSliderRange();
 
         return createGrid(
                 row("Steps", stepSlider, stepValue),
                 row("Selected Index", selectedSlider, selectedValue),
-                row("Segment Progress", progressSlider, progressValue));
+                row("Segment Progress", progressSlider, progressValue),
+                row("Completed", completedValue));
     }
 
     private Node buildGeometryGrid() {
@@ -168,6 +185,52 @@ public class RXSegmentedStepIndicatorShowcase extends RXShowcaseApplication {
                 row("Content Padding", paddingSlider, paddingValue),
                 row("Gap", gapSlider, gapValue),
                 row("Height", heightSlider, heightValue));
+    }
+
+    private Node buildTitleGrid() {
+        CheckBox showTitles = new CheckBox("Show titles");
+        showTitles.setSelected(true);
+        CheckBox longTitles = new CheckBox("Long titles");
+        longTitles.disableProperty().bind(showTitles.selectedProperty().not());
+        Runnable applyTitles = () -> mainIndicator.setTitleFactory(
+                showTitles.isSelected() ? titleFactory(longTitles.isSelected()) : null);
+        showTitles.selectedProperty().addListener((obs, oldV, newV) -> applyTitles.run());
+        longTitles.selectedProperty().addListener((obs, oldV, newV) -> applyTitles.run());
+
+        ComboBox<TitleSide> side = new ComboBox<>();
+        side.getItems().setAll(TitleSide.values());
+        side.setValue(mainIndicator.getTitleSide());
+        side.setMaxWidth(Double.MAX_VALUE);
+        side.valueProperty().bindBidirectional(mainIndicator.titleSideProperty());
+
+        titleGapSlider = createSlider(0.0, 16.0, mainIndicator.getTitleGap());
+        titleGapSlider.valueProperty().addListener((obs, oldV, newV) -> updateInlineStyle());
+        Label titleGapValue = createValueLabel(titleGapSlider, "%.0f px");
+
+        CheckBox centered = new CheckBox("Center titles");
+        centered.selectedProperty().addListener((obs, oldV, newV) -> {
+            if (newV) {
+                mainIndicator.getStyleClass().add("centered-titles");
+            } else {
+                mainIndicator.getStyleClass().remove("centered-titles");
+            }
+        });
+
+        updateInlineStyle();
+
+        return createGrid(
+                row(showTitles),
+                row(longTitles),
+                row("Side", side),
+                row("Title Gap", titleGapSlider, titleGapValue),
+                row(centered));
+    }
+
+    private static Callback<Integer, Node> titleFactory(boolean longTitles) {
+        return i -> {
+            String name = i < TITLES.size() ? TITLES.get(i) : "Step " + (i + 1);
+            return new Label(longTitles ? name + " and a few more words" : name);
+        };
     }
 
     private Node buildEventGrid() {
@@ -205,9 +268,11 @@ public class RXSegmentedStepIndicatorShowcase extends RXShowcaseApplication {
         double padding = paddingSlider.getValue();
         double gap = gapSlider.getValue();
         double height = heightSlider.getValue();
+        String titleGap = titleGapSlider == null ? "" : "-rx-title-gap: " + titleGapSlider.getValue() + "px;";
         mainIndicator.setStyle("-fx-padding: " + padding + "px 0 " + padding + "px 0;"
                 + "-rx-segment-gap: " + gap + "px;"
-                + "-rx-segment-height: " + height + "px;");
+                + "-rx-segment-height: " + height + "px;"
+                + titleGap);
     }
 
     /**

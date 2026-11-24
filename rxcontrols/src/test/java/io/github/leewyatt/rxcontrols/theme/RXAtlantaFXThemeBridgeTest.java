@@ -366,6 +366,32 @@ public class RXAtlantaFXThemeBridgeTest {
     }
 
     /**
+     * Under the bridge, completed step titles follow {@code -rx-on-surface} and upcoming
+     * ones keep {@code -rx-on-surface-secondary} instead of the lighter Modena gray.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void stepTitlesFollowTokensUnderTheBridge() throws Exception {
+        Map<String, Paint> fills = new LinkedHashMap<>();
+        runOnFx(() -> {
+            RXSegmentedStepIndicator steps = new RXSegmentedStepIndicator(3);
+            steps.setSelectedIndex(1);
+            steps.setTitleFactory(i -> new Label("Step " + i));
+            StackPane host = new StackPane(steps);
+            Scene scene = new Scene(host, 300, 120);
+            RXAtlantaFXThemeBridge.install(scene);
+            host.applyCss();
+            host.layout();
+            List<Node> titles = new ArrayList<>(steps.lookupAll(".title"));
+            fills.put("completed", ((Labeled) ((Parent) titles.get(0)).getChildrenUnmodifiable().get(0)).getTextFill());
+            fills.put("upcoming", ((Labeled) ((Parent) titles.get(2)).getChildrenUnmodifiable().get(0)).getTextFill());
+        });
+        assertEquals(Color.web("#24292f"), fills.get("completed"), "completed title -> -color-fg-default");
+        assertEquals(Color.web("#57606a"), fills.get("upcoming"), "upcoming title -> -color-fg-muted");
+    }
+
+    /**
      * Under the bridge, the {@code RXHighlightTextView} keyword background follows {@code -rx-highlight}.
      *
      * @throws Exception if the FX action fails

@@ -587,18 +587,22 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 6, 0.2, 0, 1);
 }
 
-.example-card .step-name {
-    -fx-font-size: 12px;
-    -fx-text-fill: -showcase-caption-color;
+.example-card .rx-segmented-step-indicator > .title .step-mark {
+    -fx-pref-width: 7px;
+    -fx-pref-height: 7px;
+    -fx-background-color: -rx-on-surface-disabled;
+    -fx-shape: "M 4 0 A 4 4 0 1 1 3.99 0 Z";
 }
 
-.example-card .step-name.done {
-    -fx-text-fill: -fx-text-base-color;
+.example-card .rx-segmented-step-indicator > .title:selected .step-mark {
+    -fx-background-color: -rx-filled-color;
 }
 
-.example-card .step-name.current {
-    -fx-text-fill: -fx-accent;
-    -fx-font-weight: bold;
+.example-card .rx-segmented-step-indicator > .title:completed .step-mark {
+    -fx-pref-width: 10px;
+    -fx-pref-height: 8px;
+    -fx-background-color: -rx-filled-color;
+    -fx-shape: "M 0 4.4 L 1.4 3 L 3.8 5.4 L 8.6 0.6 L 10 2 L 3.8 8.2 Z";
 }
 
 /*******************************************************************************
