@@ -2610,8 +2610,8 @@
     -rx-segment-height: 8px;
 }
 
-.rx-segmented-step-indicator > .track,
-.rx-segmented-step-indicator > .segment-fill {
+.segmented-progress-navigator > .rx-segmented-step-indicator > .track,
+.segmented-progress-navigator > .rx-segmented-step-indicator > .segment-fill {
     -fx-background-radius: 0px;
 }
 
