@@ -2882,6 +2882,12 @@
     -rx-action-spacing: 8px;
     -rx-label-gap: 8px;
     -rx-label-placement: auto;
+    /* A shadow barely shows on a dark host, so there action buttons and label pills
+       are lifted by a white overlay and an outline lit from the top. On a light host
+       the overlay is transparent and the outline a plain -rx-outline. */
+    -rx-speed-dial-raise: ladder(-rx-surface, rgba(255, 255, 255, 0.1) 45%, transparent 46%);
+    -rx-speed-dial-outline-top: ladder(-rx-surface, derive(-rx-outline, 45%) 45%, -rx-outline 46%);
+    -rx-speed-dial-outline: linear-gradient(to bottom, -rx-speed-dial-outline-top, -rx-outline);
 }
 
 .rx-speed-dial > .actions {
@@ -2893,25 +2899,26 @@
    on a dark host, the content white on a light one); a surface-colored button
    blends into that surface. */
 .rx-speed-dial > .actions > .action > .rx-fab {
-    -fx-background-color: -rx-outline,
-        ladder(-rx-surface, -rx-surface-variant 45%, -fx-control-inner-background 46%);
-    -fx-background-insets: 0, 1;
-    -fx-background-radius: 50%, 50%;
+    -fx-background-color: -rx-speed-dial-outline,
+        ladder(-rx-surface, -rx-surface-variant 45%, -fx-control-inner-background 46%),
+        -rx-speed-dial-raise;
+    -fx-background-insets: 0, 1, 1;
+    -fx-background-radius: 50%, 50%, 50%;
     -fx-text-fill: -rx-on-surface;
     -rx-ripple-fill: -rx-state-overlay-color;
 }
 
 .rx-speed-dial > .actions > .action > .rx-fab:hover,
 .rx-speed-dial > .actions > .action > .rx-fab:armed {
-    -fx-background-color: -rx-outline, -rx-surface-variant;
-    -fx-background-insets: 0, 1;
-    -fx-background-radius: 50%, 50%;
+    -fx-background-color: -rx-speed-dial-outline, -rx-surface-variant, -rx-speed-dial-raise;
+    -fx-background-insets: 0, 1, 1;
+    -fx-background-radius: 50%, 50%, 50%;
 }
 
 .rx-speed-dial > .actions > .action > .rx-fab:pressed {
-    -fx-background-color: -rx-outline, -rx-outline-variant;
-    -fx-background-insets: 0, 1;
-    -fx-background-radius: 50%, 50%;
+    -fx-background-color: -rx-speed-dial-outline, -rx-outline-variant, -rx-speed-dial-raise;
+    -fx-background-insets: 0, 1, 1;
+    -fx-background-radius: 50%, 50%, 50%;
 }
 
 .rx-speed-dial > .actions > .action > .rx-fab .icon {
@@ -2919,9 +2926,9 @@
 }
 
 .rx-speed-dial > .actions > .action > .label {
-    -fx-background-color: -rx-surface;
-    -fx-background-radius: 999px;
-    -fx-border-color: -rx-outline;
+    -fx-background-color: -rx-surface, -rx-speed-dial-raise;
+    -fx-background-radius: 999px, 999px;
+    -fx-border-color: -rx-speed-dial-outline;
     -fx-border-radius: 999px;
     -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 8, 0.0, 0, 2);
     -fx-padding: 4px 10px 4px 10px;

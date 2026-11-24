@@ -1165,12 +1165,18 @@ public class RXSpeedDial extends Control {
     public enum LabelMode {
 
         /**
-         * Hover or focus label mode.
+         * Shows an action's label while its FAB is hovered or focused, one label at a time:
+         * a hovered FAB's label wins over the focused FAB's. Labels do not widen a
+         * {@link Direction#LEFT} or {@link Direction#RIGHT} row, so those actions keep the
+         * action spacing.
          */
         HOVER,
 
         /**
-         * Persistent label mode.
+         * Shows every action's label while the dial is open. In the {@link Direction#LEFT}
+         * and {@link Direction#RIGHT} directions each action takes the width of its label so
+         * that labels do not overlap, which spreads the actions apart; persistent labels suit
+         * the {@link Direction#UP} and {@link Direction#DOWN} directions best.
          */
         PERSISTENT,
 

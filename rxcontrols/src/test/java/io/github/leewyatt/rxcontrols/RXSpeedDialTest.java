@@ -1221,12 +1221,13 @@ public class RXSpeedDialTest {
     }
 
     /**
-     * Verifies hover labels reserve horizontal layout before they become visible.
+     * Verifies horizontal hover labels keep the action spacing and do not move the FAB when
+     * they appear.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void horizontalHoverLabelsReserveCellWidthAndDoNotMoveFabOnActivation() throws Exception {
+    public void horizontalHoverLabelsKeepActionSpacingAndDoNotMoveFabOnActivation() throws Exception {
         RXSpeedDial[] dialRef = new RXSpeedDial[1];
         RXFloatingActionButton[] fabRef = new RXFloatingActionButton[1];
         double[] centerBefore = new double[2];
@@ -1242,12 +1243,11 @@ public class RXSpeedDialTest {
             dial.open();
             applyCssAndLayout(dial);
 
-            List<Node> cells = visibleActionCells(dial);
             Label label = actionLabels(dial).get(0);
             RXFloatingActionButton fab = visibleActionFabs(dial).get(0);
             assertFalse(label.isVisible());
-            assertTrue(cells.get(0).getLayoutBounds().getWidth() >= label.prefWidth(-1));
-            assertAdjacentVisibleCellEdgeGap(dial, Direction.RIGHT, 8.0);
+            assertTrue(label.prefWidth(-1) > fab.getWidth());
+            assertAdjacentVisibleFabHorizontalEdgeGap(dial, 8.0);
 
             centerBefore[0] = centerX(fab);
             centerBefore[1] = centerY(fab);
@@ -1260,10 +1260,59 @@ public class RXSpeedDialTest {
             RXFloatingActionButton fab = fabRef[0];
             applyCssAndLayout(dial);
 
-            assertTrue(actionLabels(dial).get(0).isVisible());
+            Label label = actionLabels(dial).get(0);
+            assertTrue(label.isVisible());
             assertEquals(centerBefore[0], centerX(fab), 1.0);
             assertEquals(centerBefore[1], centerY(fab), 1.0);
-            assertAdjacentVisibleCellEdgeGap(dial, Direction.RIGHT, 8.0);
+            assertAdjacentVisibleFabHorizontalEdgeGap(dial, 8.0);
+            assertEquals(layoutCenterX(fab), layoutCenterX(label), 1.0);
+            assertTrue(sceneLayoutBounds(label).getMinY() > sceneLayoutBounds(fab).getMaxY());
+        });
+    }
+
+    /**
+     * Verifies a long hover label next to a large main FAB stays clear of it in both
+     * horizontal directions.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void horizontalHoverLabelStaysClearOfLargeMainFab() throws Exception {
+        RXSpeedDial[] dialRef = new RXSpeedDial[1];
+        RXFloatingActionButton[] mainRef = new RXFloatingActionButton[1];
+
+        runOnFx(() -> {
+            RXSpeedDial dial = new RXSpeedDial(new Region(),
+                    new RXSpeedDialAction("Very long first action label", new Region()),
+                    new RXSpeedDialAction("Second", new Region()));
+            dial.setAnimated(false);
+            dial.setDirection(Direction.RIGHT);
+            dial.setLabelMode(LabelMode.HOVER);
+            showInStage(dial);
+            RXFloatingActionButton main = mainFab(dial);
+            main.setSize(RXFloatingActionButton.Size.LARGE);
+            dial.open();
+            applyCssAndLayout(dial);
+            visibleActionFabs(dial).get(0).requestFocus();
+            dialRef[0] = dial;
+            mainRef[0] = main;
+        });
+        runOnFx(() -> {
+            RXSpeedDial dial = dialRef[0];
+            RXFloatingActionButton main = mainRef[0];
+            applyCssAndLayout(dial);
+
+            Label label = actionLabels(dial).get(0);
+            assertTrue(label.isVisible(), "label shown on focus");
+            assertTrue(sceneLayoutBounds(label).getMinX() >= sceneLayoutBounds(main).getMaxX() - 0.5,
+                    "RIGHT: label starts past the main FAB");
+
+            dial.setDirection(Direction.LEFT);
+            applyCssAndLayout(dial);
+
+            assertTrue(label.isVisible(), "label still shown after the direction change");
+            assertTrue(sceneLayoutBounds(label).getMaxX() <= sceneLayoutBounds(main).getMinX() + 0.5,
+                    "LEFT: label ends before the main FAB");
         });
     }
 
@@ -2073,6 +2122,14 @@ public class RXSpeedDialTest {
                 .sorted((left, right) -> Double.compare(left.getMinY(), right.getMinY()))
                 .toList();
         assertEquals(expectedGap, bounds.get(1).getMinY() - bounds.get(0).getMaxY(), 1.0);
+    }
+
+    private static void assertAdjacentVisibleFabHorizontalEdgeGap(RXSpeedDial dial, double expectedGap) {
+        List<Bounds> bounds = visibleActionFabs(dial).stream()
+                .map(RXSpeedDialTest::sceneLayoutBounds)
+                .sorted((left, right) -> Double.compare(left.getMinX(), right.getMinX()))
+                .toList();
+        assertEquals(expectedGap, bounds.get(1).getMinX() - bounds.get(0).getMaxX(), 1.0);
     }
 
     private static void assertAdjacentVisibleCellEdgeGap(RXSpeedDial dial, Direction direction, double expectedGap) {
