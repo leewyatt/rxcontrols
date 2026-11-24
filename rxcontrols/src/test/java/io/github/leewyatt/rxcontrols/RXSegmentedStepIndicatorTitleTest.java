@@ -131,13 +131,15 @@ public class RXSegmentedStepIndicatorTitleTest {
     @Test
     public void factoryWithoutAnyTitleAddsNoSpace() throws Exception {
         onFx(() -> {
+            // Gaps this wide (3 x 60) pass the 150px default, so a preferred width
+            // that still counted the empty titles would differ.
             RXSegmentedStepIndicator plain = new RXSegmentedStepIndicator(NAMES.size());
-            plain.setSegmentGap(12.0);
+            plain.setSegmentGap(60.0);
             host(plain, 412.0);
 
             for (TitleSide side : TitleSide.values()) {
                 RXSegmentedStepIndicator indicator = new RXSegmentedStepIndicator(NAMES.size());
-                indicator.setSegmentGap(12.0);
+                indicator.setSegmentGap(60.0);
                 indicator.setTitleSide(side);
                 indicator.setTitleFactory(i -> null);
                 host(indicator, 412.0);
@@ -149,6 +151,31 @@ public class RXSegmentedStepIndicatorTitleTest {
                     assertEquals(0.0, title.getHeight(), side + " title box height");
                 }
             }
+            return null;
+        });
+    }
+
+    @Test
+    public void titleRowFollowsATitleNodeMovedAwayLater() throws Exception {
+        onFx(() -> {
+            Label only = new Label("Shipping");
+            RXSegmentedStepIndicator indicator = new RXSegmentedStepIndicator(NAMES.size());
+            indicator.setTitleSide(TitleSide.TOP);
+            indicator.setTitleFactory(i -> i == 1 ? only : null);
+            StackPane root = host(indicator, 412.0);
+            assertTrue(parts(indicator, "track").get(0).getLayoutY() > 0.0);
+
+            // The application takes its node back.
+            new StackPane(only);
+            layout(root);
+            assertEquals(SEGMENT_HEIGHT, indicator.prefHeight(-1));
+            assertEquals(SEGMENT_HEIGHT, indicator.getHeight());
+            assertEquals(0.0, parts(indicator, "track").get(0).getLayoutY());
+
+            indicator.setTitleFactory(i -> new Label(NAMES.get(i)));
+            layout(root);
+            assertTrue(parts(indicator, "track").get(0).getLayoutY() > 0.0);
+            assertTrue(indicator.getHeight() > SEGMENT_HEIGHT + TITLE_GAP);
             return null;
         });
     }
