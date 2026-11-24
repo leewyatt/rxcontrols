@@ -56,7 +56,8 @@ public final class RXSegmentedProgressBarSamples {
                         "When the user moves between steps, use RXSegmentedStepIndicator; for a round shape, RXCircularProgressIndicator."),
                 List.of(
                         SampleCard.wide("Stories",
-                                "One segment per story; Play runs through the rest and the arrows jump between stories.",
+                                "One segment per story; Play runs through the rest and Pause stops it, Previous and Next "
+                                        + "jump between stories.",
                                 stories()),
                         SampleCard.large("Password strength",
                                 "Four segments for four rules; a color class per level replaces the default fill.",
@@ -76,14 +77,24 @@ public final class RXSegmentedProgressBarSamples {
     // ==================== Stories ====================
 
     private static Node stories() {
+        final double barHeight = 6.0;
+        final double edge = 14.0;
         RXSegmentedProgressBar bar = new RXSegmentedProgressBar(1.5 / STORY_COUNT);
         bar.getStyleClass().add("on-image");
         bar.setSegmentCount(STORY_COUNT);
-        bar.setSegmentHeight(4.0);
+        bar.setSegmentHeight(barHeight);
         bar.setProgressTransitionDuration(Duration.ZERO);
         bar.setMaxWidth(Double.MAX_VALUE);
-        StackPane.setMargin(bar, new Insets(12.0));
-        StackPane.setAlignment(bar, Pos.TOP_CENTER);
+        StackPane.setMargin(bar, new Insets(edge));
+        StackPane.setAlignment(bar, Pos.BOTTOM_CENTER);
+
+        // Darkens the bottom of any photo, so the bar and the caption read on bright ones.
+        Region shade = new Region();
+        shade.getStyleClass().add("story-shade");
+        shade.setPrefHeight(80.0);
+        shade.setMaxHeight(Region.USE_PREF_SIZE);
+        shade.setMouseTransparent(true);
+        StackPane.setAlignment(shade, Pos.BOTTOM_CENTER);
 
         Image[] images = new Image[STORY_COUNT];
         for (int i = 0; i < STORY_COUNT; i++) {
@@ -94,9 +105,9 @@ public final class RXSegmentedProgressBarSamples {
         view.setImageRadius(12.0);
         Label caption = text("Story 2 of 4", "on-image-text");
         StackPane.setAlignment(caption, Pos.BOTTOM_LEFT);
-        StackPane.setMargin(caption, new Insets(14.0));
+        StackPane.setMargin(caption, new Insets(edge, edge, edge + barHeight + 8.0, edge));
 
-        StackPane frame = new StackPane(view, bar, caption);
+        StackPane frame = new StackPane(view, shade, bar, caption);
         frame.getStyleClass().add("story-frame");
         frame.setPrefSize(420.0, 230.0);
         frame.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
@@ -108,35 +119,57 @@ public final class RXSegmentedProgressBarSamples {
             caption.setText("Story " + (index + 1) + " of " + STORY_COUNT);
         });
 
+        Region glyph = icon("play-icon");
+        RXButton play = solid("Play", "pink");
+        play.setGraphic(glyph);
+        // Wide enough for Pause, so Previous and Next stay put when it toggles.
+        play.setMinWidth(100.0);
+        Runnable pause = () -> {
+            stop(running);
+            showPlaying(play, glyph, false);
+        };
+        play.setOnAction(event -> {
+            if (running[0] != null) {
+                pause.run();
+                return;
+            }
+            if (bar.getProgress() >= 1.0) {
+                bar.setProgress(0.0);
+            }
+            double rest = (1.0 - bar.getProgress()) * STORY_COUNT * STORY_SECONDS;
+            Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(rest),
+                    new KeyValue(bar.progressProperty(), 1.0, Interpolator.LINEAR)));
+            timeline.setOnFinished(done -> {
+                running[0] = null;
+                showPlaying(play, glyph, false);
+            });
+            running[0] = timeline;
+            timeline.play();
+            showPlaying(play, glyph, true);
+        });
         RXButton previous = plain("Previous");
         previous.setOnAction(event -> {
-            stop(running);
+            pause.run();
             int index = Math.min(STORY_COUNT - 1, (int) (bar.getProgress() * STORY_COUNT));
             bar.setProgress(Math.max(0, index - 1) / (double) STORY_COUNT);
         });
         RXButton next = plain("Next");
         next.setOnAction(event -> {
-            stop(running);
+            pause.run();
             int index = (int) (bar.getProgress() * STORY_COUNT);
             bar.setProgress(Math.min(STORY_COUNT, index + 1) / (double) STORY_COUNT);
-        });
-        RXButton play = solid("Play", "pink");
-        play.setGraphic(icon("play-icon"));
-        play.setOnAction(event -> {
-            stop(running);
-            if (bar.getProgress() >= 1.0) {
-                bar.setProgress(0.0);
-            }
-            double rest = (1.0 - bar.getProgress()) * STORY_COUNT * STORY_SECONDS;
-            running[0] = new Timeline(new KeyFrame(Duration.seconds(rest),
-                    new KeyValue(bar.progressProperty(), 1.0, Interpolator.LINEAR)));
-            running[0].play();
         });
         HBox controls = new HBox(10.0, previous, play, next);
         controls.setAlignment(Pos.CENTER);
         VBox box = new VBox(16.0, frame, controls);
         box.setAlignment(Pos.CENTER);
         return box;
+    }
+
+    private static void showPlaying(RXButton play, Region glyph, boolean playing) {
+        play.setText(playing ? "Pause" : "Play");
+        glyph.getStyleClass().removeAll("play-icon", "pause-icon");
+        glyph.getStyleClass().add(playing ? "pause-icon" : "play-icon");
     }
 
     private static void stop(Timeline[] running) {

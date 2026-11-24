@@ -268,6 +268,10 @@
     -fx-shape: "M8 5v14l11-7zM0 0L0 0M24 24L24 24";
 }
 
+.example-card .pause-icon {
+    -fx-shape: "M6 19h4V5H6v14zm8-14v14h4V5h-4zM0 0L0 0M24 24L24 24";
+}
+
 .example-card .star-icon {
     -fx-shape: "M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21zM0 0L0 0M24 24L24 24";
 }
@@ -589,8 +593,13 @@
 .example-card .rx-segmented-step-indicator.violet { -rx-filled-color: #8b5cf6; }
 
 .example-card .rx-segmented-progress-bar.on-image {
-    -rx-filled-color: white;
-    -rx-unfilled-color: rgba(255, 255, 255, 0.4);
+    -rx-filled-color: #ec4899;
+    -rx-unfilled-color: rgba(255, 255, 255, 0.55);
+}
+
+.example-card .story-shade {
+    -fx-background-color: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.55));
+    -fx-background-radius: 0 0 12px 12px;
 }
 
 .example-card .story-frame {
