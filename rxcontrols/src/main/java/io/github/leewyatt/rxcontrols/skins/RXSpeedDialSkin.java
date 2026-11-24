@@ -876,7 +876,10 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
             double labelHeight = useLabelSlot ? snapSizeY(label.prefHeight(-1)) : 0.0;
             boolean horizontal = direction == RXSpeedDial.Direction.LEFT || direction == RXSpeedDial.Direction.RIGHT;
             double gap = useLabelSlot ? labelGap() : 0.0;
-            double width = horizontal ? Math.max(fabWidth, labelWidth) : fabWidth + gap + labelWidth;
+            // Hover labels show one at a time, above or below their own FAB, so only persistent
+            // labels claim room along a horizontal row.
+            double rowLabelWidth = labelModeOrDefault() == RXSpeedDial.LabelMode.PERSISTENT ? labelWidth : 0.0;
+            double width = horizontal ? Math.max(fabWidth, rowLabelWidth) : fabWidth + gap + labelWidth;
             double height = horizontal ? fabHeight + gap + labelHeight : Math.max(fabHeight, labelHeight);
             return new CellMetrics(fabWidth, fabHeight, labelWidth, labelHeight, width, height);
         }
