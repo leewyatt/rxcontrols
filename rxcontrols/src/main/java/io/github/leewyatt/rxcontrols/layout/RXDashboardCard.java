@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.layout;
 
+import io.github.leewyatt.rxcontrols.internal.PixelGrid;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardLayout.Placement;
 import javafx.beans.InvalidationListener;
@@ -691,8 +692,10 @@ public class RXDashboardCard extends Region {
         if (node.isResizable()) {
             double width = fit(areaWidth, node.minWidth(-1), node.maxWidth(-1));
             double height = fit(areaHeight, node.minHeight(width), node.maxHeight(width));
-            width = snapSizeX(width);
-            height = snapSizeY(height);
+            // The area is a difference of grid values, which can lie a hair above its grid line; Region's snapping
+            // would ceil that to a whole extra device pixel.
+            width = PixelGrid.ceilSizeX(this, width);
+            height = PixelGrid.ceilSizeY(this, height);
             // Smaller than the area (a maximum below it) centers; larger (a minimum above it) starts at the top left
             // and overflows to the right and bottom.
             double x = width < areaWidth ? left + (areaWidth - width) / 2.0 : left;

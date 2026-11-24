@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.layout;
 
+import io.github.leewyatt.rxcontrols.internal.PixelGrid;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardCard.Edge;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardLayout.Placement;
 import javafx.animation.Animation;
@@ -86,6 +87,7 @@ final class DashboardGesture {
     private Scene watchedScene;
     private Window watchedWindow;
     private Timeline autoScroll;
+    private boolean paneMovedSinceLayout;
     // The click JavaFX generates for the release of a press that started a gesture, committed or cancelled: the card
     // followed the pointer, so press and release land on the same node. It is not a click on the content. The next
     // press clears it.
@@ -108,6 +110,9 @@ final class DashboardGesture {
             cancel();
         }
     };
+
+    // The window showing another scene sends its input there, and holding on would keep the old scene alive.
+    private final InvalidationListener windowListener = observable -> cancel();
 
     DashboardGesture(RXDashboardPane pane) {
         this.pane = pane;
@@ -196,8 +201,8 @@ final class DashboardGesture {
                         : grid.spanHeight(start.row(), largest.rowSpan());
                 height = clamp(local.getY() - grabY - y, grid.spanHeight(start.row(), smallest.rowSpan()), maxHeight);
             }
-            width = card.snapSizeX(width);
-            height = card.snapSizeY(height);
+            width = PixelGrid.ceilSizeX(card, width);
+            height = PixelGrid.ceilSizeY(card, height);
         }
         // A listener reached from each write may have ended the gesture.
         card.resize(width, height);
@@ -237,11 +242,31 @@ final class DashboardGesture {
 
     // ==================== Mouse ====================
 
-    // Reading the transform validates it again, so the next move invalidates it again.
+    // Reading the transform validates it again, so the next move invalidates it again. The card stays under the
+    // pointer at once; the cells it points at are worked out when the pane is laid out next, from where it ends up. A
+    // scroll pane laying the pane out moves it through places in between, and working them out at each would change
+    // the pane's height while it is being laid out, so the scroll pane would lay it out again on every pulse.
     private void paneMoved(Observable observable) {
         pane.getLocalToSceneTransform();
-        if (started) {
-            track();
+        if (!started) {
+            return;
+        }
+        if (edge == null) {
+            follow();
+        }
+        paneMovedSinceLayout = true;
+        pane.requestLayout();
+    }
+
+    /**
+     * Called by the pane as it starts laying out its cards, with its grid for this pass in place.
+     */
+    void layoutStarting() {
+        if (paneMovedSinceLayout) {
+            paneMovedSinceLayout = false;
+            if (started) {
+                track();
+            }
         }
     }
 
@@ -297,6 +322,11 @@ final class DashboardGesture {
         if (!started) {
             return;
         }
+        // The release of the primary button never arrived.
+        if (!event.isPrimaryButtonDown()) {
+            cancel();
+            return;
+        }
         lastSceneX = event.getSceneX();
         lastSceneY = event.getSceneY();
         update();
@@ -304,7 +334,14 @@ final class DashboardGesture {
     }
 
     private void dragged(MouseEvent event) {
-        if (!armed || started || !event.isPrimaryButtonDown()) {
+        if (!armed || started) {
+            return;
+        }
+        // The release of the press that armed the card went elsewhere: this drag is made with the primary button up,
+        // or belongs to a later press on another card, one that stopped above the pane.
+        RXDashboardCard target = cardOf(event.getTarget());
+        if (!event.isPrimaryButtonDown() || target != null && target != card) {
+            cancel();
             return;
         }
         lastSceneX = event.getSceneX();
@@ -581,6 +618,7 @@ final class DashboardGesture {
     private void watch(Scene scene) {
         watchedScene = scene;
         scene.addEventFilter(KeyEvent.KEY_PRESSED, escapeFilter);
+        scene.windowProperty().addListener(windowListener);
         pane.localToSceneTransformProperty().addListener(sceneTransformListener);
         pane.getLocalToSceneTransform();
         watchedWindow = scene.getWindow();
@@ -593,6 +631,7 @@ final class DashboardGesture {
         pane.localToSceneTransformProperty().removeListener(sceneTransformListener);
         if (watchedScene != null) {
             watchedScene.removeEventFilter(KeyEvent.KEY_PRESSED, escapeFilter);
+            watchedScene.windowProperty().removeListener(windowListener);
             watchedScene = null;
         }
         if (watchedWindow != null) {

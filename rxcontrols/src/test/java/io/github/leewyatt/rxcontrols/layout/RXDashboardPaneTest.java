@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -1309,6 +1310,50 @@ public class RXDashboardPaneTest {
     }
 
     @Test
+    public void aCardTakenByAnotherDashboardWhileAnotherIsRepublishedStaysThere() throws Exception {
+        fx(() -> {
+            RXDashboardPane p = new RXDashboardPane();
+            RXDashboardPane q = new RXDashboardPane();
+            RXDashboardCard a = new RXDashboardCard("a", null);
+            RXDashboardCard stay = new RXDashboardCard("stay", null);
+            RXDashboardCard out = new RXDashboardCard("out", null);
+            p.getCards().addAll(a, stay, out);
+            p.getCards().remove(out);
+            // Before the first layout a late count gives the card taken out the cells it would have left.
+            out.rowProperty().addListener((obs, old, value) -> {
+                if (!q.getCards().contains(stay)) {
+                    q.getCards().add(stay);
+                }
+            });
+            p.setColumnCount(1);
+            assertSame(q, stay.getParent());
+            Placement shown = new Placement(stay.getColumn(), stay.getRow(), stay.getColumnSpan(), stay.getRowSpan());
+            assertEquals(q.getLayout().getPlacement("stay"), shown);
+            assertEquals(shown, stay.placement);
+            assertNull(p.getLayout().getPlacement("stay"));
+        });
+    }
+
+    @Test
+    public void cardsTakenOutBeforeALateCountPublishInTheOrderTheyLeft() throws Exception {
+        fx(() -> {
+            for (int run = 0; run < 30; run++) {
+                RXDashboardPane pane = new RXDashboardPane();
+                RXDashboardCard x = new RXDashboardCard("x", null);
+                RXDashboardCard y = new RXDashboardCard("y", null);
+                pane.getCards().addAll(new RXDashboardCard("a", null), x, y);
+                pane.getCards().remove(y);
+                pane.getCards().remove(x);
+                StringBuilder order = new StringBuilder();
+                x.rowProperty().addListener((obs, old, value) -> order.append('x'));
+                y.rowProperty().addListener((obs, old, value) -> order.append('y'));
+                pane.setColumnCount(1);
+                assertEquals("yx", order.toString());
+            }
+        });
+    }
+
+    @Test
     public void aCardMovedAwayWhileTheListIsTakenInLeavesNoTrace() throws Exception {
         fx(() -> {
             RXDashboardPane p = pane(4);
@@ -1359,6 +1404,42 @@ public class RXDashboardPaneTest {
     }
 
     @Test
+    public void cardContentFitsTheContentAreaAtFractionalScales() throws Exception {
+        fx(() -> {
+            for (double scale : new double[] {1.25, 1.75}) {
+                RXDashboardPane pane = pane(12);
+                pane.setAnimated(false);
+                pane.setHgap(7.3);
+                pane.setVgap(7.3);
+                pane.setRowHeight(57.3);
+                List<Region> contents = new ArrayList<>();
+                for (int i = 0; i < 12; i++) {
+                    Region content = new Region();
+                    contents.add(content);
+                    pane.getCards().add(new RXDashboardCard("c" + i, content, i % 6 * 2, i / 6 * 3, 1 + i % 2,
+                            1 + i % 3));
+                }
+                Stage stage = stageFor(pane);
+                stage.setRenderScaleX(scale);
+                stage.setRenderScaleY(scale);
+                pane.applyCss();
+                for (double width = 600.0; width < 700.0; width += 0.7) {
+                    layout(pane, width, 800.0);
+                    layout(pane, width, 800.0);
+                    for (RXDashboardCard card : pane.getCards()) {
+                        Region content = (Region) card.getContent();
+                        double areaWidth = card.getWidth() - card.snappedLeftInset() - card.snappedRightInset();
+                        double areaHeight = card.getHeight() - card.snappedTopInset() - card.snappedBottomInset();
+                        assertTrue(content.getWidth() <= areaWidth + 1e-6 && content.getHeight() <= areaHeight + 1e-6,
+                                scale + " " + width + " " + card.getCardId() + ": " + content.getWidth() + "x"
+                                        + content.getHeight() + " in " + areaWidth + "x" + areaHeight);
+                    }
+                }
+            }
+        });
+    }
+
+    @Test
     public void aStepwiseDragAsksForNoRowBeyondTheLastOne() throws Exception {
         fx(() -> {
             RXDashboardPane pane = caseOne();
@@ -1368,6 +1449,7 @@ public class RXDashboardPaneTest {
             DashboardGrid grid = pane.computeGrid();
             double last = RXDashboardPane.virtualY(grid, grid.rowY(DashboardSolver.MAX_ROW));
             assertEquals(last, RXDashboardPane.virtualY(grid, 1.0e12), last * 1e-9);
+            assertEquals(-last, RXDashboardPane.virtualY(grid, -1.0e12), last * 1e-9);
             assertTrue(RXDashboardPane.virtualY(grid, grid.rowY(10)) < last);
         });
     }

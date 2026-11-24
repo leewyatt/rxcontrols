@@ -405,21 +405,22 @@ public class RXDashboardPane extends Region {
      * there for another reason: gestures, {@link #moveCard}, {@link #resizeCard}, {@link #compact()},
      * {@link #applyLayout} (other than of the layout shown), a span limit, an added card that pushes others, and cards
      * packing upward after an unlock, a removal or turning {@code autoCompact} on. Locking or unlocking cards, turning
-     * {@code autoCompact} on or off and adding or removing cards are not edits when they move no other card. Back at a
-     * count shown before, cards removed meanwhile are left out, cards added meanwhile are placed as {@code applyLayout}
-     * places cards a snapshot does not mention, and with {@code autoCompact} the cards then pack upward under the
-     * current locks: a card unlocked meanwhile, cards below one removed meanwhile and holes left while
-     * {@code autoCompact} was off close up. Until the pane is first laid out, a change instead places every card again
-     * as if the count had been set before the first card was added, repeating in order the cards added and removed, the
-     * snapshots applied and the edits made so far, with the cards' current locks and span limits: FXML sets the count
-     * after adding the cards, and a style sheet sets it at the first CSS pass. A card taken out meanwhile and not yet
-     * in another dashboard is given the cells it would have left, which it requests when added again. A change that
-     * comes after the layout was changed following an earlier change converts instead, since what came after a count
-     * was set refers to that count; so does every change once the pane has been laid out, or once more than 512 cards
-     * were added, removed or edited, or snapshots applied, before it. Values above 4096 count as 4096. When the style
-     * sheets stop setting the count, JavaFX hands back the value from before them, as it does for a moment whenever a
-     * theme switch or a style sheet change rebuilds the pane's styles; the pane takes that value at its next layout
-     * pass, unless a style sheet has set the count again by then.
+     * {@code autoCompact} on or off and adding or removing cards are not edits when they move no other card; with
+     * {@code autoCompact}, though, an added card makes the layout shown the one later changes convert from, as the
+     * cards pack around it there. Back at a count shown before, cards removed meanwhile are left out, cards added
+     * meanwhile are placed as {@code applyLayout} places cards a snapshot does not mention, and with
+     * {@code autoCompact} the cards then pack upward under the current locks: a card unlocked meanwhile, cards below
+     * one removed meanwhile and holes left while {@code autoCompact} was off close up. Until the pane is first laid
+     * out, a change instead places every card again as if the count had been set before the first card was added,
+     * repeating in order the cards added and removed, the snapshots applied and the edits made so far, with the cards'
+     * current locks and span limits: FXML sets the count after adding the cards, and a style sheet sets it at the first
+     * CSS pass. A card taken out meanwhile and not yet in another dashboard is given the cells it would have left,
+     * which it requests when added again. A change that comes after the layout was changed following an earlier change
+     * converts instead, since what came after a count was set refers to that count; so does every change once the pane
+     * has been laid out, or once more than 512 cards were added, removed or edited, or snapshots applied, before it.
+     * Values above 4096 count as 4096. When the style sheets stop setting the count, JavaFX hands back the value from
+     * before them, as it does for a moment whenever a theme switch or a style sheet change rebuilds the pane's styles;
+     * the pane takes that value at its next layout pass, unless a style sheet has set the count again by then.
      *
      * <p>A value below 1 is rejected with {@link IllegalArgumentException} and the property goes back to its last
      * valid value. When the property is bound to an invalid value it cannot go back: the pane keeps laying out with
@@ -1343,10 +1344,14 @@ public class RXDashboardPane extends Region {
 
     // Records the result, then notifies: the cards' placement properties first, then the layout property. Changes
     // the listeners make to the cards or the columns are applied once the notification is over.
+    // A member another dashboard took over meanwhile (while a gesture gave its card back, say) keeps the placement
+    // that dashboard gave it, stays out of the snapshot and the children, and leaves at the next reconcile.
     private RXDashboardLayout commit(Map<RXDashboardCard, Placement> result) {
         boolean moved = changesPlacements(result);
         for (RXDashboardCard card : members) {
-            card.placement = result.get(card);
+            if (card.owner == this) {
+                card.placement = result.get(card);
+            }
         }
         RXDashboardLayout next = snapshot();
         if (moved) {
@@ -1383,7 +1388,7 @@ public class RXDashboardPane extends Region {
         Map<String, RXDashboardCard> byId = new LinkedHashMap<>();
         for (RXDashboardCard card : members) {
             String id = card.getCardId();
-            if (RXDashboardLayout.isUsableId(id) && card.placement != null) {
+            if (card.owner == this && RXDashboardLayout.isUsableId(id) && card.placement != null) {
                 byId.putIfAbsent(id, card);
             }
         }
@@ -1393,7 +1398,12 @@ public class RXDashboardPane extends Region {
     // The children are the placeholder, then the cards in reading order, which is also the focus traversal order. One
     // setAll keeps every card in the scene, so a focused node inside keeps the focus.
     private void sortChildren() {
-        List<RXDashboardCard> sorted = new ArrayList<>(members);
+        List<RXDashboardCard> sorted = new ArrayList<>();
+        for (RXDashboardCard card : members) {
+            if (card.owner == this) {
+                sorted.add(card);
+            }
+        }
         sorted.sort((a, b) -> {
             int byRow = Integer.compare(a.placement.row(), b.placement.row());
             return byRow != 0 ? byRow : Integer.compare(a.placement.column(), b.placement.column());
@@ -1605,9 +1615,9 @@ public class RXDashboardPane extends Region {
         Map<RXDashboardCard, Placement> state = new LinkedHashMap<>();
         Map<RXDashboardCard, BaseEntry> rebuilt = new IdentityHashMap<>();
         // Where each removed card was, live and in the replay: a card put back asks for the position it left, which
-        // it published at the count of the time.
-        Map<RXDashboardCard, Placement[]> removedAt = new IdentityHashMap<>();
-        Map<RXDashboardCard, Integer> removedStep = new IdentityHashMap<>();
+        // it published at the count of the time. In the order of removal, so the cards still out publish in that order.
+        Map<RXDashboardCard, Placement[]> removedAt = new LinkedHashMap<>();
+        Map<RXDashboardCard, Integer> removedStep = new LinkedHashMap<>();
         // Within one reconciliation's additions and removals: whether one pushed another card or added a card.
         boolean pushed = false;
         boolean added = false;
@@ -1872,11 +1882,13 @@ public class RXDashboardPane extends Region {
         return (x - grid.columnX(0)) / grid.columnPitch() * VIRTUAL_CELL;
     }
 
-    // A pane y on the virtual grid of a stepwise drag: row r's top edge is r cells. Held to the rows the solver allows:
-    // on a sub-pixel grid a pointer far below would ask for a row so large that the card took seconds to rise back.
+    // A pane y on the virtual grid of a stepwise drag: row r's top edge is r cells. Held within as many rows above and
+    // below as the solver allows: on a sub-pixel grid a pointer far away would ask for a row so large that the card
+    // took seconds to come back, or so large it wrapped around int.
     static double virtualY(DashboardGrid grid, double y) {
         double row = (y - grid.rowY(0)) / grid.rowPitch() * VIRTUAL_CELL;
-        return Double.isFinite(row) ? Math.min(row, (double) DashboardSolver.MAX_ROW * VIRTUAL_CELL) : row;
+        double limit = DashboardSolver.MAX_ROW * VIRTUAL_CELL;
+        return Double.isFinite(row) ? Math.max(-limit, Math.min(row, limit)) : row;
     }
 
     Map<RXDashboardCard, Placement> solveFrom(Map<RXDashboardCard, Placement> start, RXDashboardCard card,
@@ -2029,6 +2041,7 @@ public class RXDashboardPane extends Region {
         Scene scene = getScene();
         membership.beginPass();
         grid = computeGrid();
+        gesture.layoutStarting();
         boolean animate = isAnimated() && isAnimationDurationPositive() && membership.continuesIn(scene);
         boolean collectMoves = animate || animator.hasActiveState();
         List<RXDashboardCard> laidOut = new ArrayList<>(members);
