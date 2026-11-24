@@ -16,3 +16,7 @@
     -fx-font-size: 13px;
     -fx-font-family: monospace;
 }
+
+.rx-segmented-step-indicator.centered-titles > .title {
+    -fx-alignment: center;
+}
