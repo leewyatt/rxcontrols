@@ -2423,6 +2423,34 @@
     -fx-background-radius: 2px;
 }
 
+.rx-segmented-step-indicator > .title {
+    -fx-alignment: center-left;
+}
+
+.rx-segmented-step-indicator > .title > .label {
+    -fx-font-size: 0.917em;
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.rx-segmented-step-indicator > .title:completed > .label {
+    -fx-text-fill: -rx-on-surface;
+}
+
+.rx-segmented-step-indicator > .title:selected > .label {
+    -fx-text-fill: -rx-filled-color;
+}
+
+/* On a light Modena host the default and the secondary text colors are both #333,
+   so upcoming titles take a lighter gray there (#6a6a6a, 4.9:1 on #f4f4f4). */
+.rx-segmented-step-indicator > .title:upcoming > .label {
+    -fx-text-fill: ladder(-fx-background, -rx-on-surface-secondary 45%, derive(-fx-mid-text-color, 45%) 46%);
+}
+
+.rx-theme-atlantafx .rx-segmented-step-indicator > .title:upcoming > .label,
+.rx-theme-atlantafx.rx-segmented-step-indicator > .title:upcoming > .label {
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
 /*******************************************************************************
  *                                                                             *
  * RXDigit                                                                     *

@@ -11,15 +11,20 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.css.Styleable;
 import javafx.css.StyleableDoubleProperty;
+import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
+import javafx.css.converter.EnumConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.event.EventHandler;
+import javafx.scene.Node;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
+import javafx.util.Callback;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,7 +34,15 @@ import java.util.List;
  * Horizontal segmented step indicator. The control renders a row of equal-width
  * segments, marks all segments before {@link #selectedIndexProperty()} as
  * complete, and partially fills the selected segment using
- * {@link #segmentProgressProperty()}.
+ * {@link #segmentProgressProperty()}. A {@link #titleFactoryProperty() title
+ * factory} adds a title to each segment, above or below the row.
+ *
+ * <p>Every step counts as an equal share of the row, so the filled part is
+ * {@code (selectedIndex + segmentProgress) / stepCount} of the whole. Once the
+ * last step is done, setting {@code selectedIndex} to {@code stepCount} shows
+ * every step as completed. The control has the {@code :empty} pseudo-class
+ * when it renders no segments and {@code :completed} when every step is
+ * completed.</p>
  *
  * <p>The indicator is intentionally passive: clicking a segment fires
  * {@link RXSegmentInteractionEvent#CLICKED}, entering a segment fires
@@ -42,6 +55,8 @@ public class RXSegmentedStepIndicator extends Control {
     private static final String DEFAULT_STYLE_CLASS = "rx-segmented-step-indicator";
 
     private static final PseudoClass PSEUDO_CLASS_EMPTY = PseudoClass.getPseudoClass("empty");
+
+    private static final PseudoClass PSEUDO_CLASS_COMPLETED = PseudoClass.getPseudoClass("completed");
 
     // ==================== Public Defaults ====================
 
@@ -65,6 +80,17 @@ public class RXSegmentedStepIndicator extends Control {
      */
     private static final double DEFAULT_SEGMENT_HEIGHT = 8.0;
 
+    /**
+     * Default side of the segment titles, also used when {@link #titleSideProperty()}
+     * is {@code null}.
+     */
+    public static final TitleSide DEFAULT_TITLE_SIDE = TitleSide.BOTTOM;
+
+    /**
+     * Default gap between the titles and the segments, in pixels.
+     */
+    private static final double DEFAULT_TITLE_GAP = 6.0;
+
     // ==================== Constructors ====================
 
     /**
@@ -83,6 +109,7 @@ public class RXSegmentedStepIndicator extends Control {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setStepCount(stepCount);
         updateEmptyPseudoClass();
+        updateCompletedPseudoClass();
     }
 
     /**
@@ -109,6 +136,12 @@ public class RXSegmentedStepIndicator extends Control {
         pseudoClassStateChanged(PSEUDO_CLASS_EMPTY, renderedStepCount() == 0);
     }
 
+    // Compared with stepCount, not the rendered segments: with more steps than
+    // MAX_STEP_COUNT, an index past the rendered segments is still a step to do.
+    private void updateCompletedPseudoClass() {
+        pseudoClassStateChanged(PSEUDO_CLASS_COMPLETED, getStepCount() > 0 && getSelectedIndex() >= getStepCount());
+    }
+
     private int renderedStepCount() {
         return RXMath.clamp(getStepCount(), 0, MAX_STEP_COUNT);
     }
@@ -119,6 +152,7 @@ public class RXSegmentedStepIndicator extends Control {
         @Override
         protected void invalidated() {
             updateEmptyPseudoClass();
+            updateCompletedPseudoClass();
         }
     };
 
@@ -152,11 +186,22 @@ public class RXSegmentedStepIndicator extends Control {
 
     // ==================== Selected Index ====================
 
-    private final IntegerProperty selectedIndex = new SimpleIntegerProperty(this, "selectedIndex", 0);
+    private final IntegerProperty selectedIndex = new SimpleIntegerProperty(this, "selectedIndex", 0) {
+        @Override
+        protected void invalidated() {
+            updateCompletedPseudoClass();
+        }
+    };
 
     /**
-     * Selected segment index. When at least one segment is rendered, values
-     * outside the rendered range are clamped for rendering only.
+     * Index of the current step. Segments before it are completed, its own
+     * segment fills by {@link #segmentProgressProperty()}, and the segments
+     * after it are upcoming. Once the last step is done, set it to
+     * {@link #stepCountProperty() stepCount} to show every step as completed;
+     * the control then has the {@code :completed} pseudo-class. Larger values
+     * render the same way, negative values select the first segment, and an
+     * index below {@code stepCount} but past the rendered segments selects the
+     * last rendered one.
      *
      * @return the selected-index property
      */
@@ -188,7 +233,7 @@ public class RXSegmentedStepIndicator extends Control {
 
     /**
      * Fill ratio of the selected segment. Values outside {@code [0, 1]} are
-     * clamped for rendering only.
+     * clamped for rendering only. It has no effect once every step is completed.
      *
      * @return the segment-progress property
      */
@@ -306,6 +351,152 @@ public class RXSegmentedStepIndicator extends Control {
      */
     public final void setSegmentHeight(double value) {
         segmentHeight.set(value);
+    }
+
+    // ==================== Title Factory ====================
+
+    private final ObjectProperty<Callback<Integer, Node>> titleFactory =
+            new SimpleObjectProperty<>(this, "titleFactory");
+
+    /**
+     * Factory for the segment titles, usually returning a {@code Label} with or
+     * without a graphic. The default skin calls it with each rendered segment's
+     * index when the skin is installed and whenever {@link #stepCountProperty()}
+     * or this factory changes; selection, progress, and size changes do not call
+     * it again. To change a title later, update the node the factory returned
+     * or set a new factory.
+     *
+     * <p>Each title sits in a {@code .title} box exactly as wide as its segment,
+     * at the side given by {@link #titleSideProperty()}. The box carries the
+     * segment's {@code :completed}, {@code :selected}, {@code :upcoming},
+     * {@code :first}, and {@code :last} pseudo-classes and clips its content to
+     * the segment's width: a label keeps its preferred width when that fits and
+     * is truncated with an ellipsis when it does not. Titles are measured on one
+     * line. Clicking or entering a title fires the same
+     * {@link RXSegmentInteractionEvent} as its segment.</p>
+     *
+     * <p>The factory must return a distinct node for every index, or
+     * {@code null} to leave that segment without a title. The default
+     * {@code null} factory shows no titles and adds no height.</p>
+     *
+     * @return the title-factory property
+     */
+    public final ObjectProperty<Callback<Integer, Node>> titleFactoryProperty() {
+        return titleFactory;
+    }
+
+    /**
+     * Returns the title factory.
+     *
+     * @return the title factory, or {@code null}
+     */
+    public final Callback<Integer, Node> getTitleFactory() {
+        return titleFactory.get();
+    }
+
+    /**
+     * Sets the title factory.
+     *
+     * @param value the title factory, or {@code null} for no titles
+     */
+    public final void setTitleFactory(Callback<Integer, Node> value) {
+        titleFactory.set(value);
+    }
+
+    // ==================== Title Side ====================
+
+    private final ObjectProperty<TitleSide> titleSide = new StyleableObjectProperty<>(DEFAULT_TITLE_SIDE) {
+        @Override
+        public Object getBean() {
+            return RXSegmentedStepIndicator.this;
+        }
+
+        @Override
+        public String getName() {
+            return "titleSide";
+        }
+
+        @Override
+        public CssMetaData<RXSegmentedStepIndicator, TitleSide> getCssMetaData() {
+            return StyleableProperties.TITLE_SIDE;
+        }
+    };
+
+    /**
+     * Side of the segments on which the titles are shown, styleable through
+     * {@code -rx-title-side} ({@code top} or {@code bottom}). Initial value is
+     * {@link #DEFAULT_TITLE_SIDE}; {@code null} is rendered as the default.
+     *
+     * @return the title-side property
+     */
+    public final ObjectProperty<TitleSide> titleSideProperty() {
+        return titleSide;
+    }
+
+    /**
+     * Returns the title side.
+     *
+     * @return the title side, or {@code null}
+     */
+    public final TitleSide getTitleSide() {
+        return titleSide.get();
+    }
+
+    /**
+     * Sets the title side.
+     *
+     * @param value the title side, or {@code null} for the default
+     */
+    public final void setTitleSide(TitleSide value) {
+        titleSide.set(value);
+    }
+
+    // ==================== Title Gap ====================
+
+    private final DoubleProperty titleGap = new StyleableDoubleProperty(DEFAULT_TITLE_GAP) {
+        @Override
+        public Object getBean() {
+            return RXSegmentedStepIndicator.this;
+        }
+
+        @Override
+        public String getName() {
+            return "titleGap";
+        }
+
+        @Override
+        public CssMetaData<RXSegmentedStepIndicator, Number> getCssMetaData() {
+            return StyleableProperties.TITLE_GAP;
+        }
+    };
+
+    /**
+     * Gap between the titles and the segments, in pixels, styleable through
+     * {@code -rx-title-gap}. Negative, infinite, and {@code NaN} values are
+     * treated as {@code 0} at render time. Has no effect without titles.
+     *
+     * @return the title-gap property
+     */
+    public final DoubleProperty titleGapProperty() {
+        return titleGap;
+    }
+
+    /**
+     * Returns the configured title gap.
+     *
+     * @return the title gap
+     */
+    public final double getTitleGap() {
+        return titleGap.get();
+    }
+
+    /**
+     * Sets the title gap.
+     *
+     * @param value the title gap
+     */
+    public final void setTitleGap(double value) {
+        titleGap.set(value);
     }
 
     // ==================== Segment Clicked ====================
@@ -448,6 +639,38 @@ public class RXSegmentedStepIndicator extends Control {
                     }
                 };
 
+        private static final CssMetaData<RXSegmentedStepIndicator, TitleSide> TITLE_SIDE =
+                new CssMetaData<>("-rx-title-side",
+                        new EnumConverter<>(TitleSide.class),
+                        DEFAULT_TITLE_SIDE) {
+                    @Override
+                    public boolean isSettable(RXSegmentedStepIndicator n) {
+                        return !n.titleSide.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<TitleSide> getStyleableProperty(RXSegmentedStepIndicator n) {
+                        return (StyleableProperty<TitleSide>) n.titleSideProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXSegmentedStepIndicator, Number> TITLE_GAP =
+                new CssMetaData<>("-rx-title-gap",
+                        SizeConverter.getInstance(),
+                        DEFAULT_TITLE_GAP) {
+                    @Override
+                    public boolean isSettable(RXSegmentedStepIndicator n) {
+                        return !n.titleGap.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXSegmentedStepIndicator n) {
+                        return (StyleableProperty<Number>) n.titleGapProperty();
+                    }
+                };
+
         private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
 
         static {
@@ -455,7 +678,9 @@ public class RXSegmentedStepIndicator extends Control {
                     new ArrayList<>(Control.getClassCssMetaData());
             Collections.addAll(styleables,
                     SEGMENT_GAP,
-                    SEGMENT_HEIGHT);
+                    SEGMENT_HEIGHT,
+                    TITLE_SIDE,
+                    TITLE_GAP);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }
     }
@@ -477,5 +702,21 @@ public class RXSegmentedStepIndicator extends Control {
     @Override
     public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
         return getClassCssMetaData();
+    }
+
+    /**
+     * Side of the segments on which the segment titles are shown.
+     */
+    public enum TitleSide {
+
+        /**
+         * Above the segments.
+         */
+        TOP,
+
+        /**
+         * Below the segments.
+         */
+        BOTTOM
     }
 }
