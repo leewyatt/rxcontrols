@@ -47,6 +47,7 @@ import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Paint;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -747,8 +748,10 @@ public class RXControlColorsTest {
     private static void assertSpeedDialAction(String host, String userAgentStylesheet, Consumer<Scene> themer,
             boolean dark) throws Exception {
         String raisedExpression = dark ? "-rx-surface-variant" : "-fx-control-inner-background";
+        String ringTopExpression = dark ? "derive(-rx-outline, 45%)" : "-rx-outline";
+        String raiseExpression = dark ? "rgba(255, 255, 255, 0.1)" : "transparent";
         Map<String, String> expected = resolve(userAgentStylesheet, themer,
-                List.of(raisedExpression, "-rx-surface", "-rx-outline"));
+                List.of(raisedExpression, "-rx-surface", "-rx-outline", ringTopExpression, raiseExpression));
         Map<String, String> action = new LinkedHashMap<>();
         runOnFx(() -> {
             Application.setUserAgentStylesheet(userAgentStylesheet);
@@ -759,17 +762,29 @@ public class RXControlColorsTest {
             root.applyCss();
             Region button = (Region) dial.lookup(".actions > .action > .rx-fab");
             List<BackgroundFill> fills = button.getBackground().getFills();
-            action.put("ring", ThemeColorSamples.hex(fills.get(0).getFill()));
-            action.put("fill", ThemeColorSamples.hex(fills.get(fills.size() - 1).getFill()));
-            action.put("inset", String.valueOf(fills.get(fills.size() - 1).getInsets()));
+            action.put("layers", String.valueOf(fills.size()));
+            if (fills.get(0).getFill() instanceof LinearGradient ring) {
+                action.put("ring top", ThemeColorSamples.hex(ring.getStops().get(0).getColor()));
+                action.put("ring bottom", ThemeColorSamples.hex(ring.getStops().get(ring.getStops().size() - 1).getColor()));
+            }
+            if (fills.size() == 3) {
+                action.put("fill", ThemeColorSamples.hex(fills.get(1).getFill()));
+                action.put("inset", String.valueOf(fills.get(1).getInsets()));
+                action.put("raise", ThemeColorSamples.hex(fills.get(2).getFill()));
+            }
         });
         // An action button is outlined over a raised fill, so it never blends into the
-        // surface it floats over (a surface-colored button vanished on dark hosts).
-        assertEquals(expected.get("-rx-outline"), action.get("ring"), "action ring under " + host);
+        // surface it floats over. A shadow barely shows on a dark host, so there the
+        // button is also lifted by a white overlay and an outline lit from the top.
+        assertEquals("3", action.get("layers"), "action layers under " + host);
+        assertEquals(expected.get(ringTopExpression), action.get("ring top"), "action ring top under " + host);
+        assertEquals(expected.get("-rx-outline"), action.get("ring bottom"), "action ring bottom under " + host);
         assertEquals(expected.get(raisedExpression), action.get("fill"), "action fill under " + host);
         assertEquals(String.valueOf(new Insets(1)), action.get("inset"), "action fill inset under " + host);
+        assertEquals(expected.get(raiseExpression), action.get("raise"), "action overlay under " + host);
         if (dark) {
             assertNotEquals(expected.get("-rx-surface"), action.get("fill"), "action fill differs from the surface under " + host);
+            assertNotEquals(expected.get("-rx-outline"), action.get("ring top"), "action ring is lit from the top under " + host);
         }
     }
 
