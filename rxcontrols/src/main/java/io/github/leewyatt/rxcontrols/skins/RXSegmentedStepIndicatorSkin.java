@@ -399,8 +399,28 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
         return snapSizeX(width);
     }
 
+    // The title row and its gap exist once the factory gave any segment a node,
+    // even one without height; a factory that returned null everywhere adds no
+    // space. Checked live: the application may move a title node elsewhere.
+    private boolean hasTitleNodes() {
+        for (StackPane box : titleBoxes) {
+            if (!box.getChildren().isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void collapseTitles(double x, double y) {
+        for (int i = 0; i < titleBoxes.size(); i++) {
+            titleBoxes.get(i).resizeRelocate(x, y, 0.0, 0.0);
+            titleClips.get(i).setWidth(0.0);
+            titleClips.get(i).setHeight(0.0);
+        }
+    }
+
     private double titleBlockHeight() {
-        if (titleBoxes.isEmpty()) {
+        if (!hasTitleNodes()) {
             return 0.0;
         }
         return RXMath.sanitizeFiniteNonNegative(getSkinnable().getTitleGap()) + titleRowHeight();
@@ -422,11 +442,7 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
                 fillClips.get(i).setWidth(0.0);
                 fillClips.get(i).setHeight(0.0);
             }
-            for (int i = 0; i < titleBoxes.size(); i++) {
-                titleBoxes.get(i).resizeRelocate(contentX, contentY, 0.0, 0.0);
-                titleClips.get(i).setWidth(0.0);
-                titleClips.get(i).setHeight(0.0);
-            }
+            collapseTitles(contentX, contentY);
             return;
         }
 
@@ -437,7 +453,10 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
 
         // When the content area is shorter than needed, the segments keep their
         // height and the titles get what is left.
-        boolean titled = !titleBoxes.isEmpty();
+        boolean titled = hasTitleNodes();
+        if (!titled) {
+            collapseTitles(contentX, contentY);
+        }
         double titleGap = titled
                 ? Math.min(RXMath.sanitizeFiniteNonNegative(control.getTitleGap()), contentHeight - renderedHeight)
                 : 0.0;
@@ -494,7 +513,7 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
                                       double bottomInset, double leftInset) {
         int n = titleBoxes.size();
         double titles = 0.0;
-        if (n > 0) {
+        if (hasTitleNodes()) {
             double gap = RXMath.sanitizeFiniteNonNegative(getSkinnable().getSegmentGap());
             titles = n * widestTitle() + gap * (n - 1);
         }

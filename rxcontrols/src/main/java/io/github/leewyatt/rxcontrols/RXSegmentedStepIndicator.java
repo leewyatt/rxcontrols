@@ -426,7 +426,10 @@ public class RXSegmentedStepIndicator extends Control {
      *
      * <p>The factory must return a distinct node for every index, or
      * {@code null} to leave that segment without a title. The default
-     * {@code null} factory shows no titles and adds no height.</p>
+     * {@code null} factory, or one that returns {@code null} for every segment,
+     * shows no titles and adds no space. Once the factory returns any node, the
+     * title row and {@link #titleGapProperty() titleGap} are kept, even when
+     * that node has no height.</p>
      *
      * @return the title-factory property
      */
@@ -522,7 +525,8 @@ public class RXSegmentedStepIndicator extends Control {
     /**
      * Gap between the titles and the segments, in pixels, styleable through
      * {@code -rx-title-gap}. Negative, infinite, and {@code NaN} values are
-     * treated as {@code 0} at render time. Has no effect without titles.
+     * treated as {@code 0} at render time. Has no effect while no segment has a
+     * title node.
      *
      * @return the title-gap property
      */
