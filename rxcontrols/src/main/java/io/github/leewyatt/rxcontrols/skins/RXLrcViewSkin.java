@@ -817,10 +817,22 @@ public class RXLrcViewSkin extends RXSkinBase<RXLrcView> {
         if (!getSkinnable().isMouseWheelBrowseEnabled() || isDocumentEmpty()) {
             return;
         }
+        // Like ScrollPane, use only input that can still move the lyrics: at the first or
+        // last line the event is left for an enclosing scroll container. The wheel stops
+        // at the boundary; the rubber band stays a drag-only effect. A relayout re-derives
+        // the offset with rounding, so a hair inside a boundary still counts as on it.
+        double deltaY = event.getDeltaY();
+        double offset = manualOffsetY.get();
+        double max = maxManualOffset();
+        double min = minManualOffset();
+        if (!(deltaY > 0.0 && offset < max - GEOMETRY_EPSILON)
+                && !(deltaY < 0.0 && offset > min + GEOMETRY_EPSILON)) {
+            return;
+        }
         stopAllAnimations();
         dragging = false;
         manualBrowsing = true;
-        manualOffsetY.set(applyBoundaryResistance(manualOffsetY.get() + event.getDeltaY()));
+        manualOffsetY.set(deltaY > 0.0 ? Math.min(offset + deltaY, max) : Math.max(offset + deltaY, min));
         startReboundThenRecover();
         event.consume();
     }

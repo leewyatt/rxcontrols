@@ -465,7 +465,11 @@ public class RXLrcView extends Control {
             new SimpleBooleanProperty(this, "mouseWheelBrowseEnabled", DEFAULT_MOUSE_WHEEL_BROWSE_ENABLED);
 
     /**
-     * Whether mouse wheel browsing is enabled.
+     * Whether mouse wheel browsing is enabled. Like {@code ScrollPane}, the view only
+     * consumes wheel input that can still move the lyrics: once the first or last line
+     * has been reached, further input in that direction is left to an enclosing scroll
+     * container. To keep all wheel input inside the view, consume
+     * {@code ScrollEvent.SCROLL} in an event handler added to it.
      *
      * @return the mouse wheel browse enabled property
      */
