@@ -512,9 +512,26 @@
     -fx-graphic-text-gap: 2px;
 }
 
-.example-card .rx-circular-progress-indicator.on-solid {
-    -rx-progress-stroke: white;
-    -rx-track-stroke: rgba(255, 255, 255, 0.3);
+.example-card .rx-circular-progress-indicator.wide-track {
+    -rx-track-stroke-width: 14px;
+    -rx-progress-stroke-width: 6px;
+}
+
+/* A thin track needs more than the faint tint of the color classes to show. */
+.example-card .rx-circular-progress-indicator.thin-track,
+.example-card .rx-circular-progress-indicator.hairline-track {
+    -rx-track-stroke: -rx-outline;
+}
+
+.example-card .rx-circular-progress-indicator.thin-track {
+    -rx-track-stroke-width: 2px;
+    -rx-progress-stroke-width: 10px;
+}
+
+.example-card .rx-circular-progress-indicator.hairline-track {
+    -rx-track-stroke-width: 1px;
+    -rx-progress-stroke-width: 6px;
+    -rx-stroke-line-cap: butt;
 }
 
 .example-card .rx-circular-progress-indicator.on-snackbar {
