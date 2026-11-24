@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.RXDotPulse;
 import io.github.leewyatt.rxcontrols.RXImageView;
+import io.github.leewyatt.rxcontrols.RXRating;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.RXSwitchButton;
@@ -23,7 +24,6 @@ import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
-import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -45,7 +45,6 @@ import java.util.Map;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.frame;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.icon;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.iconButton;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.plain;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.solid;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.spacer;
@@ -65,7 +64,6 @@ public final class RXTransitionPaneSamples {
     private static final double FRAME_HEIGHT = 300.0;
     private static final double NOTICE_WIDTH = 560.0;
     private static final double NOTICE_HEIGHT = 30.0;
-    private static final PseudoClass FILLED = PseudoClass.getPseudoClass("filled");
 
     private static final String[][] QUOTES = {
             {"Simplicity is a great virtue but it requires hard work to achieve it.", "amber"},
@@ -190,19 +188,7 @@ public final class RXTransitionPaneSamples {
     }
 
     private static Node stars() {
-        HBox box = new HBox(2.0);
-        box.setAlignment(Pos.CENTER_LEFT);
-        for (int i = 0; i < 5; i++) {
-            int value = i + 1;
-            StackPane star = iconButton("star-icon");
-            star.setOnMouseClicked(event -> {
-                for (int k = 0; k < box.getChildren().size(); k++) {
-                    box.getChildren().get(k).pseudoClassStateChanged(FILLED, k < value);
-                }
-            });
-            box.getChildren().add(star);
-        }
-        return box;
+        return new RXRating();
     }
 
     private static Node darkMode() {
