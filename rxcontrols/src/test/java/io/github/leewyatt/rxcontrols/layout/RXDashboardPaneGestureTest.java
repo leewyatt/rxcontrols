@@ -9,12 +9,14 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.css.PseudoClass;
 import javafx.event.EventType;
 import javafx.geometry.NodeOrientation;
+import javafx.geometry.Orientation;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -949,6 +951,265 @@ public class RXDashboardPaneGestureTest {
         pane.layout();
         pane.layout();
         return pane;
+    }
+
+    // In both, the card's left edge ends at 148: column 1 on the grid the gesture started on, column 2 on the
+    // narrower grid the scroll bar leaves. Column 1 pushes a card into a fourth row, which brings the bar up.
+    @Test
+    public void aScrollBarThePreviewBringsUpDoesNotMoveThePointerToAnotherColumn() throws Exception {
+        fx(() -> {
+            RXDashboardCard held = new RXDashboardCard("H", null, 0, 0, 1, 1);
+            ScrollPane scroller = flipBoard(false, held, new RXDashboardCard("C1", null, 1, 0, 1, 1),
+                    new RXDashboardCard("C2", null, 1, 1, 1, 1), new RXDashboardCard("B", null, 1, 2, 1, 1),
+                    new RXDashboardCard("D", null, 2, 1, 1, 2), new RXDashboardCard("E", null, 3, 0, 1, 3));
+            Board helper = new Board();
+            helper.press(held, 20, 20);
+            Point2D origin = scroller.getContent().localToScene(0, 0);
+            for (double left = 10; left <= 148; left += 10) {
+                dragTo(helper, held, scroller, origin.add(Math.min(left, 148) + 20, 20));
+            }
+            assertSteadyWhileJittering(helper, held, scroller, origin.add(168, 20));
+        });
+    }
+
+    @Test
+    public void aScrollBarThePreviewBringsUpDoesNotMoveThePointerToAnotherColumnWhilePacking() throws Exception {
+        fx(() -> {
+            RXDashboardCard held = new RXDashboardCard("H", null, 0, 0, 1, 2);
+            ScrollPane scroller = flipBoard(true, held, new RXDashboardCard("C1", null, 1, 0, 1, 1),
+                    new RXDashboardCard("C2", null, 1, 1, 1, 1), new RXDashboardCard("B", null, 1, 2, 1, 1),
+                    new RXDashboardCard("D", null, 2, 0, 1, 1), new RXDashboardCard("E", null, 3, 0, 1, 3));
+            Board helper = new Board();
+            helper.press(held, 20, 20);
+            Point2D origin = scroller.getContent().localToScene(0, 0);
+            // Over to column 2, down to row 2, then left a pixel at a time.
+            for (double left = 10; left <= 210; left += 10) {
+                dragTo(helper, held, scroller, origin.add(left + 20, 20));
+            }
+            for (double top = 10; top <= 200; top += 10) {
+                dragTo(helper, held, scroller, origin.add(230, top + 20));
+            }
+            for (double left = 209; left >= 148; left -= 1) {
+                dragTo(helper, held, scroller, origin.add(left + 20, 220));
+            }
+            assertSteadyWhileJittering(helper, held, scroller, origin.add(168, 220));
+        });
+    }
+
+    @Test
+    public void onceTheScrollBarStaysTheCellsFollowTheColumnsShown() throws Exception {
+        fx(() -> {
+            RXDashboardCard held = new RXDashboardCard("H", null, 0, 0, 1, 2);
+            RXDashboardCard last = new RXDashboardCard("E", null, 3, 0, 1, 2);
+            ScrollPane scroller = flipBoard(false, held, last, new RXDashboardCard("C", null, 1, 2, 1, 1));
+            Board helper = new Board();
+            helper.press(held, 20, 20);
+            Point2D origin = scroller.getContent().localToScene(0, 0);
+            // Down to row 2: four rows bring the scroll bar up, and they stay while the card moves along the row.
+            for (double top = 10; top <= 200; top += 10) {
+                dragTo(helper, held, scroller, origin.add(20, top + 20));
+            }
+            assertTrue(verticalBar(scroller).isVisible());
+            for (double left = 5; left <= 245; left += 5) {
+                dragTo(helper, held, scroller, origin.add(left + 20, 220));
+            }
+            assertTrue(verticalBar(scroller).isVisible());
+            // At 245 the card is nearer column 3 on the narrower grid shown, column 2 on the one it started on.
+            Region placeholder = (Region) ((RXDashboardPane) scroller.getContent()).getChildrenUnmodifiable().get(0);
+            assertEquals(last.getLayoutX(), placeholder.getLayoutX(), EPSILON);
+            helper.release(held, origin.getX() + 265, origin.getY() + 220);
+            assertPlacement(held, 3, 2, 1, 2);
+        });
+    }
+
+    @Test
+    public void aRowHeightChangedDuringADragIsTakenAtTheNextMove() throws Exception {
+        fx(() -> {
+            Board board = new Board();
+            Point2D start = board.press(board.c, 5, 5);
+            // The card's top at y 361: row 4 at 100 px rows, row 7 at 50 px rows.
+            for (double dy = 10; dy <= 261; dy += 10) {
+                board.drag(board.c, start.getX(), start.getY() + Math.min(dy, 261));
+                board.layout();
+            }
+            board.drag(board.c, start.getX(), start.getY() + 261);
+            board.layout();
+            board.pane.setRowHeight(50);
+            board.layout();
+            board.drag(board.c, start.getX() + 1, start.getY() + 261);
+            board.layout();
+            assertEquals(350.0, board.placeholder().getLayoutY(), EPSILON, "row 7 at 50 px rows");
+            board.release(board.c, start.getX() + 1, start.getY() + 261);
+            assertPlacement(board.c, 2, 7, 1, 1);
+        });
+    }
+
+    @Test
+    public void jitterAcrossAColumnOrRowEdgeNearTheBandKeepsTheColumn() throws Exception {
+        fx(() -> {
+            // Across the column edge of the wider grid (150): the scroll bar and the column stay.
+            assertColumnSteadyWhileJittering(directFlipBoard(), 149.5, 0.0, 150.5, 0.0, true);
+            // Across a row edge in the band, directly: the row follows the pointer, the column stays.
+            assertColumnSteadyWhileJittering(directFlipBoard(), 148.0, 49.0, 148.0, 51.0, false);
+        });
+    }
+
+    @Test
+    public void jitterAcrossARowEdgeInTheBandKeepsTheColumnWhilePacking() throws Exception {
+        fx(() -> {
+            RXDashboardCard held = new RXDashboardCard("H", null, 0, 0, 1, 2);
+            ScrollPane scroller = flipBoard(true, held, new RXDashboardCard("C1", null, 1, 0, 1, 1),
+                    new RXDashboardCard("C2", null, 1, 1, 1, 1), new RXDashboardCard("B", null, 1, 2, 1, 1),
+                    new RXDashboardCard("D", null, 2, 0, 1, 1), new RXDashboardCard("E", null, 3, 0, 1, 3));
+            Board helper = new Board();
+            helper.press(held, 20, 20);
+            Point2D origin = scroller.getContent().localToScene(0, 0);
+            for (double left = 10; left <= 210; left += 10) {
+                dragTo(helper, held, scroller, origin.add(left + 20, 20));
+            }
+            for (double top = 10; top <= 200; top += 10) {
+                dragTo(helper, held, scroller, origin.add(230, top + 20));
+            }
+            for (double left = 209; left >= 148; left -= 1) {
+                dragTo(helper, held, scroller, origin.add(left + 20, 220));
+            }
+            for (double top = 199; top >= 149; top -= 1) {
+                dragTo(helper, held, scroller, origin.add(168, top + 20));
+            }
+            assertColumnSteady(helper, held, scroller, origin.add(168, 169), origin.add(168, 171), false);
+        });
+    }
+
+    @Test
+    public void afterTheScrollBarCameAndWentTheCellsFollowTheColumnsShownPastThatEdge() throws Exception {
+        fx(() -> {
+            RXDashboardCard held = new RXDashboardCard("H", null, 0, 0, 1, 1);
+            RXDashboardCard last = new RXDashboardCard("E", null, 3, 0, 1, 3);
+            ScrollPane scroller = flipBoard(false, held, last, new RXDashboardCard("R1", null, 1, 2, 1, 1),
+                    new RXDashboardCard("R2", null, 2, 2, 1, 1));
+            Board helper = new Board();
+            helper.press(held, 20, 20);
+            Point2D origin = scroller.getContent().localToScene(0, 0);
+            for (double left = 10; left <= 100; left += 10) {
+                dragTo(helper, held, scroller, origin.add(left + 20, 20));
+            }
+            // Down onto R1 (the bar comes up), up to the free row 1 (it goes), down again (it comes back).
+            for (double top = 10; top <= 200; top += 10) {
+                dragTo(helper, held, scroller, origin.add(120, top + 20));
+            }
+            assertTrue(verticalBar(scroller).isVisible());
+            for (double top = 190; top >= 100; top -= 10) {
+                dragTo(helper, held, scroller, origin.add(120, top + 20));
+            }
+            assertFalse(verticalBar(scroller).isVisible());
+            for (double top = 110; top <= 200; top += 10) {
+                dragTo(helper, held, scroller, origin.add(120, top + 20));
+            }
+            // Along row 2 with the bar up: past the edge between columns 1 and 2, the cells follow the columns shown,
+            // so at 245 the card is over column 3 of the narrower grid, not column 2 of the wider one.
+            for (double left = 101; left <= 245; left += 1) {
+                dragTo(helper, held, scroller, origin.add(left + 20, 220));
+            }
+            assertTrue(verticalBar(scroller).isVisible());
+            Region placeholder = (Region) ((RXDashboardPane) scroller.getContent()).getChildrenUnmodifiable().get(0);
+            assertEquals(last.getLayoutX(), placeholder.getLayoutX(), EPSILON);
+            helper.release(held, origin.getX() + 265, origin.getY() + 220);
+        });
+    }
+
+    // The board of aScrollBarThePreviewBringsUpDoesNotMoveThePointerToAnotherColumn, held card pressed.
+    private static ScrollPane directFlipBoard() {
+        RXDashboardCard held = new RXDashboardCard("H", null, 0, 0, 1, 1);
+        return flipBoard(false, held, new RXDashboardCard("C1", null, 1, 0, 1, 1),
+                new RXDashboardCard("C2", null, 1, 1, 1, 1), new RXDashboardCard("B", null, 1, 2, 1, 1),
+                new RXDashboardCard("D", null, 2, 1, 1, 2), new RXDashboardCard("E", null, 3, 0, 1, 3));
+    }
+
+    // Drags the held card's left edge along row 0 to (left, top) of the first point, then jitters between the two.
+    private static void assertColumnSteadyWhileJittering(ScrollPane scroller, double leftA, double topA, double leftB,
+                                                         double topB, boolean barSteady) {
+        RXDashboardPane pane = (RXDashboardPane) scroller.getContent();
+        RXDashboardCard held = pane.getCards().get(0);
+        Board helper = new Board();
+        helper.press(held, 20, 20);
+        Point2D origin = pane.localToScene(0, 0);
+        for (double left = 10; left < leftA; left += 10) {
+            dragTo(helper, held, scroller, origin.add(left + 20, 20));
+        }
+        assertColumnSteady(helper, held, scroller, origin.add(leftA + 20, topA + 20), origin.add(leftB + 20, topB + 20),
+                barSteady);
+    }
+
+    // After two moves to settle, the column the placeholder shows on the grid shown stays while the pointer jitters
+    // between the two points.
+    private static void assertColumnSteady(Board helper, RXDashboardCard held, ScrollPane scroller, Point2D a,
+                                           Point2D b, boolean barSteady) {
+        RXDashboardPane pane = (RXDashboardPane) scroller.getContent();
+        Region placeholder = (Region) pane.getChildrenUnmodifiable().get(0);
+        dragTo(helper, held, scroller, a);
+        dragTo(helper, held, scroller, b);
+        dragTo(helper, held, scroller, a);
+        int column = pane.grid().nearestColumn(placeholder.getLayoutX(), 1);
+        boolean bar = verticalBar(scroller).isVisible();
+        for (int jitter = 1; jitter <= 10; jitter++) {
+            dragTo(helper, held, scroller, jitter % 2 == 0 ? a : b);
+            assertEquals(column, pane.grid().nearestColumn(placeholder.getLayoutX(), 1), "move " + jitter);
+            if (barSteady) {
+                assertEquals(bar, verticalBar(scroller).isVisible(), "move " + jitter);
+            }
+        }
+        helper.release(held, a.getX(), a.getY());
+    }
+
+    // Three rows in a fit-to-width scroll pane with less than a row to spare: a fourth row brings up the vertical
+    // scroll bar, which narrows the 100 px columns to about 96.
+    private static ScrollPane flipBoard(boolean packing, RXDashboardCard... cards) {
+        RXDashboardPane pane = new RXDashboardPane();
+        pane.setAutoCompact(packing);
+        pane.setAnimated(false);
+        pane.setColumnCount(4);
+        pane.setRowHeight(100);
+        pane.setHgap(0);
+        pane.setVgap(0);
+        pane.getCards().addAll(cards);
+        ScrollPane scroller = new ScrollPane(pane);
+        scroller.setFitToWidth(true);
+        new Stage().setScene(new Scene(scroller, 402, 340));
+        scroller.applyCss();
+        scroller.layout();
+        scroller.layout();
+        assertFalse(verticalBar(scroller).isVisible());
+        return scroller;
+    }
+
+    private static void assertSteadyWhileJittering(Board helper, RXDashboardCard held, ScrollPane scroller,
+                                                   Point2D at) {
+        dragTo(helper, held, scroller, at);
+        RXDashboardPane pane = (RXDashboardPane) scroller.getContent();
+        Region placeholder = (Region) pane.getChildrenUnmodifiable().get(0);
+        boolean bar = verticalBar(scroller).isVisible();
+        double landing = placeholder.getLayoutX();
+        for (int jitter = 1; jitter <= 10; jitter++) {
+            dragTo(helper, held, scroller, at.add((jitter % 2) * 0.5, 0));
+            assertEquals(bar, verticalBar(scroller).isVisible(), "move " + jitter);
+            assertEquals(landing, placeholder.getLayoutX(), EPSILON, "move " + jitter);
+        }
+        helper.release(held, at.getX(), at.getY());
+    }
+
+    private static void dragTo(Board helper, RXDashboardCard held, ScrollPane scroller, Point2D at) {
+        helper.drag(held, at.getX(), at.getY());
+        scroller.layout();
+        scroller.layout();
+    }
+
+    private static ScrollBar verticalBar(ScrollPane scroller) {
+        for (Node node : scroller.lookupAll(".scroll-bar")) {
+            if (node instanceof ScrollBar bar && bar.getOrientation() == Orientation.VERTICAL) {
+                return bar;
+            }
+        }
+        throw new AssertionError("no vertical scroll bar");
     }
 
     @Test

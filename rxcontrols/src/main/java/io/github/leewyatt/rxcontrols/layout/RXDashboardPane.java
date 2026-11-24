@@ -2160,9 +2160,14 @@ public class RXDashboardPane extends Region {
     }
 
     DashboardGrid computeGrid() {
+        return computeGrid(getWidth());
+    }
+
+    // The grid the pane would have at the given width, with its current insets, gaps, row height and render scale.
+    DashboardGrid computeGrid(double width) {
         double left = snappedLeftInset();
         double top = snappedTopInset();
-        double contentWidth = Math.max(0.0, getWidth() - left - snappedRightInset());
+        double contentWidth = Math.max(0.0, width - left - snappedRightInset());
         MasonryColumns.Resolution columns = MasonryColumns.resolve(contentWidth, contentWidth, effectiveColumns,
                 1.0, snapSpaceX(gapOrZero(getHgap())), 0, true, RXBreakpointProfile.BOOTSTRAP, null,
                 snapScale(true));

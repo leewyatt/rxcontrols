@@ -82,6 +82,18 @@ final class DashboardGesture {
     private Placement candidate;
     // A drag worked out step by step, in the pane's virtual grid; created at the first step, as it needs a grid.
     private DashboardDrag<RXDashboardCard> steps;
+    // A preview that changes the pane's height can bring up an enclosing scroll pane's scroll bar and narrow a pane
+    // that fits its width; near a column edge the pointer is then over another column, whose preview takes the bar
+    // away again, and so on at every move. Once the pane's width has gone back to the one it had before (by less
+    // than a column), the column under the pointer (the column span, for a resize) is also worked out at that other
+    // width: where the two disagree, the column last aimed at stays. When both agree on another column than the one
+    // aimed at as the width went back, the pointer has left that edge and the columns shown are followed again, as
+    // they are while the width has not gone back. Rows are the same at both widths.
+    private double trackedWidth = Double.NaN;
+    private double formerWidth = Double.NaN;
+    private boolean widthWentBack;
+    private int lastKey = Integer.MIN_VALUE;
+    private int bandKey = Integer.MIN_VALUE;
     // The cells a dragged card points at, while they cover another card: the pane grows to take them in.
     private Placement collidingTarget;
     // Where the card was on the virtual grid at the last step, and whether its target was the cell it started from.
@@ -471,6 +483,11 @@ final class DashboardGesture {
         preview = new LinkedHashMap<>(startLayout);
         candidate = held.placement;
         collidingTarget = null;
+        trackedWidth = pane.getWidth();
+        formerWidth = Double.NaN;
+        widthWentBack = false;
+        lastKey = Integer.MIN_VALUE;
+        bandKey = Integer.MIN_VALUE;
         steps = null;
         stepX = Double.NaN;
         stepY = Double.NaN;
@@ -518,17 +535,27 @@ final class DashboardGesture {
         } else if (pane.isLiveResize()) {
             pane.requestLayout();
         }
-        DashboardGrid grid = pane.grid();
-        if (grid == null) {
+        DashboardGrid shown = pane.grid();
+        if (shown == null) {
             return;
         }
+        DashboardGrid former = formerGrid(shown);
         Point2D local = pane.sceneToLocal(lastSceneX, lastSceneY);
         Placement start = startLayout.get(card);
         if (edge == null && pane.dragsStepwise()) {
-            step(grid, start, local);
+            step(shown, former, start, local);
             return;
         }
-        Placement next = edge == null ? dragCandidate(grid, start, local) : resizeCandidate(grid, start, local);
+        Placement next = cellsUnder(shown, start, local);
+        if (former != null) {
+            Placement there = cellsUnder(former, start, local);
+            if (key(there) == key(next)) {
+                leaveEdge(key(next));
+            } else if (key(there) == lastKey) {
+                next = there;
+            }
+        }
+        lastKey = key(next);
         if (edge == null) {
             aimAt(next);
         }
@@ -547,17 +574,31 @@ final class DashboardGesture {
 
     // One step of a stepwise drag, taken only when the card's place on the grid changed since the last one: a pane
     // that moves or scrolls under a resting pointer does not repeat it.
-    private void step(DashboardGrid grid, Placement start, Point2D local) {
+    private void step(DashboardGrid grid, DashboardGrid former, Placement start, Point2D local) {
         double x = RXDashboardPane.virtualX(grid, local.getX() - grabX);
         double y = RXDashboardPane.virtualY(grid, local.getY() - grabY);
-        if (!Double.isFinite(x) || !Double.isFinite(y) || x == stepX && y == stepY) {
+        if (!Double.isFinite(x) || !Double.isFinite(y)) {
+            return;
+        }
+        if (steps == null) {
+            steps = pane.stepwiseDrag(startLayout, card, grid);
+        }
+        if (former != null) {
+            double formerX = RXDashboardPane.virtualX(former, local.getX() - grabX);
+            int there = steps.target(formerX, y)[0];
+            int here = steps.target(x, y)[0];
+            if (there == here) {
+                leaveEdge(here);
+            } else if (there == lastKey) {
+                x = formerX;
+            }
+        }
+        lastKey = steps.target(x, y)[0];
+        if (x == stepX && y == stepY) {
             return;
         }
         stepX = x;
         stepY = y;
-        if (steps == null) {
-            steps = pane.stepwiseDrag(startLayout, card, grid);
-        }
         int[] target = steps.target(x, y);
         int column = Math.max(0, Math.min(target[0], grid.columnCount() - start.columnSpan()));
         int row = Math.max(0, target[1]);
@@ -611,6 +652,39 @@ final class DashboardGesture {
             candidate = preview.get(card);
             pane.requestLayout();
         }
+    }
+
+    // The grid at the other width the pane goes back and forth between, by less than a column: a scroll bar coming
+    // and going. A larger change (the window resized, say) is simply taken.
+    private DashboardGrid formerGrid(DashboardGrid shown) {
+        double width = pane.getWidth();
+        if (width != trackedWidth) {
+            if (!widthWentBack && width == formerWidth) {
+                widthWentBack = true;
+                bandKey = lastKey;
+            }
+            formerWidth = trackedWidth;
+            trackedWidth = width;
+        }
+        if (!widthWentBack || !(Math.abs(width - formerWidth) < shown.columnPitch())) {
+            return null;
+        }
+        return pane.computeGrid(formerWidth);
+    }
+
+    // Both widths agree on a column: past the edge the width went back at, there is nothing to hold any more.
+    private void leaveEdge(int key) {
+        if (key != bandKey) {
+            widthWentBack = false;
+        }
+    }
+
+    private int key(Placement cells) {
+        return edge == null ? cells.column() : cells.columnSpan();
+    }
+
+    private Placement cellsUnder(DashboardGrid grid, Placement start, Point2D local) {
+        return edge == null ? dragCandidate(grid, start, local) : resizeCandidate(grid, start, local);
     }
 
     // The cell nearest to the card's top-left corner as it follows the pointer.
@@ -708,6 +782,11 @@ final class DashboardGesture {
         steps = null;
         candidate = null;
         collidingTarget = null;
+        trackedWidth = Double.NaN;
+        formerWidth = Double.NaN;
+        widthWentBack = false;
+        lastKey = Integer.MIN_VALUE;
+        bandKey = Integer.MIN_VALUE;
         layoutBefore = null;
     }
 
