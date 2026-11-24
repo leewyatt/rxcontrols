@@ -1,8 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
-import io.github.leewyatt.rxcontrols.RXChip;
-import io.github.leewyatt.rxcontrols.RXChipSet;
-import io.github.leewyatt.rxcontrols.RXChipSet.SelectionMode;
+import io.github.leewyatt.rxcontrols.RXCopyButton;
 import io.github.leewyatt.rxcontrols.RXHighlightTextView;
 import io.github.leewyatt.rxcontrols.RXHighlightTextView.MatchRules;
 import io.github.leewyatt.rxcontrols.RXTextField;
@@ -11,6 +9,7 @@ import javafx.beans.binding.BooleanBinding;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
@@ -19,13 +18,14 @@ import java.util.List;
 import java.util.Locale;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.icon;
+import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.spacer;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.DataViewKit.text;
 
 /**
- * The RXHighlightTextView page: a search field that highlights as you type, keywords
- * switched on and off, dates and prices found by regular expressions, case-sensitive and
- * case-insensitive matching side by side, a list of questions filtered by the matched
- * state, and highlight colors.
+ * The RXHighlightTextView page: a search field that highlights as you type, a log whose
+ * lines can be selected and copied, dates and prices found by regular expressions,
+ * case-sensitive and case-insensitive matching side by side, a list of questions filtered
+ * by the matched state, and highlight colors that read well on light and dark themes.
  */
 public final class RXHighlightTextViewSamples {
 
@@ -35,7 +35,13 @@ public final class RXHighlightTextViewSamples {
             + "Sticky headers now follow the theme, and a new option lets groups collapse. "
             + "The tile view and the masonry view share the same smooth scrolling.";
 
-    private static final String INVOICE = "Invoice sent on 2026-03-14 for $1,250.00. A second payment of "
+    private static final String LOG = "09:41:02  INFO   Server started on port 8080\n"
+            + "09:41:05  WARN   Disk is 90% full\n"
+            + "09:41:07  ERROR  Payment service did not answer\n"
+            + "09:41:09  INFO   Retrying the payment service\n"
+            + "09:41:12  ERROR  Payment service did not answer";
+
+    private static final String INVOICE ="Invoice sent on 2026-03-14 for $1,250.00. A second payment of "
             + "$480.50 is due on 2026-04-01, and a late fee of $25.00 applies after 2026-04-15.";
 
     private static final String JAVA = "Write JAVA, Java or java: a search that ignores case finds all three.";
@@ -64,9 +70,9 @@ public final class RXHighlightTextViewSamples {
                         SampleCard.large("Search as you type",
                                 "Each word in the field becomes a keyword; highlightRanges counts the matches.",
                                 search()),
-                        SampleCard.large("Toggle keywords",
-                                "getKeywords is a plain list, so the chips of an RXChipSet can add and remove terms.",
-                                toggles()),
+                        SampleCard.large("Select and copy",
+                                "Selection is off by default; setSelectable(true) lets people select a line and copy it.",
+                                selectAndCopy()),
                         SampleCard.large("Regular expressions",
                                 "MatchRules REGEX finds patterns such as dates and prices.",
                                 regex()),
@@ -77,7 +83,7 @@ public final class RXHighlightTextViewSamples {
                                 "The read-only matched property hides every question that does not contain the search.",
                                 questions()),
                         SampleCard.large("Highlight colors",
-                                "highlightFill, or -rx-highlight-fill in CSS, changes the marker color.",
+                                "highlightFill, or -rx-highlight-fill in CSS, changes the marker color; a translucent color reads well on light and dark themes.",
                                 colors())),
                 DataViewKit.STYLESHEET);
     }
@@ -97,26 +103,28 @@ public final class RXHighlightTextViewSamples {
         return column(field, view, count);
     }
 
-    // ==================== Toggle keywords ====================
+    // ==================== Select and copy ====================
 
-    private static Node toggles() {
-        RXHighlightTextView view = sized(new RXHighlightTextView(RELEASE));
-        RXChipSet chips = new RXChipSet();
-        chips.setSelectionMode(SelectionMode.MULTIPLE);
-        for (String keyword : List.of("list", "tile", "masonry", "headers")) {
-            RXChip chip = new RXChip(keyword);
-            chip.setSelectable(true);
-            chip.selectedProperty().addListener((obs, was, on) -> {
-                if (on) {
-                    view.getKeywords().add(keyword);
-                } else {
-                    view.getKeywords().remove(keyword);
-                }
-            });
-            chips.getChips().add(chip);
-            chip.setSelected(!keyword.equals("tile"));
-        }
-        return column(chips, view);
+    private static Node selectAndCopy() {
+        RXHighlightTextView view = new RXHighlightTextView(LOG, "error");
+        view.setSelectable(true);
+        view.getStyleClass().add("mono");
+        view.setLineSpacing(6.0);
+        int firstError = LOG.indexOf("09:41:07");
+        view.selectRange(firstError, LOG.indexOf('\n', firstError));
+        VBox log = new VBox(view);
+        log.getStyleClass().add("receipt");
+        Label count = text("", "hint");
+        count.textProperty().bind(Bindings.createStringBinding(() -> {
+            int length = view.getSelectedText().length();
+            return length == 0 ? "Nothing selected" : length + " characters selected";
+        }, view.selectedTextProperty()));
+        RXCopyButton copy = new RXCopyButton("Copy");
+        copy.setContentFactory(() -> RXCopyButton.textContent(view.getSelectedText()));
+        copy.disableProperty().bind(view.selectedTextProperty().isEmpty());
+        HBox actions = new HBox(8.0, count, spacer(), copy);
+        actions.setAlignment(Pos.CENTER_LEFT);
+        return column(log, actions);
     }
 
     // ==================== Regular expressions ====================
@@ -161,12 +169,13 @@ public final class RXHighlightTextViewSamples {
     // ==================== Highlight colors ====================
 
     private static Node colors() {
-        RXHighlightTextView yellow = sized(new RXHighlightTextView("The default marker is a bright yellow.", "yellow"));
+        RXHighlightTextView standard = sized(new RXHighlightTextView(
+                "The default marker takes its color from the theme.", "default marker"));
         RXHighlightTextView pink = sized(new RXHighlightTextView("A pink marker draws the eye to warnings.", "pink"));
         pink.getStyleClass().add("pink");
         RXHighlightTextView sky = sized(new RXHighlightTextView("A sky blue marker feels calm and quiet.", "sky blue"));
         sky.getStyleClass().add("sky");
-        return column(yellow, pink, sky);
+        return column(standard, pink, sky);
     }
 
     // ==================== Helpers ====================

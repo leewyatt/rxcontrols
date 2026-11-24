@@ -259,11 +259,11 @@
 }
 
 .example-card .rx-highlight-text-view.pink {
-    -rx-highlight-fill: #fbcfe8;
+    -rx-highlight-fill: rgba(236, 72, 153, 0.30);
 }
 
 .example-card .rx-highlight-text-view.sky {
-    -rx-highlight-fill: #bae6fd;
+    -rx-highlight-fill: rgba(14, 165, 233, 0.30);
 }
 
 .example-card .search-icon {
