@@ -8,12 +8,14 @@
     -sampler-accent-soft: derive(-fx-accent, 85%);
     -sampler-accent-text: derive(-fx-accent, -25%);
     -sampler-nav-background: -fx-control-inner-background;
+    -sampler-count-background: derive(-fx-background, -5%);
 }
 
 .root.rx-theme-atlantafx {
     -sampler-accent-soft: -color-accent-subtle;
     -sampler-accent-text: -color-accent-fg;
     -sampler-nav-background: -color-bg-default;
+    -sampler-count-background: -color-neutral-muted;
 }
 
 .sampler {
@@ -120,6 +122,16 @@
 
 .sampler-nav .item > .trailing > .label {
     -fx-font-size: 11px;
+    -fx-min-width: 24px;
+    -fx-alignment: center;
+    -fx-padding: 1px 6px;
+    -fx-background-color: -sampler-count-background;
+    -fx-background-radius: 999px;
+}
+
+.sampler-nav .item:child-selected > .trailing > .label {
+    -fx-background-color: -sampler-accent-soft;
+    -fx-text-fill: -sampler-accent-text;
 }
 
 /* The nav footer and the pager share one fixed height so their top borders line up. */
