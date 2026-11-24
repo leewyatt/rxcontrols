@@ -35,7 +35,7 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.FeedbackKit.te
 
 /**
  * The RXBackdrop page: every card is a small screen with a backdrop over its content,
- * behind a filter panel, a photo preview, a busy cover, a sheet from the bottom and a
+ * behind a filter panel, a photo preview, a sheet from the bottom, a busy cover and a
  * dialog with a slow fade or none.
  */
 public final class RXBackdropSamples {
@@ -58,17 +58,18 @@ public final class RXBackdropSamples {
                         "For a ready-made modal card use RXDialog; for a side drawer, RXDrawerPane."),
                 List.of(
                         SampleCard.canvas("Filter panel",
-                                "Filters slides a panel in from the right over the backdrop; a click on the backdrop closes both.",
+                                "The panel starts open over the backdrop; a click on the backdrop closes both, and"
+                                        + " Filters slides the panel back in from the right.",
                                 filters()),
                         SampleCard.large("Photo preview",
                                 "A darker backdrop through a style class; click a photo to open it, click anywhere to close.",
                                 preview()),
-                        SampleCard.large("Busy cover",
-                                "A light backdrop with dots blocks the form while it is sent.",
-                                busy()),
                         SampleCard.large("Share sheet",
                                 "A sheet rises from the bottom edge over the backdrop.",
                                 sheet()),
+                        SampleCard.large("Busy cover",
+                                "A light backdrop with dots blocks the form while it is sent.",
+                                busy()),
                         SampleCard.large("Fade timing",
                                 "fadeInDuration 600 ms makes a slow entrance; show(false) skips the fade.",
                                 timing())),
@@ -118,8 +119,8 @@ public final class RXBackdropSamples {
         panel.getStyleClass().add("side-panel");
         panel.setPrefWidth(PANEL_WIDTH);
         panel.setMaxWidth(PANEL_WIDTH);
-        panel.setTranslateX(PANEL_WIDTH + 20.0);
         StackPane.setAlignment(panel, Pos.CENTER_RIGHT);
+        backdrop.show(false);
 
         StackPane screen = FeedbackKit.screen(640.0, 380.0, page, backdrop, panel);
         screen.setMaxWidth(720.0);
