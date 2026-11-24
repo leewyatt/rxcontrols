@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.skins.RXTileViewSkin;
 import javafx.animation.PauseTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -18,6 +19,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.control.SelectionMode;
+import javafx.scene.control.Skin;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -42,15 +44,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -3254,6 +3260,117 @@ public class RXTileViewSkinTest {
             view.setMaxColumns(6);
             pump(root);
             assertFalse(anyCellTranslated(view, 12), "a non-positive duration disables the glide");
+        });
+    }
+
+    /**
+     * Verifies a reorder pass during which a moving cell's first glide write turns
+     * animation off, by a null duration or by animated=false, completes with every
+     * cell at its slot.
+     */
+    @Test
+    public void turningAnimationOffDuringAReorderPassSnapsTheRestOfIt() throws Exception {
+        List<Consumer<RXTileView<String>>> turnOffs =
+                List.of(v -> v.setAnimationDuration(null), v -> v.setAnimated(false));
+        onFx(() -> {
+            for (Consumer<RXTileView<String>> turnOff : turnOffs) {
+                RXTileView<String> view = tiles(12);
+                view.setMaxColumns(4);
+                view.setAnimated(true);
+                StackPane root = host(view, 700, 400);
+                pump(root);
+                RXTileCell<?> moving = cellByIndex(view, 5);
+                AtomicBoolean fired = new AtomicBoolean();
+                moving.translateXProperty().addListener((obs, was, now) -> {
+                    if (!fired.getAndSet(true)) {
+                        turnOff.accept(view);
+                    }
+                });
+
+                view.setMaxColumns(6);
+                pump(root);
+
+                assertTrue(fired.get(), "setup: the cell for item 5 started to glide");
+                assertFalse(anyCellTranslated(view, 12), "every cell sits at its slot once animation is off");
+            }
+        });
+    }
+
+    /**
+     * Verifies a skin whose reorder glide failed on a bound cell translate still
+     * disposes completely.
+     */
+    @Test
+    public void skinDisposesAfterAGlideFailedOnABoundTranslate() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(12);
+            view.setMaxColumns(4);
+            view.setAnimated(true);
+            StackPane root = host(view, 700, 400);
+            pump(root);
+            RXTileCell<?> moving = cellByIndex(view, 5);
+            moving.translateXProperty().bind(new SimpleDoubleProperty(0.0));
+
+            view.setMaxColumns(6);
+            assertThrows(RuntimeException.class, () -> pump(root),
+                    "the glide's start write into the bound translate is reported");
+
+            Skin<?> skin = view.getSkin();
+            assertDoesNotThrow(skin::dispose, "the failed glide left nothing for dispose to reset");
+            assertNull(moving.getParent(), "dispose released the cells");
+        });
+    }
+
+    /**
+     * Verifies a cell whose glide failed on its bound translateY, after X was already
+     * written, is back on its slot once the binding is gone and the view relays out.
+     */
+    @Test
+    public void cellIsBackOnItsSlotAfterAGlideFailedOnItsSecondAxis() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(12);
+            view.setMaxColumns(4);
+            view.setAnimated(true);
+            StackPane root = host(view, 700, 400);
+            pump(root);
+            RXTileCell<?> moving = cellByIndex(view, 5);
+            moving.translateYProperty().bind(new SimpleDoubleProperty(0.0));
+
+            view.setMaxColumns(6);
+            assertThrows(RuntimeException.class, () -> pump(root),
+                    "the glide's start write into the bound translateY is reported");
+            moving.translateYProperty().unbind();
+            view.setAnimated(false);
+            pump(root);
+
+            assertEquals(0.0, moving.getTranslateX(), 1e-9, "the X written before the failure is undone");
+            assertFalse(anyCellTranslated(view, 12), "every cell sits at its slot");
+        });
+    }
+
+    /**
+     * Verifies a skin disposes completely when a cell's translate is bound after
+     * its glide started.
+     */
+    @Test
+    public void skinDisposesWhenATranslateIsBoundMidGlide() throws Exception {
+        onFx(() -> {
+            RXTileView<String> view = tiles(12);
+            view.setMaxColumns(4);
+            view.setAnimated(true);
+            view.setAnimationDuration(Duration.seconds(30.0));
+            StackPane root = host(view, 700, 400);
+            pump(root);
+            view.setMaxColumns(6);
+            pump(root);
+            RXTileCell<?> moving = cellByIndex(view, 5);
+            assertTrue(Math.abs(moving.getTranslateX()) > 0.5, "setup: the cell for item 5 is gliding");
+            moving.translateXProperty().bind(new SimpleDoubleProperty(0.0));
+
+            Skin<?> skin = view.getSkin();
+            assertDoesNotThrow(skin::dispose, "dispose leaves the bound axis to its binding");
+            assertNull(moving.getParent(), "dispose released the cells");
+            assertEquals(0.0, moving.getTranslateY(), 1e-9, "the other axis is back on its slot");
         });
     }
 

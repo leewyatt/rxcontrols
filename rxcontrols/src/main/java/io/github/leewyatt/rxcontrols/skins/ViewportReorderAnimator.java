@@ -4,12 +4,14 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.value.WritableDoubleValue;
 import javafx.scene.Node;
 import javafx.util.Duration;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 /**
@@ -22,6 +24,33 @@ import java.util.function.Consumer;
  * virtualized cell be re-aimed mid-glide without disturbing the others, and let a
  * cell that finishes be recycled on its own.
  *
+ * <p>These guarantees hold whatever runs in between, listeners on the glided
+ * translate included:
+ * <ul>
+ *   <li>A glide that was cancelled or replaced, even while its start position was
+ *   being written, never writes to its node again. JavaFX still pulses an
+ *   animation that another animation's handler stopped earlier in the same frame
+ *   (a handler that lays the viewport out, such as a drag's auto-scroll tick,
+ *   cancels glides that way), so ownership is checked on every write of each
+ *   axis, not only when the glide is stopped.</li>
+ *   <li>Each glide starts only if the owner still animates at that moment. Settings
+ *   can change in the middle of a layout pass that already decided to glide, and
+ *   a disabled owner's duration may be one no {@link KeyFrame} accepts.</li>
+ *   <li>A bound translate axis belongs to its binding. Starting a glide on it
+ *   throws, as writing any bound property does; nothing else writes it: the
+ *   tween skips it, and every reset (a snap, a cancel, {@link #snapAll}, a
+ *   finish, a start that failed) leaves it as is and still resets the other
+ *   axis. Resets therefore never throw, and a glide bound mid-flight still
+ *   finishes.</li>
+ *   <li>A node this animator took over is, once any call returns or throws,
+ *   either driven by a playing glide or back on its slot on every writable
+ *   axis, unless a listener started a newer glide on it.</li>
+ * </ul>
+ *
+ * <p>The tween itself is a plain {@link KeyValue} that starts from the node's actual
+ * translate, so every interpolator, tangent ones included, shapes it as it would
+ * shape the node's own property.
+ *
  * <p>This class only manages the tween + transform cleanup; the viewport owns the
  * recycler pin-set (a gliding cell must not be parked or rebound without first
  * cancelling its glide) and removes the node from that set in the
@@ -32,41 +61,69 @@ final class ViewportReorderAnimator {
     // Sub-pixel moves are snapped rather than animated (no 0-frame Timeline churn).
     private static final double MOVE_EPSILON = 0.5;
 
-    private final Map<Node, Timeline> running = new HashMap<>();
+    private final BooleanSupplier animationEnabled;
+    private final Map<Node, Glide> running = new HashMap<>();
+
+    /**
+     * Creates an animator for an owner whose animation settings can change at any time.
+     *
+     * @param animationEnabled whether the owner animates right now; read each time a
+     *                         glide is about to start
+     */
+    ViewportReorderAnimator(BooleanSupplier animationEnabled) {
+        this.animationEnabled = animationEnabled;
+    }
 
     /**
      * Glides {@code node} from the given translate delta back to zero over
      * {@code duration} using {@code interpolator}. If a tween is already running
      * for the node it is stopped and replaced (re-aim, not restart-from-scratch).
-     * Sub-pixel deltas snap immediately. {@code onFinished} runs after the
-     * transforms are reset, on every terminal path (natural finish or snap), so the
-     * caller can un-pin / recycle.
+     * Sub-pixel deltas, and any delta while the owner no longer animates, snap
+     * immediately. {@code onFinished} runs after the transforms are reset, on a
+     * natural finish or a snap, so the caller can un-pin / recycle. If writing the
+     * start position throws (a bound translate, or an error from a listener), the
+     * throwable propagates and, as with a snap, the node is put back on its slot on
+     * both writable axes, whatever they held before the call.
      */
     void animate(Node node, double fromDx, double fromDy, Duration duration, Interpolator interpolator,
                  Consumer<Node> onFinished) {
-        Timeline prior = running.remove(node);
+        Glide prior = running.remove(node);
         if (prior != null) {
             prior.stop();
         }
-        if (Math.abs(fromDx) < MOVE_EPSILON && Math.abs(fromDy) < MOVE_EPSILON) {
-            node.setTranslateX(0);
-            node.setTranslateY(0);
+        boolean subPixel = Math.abs(fromDx) < MOVE_EPSILON && Math.abs(fromDy) < MOVE_EPSILON;
+        if (subPixel || !animationEnabled.getAsBoolean()) {
+            resetTranslate(node);
             onFinished.accept(node);
             return;
         }
-        node.setTranslateX(fromDx);
-        node.setTranslateY(fromDy);
-        Timeline timeline = new Timeline(new KeyFrame(duration,
-                new KeyValue(node.translateXProperty(), 0.0, interpolator),
-                new KeyValue(node.translateYProperty(), 0.0, interpolator)));
-        timeline.setOnFinished(e -> {
-            node.setTranslateX(0);
-            node.setTranslateY(0);
-            running.remove(node);
-            onFinished.accept(node);
-        });
-        running.put(node, timeline);
-        timeline.play();
+        // Registered before the start position is written, so a listener on those
+        // writes that cancels the glide finds it. The layout already moved the node
+        // to its new slot; the start position shows the old one in this same frame.
+        Glide glide = new Glide(node, duration, interpolator, onFinished);
+        running.put(node, glide);
+        try {
+            node.setTranslateX(fromDx);
+            if (!glide.ownsNode()) {
+                return;
+            }
+            node.setTranslateY(fromDy);
+            if (!glide.ownsNode()) {
+                return;
+            }
+            glide.play();
+        } catch (Throwable failure) {
+            // Any throwable, errors from listeners included: a registration left
+            // behind would have a later cancel or snapAll act on a glide that never
+            // played. Still registered only if no listener took the node over. This
+            // call already stopped any earlier glide, so nothing else would bring the
+            // node back: withdraw this start and reset both writable axes, not only
+            // the one it wrote.
+            if (running.remove(node, glide)) {
+                resetTranslate(node);
+            }
+            throw failure;
+        }
     }
 
     /**
@@ -79,13 +136,12 @@ final class ViewportReorderAnimator {
      * @param node the node whose glide to cancel
      */
     void cancel(Node node) {
-        Timeline prior = running.remove(node);
+        Glide prior = running.remove(node);
         if (prior == null) {
             return;
         }
         prior.stop();
-        node.setTranslateX(0);
-        node.setTranslateY(0);
+        resetTranslate(node);
     }
 
     /**
@@ -94,11 +150,97 @@ final class ViewportReorderAnimator {
      * invoked; the caller must clear its own pin-set.
      */
     void snapAll() {
-        for (Map.Entry<Node, Timeline> entry : new ArrayList<>(running.entrySet())) {
-            entry.getValue().stop();
-            entry.getKey().setTranslateX(0);
-            entry.getKey().setTranslateY(0);
-        }
+        // Released before stopping, so none of them still owns its node if it pulses late.
+        Map<Node, Glide> stopped = new HashMap<>(running);
         running.clear();
+        for (Map.Entry<Node, Glide> entry : stopped.entrySet()) {
+            entry.getValue().stop();
+            resetTranslate(entry.getKey());
+        }
+    }
+
+    // Puts the node back on its slot. A bound axis belongs to its binding and is left
+    // as is, so a reset never throws and always reaches the other axis.
+    private static void resetTranslate(Node node) {
+        if (!node.translateXProperty().isBound()) {
+            node.setTranslateX(0);
+        }
+        if (!node.translateYProperty().isBound()) {
+            node.setTranslateY(0);
+        }
+    }
+
+    // ==================== Glide ====================
+
+    private final class Glide {
+
+        private final Node node;
+        private final Timeline timeline;
+        private final Consumer<Node> finishCallback;
+
+        Glide(Node node, Duration duration, Interpolator interpolator, Consumer<Node> finishCallback) {
+            this.node = node;
+            this.finishCallback = finishCallback;
+            timeline = new Timeline(new KeyFrame(duration,
+                    new KeyValue(new Axis(node.translateXProperty()), 0.0, interpolator),
+                    new KeyValue(new Axis(node.translateYProperty()), 0.0, interpolator)));
+            timeline.setOnFinished(event -> finish());
+        }
+
+        void play() {
+            timeline.play();
+        }
+
+        void stop() {
+            timeline.stop();
+        }
+
+        boolean ownsNode() {
+            return running.get(node) == this;
+        }
+
+        private void finish() {
+            if (!ownsNode()) {
+                return;
+            }
+            running.remove(node);
+            resetTranslate(node);
+            finishCallback.accept(node);
+        }
+
+        // The tween's target for one translate axis: it reads the node's property, so
+        // the tween starts wherever the node actually is, and writes to it only while
+        // this glide still owns the node and the axis is not bound. A throwing frame
+        // write would keep JavaFX from ever finishing the glide.
+        private final class Axis implements WritableDoubleValue {
+
+            private final DoubleProperty translate;
+
+            Axis(DoubleProperty translate) {
+                this.translate = translate;
+            }
+
+            @Override
+            public double get() {
+                return translate.get();
+            }
+
+            @Override
+            public void set(double newValue) {
+                if (ownsNode() && !translate.isBound()) {
+                    translate.set(newValue);
+                }
+            }
+
+            @Override
+            public Number getValue() {
+                return translate.get();
+            }
+
+            @Override
+            public void setValue(Number newValue) {
+                set(newValue == null ? 0.0 : newValue.doubleValue());
+            }
+        }
     }
 }

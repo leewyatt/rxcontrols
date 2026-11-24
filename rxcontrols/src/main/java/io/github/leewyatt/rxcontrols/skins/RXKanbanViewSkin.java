@@ -97,7 +97,7 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
     // Column reorder: FLIP the boxes from their pre-reorder visual x to the new layout
     // x. Populated by the column drag support on commit, consumed by the next layout.
     private final Map<KanbanColumnBox<T>, Double> pendingColumnFlipFromX = new IdentityHashMap<>();
-    private final ViewportReorderAnimator columnAnimator = new ViewportReorderAnimator();
+    private final ViewportReorderAnimator columnAnimator = new ViewportReorderAnimator(this::animationEnabled);
     private final KanbanColumnDragSupport<T> columnDragSupport;
 
     // Live make-way preview while a column header is being dragged: the dragged column
@@ -748,6 +748,22 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
 
     List<KanbanColumnBox<T>> columnBoxes() {
         return boxes;
+    }
+
+    // Center x of a column's slot in the model-order layout, in the columns host's
+    // coordinates, or NaN before a layout has sized it. The reorder preview glides the
+    // boxes but never moves these slots.
+    double columnSlotCenterX(int index) {
+        if (index < 0 || index >= cachedColumnX.length) {
+            return Double.NaN;
+        }
+        return cachedColumnX[index] + cachedColumnW[index] / 2.0 - boardScrollX;
+    }
+
+    // Stops a column's reorder glide and resets its translate, so a drag that grabs it
+    // mid-glide is the only writer of that translate.
+    void stopColumnGlide(KanbanColumnBox<T> box) {
+        columnAnimator.cancel(box);
     }
 
     // The column box whose header contains the target, when column reordering is

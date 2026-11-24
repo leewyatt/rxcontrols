@@ -1,26 +1,36 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.scene.layout.Region;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Direct tests for {@link ViewportReorderAnimator}: the terminal-path contracts the
  * viewports rely on for their recycler pin-sets — sub-pixel synchronous finish,
  * cancel / snapAll never invoking {@code onFinished}, and re-aim replacing a
- * running tween without a spurious terminal callback.
+ * running tween without a spurious terminal callback — plus the tween's shape under
+ * a tangent interpolator and a stopped glide never writing again.
  */
 public class ViewportReorderAnimatorTest {
 
@@ -53,7 +63,7 @@ public class ViewportReorderAnimatorTest {
     @Test
     public void subPixelDeltaSnapsAndFinishesSynchronously() throws Exception {
         runOnFx(() -> {
-            ViewportReorderAnimator animator = new ViewportReorderAnimator();
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
             Region node = new Region();
             AtomicInteger finished = new AtomicInteger();
 
@@ -73,7 +83,7 @@ public class ViewportReorderAnimatorTest {
     @Test
     public void cancelResetsTransformsWithoutOnFinished() throws Exception {
         runOnFx(() -> {
-            ViewportReorderAnimator animator = new ViewportReorderAnimator();
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
             Region node = new Region();
             AtomicInteger finished = new AtomicInteger();
 
@@ -97,7 +107,7 @@ public class ViewportReorderAnimatorTest {
     @Test
     public void snapAllStopsEverythingWithoutOnFinished() throws Exception {
         runOnFx(() -> {
-            ViewportReorderAnimator animator = new ViewportReorderAnimator();
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
             Region a = new Region();
             Region b = new Region();
             AtomicInteger finished = new AtomicInteger();
@@ -121,7 +131,7 @@ public class ViewportReorderAnimatorTest {
     @Test
     public void reAimReplacesTweenWithoutSpuriousFinish() throws Exception {
         runOnFx(() -> {
-            ViewportReorderAnimator animator = new ViewportReorderAnimator();
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
             Region node = new Region();
             AtomicInteger finished = new AtomicInteger();
             AtomicReference<Region> lastFinished = new AtomicReference<>();
@@ -141,6 +151,294 @@ public class ViewportReorderAnimatorTest {
             animator.cancel(node);
             assertEquals(0, finished.get());
             assertNull(lastFinished.get());
+        });
+    }
+
+    /**
+     * Verifies a glide under a tangent interpolator moves exactly like a plain
+     * translate {@code KeyValue} tween started in the same frame.
+     */
+    @Test
+    public void tangentInterpolatorShapesTheGlideLikeAPlainKeyValue() throws Exception {
+        Interpolator tangent = Interpolator.TANGENT(Duration.millis(250.0), 0.0);
+        Duration duration = Duration.seconds(2.0);
+        AtomicReference<ViewportReorderAnimator> animator = new AtomicReference<>();
+        AtomicReference<Region> glided = new AtomicReference<>();
+        AtomicReference<Region> reference = new AtomicReference<>();
+        runOnFx(() -> {
+            animator.set(new ViewportReorderAnimator(() -> true));
+            glided.set(new Region());
+            reference.set(new Region());
+            animator.get().animate(glided.get(), 0.0, 100.0, duration, tangent, n -> { });
+            reference.get().setTranslateY(100.0);
+            new Timeline(new KeyFrame(duration,
+                    new KeyValue(reference.get().translateYProperty(), 0.0, tangent))).play();
+        });
+
+        Thread.sleep(400);
+
+        runOnFx(() -> {
+            double expected = reference.get().getTranslateY();
+            assertTrue(expected > 0.0 && expected < 100.0, "setup: the reference tween is mid-flight: " + expected);
+            assertEquals(expected, glided.get().getTranslateY(), 0.1,
+                    "the glide follows the tangent curve of a plain KeyValue tween");
+            animator.get().cancel(glided.get());
+        });
+    }
+
+    /**
+     * Verifies a glide stopped by a listener on its first translate write leaves both
+     * axes at zero.
+     */
+    @Test
+    public void glideStoppedByATranslateListenerLeavesBothAxesAtZero() throws Exception {
+        AtomicReference<Region> node = new AtomicReference<>();
+        runOnFx(() -> {
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
+            Region region = new Region();
+            animator.animate(region, 100.0, 100.0, LONG_GLIDE, Interpolator.LINEAR, n -> { });
+            // Whichever axis the tween writes first stops it before the other is written.
+            region.translateXProperty().addListener((obs, was, now) -> animator.snapAll());
+            region.translateYProperty().addListener((obs, was, now) -> animator.snapAll());
+            node.set(region);
+        });
+
+        Thread.sleep(200);
+
+        runOnFx(() -> {
+            assertEquals(0.0, node.get().getTranslateX(), EPSILON, "the axis written first is reset");
+            assertEquals(0.0, node.get().getTranslateY(), EPSILON, "the other axis is never written");
+        });
+    }
+
+    /**
+     * Verifies a glide cancelled by a listener while its start position is written
+     * never plays and fires no finish callback.
+     */
+    @Test
+    public void glideCancelledDuringItsStartWriteNeverPlays() throws Exception {
+        AtomicReference<Region> node = new AtomicReference<>();
+        AtomicInteger finished = new AtomicInteger();
+        runOnFx(() -> {
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
+            Region region = new Region();
+            AtomicBoolean fired = new AtomicBoolean();
+            region.translateXProperty().addListener((obs, was, now) -> {
+                if (!fired.getAndSet(true)) {
+                    animator.snapAll();
+                }
+            });
+            animator.animate(region, 100.0, 100.0, LONG_GLIDE, Interpolator.LINEAR, n -> finished.incrementAndGet());
+            assertEquals(0.0, region.getTranslateX(), EPSILON, "the cancel resets the axis being written");
+            assertEquals(0.0, region.getTranslateY(), EPSILON, "the other axis is never written");
+            node.set(region);
+        });
+
+        Thread.sleep(200);
+
+        runOnFx(() -> {
+            assertEquals(0.0, node.get().getTranslateX(), EPSILON, "no glide plays afterwards");
+            assertEquals(0.0, node.get().getTranslateY(), EPSILON);
+            assertEquals(0, finished.get(), "a cancelled glide fires no finish callback");
+        });
+    }
+
+    /**
+     * Verifies a glide requested while the owner does not animate snaps at once and
+     * finishes exactly once, even with a duration no key frame accepts.
+     */
+    @Test
+    public void glideRequestedWhileTheOwnerDoesNotAnimateSnaps() throws Exception {
+        runOnFx(() -> {
+            AtomicInteger finished = new AtomicInteger();
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> false);
+            Region node = new Region();
+            animator.animate(node, 100.0, 100.0, null, Interpolator.LINEAR, n -> finished.incrementAndGet());
+            assertEquals(0.0, node.getTranslateX(), EPSILON, "the node snaps to its slot");
+            assertEquals(0.0, node.getTranslateY(), EPSILON);
+            assertEquals(1, finished.get(), "the snap reports the glide finished");
+        });
+    }
+
+    /**
+     * Verifies a glide starts from the translate a listener left on the node while
+     * the start position was written, like a plain {@code KeyValue} tween does.
+     */
+    @Test
+    public void glideStartsFromTheTranslateTheNodeActuallyHas() throws Exception {
+        Duration duration = Duration.seconds(2.0);
+        AtomicReference<ViewportReorderAnimator> animator = new AtomicReference<>();
+        AtomicReference<Region> glided = new AtomicReference<>();
+        AtomicReference<Region> reference = new AtomicReference<>();
+        runOnFx(() -> {
+            animator.set(new ViewportReorderAnimator(() -> true));
+            glided.set(new Region());
+            reference.set(new Region());
+            pullBackOnFirstHundred(glided.get());
+            pullBackOnFirstHundred(reference.get());
+            animator.get().animate(glided.get(), 0.0, 100.0, duration, Interpolator.LINEAR, n -> { });
+            reference.get().setTranslateY(100.0);
+            new Timeline(new KeyFrame(duration,
+                    new KeyValue(reference.get().translateYProperty(), 0.0, Interpolator.LINEAR))).play();
+        });
+
+        Thread.sleep(400);
+
+        runOnFx(() -> {
+            double expected = reference.get().getTranslateY();
+            assertTrue(expected > 0.0 && expected < 40.0,
+                    "setup: the reference tween starts from the moved value and is mid-flight: " + expected);
+            assertEquals(expected, glided.get().getTranslateY(), 0.1,
+                    "the glide starts where the listener left the node");
+            animator.get().cancel(glided.get());
+        });
+    }
+
+    /**
+     * Verifies a start on a bound axis is reported, leaves no glide behind for a
+     * later snapAll, and puts the node back on its slot on both writable axes
+     * whichever axis is bound, like a snap does.
+     */
+    @Test
+    public void startOnABoundAxisThrowsAndPutsTheNodeBack() throws Exception {
+        AtomicReference<Region> boundY = new AtomicReference<>();
+        runOnFx(() -> {
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
+            Region xBound = new Region();
+            xBound.setTranslateY(37.0);
+            xBound.translateXProperty().bind(new SimpleDoubleProperty(0.0));
+            assertThrows(RuntimeException.class,
+                    () -> animator.animate(xBound, 100.0, 100.0, LONG_GLIDE, Interpolator.LINEAR, n -> { }),
+                    "writing a start position into a bound translate is reported");
+            assertEquals(0.0, xBound.getTranslateY(), EPSILON,
+                    "the writable axis the start never reached is back on its slot too");
+            assertDoesNotThrow(animator::snapAll, "the failed start left no glide to reset");
+
+            // X is written before the bound Y throws: it has to go back too.
+            Region yBound = new Region();
+            yBound.translateYProperty().bind(new SimpleDoubleProperty(7.0));
+            assertThrows(RuntimeException.class,
+                    () -> animator.animate(yBound, 100.0, 100.0, LONG_GLIDE, Interpolator.LINEAR, n -> { }));
+            assertEquals(0.0, yBound.getTranslateX(), EPSILON, "the axis written before the failure is reset");
+            assertEquals(7.0, yBound.getTranslateY(), EPSILON, "the bound axis keeps its binding");
+            boundY.set(yBound);
+        });
+
+        Thread.sleep(200);
+
+        runOnFx(() -> assertEquals(0.0, boundY.get().getTranslateX(), EPSILON, "no failed glide plays later"));
+    }
+
+    /**
+     * Verifies a start interrupted by an error from a listener leaves no glide
+     * registered for a later cancel to act on.
+     */
+    @Test
+    public void startInterruptedByAnErrorLeavesNothingRegistered() throws Exception {
+        runOnFx(() -> {
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
+            Region node = new Region();
+            AtomicBoolean fired = new AtomicBoolean();
+            node.translateXProperty().addListener((obs, was, now) -> {
+                if (!fired.getAndSet(true)) {
+                    throw new AssertionError("listener failure");
+                }
+            });
+            assertThrows(AssertionError.class,
+                    () -> animator.animate(node, 100.0, 100.0, LONG_GLIDE, Interpolator.LINEAR, n -> { }),
+                    "the listener's error reaches the caller");
+
+            node.setTranslateX(51.0);
+            animator.cancel(node);
+            assertEquals(51.0, node.getTranslateX(), EPSILON, "cancel finds no glide to reset");
+        });
+    }
+
+    /**
+     * Verifies every reset path leaves a bound axis as its binding has it and still
+     * resets the other axis, without throwing.
+     */
+    @Test
+    public void resetsLeaveABoundAxisAndResetTheOther() throws Exception {
+        runOnFx(() -> {
+            AtomicBoolean enabled = new AtomicBoolean(true);
+            AtomicInteger finished = new AtomicInteger();
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(enabled::get);
+
+            Region snapped = glidingWithBoundX(animator, finished);
+            enabled.set(false);
+            assertDoesNotThrow(() -> animator.animate(snapped, 50.0, 50.0, LONG_GLIDE, Interpolator.LINEAR,
+                    n -> finished.incrementAndGet()), "a snap skips the bound axis");
+            assertBoundXAndRestingY(snapped, "snap");
+            assertEquals(1, finished.get(), "the snap still reports the glide finished");
+            enabled.set(true);
+
+            Region cancelled = glidingWithBoundX(animator, finished);
+            assertDoesNotThrow(() -> animator.cancel(cancelled), "a cancel skips the bound axis");
+            assertBoundXAndRestingY(cancelled, "cancel");
+
+            List<Region> others = new ArrayList<>();
+            for (int i = 0; i < 5; i++) {
+                Region other = new Region();
+                animator.animate(other, 100.0, 100.0, LONG_GLIDE, Interpolator.LINEAR, n -> { });
+                others.add(other);
+            }
+            Region snappedAll = glidingWithBoundX(animator, finished);
+            assertDoesNotThrow(animator::snapAll, "snapAll skips the bound axis");
+            assertBoundXAndRestingY(snappedAll, "snapAll");
+            for (Region other : others) {
+                assertEquals(0.0, other.getTranslateX(), EPSILON, "snapAll resets the other nodes");
+                assertEquals(0.0, other.getTranslateY(), EPSILON);
+            }
+        });
+    }
+
+    /**
+     * Verifies a glide whose axis gets bound mid-flight still finishes: the bound
+     * axis keeps its binding, the other ends at zero, and the callback runs once.
+     */
+    @Test
+    public void glideBoundMidFlightStillFinishes() throws Exception {
+        AtomicReference<Region> node = new AtomicReference<>();
+        AtomicInteger finished = new AtomicInteger();
+        runOnFx(() -> {
+            ViewportReorderAnimator animator = new ViewportReorderAnimator(() -> true);
+            Region region = new Region();
+            animator.animate(region, 100.0, 100.0, Duration.millis(300.0), Interpolator.LINEAR,
+                    n -> finished.incrementAndGet());
+            region.translateXProperty().bind(new SimpleDoubleProperty(5.0));
+            node.set(region);
+        });
+
+        Thread.sleep(700);
+
+        runOnFx(() -> {
+            assertEquals(5.0, node.get().getTranslateX(), EPSILON, "the bound axis keeps its binding");
+            assertEquals(0.0, node.get().getTranslateY(), EPSILON, "the other axis ends on its slot");
+            assertEquals(1, finished.get(), "the glide finishes once");
+        });
+    }
+
+    // A node gliding from (100, 100) whose X is then bound to 5.
+    private static Region glidingWithBoundX(ViewportReorderAnimator animator, AtomicInteger finished) {
+        Region node = new Region();
+        animator.animate(node, 100.0, 100.0, LONG_GLIDE, Interpolator.LINEAR, n -> finished.incrementAndGet());
+        node.translateXProperty().bind(new SimpleDoubleProperty(5.0));
+        return node;
+    }
+
+    private static void assertBoundXAndRestingY(Region node, String path) {
+        assertEquals(5.0, node.getTranslateX(), EPSILON, path + " leaves the bound axis to its binding");
+        assertEquals(0.0, node.getTranslateY(), EPSILON, path + " resets the other axis");
+    }
+
+    // Moves the node to 40 the first time its translateY becomes 100.
+    private static void pullBackOnFirstHundred(Region region) {
+        AtomicBoolean fired = new AtomicBoolean();
+        region.translateYProperty().addListener((obs, was, now) -> {
+            if (now.doubleValue() == 100.0 && !fired.getAndSet(true)) {
+                region.setTranslateY(40.0);
+            }
         });
     }
 

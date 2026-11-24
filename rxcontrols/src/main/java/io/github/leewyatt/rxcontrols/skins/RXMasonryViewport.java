@@ -72,7 +72,7 @@ final class RXMasonryViewport<T> extends RXVirtualViewportBase<T, RXMasonryCell<
     // and a same-item re-placement keeps the glide, while a rebind to a different
     // item or a park cancels the glide first.
     private final Set<RXMasonryCell<T>> animating = new HashSet<>();
-    private final ViewportReorderAnimator reorderAnimator = new ViewportReorderAnimator();
+    private final ViewportReorderAnimator reorderAnimator = new ViewportReorderAnimator(this::animationEnabled);
     // True for the duration of one fillVisible when a column-count change should glide
     // cells from their old positions to the new ones.
     private boolean reorderPass;

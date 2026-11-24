@@ -566,6 +566,8 @@ public class RXKanbanView<T> extends Control {
 
     /**
      * Whether columns can be reordered by dragging their headers. Off by default.
+     * A dragged column takes a neighbour's place once it covers more than half of it,
+     * wherever the header was grabbed.
      * While on, the view carries the {@code :column-reorder} pseudo-class, which the
      * default style uses to show a grab cursor over the headers.
      *
