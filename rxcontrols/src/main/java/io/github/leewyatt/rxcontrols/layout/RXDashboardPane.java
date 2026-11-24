@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.internal.RenderScaleWatch;
 import io.github.leewyatt.rxcontrols.layout.DashboardSolver.Item;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardLayout.Placement;
 import javafx.animation.Interpolator;
+import javafx.application.Platform;
 import javafx.beans.DefaultProperty;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -85,7 +86,10 @@ import java.util.logging.Logger;
  * window makes cards wider but never taller. Every edge lands on the device-pixel grid. The pane's preferred height
  * is that of its rows and its minimum height equals it: the pane is not squeezed, so put it in a {@code ScrollPane}
  * when it may be taller than the window. Its preferred width makes each cell square; its minimum width is
- * {@link #minColumnWidthProperty() minColumnWidth} per column.</p>
+ * {@link #minColumnWidthProperty() minColumnWidth} per column. While the user drags or resizes a card in the last row,
+ * the pane is a row taller, to let the card go below; inside a {@code ScrollPane}, a column count that follows the
+ * width should follow one the vertical scroll bar does not change, such as the scroll pane's own width, as a new
+ * count cancels the gesture.</p>
  *
  * <p><b>Gestures.</b> While the pane is {@link #editableProperty() editable}, the user drags a card by pressing
  * anywhere on it that its content does not take for itself (table rows, scroll bars and buttons do; charts and labels
@@ -121,9 +125,9 @@ import java.util.logging.Logger;
  * drag step takes milliseconds, with several hundred a {@link #moveCard} over a long distance, a drag step or adding
  * many cards without a position at once can take a large part of a second.</p>
  *
- * <p>Style class {@code rx-dashboard-pane}; pseudo-class {@code :editable}. The cards are the pane's children in
- * reading order, row first, then column, which is also the keyboard focus order; {@link #getCards()} keeps the order
- * the application gave.</p>
+ * <p>Style class {@code rx-dashboard-pane}; pseudo-class {@code :editable}. The pane's first child is the region that
+ * marks where a held card will land (style class {@code placeholder}); the cards follow in reading order, row first,
+ * then column, which is also the keyboard focus order; {@link #getCards()} keeps the order the application gave.</p>
  */
 @DefaultProperty("cards")
 public class RXDashboardPane extends Region {
@@ -212,6 +216,7 @@ public class RXDashboardPane extends Region {
     // CSS pass, and takes the new one only if no style sheet replaced it by then.
     private boolean columnCountReset;
     private boolean columnCountPending;
+    private boolean relayoutAfterPass;
     // Depth of the placement and layout notifications in progress; changes arriving meanwhile wait for the end.
     private int notifying;
     private boolean reconcilePending;
@@ -1093,9 +1098,10 @@ public class RXDashboardPane extends Region {
     }
 
     /**
-     * Resizes a card to the given column and row span, keeping its top-left cell where the grid allows. The spans are
-     * first clamped into the card's span limits and the grid; a card that cannot keep its column at its new width
-     * moves left. Other cards make room by the {@link #collisionPolicyProperty() collisionPolicy}; the card itself
+     * Resizes a card to the given column and row span, keeping its top-left cell where the grid allows. The column
+     * span is first limited to the columns from the card's column to the grid's right edge, then both spans are
+     * clamped into the card's span limits; a card whose minimum column span does not fit there moves left. Other cards
+     * make room by the {@link #collisionPolicyProperty() collisionPolicy}; the card itself
      * may be locked. With {@link #autoCompactProperty() autoCompact} everything then packs upward, so the card may
      * rise when a smaller size frees the rows above it.
      *
@@ -1926,6 +1932,17 @@ public class RXDashboardPane extends Region {
         }
     }
 
+    private void requestLayoutAfterPass() {
+        if (relayoutAfterPass) {
+            return;
+        }
+        relayoutAfterPass = true;
+        Platform.runLater(() -> {
+            relayoutAfterPass = false;
+            requestLayout();
+        });
+    }
+
     // The cards place their content on the device grid too, so they lay out again even where their size stays.
     private void renderScaleChanged() {
         requestLayout();
@@ -2010,8 +2027,10 @@ public class RXDashboardPane extends Region {
         return computePrefHeight(width);
     }
 
-    // The rows the shown layout uses: the largest bottom row of any card, plus one during a gesture so a card can be
-    // taken below the last row.
+    // The rows the shown layout uses: the largest bottom row of any card, plus one while the card the user holds
+    // reaches the last row, so it can be taken below. Only then: a pane growing whenever a gesture starts would bring
+    // up an enclosing scroll pane's scroll bar, narrowing the pane, and a column count that follows the width would
+    // change and cancel the gesture.
     private int rowCount() {
         int rows = 0;
         for (RXDashboardCard card : members) {
@@ -2020,13 +2039,19 @@ public class RXDashboardPane extends Region {
                 rows = Math.max(rows, placement.row() + placement.rowSpan());
             }
         }
-        return gesture.isActive() ? rows + 1 : rows;
+        RXDashboardCard held = gesture.card();
+        Placement shown = held == null ? null : gesture.displayedPlacement(held);
+        return shown != null && shown.row() + shown.rowSpan() >= rows ? rows + 1 : rows;
     }
 
     // ==================== Layout ====================
 
     @Override
     protected void layoutChildren() {
+        // A count the CSS engine handed back and a preview worked out again change the preferred size from inside
+        // this pass; the request that makes stops at the ancestors, which are still laying out.
+        int rowsBefore = rowCount();
+        int columnsBefore = effectiveColumns;
         if (columnCountPending) {
             columnCountPending = false;
             if (getColumnCount() != lastValidColumnCount) {
@@ -2042,6 +2067,9 @@ public class RXDashboardPane extends Region {
         membership.beginPass();
         grid = computeGrid();
         gesture.layoutStarting();
+        if (rowCount() != rowsBefore || effectiveColumns != columnsBefore) {
+            requestLayoutAfterPass();
+        }
         boolean animate = isAnimated() && isAnimationDurationPositive() && membership.continuesIn(scene);
         boolean collectMoves = animate || animator.hasActiveState();
         List<RXDashboardCard> laidOut = new ArrayList<>(members);

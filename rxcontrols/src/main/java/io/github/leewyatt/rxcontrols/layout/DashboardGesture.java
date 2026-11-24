@@ -88,6 +88,8 @@ final class DashboardGesture {
     private Window watchedWindow;
     private Timeline autoScroll;
     private boolean paneMovedSinceLayout;
+    private double paneWidthAtLayout;
+    private double paneHeightAtLayout;
     // The click JavaFX generates for the release of a press that started a gesture, committed or cancelled: the card
     // followed the pointer, so press and release land on the same node. It is not a click on the content. The next
     // press clears it.
@@ -262,11 +264,19 @@ final class DashboardGesture {
      * Called by the pane as it starts laying out its cards, with its grid for this pass in place.
      */
     void layoutStarting() {
-        if (paneMovedSinceLayout) {
-            paneMovedSinceLayout = false;
-            if (started) {
-                track();
-            }
+        boolean resized = pane.getWidth() != paneWidthAtLayout || pane.getHeight() != paneHeightAtLayout;
+        paneWidthAtLayout = pane.getWidth();
+        paneHeightAtLayout = pane.getHeight();
+        if (!paneMovedSinceLayout) {
+            return;
+        }
+        paneMovedSinceLayout = false;
+        // A move that comes with a new size is the parent placing the pane again after it grew or shrank, often by
+        // the preview's rows. A parent that keeps the pane's bottom edge in place moves it up as it grows, and working
+        // the cells out again from there would grow it again on every pass. The card still follows the pointer; the
+        // cells are worked out again at the pointer's next move.
+        if (started && !resized) {
+            track();
         }
     }
 
@@ -337,10 +347,10 @@ final class DashboardGesture {
         if (!armed || started) {
             return;
         }
-        // The release of the press that armed the card went elsewhere: this drag is made with the primary button up,
-        // or belongs to a later press on another card, one that stopped above the pane.
-        RXDashboardCard target = cardOf(event.getTarget());
-        if (!event.isPrimaryButtonDown() || target != null && target != card) {
+        // The drags of a press go to the node pressed, which lies in the card it armed. A drag elsewhere, or with the
+        // primary button up, means the release of that press went elsewhere and the drag belongs to a later press,
+        // one the pane did not see because it stopped above the pane.
+        if (!event.isPrimaryButtonDown() || cardOf(event.getTarget()) != card) {
             cancel();
             return;
         }
@@ -369,10 +379,12 @@ final class DashboardGesture {
         }
         armed = false;
         if (started) {
+            boolean pointerMoved = event.getSceneX() != lastSceneX || event.getSceneY() != lastSceneY;
             lastSceneX = event.getSceneX();
             lastSceneY = event.getSceneY();
-            // A stepwise drag commits the preview as shown: a last step would land somewhere never shown.
-            if (edge != null || !pane.dragsStepwise()) {
+            // The preview as shown is committed unless the pointer moved since it was worked out. A stepwise drag
+            // commits it as shown regardless: a last step would land somewhere never shown.
+            if (pointerMoved && (edge != null || !pane.dragsStepwise())) {
                 track();
             }
             if (started) {
@@ -418,6 +430,8 @@ final class DashboardGesture {
         stepY = Double.NaN;
         home = true;
         layoutBefore = pane.getLayout();
+        paneWidthAtLayout = pane.getWidth();
+        paneHeightAtLayout = pane.getHeight();
         // A listener reached from each change to the card below may end the gesture at once.
         pane.releaseFromAnimation(held);
         if (started && !held.viewOrderProperty().isBound()) {
