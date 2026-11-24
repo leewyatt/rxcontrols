@@ -3943,7 +3943,7 @@
     -fx-pref-height: 9;
     -fx-min-height: 9;
     -fx-background-color: -rx-outline-variant;
-    -fx-background-insets: 4 8 4 8;
+    -fx-background-insets: 4 0 4 0;
 }
 .rx-menu-list .menu-header {
     -fx-text-fill: -rx-on-surface-secondary;
