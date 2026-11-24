@@ -1792,6 +1792,26 @@ public class RXDashboardPaneGestureTest {
     }
 
     @Test
+    public void aCardDisabledOrHiddenAfterThePressDoesNotStartAGesture() throws Exception {
+        fx(() -> {
+            List<Consumer<Board>> changes = List.of(board -> board.a.setDisable(true),
+                    board -> board.pane.setDisable(true), board -> board.a.setVisible(false),
+                    board -> board.pane.getParent().setVisible(false));
+            for (Consumer<Board> change : changes) {
+                Board board = new Board();
+                List<RXDashboardEvent> events = board.events();
+                Point2D start = board.press(board.a, 5, 5);
+                change.accept(board);
+                board.drag(board.a, start.getX() + 100, start.getY());
+                assertFalse(board.a.getPseudoClassStates().contains(DRAGGING));
+                board.release(board.a, start.getX() + 100, start.getY());
+                assertTrue(events.isEmpty());
+                assertPlacement(board.a, 0, 0, 2, 1);
+            }
+        });
+    }
+
+    @Test
     public void hidingTheCardOrAnAncestorInAShownWindowCancelsTheGesture() throws Exception {
         fx(() -> {
             for (int hide = 0; hide < 2; hide++) {

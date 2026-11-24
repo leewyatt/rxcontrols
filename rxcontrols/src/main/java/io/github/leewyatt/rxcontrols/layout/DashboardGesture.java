@@ -41,10 +41,12 @@ import java.util.Objects;
  * {@code PUSH}, a drag is instead worked out step by step: each change of the pointer's place on the grid takes one
  * step from the previous step's layout, and the pointer coming back over the cell the card started from brings the
  * starting layout back. Releasing commits the preview as shown; Esc, the window losing focus, the pane leaving its
- * scene and any change to the pane's cards or layout cancel it, and every card glides back from where it shows.</p>
+ * scene, the card disabled or no longer shown, and any change to the pane's cards or layout cancel it, and every card
+ * glides back from where it shows.</p>
  *
  * <p>While the pointer is near the top or bottom of the viewport of a {@link ScrollPane} the pane sits in, that scroll
- * pane scrolls, faster the closer the pointer gets, and keeps scrolling while the pointer rests there.</p>
+ * pane scrolls, faster the closer the pointer gets and building up over the first moments, and keeps scrolling while
+ * the pointer rests there.</p>
  */
 final class DashboardGesture {
 
@@ -468,10 +470,11 @@ final class DashboardGesture {
     // ==================== Lifecycle ====================
 
     private boolean start() {
-        // The card may have left the pane, or the pane its editable state, between the press and now.
+        // The card may have left the pane, the pane its editable state, or the card (with the pane or an ancestor)
+        // been disabled or hidden between the press and now.
         boolean allowed = edge != null ? card.isResizeEnabled() : card.isMoveEnabled();
         if (card.owner != pane || card.placement == null || !pane.isEditable() || card.isLocked() || !allowed
-                || pane.getScene() == null) {
+                || pane.getScene() == null || card.isDisabled() || !isVisibleToTheRoot(card)) {
             return false;
         }
         started = true;
@@ -652,6 +655,15 @@ final class DashboardGesture {
             candidate = preview.get(card);
             pane.requestLayout();
         }
+    }
+
+    private static boolean isVisibleToTheRoot(Node node) {
+        for (Node shown = node; shown != null; shown = shown.getParent()) {
+            if (!shown.isVisible()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     // The grid at the other width the pane goes back and forth between, by less than a column: a scroll bar coming
