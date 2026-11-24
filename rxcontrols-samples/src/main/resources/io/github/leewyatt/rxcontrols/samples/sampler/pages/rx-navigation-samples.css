@@ -720,22 +720,6 @@
     -fx-shape: "M20 60 C5 60 0 45 10 38 C5 22 25 15 35 22 C40 5 70 2 78 20 C92 12 112 22 106 38 C120 42 118 60 102 60 Z";
 }
 
-.example-card .leaf {
-    -fx-shape: "M10 0 C17 5 21 13 10 24 C-1 13 3 5 10 0 Z";
-}
-
-.example-card .leaf.red {
-    -fx-background-color: #dc2626;
-}
-
-.example-card .leaf.orange {
-    -fx-background-color: #f97316;
-}
-
-.example-card .leaf.amber {
-    -fx-background-color: #f59e0b;
-}
-
 .example-card .bird {
     -fx-background-color: rgba(15, 23, 42, 0.85);
     -fx-shape: "M0 6 Q6 0 12 6 Q18 0 24 6 Q18 3 12 9 Q6 3 0 6 Z";

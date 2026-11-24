@@ -66,9 +66,11 @@ public final class RXSeekBarSamples {
     }
 
     private static Node videoPlayer(SampleLifecycle life) {
+        final double radius = 12.0;
         RXImageView frame = new RXImageView(SampleImages.scenery(2));
         frame.setPrefSize(520.0, 240.0);
-        frame.setImageRadius(12.0);
+        frame.setImageRadius(radius);
+        FallingLeaves leaves = new FallingLeaves(8, radius);
 
         RXSeekBar seek = new RXSeekBar(0.18);
         seek.setSecondaryProgress(0.42);
@@ -86,29 +88,36 @@ public final class RXSeekBarSamples {
         StackPane play = new StackPane(glyph);
         play.getStyleClass().add("icon-button");
 
-        Timeline playback = new Timeline(new KeyFrame(Duration.millis(250.0), event -> {
+        Timeline playback = new Timeline();
+        playback.setCycleCount(Animation.INDEFINITE);
+        Runnable pause = () -> {
+            playback.pause();
+            leaves.pause();
+            showIcon(glyph, "play-icon");
+        };
+        playback.getKeyFrames().add(new KeyFrame(Duration.millis(250.0), event -> {
             if (!seek.isSeeking()) {
                 seek.setProgress(Math.min(1.0, seek.getProgress() + 0.25 / VIDEO_SECONDS * 4.0));
             }
             seek.setSecondaryProgress(Math.min(1.0, Math.max(seek.getSecondaryProgress(),
                     seek.getProgress()) + 0.002));
-        }));
-        playback.setCycleCount(Animation.INDEFINITE);
-        play.setOnMouseClicked(event -> {
-            boolean playing = playback.getStatus() == Animation.Status.RUNNING;
-            if (playing) {
-                playback.pause();
-            } else {
-                playback.play();
+            if (seek.getProgress() >= 1.0) {
+                pause.run();
             }
-            glyph.getStyleClass().removeAll("play-icon", "pause-icon");
-            glyph.getStyleClass().add(playing ? "play-icon" : "pause-icon");
+        }));
+        play.setOnMouseClicked(event -> {
+            if (playback.getStatus() == Animation.Status.RUNNING) {
+                pause.run();
+                return;
+            }
+            if (seek.getProgress() >= 1.0) {
+                seek.setProgress(0.0);
+            }
+            playback.play();
+            leaves.play();
+            showIcon(glyph, "pause-icon");
         });
-        life.whenHidden(() -> {
-            playback.pause();
-            glyph.getStyleClass().removeAll("play-icon", "pause-icon");
-            glyph.getStyleClass().add("play-icon");
-        });
+        life.whenHidden(pause);
 
         HBox controls = new HBox(12.0, play, seek, elapsed);
         controls.getStyleClass().add("player-controls");
@@ -116,10 +125,15 @@ public final class RXSeekBarSamples {
         StackPane.setAlignment(controls, Pos.BOTTOM_CENTER);
         controls.setMaxHeight(Region.USE_PREF_SIZE);
 
-        StackPane player = new StackPane(frame, controls);
+        StackPane player = new StackPane(frame, leaves, controls);
         player.getStyleClass().add("video-player");
         player.setMaxWidth(Region.USE_PREF_SIZE);
         return player;
+    }
+
+    private static void showIcon(Region glyph, String iconClass) {
+        glyph.getStyleClass().removeAll("play-icon", "pause-icon");
+        glyph.getStyleClass().add(iconClass);
     }
 
     private static Node musicPlayer() {

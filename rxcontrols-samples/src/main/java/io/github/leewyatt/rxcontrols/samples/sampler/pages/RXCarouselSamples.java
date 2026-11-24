@@ -160,6 +160,7 @@ public final class RXCarouselSamples {
             Region shade = new Region();
             shade.getStyleClass().add("slide-shade");
             decorations.setMouseTransparent(true);
+            decorations.getStylesheets().add(FallingLeaves.STYLESHEET);
             caption = new VBox(4.0,
                     text(String.format("%02d / %02d", index + 1, count), "slide-kicker"),
                     text(PLACES[index][0], "slide-title"),
@@ -293,10 +294,10 @@ public final class RXCarouselSamples {
         }
 
         private void leaves(double w, double h, Random random) {
-            String[] colors = {"red", "orange", "amber"};
             for (int i = 0; i < 9; i++) {
                 double size = 14.0 + random.nextDouble() * 10.0;
-                Region leaf = decoration(size, size * 1.2, "leaf", colors[i % colors.length]);
+                Region leaf = FallingLeaves.leaf(size, i);
+                decorations.getChildren().add(leaf);
                 leaf.relocate(w * (0.15 + random.nextDouble() * 0.85), -size * 2.0);
                 fall(leaf, -60.0 - random.nextDouble() * 80.0, h + size * 3.0, 22.0,
                         180.0 + random.nextDouble() * 360.0, 5.0 + random.nextDouble() * 3.0,
@@ -336,19 +337,9 @@ public final class RXCarouselSamples {
             }
         }
 
-        // Falls by dy while drifting by dx, swaying sideways and turning on the way.
         private void fall(Region node, double dx, double dy, double sway, double turn,
                           double seconds, double delaySeconds) {
-            Duration end = Duration.seconds(seconds);
-            Timeline falling = new Timeline(
-                    new KeyFrame(end.multiply(0.33),
-                            new KeyValue(node.translateXProperty(), dx * 0.33 + sway, Interpolator.EASE_BOTH)),
-                    new KeyFrame(end.multiply(0.66),
-                            new KeyValue(node.translateXProperty(), dx * 0.66 - sway, Interpolator.EASE_BOTH)),
-                    new KeyFrame(end,
-                            new KeyValue(node.translateXProperty(), dx, Interpolator.EASE_BOTH),
-                            new KeyValue(node.translateYProperty(), dy, Interpolator.LINEAR),
-                            new KeyValue(node.rotateProperty(), turn, Interpolator.LINEAR)));
+            Timeline falling = FallingLeaves.fall(node, dx, dy, sway, turn, Duration.seconds(seconds));
             falling.setDelay(Duration.seconds(delaySeconds));
             play(falling);
         }
