@@ -177,19 +177,12 @@ public final class RXKanbanViewSamples {
                 setGraphic(null);
             } else {
                 tag.setText(task.tag());
-                updateColor(tag, task.tag());
+                paint(tag, colorOf(task.tag()));
                 title.setText(task.title());
                 owner.setText(initials(task.owner()));
-                updateColor(owner, task.owner());
+                paint(owner, colorOf(task.owner()));
                 points.setText(task.points() + " pt");
                 setGraphic(card);
-            }
-        }
-
-        private static void updateColor(Label label, String key) {
-            String color = colorOf(key);
-            if (!label.getStyleClass().contains(color)) {
-                paint(label, color);
             }
         }
     }
