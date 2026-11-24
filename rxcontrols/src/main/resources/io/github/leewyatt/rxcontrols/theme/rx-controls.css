@@ -3955,6 +3955,11 @@
 .rx-menu-popup {
     -fx-background-color: transparent;
 }
+/* Material's 112px menu minimum: a menu of short labels does not hug its text on the
+   trailing side. Popup only; an inline .rx-menu-list keeps its content width. */
+.rx-menu-popup .rx-menu-list {
+    -fx-min-width: 112;
+}
 /* The max-height scroll wrapper is transparent so the menu surface shows through;
    no border / inset / padding of its own. */
 .rx-menu-list > .scroll,

@@ -627,6 +627,23 @@ public class RXPopupMenuTest {
         });
     }
 
+    /** A menu of short labels opens at the 112px minimum and still lines up with the anchor's trailing edge. */
+    @Test
+    @Tag("ui")
+    public void shortMenuOpensAtMinimumWidthAndStaysEndAligned() throws InterruptedException {
+        runOnFx(() -> {
+            Region anchor = shownAnchor();
+            RXPopupMenu menu = quietMenu("A");
+            menu.show(anchor, RXPlacement.BOTTOM_END);
+            RXMenuList list = menu.getMenuList();
+
+            assertEquals(112.0, list.getWidth(), 0.5);
+            assertEquals(anchor.localToScreen(anchor.getLayoutBounds()).getMaxX(),
+                    list.localToScreen(list.getLayoutBounds()).getMaxX(), 0.5);
+            menu.hide();
+        });
+    }
+
     @Test
     @Tag("ui")
     public void nullInterpolatorOpensWithoutThrowing() throws InterruptedException {

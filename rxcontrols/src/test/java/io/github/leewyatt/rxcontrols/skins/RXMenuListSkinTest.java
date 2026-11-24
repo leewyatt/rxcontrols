@@ -426,6 +426,18 @@ public class RXMenuListSkinTest {
         });
     }
 
+    /** The popup's minimum menu width does not apply to an inline list. */
+    @Test
+    public void inlineListKeepsItsContentWidth() throws Exception {
+        runOnFx(() -> {
+            RXMenuList list = new RXMenuList();
+            list.getItems().add(RXMenuItem.of("A"));
+            hostFor(list);
+
+            assertTrue(list.getWidth() < 112.0, "width " + list.getWidth());
+        });
+    }
+
     /**
      * The cell's layout pass sizes the unmanaged ripple layer to the cell, so
      * the press ripple and hover state overlay actually render.
