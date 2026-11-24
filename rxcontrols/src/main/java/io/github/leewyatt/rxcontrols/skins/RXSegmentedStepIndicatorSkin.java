@@ -399,9 +399,9 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
         return snapSizeX(width);
     }
 
-    // The title row and its gap exist once the factory gave any segment a node,
-    // even one without height; a factory that returned null everywhere adds no
-    // space. Checked live: the application may move a title node elsewhere.
+    // The title row and its gap exist while any segment holds a title node, even
+    // one without height; a factory that returned null everywhere adds no space.
+    // Checked live: the application may move a title node elsewhere.
     private boolean hasTitleNodes() {
         for (StackPane box : titleBoxes) {
             if (!box.getChildren().isEmpty()) {
@@ -451,12 +451,12 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
         double segmentHeight = RXMath.sanitizeFiniteNonNegative(control.getSegmentHeight());
         double renderedHeight = Math.min(segmentHeight, contentHeight);
 
-        // When the content area is shorter than needed, the segments keep their
-        // height and the titles get what is left.
         boolean titled = hasTitleNodes();
         if (!titled) {
             collapseTitles(contentX, contentY);
         }
+        // When the content area is shorter than needed, the segments keep their
+        // height and the titles get what is left.
         double titleGap = titled
                 ? Math.min(RXMath.sanitizeFiniteNonNegative(control.getTitleGap()), contentHeight - renderedHeight)
                 : 0.0;
