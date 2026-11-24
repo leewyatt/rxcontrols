@@ -3,6 +3,8 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXKanbanCardCell;
 import io.github.leewyatt.rxcontrols.RXKanbanColumn;
 import io.github.leewyatt.rxcontrols.RXKanbanView;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -18,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -263,6 +266,53 @@ public class KanbanColumnViewportGlideTest {
             }
             assertTrue(glidingTail.stream().anyMatch(cell -> !cell.isVisible()),
                     "at least one gliding cell was parked by the shrink");
+        });
+    }
+
+    /**
+     * Verifies a glide cancelled from inside another animation's handler leaves no
+     * translate on any cell once every glide has had time to finish.
+     */
+    @Test
+    public void glideCancelledFromAnotherAnimationLeavesNoTranslate() throws Exception {
+        final double glideMillis = 1000.0;
+        AtomicReference<StackPane> root = new AtomicReference<>();
+        AtomicInteger glidingWhenCancelled = new AtomicInteger();
+        onFx(() -> {
+            RXKanbanView<String> board = new RXKanbanView<>();
+            RXKanbanColumn<String> column = new RXKanbanColumn<>("todo");
+            for (int i = 0; i < 30; i++) {
+                column.getCards().add("card-" + i);
+            }
+            board.getColumns().add(column);
+            board.setAnimationDuration(Duration.millis(glideMillis));
+            root.set(new StackPane(board));
+            new Scene(root.get(), 400, 700);
+            root.get().resize(400, 700);
+            pump(root.get());
+
+            KanbanColumnViewport<String> viewport = findViewport(root.get());
+            // Played before the glides start, so it pulses ahead of them in the frame
+            // it fires. Scrolling one row rebinds every cell, which cancels every glide.
+            Timeline handler = new Timeline(new KeyFrame(Duration.millis(150.0), event -> {
+                glidingWhenCancelled.set((int) cells(root.get()).stream()
+                        .filter(cell -> Math.abs(cell.getTranslateY()) > 0.5).count());
+                viewport.scrollByPixels(viewport.rowStride());
+                viewport.layout();
+            }));
+            handler.play();
+            viewport.setDropGap(1);
+            pump(root.get());
+        });
+
+        Thread.sleep((long) glideMillis + 400);
+
+        onFx(() -> {
+            assertTrue(glidingWhenCancelled.get() > 0, "setup: glides were in flight when the handler ran");
+            for (RXKanbanCardCell<String> cell : cells(root.get())) {
+                assertEquals(0.0, Math.abs(cell.getTranslateX()) + Math.abs(cell.getTranslateY()), 1e-9,
+                        "no cell keeps a translate once every glide is over: " + cell.getItem());
+            }
         });
     }
 
