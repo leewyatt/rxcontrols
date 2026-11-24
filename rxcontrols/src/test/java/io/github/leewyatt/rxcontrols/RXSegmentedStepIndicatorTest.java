@@ -6,6 +6,7 @@ import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.control.SkinBase;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
@@ -86,6 +87,50 @@ public class RXSegmentedStepIndicatorTest {
             assertTrue(segment.getLayoutBounds().getWidth() > 0.0, "a segment lost its size");
         }
         assertEquals(installed, indicator.getChildrenUnmodifiable());
+    }
+
+    @Test
+    public void installedSkinDropsNodesAPreviousSkinLeftBehind() {
+        RXSegmentedStepIndicator indicator = new RXSegmentedStepIndicator(3);
+        StackPane root = laidOut(indicator);
+        Rectangle leftover = new Rectangle(10.0, 10.0);
+        // Like the JavaFX skins, this one leaves its nodes to the next skin.
+        indicator.setSkin(new SkinBase<RXSegmentedStepIndicator>(indicator) {
+            {
+                getChildren().add(leftover);
+            }
+        });
+        indicator.setSkin(new RXSegmentedStepIndicatorSkin(indicator));
+        root.layout();
+
+        assertFalse(indicator.getChildrenUnmodifiable().contains(leftover));
+        assertEquals(6, indicator.getChildrenUnmodifiable().size());
+    }
+
+    @Test
+    public void skinRemovedByAnEarlierListenerDoesNotRebuild() {
+        Thread thread = Thread.currentThread();
+        Thread.UncaughtExceptionHandler previous = thread.getUncaughtExceptionHandler();
+        List<Throwable> reported = new ArrayList<>();
+        thread.setUncaughtExceptionHandler((t, e) -> reported.add(e));
+        try {
+            // Added before the skin exists, so these listeners run before the skin's.
+            RXSegmentedStepIndicator byFactory = new RXSegmentedStepIndicator(3);
+            byFactory.titleFactoryProperty().addListener(observable -> byFactory.setSkin(null));
+            laidOut(byFactory);
+            byFactory.setTitleFactory(i -> new Label("Step " + i));
+
+            RXSegmentedStepIndicator byCount = new RXSegmentedStepIndicator(3);
+            byCount.stepCountProperty().addListener(observable -> byCount.setSkin(null));
+            laidOut(byCount);
+            byCount.setStepCount(4);
+
+            assertEquals(List.of(), reported);
+            assertTrue(byFactory.getChildrenUnmodifiable().isEmpty());
+            assertTrue(byCount.getChildrenUnmodifiable().isEmpty());
+        } finally {
+            thread.setUncaughtExceptionHandler(previous);
+        }
     }
 
     // ==================== Completed state ====================
@@ -173,6 +218,19 @@ public class RXSegmentedStepIndicatorTest {
         indicator.setSelectedIndex(stepCount - 1);
         assertTrue(indicator.isCompleted());
         assertTrue(last.getPseudoClassStates().contains(COMPLETED));
+    }
+
+    @Test
+    public void negativeIndexOnASingleStepCountsAsTheLastStep() {
+        RXSegmentedStepIndicator single = new RXSegmentedStepIndicator(1);
+        single.setSelectedIndex(-1);
+        single.setSegmentProgress(1.0);
+        assertTrue(single.isCompleted());
+
+        RXSegmentedStepIndicator three = new RXSegmentedStepIndicator(3);
+        three.setSelectedIndex(-1);
+        three.setSegmentProgress(1.0);
+        assertFalse(three.isCompleted());
     }
 
     @Test

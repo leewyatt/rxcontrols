@@ -2440,10 +2440,11 @@
     -fx-text-fill: -rx-filled-color;
 }
 
-/* On a light Modena host the default and the secondary text colors are both #333,
-   so upcoming titles take a lighter gray there (#6a6a6a, 4.9:1 on #f4f4f4). */
+/* Modena switches its default text from black to #333 at 60% background brightness,
+   where it matches the secondary text; upcoming titles take a lighter gray there
+   (#6a6a6a, 4.9:1 on #f4f4f4) and keep the secondary text below it. */
 .rx-segmented-step-indicator > .title:upcoming > .label {
-    -fx-text-fill: ladder(-fx-background, -rx-on-surface-secondary 45%, derive(-fx-mid-text-color, 45%) 46%);
+    -fx-text-fill: ladder(-fx-background, -rx-on-surface-secondary 59%, derive(-fx-mid-text-color, 45%) 60%);
 }
 
 .rx-theme-atlantafx .rx-segmented-step-indicator > .title:upcoming > .label,

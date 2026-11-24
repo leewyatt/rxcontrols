@@ -336,6 +336,23 @@ public class RXSegmentedStepIndicatorTitleTest {
         });
     }
 
+    @Test
+    public void upcomingTitlesKeepModenasSecondaryTextOnAMidGrayHost() throws Exception {
+        onFx(() -> {
+            RXSegmentedStepIndicator indicator = titled(NAMES);
+            indicator.setSelectedIndex(1);
+            StackPane root = new StackPane(indicator);
+            // Background brightness between 46% and 59%: Modena draws black text and #333 secondary text.
+            root.setStyle("-fx-base: #6b6b6b;");
+            new Scene(root, 412.0, 120.0);
+            layout(root);
+            List<Region> titles = parts(indicator, "title");
+            assertEquals(Color.BLACK, label(titles.get(0)).getTextFill());
+            assertEquals(Color.web("#333333"), label(titles.get(2)).getTextFill());
+            return null;
+        });
+    }
+
     // ==================== Skin lifecycle ====================
 
     @Test

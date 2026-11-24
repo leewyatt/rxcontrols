@@ -39,11 +39,12 @@ import java.util.List;
  * {@link #segmentProgressProperty()}. A {@link #titleFactoryProperty() title
  * factory} adds a title to each segment, above or below the row.
  *
- * <p>Every step counts as an equal share of the row, so the filled part is
- * {@code (selectedIndex + segmentProgress) / stepCount} of the whole, with
- * {@code selectedIndex} kept within the steps and {@code segmentProgress}
- * within {@code [0, 1]}. When that reaches the whole row, that is when the last
- * step is selected and its progress is {@code 1}, the indicator is
+ * <p>Every step counts as an equal share, so
+ * {@code (selectedIndex + segmentProgress) / stepCount} of the steps are done,
+ * with {@code selectedIndex} kept within the steps and {@code segmentProgress}
+ * within {@code [0, 1]}. Up to {@link #MAX_STEP_COUNT} steps, that is also the
+ * filled part of the row. When it reaches {@code 1}, that is when the last step
+ * is selected and its progress is {@code 1}, the indicator is
  * {@link #completedProperty() completed}. The control has the {@code :empty}
  * pseudo-class when it renders no segments and {@code :completed} while it is
  * completed.</p>
@@ -144,7 +145,7 @@ public class RXSegmentedStepIndicator extends Control {
     // MAX_STEP_COUNT, the last rendered segment is not the last step.
     private void updateCompleted() {
         int steps = getStepCount();
-        setCompleted(steps > 0 && getSelectedIndex() >= steps - 1
+        setCompleted(steps > 0 && RXMath.clamp(getSelectedIndex(), 0, steps - 1) == steps - 1
                 && RXMath.clamp0To1(getSegmentProgress()) >= 1.0);
     }
 
@@ -277,13 +278,16 @@ public class RXSegmentedStepIndicator extends Control {
     };
 
     /**
-     * Whether every step is completed: the last step is selected, counting an
-     * index past it as the last step, and its
+     * Whether every step is completed: the selected index, kept within the
+     * steps, is the last step, and its
      * {@link #segmentProgressProperty() segmentProgress} is {@code 1} or more.
      * Read-only; to complete the indicator, select the last step and set its
-     * progress to {@code 1}. While completed, every segment has the
-     * {@code :completed} pseudo-class, none is {@code :selected}, and the
-     * control has the {@code :completed} pseudo-class.
+     * progress to {@code 1}. The two are separate properties, so moving onto the
+     * last step while the progress is still {@code 1} completes the indicator
+     * until the progress changes; set the progress first. While completed,
+     * every segment has the {@code :completed} pseudo-class, none is
+     * {@code :selected}, and the control has the {@code :completed}
+     * pseudo-class.
      *
      * @return the completed property
      */

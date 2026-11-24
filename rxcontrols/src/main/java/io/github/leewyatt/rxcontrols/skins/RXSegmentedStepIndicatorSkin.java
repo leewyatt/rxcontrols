@@ -98,6 +98,9 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
             return;
         }
         activated = true;
+        // Installed, the children are ours: a previous skin may have left its
+        // nodes for the next skin to replace, as the JavaFX skins do.
+        getChildren().clear();
         registerListeners(control);
         rebuildSegments();
     }
@@ -131,6 +134,10 @@ public class RXSegmentedStepIndicatorSkin extends RXSkinBase<RXSegmentedStepIndi
     // The title factory is application code and may change the indicator again;
     // such a change is picked up once the current pass has finished.
     private void rebuildSegments() {
+        // A listener that ran earlier in the same notification may have removed this skin.
+        if (disposed) {
+            return;
+        }
         if (rebuilding) {
             rebuildPending = true;
             return;
