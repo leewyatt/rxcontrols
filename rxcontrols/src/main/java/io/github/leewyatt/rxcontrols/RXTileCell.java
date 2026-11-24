@@ -17,6 +17,12 @@ import javafx.scene.control.skin.CellSkinBase;
  * recycles a small pool of cells across the visible rows, so a cell's item and
  * position change as the view scrolls or relays out.
  *
+ * <p>The tile view owns the position of its cells: it lays them out through
+ * {@code layoutX}/{@code layoutY} and animates their
+ * {@code translateX}/{@code translateY} when items move. Do not bind those
+ * properties (JavaFX then rejects the view's next write with "A bound value cannot
+ * be set"), and do not change the view's state or settings from listeners on them.
+ *
  * <p>Like a grid cell, a tile cell knows its two-dimensional position: it
  * exposes the read-only {@link #rowIndexProperty() rowIndex} and
  * {@link #columnIndexProperty() columnIndex} of the slot it currently occupies,

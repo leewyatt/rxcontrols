@@ -10,6 +10,12 @@ import javafx.scene.control.skin.CellSkinBase;
  * {@link #updateSection(RXTileSection)} to bind each one to the section it
  * currently represents.
  *
+ * <p>The tile view owns the position of its section headers: it lays them out
+ * through {@code layoutX}/{@code layoutY} and animates their
+ * {@code translateX}/{@code translateY} when sections move. Do not bind those
+ * properties (JavaFX then rejects the view's next write with "A bound value cannot
+ * be set"), and do not change the view's state or settings from listeners on them.
+ *
  * <p>Override {@link #updateItem(RXTileSection, boolean)} to render the header
  * and install the cell through
  * {@link RXTileView#sectionHeaderFactoryProperty() sectionHeaderFactory}. The

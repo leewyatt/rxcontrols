@@ -35,6 +35,12 @@ import java.util.List;
  * viewport recycles a small pool of cells across its visible rows, so a cell's
  * card and index change as the column scrolls or relays out.
  *
+ * <p>The board owns the position of its card cells: each column lays them out
+ * through {@code layoutX}/{@code layoutY} and animates their
+ * {@code translateX}/{@code translateY} when cards move. Do not bind those
+ * properties (JavaFX then rejects the board's next write with "A bound value cannot
+ * be set"), and do not change the board's state or settings from listeners on them.
+ *
  * <p>A cell knows both the {@link #getColumn() column} it belongs to (injected by
  * the owning column viewport) and the {@link #getKanbanView() board} (for board-
  * level selection / focus and the shared converter). {@link #updateIndex(int)}

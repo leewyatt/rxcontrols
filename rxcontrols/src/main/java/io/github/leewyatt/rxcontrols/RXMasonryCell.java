@@ -17,6 +17,12 @@ import javafx.scene.control.skin.CellSkinBase;
  * recycles a small pool of cells across the visible region, so a cell's item and
  * position change as the view scrolls or relays out.
  *
+ * <p>The masonry view owns the position of its cells: it lays them out through
+ * {@code layoutX}/{@code layoutY} and animates their
+ * {@code translateX}/{@code translateY} when items move. Do not bind those
+ * properties (JavaFX then rejects the view's next write with "A bound value cannot
+ * be set"), and do not change the view's state or settings from listeners on them.
+ *
  * <p>A masonry cell knows its grid coordinate: it exposes the read-only
  * {@link #columnIndexProperty() columnIndex} of the (leftmost) column it occupies
  * and its {@link #columnSpanProperty() columnSpan}, alongside the owning

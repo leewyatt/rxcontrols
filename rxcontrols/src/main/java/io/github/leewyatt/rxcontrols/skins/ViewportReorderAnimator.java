@@ -24,28 +24,29 @@ import java.util.function.Consumer;
  * virtualized cell be re-aimed mid-glide without disturbing the others, and let a
  * cell that finishes be recycled on its own.
  *
- * <p>These guarantees hold whatever runs in between, listeners on the glided
- * translate included:
+ * <p>The views that use this class own the position of the nodes they glide, and
+ * their public cell documentation says so: binding a glided translate, or changing
+ * a view's state or settings from a listener on it, is unsupported. Within that,
+ * this class guarantees:
  * <ul>
- *   <li>A glide that was cancelled or replaced, even while its start position was
- *   being written, never writes to its node again. JavaFX still pulses an
- *   animation that another animation's handler stopped earlier in the same frame
- *   (a handler that lays the viewport out, such as a drag's auto-scroll tick,
- *   cancels glides that way), so ownership is checked on every write of each
- *   axis, not only when the glide is stopped.</li>
+ *   <li>A glide that was cancelled or replaced never writes to its node again.
+ *   JavaFX still pulses an animation that another animation's handler stopped
+ *   earlier in the same frame (a handler that lays the viewport out, such as a
+ *   drag's auto-scroll tick, cancels glides that way), so ownership is checked on
+ *   every write of each axis, not only when the glide is stopped.</li>
  *   <li>Each glide starts only if the owner still animates at that moment. Settings
  *   can change in the middle of a layout pass that already decided to glide, and
  *   a disabled owner's duration may be one no {@link KeyFrame} accepts.</li>
- *   <li>A bound translate axis belongs to its binding. Starting a glide on it
- *   throws, as writing any bound property does; nothing else writes it: the
- *   tween skips it, and every reset (a snap, a cancel, {@link #snapAll}, a
- *   finish, a start that failed) leaves it as is and still resets the other
- *   axis. Resets therefore never throw, and a glide bound mid-flight still
- *   finishes.</li>
- *   <li>A node this animator took over is, once any call returns or throws,
- *   either driven by a playing glide or back on its slot on every writable
- *   axis, unless a listener started a newer glide on it.</li>
+ *   <li>A bound translate axis is left to its binding. Starting a glide on it
+ *   throws, as writing any bound property does; the tween and every reset (a
+ *   snap, a cancel, {@link #snapAll}, a finish, a failed start) skip it and still
+ *   reset the other axis, so a binding never makes a reset throw, and a glide
+ *   bound mid-flight still finishes.</li>
+ *   <li>A start that throws, whatever it throws, is withdrawn, and the node is put
+ *   back on its slot on both writable axes.</li>
  * </ul>
+ * Beyond withdrawing a failed start, errors thrown by listeners on a glided
+ * translate are not contained.
  *
  * <p>The tween itself is a plain {@link KeyValue} that starts from the node's actual
  * translate, so every interpolator, tangent ones included, shapes it as it would
@@ -160,7 +161,7 @@ final class ViewportReorderAnimator {
     }
 
     // Puts the node back on its slot. A bound axis belongs to its binding and is left
-    // as is, so a reset never throws and always reaches the other axis.
+    // as is, so a binding never makes a reset throw or skip the other axis.
     private static void resetTranslate(Node node) {
         if (!node.translateXProperty().isBound()) {
             node.setTranslateX(0);
@@ -210,8 +211,9 @@ final class ViewportReorderAnimator {
 
         // The tween's target for one translate axis: it reads the node's property, so
         // the tween starts wherever the node actually is, and writes to it only while
-        // this glide still owns the node and the axis is not bound. A throwing frame
-        // write would keep JavaFX from ever finishing the glide.
+        // this glide still owns the node and the axis is not bound. JavaFX checks for
+        // the end only after a frame's writes, so with an axis bound for good every
+        // frame would throw and the glide would never finish.
         private final class Axis implements WritableDoubleValue {
 
             private final DoubleProperty translate;
