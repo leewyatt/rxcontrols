@@ -1,8 +1,8 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.event.RXCardActionEvent;
-import io.github.leewyatt.rxcontrols.event.RXCardMovedEvent;
-import io.github.leewyatt.rxcontrols.event.RXColumnMovedEvent;
+import io.github.leewyatt.rxcontrols.event.RXKanbanCardActionEvent;
+import io.github.leewyatt.rxcontrols.event.RXKanbanCardMovedEvent;
+import io.github.leewyatt.rxcontrols.event.RXKanbanColumnMovedEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXKanbanViewSkin;
 import javafx.animation.Interpolator;
@@ -61,7 +61,7 @@ import java.util.List;
  * <p>Drag-and-drop is pointer-based and toggled via {@link #cardDragEnabledProperty()
  * cardDragEnabled} and {@link #columnReorderEnabledProperty() columnReorderEnabled}
  * (set both {@code false} for a read-only board). A drop fires a vetoable
- * {@link RXCardMovedEvent} before the built-in list mutation.
+ * {@link RXKanbanCardMovedEvent} before the built-in list mutation.
  *
  * @param <T> the card type
  */
@@ -603,7 +603,7 @@ public class RXKanbanView<T> extends Control {
     /**
      * Predicate consulted while a card is dragged over a candidate drop position.
      * Returning {@code Boolean.FALSE} rejects the drop (red / hidden indicator,
-     * no-op bounce, no {@link RXCardMovedEvent}). When {@code null}, every drop is
+     * no-op bounce, no {@link RXKanbanCardMovedEvent}). When {@code null}, every drop is
      * allowed. WIP limits are soft and never rejected here.
      *
      * @return the drop-validator property
@@ -632,11 +632,11 @@ public class RXKanbanView<T> extends Control {
 
     // ==================== On Card Action ====================
 
-    private final ObjectProperty<EventHandler<RXCardActionEvent<T>>> onCardAction =
+    private final ObjectProperty<EventHandler<RXKanbanCardActionEvent<T>>> onCardAction =
             new ObjectPropertyBase<>() {
                 @Override
                 protected void invalidated() {
-                    setEventHandler(RXCardActionEvent.cardActionType(), get());
+                    setEventHandler(RXKanbanCardActionEvent.cardActionType(), get());
                 }
 
                 @Override
@@ -655,7 +655,7 @@ public class RXKanbanView<T> extends Control {
      *
      * @return the on-card-action property
      */
-    public final ObjectProperty<EventHandler<RXCardActionEvent<T>>> onCardActionProperty() {
+    public final ObjectProperty<EventHandler<RXKanbanCardActionEvent<T>>> onCardActionProperty() {
         return onCardAction;
     }
 
@@ -664,7 +664,7 @@ public class RXKanbanView<T> extends Control {
      *
      * @return the handler, or {@code null}
      */
-    public final EventHandler<RXCardActionEvent<T>> getOnCardAction() {
+    public final EventHandler<RXKanbanCardActionEvent<T>> getOnCardAction() {
         return onCardAction.get();
     }
 
@@ -673,17 +673,17 @@ public class RXKanbanView<T> extends Control {
      *
      * @param value the handler, or {@code null}
      */
-    public final void setOnCardAction(EventHandler<RXCardActionEvent<T>> value) {
+    public final void setOnCardAction(EventHandler<RXKanbanCardActionEvent<T>> value) {
         onCardAction.set(value);
     }
 
     // ==================== On Card Moved ====================
 
-    private final ObjectProperty<EventHandler<RXCardMovedEvent<T>>> onCardMoved =
+    private final ObjectProperty<EventHandler<RXKanbanCardMovedEvent<T>>> onCardMoved =
             new ObjectPropertyBase<>() {
                 @Override
                 protected void invalidated() {
-                    setEventHandler(RXCardMovedEvent.cardMovedType(), get());
+                    setEventHandler(RXKanbanCardMovedEvent.cardMovedType(), get());
                 }
 
                 @Override
@@ -703,7 +703,7 @@ public class RXKanbanView<T> extends Control {
      *
      * @return the on-card-moved property
      */
-    public final ObjectProperty<EventHandler<RXCardMovedEvent<T>>> onCardMovedProperty() {
+    public final ObjectProperty<EventHandler<RXKanbanCardMovedEvent<T>>> onCardMovedProperty() {
         return onCardMoved;
     }
 
@@ -712,7 +712,7 @@ public class RXKanbanView<T> extends Control {
      *
      * @return the handler, or {@code null}
      */
-    public final EventHandler<RXCardMovedEvent<T>> getOnCardMoved() {
+    public final EventHandler<RXKanbanCardMovedEvent<T>> getOnCardMoved() {
         return onCardMoved.get();
     }
 
@@ -721,17 +721,17 @@ public class RXKanbanView<T> extends Control {
      *
      * @param value the handler, or {@code null}
      */
-    public final void setOnCardMoved(EventHandler<RXCardMovedEvent<T>> value) {
+    public final void setOnCardMoved(EventHandler<RXKanbanCardMovedEvent<T>> value) {
         onCardMoved.set(value);
     }
 
     // ==================== On Column Moved ====================
 
-    private final ObjectProperty<EventHandler<RXColumnMovedEvent<T>>> onColumnMoved =
+    private final ObjectProperty<EventHandler<RXKanbanColumnMovedEvent<T>>> onColumnMoved =
             new ObjectPropertyBase<>() {
                 @Override
                 protected void invalidated() {
-                    setEventHandler(RXColumnMovedEvent.columnMovedType(), get());
+                    setEventHandler(RXKanbanColumnMovedEvent.columnMovedType(), get());
                 }
 
                 @Override
@@ -750,7 +750,7 @@ public class RXKanbanView<T> extends Control {
      *
      * @return the on-column-moved property
      */
-    public final ObjectProperty<EventHandler<RXColumnMovedEvent<T>>> onColumnMovedProperty() {
+    public final ObjectProperty<EventHandler<RXKanbanColumnMovedEvent<T>>> onColumnMovedProperty() {
         return onColumnMoved;
     }
 
@@ -759,7 +759,7 @@ public class RXKanbanView<T> extends Control {
      *
      * @return the handler, or {@code null}
      */
-    public final EventHandler<RXColumnMovedEvent<T>> getOnColumnMoved() {
+    public final EventHandler<RXKanbanColumnMovedEvent<T>> getOnColumnMoved() {
         return onColumnMoved.get();
     }
 
@@ -768,7 +768,7 @@ public class RXKanbanView<T> extends Control {
      *
      * @param value the handler, or {@code null}
      */
-    public final void setOnColumnMoved(EventHandler<RXColumnMovedEvent<T>> value) {
+    public final void setOnColumnMoved(EventHandler<RXKanbanColumnMovedEvent<T>> value) {
         onColumnMoved.set(value);
     }
 
