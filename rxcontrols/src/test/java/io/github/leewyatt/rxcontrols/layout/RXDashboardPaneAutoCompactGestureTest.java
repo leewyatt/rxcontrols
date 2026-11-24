@@ -323,6 +323,8 @@ public class RXDashboardPaneAutoCompactGestureTest {
         private final int columns;
         private final double gap;
         private final double inset;
+        // A press-drag-release goes to the node pressed.
+        private Node pressed;
 
         Board(int columns, RXDashboardCard... cards) {
             this(columns, 0.0, 0.0, cards);
@@ -406,6 +408,7 @@ public class RXDashboardPaneAutoCompactGestureTest {
 
         Point2D pressOn(Node target, double x, double y) {
             Point2D scene = target.localToScene(x, y);
+            pressed = target;
             fire(target, MouseEvent.MOUSE_PRESSED, scene);
             return scene;
         }
@@ -419,13 +422,13 @@ public class RXDashboardPaneAutoCompactGestureTest {
             int steps = (int) Math.max(1, Math.ceil(Math.hypot(dx, dy) / 5));
             for (int i = 1; i <= steps; i++) {
                 Point2D at = from.add(dx * i / steps, dy * i / steps);
-                fire(pane, MouseEvent.MOUSE_DRAGGED, at);
+                fire(pressed, MouseEvent.MOUSE_DRAGGED, at);
                 layout();
             }
         }
 
         void release(Point2D at) {
-            fire(pane, MouseEvent.MOUSE_RELEASED, at);
+            fire(pressed, MouseEvent.MOUSE_RELEASED, at);
             layout();
         }
 

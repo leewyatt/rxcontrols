@@ -145,7 +145,8 @@ public final class RXDashboardLayout {
     }
 
     /**
-     * Reads a snapshot from text written by {@link #encode()}.
+     * Reads a snapshot from text written by {@link #encode()}. Whitespace around the text, such as the line break a
+     * file adds at its end, is ignored.
      *
      * @param text the encoded text
      * @return the snapshot
@@ -155,7 +156,8 @@ public final class RXDashboardLayout {
      */
     public static RXDashboardLayout decode(String text) {
         Objects.requireNonNull(text, "text cannot be null");
-        List<String> segments = split(text, SEGMENT_SEPARATOR);
+        // An encoded snapshot starts with its format version and ends with a number, so no card ID loses a character.
+        List<String> segments = split(text.strip(), SEGMENT_SEPARATOR);
         if (!FORMAT_VERSION.equals(segments.get(0))) {
             throw new IllegalArgumentException("Unknown dashboard layout format: " + abbreviate(segments.get(0)));
         }

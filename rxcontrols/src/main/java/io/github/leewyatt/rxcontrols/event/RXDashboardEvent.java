@@ -65,7 +65,8 @@ public class RXDashboardEvent extends Event {
     }
 
     /**
-     * Returns the layout the user committed, every card included, those pushed out of the way as well.
+     * Returns the layout the user committed, every card with an ID included, those pushed out of the way as well;
+     * a card without an ID is in no snapshot.
      *
      * @return the committed layout
      */
@@ -74,7 +75,8 @@ public class RXDashboardEvent extends Event {
     }
 
     /**
-     * Returns the layout before the edit. Applying it undoes the edit.
+     * Returns the layout before the edit. Applying it puts the cards with an ID back where they were; a card without
+     * an ID, which the snapshot does not name, may stay where the edit pushed it.
      *
      * @return the layout the gesture started on
      */

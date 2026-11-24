@@ -1,14 +1,19 @@
 package io.github.leewyatt.rxcontrols.layout;
 
+import io.github.leewyatt.rxcontrols.internal.PixelGrid;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardCard.Edge;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardLayout.Placement;
+import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
+import javafx.beans.value.ChangeListener;
 import javafx.event.EventHandler;
 import javafx.event.EventTarget;
+import javafx.geometry.BoundingBox;
+import javafx.geometry.Bounds;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -23,6 +28,7 @@ import javafx.util.Duration;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * The user gestures of an {@link RXDashboardPane}: dragging a card and resizing it. One instance per pane.
@@ -37,10 +43,12 @@ import java.util.Map;
  * {@code PUSH}, a drag is instead worked out step by step: each change of the pointer's place on the grid takes one
  * step from the previous step's layout, and the pointer coming back over the cell the card started from brings the
  * starting layout back. Releasing commits the preview as shown; Esc, the window losing focus, the pane leaving its
- * scene and any change to the pane's cards or layout cancel it, and every card glides back from where it shows.</p>
+ * scene, the card disabled or no longer shown, and any change to the pane's cards or layout cancel it, and every card
+ * glides back from where it shows.</p>
  *
  * <p>While the pointer is near the top or bottom of the viewport of a {@link ScrollPane} the pane sits in, that scroll
- * pane scrolls, faster the closer the pointer gets, and keeps scrolling while the pointer rests there.</p>
+ * pane scrolls, faster the closer the pointer gets and building up over the first moments, and keeps scrolling while
+ * the pointer rests there.</p>
  */
 final class DashboardGesture {
 
@@ -54,6 +62,7 @@ final class DashboardGesture {
     private static final double AUTO_SCROLL_EDGE = 28.0;
     private static final double AUTO_SCROLL_MAX_STEP = 22.0;
     private static final Duration AUTO_SCROLL_TICK = Duration.millis(16.0);
+    private static final Duration AUTO_SCROLL_RAMP = Duration.millis(500.0);
 
     private final RXDashboardPane pane;
 
@@ -77,6 +86,20 @@ final class DashboardGesture {
     private Placement candidate;
     // A drag worked out step by step, in the pane's virtual grid; created at the first step, as it needs a grid.
     private DashboardDrag<RXDashboardCard> steps;
+    // A preview that changes the pane's height can bring up an enclosing scroll pane's scroll bar and narrow a pane
+    // that fits its width; near a column edge the pointer is then over another column, whose preview takes the bar
+    // away again, and so on at every move. Once the pane's width has gone back to the one it had before (by less
+    // than a column), the column under the pointer (the column span, for a resize) is also worked out at that other
+    // width: where the two disagree, the column last aimed at stays. When both agree on another column than the one
+    // aimed at as the width went back, the pointer has left that edge and the columns shown are followed again, as
+    // they are while the width has not gone back. Rows are the same at both widths.
+    private double trackedWidth = Double.NaN;
+    private double formerWidth = Double.NaN;
+    private boolean widthWentBack;
+    private int lastKey = Integer.MIN_VALUE;
+    private int bandKey = Integer.MIN_VALUE;
+    // The cells a dragged card points at, while they cover another card: the pane grows to take them in.
+    private Placement collidingTarget;
     // Where the card was on the virtual grid at the last step, and whether its target was the cell it started from.
     private double stepX;
     private double stepY;
@@ -85,7 +108,16 @@ final class DashboardGesture {
 
     private Scene watchedScene;
     private Window watchedWindow;
+    private RXDashboardCard watchedCard;
+    private RXTreeShowingProperty watchedCardShowing;
     private Timeline autoScroll;
+    // When the current run of auto-scroll started, in System.nanoTime().
+    private long autoScrollStart;
+    private boolean paneMovedSinceLayout;
+    private double paneWidthAtLayout;
+    private double paneHeightAtLayout;
+    // Where the pane's origin was in the scene when the cells were last worked out or the pane last laid out.
+    private Point2D lastPaneOrigin;
     // The click JavaFX generates for the release of a press that started a gesture, committed or cancelled: the card
     // followed the pointer, so press and release land on the same node. It is not a click on the content. The next
     // press clears it.
@@ -109,12 +141,28 @@ final class DashboardGesture {
         }
     };
 
+    // The window showing another scene sends its input there, and holding on would keep the old scene alive.
+    private final InvalidationListener windowListener = observable -> cancel();
+
+    // A card disabled or no longer shown (it, the pane or an ancestor hidden, the window closed) can no longer be
+    // handled, and an edit made through it now would be one the user did not see.
+    private final ChangeListener<Boolean> cardDisabledListener = (obs, wasDisabled, disabled) -> {
+        if (disabled) {
+            cancel();
+        }
+    };
+    private final ChangeListener<Boolean> cardShowingListener = (obs, wasShowing, showing) -> {
+        if (!showing) {
+            cancel();
+        }
+    };
+
     DashboardGesture(RXDashboardPane pane) {
         this.pane = pane;
         // A press and the drags before the threshold bubble, so content that takes them for itself keeps them. Once a
         // gesture has started, filters take its drags first and see its release even when content consumes it.
         pane.addEventHandler(MouseEvent.MOUSE_PRESSED, this::pressed);
-        pane.addEventFilter(MouseEvent.MOUSE_PRESSED, this::pressedDuringGesture);
+        pane.addEventFilter(MouseEvent.MOUSE_PRESSED, this::beforePress);
         pane.addEventHandler(MouseEvent.MOUSE_DRAGGED, this::dragged);
         pane.addEventFilter(MouseEvent.MOUSE_DRAGGED, this::draggedDuringGesture);
         pane.addEventFilter(MouseEvent.MOUSE_RELEASED, this::released);
@@ -139,6 +187,15 @@ final class DashboardGesture {
      */
     RXDashboardCard card() {
         return started ? card : null;
+    }
+
+    /**
+     * Returns the cells a dragged card points at while they cover another card, or {@code null}.
+     *
+     * @return the colliding target of the drag in progress
+     */
+    Placement collidingTarget() {
+        return started ? collidingTarget : null;
     }
 
     /**
@@ -196,8 +253,8 @@ final class DashboardGesture {
                         : grid.spanHeight(start.row(), largest.rowSpan());
                 height = clamp(local.getY() - grabY - y, grid.spanHeight(start.row(), smallest.rowSpan()), maxHeight);
             }
-            width = card.snapSizeX(width);
-            height = card.snapSizeY(height);
+            width = PixelGrid.ceilSizeX(card, width);
+            height = PixelGrid.ceilSizeY(card, height);
         }
         // A listener reached from each write may have ended the gesture.
         card.resize(width, height);
@@ -237,22 +294,60 @@ final class DashboardGesture {
 
     // ==================== Mouse ====================
 
-    // Reading the transform validates it again, so the next move invalidates it again.
+    // Reading the transform validates it again, so the next move invalidates it again. The card stays under the
+    // pointer at once; the cells it points at are worked out when the pane is laid out next, from where it ends up. A
+    // scroll pane laying the pane out moves it through places in between, and working them out at each would change
+    // the pane's height while it is being laid out, so the scroll pane would lay it out again on every pulse.
     private void paneMoved(Observable observable) {
         pane.getLocalToSceneTransform();
-        if (started) {
-            track();
+        if (!started) {
+            return;
         }
+        if (edge == null) {
+            follow();
+        }
+        paneMovedSinceLayout = true;
+        pane.requestLayout();
     }
 
-    // A primary press while a gesture is in progress means its release never arrived.
-    private void pressedDuringGesture(MouseEvent event) {
+    /**
+     * Called by the pane as it starts laying out its cards, with its grid for this pass in place.
+     */
+    void layoutStarting() {
+        if (!started) {
+            paneMovedSinceLayout = false;
+            return;
+        }
+        boolean resized = pane.getWidth() != paneWidthAtLayout || pane.getHeight() != paneHeightAtLayout;
+        // Where the pane's origin was, in its coordinates now: how far the pane has moved since.
+        Point2D formerOrigin = pane.sceneToLocal(lastPaneOrigin);
+        paneWidthAtLayout = pane.getWidth();
+        paneHeightAtLayout = pane.getHeight();
+        lastPaneOrigin = pane.localToScene(0.0, 0.0);
+        if (!paneMovedSinceLayout) {
+            return;
+        }
+        paneMovedSinceLayout = false;
+        // A move that comes with a new size is the parent placing the pane again after it grew or shrank, often by
+        // the preview's rows. A parent that keeps the pane's bottom edge in place moves it up as it grows; taken as
+        // the pointer moving over the grid, that would grow it again at every pass or pointer event. The held card
+        // moves with the cells instead, and the pointer keeps its place on the grid. A pixel or less is rounding (a
+        // scroll pane placing its content again after it grew), not taken in, or the card would creep away from the
+        // pointer over a long auto-scroll.
+        if (resized && (Math.abs(formerOrigin.getX()) > 1.0 || Math.abs(formerOrigin.getY()) > 1.0)) {
+            grabX += formerOrigin.getX();
+            grabY += formerOrigin.getY();
+        }
+        track();
+    }
+
+    // A primary press ends what the last one left behind: a gesture whose release never arrived, or a card armed by a
+    // press whose release went elsewhere (to another window, say). Runs before content can consume the press.
+    private void beforePress(MouseEvent event) {
         if (event.getButton() != MouseButton.PRIMARY) {
             return;
         }
-        if (started) {
-            cancel();
-        }
+        cancel();
         swallowClick = false;
     }
 
@@ -298,6 +393,11 @@ final class DashboardGesture {
         if (!started) {
             return;
         }
+        // The release of the primary button never arrived.
+        if (!event.isPrimaryButtonDown()) {
+            cancel();
+            return;
+        }
         lastSceneX = event.getSceneX();
         lastSceneY = event.getSceneY();
         update();
@@ -306,6 +406,13 @@ final class DashboardGesture {
 
     private void dragged(MouseEvent event) {
         if (!armed || started) {
+            return;
+        }
+        // The drags of a press go to the node pressed, which lies in the card it armed. A drag elsewhere, or with the
+        // primary button up, means the release of that press went elsewhere and the drag belongs to a later press,
+        // one the pane did not see because it stopped above the pane.
+        if (!event.isPrimaryButtonDown() || cardOf(event.getTarget()) != card) {
+            cancel();
             return;
         }
         lastSceneX = event.getSceneX();
@@ -333,10 +440,12 @@ final class DashboardGesture {
         }
         armed = false;
         if (started) {
+            boolean pointerMoved = event.getSceneX() != lastSceneX || event.getSceneY() != lastSceneY;
             lastSceneX = event.getSceneX();
             lastSceneY = event.getSceneY();
-            // A stepwise drag commits the preview as shown: a last step would land somewhere never shown.
-            if (edge != null || !pane.dragsStepwise()) {
+            // The preview as shown is committed unless the pointer moved since it was worked out. A stepwise drag
+            // commits it as shown regardless: a last step would land somewhere never shown.
+            if (pointerMoved && (edge != null || !pane.dragsStepwise())) {
                 track();
             }
             if (started) {
@@ -363,10 +472,11 @@ final class DashboardGesture {
     // ==================== Lifecycle ====================
 
     private boolean start() {
-        // The card may have left the pane, or the pane its editable state, between the press and now.
+        // The card may have left the pane, the pane its editable state, or the card (with the pane or an ancestor)
+        // been disabled or hidden between the press and now.
         boolean allowed = edge != null ? card.isResizeEnabled() : card.isMoveEnabled();
         if (card.owner != pane || card.placement == null || !pane.isEditable() || card.isLocked() || !allowed
-                || pane.getScene() == null) {
+                || pane.getScene() == null || card.isDisabled() || !isVisibleToTheRoot(card)) {
             return false;
         }
         started = true;
@@ -377,11 +487,20 @@ final class DashboardGesture {
         startLayout = pane.committedPlacements();
         preview = new LinkedHashMap<>(startLayout);
         candidate = held.placement;
+        collidingTarget = null;
+        trackedWidth = pane.getWidth();
+        formerWidth = Double.NaN;
+        widthWentBack = false;
+        lastKey = Integer.MIN_VALUE;
+        bandKey = Integer.MIN_VALUE;
         steps = null;
         stepX = Double.NaN;
         stepY = Double.NaN;
         home = true;
         layoutBefore = pane.getLayout();
+        paneWidthAtLayout = pane.getWidth();
+        paneHeightAtLayout = pane.getHeight();
+        lastPaneOrigin = pane.localToScene(0.0, 0.0);
         // A listener reached from each change to the card below may end the gesture at once.
         pane.releaseFromAnimation(held);
         if (started && !held.viewOrderProperty().isBound()) {
@@ -409,6 +528,9 @@ final class DashboardGesture {
     }
 
     private void track() {
+        // The cells are worked out from where the pane is now, so a growth later compensates only the moves after
+        // this: an auto-scroll tick's move is the pointer travelling over the grid, not to be undone.
+        lastPaneOrigin = pane.localToScene(0.0, 0.0);
         if (edge == null) {
             follow();
             // A listener reached from moving the card may have ended the gesture.
@@ -418,17 +540,30 @@ final class DashboardGesture {
         } else if (pane.isLiveResize()) {
             pane.requestLayout();
         }
-        DashboardGrid grid = pane.grid();
-        if (grid == null) {
+        DashboardGrid shown = pane.grid();
+        if (shown == null) {
             return;
         }
+        DashboardGrid former = formerGrid(shown);
         Point2D local = pane.sceneToLocal(lastSceneX, lastSceneY);
         Placement start = startLayout.get(card);
         if (edge == null && pane.dragsStepwise()) {
-            step(grid, start, local);
+            step(shown, former, start, local);
             return;
         }
-        Placement next = edge == null ? dragCandidate(grid, start, local) : resizeCandidate(grid, start, local);
+        Placement next = cellsUnder(shown, start, local);
+        if (former != null) {
+            Placement there = cellsUnder(former, start, local);
+            if (key(there) == key(next)) {
+                leaveEdge(key(next));
+            } else if (key(there) == lastKey) {
+                next = there;
+            }
+        }
+        lastKey = key(next);
+        if (edge == null) {
+            aimAt(next);
+        }
         if (next.equals(candidate)) {
             return;
         }
@@ -438,38 +573,82 @@ final class DashboardGesture {
         }
         candidate = next;
         preview = solved;
+        collidingTarget = null;
         pane.requestLayout();
     }
 
     // One step of a stepwise drag, taken only when the card's place on the grid changed since the last one: a pane
     // that moves or scrolls under a resting pointer does not repeat it.
-    private void step(DashboardGrid grid, Placement start, Point2D local) {
+    private void step(DashboardGrid grid, DashboardGrid former, Placement start, Point2D local) {
         double x = RXDashboardPane.virtualX(grid, local.getX() - grabX);
         double y = RXDashboardPane.virtualY(grid, local.getY() - grabY);
-        if (!Double.isFinite(x) || !Double.isFinite(y) || x == stepX && y == stepY) {
+        if (!Double.isFinite(x) || !Double.isFinite(y)) {
+            return;
+        }
+        if (steps == null) {
+            steps = pane.stepwiseDrag(startLayout, card, grid);
+        }
+        if (former != null) {
+            double formerX = RXDashboardPane.virtualX(former, local.getX() - grabX);
+            int there = steps.target(formerX, y)[0];
+            int here = steps.target(x, y)[0];
+            if (there == here) {
+                leaveEdge(here);
+            } else if (there == lastKey) {
+                x = formerX;
+            }
+        }
+        lastKey = steps.target(x, y)[0];
+        if (x == stepX && y == stepY) {
             return;
         }
         stepX = x;
         stepY = y;
-        if (steps == null) {
-            steps = pane.stepwiseDrag(startLayout, card, grid);
-        }
         int[] target = steps.target(x, y);
         int column = Math.max(0, Math.min(target[0], grid.columnCount() - start.columnSpan()));
         int row = Math.max(0, target[1]);
+        aimAt(start.withPosition(column, row));
         if (column == start.column() && row == start.row()) {
             // Coming back over the starting cell brings the starting layout back; the lean starts from here.
             if (!home) {
                 steps = pane.stepwiseDrag(startLayout, card, grid);
                 steps.anchor(x, y);
+                landed();
                 show(startLayout);
             }
             home = true;
             return;
         }
         home = false;
-        steps.step(x, y);
+        if (steps.step(x, y)) {
+            landed();
+        }
         show(steps.layout());
+    }
+
+    // Cells pointed at that cover another card in the preview shown so far: the pane takes them in, so the pointer can
+    // go on down to place the card below the others, until a move is accepted. Over free cells it does not; the
+    // preview alone says how tall the pane is.
+    private void aimAt(Placement target) {
+        Placement colliding = null;
+        for (Map.Entry<RXDashboardCard, Placement> entry : preview.entrySet()) {
+            if (entry.getKey() != card && DashboardSolver.overlaps(target, entry.getValue())) {
+                colliding = target;
+                break;
+            }
+        }
+        if (!Objects.equals(colliding, collidingTarget)) {
+            collidingTarget = colliding;
+            pane.requestLayout();
+        }
+    }
+
+    // A move was accepted: the preview says how tall the pane is again.
+    private void landed() {
+        if (collidingTarget != null) {
+            collidingTarget = null;
+            pane.requestLayout();
+        }
     }
 
     private void show(Map<RXDashboardCard, Placement> layout) {
@@ -478,6 +657,48 @@ final class DashboardGesture {
             candidate = preview.get(card);
             pane.requestLayout();
         }
+    }
+
+    private static boolean isVisibleToTheRoot(Node node) {
+        for (Node shown = node; shown != null; shown = shown.getParent()) {
+            if (!shown.isVisible()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // The grid at the other width the pane goes back and forth between, by less than a column: a scroll bar coming
+    // and going. A larger change (the window resized, say) is simply taken.
+    private DashboardGrid formerGrid(DashboardGrid shown) {
+        double width = pane.getWidth();
+        if (width != trackedWidth) {
+            if (!widthWentBack && width == formerWidth) {
+                widthWentBack = true;
+                bandKey = lastKey;
+            }
+            formerWidth = trackedWidth;
+            trackedWidth = width;
+        }
+        if (!widthWentBack || !(Math.abs(width - formerWidth) < shown.columnPitch())) {
+            return null;
+        }
+        return pane.computeGrid(formerWidth);
+    }
+
+    // Both widths agree on a column: past the edge the width went back at, there is nothing to hold any more.
+    private void leaveEdge(int key) {
+        if (key != bandKey) {
+            widthWentBack = false;
+        }
+    }
+
+    private int key(Placement cells) {
+        return edge == null ? cells.column() : cells.columnSpan();
+    }
+
+    private Placement cellsUnder(DashboardGrid grid, Placement start, Point2D local) {
+        return edge == null ? dragCandidate(grid, start, local) : resizeCandidate(grid, start, local);
     }
 
     // The cell nearest to the card's top-left corner as it follows the pointer.
@@ -540,13 +761,8 @@ final class DashboardGesture {
 
     private void commit() {
         RXDashboardCard edited = card;
-        Map<RXDashboardCard, Placement> result = preview;
-        boolean changed = !result.equals(startLayout);
-        RXDashboardLayout before = layoutBefore;
-        end();
-        if (changed) {
-            pane.commitUserEdit(result, edited, before);
-        }
+        Map<RXDashboardCard, Placement> result = preview.equals(startLayout) ? null : preview;
+        pane.commitUserEdit(this::end, result, edited, layoutBefore);
         pane.requestLayout();
     }
 
@@ -579,6 +795,12 @@ final class DashboardGesture {
         preview = null;
         steps = null;
         candidate = null;
+        collidingTarget = null;
+        trackedWidth = Double.NaN;
+        formerWidth = Double.NaN;
+        widthWentBack = false;
+        lastKey = Integer.MIN_VALUE;
+        bandKey = Integer.MIN_VALUE;
         layoutBefore = null;
     }
 
@@ -587,23 +809,36 @@ final class DashboardGesture {
     private void watch(Scene scene) {
         watchedScene = scene;
         scene.addEventFilter(KeyEvent.KEY_PRESSED, escapeFilter);
+        scene.windowProperty().addListener(windowListener);
         pane.localToSceneTransformProperty().addListener(sceneTransformListener);
         pane.getLocalToSceneTransform();
         watchedWindow = scene.getWindow();
         if (watchedWindow != null) {
             watchedWindow.focusedProperty().addListener(focusListener);
         }
+        watchedCard = card;
+        watchedCard.disabledProperty().addListener(cardDisabledListener);
+        watchedCardShowing = new RXTreeShowingProperty(watchedCard);
+        watchedCardShowing.addListener(cardShowingListener);
     }
 
     private void unwatch() {
         pane.localToSceneTransformProperty().removeListener(sceneTransformListener);
         if (watchedScene != null) {
             watchedScene.removeEventFilter(KeyEvent.KEY_PRESSED, escapeFilter);
+            watchedScene.windowProperty().removeListener(windowListener);
             watchedScene = null;
         }
         if (watchedWindow != null) {
             watchedWindow.focusedProperty().removeListener(focusListener);
             watchedWindow = null;
+        }
+        if (watchedCard != null) {
+            watchedCard.disabledProperty().removeListener(cardDisabledListener);
+            watchedCardShowing.removeListener(cardShowingListener);
+            watchedCardShowing.dispose();
+            watchedCard = null;
+            watchedCardShowing = null;
         }
     }
 
@@ -615,7 +850,8 @@ final class DashboardGesture {
                 autoScroll = new Timeline(new KeyFrame(AUTO_SCROLL_TICK, event -> autoScrollTick()));
                 autoScroll.setCycleCount(Animation.INDEFINITE);
             }
-            if (autoScroll.getStatus() != Animation.Status.RUNNING) {
+            if (!isAutoScrolling()) {
+                autoScrollStart = System.nanoTime();
                 autoScroll.play();
             }
         } else {
@@ -663,18 +899,35 @@ final class DashboardGesture {
         if (!started || scroller == null) {
             return 0.0;
         }
-        Point2D origin = scroller.localToScene(scroller.snappedLeftInset(), scroller.snappedTopInset());
-        double top = origin.getY();
-        double bottom = top + scroller.getViewportBounds().getHeight();
+        // The viewport as drawn: a scaled ancestor scales it too.
+        Bounds viewport = scroller.localToScene(new BoundingBox(scroller.snappedLeftInset(),
+                scroller.snappedTopInset(), scroller.getViewportBounds().getWidth(),
+                scroller.getViewportBounds().getHeight()));
+        double top = viewport.getMinY();
+        double bottom = viewport.getMaxY();
         if (lastSceneY < top + AUTO_SCROLL_EDGE) {
-            double depth = Math.min(1.0, (top + AUTO_SCROLL_EDGE - lastSceneY) / AUTO_SCROLL_EDGE);
-            return -Math.max(1.0, depth * AUTO_SCROLL_MAX_STEP);
+            return -scrollSpeed((top + AUTO_SCROLL_EDGE - lastSceneY) / AUTO_SCROLL_EDGE);
         }
         if (lastSceneY > bottom - AUTO_SCROLL_EDGE) {
-            double depth = Math.min(1.0, (lastSceneY - (bottom - AUTO_SCROLL_EDGE)) / AUTO_SCROLL_EDGE);
-            return Math.max(1.0, depth * AUTO_SCROLL_MAX_STEP);
+            return scrollSpeed((lastSceneY - (bottom - AUTO_SCROLL_EDGE)) / AUTO_SCROLL_EDGE);
         }
         return 0.0;
+    }
+
+    // Faster the deeper the pointer is in the band, and building up over the first moments of a run: a gesture that
+    // starts in the band, pulling the bottom edge of a card at the bottom of the viewport say, does not set off at
+    // full speed.
+    private double scrollSpeed(double depth) {
+        double ramp = 0.0;
+        if (isAutoScrolling()) {
+            double elapsedMillis = (System.nanoTime() - autoScrollStart) / 1.0e6;
+            ramp = Math.min(1.0, elapsedMillis / AUTO_SCROLL_RAMP.toMillis());
+        }
+        return Math.max(1.0, Math.min(1.0, depth) * ramp * AUTO_SCROLL_MAX_STEP);
+    }
+
+    private boolean isAutoScrolling() {
+        return autoScroll != null && autoScroll.getStatus() == Animation.Status.RUNNING;
     }
 
     private ScrollPane enclosingScrollPane() {

@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.layout;
 
+import io.github.leewyatt.rxcontrols.internal.PixelGrid;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardLayout.Placement;
 import javafx.beans.InvalidationListener;
@@ -48,7 +49,8 @@ import java.util.Objects;
  * node.</p>
  *
  * <p>The pane drives the card's {@code translateX}, {@code translateY} and {@code viewOrder} while it animates or drags
- * the card, and sets the {@code :dragging} and {@code :resizing} pseudo-classes; applications should not change these.
+ * the card, its {@code opacity} while it fades in, and sets the {@code :dragging} and {@code :resizing} pseudo-classes;
+ * applications should not change these.
  * The card needs a background fill, transparent or not, for presses on its empty parts to reach it; the default style
  * gives it one, and makes a card being dragged slightly translucent. Style class {@code rx-dashboard-card};
  * pseudo-classes {@code :draggable} (the user can drag the card now: its dashboard is
@@ -68,6 +70,12 @@ import java.util.Objects;
  * style draws the shape {@code 4px} inside its box with {@code -fx-background-insets}. Presses are taken by the corner
  * resize handle ({@code .resize-handle.corner}, 16 px square by default) above it, so a larger grip needs a corner
  * handle at least as large.</p>
+ *
+ * <p>The resize handles, style class {@code resize-handle} with {@code right}, {@code bottom} or {@code corner}, are
+ * unpainted by default and present only while the user may resize the card. They lie inside the card, along its right and
+ * bottom edges (8 px thick by default) and in its bottom-right corner, so they never reach past the card, and
+ * {@code -fx-pref-width} / {@code -fx-pref-height} change their size. The default padding keeps the content clear of
+ * them; content that reaches the card's edges gets no presses under them while the card can be resized.</p>
  */
 public class RXDashboardCard extends Region {
 
@@ -140,6 +148,9 @@ public class RXDashboardCard extends Region {
                            @NamedArg(value = "columnSpan", defaultValue = "1") int columnSpan,
                            @NamedArg(value = "rowSpan", defaultValue = "1") int rowSpan) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
+        // Picked where it paints and where its children are, not on its bounds, which take in content overflowing
+        // the card: a press beside that content, on a neighbour, reaches the neighbour.
+        setPickOnBounds(false);
         getChildren().addAll(resizeGrip, rightHandle, bottomHandle, cornerHandle);
         // These parts take no part in layout, so a new preferred size (from a style sheet, say) would not reach the
         // card on its own.
@@ -688,8 +699,10 @@ public class RXDashboardCard extends Region {
         if (node.isResizable()) {
             double width = fit(areaWidth, node.minWidth(-1), node.maxWidth(-1));
             double height = fit(areaHeight, node.minHeight(width), node.maxHeight(width));
-            width = snapSizeX(width);
-            height = snapSizeY(height);
+            // The area is a difference of grid values, which can lie a hair above its grid line; Region's snapping
+            // would ceil that to a whole extra device pixel.
+            width = PixelGrid.ceilSizeX(this, width);
+            height = PixelGrid.ceilSizeY(this, height);
             // Smaller than the area (a maximum below it) centers; larger (a minimum above it) starts at the top left
             // and overflows to the right and bottom.
             double x = width < areaWidth ? left + (areaWidth - width) / 2.0 : left;
@@ -705,10 +718,10 @@ public class RXDashboardCard extends Region {
         }
     }
 
-    // The handles straddle the card's right and bottom edges, half in the gap and half in the padding, so with the
-    // default padding they cover no content. A gap narrower than half a handle moves the rest of it inward: a handle
-    // keeps its thickness but never lies over a neighbour, which may be drawn and picked above it. The corner square
-    // takes the bottom-right end of both. They show only where the user may resize the card.
+    // The handles lie inside the card along its right and bottom edges, so they never reach past it: over a
+    // neighbour, past the pane's edge or onto a scroll bar beside it. With the default padding they cover no content;
+    // on a card smaller than a handle, the handle stops at the card's left or top edge. The corner square takes the
+    // bottom-right end of both, where the grip is. They show only where the user may resize the card.
     private void layoutHandles() {
         boolean shown = canResize();
         rightHandle.setVisible(shown);
@@ -721,17 +734,17 @@ public class RXDashboardCard extends Region {
         double height = getHeight();
         double thicknessX = snapSizeX(rightHandle.prefWidth(-1));
         double thicknessY = snapSizeY(bottomHandle.prefHeight(-1));
-        double outsideX = Math.min(thicknessX / 2.0, owner.handleRoomX());
-        double outsideY = Math.min(thicknessY / 2.0, owner.handleRoomY());
-        double rightStart = snapPositionX(width + outsideX - thicknessX);
+        double rightStart = snapPositionX(width - thicknessX);
         double rightEnd = rightStart + thicknessX;
-        double bottomStart = snapPositionY(height + outsideY - thicknessY);
+        rightStart = Math.max(0.0, rightStart);
+        double bottomStart = snapPositionY(height - thicknessY);
         double bottomEnd = bottomStart + thicknessY;
-        double cornerX = Math.min(rightStart, rightEnd - snapSizeX(cornerHandle.prefWidth(-1)));
-        double cornerY = Math.min(bottomStart, bottomEnd - snapSizeY(cornerHandle.prefHeight(-1)));
+        bottomStart = Math.max(0.0, bottomStart);
+        double cornerX = Math.max(0.0, Math.min(rightStart, rightEnd - snapSizeX(cornerHandle.prefWidth(-1))));
+        double cornerY = Math.max(0.0, Math.min(bottomStart, bottomEnd - snapSizeY(cornerHandle.prefHeight(-1))));
         cornerHandle.resizeRelocate(cornerX, cornerY, rightEnd - cornerX, bottomEnd - cornerY);
-        rightHandle.resizeRelocate(rightStart, 0.0, thicknessX, Math.max(0.0, cornerY));
-        bottomHandle.resizeRelocate(0.0, bottomStart, Math.max(0.0, cornerX), thicknessY);
+        rightHandle.resizeRelocate(rightStart, 0.0, rightEnd - rightStart, cornerY);
+        bottomHandle.resizeRelocate(0.0, bottomStart, cornerX, bottomEnd - bottomStart);
     }
 
     // The grip lies in the card's bottom-right corner, under the corner handle, whether or not it shows.
@@ -770,10 +783,22 @@ public class RXDashboardCard extends Region {
     }
 
     // Publishes the placement the pane committed to the read-only properties.
+    // A listener on one of these may take the card to another dashboard, which publishes its own placement; the
+    // rest of this one is then stale.
     void publish(Placement value) {
+        Placement current = placement;
         column.set(value.column());
+        if (placement != current) {
+            return;
+        }
         row.set(value.row());
+        if (placement != current) {
+            return;
+        }
         columnSpan.set(value.columnSpan());
+        if (placement != current) {
+            return;
+        }
         rowSpan.set(value.rowSpan());
     }
 

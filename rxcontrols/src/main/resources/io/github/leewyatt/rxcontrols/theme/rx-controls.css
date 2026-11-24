@@ -4331,6 +4331,10 @@
     -fx-cursor: se-resize;
 }
 
+.rx-dashboard-card > .resize-handle.corner:dir(rtl) {
+    -fx-cursor: sw-resize;
+}
+
 .rx-dashboard-card > .resize-grip {
     -fx-background-color: -rx-on-surface-disabled;
     -fx-background-insets: 4px;

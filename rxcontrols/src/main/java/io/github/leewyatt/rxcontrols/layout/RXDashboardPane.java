@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.internal.RenderScaleWatch;
 import io.github.leewyatt.rxcontrols.layout.DashboardSolver.Item;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardLayout.Placement;
 import javafx.animation.Interpolator;
+import javafx.application.Platform;
 import javafx.beans.DefaultProperty;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -81,11 +82,19 @@ import java.util.logging.Logger;
  * }</pre>
  *
  * <p><b>Geometry.</b> The columns share the content width equally, with {@link #hgapProperty() hgap} between them;
- * every row is {@link #rowHeightProperty() rowHeight} high, with {@link #vgapProperty() vgap} between rows, so a wider
- * window makes cards wider but never taller. Every edge lands on the device-pixel grid. The pane's preferred height
- * is that of its rows and its minimum height equals it: the pane is not squeezed, so put it in a {@code ScrollPane}
- * when it may be taller than the window. Its preferred width makes each cell square; its minimum width is
- * {@link #minColumnWidthProperty() minColumnWidth} per column.</p>
+ * every row is {@link #rowHeightProperty() rowHeight} high, with {@link #vgapProperty() vgap} between rows, so a
+ * wider window makes cards wider but never taller. Every edge lands on the device-pixel grid. The pane's preferred
+ * height is that of its rows and its minimum height equals it: the pane is not squeezed, so put it in a
+ * {@code ScrollPane} when it may be taller than the window. Its preferred width makes each cell square; its minimum
+ * width is {@link #minColumnWidthProperty() minColumnWidth} per column. During a gesture the pane is as tall as the
+ * preview (the held card where it would land) needs; while a dragged card points at cells that cover another card, it
+ * also reaches down to those cells, so the card can be placed below the others. Inside a {@code ScrollPane}, a column
+ * count that follows the width should follow one the vertical scroll bar does not change, such as the scroll pane's
+ * own width, as a new count cancels the gesture. Do not put the pane directly in a {@code Group}, nor directly among
+ * a {@code Popup}'s content: their bounds follow the card being dragged, its shadow included, and a parent or popup
+ * placing them by those bounds moves the pane under the pointer again and again (in a popup, until the stack
+ * overflows). To scale the dashboard, scale the pane itself or a {@code Region} around it; to show it in a popup, put
+ * it in a {@code Region} clipped to the region's own size.</p>
  *
  * <p><b>Gestures.</b> While the pane is {@link #editableProperty() editable}, the user drags a card by pressing
  * anywhere on it that its content does not take for itself (table rows, scroll bars and buttons do; charts and labels
@@ -93,9 +102,10 @@ import java.util.logging.Logger;
  * bottom edge or bottom-right corner. A press moves nothing until the pointer has travelled a few pixels. During the
  * gesture a placeholder marks the cells the card will take, the other cards make room as the collision policy says,
  * and nothing is committed: releasing commits the layout and fires {@link RXDashboardEvent#LAYOUT_CHANGED}, Esc or
- * switching to another window cancels it. Near the top or bottom of an enclosing {@code ScrollPane}'s viewport, the
- * scroll pane scrolls. Changing the cards, the column count or the layout from code during a gesture cancels it
- * first.</p>
+ * switching to another window cancels it, and so does disabling or hiding the card, the pane or one of its ancestors.
+ * Near the top or bottom of an enclosing {@code ScrollPane}'s viewport, the scroll pane scrolls, starting slowly and
+ * faster the deeper the pointer goes. Changing the cards, the column count or the layout from code during a gesture
+ * cancels it first.</p>
  *
  * <p><b>Saving and restoring.</b> {@link #layoutProperty() layout} holds a snapshot of the committed layout,
  * keyed by {@link RXDashboardCard#cardIdProperty() card ID}, and changes after every change, from the user and from
@@ -105,18 +115,25 @@ import java.util.logging.Logger;
  *
  * <p><b>Changing the layout from callbacks.</b> A commit first records the new layout, then updates the cards'
  * placement properties, then the {@code layout} property, and fires the event last when the user made the change.
+ * When the user lets go of a card, the pane first gives the card back (its translate, its view order and its
+ * {@code :dragging} or {@code :resizing} state); listeners reached from that count as listeners on the placement.
  * Calling {@link #moveCard}, {@link #resizeCard}, {@link #compact()} or {@link #applyLayout} from a listener on a
  * card's placement properties or on {@code layout} throws {@link IllegalStateException}; from a
  * {@link RXDashboardEvent} handler it is allowed and commits at once. Other changes made from those listeners
  * (adding or removing cards, the column count, the collision policy, {@code autoCompact}, a card's ID, span limits or
  * lock) take effect once the notification is over. A JavaFX list cannot be changed from within its own change
  * notification, so while the pane is taking in a change to {@link #getCards()} (the notification then comes from
- * there), a listener must not change that list itself: defer such a change, for example with
- * {@code Platform.runLater}.</p>
+ * there), a listener must not change that list itself, which moving one of its cards to another dashboard also does:
+ * defer such a change, for example with {@code Platform.runLater}.</p>
  *
- * <p>Style class {@code rx-dashboard-pane}; pseudo-class {@code :editable}. The cards are the pane's children in
- * reading order, row first, then column, which is also the keyboard focus order; {@link #getCards()} keeps the order
- * the application gave.</p>
+ * <p><b>Size.</b> The pane is made for dashboards of tens of cards. Collision handling, packing and finding room for
+ * cards without a position cost more than in proportion to the number of cards: with a hundred cards an edit or a
+ * drag step takes milliseconds, with several hundred a {@link #moveCard} over a long distance, a drag step or adding
+ * many cards without a position at once can take a large part of a second.</p>
+ *
+ * <p>Style class {@code rx-dashboard-pane}; pseudo-class {@code :editable}. The pane's first child is the region that
+ * marks where a held card will land (style class {@code placeholder}); the cards follow in reading order, row first,
+ * then column, which is also the keyboard focus order; {@link #getCards()} keeps the order the application gave.</p>
  */
 @DefaultProperty("cards")
 public class RXDashboardPane extends Region {
@@ -201,6 +218,11 @@ public class RXDashboardPane extends Region {
     private boolean lastAutoCompact = DEFAULT_AUTO_COMPACT;
     private int effectiveColumns = DEFAULT_COLUMN_COUNT;
     private int lastValidColumnCount = DEFAULT_COLUMN_COUNT;
+    // A column count the CSS engine handed back: the pane keeps its count until its next layout pass, which follows the
+    // CSS pass, and takes the new one only if no style sheet replaced it by then.
+    private boolean columnCountReset;
+    private boolean columnCountPending;
+    private boolean relayoutAfterPass;
     // Depth of the placement and layout notifications in progress; changes arriving meanwhile wait for the end.
     private int notifying;
     private boolean reconcilePending;
@@ -257,7 +279,7 @@ public class RXDashboardPane extends Region {
         // Region re-lays out nothing when the render scale or snapToPixel changes; the grid lines would keep the old
         // device grid.
         snapToPixelProperty().addListener((obs, oldValue, newValue) -> requestLayout());
-        new RenderScaleWatch(this, this::requestLayout);
+        new RenderScaleWatch(this, this::renderScaleChanged);
         sceneProperty().addListener((obs, oldScene, newScene) -> {
             gesture.cancel();
             pendingShown.clear();
@@ -316,6 +338,12 @@ public class RXDashboardPane extends Region {
     private final IntegerProperty columnCount = new StyleableIntegerProperty(DEFAULT_COLUMN_COUNT) {
         @Override
         protected void invalidated() {
+            if (columnCountReset && getScene() != null) {
+                columnCountPending = true;
+                requestLayout();
+                return;
+            }
+            columnCountPending = false;
             int value = get();
             if (value < 1) {
                 if (!isBound()) {
@@ -340,7 +368,16 @@ public class RXDashboardPane extends Region {
                 LOGGER.warning("Ignored -rx-column-count below 1: " + value);
                 return;
             }
-            super.applyStyle(origin, value);
+            // Rebuilding the pane's styles (a theme switch, a style sheet or style class change) hands back the value
+            // from before the style sheets, set by nothing (null) or by code (USER), at once, and applies the style
+            // sheets' value again at the next CSS pass. Taken as a real change, the layout would be converted there
+            // and back, and an edit in between would be made at the wrong count.
+            columnCountReset = origin == null || origin == StyleOrigin.USER;
+            try {
+                super.applyStyle(origin, value);
+            } finally {
+                columnCountReset = false;
+            }
         }
 
         // A binding left at an invalid value would leave the property there for good.
@@ -377,20 +414,24 @@ public class RXDashboardPane extends Region {
      * Going back to a count shown since the last edit restores the layout shown there instead, so changing the count
      * and changing it back with no edit in between restores the layout exactly. Edits are what moves cards already
      * there for another reason: gestures, {@link #moveCard}, {@link #resizeCard}, {@link #compact()},
-     * {@link #applyLayout}, a span limit, an added card that pushes others, and cards packing upward after an unlock, a
-     * removal or turning {@code autoCompact} on. Locking or unlocking cards, turning {@code autoCompact} on or off and
-     * adding or removing cards are not edits when they move no other card. Back at a count shown before, cards removed
-     * meanwhile are left out, cards added meanwhile are placed as {@code applyLayout} places cards a snapshot does not
-     * mention, and with {@code autoCompact} the cards then pack upward under the current locks: a card unlocked
-     * meanwhile, cards below one removed meanwhile and holes left while {@code autoCompact} was off close up. Until the
-     * pane is first laid out, a change instead places every card again as if the count had been set before the first
-     * card was added, repeating in order the cards added and removed, the snapshots applied and the edits made so far,
-     * with the cards' current locks and span limits: FXML sets the count after adding the cards, and a style sheet sets
-     * it at the first CSS pass. A card taken out meanwhile and not yet in another dashboard is given the cells it would
-     * have left, which it requests when added again. A change that comes after the layout was changed following an
-     * earlier change converts instead, since what came after a count was set refers to that count; so does every change
-     * once the pane has been laid out, or once more than 512 cards were added, removed or edited, or snapshots applied,
-     * before it. Values above 4096 count as 4096.
+     * {@link #applyLayout} (other than of the layout shown), a span limit, an added card that pushes others, and cards
+     * packing upward after an unlock, a removal or turning {@code autoCompact} on. Locking or unlocking cards, turning
+     * {@code autoCompact} on or off and adding or removing cards are not edits when they move no other card; with
+     * {@code autoCompact}, though, an added card makes the layout shown the one later changes convert from, as the
+     * cards pack around it there. Back at a count shown before, cards removed meanwhile are left out, cards added
+     * meanwhile are placed as {@code applyLayout} places cards a snapshot does not mention, and with
+     * {@code autoCompact} the cards then pack upward under the current locks: a card unlocked meanwhile, cards below
+     * one removed meanwhile and holes left while {@code autoCompact} was off close up. Until the pane is first laid
+     * out, a change instead places every card again as if the count had been set before the first card was added,
+     * repeating in order the cards added and removed, the snapshots applied and the edits made so far, with the cards'
+     * current locks and span limits: FXML sets the count after adding the cards, and a style sheet sets it at the first
+     * CSS pass. A card taken out meanwhile and not yet in another dashboard is given the cells it would have left,
+     * which it requests when added again. A change that comes after the layout was changed following an earlier change
+     * converts instead, since what came after a count was set refers to that count; so does every change once the pane
+     * has been laid out, or once more than 512 cards were added, removed or edited, or snapshots applied, before it.
+     * Values above 4096 count as 4096. When the style sheets stop setting the count, JavaFX hands back the value from
+     * before them, as it does for a moment whenever a theme switch or a style sheet change rebuilds the pane's styles;
+     * the pane takes that value at its next layout pass, unless a style sheet has set the count again by then.
      *
      * <p>A value below 1 is rejected with {@link IllegalArgumentException} and the property goes back to its last
      * valid value. When the property is bound to an invalid value it cannot go back: the pane keeps laying out with
@@ -545,10 +586,6 @@ public class RXDashboardPane extends Region {
             @Override
             protected void invalidated() {
                 requestLayout();
-                // The resize handles reach into the gap.
-                for (RXDashboardCard card : members) {
-                    card.requestLayout();
-                }
             }
 
             @Override
@@ -724,8 +761,8 @@ public class RXDashboardPane extends Region {
                 gesture.cancel();
             }
             // The list, not the members: a card being taken in, whose attaching may run this, is not a member yet.
-            // A copy, as a listener reached from here may change the list.
-            for (RXDashboardCard card : new ArrayList<>(cards)) {
+            // A copy without nulls or repeats, as a listener reached from here may change the list.
+            for (RXDashboardCard card : distinctCards()) {
                 card.updateGestureStates();
                 card.requestLayout();
             }
@@ -1032,7 +1069,8 @@ public class RXDashboardPane extends Region {
      * cards on the way, and then everything packs upward; where it ends up depends on where it started and may differ
      * from the requested cell, as may the result of a hand-drawn drag to the same cell. A locked card, which does not
      * pack, is placed at the requested cell as without {@code autoCompact}. Under {@code BLOCK} the card takes the
-     * cell if it is free and then everything packs upward, so it may rise.
+     * cell if it is free and then everything packs upward, so it may rise. A move cell by cell costs more the farther
+     * the card goes and the more cards there are.
      *
      * @param card   a card of this dashboard
      * @param column the new column
@@ -1062,9 +1100,10 @@ public class RXDashboardPane extends Region {
     }
 
     /**
-     * Resizes a card to the given column and row span, keeping its top-left cell where the grid allows. The spans are
-     * first clamped into the card's span limits and the grid; a card that cannot keep its column at its new width
-     * moves left. Other cards make room by the {@link #collisionPolicyProperty() collisionPolicy}; the card itself
+     * Resizes a card to the given column and row span, keeping its top-left cell where the grid allows. The column
+     * span is first limited to the columns from the card's column to the grid's right edge, then both spans are
+     * clamped into the card's span limits; a card whose minimum column span does not fit there moves left. Other cards
+     * make room by the {@link #collisionPolicyProperty() collisionPolicy}; the card itself
      * may be locked. With {@link #autoCompactProperty() autoCompact} everything then packs upward, so the card may
      * rise when a smaller size frees the rows above it.
      *
@@ -1120,7 +1159,8 @@ public class RXDashboardPane extends Region {
      * </ul>
      * Locked cards are moved like any other. With {@link #autoCompactProperty() autoCompact} the result then packs
      * upward, so a snapshot with holes is not kept as it was. The snapshot also becomes the layout later column-count
-     * changes convert from; they handle the cards it does not mention by the last rule.
+     * changes convert from; they handle the cards it does not mention by the last rule. Applying the layout already
+     * shown, once the pane has been laid out, changes nothing and keeps what column-count changes convert from.
      *
      * @param layout the snapshot to apply
      * @throws NullPointerException  if {@code layout} is {@code null}
@@ -1135,8 +1175,13 @@ public class RXDashboardPane extends Region {
                 List.copyOf(members)));
         Map<RXDashboardCard, Placement> result = packed(DashboardSolver.arrange(items(), target,
                 layout.getColumnCount(), effectiveColumns, effectiveColumns));
-        newBase();
-        target.forEach((card, placement) -> base.put(card, new BaseEntry(placement, layout.getColumnCount())));
+        // Applying the layout already shown moves nothing and is no edit: the layouts shown at other column counts
+        // still lead back to it. Before the first layout pass the history needs it as recorded.
+        boolean shownAlready = history == null && layout.equals(getLayout()) && !changesPlacements(result);
+        if (!shownAlready) {
+            newBase();
+            target.forEach((card, placement) -> base.put(card, new BaseEntry(placement, layout.getColumnCount())));
+        }
         commit(result);
     }
 
@@ -1307,10 +1352,14 @@ public class RXDashboardPane extends Region {
 
     // Records the result, then notifies: the cards' placement properties first, then the layout property. Changes
     // the listeners make to the cards or the columns are applied once the notification is over.
+    // A member another dashboard took over meanwhile (while a gesture gave its card back, say) keeps the placement
+    // that dashboard gave it, stays out of the snapshot and the children, and leaves at the next reconcile.
     private RXDashboardLayout commit(Map<RXDashboardCard, Placement> result) {
         boolean moved = changesPlacements(result);
         for (RXDashboardCard card : members) {
-            card.placement = result.get(card);
+            if (card.owner == this) {
+                card.placement = result.get(card);
+            }
         }
         RXDashboardLayout next = snapshot();
         if (moved) {
@@ -1347,7 +1396,7 @@ public class RXDashboardPane extends Region {
         Map<String, RXDashboardCard> byId = new LinkedHashMap<>();
         for (RXDashboardCard card : members) {
             String id = card.getCardId();
-            if (RXDashboardLayout.isUsableId(id) && card.placement != null) {
+            if (card.owner == this && RXDashboardLayout.isUsableId(id) && card.placement != null) {
                 byId.putIfAbsent(id, card);
             }
         }
@@ -1357,7 +1406,12 @@ public class RXDashboardPane extends Region {
     // The children are the placeholder, then the cards in reading order, which is also the focus traversal order. One
     // setAll keeps every card in the scene, so a focused node inside keeps the focus.
     private void sortChildren() {
-        List<RXDashboardCard> sorted = new ArrayList<>(members);
+        List<RXDashboardCard> sorted = new ArrayList<>();
+        for (RXDashboardCard card : members) {
+            if (card.owner == this) {
+                sorted.add(card);
+            }
+        }
         sorted.sort((a, b) -> {
             int byRow = Integer.compare(a.placement.row(), b.placement.row());
             return byRow != 0 ? byRow : Integer.compare(a.placement.column(), b.placement.column());
@@ -1393,7 +1447,9 @@ public class RXDashboardPane extends Region {
                 if (++rounds > MAX_RECONCILE_ROUNDS) {
                     throw new IllegalStateException("Listeners keep changing the dashboard on every notification");
                 }
-            } while (reconcilePending);
+                // A change to the list made while it was notifying (a card moved to another dashboard, say) can be
+                // merged into that notification and never reach the pane.
+            } while (reconcilePending || !distinctCards().equals(members));
         } finally {
             reconciling = false;
         }
@@ -1567,9 +1623,9 @@ public class RXDashboardPane extends Region {
         Map<RXDashboardCard, Placement> state = new LinkedHashMap<>();
         Map<RXDashboardCard, BaseEntry> rebuilt = new IdentityHashMap<>();
         // Where each removed card was, live and in the replay: a card put back asks for the position it left, which
-        // it published at the count of the time.
-        Map<RXDashboardCard, Placement[]> removedAt = new IdentityHashMap<>();
-        Map<RXDashboardCard, Integer> removedStep = new IdentityHashMap<>();
+        // it published at the count of the time. In the order of removal, so the cards still out publish in that order.
+        Map<RXDashboardCard, Placement[]> removedAt = new LinkedHashMap<>();
+        Map<RXDashboardCard, Integer> removedStep = new LinkedHashMap<>();
         // Within one reconciliation's additions and removals: whether one pushed another card or added a card.
         boolean pushed = false;
         boolean added = false;
@@ -1786,16 +1842,6 @@ public class RXDashboardPane extends Region {
         card.requestLayout();
     }
 
-    // The room a card's resize handles may take beyond its right and bottom edges: the gap, which no other card's
-    // handle uses, so a handle never lies over a neighbour.
-    double handleRoomX() {
-        return snapSpaceX(gapOrZero(getHgap()));
-    }
-
-    double handleRoomY() {
-        return snapSpaceY(gapOrZero(getVgap()));
-    }
-
     // ==================== Gesture hooks ====================
 
     Map<RXDashboardCard, Placement> committedPlacements() {
@@ -1834,9 +1880,13 @@ public class RXDashboardPane extends Region {
         return (x - grid.columnX(0)) / grid.columnPitch() * VIRTUAL_CELL;
     }
 
-    // A pane y on the virtual grid of a stepwise drag: row r's top edge is r cells.
+    // A pane y on the virtual grid of a stepwise drag: row r's top edge is r cells. Held within as many rows above and
+    // below as the solver allows: on a sub-pixel grid a pointer far away would ask for a row so large that the card
+    // took seconds to come back, or so large it wrapped around int.
     static double virtualY(DashboardGrid grid, double y) {
-        return (y - grid.rowY(0)) / grid.rowPitch() * VIRTUAL_CELL;
+        double row = (y - grid.rowY(0)) / grid.rowPitch() * VIRTUAL_CELL;
+        double limit = DashboardSolver.MAX_ROW * VIRTUAL_CELL;
+        return Double.isFinite(row) ? Math.max(-limit, Math.min(row, limit)) : row;
     }
 
     Map<RXDashboardCard, Placement> solveFrom(Map<RXDashboardCard, Placement> start, RXDashboardCard card,
@@ -1850,12 +1900,47 @@ public class RXDashboardPane extends Region {
         pendingShown.put(card, new Point2D(x, y));
     }
 
-    // A committed gesture: the result becomes the base of later conversions, and the event comes last, once the
-    // properties are notified and any change made from their listeners is applied.
-    void commitUserEdit(Map<RXDashboardCard, Placement> result, RXDashboardCard edited, RXDashboardLayout before) {
-        rebase(result);
-        RXDashboardLayout committed = commit(result);
-        fireEvent(new RXDashboardEvent(RXDashboardEvent.LAYOUT_CHANGED, this, committed, before, edited));
+    // A gesture let go: it gives its card back, then the result, null when the gesture changed nothing, becomes the
+    // base of later conversions. Both notify, so changes made from the listeners wait until the result, worked out
+    // for the cards as they were, is committed. The event comes last, once those changes are applied.
+    void commitUserEdit(Runnable giveBack, Map<RXDashboardCard, Placement> result, RXDashboardCard edited,
+                        RXDashboardLayout before) {
+        RXDashboardLayout committed = null;
+        notifying++;
+        try {
+            giveBack.run();
+            if (result != null) {
+                rebase(result);
+                committed = commit(result);
+            }
+        } finally {
+            notifying--;
+        }
+        if (reconcilePending && notifying == 0) {
+            reconcile();
+        }
+        if (committed != null) {
+            fireEvent(new RXDashboardEvent(RXDashboardEvent.LAYOUT_CHANGED, this, committed, before, edited));
+        }
+    }
+
+    private void requestLayoutAfterPass() {
+        if (relayoutAfterPass) {
+            return;
+        }
+        relayoutAfterPass = true;
+        Platform.runLater(() -> {
+            relayoutAfterPass = false;
+            requestLayout();
+        });
+    }
+
+    // The cards place their content on the device grid too, so they lay out again even where their size stays.
+    private void renderScaleChanged() {
+        requestLayout();
+        for (RXDashboardCard card : members) {
+            card.requestLayout();
+        }
     }
 
     private List<RXDashboardCard> distinctCards() {
@@ -1934,8 +2019,9 @@ public class RXDashboardPane extends Region {
         return computePrefHeight(width);
     }
 
-    // The rows the shown layout uses: the largest bottom row of any card, plus one during a gesture so a card can be
-    // taken below the last row.
+    // The rows the shown layout uses: the largest bottom row of any card, the held one where it would land. While a
+    // dragged card points at cells that cover another card, also the rows down to those cells, so the pointer can go
+    // on down to place it below the others.
     private int rowCount() {
         int rows = 0;
         for (RXDashboardCard card : members) {
@@ -1944,13 +2030,25 @@ public class RXDashboardPane extends Region {
                 rows = Math.max(rows, placement.row() + placement.rowSpan());
             }
         }
-        return gesture.isActive() ? rows + 1 : rows;
+        Placement target = gesture.collidingTarget();
+        return target == null ? rows : Math.max(rows, target.row() + target.rowSpan());
     }
 
     // ==================== Layout ====================
 
     @Override
     protected void layoutChildren() {
+        // A count the CSS engine handed back and a preview worked out again change the preferred size from inside
+        // this pass; the request that makes stops at the ancestors, which are still laying out.
+        int rowsBefore = rowCount();
+        int columnsBefore = effectiveColumns;
+        if (columnCountPending) {
+            columnCountPending = false;
+            if (getColumnCount() != lastValidColumnCount) {
+                lastValidColumnCount = getColumnCount();
+                reconcile();
+            }
+        }
         // From the first layout on, a column-count, policy or autoCompact change applies to the layout the user sees.
         history = null;
         // Sampled before anything below can reach a listener that takes the pane out of its scene.
@@ -1958,6 +2056,10 @@ public class RXDashboardPane extends Region {
         Scene scene = getScene();
         membership.beginPass();
         grid = computeGrid();
+        gesture.layoutStarting();
+        if (rowCount() != rowsBefore || effectiveColumns != columnsBefore) {
+            requestLayoutAfterPass();
+        }
         boolean animate = isAnimated() && isAnimationDurationPositive() && membership.continuesIn(scene);
         boolean collectMoves = animate || animator.hasActiveState();
         List<RXDashboardCard> laidOut = new ArrayList<>(members);
@@ -2046,9 +2148,14 @@ public class RXDashboardPane extends Region {
     }
 
     DashboardGrid computeGrid() {
+        return computeGrid(getWidth());
+    }
+
+    // The grid the pane would have at the given width, with its current insets, gaps, row height and render scale.
+    DashboardGrid computeGrid(double width) {
         double left = snappedLeftInset();
         double top = snappedTopInset();
-        double contentWidth = Math.max(0.0, getWidth() - left - snappedRightInset());
+        double contentWidth = Math.max(0.0, width - left - snappedRightInset());
         MasonryColumns.Resolution columns = MasonryColumns.resolve(contentWidth, contentWidth, effectiveColumns,
                 1.0, snapSpaceX(gapOrZero(getHgap())), 0, true, RXBreakpointProfile.BOOTSTRAP, null,
                 snapScale(true));
