@@ -30,7 +30,6 @@ import java.util.List;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.frame;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.icon;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.iconButton;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.plain;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.solid;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.spacer;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.text;
@@ -99,11 +98,11 @@ public final class RXDualPaneSamples {
         HBox bar = new HBox(10.0, back, text("Contacts", "copy"));
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.getStyleClass().add("frame-bar");
-        HBox actions = new HBox(10.0, solid("Message", "teal"), plain("Call"));
-        actions.setAlignment(Pos.CENTER);
-        VBox card = new VBox(8.0, avatar, name, handle, role, actions);
+        RXButton backButton = solid("Back", "teal");
+        backButton.setOnAction(event -> pane.setShowingSecond(false));
+        VBox card = new VBox(8.0, avatar, name, handle, role, backButton);
         card.setAlignment(Pos.CENTER);
-        VBox.setMargin(actions, new Insets(8.0, 0.0, 0.0, 0.0));
+        VBox.setMargin(backButton, new Insets(8.0, 0.0, 0.0, 0.0));
         BorderPane detail = new BorderPane(card);
         detail.setTop(bar);
 

@@ -84,50 +84,59 @@ public final class RXRipplePaneSamples {
     // ==================== Settings rows ====================
 
     private static Node settings() {
+        Label status = text("Pick a setting to open it", "muted");
         VBox list = new VBox(
-                row("Notifications", "Sounds and badges", "bell-icon", "rose"),
-                row("Privacy", "Who can see your profile", "lock-icon", "teal"),
-                row("Storage", "18.4 GB of 50 GB used", "cloud-icon", "sky"),
-                row("Appearance", "Light, dark or automatic", "palette-icon", "violet"));
+                row("Notifications", "Sounds and badges", "bell-icon", "rose", status),
+                row("Privacy", "Who can see your profile", "lock-icon", "teal", status),
+                row("Storage", "18.4 GB of 50 GB used", "cloud-icon", "sky", status),
+                row("Appearance", "Light, dark or automatic", "palette-icon", "violet", status));
         list.getStyleClass().add("settings-list");
-        return fixedWidth(list, 250.0);
+        VBox box = new VBox(12.0, list, status);
+        box.setAlignment(Pos.CENTER);
+        return fixedWidth(box, 250.0);
     }
 
-    private static Node row(String title, String detail, String iconClass, String color) {
+    private static Node row(String title, String detail, String iconClass, String color, Label status) {
         Region chevron = icon("chevron-icon");
         HBox content = new HBox(10.0, iconBadge(iconClass, color),
                 new VBox(1.0, text(title, "copy"), text(detail, "muted")), spacer(), chevron);
         content.setAlignment(Pos.CENTER_LEFT);
         RXRipplePane row = new RXRipplePane(content);
         row.getStyleClass().add("settings-row");
+        row.setOnMouseClicked(event -> status.setText("Opened " + title));
         return row;
     }
 
     // ==================== Quick actions ====================
 
     private static Node quickActions() {
+        Label status = text("Pick an action", "muted");
         TilePane tiles = new TilePane(10.0, 10.0,
-                tile("Scan", "scan-icon", "sky"),
-                tile("Pay", "card-icon", "violet"),
-                tile("Transfer", "swap-icon", "orange"),
-                tile("Top up", "plus-icon", "lime"));
+                tile("Scan", "scan-icon", "sky", status),
+                tile("Pay", "card-icon", "violet", status),
+                tile("Transfer", "swap-icon", "orange", status),
+                tile("Top up", "plus-icon", "lime", status));
         tiles.setPrefColumns(2);
         tiles.setMaxWidth(Region.USE_PREF_SIZE);
-        return tiles;
+        VBox box = new VBox(12.0, tiles, status);
+        box.setAlignment(Pos.CENTER);
+        return box;
     }
 
-    private static Node tile(String name, String iconClass, String color) {
+    private static Node tile(String name, String iconClass, String color, Label status) {
         VBox content = new VBox(6.0, icon(iconClass, "on-color"), text(name, "on-color-text"));
         content.setAlignment(Pos.CENTER_LEFT);
         RXRipplePane tile = new RXRipplePane(content);
         tile.getStyleClass().addAll("action-tile", color);
         tile.setPrefSize(112.0, 76.0);
+        tile.setOnMouseClicked(event -> status.setText("Picked " + name));
         return tile;
     }
 
     // ==================== Round buttons ====================
 
     private static Node player() {
+        Label status = text("Press play", "muted");
         RXRipplePane play = roundButton("play-icon", "big");
         boolean[] playing = {false};
         play.setOnMouseClicked(event -> {
@@ -135,10 +144,16 @@ public final class RXRipplePaneSamples {
             Node glyph = play.getContent();
             glyph.getStyleClass().removeAll("play-icon", "pause-icon");
             glyph.getStyleClass().add(playing[0] ? "pause-icon" : "play-icon");
+            status.setText(playing[0] ? "Playing" : "Paused");
         });
-        HBox controls = new HBox(16.0, roundButton("previous-icon", "small"), play, roundButton("next-icon", "small"));
+        RXRipplePane previous = roundButton("previous-icon", "small");
+        previous.setOnMouseClicked(event -> status.setText("Previous song"));
+        RXRipplePane next = roundButton("next-icon", "small");
+        next.setOnMouseClicked(event -> status.setText("Next song"));
+        HBox controls = new HBox(16.0, previous, play, next);
         controls.setAlignment(Pos.CENTER);
-        VBox box = new VBox(12.0, text("Paper Boats", "headline"), text("The Quiet Hours", "muted"), controls);
+        VBox box = new VBox(12.0, text("Paper Boats", "headline"), text("The Quiet Hours", "muted"), controls,
+                status);
         box.setAlignment(Pos.CENTER);
         return box;
     }

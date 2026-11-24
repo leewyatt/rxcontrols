@@ -28,8 +28,9 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.wrapped
 
 /**
  * The RXAccordion page: a FAQ that keeps one answer open, shop filters that stay open
- * together with expand-all and collapse-all buttons, checkout steps as separate cards,
- * and notifications grouped by app with counts in the headers.
+ * together with expand-all and collapse-all buttons, checkout steps as separate cards
+ * that can stay open together, and notifications grouped by app with counts in the
+ * headers.
  */
 public final class RXAccordionSamples {
 
@@ -71,8 +72,9 @@ public final class RXAccordionSamples {
                                         + "collapseAll open or close them all.",
                                 filters()),
                         SampleCard.large("Checkout steps",
-                                "expandedSpacing 12 splits an open pane from its neighbours into a card "
-                                        + "of its own; headerTrailing shows each step's status.",
+                                "expandMode MULTIPLE lets several steps stay open; expandedSpacing 12 splits an "
+                                        + "open pane from its neighbours into a card of its own; headerTrailing "
+                                        + "shows each step's status.",
                                 checkout()),
                         SampleCard.large("Notifications by app",
                                 "indicatorPosition END moves the arrow after the count; every group can be closed.",
@@ -95,20 +97,11 @@ public final class RXAccordionSamples {
 
     // ==================== Shop filters ====================
 
+    // One choice per pane keeps two or three open panes inside the card at once.
     private static Node filters() {
-        RXTitledPane price = new RXTitledPane("Price", new VBox(8.0,
-                new RXCheckBox("Under $25"), new RXCheckBox("$25 to $100"), new RXCheckBox("Over $100")));
-        RXTitledPane brand = new RXTitledPane("Brand", new VBox(8.0,
-                new RXCheckBox("Northwind"), new RXCheckBox("Bluebird"), new RXCheckBox("Acorn")));
-        ToggleGroup stars = new ToggleGroup();
-        VBox ratings = new VBox(8.0);
-        for (String label : List.of("4 stars and up", "3 stars and up", "Any rating")) {
-            RXRadioButton radio = new RXRadioButton(label);
-            radio.setToggleGroup(stars);
-            ratings.getChildren().add(radio);
-        }
-        stars.selectToggle(stars.getToggles().get(0));
-        RXTitledPane rating = new RXTitledPane("Rating", ratings);
+        RXTitledPane price = new RXTitledPane("Price", new RXCheckBox("Under $50"));
+        RXTitledPane brand = new RXTitledPane("Brand", new RXCheckBox("Northwind only"));
+        RXTitledPane rating = new RXTitledPane("Rating", new RXCheckBox("4 stars and up"));
         RXAccordion accordion = new RXAccordion(price, brand, rating);
         accordion.setExpandMode(ExpandMode.MULTIPLE);
         price.setExpanded(true);
@@ -146,9 +139,14 @@ public final class RXAccordionSamples {
                 line("Desk lamp", "$39.00"), line("Shipping", "$4.90"), line("Total", "$43.90")), null);
         payment.setExpanded(true);
         RXAccordion accordion = new RXAccordion(address, payment, review);
+        accordion.setExpandMode(ExpandMode.MULTIPLE);
         accordion.setExpandedSpacing(12.0);
-        accordion.setPrefWidth(AREA_WIDTH);
-        return area(AREA_WIDTH, AREA_HEIGHT, accordion);
+        // All three steps open are taller than the card.
+        ScrollPane scroll = new ScrollPane(accordion);
+        scroll.setFitToWidth(true);
+        scroll.getStyleClass().add("plain");
+        scroll.setPrefWidth(AREA_WIDTH);
+        return area(AREA_WIDTH, AREA_HEIGHT, scroll);
     }
 
     private static RXTitledPane step(String title, String iconClass, String color, Node content, Node status) {

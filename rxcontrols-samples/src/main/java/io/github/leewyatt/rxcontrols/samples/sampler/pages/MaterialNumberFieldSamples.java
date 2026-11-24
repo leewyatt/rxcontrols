@@ -51,7 +51,7 @@ public final class MaterialNumberFieldSamples {
     }
 
     private static Node integerField() {
-        RXMaterialIntegerField field = new RXMaterialIntegerField(4);
+        RXMaterialIntegerField field = new RXMaterialIntegerField(8);
         field.setRange(1, 12);
         field.setLabelText("Guests");
         field.setHelperText("From 1 to 12");
@@ -76,7 +76,7 @@ public final class MaterialNumberFieldSamples {
     }
 
     private static Node decimalField() {
-        RXMaterialDecimalField field = new RXMaterialDecimalField(new BigDecimal("49.90"));
+        RXMaterialDecimalField field = new RXMaterialDecimalField(new BigDecimal("39.90"));
         field.setNumberFormat(NumberFormat.getCurrencyInstance(Locale.US));
         field.setLabelText("Price");
         field.setHelperText("Shown to buyers in US dollars");

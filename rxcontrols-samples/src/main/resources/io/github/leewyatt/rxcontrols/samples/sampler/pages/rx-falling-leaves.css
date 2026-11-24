@@ -1,0 +1,15 @@
+.leaf {
+    -fx-shape: "M10 0 C17 5 21 13 10 24 C-1 13 3 5 10 0 Z";
+}
+
+.leaf.red {
+    -fx-background-color: #dc2626;
+}
+
+.leaf.orange {
+    -fx-background-color: #f97316;
+}
+
+.leaf.amber {
+    -fx-background-color: #f59e0b;
+}
