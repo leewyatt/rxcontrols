@@ -1271,6 +1271,52 @@ public class RXSpeedDialTest {
     }
 
     /**
+     * Verifies a long hover label next to a large main FAB stays clear of it in both
+     * horizontal directions.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void horizontalHoverLabelStaysClearOfLargeMainFab() throws Exception {
+        RXSpeedDial[] dialRef = new RXSpeedDial[1];
+        RXFloatingActionButton[] mainRef = new RXFloatingActionButton[1];
+
+        runOnFx(() -> {
+            RXSpeedDial dial = new RXSpeedDial(new Region(),
+                    new RXSpeedDialAction("Very long first action label", new Region()),
+                    new RXSpeedDialAction("Second", new Region()));
+            dial.setAnimated(false);
+            dial.setDirection(Direction.RIGHT);
+            dial.setLabelMode(LabelMode.HOVER);
+            showInStage(dial);
+            RXFloatingActionButton main = mainFab(dial);
+            main.setSize(RXFloatingActionButton.Size.LARGE);
+            dial.open();
+            applyCssAndLayout(dial);
+            visibleActionFabs(dial).get(0).requestFocus();
+            dialRef[0] = dial;
+            mainRef[0] = main;
+        });
+        runOnFx(() -> {
+            RXSpeedDial dial = dialRef[0];
+            RXFloatingActionButton main = mainRef[0];
+            applyCssAndLayout(dial);
+
+            Label label = actionLabels(dial).get(0);
+            assertTrue(label.isVisible(), "label shown on focus");
+            assertTrue(sceneLayoutBounds(label).getMinX() >= sceneLayoutBounds(main).getMaxX() - 0.5,
+                    "RIGHT: label starts past the main FAB");
+
+            dial.setDirection(Direction.LEFT);
+            applyCssAndLayout(dial);
+
+            assertTrue(label.isVisible(), "label still shown after the direction change");
+            assertTrue(sceneLayoutBounds(label).getMaxX() <= sceneLayoutBounds(main).getMinX() + 0.5,
+                    "LEFT: label ends before the main FAB");
+        });
+    }
+
+    /**
      * Verifies tall persistent vertical labels expand the whole action item.
      *
      * @throws Exception if the FX-thread assertion fails

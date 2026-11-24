@@ -16,6 +16,8 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.WeakListChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.BoundingBox;
+import javafx.geometry.Bounds;
 import javafx.geometry.HPos;
 import javafx.geometry.Point2D;
 import javafx.geometry.VPos;
@@ -238,6 +240,10 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         RXSpeedDial.Direction direction = directionOrDefault();
         double centerX = snapPositionX(width / 2.0);
         double centerY = snapPositionY(height / 2.0);
+        double mainWidth = snapSizeX(mainFab.prefWidth(-1));
+        double mainHeight = snapSizeY(mainFab.prefHeight(-1));
+        Bounds mainArea = new BoundingBox(centerX - mainWidth / 2.0, centerY - mainHeight / 2.0,
+                mainWidth, mainHeight);
         double offset = fabAxisExtent(mainFab, direction) / 2.0;
         double spacing = actionSpacing(direction);
         for (ActionCell cell : cells) {
@@ -247,10 +253,10 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
             double actionExtent = cell.axisExtent(direction);
             offset += spacing + actionExtent / 2.0;
             switch (direction) {
-                case UP -> cell.layoutAt(centerX, centerY - offset, direction);
-                case DOWN -> cell.layoutAt(centerX, centerY + offset, direction);
-                case LEFT -> cell.layoutAt(centerX - offset, centerY, direction);
-                case RIGHT -> cell.layoutAt(centerX + offset, centerY, direction);
+                case UP -> cell.layoutAt(centerX, centerY - offset, direction, mainArea);
+                case DOWN -> cell.layoutAt(centerX, centerY + offset, direction, mainArea);
+                case LEFT -> cell.layoutAt(centerX - offset, centerY, direction, mainArea);
+                case RIGHT -> cell.layoutAt(centerX + offset, centerY, direction, mainArea);
             }
             offset += actionExtent / 2.0;
         }
@@ -544,6 +550,15 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         getSkinnable().requestLayout();
     }
 
+    private boolean isAnyActionHovered() {
+        for (ActionCell cell : cells) {
+            if (cell.fab.isHover()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean isClosingAnimationRunning() {
         return openCloseAnim != null && !getSkinnable().isShowing();
     }
@@ -813,7 +828,7 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
             updateLabelVisibility();
         }
 
-        private void layoutAt(double centerX, double centerY, RXSpeedDial.Direction direction) {
+        private void layoutAt(double centerX, double centerY, RXSpeedDial.Direction direction, Bounds mainArea) {
             CellMetrics metrics = measure(direction);
             double fabWidth = metrics.fabWidth();
             double fabHeight = metrics.fabHeight();
@@ -856,9 +871,16 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
                 labelY = snapPositionY((rootHeight - labelHeight) / 2.0);
             }
 
-            root.resizeRelocate(snapPositionX(centerX - fabX - fabWidth / 2.0),
-                    snapPositionY(centerY - fabY - fabHeight / 2.0),
-                    rootWidth, rootHeight);
+            double rootX = snapPositionX(centerX - fabX - fabWidth / 2.0);
+            double rootY = snapPositionY(centerY - fabY - fabHeight / 2.0);
+            // A label wider than its FAB reaches toward the main FAB; when the main FAB is tall
+            // enough to cover the label's band, keep the label past the main FAB's edge.
+            if (useLabelSlot && horizontal && mainArea.getHeight() / 2.0 > fabHeight / 2.0 + gap) {
+                labelX = direction == RXSpeedDial.Direction.RIGHT
+                        ? Math.max(labelX, mainArea.getMaxX() - rootX)
+                        : Math.min(labelX, mainArea.getMinX() - rootX - labelWidth);
+            }
+            root.resizeRelocate(rootX, rootY, rootWidth, rootHeight);
             fab.resizeRelocate(fabX, fabY, fabWidth, fabHeight);
             label.resizeRelocate(labelX, labelY, labelWidth, labelHeight);
             actionScale.setPivotX(snapPositionX(fabX + fabWidth / 2.0));
@@ -906,8 +928,8 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
         }
 
         private void onLabelSignalChanged() {
-            updateLabelVisibility();
-            getSkinnable().requestLayout();
+            // Hover on one action can hide the focused action's label, so refresh every cell.
+            updateCellLabelVisibility();
         }
 
         private void updateLabelMode() {
@@ -927,8 +949,10 @@ public class RXSpeedDialSkin extends RXSkinBase<RXSpeedDial> {
             String text = action.getText();
             RXSpeedDial.LabelMode mode = labelModeOrDefault();
             boolean hasText = text != null && !text.isBlank();
+            // One hover label at a time: a hovered FAB's label wins over the focused FAB's.
             boolean active = mode == RXSpeedDial.LabelMode.PERSISTENT
-                    || mode == RXSpeedDial.LabelMode.HOVER && (fab.isHover() || isFocusOwnerWithinFab());
+                    || mode == RXSpeedDial.LabelMode.HOVER
+                    && (fab.isHover() || isFocusOwnerWithinFab() && !isAnyActionHovered());
             label.setVisible(hasText && root.getChildren().contains(label)
                     && getSkinnable().isShowing() && action.isVisible() && active);
         }
