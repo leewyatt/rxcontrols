@@ -28,7 +28,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.effect.GaussianBlur;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -85,7 +84,7 @@ public final class RXCarouselSamples {
                 List.of(
                         SampleCard.canvas("Slideshow",
                                 "Each page plays its own scene from the lifecycle events: OPENING starts the "
-                                        + "slow zoom, OPENED brings in the text and the clouds, leaves, birds or "
+                                        + "slow zoom, OPENED brings in the text and the sun glints, leaves, birds or "
                                         + "petals, CLOSING fades them out and CLOSED resets the page.",
                                 slideshow()),
                         SampleCard.large("Hero banner",
@@ -132,7 +131,7 @@ public final class RXCarouselSamples {
 
     /**
      * One page of the slideshow: a photo under a slow camera move (the Ken Burns effect),
-     * a caption, and a layer of drifting decorations that fits the photo.
+     * a caption, and a layer of decorations that fits the photo.
      */
     private static final class Slide extends StackPane {
 
@@ -145,6 +144,16 @@ public final class RXCarouselSamples {
                 {1.15, -28.0, 8.0, 1.0, 0.0, 0.0}};
         private static final Duration CAMERA_TIME = Duration.seconds(14.0);
         private static final double RISE = 18.0;
+
+        // The sea of the beach photo, in fractions of the image: below the horizon and
+        // right of the shoreline, which runs from the horizon down to the bottom left.
+        // The bottom stays clear of the page dots and of what a wide page or the zoomed
+        // camera crops; the right stops short of the cropped edge too.
+        private static final double SEA_TOP = 0.47;
+        private static final double SEA_BOTTOM = 0.74;
+        private static final double SHORE_AT_TOP = 0.56;
+        private static final double SHORE_AT_BOTTOM = 0.49;
+        private static final double SEA_RIGHT = 0.95;
 
         private final int index;
         private final RXImageView photo;
@@ -160,6 +169,7 @@ public final class RXCarouselSamples {
             Region shade = new Region();
             shade.getStyleClass().add("slide-shade");
             decorations.setMouseTransparent(true);
+            decorations.getStylesheets().add(FallingLeaves.STYLESHEET);
             caption = new VBox(4.0,
                     text(String.format("%02d / %02d", index + 1, count), "slide-kicker"),
                     text(PLACES[index][0], "slide-title"),
@@ -264,39 +274,65 @@ public final class RXCarouselSamples {
             double h = decorations.getHeight();
             Random random = new Random(index * 31L + 7L);
             switch (index % 4) {
-                case 0 -> clouds(w, random);
+                case 0 -> glints(random);
                 case 1 -> leaves(w, h, random);
                 case 2 -> birds(w, h);
                 default -> petals(w, h, random);
             }
         }
 
-        // Soft clouds drift in from the right and settle over the open sky of the photo.
-        private void clouds(double w, Random random) {
-            for (int i = 0; i < 3; i++) {
-                double width = 80.0 + random.nextDouble() * 50.0;
-                Region cloud = decoration(width, width * 0.5, "cloud");
-                cloud.setEffect(new GaussianBlur(6.0));
-                double start = w + 20.0 + i * 60.0;
-                cloud.relocate(start, 10.0 + i * 22.0 + random.nextDouble() * 10.0);
-                cloud.setOpacity(0.0);
-                double rest = w * (0.5 + 0.15 * i) + random.nextDouble() * 30.0;
-                Timeline drift = new Timeline(
-                        new KeyFrame(Duration.seconds(3.0),
-                                new KeyValue(cloud.opacityProperty(), 0.7, Interpolator.EASE_OUT)),
-                        new KeyFrame(Duration.seconds(10.0 + i * 1.5),
-                                new KeyValue(cloud.translateXProperty(), rest - start,
-                                        Interpolator.EASE_OUT)));
-                drift.setDelay(Duration.millis(i * 500.0));
-                play(drift);
+        // Sun glints twinkle one after another on the sea, smaller towards the horizon.
+        private void glints(Random random) {
+            for (int i = 0; i < 36; i++) {
+                double v = SEA_TOP + random.nextDouble() * (SEA_BOTTOM - SEA_TOP);
+                double depth = (v - SEA_TOP) / (SEA_BOTTOM - SEA_TOP);
+                double shore = SHORE_AT_TOP + depth * (SHORE_AT_BOTTOM - SHORE_AT_TOP);
+                double u = shore + random.nextDouble() * (SEA_RIGHT - shore);
+                double size = (10.0 + random.nextDouble() * 10.0) * (0.6 + 0.4 * depth);
+                Region glint = decoration(size, size, "glint");
+                glint.setOpacity(0.0);
+                Duration life = Duration.millis(900.0 + random.nextDouble() * 600.0);
+                // Placed as it lights up: by then the camera has moved the photo on.
+                Timeline twinkle = new Timeline(
+                        new KeyFrame(Duration.ZERO, event -> placeOnPhoto(glint, u, v),
+                                new KeyValue(glint.scaleXProperty(), 0.3),
+                                new KeyValue(glint.scaleYProperty(), 0.3),
+                                new KeyValue(glint.rotateProperty(), 0.0)),
+                        new KeyFrame(life.multiply(0.45),
+                                new KeyValue(glint.opacityProperty(), 1.0, Interpolator.EASE_OUT),
+                                new KeyValue(glint.scaleXProperty(), 1.0, Interpolator.EASE_OUT),
+                                new KeyValue(glint.scaleYProperty(), 1.0, Interpolator.EASE_OUT)),
+                        new KeyFrame(life,
+                                new KeyValue(glint.opacityProperty(), 0.0, Interpolator.EASE_IN),
+                                new KeyValue(glint.scaleXProperty(), 0.3, Interpolator.EASE_IN),
+                                new KeyValue(glint.scaleYProperty(), 0.3, Interpolator.EASE_IN),
+                                new KeyValue(glint.rotateProperty(), 45.0, Interpolator.LINEAR)));
+                twinkle.setDelay(Duration.seconds(random.nextDouble() * 11.0));
+                play(twinkle);
             }
         }
 
+        // Centers the node on a point of the photo given in fractions of the image, as the
+        // photo shows now: cropped to cover the page, then scaled about its center and
+        // moved by the camera.
+        private void placeOnPhoto(Region node, double u, double v) {
+            Image image = photo.getImage();
+            double w = decorations.getWidth();
+            double h = decorations.getHeight();
+            double fit = Math.max(w / image.getWidth(), h / image.getHeight());
+            double x = (w - image.getWidth() * fit) / 2.0 + u * image.getWidth() * fit;
+            double y = (h - image.getHeight() * fit) / 2.0 + v * image.getHeight() * fit;
+            x = w / 2.0 + (x - w / 2.0) * photo.getScaleX() + photo.getTranslateX();
+            y = h / 2.0 + (y - h / 2.0) * photo.getScaleY() + photo.getTranslateY();
+            double size = node.prefWidth(-1);
+            node.relocate(x - size / 2.0, y - size / 2.0);
+        }
+
         private void leaves(double w, double h, Random random) {
-            String[] colors = {"red", "orange", "amber"};
             for (int i = 0; i < 9; i++) {
                 double size = 14.0 + random.nextDouble() * 10.0;
-                Region leaf = decoration(size, size * 1.2, "leaf", colors[i % colors.length]);
+                Region leaf = FallingLeaves.leaf(size, i);
+                decorations.getChildren().add(leaf);
                 leaf.relocate(w * (0.15 + random.nextDouble() * 0.85), -size * 2.0);
                 fall(leaf, -60.0 - random.nextDouble() * 80.0, h + size * 3.0, 22.0,
                         180.0 + random.nextDouble() * 360.0, 5.0 + random.nextDouble() * 3.0,
@@ -336,19 +372,9 @@ public final class RXCarouselSamples {
             }
         }
 
-        // Falls by dy while drifting by dx, swaying sideways and turning on the way.
         private void fall(Region node, double dx, double dy, double sway, double turn,
                           double seconds, double delaySeconds) {
-            Duration end = Duration.seconds(seconds);
-            Timeline falling = new Timeline(
-                    new KeyFrame(end.multiply(0.33),
-                            new KeyValue(node.translateXProperty(), dx * 0.33 + sway, Interpolator.EASE_BOTH)),
-                    new KeyFrame(end.multiply(0.66),
-                            new KeyValue(node.translateXProperty(), dx * 0.66 - sway, Interpolator.EASE_BOTH)),
-                    new KeyFrame(end,
-                            new KeyValue(node.translateXProperty(), dx, Interpolator.EASE_BOTH),
-                            new KeyValue(node.translateYProperty(), dy, Interpolator.LINEAR),
-                            new KeyValue(node.rotateProperty(), turn, Interpolator.LINEAR)));
+            Timeline falling = FallingLeaves.fall(node, dx, dy, sway, turn, Duration.seconds(seconds));
             falling.setDelay(Duration.seconds(delaySeconds));
             play(falling);
         }

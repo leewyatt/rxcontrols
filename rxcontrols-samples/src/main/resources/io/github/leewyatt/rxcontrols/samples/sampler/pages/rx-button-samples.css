@@ -255,6 +255,10 @@
     -rx-line-thickness: 4px;
 }
 
+.example-card .text-post .rx-line-button {
+    -fx-padding: 4px 0;
+}
+
 .example-card .rx-hold-button.orange {
     -rx-fill: #f97316;
 }

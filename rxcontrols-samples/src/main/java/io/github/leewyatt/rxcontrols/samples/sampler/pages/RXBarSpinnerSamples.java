@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 import io.github.leewyatt.rxcontrols.RXBarSpinner;
 import io.github.leewyatt.rxcontrols.RXBarSpinner.AnimationMode;
 import io.github.leewyatt.rxcontrols.RXButton;
+import io.github.leewyatt.rxcontrols.RXTaskButton;
 import javafx.animation.PauseTransition;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -17,13 +18,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.FeedbackKit.icon;
-import static io.github.leewyatt.rxcontrols.samples.sampler.pages.FeedbackKit.solid;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.FeedbackKit.spacer;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.FeedbackKit.text;
 
 /**
  * The RXBarSpinner page: a "now playing" marker in a playlist, the four animation modes,
- * a voice input that stops its bars, a spinner inside a button and two bar shapes.
+ * a voice input that stops its bars, the busy indicator of a task button and two bar
+ * shapes.
  */
 public final class RXBarSpinnerSamples {
 
@@ -54,7 +55,7 @@ public final class RXBarSpinnerSamples {
                                 mode(AnimationMode.WAVE, "teal"), mode(AnimationMode.BOUNCE, "orange"),
                                 mode(AnimationMode.PULSE, "violet"), mode(AnimationMode.RANDOM, "pink")),
                         SampleCard.large("In a button",
-                                "White bars as the button graphic while a summary is written.",
+                                "An RXTaskButton with white bars as its pendingIndicator while a summary is written.",
                                 summary()),
                         SampleCard.large("Bar shapes",
                                 "barCount, barWidth and barGap give three thick bars, squared off by a .bar radius in CSS, or nine thin ones; minBarHeightRatio sets how low they go.",
@@ -167,23 +168,29 @@ public final class RXBarSpinnerSamples {
         Label result = text("Summarize the meeting notes in three lines.", "copy");
         result.setWrapText(true);
         result.setPrefWidth(300.0);
-        RXButton generate = solid("Write summary", "violet");
-        generate.setGraphic(icon("spark-icon"));
+        RXBarSpinner bars = new RXBarSpinner(AnimationMode.BOUNCE);
+        bars.getStyleClass().add("on-solid");
+        bars.setBarCount(4);
+        bars.setBarWidth(3.0);
+        bars.setBarHeight(14.0);
+        bars.setBarGap(2.0);
+        // A control inside the button would otherwise take the Tab key and the
+        // clicks that land on it.
+        bars.setFocusTraversable(false);
+        bars.setMouseTransparent(true);
+
+        RXTaskButton generate = new RXTaskButton("Write summary", icon("spark-icon"));
+        generate.getStyleClass().addAll("solid", "violet");
+        generate.setPendingIndicator(bars);
+        generate.setPendingText("Writing");
+        // The new summary below is the result; the button goes straight back.
+        generate.setSucceededDuration(Duration.ZERO);
         generate.setOnAction(event -> {
-            RXBarSpinner bars = new RXBarSpinner(AnimationMode.BOUNCE);
-            bars.getStyleClass().add("on-solid");
-            bars.setBarCount(4);
-            bars.setBarWidth(3.0);
-            bars.setBarHeight(14.0);
-            bars.setBarGap(2.0);
-            generate.setGraphic(bars);
-            generate.setText("Writing");
-            generate.setMouseTransparent(true);
+            RXTaskButton.Run run = generate.start();
             PauseTransition work = new PauseTransition(Duration.seconds(2.0));
             work.setOnFinished(done -> {
-                generate.setGraphic(icon("spark-icon"));
+                run.succeed();
                 generate.setText("Write again");
-                generate.setMouseTransparent(false);
                 result.setText("The release moves to Friday. Lee owns the docs. Tests must pass before merge.");
             });
             work.play();

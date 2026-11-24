@@ -30,10 +30,11 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.i
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.scenery;
 
 /**
- * The RXAudioSpectrum page: a music player whose spectrum settles when paused, mirrored
- * bars, a line, a radial ring around a cover, a centered layout with glow, and four
- * shapes drawn with made-up waves: a flower, a double flower, a corona and an aurora.
- * Every spectrum is fed made-up magnitudes, since the sampler plays no audio.
+ * The RXAudioSpectrum page: a music player whose spectrum settles when paused, an aurora,
+ * a radial ring around a cover, mirrored bars, a line, a centered layout with glow, a
+ * flower, a double flower and a corona. The aurora, the flowers and the corona are drawn
+ * with made-up waves; every spectrum is fed made-up magnitudes, since the sampler plays
+ * no audio.
  */
 public final class RXAudioSpectrumSamples {
 
@@ -62,15 +63,18 @@ public final class RXAudioSpectrumSamples {
                         SampleCard.wide("Music player",
                                 "The default VisBars with peak caps; pause and the bars settle to silence on their own.",
                                 player(life)),
+                        SampleCard.medium("Aurora",
+                                "Three VisLine spectrums stacked, each with its own color, wave and glow.",
+                                screen(aurora(life))),
+                        SampleCard.medium("Radial ring",
+                                "VisRadial grows bars outwards around a hole, here filled with the album cover.",
+                                screen(radial(life))),
                         SampleCard.medium("Mirrored bars",
                                 "VisBarsMirror reflects the bars below the middle line; -rx-bar-fill sets the gradient.",
                                 screen(mirrored(life))),
                         SampleCard.medium("Line",
                                 "VisLine draws one smooth curve through the band levels.",
                                 screen(line(life))),
-                        SampleCard.medium("Radial ring",
-                                "VisRadial grows bars outwards around a hole, here filled with the album cover.",
-                                screen(radial(life))),
                         SampleCard.medium("Centered with glow",
                                 "BandLayout.CENTER_FOLD puts the bass in the middle; glow adds a soft light.",
                                 screen(centered(life))),
@@ -82,10 +86,7 @@ public final class RXAudioSpectrumSamples {
                                 screen(doubleFlower(life))),
                         SampleCard.medium("Corona",
                                 "VisRadial with CENTER_FOLD and glow: both halves of the ring move alike.",
-                                screen(corona(life))),
-                        SampleCard.medium("Aurora",
-                                "Three VisLine spectrums stacked, each with its own color, wave and glow.",
-                                screen(aurora(life)))),
+                                screen(corona(life)))),
                 MediaKit.STYLESHEET);
     }
 

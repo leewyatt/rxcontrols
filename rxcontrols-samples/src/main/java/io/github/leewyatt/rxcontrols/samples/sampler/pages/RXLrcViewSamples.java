@@ -52,7 +52,8 @@ public final class RXLrcViewSamples {
                         "To show only the current line in a small space, use RXLrcLineView."),
                 List.of(
                         SampleCard.wide("Music player",
-                                "Press play: the lyrics follow currentTime; click a line or drag the bar to jump, scroll to browse.",
+                                "Plays from the start when the page opens: the lyrics follow currentTime; click a line or "
+                                        + "drag the bar to jump, scroll to browse.",
                                 player(life)),
                         SampleCard.large("Karaoke",
                                 "currentLineScale enlarges the line being sung; CSS colors the current line and the others.",
@@ -76,10 +77,9 @@ public final class RXLrcViewSamples {
         lyrics.setPrefSize(320.0, 230.0);
         HBox.setHgrow(lyrics, Priority.ALWAYS);
 
-        PlaybackClock clock = new PlaybackClock(SONG_LENGTH).attach(life, false);
+        PlaybackClock clock = new PlaybackClock(SONG_LENGTH).attach(life, true);
         lyrics.currentTimeProperty().bind(clock.timeProperty());
         lyrics.setOnLineClicked(event -> clock.seek(event.getTime()));
-        clock.seek(Duration.seconds(9.0));
 
         RXImageView cover = new RXImageView(scenery(3));
         cover.setPrefSize(150.0, 150.0);

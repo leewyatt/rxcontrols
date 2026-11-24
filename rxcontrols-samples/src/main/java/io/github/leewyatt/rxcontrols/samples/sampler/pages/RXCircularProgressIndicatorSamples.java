@@ -5,7 +5,6 @@ import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
-import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
@@ -29,8 +28,8 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.FeedbackKit.te
 
 /**
  * The RXCircularProgressIndicator page: a file upload list, activity rings with icons,
- * a storage meter that changes color, a spinner inside a save button, indeterminate
- * spinners in three sizes and a counter-clockwise resend countdown.
+ * a storage meter that changes color, tracks wider and narrower than the arc,
+ * indeterminate spinners in three sizes and a counter-clockwise resend countdown.
  */
 public final class RXCircularProgressIndicatorSamples {
 
@@ -59,9 +58,10 @@ public final class RXCircularProgressIndicatorSamples {
                         SampleCard.large("Storage",
                                 "A textFactory shows gigabytes instead of a percentage; the ring turns red above 90%.",
                                 storage()),
-                        SampleCard.large("Saving",
-                                "An indeterminate ring as a button graphic while the request runs, then a check mark.",
-                                saving()),
+                        SampleCard.large("Track and arc widths",
+                                "-rx-track-stroke-width and -rx-progress-stroke-width set apart in CSS: a wide groove, "
+                                        + "a thin line under a bold arc, and flat ends through -rx-stroke-line-cap.",
+                                widths()),
                         SampleCard.large("Indeterminate",
                                 "Without a progress value the arc spins; three sizes and stroke widths.",
                                 spinners()),
@@ -185,43 +185,25 @@ public final class RXCircularProgressIndicatorSamples {
         return row;
     }
 
-    // ==================== Saving ====================
+    // ==================== Track and arc widths ====================
 
-    private static Node saving() {
-        TextField name = new TextField("Weekly planning");
-        name.setPrefColumnCount(16);
-        VBox field = new VBox(6.0, text("Board name", "muted"), name);
+    private static Node widths() {
+        HBox row = new HBox(36.0,
+                widthRing(0.62, "teal", "wide-track", "Track 14, arc 6"),
+                widthRing(0.45, "indigo", "thin-track", "Track 2, arc 10"),
+                widthRing(0.8, "pink", "hairline-track", "Track 1, flat ends"));
+        row.setAlignment(Pos.CENTER);
+        return row;
+    }
 
-        RXButton save = solid("Save changes", "indigo");
-        save.setPrefWidth(150.0);
-        save.setOnAction(event -> {
-            RXCircularProgressIndicator spinner = new RXCircularProgressIndicator();
-            spinner.getStyleClass().add("on-solid");
-            spinner.setMinSize(16.0, 16.0);
-            spinner.setPrefSize(16.0, 16.0);
-            spinner.setTrackStrokeWidth(2.0);
-            spinner.setProgressStrokeWidth(2.0);
-            save.setGraphic(spinner);
-            save.setText("Saving");
-            save.setMouseTransparent(true);
-            PauseTransition request = new PauseTransition(Duration.seconds(1.6));
-            request.setOnFinished(done -> {
-                save.setGraphic(icon("check-icon"));
-                save.setText("Saved");
-                PauseTransition rest = new PauseTransition(Duration.seconds(1.4));
-                rest.setOnFinished(after -> {
-                    save.setGraphic(null);
-                    save.setText("Save changes");
-                    save.setMouseTransparent(false);
-                });
-                rest.play();
-            });
-            request.play();
-        });
-        VBox form = new VBox(16.0, field, save);
-        form.getStyleClass().addAll("panel", "padded");
-        form.setMaxWidth(Region.USE_PREF_SIZE);
-        return form;
+    // The widths and the line cap come from the style class alone.
+    private static Node widthRing(double progress, String color, String styleClass, String caption) {
+        RXCircularProgressIndicator ring = new RXCircularProgressIndicator(progress);
+        ring.getStyleClass().addAll(color, styleClass, "large-text");
+        ring.setPrefSize(96.0, 96.0);
+        VBox box = new VBox(10.0, ring, text(caption, "muted"));
+        box.setAlignment(Pos.CENTER);
+        return box;
     }
 
     // ==================== Indeterminate ====================

@@ -46,7 +46,7 @@ public final class RXSwitchButtonSamples {
                                 "Turning notifications off disables the switches that depend on it.",
                                 master()),
                         SampleCard.medium("Dark mode",
-                                "The switch takes effect at once: the preview flips between light and dark.",
+                                "CSS swaps the check on the thumb for a sun or a moon; the preview flips at once.",
                                 darkMode()),
                         SampleCard.medium("Colors",
                                 "-rx-primary on a switch recolors its track and the check on the thumb.",
@@ -130,7 +130,8 @@ public final class RXSwitchButtonSamples {
         preview.setPrefWidth(200.0);
         preview.setMaxWidth(Region.USE_PREF_SIZE);
 
-        RXSwitchButton dark = new RXSwitchButton("Dark mode", icon("moon-icon"));
+        RXSwitchButton dark = new RXSwitchButton("Dark mode");
+        dark.getStyleClass().add("theme-switch");
         dark.selectedProperty().addListener((obs, was, now) -> preview.pseudoClassStateChanged(DARK, now));
         dark.setSelected(true);
         VBox box = new VBox(14.0, dark, preview);
