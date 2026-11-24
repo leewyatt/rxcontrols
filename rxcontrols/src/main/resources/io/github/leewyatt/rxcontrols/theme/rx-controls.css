@@ -3879,7 +3879,7 @@
 }
 .rx-menu-item {
     -fx-padding: 8 12 8 12;
-    -fx-spacing: 12;
+    -fx-spacing: 8;
     -fx-alignment: CENTER_LEFT;
     -fx-min-height: 32;
     -fx-background-radius: 4;
@@ -3900,8 +3900,8 @@
 /* Leading selection slot for checkbox / radio items; the indicator is hidden
    until :checked. The slot reserves width so text stays aligned either way. */
 .rx-menu-item > .leading {
-    -fx-min-width: 18;
-    -fx-pref-width: 18;
+    -fx-min-width: 14;
+    -fx-pref-width: 14;
     -fx-alignment: CENTER;
 }
 .rx-menu-item > .leading > .checkmark {
