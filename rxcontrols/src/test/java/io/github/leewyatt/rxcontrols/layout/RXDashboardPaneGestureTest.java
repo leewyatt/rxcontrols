@@ -364,7 +364,7 @@ public class RXDashboardPaneGestureTest {
     }
 
     @Test
-    public void handlesStraddleTheEdgesAndShowOnlyWhereResizingIsAllowed() throws Exception {
+    public void handlesLieInsideTheEdgesAndShowOnlyWhereResizingIsAllowed() throws Exception {
         fx(() -> {
             Board board = new Board();
             Region right = handle(board.a, "right");
@@ -379,15 +379,21 @@ public class RXDashboardPaneGestureTest {
             assertEquals(184.0, corner.getLayoutX(), EPSILON);
             assertEquals(16.0, corner.getWidth(), EPSILON);
             assertEquals(84.0, right.getHeight(), EPSILON);
-            // A gap of 10: they straddle the edges, half in the gap.
-            board.pane.setHgap(10);
-            board.pane.setVgap(10);
-            board.layout();
-            assertEquals(board.a.getWidth() - 4.0, right.getLayoutX(), EPSILON);
-            assertEquals(board.a.getHeight() - 4.0, bottom.getLayoutY(), EPSILON);
-            board.pane.setHgap(2);
-            board.layout();
-            assertEquals(board.a.getWidth() - 6.0, right.getLayoutX(), EPSILON, "2 px out, 6 px in");
+            // Whatever the gap, they stay inside the card, the corner over the grip.
+            for (double gap : new double[] {10.0, 2.0}) {
+                board.pane.setHgap(gap);
+                board.pane.setVgap(gap);
+                board.layout();
+                assertEquals(board.a.getWidth(), right.getLayoutX() + right.getWidth(), EPSILON);
+                assertEquals(8.0, right.getWidth(), EPSILON);
+                assertEquals(board.a.getHeight(), bottom.getLayoutY() + bottom.getHeight(), EPSILON);
+                assertEquals(8.0, bottom.getHeight(), EPSILON);
+                assertEquals(board.a.getWidth() - 16.0, corner.getLayoutX(), EPSILON);
+                assertEquals(board.a.getHeight() - 16.0, corner.getLayoutY(), EPSILON);
+                Region grip = grip(board.a);
+                assertEquals(grip.getLayoutX(), corner.getLayoutX(), EPSILON);
+                assertEquals(grip.getLayoutY(), corner.getLayoutY(), EPSILON);
+            }
             board.pane.setHgap(0);
             board.pane.setVgap(0);
             board.layout();
