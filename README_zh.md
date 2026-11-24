@@ -449,13 +449,13 @@ View 可以直接嵌入页面；对应 Picker 会增加文本字段、解析、�
 - `RXAnimationEvent`
 - `RXAutoCompleteEvent`
 - `RXBreadcrumbEvent`
-- `RXCardActionEvent`
-- `RXCardMovedEvent`
 - `RXChipEvent`
-- `RXColumnMovedEvent`
 - `RXDashboardEvent`
 - `RXDialogEvent`
 - `RXDrawerEvent`
+- `RXKanbanCardActionEvent`
+- `RXKanbanCardMovedEvent`
+- `RXKanbanColumnMovedEvent`
 - `RXListViewActionEvent`
 - `RXLrcLineEvent`
 - `RXMasonryViewActionEvent`

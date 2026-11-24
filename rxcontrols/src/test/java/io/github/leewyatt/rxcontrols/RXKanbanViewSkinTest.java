@@ -7,9 +7,9 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import io.github.leewyatt.rxcontrols.event.RXCardActionEvent;
-import io.github.leewyatt.rxcontrols.event.RXCardMovedEvent;
-import io.github.leewyatt.rxcontrols.event.RXColumnMovedEvent;
+import io.github.leewyatt.rxcontrols.event.RXKanbanCardActionEvent;
+import io.github.leewyatt.rxcontrols.event.RXKanbanCardMovedEvent;
+import io.github.leewyatt.rxcontrols.event.RXKanbanColumnMovedEvent;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.skins.RXKanbanViewSkin;
 import javafx.event.Event;
@@ -507,7 +507,7 @@ public class RXKanbanViewSkinTest {
         onFx(() -> {
             RXKanbanView<String> board = board("A", 3, "B", 3);
             RXKanbanColumn<String> a = board.getColumns().get(0);
-            AtomicReference<RXCardActionEvent<String>> action = new AtomicReference<>();
+            AtomicReference<RXKanbanCardActionEvent<String>> action = new AtomicReference<>();
             board.setOnCardAction(action::set);
             pump(host(board, 900, 500));
             board.updateFocus(a, 1);
@@ -561,12 +561,12 @@ public class RXKanbanViewSkinTest {
         onFx(() -> {
             RXKanbanView<String> board = board("TODO", 4);
             RXKanbanColumn<String> todo = board.getColumns().get(0);
-            AtomicReference<RXCardActionEvent<String>> fired = new AtomicReference<>();
+            AtomicReference<RXKanbanCardActionEvent<String>> fired = new AtomicReference<>();
             board.setOnCardAction(fired::set);
             pump(host(board, 500, 500));
             press(cellByText(board, "card-1"));
             key(board, KeyCode.ENTER);
-            RXCardActionEvent<String> event = fired.get();
+            RXKanbanCardActionEvent<String> event = fired.get();
             assertNotNull(event, "card action fired");
             assertEquals("card-1", event.getCard());
             assertEquals(1, event.getIndex());
@@ -578,7 +578,7 @@ public class RXKanbanViewSkinTest {
     public void doubleClickFiresCardAction() throws Exception {
         onFx(() -> {
             RXKanbanView<String> board = board("TODO", 4);
-            AtomicReference<RXCardActionEvent<String>> fired = new AtomicReference<>();
+            AtomicReference<RXKanbanCardActionEvent<String>> fired = new AtomicReference<>();
             board.setOnCardAction(fired::set);
             pump(host(board, 500, 500));
             doubleClick(cellByText(board, "card-3"));
@@ -634,7 +634,7 @@ public class RXKanbanViewSkinTest {
             RXKanbanView<String> board = twoColumnBoard();
             RXKanbanColumn<String> a = board.getColumns().get(0);
             RXKanbanColumn<String> b = board.getColumns().get(1);
-            AtomicReference<RXCardMovedEvent<String>> fired = new AtomicReference<>();
+            AtomicReference<RXKanbanCardMovedEvent<String>> fired = new AtomicReference<>();
             board.setOnCardMoved(fired::set);
             pump(host(board, 900, 500));
 
@@ -645,8 +645,8 @@ public class RXKanbanViewSkinTest {
 
             assertEquals(List.of("A1", "A2"), a.getCards(), "A0 removed from source column by index");
             assertEquals(List.of("A0", "B0", "B1"), b.getCards(), "A0 inserted at top of target column");
-            RXCardMovedEvent<String> event = fired.get();
-            assertNotNull(event, "RXCardMovedEvent fired");
+            RXKanbanCardMovedEvent<String> event = fired.get();
+            assertNotNull(event, "RXKanbanCardMovedEvent fired");
             assertSame(a, event.getFromColumn());
             assertEquals(0, event.getFromIndex());
             assertSame(b, event.getToColumn());
@@ -661,7 +661,7 @@ public class RXKanbanViewSkinTest {
             RXKanbanView<String> board = twoColumnBoard();
             RXKanbanColumn<String> a = board.getColumns().get(0);
             RXKanbanColumn<String> b = board.getColumns().get(1);
-            AtomicReference<RXCardMovedEvent<String>> fired = new AtomicReference<>();
+            AtomicReference<RXKanbanCardMovedEvent<String>> fired = new AtomicReference<>();
             board.setOnCardMoved(fired::set);
             pump(host(board, 900, 500));
 
@@ -685,7 +685,7 @@ public class RXKanbanViewSkinTest {
             RXKanbanView<String> board = twoColumnBoard();
             RXKanbanColumn<String> a = board.getColumns().get(0);
             RXKanbanColumn<String> b = board.getColumns().get(1);
-            AtomicReference<RXCardMovedEvent<String>> fired = new AtomicReference<>();
+            AtomicReference<RXKanbanCardMovedEvent<String>> fired = new AtomicReference<>();
             board.setOnCardMoved(fired::set);
             pump(host(board, 900, 500));
 
@@ -709,7 +709,7 @@ public class RXKanbanViewSkinTest {
         onFx(() -> {
             RXKanbanView<String> board = board("A", 2, "B", 2, "C", 2, "D", 2, "E", 2);
             board.setPrefColumnWidth(280);   // five 280px columns overflow a 400px board -> hbar visible
-            AtomicReference<RXCardMovedEvent<String>> fired = new AtomicReference<>();
+            AtomicReference<RXKanbanCardMovedEvent<String>> fired = new AtomicReference<>();
             board.setOnCardMoved(fired::set);
             pump(host(board, 400, 400));
             assertTrue(hasVisibleHorizontalScrollBar(board), "hbar visible (precondition)");
@@ -731,7 +731,7 @@ public class RXKanbanViewSkinTest {
         onFx(() -> {
             RXKanbanView<String> board = twoColumnBoard();
             RXKanbanColumn<String> a = board.getColumns().get(0);
-            AtomicReference<RXCardMovedEvent<String>> fired = new AtomicReference<>();
+            AtomicReference<RXKanbanCardMovedEvent<String>> fired = new AtomicReference<>();
             board.setOnCardMoved(fired::set);
             pump(host(board, 900, 500));
 
@@ -773,7 +773,7 @@ public class RXKanbanViewSkinTest {
             RXKanbanColumn<String> b = board.getColumns().get(1);
             // Reject any drop into column B.
             board.setDropValidator(ctx -> ctx.getTargetColumn() != b);
-            AtomicReference<RXCardMovedEvent<String>> fired = new AtomicReference<>();
+            AtomicReference<RXKanbanCardMovedEvent<String>> fired = new AtomicReference<>();
             board.setOnCardMoved(fired::set);
             pump(host(board, 900, 500));
 
@@ -1861,14 +1861,14 @@ public class RXKanbanViewSkinTest {
             board.setColumnReorderEnabled(true);
             board.setAnimated(false);
             board.getColumns().get(1).setVisible(false);   // hide B (index 1)
-            AtomicReference<RXColumnMovedEvent<String>> fired = new AtomicReference<>();
+            AtomicReference<RXKanbanColumnMovedEvent<String>> fired = new AtomicReference<>();
             board.setOnColumnMoved(fired::set);
             pump(host(board, 1200, 400));
             dragColumn(board, "A", "C");   // commits [C, B, A, D]
             pump(board);
 
-            RXColumnMovedEvent<String> event = fired.get();
-            assertNotNull(event, "RXColumnMovedEvent fired");
+            RXKanbanColumnMovedEvent<String> event = fired.get();
+            assertNotNull(event, "RXKanbanColumnMovedEvent fired");
             assertEquals(0, event.getFromIndex());
             // toIndex is the moved column's FINAL absolute slot (A in [C,B,A,D]), NOT a plain
             // remove/add target — the contract a consumer must reproduce.
@@ -1885,7 +1885,7 @@ public class RXKanbanViewSkinTest {
             board.setColumnReorderEnabled(true);
             board.setAnimated(false);
             board.getColumns().get(0).setVisible(false);   // hide the LEADING column H
-            AtomicReference<RXColumnMovedEvent<String>> fired = new AtomicReference<>();
+            AtomicReference<RXKanbanColumnMovedEvent<String>> fired = new AtomicReference<>();
             board.setOnColumnMoved(fired::set);
             pump(host(board, 1000, 400));
 
@@ -1901,7 +1901,7 @@ public class RXKanbanViewSkinTest {
             board.fireEvent(mouse(MouseEvent.MOUSE_RELEASED, sx + 20.0, sy, board));
             pump(board);
 
-            assertNull(fired.get(), "a visible no-op fires no RXColumnMovedEvent");
+            assertNull(fired.get(), "a visible no-op fires no RXKanbanColumnMovedEvent");
             assertEquals(List.of("H", "A", "B"),
                     board.getColumns().stream().map(RXKanbanColumn::getTitle).toList(),
                     "the hidden leading column is not shuffled by a no-op drop");
@@ -1966,7 +1966,7 @@ public class RXKanbanViewSkinTest {
             RXKanbanView<String> board = threeColumnBoard();
             board.setAnimated(false);
             board.setColumnReorderEnabled(true);
-            AtomicReference<RXColumnMovedEvent<String>> fired = new AtomicReference<>();
+            AtomicReference<RXKanbanColumnMovedEvent<String>> fired = new AtomicReference<>();
             board.setOnColumnMoved(fired::set);
             pump(host(board, 1200, 500));
 
@@ -1976,8 +1976,8 @@ public class RXKanbanViewSkinTest {
             assertEquals(List.of("B", "A", "C"),
                     board.getColumns().stream().map(RXKanbanColumn::getTitle).toList(),
                     "A reordered to index 1");
-            RXColumnMovedEvent<String> event = fired.get();
-            assertNotNull(event, "RXColumnMovedEvent fired");
+            RXKanbanColumnMovedEvent<String> event = fired.get();
+            assertNotNull(event, "RXKanbanColumnMovedEvent fired");
             assertEquals(0, event.getFromIndex());
             assertEquals(1, event.getToIndex());
         });
@@ -2051,7 +2051,7 @@ public class RXKanbanViewSkinTest {
             RXKanbanView<String> board = threeColumnBoard();
             board.setAnimated(false);
             // columnReorderEnabled defaults false.
-            AtomicReference<RXColumnMovedEvent<String>> fired = new AtomicReference<>();
+            AtomicReference<RXKanbanColumnMovedEvent<String>> fired = new AtomicReference<>();
             board.setOnColumnMoved(fired::set);
             pump(host(board, 1200, 500));
 

@@ -449,13 +449,13 @@ Package `io.github.leewyatt.rxcontrols.event`:
 - `RXAnimationEvent`
 - `RXAutoCompleteEvent`
 - `RXBreadcrumbEvent`
-- `RXCardActionEvent`
-- `RXCardMovedEvent`
 - `RXChipEvent`
-- `RXColumnMovedEvent`
 - `RXDashboardEvent`
 - `RXDialogEvent`
 - `RXDrawerEvent`
+- `RXKanbanCardActionEvent`
+- `RXKanbanCardMovedEvent`
+- `RXKanbanColumnMovedEvent`
 - `RXListViewActionEvent`
 - `RXLrcLineEvent`
 - `RXMasonryViewActionEvent`
