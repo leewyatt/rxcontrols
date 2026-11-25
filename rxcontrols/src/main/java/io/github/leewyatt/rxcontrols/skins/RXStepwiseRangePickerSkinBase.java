@@ -280,6 +280,16 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
                 return;
             }
         }
+        if (anyUserEdited()) {
+            // Typed text stays for focus leaving the picker; a field without any drops its discarded draft.
+            R value = getSkinnable().getValue();
+            if (!isUserEdited(startEditor)) {
+                writeField(Endpoint.START, value == null ? null : startOf(value));
+            }
+            if (!isUserEdited(endEditor)) {
+                writeField(Endpoint.END, value == null ? null : endOf(value));
+            }
+        }
         super.onPopupClosed();
     }
 

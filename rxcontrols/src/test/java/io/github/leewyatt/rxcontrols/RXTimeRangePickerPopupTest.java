@@ -513,6 +513,33 @@ public class RXTimeRangePickerPopupTest {
     }
 
     /**
+     * Verifies discarded drafts leave no field showing them while the other field keeps its typed text.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void discardRestoresUntypedField() throws InterruptedException {
+        runOnFx(() -> {
+            RXTimeRangePicker picker = newShownPicker();
+            picker.setValue(hours(10, 20));
+            TextField start = editor(picker, 0);
+            TextField end = editor(picker, 1);
+            pressMouse(start);
+            click(timeCell(findPopup().getScene().getRoot(), ".hour-column", "05"));
+            pressMouse(end);
+            end.setText("abc");
+            picker.hide();
+            assertEquals("10:00", start.getText());
+            assertEquals("abc", end.getText());
+            assertEquals(hours(10, 20), picker.getValue());
+
+            end.setText("21:00");
+            picker.getParent().getChildrenUnmodifiable().get(1).requestFocus();
+            assertEquals(RXTimeRange.of(LocalTime.of(10, 0), LocalTime.of(21, 0)), picker.getValue());
+        });
+    }
+
+    /**
      * Verifies a press on the end field opens the popup on the end, and confirming it goes on to the start.
      *
      * @throws InterruptedException if the FX task is interrupted
