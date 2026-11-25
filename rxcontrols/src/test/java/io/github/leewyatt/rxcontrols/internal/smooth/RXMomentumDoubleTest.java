@@ -126,6 +126,23 @@ public class RXMomentumDoubleTest {
     }
 
     @Test
+    public void pushesTooSmallToOutlastAFrameTravelTheirDelta() {
+        // A slower drag still: each push is below the stop threshold after one frame.
+        // Its remaining coast is travelled at once instead of being dropped.
+        AtomicLong now = new AtomicLong();
+        RXMomentumDouble value = momentum(now, 0.0);
+
+        for (int frame = 0; frame < 60; frame++) {
+            value.push(0.1);
+            now.addAndGet(16 * MILLIS);
+            value.handlePulse(now.get());
+        }
+        settle(value, now, 16);
+
+        assertEquals(6.0, value.currentValue(), 0.01, "the pushes travel their sum");
+    }
+
+    @Test
     public void momentumSettlesWithinMaxDuration() {
         AtomicLong now = new AtomicLong();
         RXMomentumDouble value = momentum(now, 0.0);

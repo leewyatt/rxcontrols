@@ -228,8 +228,9 @@ public final class RXSmoothScroller implements AutoCloseable {
 
     /**
      * Multiplier applied to pixel-normalized wheel deltas. At {@code 1} a wheel step
-     * scrolls as far as without smooth scrolling, in either {@link SmoothScrollMode};
-     * {@code 2} scrolls twice as far.
+     * scrolls as far as without smooth scrolling, in either {@link SmoothScrollMode}
+     * (within the maximum speed of {@link SmoothScrollMode#MOMENTUM}); {@code 2}
+     * scrolls twice as far.
      *
      * @return the wheel multiplier property
      */
