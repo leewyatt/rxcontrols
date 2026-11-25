@@ -26,10 +26,8 @@ import java.util.function.Predicate;
  * time changes that endpoint's draft, which its field previews. The OK button (Enter,
  * or a double click on a time) confirms the endpoint: the popup moves on to the other
  * endpoint, or, once both endpoints have been gone through, commits the range and
- * closes; an endpoint left with a time outside the constraints is gone back to first.
- * An endpoint without a draft is picked starting from the other endpoint's time.
- * Clicking the other field moves the popup on to that endpoint and keeps the draft of
- * the one left, unless the field left holds typed text that is no acceptable endpoint.
+ * closes. An endpoint without a draft is picked starting from the other endpoint's
+ * time. The other field cannot be entered before the current endpoint is confirmed;
  * Tab confirms the endpoint it leaves.
  *
  * <p>The committed endpoints are put in order, so the end may be picked before the
@@ -37,13 +35,12 @@ import java.util.function.Predicate;
  * and a start after the end is a range that runs past midnight.
  *
  * <p>Escape discards the drafts. Closing the popup any other way commits them only
- * if both endpoints have been gone through, a draft was changed, and the endpoint
- * then shown was left as it was since the popup moved to it; otherwise it discards
- * them. Typed endpoints are committed together when focus leaves the picker, and with
- * Enter while the popup is closed. Typed and programmatic endpoints must satisfy
- * {@link #minTimeProperty() minTime}, {@link #maxTimeProperty() maxTime} and the
- * {@link #timeFilterProperty() timeFilter}; the steps only shape what the popup
- * columns offer.
+ * if a change was confirmed and the endpoint then shown was left as it was;
+ * otherwise it discards them. Typed endpoints are committed together when focus
+ * leaves the picker, and with Enter while the popup is closed. Typed and programmatic
+ * endpoints must satisfy {@link #minTimeProperty() minTime},
+ * {@link #maxTimeProperty() maxTime} and the {@link #timeFilterProperty() timeFilter};
+ * the steps only shape what the popup columns offer.
  *
  * <p>See {@link RXPickerBase} for the commit, focus and constraint model. CSS: style
  * classes {@code rx-picker} and {@code rx-time-range-picker}; the popup hosts an
