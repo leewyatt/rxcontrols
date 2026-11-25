@@ -26,10 +26,11 @@ import java.util.function.Predicate;
  * time changes that endpoint's draft, which its field previews. The OK button (Enter,
  * or a double click on a time) confirms the endpoint: the popup moves on to the other
  * endpoint, or, once both endpoints have been gone through, commits the range and
- * closes. An endpoint without a draft is picked starting from the other endpoint's
- * time. Clicking the other field moves the popup on to that endpoint and keeps the
- * draft of the one left, unless the field left holds typed text that is no acceptable
- * endpoint. Tab confirms the endpoint it leaves.
+ * closes; an endpoint left with a time outside the constraints is gone back to first.
+ * An endpoint without a draft is picked starting from the other endpoint's time.
+ * Clicking the other field moves the popup on to that endpoint and keeps the draft of
+ * the one left, unless the field left holds typed text that is no acceptable endpoint.
+ * Tab confirms the endpoint it leaves.
  *
  * <p>The committed endpoints are put in order, so the end may be picked before the
  * start. With {@link #orderedProperty() ordered} off they are committed as picked,
