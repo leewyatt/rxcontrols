@@ -7,6 +7,7 @@ import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.Event;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -17,7 +18,9 @@ import javafx.scene.control.IndexedCell;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.Slider;
+import javafx.scene.control.Spinner;
 import javafx.scene.control.skin.VirtualFlow;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -66,11 +69,11 @@ public class ListScrollSpeedComparison extends Application {
         fxList.setFixedCellSize(ROW_HEIGHT);
         rxList.setFixedCellSize(ROW_HEIGHT);
 
-        VBox root = new VBox(12, toolbar(), new Label("Both lists use " + (int) ROW_HEIGHT
-                + " px rows. The mode and the multiplier apply to the RXListView only."),
+        VBox root = new VBox(12, toolbar(), scrollControls(), new Label("Both lists use " + (int) ROW_HEIGHT
+                + " px rows. Wait for motion to stop before comparing offsets or pressing Top."),
                 lists());
         root.setPadding(new Insets(16));
-        VBox.setVgrow(root.getChildren().get(2), Priority.ALWAYS);
+        VBox.setVgrow(root.getChildren().get(3), Priority.ALWAYS);
 
         new AnimationTimer() {
             @Override
@@ -126,6 +129,34 @@ public class ListScrollSpeedComparison extends Application {
     }
 
     // ==================== Lists ====================
+
+    private Node scrollControls() {
+        Spinner<Integer> delta = new Spinner<>(1, 1000, 40, 10);
+        delta.setEditable(true);
+        delta.setPrefWidth(90);
+        Button scroll = new Button("Scroll both once");
+        scroll.setOnAction(event -> {
+            delta.increment(0); // Commit a value typed into the editor.
+            double pixels = delta.getValue();
+            fireScroll(fxList.lookup(".virtual-flow"), pixels);
+            fireScroll(rxList.lookup(".viewport"), pixels);
+        });
+        HBox controls = new HBox(10, new Label("Wheel delta (px)"), delta, scroll,
+                new Label("Same synthetic downward scroll for both lists"));
+        controls.setAlignment(Pos.CENTER_LEFT);
+        return controls;
+    }
+
+    private static void fireScroll(Node target, double pixels) {
+        if (target == null) {
+            return;
+        }
+        Event.fireEvent(target, new ScrollEvent(ScrollEvent.SCROLL,
+                0, 0, 0, 0, false, false, false, false, false, false,
+                0, -pixels, 0, -pixels,
+                ScrollEvent.HorizontalTextScrollUnits.NONE, 0,
+                ScrollEvent.VerticalTextScrollUnits.LINES, -3, 0, null));
+    }
 
     private Node lists() {
         HBox lists = new HBox(16, column("JavaFX ListView (native)", fxOffset, fxList),
