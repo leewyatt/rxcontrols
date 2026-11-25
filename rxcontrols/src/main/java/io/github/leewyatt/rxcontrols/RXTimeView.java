@@ -44,13 +44,6 @@ public class RXTimeView extends RXTemporalViewBase<LocalTime> {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-time-view";
 
-    /**
-     * Default {@link #wheelMultiplierProperty() wheel multiplier}: a quarter of the
-     * scroll distance, as the items of a column are short and few and a full-speed
-     * wheel skips past them.
-     */
-    public static final double DEFAULT_WHEEL_MULTIPLIER = 0.25;
-
     // ==================== Constructors ====================
 
     /**
@@ -234,14 +227,13 @@ public class RXTimeView extends RXTemporalViewBase<LocalTime> {
     // ==================== Wheel Multiplier ====================
 
     private final DoubleProperty wheelMultiplier =
-            new SimpleDoubleProperty(this, "wheelMultiplier", DEFAULT_WHEEL_MULTIPLIER);
+            new SimpleDoubleProperty(this, "wheelMultiplier", RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER);
 
     /**
      * Multiplier applied to the distance a wheel or trackpad scroll moves a time
      * column: {@code 2} scrolls twice as far, {@code 0.5} half as far. A change
      * applies from the next scroll on; a column already moving keeps its distance. A
-     * non-finite value is treated as the default,
-     * {@link RXTimeView#DEFAULT_WHEEL_MULTIPLIER}.
+     * non-finite value is treated as {@link RXSmoothScrollOptions#DEFAULT_WHEEL_MULTIPLIER}.
      *
      * @return the wheel-multiplier property
      */

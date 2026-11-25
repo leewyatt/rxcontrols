@@ -476,7 +476,7 @@ public class RXTimeRangePickerPopupTest {
     public void wheelMultiplierReachesPopupView() throws InterruptedException {
         runOnFx(() -> {
             RXTimeRangePicker picker = newShownPicker();
-            assertEquals(RXTimeView.DEFAULT_WHEEL_MULTIPLIER, picker.getWheelMultiplier());
+            assertEquals(RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER, picker.getWheelMultiplier());
             picker.setWheelMultiplier(0.6);
             picker.show();
             RXTimeView view = (RXTimeView) findPopup().getScene().getRoot().lookup(".rx-time-view");

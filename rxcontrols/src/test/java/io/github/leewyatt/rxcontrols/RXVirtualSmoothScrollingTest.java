@@ -93,7 +93,7 @@ public class RXVirtualSmoothScrollingTest {
             view.setMaxColumns(2);
             StackPane root = host(view, 300.0, 200.0);
             pump(root);
-            fireWheel(view.lookup(".viewport"), -180.0);
+            fireWheel(view.lookup(".viewport"), -360.0);
             assertEquals(0, view.getVisibleRange().firstIndex(),
                     "smooth scrolling does not jump in the same event turn");
             viewRef.set(view);
@@ -118,7 +118,7 @@ public class RXVirtualSmoothScrollingTest {
             view.setColumnCount(2);
             StackPane root = host(view, 360.0, 220.0);
             pump(root);
-            fireWheel(view.lookup(".viewport"), -180.0);
+            fireWheel(view.lookup(".viewport"), -360.0);
             assertEquals(0, view.getFirstVisibleIndex(),
                     "smooth scrolling does not jump in the same event turn");
             viewRef.set(view);

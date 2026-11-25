@@ -11,9 +11,17 @@ final class RXMomentumDouble implements AutoCloseable {
     // ==================== Constants ====================
 
     private static final double NANOS_PER_SECOND = 1_000_000_000.0;
-    private static final double DEFAULT_VELOCITY_GAIN = 18.0;
     private static final double DEFAULT_DECELERATION = 4.6;
-    private static final double DEFAULT_MIN_VELOCITY = 10.0;
+    // A push coasts velocity / deceleration, so with the gain set to this ratio times the
+    // deceleration a push travels the ratio times its delta. At 1 a wheel step travels as
+    // far as in TARGET mode or without smooth scrolling, so a wheel multiplier means the
+    // same in every mode.
+    private static final double TRAVEL_RATIO = 1.0;
+    private static final double DEFAULT_VELOCITY_GAIN = TRAVEL_RATIO * DEFAULT_DECELERATION;
+    // Momentum ends once its remaining coast (velocity / deceleration) is a fraction of a
+    // pixel. A higher cut-off ended each push of a slow trackpad drag after one frame, so
+    // the pushes never added up and the content barely moved.
+    private static final double DEFAULT_MIN_VELOCITY = 1.0;
     private static final double DEFAULT_MAX_VELOCITY = 5600.0;
     private static final double DEFAULT_MAX_FRAME_SECONDS = 0.05;
     private static final double DEFAULT_MAX_DURATION_SECONDS = 1.25;
@@ -162,8 +170,11 @@ final class RXMomentumDouble implements AutoCloseable {
         double dt = Math.max(0.0, nowNanos - lastNanos) / NANOS_PER_SECOND;
         dt = Math.min(dt, DEFAULT_MAX_FRAME_SECONDS);
         lastNanos = nowNanos;
-        currentValue += velocity * dt;
-        velocity *= Math.exp(-DEFAULT_DECELERATION * dt);
+        // Integrated exactly over the frame, so the distance a push travels does not
+        // depend on the frame rate.
+        double decay = Math.exp(-DEFAULT_DECELERATION * dt);
+        currentValue += velocity * (1.0 - decay) / DEFAULT_DECELERATION;
+        velocity *= decay;
 
         boolean finished = Math.abs(velocity) < DEFAULT_MIN_VELOCITY
                 || Math.max(0.0, nowNanos - startNanos) / NANOS_PER_SECOND >= DEFAULT_MAX_DURATION_SECONDS;

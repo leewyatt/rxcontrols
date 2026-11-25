@@ -461,7 +461,7 @@ public class RXDateTimeRangePickerPopupTest {
     public void wheelMultiplierReachesPopupView() throws InterruptedException {
         runOnFx(() -> {
             RXDateTimeRangePicker picker = newShownPicker();
-            assertEquals(RXTimeView.DEFAULT_WHEEL_MULTIPLIER, picker.getWheelMultiplier());
+            assertEquals(RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER, picker.getWheelMultiplier());
             picker.setWheelMultiplier(0.6);
             picker.show();
             RXDateTimeView view = (RXDateTimeView) findPopup().getScene().getRoot().lookup(".rx-date-time-view");

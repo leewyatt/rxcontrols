@@ -79,6 +79,68 @@ public class RXMomentumDoubleTest {
     }
 
     @Test
+    public void pushTravelsItsDeltaAtAnyFrameRate() {
+        // A wheel step scrolls as far as without smooth scrolling, whatever the frame rate.
+        for (long frameMillis : new long[]{8, 16, 33}) {
+            AtomicLong now = new AtomicLong();
+            RXMomentumDouble value = momentum(now, 0.0);
+
+            value.push(100.0);
+            settle(value, now, frameMillis);
+
+            assertEquals(100.0, value.currentValue(), 1.0, "frames of " + frameMillis + " ms");
+        }
+    }
+
+    @Test
+    public void repeatedPushesAddUp() {
+        AtomicLong now = new AtomicLong();
+        RXMomentumDouble value = momentum(now, 0.0);
+
+        value.push(60.0);
+        for (int frame = 0; frame < 6; frame++) {
+            now.addAndGet(16 * MILLIS);
+            value.handlePulse(now.get());
+        }
+        value.push(40.0);
+        settle(value, now, 16);
+
+        assertEquals(100.0, value.currentValue(), 1.0);
+    }
+
+    @Test
+    public void slowSmallPushesAddUp() {
+        // A slow trackpad drag: one small push per frame. Each push must carry on from the
+        // motion before it instead of ending after a single frame.
+        AtomicLong now = new AtomicLong();
+        RXMomentumDouble value = momentum(now, 0.0);
+
+        for (int frame = 0; frame < 60; frame++) {
+            value.push(0.25);
+            now.addAndGet(16 * MILLIS);
+            value.handlePulse(now.get());
+        }
+        settle(value, now, 16);
+
+        assertEquals(15.0, value.currentValue(), 1.0, "the pushes travel their sum");
+    }
+
+    @Test
+    public void momentumSettlesWithinMaxDuration() {
+        AtomicLong now = new AtomicLong();
+        RXMomentumDouble value = momentum(now, 0.0);
+
+        value.push(100.0);
+        for (int frame = 0; frame < 80 && value.isRunning(); frame++) {
+            now.addAndGet(16 * MILLIS);
+            value.handlePulse(now.get());
+        }
+
+        assertFalse(value.isRunning(), "momentum stops within its maximum duration");
+        assertEquals(0.0, value.velocity(), 0.0);
+    }
+
+    @Test
     public void stopAtDoesNotNotifyUpdate() {
         AtomicLong now = new AtomicLong();
         RXMomentumDouble value = momentum(now, 0.0);
@@ -96,5 +158,13 @@ public class RXMomentumDoubleTest {
 
     private static RXMomentumDouble momentum(AtomicLong now, double initial) {
         return new RXMomentumDouble(initial, now::get, false);
+    }
+
+    private static void settle(RXMomentumDouble value, AtomicLong now, long frameMillis) {
+        for (int frame = 0; frame < 500 && value.isRunning(); frame++) {
+            now.addAndGet(frameMillis * MILLIS);
+            value.handlePulse(now.get());
+        }
+        assertFalse(value.isRunning(), "momentum settles");
     }
 }

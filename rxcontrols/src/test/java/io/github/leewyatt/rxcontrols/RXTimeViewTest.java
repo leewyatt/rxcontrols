@@ -428,8 +428,8 @@ public class RXTimeViewTest {
         PickerTestSupport.runOnFx(() -> {
             RXTimeView slow = newView();
             RXTimeView fast = newView();
-            assertEquals(RXTimeView.DEFAULT_WHEEL_MULTIPLIER, slow.getWheelMultiplier());
-            fast.setWheelMultiplier(4.0 * RXTimeView.DEFAULT_WHEEL_MULTIPLIER);
+            assertEquals(RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER, slow.getWheelMultiplier());
+            fast.setWheelMultiplier(4.0 * RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER);
             cell(slow, ".minute-column", "05").fireEvent(wheel(-40.0));
             cell(fast, ".minute-column", "05").fireEvent(wheel(-40.0));
             slowRef.set(slow);

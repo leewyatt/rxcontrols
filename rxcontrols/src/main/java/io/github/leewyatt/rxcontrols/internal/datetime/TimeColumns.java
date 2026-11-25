@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal.datetime;
 
 import io.github.leewyatt.rxcontrols.RXSmoothScrollOptions;
-import io.github.leewyatt.rxcontrols.RXTimeView;
 import io.github.leewyatt.rxcontrols.ScrollAxis;
 import io.github.leewyatt.rxcontrols.ScrollBoundaryPolicy;
 import io.github.leewyatt.rxcontrols.SmoothScrollMode;
@@ -68,7 +67,7 @@ public final class TimeColumns extends HBox {
     private Runnable onCommit = () -> { };
     private int activeColumn;
     private boolean cursorVisible;
-    private double wheelMultiplier = RXTimeView.DEFAULT_WHEEL_MULTIPLIER;
+    private double wheelMultiplier = RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER;
 
     /**
      * Creates the column set.
@@ -100,8 +99,7 @@ public final class TimeColumns extends HBox {
     }
 
     /**
-     * Sets the multiplier applied to wheel and trackpad scroll distances. A non-finite
-     * value uses the time views' default.
+     * Sets the multiplier applied to wheel and trackpad scroll distances.
      *
      * @param multiplier the wheel multiplier
      */
@@ -421,10 +419,8 @@ public final class TimeColumns extends HBox {
                 stopScroll();
                 return;
             }
-            double multiplier = Double.isFinite(wheelMultiplier)
-                    ? wheelMultiplier : RXTimeView.DEFAULT_WHEEL_MULTIPLIER;
             boolean used = wheelScroll.handleScroll(event, ScrollAxis.VERTICAL, RXSmoothScrollOptions.DEFAULT_DURATION,
-                    RXSmoothScrollOptions.DEFAULT_INTERPOLATOR, multiplier,
+                    RXSmoothScrollOptions.DEFAULT_INTERPOLATOR, wheelMultiplier,
                     SmoothScrollMode.MOMENTUM, ScrollBoundaryPolicy.CHAIN, false, false, true, false);
             if (used) {
                 // The wheel takes over from a scroll to the selection still running.
