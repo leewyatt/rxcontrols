@@ -362,6 +362,41 @@ public class RXTimeRangePickerPopupTest {
     }
 
     /**
+     * Verifies closing commits nothing when no draft changed, and nothing while the field shown holds unusable text.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void closingWithoutChangeCommitsNothing() throws InterruptedException {
+        runOnFx(() -> {
+            RXTimeRangePicker picker = newShownPicker();
+            picker.setValue(hours(10, 20));
+            int[] actions = new int[1];
+            picker.setOnAction(event -> actions[0]++);
+            TextField start = editor(picker, 0);
+            TextField end = editor(picker, 1);
+            end.requestFocus();
+            end.setText("abc");
+            start.requestFocus();
+            picker.show();
+            pressMouse(end);
+            picker.hide();
+            assertEquals(hours(10, 20), picker.getValue());
+            assertEquals("abc", end.getText());
+            assertEquals(0, actions[0]);
+
+            end.setText("20:00");
+            pressMouse(start);
+            click(timeCell(findPopup().getScene().getRoot(), ".hour-column", "05"));
+            pressMouse(end);
+            end.setText("abc");
+            picker.hide();
+            assertEquals(hours(10, 20), picker.getValue());
+            assertEquals(0, actions[0]);
+        });
+    }
+
+    /**
      * Verifies a press on the end field opens the popup on the end, and confirming it goes on to the start.
      *
      * @throws InterruptedException if the FX task is interrupted

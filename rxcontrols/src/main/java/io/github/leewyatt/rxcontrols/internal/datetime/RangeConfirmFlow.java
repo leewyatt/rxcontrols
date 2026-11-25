@@ -1,9 +1,11 @@
 package io.github.leewyatt.rxcontrols.internal.datetime;
 
+import java.util.Objects;
+
 /**
  * The state of one round of editing a range endpoint by endpoint: the drafts of both
  * endpoints, the endpoint being edited, which endpoints the round has visited, and
- * what it has changed.
+ * the drafts it began with.
  *
  * <p>A round starts on one endpoint. Confirming an endpoint moves on to the other one;
  * the round is complete once the other one was visited and has a draft as well. The
@@ -48,12 +50,11 @@ public final class RangeConfirmFlow<T> {
     private static final int ENDPOINTS = 2;
 
     private final Object[] drafts = new Object[ENDPOINTS];
+    private final Object[] initial = new Object[ENDPOINTS];
     private final boolean[] visited = new boolean[ENDPOINTS];
     private Endpoint current;
-    /** Whether the round changed any draft. */
-    private boolean changed;
-    /** Whether the current endpoint's draft changed since the round moved to it. */
-    private boolean currentChanged;
+    /** The current endpoint's draft when the round moved to it. */
+    private Object arrival;
 
     // ==================== Round ====================
 
@@ -68,6 +69,8 @@ public final class RangeConfirmFlow<T> {
         reset();
         drafts[Endpoint.START.ordinal()] = start;
         drafts[Endpoint.END.ordinal()] = end;
+        initial[Endpoint.START.ordinal()] = start;
+        initial[Endpoint.END.ordinal()] = end;
         moveTo(first);
     }
 
@@ -76,8 +79,7 @@ public final class RangeConfirmFlow<T> {
      */
     public void reset() {
         current = null;
-        changed = false;
-        currentChanged = false;
+        arrival = null;
         for (int i = 0; i < ENDPOINTS; i++) {
             visited[i] = false;
         }
@@ -115,8 +117,7 @@ public final class RangeConfirmFlow<T> {
     // ==================== Editing ====================
 
     /**
-     * Replaces an endpoint's draft and records the change. Ignored while no round is
-     * active.
+     * Replaces an endpoint's draft. Ignored while no round is active.
      *
      * @param endpoint the endpoint
      * @param value    the new draft, or {@code null}
@@ -126,10 +127,6 @@ public final class RangeConfirmFlow<T> {
             return;
         }
         drafts[endpoint.ordinal()] = value;
-        changed = true;
-        if (endpoint == current) {
-            currentChanged = true;
-        }
     }
 
     // ==================== Confirming ====================
@@ -183,8 +180,10 @@ public final class RangeConfirmFlow<T> {
 
     /**
      * Ends the round because its editor went away. The drafts are to be committed only
-     * if something changed, both endpoints were visited and have a draft, and the
-     * current endpoint was left as it was found when the round moved to it.
+     * if a draft differs from the one the round began with, both endpoints were visited
+     * and have a draft, and the current endpoint's draft is the one it had when the
+     * round moved to it. Values are compared, so a draft changed and changed back is
+     * no change.
      *
      * @return {@code true} if the drafts should be committed
      */
@@ -192,15 +191,21 @@ public final class RangeConfirmFlow<T> {
         if (current == null) {
             return false;
         }
-        boolean commit = changed && !currentChanged && isReady(Endpoint.START) && isReady(Endpoint.END);
+        boolean changed = isChanged(Endpoint.START) || isChanged(Endpoint.END);
+        boolean commit = changed && Objects.equals(draft(current), arrival)
+                && isReady(Endpoint.START) && isReady(Endpoint.END);
         current = null;
         return commit;
     }
 
     private void moveTo(Endpoint endpoint) {
         current = endpoint;
-        currentChanged = false;
+        arrival = drafts[endpoint.ordinal()];
         visited[endpoint.ordinal()] = true;
+    }
+
+    private boolean isChanged(Endpoint endpoint) {
+        return !Objects.equals(drafts[endpoint.ordinal()], initial[endpoint.ordinal()]);
     }
 
     private boolean isReady(Endpoint endpoint) {

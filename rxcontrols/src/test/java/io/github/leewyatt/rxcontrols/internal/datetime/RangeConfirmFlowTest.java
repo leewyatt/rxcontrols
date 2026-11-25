@@ -140,6 +140,31 @@ public class RangeConfirmFlowTest {
     }
 
     /**
+     * Verifies an edit that keeps a draft's value, or changes it back, is no change.
+     */
+    @Test
+    public void unchangedValueIsNoChange() {
+        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>();
+        flow.begin(Endpoint.START, 3, 7);
+        flow.edit(Endpoint.END, 7);
+        flow.switchTo(Endpoint.END);
+        assertFalse(flow.close());
+
+        flow.begin(Endpoint.START, 3, 7);
+        flow.edit(Endpoint.START, 4);
+        flow.edit(Endpoint.START, 3);
+        flow.switchTo(Endpoint.END);
+        assertFalse(flow.close());
+
+        flow.begin(Endpoint.START, 3, 7);
+        flow.edit(Endpoint.START, 4);
+        flow.switchTo(Endpoint.END);
+        flow.edit(Endpoint.END, 9);
+        flow.edit(Endpoint.END, 7);
+        assertTrue(flow.close());
+    }
+
+    /**
      * Verifies closing discards an untouched round, an unconfirmed change and a round with an endpoint left out.
      */
     @Test

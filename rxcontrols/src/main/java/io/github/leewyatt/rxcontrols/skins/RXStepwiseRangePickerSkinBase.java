@@ -264,7 +264,9 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
 
     @Override
     protected void onPopupClosed() {
-        if (flow.close()) {
+        Endpoint shown = flow.current();
+        // Unusable text in the field shown is an edit in progress: the round is not left as found.
+        if (flow.close() && !hasUnusableText(editorOf(shown))) {
             R range = draftRange();
             if (isAllowed(range)) {
                 commit(range);
