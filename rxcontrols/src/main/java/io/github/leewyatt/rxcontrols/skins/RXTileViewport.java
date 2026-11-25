@@ -1045,6 +1045,11 @@ final class RXTileViewport<T> extends RXVirtualViewportBase<T, RXTileCell<T>> {
     }
 
     @Override
+    protected double wheelMultiplier() {
+        return control.getWheelMultiplier();
+    }
+
+    @Override
     protected boolean isOwnCell(Node node) {
         return node instanceof RXTileCell;
     }

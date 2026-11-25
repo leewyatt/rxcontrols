@@ -410,9 +410,11 @@ public class RXKanbanViewSkin<T> extends RXSkinBase<RXKanbanView<T>> {
             return;
         }
         RXKanbanView<T> control = getSkinnable();
+        // A touch drag follows the finger; only wheel and trackpad distances are scaled.
+        double multiplier = event.isDirect() ? 1.0 : control.getWheelMultiplier();
         boolean consume = boardSmoothScrollEngine.handleScroll(event, ScrollAxis.HORIZONTAL,
                 RXSmoothScrollOptions.DEFAULT_DURATION, RXSmoothScrollOptions.DEFAULT_INTERPOLATOR,
-                RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER, control.getSmoothScrollMode(),
+                multiplier, control.getSmoothScrollMode(),
                 ScrollBoundaryPolicy.CHAIN, true, false,
                 control.isSmoothScrolling() && !event.isDirect(), true);
         if (consume) {

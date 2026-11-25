@@ -1,13 +1,19 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.datetime.TimeEndpointTarget;
+import javafx.animation.PauseTransition;
+import javafx.application.Platform;
+import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.StackPane;
+import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -15,13 +21,18 @@ import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.hasPseudoClass;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.press;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -231,7 +242,252 @@ public class RXTimeViewTest {
         assertEquals(LocalTime.of(19, 30), view.getValue());
     }
 
+    /**
+     * Verifies the columns stay centered in a view wider than they need, as in a picker
+     * popup whose Now / OK footer is wider than two columns.
+     */
+    @Test
+    public void columnsStayCenteredInWiderView() {
+        RXTimeView view = newView();
+        Bounds viewBounds = view.localToScene(view.getLayoutBounds());
+        Node hourColumn = view.lookup(".hour-column");
+        Node minuteColumn = view.lookup(".minute-column");
+        Bounds hour = hourColumn.localToScene(hourColumn.getLayoutBounds());
+        Bounds minute = minuteColumn.localToScene(minuteColumn.getLayoutBounds());
+
+        assertTrue(viewBounds.getWidth() > view.prefWidth(-1) + 1.0, "the view is wider than its columns");
+        assertEquals(hour.getMinX() - viewBounds.getMinX(), viewBounds.getMaxX() - minute.getMaxX(), 1.0);
+    }
+
+    /**
+     * Verifies the wheel scrolls a column smoothly, without picking.
+     *
+     * @throws InterruptedException if a wait is interrupted
+     */
+    @Test
+    public void wheelScrollsColumnSmoothly() throws InterruptedException {
+        AtomicReference<RXTimeView> viewRef = new AtomicReference<>();
+        PickerTestSupport.runOnFx(() -> {
+            RXTimeView view = newView();
+            AtomicBoolean bubbled = new AtomicBoolean();
+            view.getParent().addEventHandler(ScrollEvent.SCROLL, event -> bubbled.set(true));
+
+            cell(view, ".minute-column", "05").fireEvent(wheel(-120.0));
+
+            assertFalse(bubbled.get(), "the column uses the wheel");
+            assertEquals(0.0, column(view, ".minute-column").getVvalue(), 1e-9, "no immediate jump");
+            viewRef.set(view);
+        });
+        waitForFx(300.0);
+        PickerTestSupport.runOnFx(() -> {
+            RXTimeView view = viewRef.get();
+            assertTrue(column(view, ".minute-column").getVvalue() > 0.0, "the wheel momentum scrolls the column");
+            assertNull(view.getValue(), "scrolling does not pick");
+        });
+    }
+
+    /**
+     * Verifies picking an item while the wheel momentum runs scrolls that item to the top.
+     *
+     * @throws InterruptedException if a wait is interrupted
+     */
+    @Test
+    public void pickDuringWheelMomentumScrollsPickToTop() throws InterruptedException {
+        AtomicReference<RXTimeView> viewRef = new AtomicReference<>();
+        PickerTestSupport.runOnFx(() -> {
+            RXTimeView view = newView();
+            cell(view, ".minute-column", "05").fireEvent(wheel(-120.0));
+            viewRef.set(view);
+        });
+        waitForFx(60.0);
+        PickerTestSupport.runOnFx(() -> PickerTestSupport.click(cell(viewRef.get(), ".minute-column", "10")));
+        waitForFx(500.0);
+        PickerTestSupport.runOnFx(() -> {
+            RXTimeView view = viewRef.get();
+            view.getScene().getRoot().layout();
+            assertAtColumnTop(view, "10");
+        });
+    }
+
+    /**
+     * Verifies the wheel takes over from the scroll to a just-picked item.
+     *
+     * @throws InterruptedException if a wait is interrupted
+     */
+    @Test
+    public void wheelTakesOverFromScrollToPick() throws InterruptedException {
+        AtomicReference<RXTimeView> viewRef = new AtomicReference<>();
+        PickerTestSupport.runOnFx(() -> {
+            RXTimeView view = newView();
+            PickerTestSupport.click(cell(view, ".minute-column", "30"));
+            cell(view, ".minute-column", "05").fireEvent(wheel(-120.0));
+            viewRef.set(view);
+        });
+        waitForFx(500.0);
+        PickerTestSupport.runOnFx(() -> {
+            RXTimeView view = viewRef.get();
+            view.getScene().getRoot().layout();
+            assertTrue(offsetFromColumnTop(view, "30") > 5.0, "the scroll to the pick stopped short of it");
+        });
+    }
+
+    /**
+     * Verifies wheel input a column cannot use goes on to the parent.
+     *
+     * @throws InterruptedException if a wait is interrupted
+     */
+    @Test
+    public void wheelAtColumnTopGoesToParent() throws InterruptedException {
+        PickerTestSupport.runOnFx(() -> {
+            RXTimeView view = newView();
+            AtomicBoolean bubbled = new AtomicBoolean();
+            view.getParent().addEventHandler(ScrollEvent.SCROLL, event -> bubbled.set(true));
+
+            cell(view, ".hour-column", "00").fireEvent(wheel(120.0));
+
+            assertTrue(bubbled.get());
+            assertEquals(0.0, column(view, ".hour-column").getVvalue(), 1e-9);
+        });
+    }
+
+    /**
+     * Verifies a direct touch drag goes to the ScrollPane itself and follows the finger,
+     * without the wheel multiplier.
+     *
+     * @throws InterruptedException if a wait is interrupted
+     */
+    @Test
+    public void directTouchDragFollowsFinger() throws InterruptedException {
+        PickerTestSupport.runOnFx(() -> {
+            RXTimeView view = newView();
+            double before = offsetFromColumnTop(view, "05");
+
+            cell(view, ".minute-column", "05").fireEvent(scrollEvent(0.0, -40.0, true));
+            view.getScene().getRoot().layout();
+
+            assertTrue(before - offsetFromColumnTop(view, "05") > 20.0, "the column follows most of the drag");
+        });
+    }
+
+    /**
+     * Verifies a press stops the wheel momentum, so the release lands on the pressed item.
+     *
+     * @throws InterruptedException if a wait is interrupted
+     */
+    @Test
+    public void pressStopsWheelMomentum() throws InterruptedException {
+        AtomicReference<RXTimeView> viewRef = new AtomicReference<>();
+        double[] atPress = new double[1];
+        PickerTestSupport.runOnFx(() -> {
+            RXTimeView view = newView();
+            cell(view, ".minute-column", "05").fireEvent(wheel(-120.0));
+            viewRef.set(view);
+        });
+        waitForFx(60.0);
+        PickerTestSupport.runOnFx(() -> {
+            ScrollPane minutes = column(viewRef.get(), ".minute-column");
+            PickerTestSupport.pressMouse(cell(viewRef.get(), ".minute-column", "08"));
+            atPress[0] = minutes.getVvalue();
+        });
+        waitForFx(300.0);
+        PickerTestSupport.runOnFx(() ->
+                assertEquals(atPress[0], column(viewRef.get(), ".minute-column").getVvalue(), 1e-9));
+    }
+
+    /**
+     * Verifies scroll input a column does not use leaves the scroll to a just-picked item running.
+     *
+     * @throws InterruptedException if a wait is interrupted
+     */
+    @Test
+    public void unusedScrollKeepsScrollToPick() throws InterruptedException {
+        AtomicReference<RXTimeView> viewRef = new AtomicReference<>();
+        PickerTestSupport.runOnFx(() -> {
+            RXTimeView view = newView();
+            PickerTestSupport.click(cell(view, ".minute-column", "30"));
+            cell(view, ".minute-column", "05").fireEvent(scrollEvent(-40.0, 0.0, false));
+            viewRef.set(view);
+        });
+        waitForFx(500.0);
+        PickerTestSupport.runOnFx(() -> {
+            RXTimeView view = viewRef.get();
+            view.getScene().getRoot().layout();
+            assertAtColumnTop(view, "30");
+        });
+    }
+
+    /**
+     * Verifies the wheel multiplier scales how far a wheel scroll moves a column.
+     *
+     * @throws InterruptedException if a wait is interrupted
+     */
+    @Test
+    public void wheelMultiplierScalesColumnScroll() throws InterruptedException {
+        AtomicReference<RXTimeView> slowRef = new AtomicReference<>();
+        AtomicReference<RXTimeView> fastRef = new AtomicReference<>();
+        PickerTestSupport.runOnFx(() -> {
+            RXTimeView slow = newView();
+            RXTimeView fast = newView();
+            assertEquals(RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER, slow.getWheelMultiplier());
+            fast.setWheelMultiplier(4.0 * RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER);
+            cell(slow, ".minute-column", "05").fireEvent(wheel(-40.0));
+            cell(fast, ".minute-column", "05").fireEvent(wheel(-40.0));
+            slowRef.set(slow);
+            fastRef.set(fast);
+        });
+        waitForFx(300.0);
+        PickerTestSupport.runOnFx(() -> {
+            double slow = column(slowRef.get(), ".minute-column").getVvalue();
+            double fast = column(fastRef.get(), ".minute-column").getVvalue();
+            assertTrue(slow > 0.0, "the default multiplier scrolls");
+            assertTrue(fast > 3.0 * slow, "four times the multiplier scrolls about four times as far");
+        });
+    }
+
     // ==================== Helpers ====================
+
+    private static ScrollPane column(RXTimeView view, String selector) {
+        return (ScrollPane) view.lookup(selector);
+    }
+
+    // The scroll to a pick is computed from the item height, so across many items pixel
+    // snapping can leave the item up to a pixel off the column's top (its border inset).
+    private static void assertAtColumnTop(RXTimeView view, String minute) {
+        assertEquals(column(view, ".minute-column").snappedTopInset(), offsetFromColumnTop(view, minute), 1.5);
+    }
+
+    /** The minute cell's top relative to the top of its column; negative when scrolled above it. */
+    private static double offsetFromColumnTop(RXTimeView view, String minute) {
+        ScrollPane column = column(view, ".minute-column");
+        Label cell = cell(view, ".minute-column", minute);
+        return cell.localToScene(cell.getLayoutBounds()).getMinY()
+                - column.localToScene(column.getLayoutBounds()).getMinY();
+    }
+
+    private static ScrollEvent wheel(double deltaY) {
+        return scrollEvent(0.0, deltaY, false);
+    }
+
+    private static ScrollEvent scrollEvent(double deltaX, double deltaY, boolean direct) {
+        return new ScrollEvent(ScrollEvent.SCROLL, 0.0, 0.0, 0.0, 0.0,
+                false, false, false, false, direct, false,
+                deltaX, deltaY, deltaX, deltaY,
+                ScrollEvent.HorizontalTextScrollUnits.NONE, 0.0,
+                ScrollEvent.VerticalTextScrollUnits.NONE, 0.0,
+                0, null);
+    }
+
+    private static void waitForFx(double millis) throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        Platform.runLater(() -> {
+            PauseTransition pause = new PauseTransition(Duration.millis(millis));
+            pause.setOnFinished(event -> latch.countDown());
+            pause.play();
+        });
+        if (!latch.await(5, TimeUnit.SECONDS)) {
+            throw new AssertionError("Timed out waiting for JavaFX pulses");
+        }
+    }
 
     private static RXTimeView newView() {
         RXTimeView view = new RXTimeView();

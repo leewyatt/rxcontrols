@@ -51,7 +51,8 @@ public class RXDateTimeRangePickerShowcase extends DateTimeShowcase {
                 section("Calendar", calendarGrid(picker.weekFieldsProperty(), picker.showWeekNumbersProperty(),
                         picker.showAdjacentDaysProperty())),
                 section("Time", timeGrid(picker.showSecondsProperty(), picker.twelveHourClockProperty(),
-                        picker.hourStepProperty(), picker.minuteStepProperty(), picker.secondStepProperty())),
+                        picker.hourStepProperty(), picker.minuteStepProperty(), picker.secondStepProperty(),
+                        picker.wheelMultiplierProperty())),
                 section("Selectable date-times", dateTimeLimitGrid(picker.minDateTimeProperty(),
                         picker.maxDateTimeProperty(), picker.dateFilterProperty(), picker.timeFilterProperty())),
                 section("Footer", createGrid(

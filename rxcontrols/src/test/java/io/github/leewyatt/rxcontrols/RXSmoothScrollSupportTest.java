@@ -122,6 +122,41 @@ public class RXSmoothScrollSupportTest {
     }
 
     @Test
+    public void hiddenScrollBarsStillScrollSmoothly() throws Exception {
+        AtomicReference<ScrollPane> paneRef = new AtomicReference<>();
+        AtomicReference<StackPane> rootRef = new AtomicReference<>();
+        onFx(() -> {
+            ScrollPane pane = scrollPane(800.0, 800.0);
+            pane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+            pane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+            StackPane root = host(pane, 200.0, 200.0);
+            pump(root);
+            RXSmoothScrollSupport.install(pane);
+            AtomicInteger bubbled = new AtomicInteger();
+            root.addEventHandler(ScrollEvent.SCROLL, event -> bubbled.incrementAndGet());
+
+            pane.getContent().fireEvent(scroll(0.0, -120.0, false));
+            pane.getContent().fireEvent(scroll(-120.0, 0.0, false));
+
+            // Like OpenJFX, NEVER only hides a bar: the content still scrolls on that axis,
+            // here through the smooth path rather than the skin's immediate jump.
+            assertEquals(0, bubbled.get());
+            assertEquals(pane.getVmin(), pane.getVvalue(), 0.0001, "no immediate vertical jump");
+            assertEquals(pane.getHmin(), pane.getHvalue(), 0.0001, "no immediate horizontal jump");
+            paneRef.set(pane);
+            rootRef.set(root);
+        });
+
+        waitForFx(220.0);
+
+        onFx(() -> {
+            pump(rootRef.get());
+            assertTrue(paneRef.get().getVvalue() > paneRef.get().getVmin(), "vertical momentum advances");
+            assertTrue(paneRef.get().getHvalue() > paneRef.get().getHmin(), "horizontal momentum advances");
+        });
+    }
+
+    @Test
     public void adapterValueWritesDoNotCancelMomentum() throws Exception {
         AtomicReference<ScrollPane> paneRef = new AtomicReference<>();
         AtomicReference<StackPane> rootRef = new AtomicReference<>();

@@ -16,6 +16,7 @@ import javafx.beans.property.ReadOnlyListWrapper;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
@@ -970,14 +971,12 @@ public class RXTileView<T> extends Control {
     /**
      * Whether indirect wheel input scrolls with a short smooth animation. When
      * disabled, wheel input is applied immediately while keeping the same boundary
-     * chaining behavior. Only the switch (and {@link #smoothScrollModeProperty()
-     * smoothScrollMode}) is configurable here — duration ({@code 200ms}),
-     * interpolator ({@code EASE_OUT}), wheel multiplier and boundary chaining are
-     * fixed to the library defaults; for a fully configurable smooth-scroll
-     * surface, wrap content in a pane driven by {@link RXSmoothScroller} instead.
+     * chaining behavior. {@link #smoothScrollModeProperty() smoothScrollMode} and
+     * {@link #wheelMultiplierProperty() wheelMultiplier} tune the scrolling; its
+     * duration ({@code 200ms}), interpolator ({@code EASE_OUT}) and boundary
+     * chaining are fixed to the library defaults.
      *
      * @return the smooth-scrolling property
-     * @see RXSmoothScroller
      */
     public final BooleanProperty smoothScrollingProperty() {
         return smoothScrolling;
@@ -1032,6 +1031,43 @@ public class RXTileView<T> extends Control {
      */
     public final void setSmoothScrollMode(SmoothScrollMode value) {
         smoothScrollMode.set(value);
+    }
+
+    // ==================== Wheel Multiplier ====================
+
+    private final DoubleProperty wheelMultiplier =
+            new SimpleDoubleProperty(this, "wheelMultiplier", RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER);
+
+    /**
+     * Multiplier applied to the distance of each wheel or trackpad scroll:
+     * {@code 2} scrolls twice as far, {@code 0.5} half as far. It applies with smooth
+     * scrolling on or off, from the next scroll on; a scroll already moving keeps its
+     * distance. A touch-screen drag is not scaled, so the content stays under the
+     * finger. A non-finite value is treated as
+     * {@link RXSmoothScrollOptions#DEFAULT_WHEEL_MULTIPLIER}.
+     *
+     * @return the wheel-multiplier property
+     */
+    public final DoubleProperty wheelMultiplierProperty() {
+        return wheelMultiplier;
+    }
+
+    /**
+     * Returns the wheel multiplier.
+     *
+     * @return the wheel multiplier
+     */
+    public final double getWheelMultiplier() {
+        return wheelMultiplier.get();
+    }
+
+    /**
+     * Sets the wheel multiplier.
+     *
+     * @param value the wheel multiplier
+     */
+    public final void setWheelMultiplier(double value) {
+        wheelMultiplier.set(value);
     }
 
     // ==================== Animated ====================

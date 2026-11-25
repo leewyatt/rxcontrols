@@ -254,9 +254,13 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
         mode.setValue(kanban.getSmoothScrollMode());
         mode.valueProperty().addListener((o, ov, value) -> kanban.setSmoothScrollMode(value));
 
+        Slider multiplier = createSlider(0.25, 4.0, kanban.getWheelMultiplier());
+        multiplier.valueProperty().addListener((o, ov, value) -> kanban.setWheelMultiplier(value.doubleValue()));
+
         return createGrid(
                 row(enabled),
-                row("Mode", mode));
+                row("Mode", mode),
+                row("Wheel multiplier", multiplier, createValueLabel(multiplier, "%.2fx")));
     }
 
     private Node activityGrid() {

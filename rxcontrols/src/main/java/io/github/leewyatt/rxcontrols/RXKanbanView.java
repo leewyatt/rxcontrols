@@ -15,6 +15,7 @@ import javafx.beans.property.ReadOnlyIntegerWrapper;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -1244,6 +1245,43 @@ public class RXKanbanView<T> extends Control {
      */
     public final void setSmoothScrollMode(SmoothScrollMode value) {
         smoothScrollMode.set(value);
+    }
+
+    // ==================== Wheel Multiplier ====================
+
+    private final DoubleProperty wheelMultiplier =
+            new SimpleDoubleProperty(this, "wheelMultiplier", RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER);
+
+    /**
+     * Multiplier applied to the distance of each wheel or trackpad scroll, in the columns and across the board:
+     * {@code 2} scrolls twice as far, {@code 0.5} half as far. It applies with smooth
+     * scrolling on or off, from the next scroll on; a scroll already moving keeps its
+     * distance. A touch-screen drag is not scaled, so the content stays under the
+     * finger. A non-finite value is treated as
+     * {@link RXSmoothScrollOptions#DEFAULT_WHEEL_MULTIPLIER}.
+     *
+     * @return the wheel-multiplier property
+     */
+    public final DoubleProperty wheelMultiplierProperty() {
+        return wheelMultiplier;
+    }
+
+    /**
+     * Returns the wheel multiplier.
+     *
+     * @return the wheel multiplier
+     */
+    public final double getWheelMultiplier() {
+        return wheelMultiplier.get();
+    }
+
+    /**
+     * Sets the wheel multiplier.
+     *
+     * @param value the wheel multiplier
+     */
+    public final void setWheelMultiplier(double value) {
+        wheelMultiplier.set(value);
     }
 
     // ==================== Animated ====================

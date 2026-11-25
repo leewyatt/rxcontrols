@@ -5529,6 +5529,12 @@
     -fx-background-color: -fx-focus-color, -fx-control-inner-background;
 }
 
+/* Centered when the view is wider than its columns, as in a picker popup widened
+   by its Now / OK footer. */
+.rx-time-columns {
+    -fx-alignment: top-center;
+}
+
 .rx-time-columns > .time-column,
 .rx-time-columns > .time-column > .viewport {
     -fx-background-color: transparent;

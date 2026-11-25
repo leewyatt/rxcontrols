@@ -1,6 +1,12 @@
 package io.github.leewyatt.rxcontrols.internal.datetime;
 
+import io.github.leewyatt.rxcontrols.RXSmoothScrollOptions;
+import io.github.leewyatt.rxcontrols.ScrollAxis;
+import io.github.leewyatt.rxcontrols.ScrollBoundaryPolicy;
+import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import io.github.leewyatt.rxcontrols.internal.datetime.TimeConstraints.Unit;
+import io.github.leewyatt.rxcontrols.internal.smooth.RXSmoothScrollEngine;
+import io.github.leewyatt.rxcontrols.internal.smooth.ScrollPaneSmoothScrollable;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -13,6 +19,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
@@ -60,6 +67,7 @@ public final class TimeColumns extends HBox {
     private Runnable onCommit = () -> { };
     private int activeColumn;
     private boolean cursorVisible;
+    private double wheelMultiplier = RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER;
 
     /**
      * Creates the column set.
@@ -88,6 +96,15 @@ public final class TimeColumns extends HBox {
             rebuildColumns();
         }
         refresh(false);
+    }
+
+    /**
+     * Sets the multiplier applied to wheel and trackpad scroll distances.
+     *
+     * @param multiplier the wheel multiplier
+     */
+    public void setWheelMultiplier(double multiplier) {
+        wheelMultiplier = multiplier;
     }
 
     /**
@@ -151,11 +168,12 @@ public final class TimeColumns extends HBox {
     }
 
     /**
-     * Stops running scroll animations.
+     * Stops running scroll animations and releases the wheel scrolling.
      */
     public void dispose() {
         for (Column column : List.of(hourColumn, minuteColumn, secondColumn, meridiemColumn)) {
             column.stopScroll();
+            column.wheelScroll.dispose();
         }
     }
 
@@ -335,6 +353,8 @@ public final class TimeColumns extends HBox {
         private final List<Label> cells = new ArrayList<>();
         private final int[] itemValues;
         private final Region spacer = new Region();
+        private final ScrollPaneSmoothScrollable wheelTarget = new ScrollPaneSmoothScrollable(scroll);
+        private final RXSmoothScrollEngine wheelScroll;
         private int itemCount;
         private int selectedIndex = -1;
         private Timeline scrollAnimation;
@@ -366,11 +386,17 @@ public final class TimeColumns extends HBox {
                     onCommit.run();
                 }
             });
-            // ScrollPane's behavior requests focus on every press, even when not focus
-            // traversable; in a picker popup that focus would capture the keys meant for
-            // the text field.
-            content.addEventHandler(MouseEvent.MOUSE_PRESSED, MouseEvent::consume);
             scroll.setContent(content);
+            wheelScroll = new RXSmoothScrollEngine(wheelTarget);
+            content.addEventHandler(MouseEvent.MOUSE_PRESSED, this::onPressed);
+            content.addEventHandler(ScrollEvent.SCROLL, this::onWheel);
+            // Scrolling to a picked item takes over from a wheel scroll still running.
+            scroll.vvalueProperty().addListener(observable -> {
+                if (!wheelTarget.isWritingScrollValue() && wheelScroll.isRunning()) {
+                    wheelScroll.stop();
+                    wheelScroll.snapToCurrentOffsets();
+                }
+            });
             // The trailing spacer lets the last item scroll up to the top of the column.
             scroll.viewportBoundsProperty().addListener((obs, oldBounds, bounds) -> {
                 double cellHeight = cells.get(0).prefHeight(-1);
@@ -384,6 +410,34 @@ public final class TimeColumns extends HBox {
                     scrollToSelection(false);
                 }
             });
+        }
+
+        // Handled on the content, before the ScrollPane skin's immediate wheel scroll.
+        private void onWheel(ScrollEvent event) {
+            if (event.isDirect()) {
+                // A touch drag follows the finger: the ScrollPane moves the column itself.
+                stopScroll();
+                return;
+            }
+            boolean used = wheelScroll.handleScroll(event, ScrollAxis.VERTICAL, RXSmoothScrollOptions.DEFAULT_DURATION,
+                    RXSmoothScrollOptions.DEFAULT_INTERPOLATOR, wheelMultiplier,
+                    SmoothScrollMode.MOMENTUM, ScrollBoundaryPolicy.CHAIN, false, false, true, false);
+            if (used) {
+                // The wheel takes over from a scroll to the selection still running.
+                stopScroll();
+                event.consume();
+            }
+        }
+
+        private void onPressed(MouseEvent event) {
+            // A click goes to the item under both the press and the release: hold a
+            // running wheel scroll still so the release lands on the pressed item.
+            wheelScroll.stop();
+            wheelScroll.snapToCurrentOffsets();
+            // ScrollPane's behavior requests focus on every press, even when not focus
+            // traversable; in a picker popup that focus would capture the keys meant for
+            // the text field.
+            event.consume();
         }
 
         private void onCellClicked(int index, MouseEvent event) {

@@ -467,6 +467,23 @@ public class RXTimeRangePickerPopupTest {
         });
     }
 
+    /**
+     * Verifies the picker forwards its wheel multiplier to the time columns in the popup.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void wheelMultiplierReachesPopupView() throws InterruptedException {
+        runOnFx(() -> {
+            RXTimeRangePicker picker = newShownPicker();
+            assertEquals(RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER, picker.getWheelMultiplier());
+            picker.setWheelMultiplier(0.6);
+            picker.show();
+            RXTimeView view = (RXTimeView) findPopup().getScene().getRoot().lookup(".rx-time-view");
+            assertEquals(0.6, view.getWheelMultiplier());
+        });
+    }
+
     private static RXTimeRange hours(int startHour, int endHour) {
         return RXTimeRange.of(LocalTime.of(startHour, 0), LocalTime.of(endHour, 0));
     }

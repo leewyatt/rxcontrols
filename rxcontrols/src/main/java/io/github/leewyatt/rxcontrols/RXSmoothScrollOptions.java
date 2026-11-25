@@ -23,7 +23,9 @@ public final class RXSmoothScrollOptions {
     public static final Interpolator DEFAULT_INTERPOLATOR = Interpolator.EASE_OUT;
 
     /**
-     * Default wheel multiplier.
+     * Default wheel multiplier: a wheel step scrolls as far as without smooth
+     * scrolling, in either {@link SmoothScrollMode} (with the exceptions described
+     * for {@link SmoothScrollMode#MOMENTUM}).
      */
     public static final double DEFAULT_WHEEL_MULTIPLIER = 1.0;
 
@@ -228,7 +230,8 @@ public final class RXSmoothScrollOptions {
         }
 
         /**
-         * Sets the wheel delta multiplier.
+         * Sets the wheel delta multiplier: {@code 2} scrolls twice as far per wheel
+         * step, {@code 0.5} half as far.
          *
          * @param value the multiplier
          * @return this builder

@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.samples.support.SampleIcons;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.StringProperty;
@@ -276,24 +277,30 @@ abstract class DateTimeShowcase extends RXShowcaseApplication {
     }
 
     /**
-     * The time-column options: seconds, 12-hour clock and the three steps.
+     * The time-column options: seconds, 12-hour clock, the three steps and the wheel
+     * multiplier.
      *
      * @param showSeconds     the seconds flag
      * @param twelveHourClock the 12-hour flag
      * @param hourStep        the hour step
      * @param minuteStep      the minute step
      * @param secondStep      the second step
+     * @param wheelMultiplier the wheel multiplier
      * @param extraRows       rows specific to the control
      * @return the section content
      */
     protected Node timeGrid(BooleanProperty showSeconds, BooleanProperty twelveHourClock, IntegerProperty hourStep,
-                            IntegerProperty minuteStep, IntegerProperty secondStep, Node[]... extraRows) {
+                            IntegerProperty minuteStep, IntegerProperty secondStep, DoubleProperty wheelMultiplier,
+                            Node[]... extraRows) {
+        Slider multiplier = createSlider(0.1, 2.0, wheelMultiplier.get());
+        multiplier.valueProperty().bindBidirectional(wheelMultiplier);
         return grid(List.of(
                 flagRow("showSeconds", showSeconds),
                 flagRow("twelveHourClock", twelveHourClock),
                 intRow("Hour step", hourStep, 6),
                 intRow("Minute step", minuteStep, 30),
-                intRow("Second step", secondStep, 30)), extraRows);
+                intRow("Second step", secondStep, 30),
+                row("Wheel multiplier", multiplier, createValueLabel(multiplier, "%.2fx"))), extraRows);
     }
 
     /**

@@ -289,9 +289,13 @@ public class RXListViewShowcase extends RXShowcaseApplication {
         mode.setValue(list.getSmoothScrollMode());
         mode.valueProperty().addListener((obs, old, value) -> list.setSmoothScrollMode(value));
 
+        Slider multiplier = createSlider(0.25, 4.0, list.getWheelMultiplier());
+        multiplier.valueProperty().addListener((obs, old, value) -> list.setWheelMultiplier(value.doubleValue()));
+
         return createGrid(
                 row(enabled),
-                row("Mode", mode));
+                row("Mode", mode),
+                row("Wheel multiplier", multiplier, createValueLabel(multiplier, "%.2fx")));
     }
 
     private void scrollToSection(String text) {

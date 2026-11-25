@@ -41,7 +41,8 @@ public class RXTimeViewShowcase extends DateTimeShowcase {
         return List.of(
                 section("View", viewGrid(view)),
                 section("Time", timeGrid(view.showSecondsProperty(), view.twelveHourClockProperty(),
-                        view.hourStepProperty(), view.minuteStepProperty(), view.secondStepProperty())),
+                        view.hourStepProperty(), view.minuteStepProperty(), view.secondStepProperty(),
+                        view.wheelMultiplierProperty())),
                 section("Selectable times", timeLimitGrid(view.minTimeProperty(), view.maxTimeProperty(),
                         view.timeFilterProperty())));
     }

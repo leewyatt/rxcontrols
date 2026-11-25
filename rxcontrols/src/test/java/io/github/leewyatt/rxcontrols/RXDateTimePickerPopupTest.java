@@ -121,6 +121,23 @@ public class RXDateTimePickerPopupTest {
         });
     }
 
+    /**
+     * Verifies the picker forwards its wheel multiplier to the time columns in the popup.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void wheelMultiplierReachesPopupView() throws InterruptedException {
+        runOnFx(() -> {
+            RXDateTimePicker picker = newShownPicker();
+            assertEquals(RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER, picker.getWheelMultiplier());
+            picker.setWheelMultiplier(0.6);
+            picker.show();
+            RXDateTimeView view = (RXDateTimeView) findPopup().getScene().getRoot().lookup(".rx-date-time-view");
+            assertEquals(0.6, view.getWheelMultiplier());
+        });
+    }
+
     private RXDateTimePicker newShownPicker() {
         RXDateTimePicker picker = new RXDateTimePicker();
         picker.setLocale(Locale.US);

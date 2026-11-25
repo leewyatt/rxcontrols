@@ -50,7 +50,8 @@ public class RXDateTimeViewShowcase extends DateTimeShowcase {
                 section("Calendar", calendarGrid(view.weekFieldsProperty(), view.showWeekNumbersProperty(),
                         view.showAdjacentDaysProperty())),
                 section("Time", timeGrid(view.showSecondsProperty(), view.twelveHourClockProperty(),
-                        view.hourStepProperty(), view.minuteStepProperty(), view.secondStepProperty())),
+                        view.hourStepProperty(), view.minuteStepProperty(), view.secondStepProperty(),
+                        view.wheelMultiplierProperty())),
                 section("Selectable date-times", dateTimeLimitGrid(view.minDateTimeProperty(),
                         view.maxDateTimeProperty(), view.dateFilterProperty(), view.timeFilterProperty())));
     }

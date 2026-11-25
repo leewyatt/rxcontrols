@@ -37,6 +37,7 @@ public class RXDateTimePickerSkin extends RXConfirmPickerSkinBase<LocalDateTime,
         disposer.registerBinding(view.hourStepProperty(), control.hourStepProperty());
         disposer.registerBinding(view.minuteStepProperty(), control.minuteStepProperty());
         disposer.registerBinding(view.secondStepProperty(), control.secondStepProperty());
+        disposer.registerBinding(view.wheelMultiplierProperty(), control.wheelMultiplierProperty());
         initialize(control.promptTextProperty(), control.showNowProperty(), control.nowTextProperty(),
                 control.okTextProperty(),
                 List.of(control.converterProperty(), control.localeProperty(), control.showSecondsProperty(),

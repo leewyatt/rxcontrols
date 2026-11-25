@@ -11,9 +11,17 @@ final class RXMomentumDouble implements AutoCloseable {
     // ==================== Constants ====================
 
     private static final double NANOS_PER_SECOND = 1_000_000_000.0;
-    private static final double DEFAULT_VELOCITY_GAIN = 18.0;
     private static final double DEFAULT_DECELERATION = 4.6;
-    private static final double DEFAULT_MIN_VELOCITY = 10.0;
+    // A push coasts velocity / deceleration, so with the gain set to this ratio times the
+    // deceleration a push travels the ratio times its delta. At 1 a wheel step travels as
+    // far as in TARGET mode or without smooth scrolling, so a wheel multiplier means the
+    // same in every mode.
+    private static final double TRAVEL_RATIO = 1.0;
+    private static final double DEFAULT_VELOCITY_GAIN = TRAVEL_RATIO * DEFAULT_DECELERATION;
+    // Momentum ends once its remaining coast (velocity / deceleration) is under a quarter
+    // pixel, and travels that remainder at once. A higher cut-off ended each push of a slow
+    // trackpad drag after one frame, so the drag moved in visible steps.
+    private static final double DEFAULT_MIN_VELOCITY = 1.0;
     private static final double DEFAULT_MAX_VELOCITY = 5600.0;
     private static final double DEFAULT_MAX_FRAME_SECONDS = 0.05;
     private static final double DEFAULT_MAX_DURATION_SECONDS = 1.25;
@@ -162,10 +170,20 @@ final class RXMomentumDouble implements AutoCloseable {
         double dt = Math.max(0.0, nowNanos - lastNanos) / NANOS_PER_SECOND;
         dt = Math.min(dt, DEFAULT_MAX_FRAME_SECONDS);
         lastNanos = nowNanos;
-        currentValue += velocity * dt;
-        velocity *= Math.exp(-DEFAULT_DECELERATION * dt);
+        // Integrated exactly over the frame, so while no frame is longer than the clamp the
+        // distance a push travels does not depend on the frame rate. A longer frame advances
+        // the motion by the clamp only: at a lower rate the motion runs slower and can stop
+        // short at the duration limit.
+        double decay = Math.exp(-DEFAULT_DECELERATION * dt);
+        currentValue += velocity * (1.0 - decay) / DEFAULT_DECELERATION;
+        velocity *= decay;
 
-        boolean finished = Math.abs(velocity) < DEFAULT_MIN_VELOCITY
+        boolean settled = Math.abs(velocity) < DEFAULT_MIN_VELOCITY;
+        if (settled) {
+            // Pushes too small to outlast a frame still move by their whole delta.
+            currentValue += velocity / DEFAULT_DECELERATION;
+        }
+        boolean finished = settled
                 || Math.max(0.0, nowNanos - startNanos) / NANOS_PER_SECOND >= DEFAULT_MAX_DURATION_SECONDS;
         if (finished) {
             stopTimer();

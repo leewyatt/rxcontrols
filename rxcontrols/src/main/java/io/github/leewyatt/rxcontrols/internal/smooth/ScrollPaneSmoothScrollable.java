@@ -4,11 +4,11 @@ import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.ScrollPane.ScrollBarPolicy;
 
 /**
  * {@link ScrollPane} adapter that maps engine pixel offsets to
- * {@code hvalue}/{@code vvalue}.
+ * {@code hvalue}/{@code vvalue}. As in {@code ScrollPaneSkin}, a scroll bar policy
+ * only shows or hides a bar: an axis whose bar is never shown still scrolls.
  */
 public final class ScrollPaneSmoothScrollable implements RXSmoothScrollable {
 
@@ -118,18 +118,12 @@ public final class ScrollPaneSmoothScrollable implements RXSmoothScrollable {
     /** {@inheritDoc} */
     @Override
     public double getMaxOffsetX() {
-        if (scrollPane.getHbarPolicy() == ScrollBarPolicy.NEVER) {
-            return 0.0;
-        }
         return Math.max(0.0, effectiveContentWidth() - getViewportWidth());
     }
 
     /** {@inheritDoc} */
     @Override
     public double getMaxOffsetY() {
-        if (scrollPane.getVbarPolicy() == ScrollBarPolicy.NEVER) {
-            return 0.0;
-        }
         return Math.max(0.0, effectiveContentHeight() - getViewportHeight());
     }
 
@@ -160,8 +154,7 @@ public final class ScrollPaneSmoothScrollable implements RXSmoothScrollable {
     /** {@inheritDoc} */
     @Override
     public boolean isHorizontalWritable() {
-        return scrollPane.getHbarPolicy() != ScrollBarPolicy.NEVER
-                && !scrollPane.hvalueProperty().isBound()
+        return !scrollPane.hvalueProperty().isBound()
                 && horizontalRange() > 0.0
                 && getMaxOffsetX() > 0.0;
     }
@@ -169,8 +162,7 @@ public final class ScrollPaneSmoothScrollable implements RXSmoothScrollable {
     /** {@inheritDoc} */
     @Override
     public boolean isVerticalWritable() {
-        return scrollPane.getVbarPolicy() != ScrollBarPolicy.NEVER
-                && !scrollPane.vvalueProperty().isBound()
+        return !scrollPane.vvalueProperty().isBound()
                 && verticalRange() > 0.0
                 && getMaxOffsetY() > 0.0;
     }
