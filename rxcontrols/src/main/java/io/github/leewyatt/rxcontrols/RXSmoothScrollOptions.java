@@ -24,8 +24,8 @@ public final class RXSmoothScrollOptions {
 
     /**
      * Default wheel multiplier: a wheel step scrolls as far as without smooth
-     * scrolling, in either {@link SmoothScrollMode} (within the maximum speed of
-     * {@link SmoothScrollMode#MOMENTUM}).
+     * scrolling, in either {@link SmoothScrollMode} (with the exceptions described
+     * for {@link SmoothScrollMode#MOMENTUM}).
      */
     public static final double DEFAULT_WHEEL_MULTIPLIER = 1.0;
 

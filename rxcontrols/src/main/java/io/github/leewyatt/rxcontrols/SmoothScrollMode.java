@@ -15,8 +15,9 @@ public enum SmoothScrollMode {
      * Converts wheel input into velocity and lets it decay over time: the motion
      * starts fast and eases out in a kinetic tail after the wheel input stops. A
      * wheel step travels the same distance as in {@link #TARGET} mode, and quick
-     * steps add up, within a maximum speed: a very large step, or a burst of steps
-     * faster than that speed, travels less far.
+     * steps add up. A step, or several steps in quick succession, that would carry
+     * the motion past its maximum speed travels less far, and so does motion at a
+     * very low frame rate.
      */
     MOMENTUM
 }
