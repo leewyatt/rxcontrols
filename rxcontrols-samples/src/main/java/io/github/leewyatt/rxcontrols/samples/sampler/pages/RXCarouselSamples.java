@@ -53,8 +53,8 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.s
 
 /**
  * The RXCarousel page: a slideshow whose pages play an entrance and an exit from the
- * page lifecycle events, a hero banner that plays by itself with a different transition
- * each time, a product gallery with a thumbnail navigator, stories with a segmented
+ * page lifecycle events, a product gallery with a thumbnail navigator, a hero banner
+ * that plays by itself with a different transition each time, stories with a segmented
  * progress bar, and onboarding pages with a Next button.
  */
 public final class RXCarouselSamples {
@@ -87,15 +87,15 @@ public final class RXCarouselSamples {
                                         + "slow zoom, OPENED brings in the text and the sun glints, leaves, birds or "
                                         + "petals, CLOSING fades them out and CLOSED resets the page.",
                                 slideshow()),
+                        SampleCard.large("Product gallery",
+                                "A custom CarouselNavigator shows a thumbnail of every page and marks the "
+                                        + "current one; click a thumbnail to jump. circular false stops at both ends.",
+                                productGallery()),
                         SampleCard.large("Hero banner",
                                 "autoPlay with AnimSelector.random: each change picks fade, wipe, blinds, flip, "
                                         + "shatter or cube. hoverPause (on by default) stops it while the pointer "
                                         + "is over the banner.",
                                 hero()),
-                        SampleCard.large("Product gallery",
-                                "A custom CarouselNavigator shows a thumbnail of every page and marks the "
-                                        + "current one; click a thumbnail to jump. circular false stops at both ends.",
-                                productGallery()),
                         SampleCard.large("Stories",
                                 "SegmentedProgressNavigator fills one bar per page while autoPlay counts down; "
                                         + "click a bar to jump.",

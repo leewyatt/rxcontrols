@@ -9,9 +9,11 @@ import io.github.leewyatt.rxcontrols.RXTabPane.TabClosingPolicy;
 import io.github.leewyatt.rxcontrols.RXTabPane.Variant;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
+import io.github.leewyatt.rxcontrols.animation.page.AnimParallax;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
 import javafx.scene.Node;
@@ -37,8 +39,9 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.wrapped
 
 /**
  * The RXTabPane page: closable editor tabs that scroll, icon tabs that share the
- * width, settings tabs on the left, a phone tab bar at the bottom, pill-shaped tabs
- * restyled from CSS, and a report whose pages slide as the tab changes.
+ * width and change pages with a parallax slide, settings tabs on the left whose pages
+ * slide up and down, a phone tab bar at the bottom, pill-shaped tabs restyled from CSS,
+ * and a report whose pages slide as the tab changes.
  */
 public final class RXTabPaneSamples {
 
@@ -69,10 +72,12 @@ public final class RXTabPaneSamples {
                                 editor()),
                         SampleCard.large("Icons above text",
                                 "contentDisplay TOP stacks icon and text; variant FULL_WIDTH shares the width "
-                                        + "equally between the tabs.",
+                                        + "equally between the tabs. AnimParallax slides the old page out while "
+                                        + "the new one drifts in more slowly.",
                                 media()),
                         SampleCard.large("Tabs on the left",
-                                "side LEFT turns the header into a column, a good fit for settings sections.",
+                                "side LEFT turns the header into a column, a good fit for settings sections; "
+                                        + "a vertical AnimSlide moves the pages up or down with the tab change.",
                                 settings()),
                         SampleCard.large("Bottom tab bar",
                                 "side BOTTOM with icon tabs makes a phone tab bar; contentAnimation AnimFade "
@@ -137,6 +142,7 @@ public final class RXTabPaneSamples {
                 iconTab("Videos", "play-icon", page("play-icon", "violet", "46 videos", "Longest: 12 min")),
                 iconTab("Files", "folder-icon", page("folder-icon", "sky", "2.4 GB used", "Of 15 GB")));
         tabs.setVariant(Variant.FULL_WIDTH);
+        tabs.setContentAnimation(new AnimParallax());
         return frame(FRAME_WIDTH, FRAME_HEIGHT, tabs);
     }
 
@@ -182,6 +188,7 @@ public final class RXTabPaneSamples {
                 RXTab.of("Privacy", icon("lock-icon", "nav-icon"), privacy),
                 RXTab.of("Billing", icon("card-icon", "nav-icon"), billing));
         tabs.setSide(Side.LEFT);
+        tabs.setContentAnimation(new AnimSlide(Orientation.VERTICAL));
         return frame(FRAME_WIDTH, FRAME_HEIGHT, tabs);
     }
 

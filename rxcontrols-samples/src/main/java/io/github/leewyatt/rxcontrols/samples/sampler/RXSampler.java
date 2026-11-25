@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.sampler;
 import atlantafx.base.theme.PrimerDark;
 import io.github.leewyatt.rxcontrols.RXBreadcrumbBar;
 import io.github.leewyatt.rxcontrols.RXSelectionBox;
+import io.github.leewyatt.rxcontrols.RXTaskButton;
 import io.github.leewyatt.rxcontrols.RXTransitionPane;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
@@ -17,9 +18,14 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.Scene;
+import javafx.scene.SnapshotParameters;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
+import javafx.scene.image.WritableImage;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -27,7 +33,9 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.transform.Transform;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
 
@@ -143,7 +151,8 @@ public class RXSampler extends Application {
         transitionLabel.getStyleClass().add("theme-label");
         transitionLabel.setLabelFor(transitionPicker);
 
-        HBox bar = new HBox(10.0, crumbs, spacer, transitionLabel, transitionPicker, new SamplerThemeSwitcher());
+        HBox bar = new HBox(10.0, crumbs, spacer, transitionLabel, transitionPicker, buildSnapshotButton(),
+                new SamplerThemeSwitcher());
         bar.getStyleClass().add("top-bar");
         bar.setAlignment(Pos.CENTER_LEFT);
         return bar;
@@ -184,6 +193,45 @@ public class RXSampler extends Application {
             }
         });
         return picker;
+    }
+
+    /** A camera button that copies the page on display to the clipboard as an image. */
+    private RXTaskButton buildSnapshotButton() {
+        RXTaskButton button = new RXTaskButton(null, glyph("camera-glyph"));
+        button.getStyleClass().add("snapshot-button");
+        button.setMinWidth(Region.USE_PREF_SIZE);
+        // A click leaves the focus in the page, so a focused control is captured as it was.
+        button.setFocusTraversable(false);
+        button.setAccessibleText("Copy a snapshot of the page");
+        button.setTooltip(new Tooltip("Copy a snapshot of the page"));
+        button.setOnAction(event -> {
+            RXTaskButton.Run run = button.start();
+            if (copySnapshot()) {
+                run.succeed();
+            } else {
+                run.fail();
+            }
+        });
+        return button;
+    }
+
+    // Snapshots the scroll content of the page rather than the page itself: a scroll pane
+    // draws only its visible part. The window's pixel density keeps the image sharp on a
+    // HiDPI display.
+    private boolean copySnapshot() {
+        Node area = snapshotArea(host.getContent());
+        Window window = host.getScene().getWindow();
+        SnapshotParameters params = new SnapshotParameters();
+        params.setTransform(Transform.scale(window.getOutputScaleX(), window.getOutputScaleY()));
+        try {
+            WritableImage image = area.snapshot(params, null);
+            ClipboardContent content = new ClipboardContent();
+            content.putImage(image);
+            return Clipboard.getSystemClipboard().setContent(content);
+        } catch (RuntimeException e) {
+            LOG.log(Level.WARNING, "Could not copy a snapshot of the page", e);
+            return false;
+        }
     }
 
     private BorderPane buildPager() {
@@ -285,6 +333,16 @@ public class RXSampler extends Application {
         } else if (page instanceof SamplerHome home) {
             home.dispose();
         }
+    }
+
+    private static Node snapshotArea(Node page) {
+        if (page instanceof SamplerPage samplerPage) {
+            return samplerPage.snapshotArea();
+        }
+        if (page instanceof SamplerHome home) {
+            return home.snapshotArea();
+        }
+        return page;
     }
 
     private static ThemeChoice startTheme() {

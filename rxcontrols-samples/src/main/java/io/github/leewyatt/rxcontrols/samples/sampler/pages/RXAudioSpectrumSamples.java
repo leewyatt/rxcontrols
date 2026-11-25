@@ -31,8 +31,8 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleImages.s
 
 /**
  * The RXAudioSpectrum page: a music player whose spectrum settles when paused, an aurora,
- * a radial ring around a cover, mirrored bars, a line, a centered layout with glow, a
- * flower, a double flower and a corona. The aurora, the flowers and the corona are drawn
+ * a radial ring around a cover, a flower, a double flower, mirrored bars, a line, a
+ * centered layout with glow and a corona. The aurora, the flowers and the corona are drawn
  * with made-up waves; every spectrum is fed made-up magnitudes, since the sampler plays
  * no audio.
  */
@@ -69,6 +69,12 @@ public final class RXAudioSpectrumSamples {
                         SampleCard.medium("Radial ring",
                                 "VisRadial grows bars outwards around a hole, here filled with the album cover.",
                                 screen(radial(life))),
+                        SampleCard.medium("Flower",
+                                "VisRadial with a small hole; a wave travelling across the bands turns the petals.",
+                                screen(flower(life))),
+                        SampleCard.medium("Double flower",
+                                "Two VisRadial spectrums, one inside the hole of the other, turning opposite ways.",
+                                screen(doubleFlower(life))),
                         SampleCard.medium("Mirrored bars",
                                 "VisBarsMirror reflects the bars below the middle line; -rx-bar-fill sets the gradient.",
                                 screen(mirrored(life))),
@@ -78,12 +84,6 @@ public final class RXAudioSpectrumSamples {
                         SampleCard.medium("Centered with glow",
                                 "BandLayout.CENTER_FOLD puts the bass in the middle; glow adds a soft light.",
                                 screen(centered(life))),
-                        SampleCard.medium("Flower",
-                                "VisRadial with a small hole; a wave travelling across the bands turns the petals.",
-                                screen(flower(life))),
-                        SampleCard.medium("Double flower",
-                                "Two VisRadial spectrums, one inside the hole of the other, turning opposite ways.",
-                                screen(doubleFlower(life))),
                         SampleCard.medium("Corona",
                                 "VisRadial with CENTER_FOLD and glow: both halves of the ring move alike.",
                                 screen(corona(life)))),
