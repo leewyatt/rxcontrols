@@ -429,6 +429,38 @@ public class RXTimeRangePickerPopupTest {
     }
 
     /**
+     * Verifies text typed back to what the skin wrote into a field stands for that field's draft again.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void textTypedBackRestoresDraft() throws InterruptedException {
+        runOnFx(() -> {
+            RXTimeRangePicker picker = newShownPicker();
+            picker.setValue(hours(10, 20));
+            int[] actions = new int[1];
+            picker.setOnAction(event -> actions[0]++);
+            TextField start = editor(picker, 0);
+            TextField end = editor(picker, 1);
+            pressMouse(start);
+            typeOver(start, "05:00");
+            typeOver(start, "10:00");
+            pressMouse(end);
+            assertEquals("10:00", start.getText());
+            picker.hide();
+            assertEquals(hours(10, 20), picker.getValue());
+            assertEquals(0, actions[0]);
+
+            pressMouse(start);
+            Button ok = (Button) findPopup().getScene().getRoot().lookup(".ok-button");
+            start.setText("");
+            assertTrue(ok.isDisabled());
+            typeOver(start, "10:00");
+            assertFalse(ok.isDisabled());
+        });
+    }
+
+    /**
      * Verifies a press on the end field opens the popup on the end, and confirming it goes on to the start.
      *
      * @throws InterruptedException if the FX task is interrupted
@@ -648,6 +680,13 @@ public class RXTimeRangePickerPopupTest {
             RXTimeView view = (RXTimeView) findPopup().getScene().getRoot().lookup(".rx-time-view");
             assertEquals(0.6, view.getWheelMultiplier());
         });
+    }
+
+    /** Types text over a field's selection one key at a time. */
+    private static void typeOver(TextField field, String text) {
+        for (int i = 1; i <= text.length(); i++) {
+            field.setText(text.substring(0, i));
+        }
     }
 
     private static RXTimeRange hours(int startHour, int endHour) {

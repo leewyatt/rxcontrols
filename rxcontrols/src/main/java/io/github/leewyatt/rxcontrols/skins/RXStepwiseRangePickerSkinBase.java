@@ -20,7 +20,9 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.util.StringConverter;
 
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Shared skin of the range pickers that confirm one endpoint at a time (time range,
@@ -41,6 +43,8 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
     private final Region separator = new Region();
     private final V endpointView;
     private final RangeConfirmFlow<E> flow = new RangeConfirmFlow<>(this::isAcceptable);
+    /** The draft each field's text was last written from. */
+    private final Map<Endpoint, E> writtenDrafts = new EnumMap<>(Endpoint.class);
     private Button okButton;
     /** Set while this skin writes the view's value: such a change is no pick of the user's. */
     private boolean writingView;
@@ -246,6 +250,9 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
             TextField editor = editorOf(endpoint);
             if (isUserEdited(editor)) {
                 flow.edit(endpoint, typedDraft(endpoint, editor));
+            } else {
+                // Text typed back to what was written stands for that draft again.
+                flow.edit(endpoint, writtenDrafts.get(endpoint));
             }
         }
         showDraft();
@@ -467,12 +474,17 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
     }
 
     private void writeFields(E start, E end) {
-        setFieldText(startEditor, DateTimeTexts.format(converter(), start));
-        setFieldText(endEditor, DateTimeTexts.format(converter(), end));
+        writeField(Endpoint.START, start);
+        writeField(Endpoint.END, end);
     }
 
     private void writeDraft(Endpoint endpoint) {
-        setFieldText(editorOf(endpoint), DateTimeTexts.format(converter(), flow.draft(endpoint)));
+        writeField(endpoint, flow.draft(endpoint));
+    }
+
+    private void writeField(Endpoint endpoint, E draft) {
+        writtenDrafts.put(endpoint, draft);
+        setFieldText(editorOf(endpoint), DateTimeTexts.format(converter(), draft));
     }
 
     private void updateActiveField() {
