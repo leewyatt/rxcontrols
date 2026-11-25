@@ -176,6 +176,16 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
     }
 
     /**
+     * Returns whether the popup moves under the field of the endpoint it edits. The
+     * default does; a popup wider than both fields is better left where it opened.
+     *
+     * @return {@code true} if the popup follows the edited field
+     */
+    protected boolean popupFollowsField() {
+        return true;
+    }
+
+    /**
      * Moves the view on to the endpoint the round switched to.
      */
     protected void showEndpoint() {
@@ -462,8 +472,7 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
         boolean stepping = getSkinnable().isShowing() && flow.isActive();
         setFieldActive(startEditor, stepping ? flow.current() == Endpoint.START : startFocused);
         setFieldActive(endEditor, stepping ? flow.current() == Endpoint.END : endFocused);
-        if (stepping) {
-            // The popup sits under the field of the endpoint it edits.
+        if (stepping && popupFollowsField()) {
             alignPopupTo(editorOf(flow.current()));
         }
     }
