@@ -461,6 +461,58 @@ public class RXTimeRangePickerPopupTest {
     }
 
     /**
+     * Verifies unusable text typed into the field shown keeps the drafts from being committed when Tab leaves the picker.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void tabOutOverUnusableTextDiscards() throws InterruptedException {
+        runOnFx(() -> {
+            RXTimeRangePicker picker = newShownPicker();
+            picker.setValue(hours(10, 20));
+            int[] actions = new int[1];
+            picker.setOnAction(event -> actions[0]++);
+            TextField start = editor(picker, 0);
+            TextField end = editor(picker, 1);
+            pressMouse(start);
+            click(timeCell(findPopup().getScene().getRoot(), ".hour-column", "05"));
+            pressMouse(end);
+            end.setText("abc");
+            press(end, KeyCode.TAB);
+            assertFalse(picker.isShowing());
+            assertEquals(hours(10, 20), picker.getValue());
+            assertEquals(0, actions[0]);
+        });
+    }
+
+    /**
+     * Verifies unusable text a field held before the popup moved to it does not keep a change elsewhere from committing.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void textHeldBeforeArrivalDoesNotBlockCommit() throws InterruptedException {
+        runOnFx(() -> {
+            RXTimeRangePicker picker = newShownPicker();
+            picker.setValue(hours(10, 20));
+            int[] actions = new int[1];
+            picker.setOnAction(event -> actions[0]++);
+            TextField start = editor(picker, 0);
+            TextField end = editor(picker, 1);
+            end.requestFocus();
+            end.setText("abc");
+            start.requestFocus();
+            picker.show();
+            click(timeCell(findPopup().getScene().getRoot(), ".hour-column", "05"));
+            pressMouse(end);
+            picker.hide();
+            assertEquals(hours(5, 20), picker.getValue());
+            assertEquals("20:00", end.getText());
+            assertEquals(1, actions[0]);
+        });
+    }
+
+    /**
      * Verifies a press on the end field opens the popup on the end, and confirming it goes on to the start.
      *
      * @throws InterruptedException if the FX task is interrupted

@@ -180,6 +180,25 @@ public class RangeConfirmFlowTest {
     }
 
     /**
+     * Verifies a pending edit at the current endpoint keeps closing from committing until the round moves on.
+     */
+    @Test
+    public void pendingEditBlocksCommit() {
+        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>(value -> true);
+        flow.begin(Endpoint.START, 3, 7);
+        flow.edit(Endpoint.START, 4);
+        flow.switchTo(Endpoint.END);
+        flow.setEditPending(true);
+        assertFalse(flow.close());
+
+        flow.begin(Endpoint.START, 3, 7);
+        flow.edit(Endpoint.START, 4);
+        flow.setEditPending(true);
+        flow.switchTo(Endpoint.END);
+        assertTrue(flow.close());
+    }
+
+    /**
      * Verifies closing discards an untouched round, an unconfirmed change and a round with an endpoint left out.
      */
     @Test

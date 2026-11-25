@@ -255,6 +255,8 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
                 flow.edit(endpoint, writtenDrafts.get(endpoint));
             }
         }
+        // Recorded now: leaving the picker rewrites the fields before the popup closes.
+        flow.setEditPending(hasUnusableText(editorOf(flow.current())));
         showDraft();
     }
 
@@ -271,9 +273,7 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
 
     @Override
     protected void onPopupClosed() {
-        Endpoint shown = flow.current();
-        // Unusable text in the field shown is an edit in progress: the round is not left as found.
-        if (flow.close() && !hasUnusableText(editorOf(shown))) {
+        if (flow.close()) {
             R range = draftRange();
             if (isAllowed(range)) {
                 commit(range);

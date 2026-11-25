@@ -5,8 +5,9 @@ import java.util.function.Predicate;
 
 /**
  * The state of one round of editing a range endpoint by endpoint: the drafts of both
- * endpoints, the endpoint being edited, which endpoints the round has visited, and
- * the drafts it began with.
+ * endpoints, the endpoint being edited, which endpoints the round has visited, the
+ * drafts it began with, and whether the current endpoint has an edit in progress that
+ * no draft stands for.
  *
  * <p>A round starts on one endpoint. Confirming an endpoint moves on to the other one;
  * the round is complete once the other one was visited and has an acceptable draft as
@@ -58,6 +59,8 @@ public final class RangeConfirmFlow<T> {
     private Endpoint current;
     /** The current endpoint's draft when the round moved to it. */
     private Object arrival;
+    /** Whether the current endpoint has an edit in progress that no draft stands for. */
+    private boolean editPending;
 
     /**
      * Creates a flow.
@@ -94,6 +97,7 @@ public final class RangeConfirmFlow<T> {
     public void reset() {
         current = null;
         arrival = null;
+        editPending = false;
         for (int i = 0; i < ENDPOINTS; i++) {
             visited[i] = false;
         }
@@ -141,6 +145,17 @@ public final class RangeConfirmFlow<T> {
             return;
         }
         drafts[endpoint.ordinal()] = value;
+    }
+
+    /**
+     * Records whether the current endpoint has an edit in progress that no draft stands
+     * for, such as typed text that is no acceptable endpoint. Closing commits nothing
+     * while it has; moving to another endpoint clears the record.
+     *
+     * @param pending whether such an edit is in progress
+     */
+    public void setEditPending(boolean pending) {
+        editPending = pending;
     }
 
     // ==================== Confirming ====================
@@ -196,9 +211,9 @@ public final class RangeConfirmFlow<T> {
     /**
      * Ends the round because its editor went away. The drafts are to be committed only
      * if a draft differs from the one the round began with, both endpoints were visited
-     * and have an acceptable draft, and the current endpoint's draft is the one it had
-     * when the round moved to it. Values are compared, so a draft changed and changed
-     * back is no change.
+     * and have an acceptable draft, the current endpoint's draft is the one it had when
+     * the round moved to it, and no edit is pending there. Values are compared, so a
+     * draft changed and changed back is no change.
      *
      * @return {@code true} if the drafts should be committed
      */
@@ -207,7 +222,7 @@ public final class RangeConfirmFlow<T> {
             return false;
         }
         boolean changed = isChanged(Endpoint.START) || isChanged(Endpoint.END);
-        boolean commit = changed && Objects.equals(draft(current), arrival)
+        boolean commit = changed && !editPending && Objects.equals(draft(current), arrival)
                 && isReady(Endpoint.START) && isReady(Endpoint.END);
         current = null;
         return commit;
@@ -216,6 +231,7 @@ public final class RangeConfirmFlow<T> {
     private void moveTo(Endpoint endpoint) {
         current = endpoint;
         arrival = drafts[endpoint.ordinal()];
+        editPending = false;
         visited[endpoint.ordinal()] = true;
     }
 
