@@ -16,7 +16,7 @@ import java.util.Locale;
 
 /**
  * The RXDateTimeRange page: a maintenance window on half hours, a car rental within
- * opening hours, a log search down to the second and an event on a 12-hour clock.
+ * opening hours, a clearable log search down to the second and an event on a 12-hour clock.
  */
 public final class RXDateTimeRangeSamples {
 
@@ -45,7 +45,8 @@ public final class RXDateTimeRangeSamples {
                                         + "and a timeFilter for the desk's opening hours.",
                                 carRental()),
                         SampleCard.large("Log search",
-                                "showSeconds adds a seconds column; maxDateTime stops the range at the present.",
+                                "showSeconds adds a seconds column; maxDateTime stops the range at the present; "
+                                        + "clearable to search all time.",
                                 logSearch()),
                         SampleCard.large("12-hour clock",
                                 "twelveHourClock adds an AM / PM column; locale US formats both fields.",
@@ -85,6 +86,7 @@ public final class RXDateTimeRangeSamples {
         RXDateTimeRangePicker picker = new RXDateTimeRangePicker(RXDateTimeRange.of(now.minusMinutes(45), now));
         picker.setShowSeconds(true);
         picker.setMaxDateTime(now);
+        picker.setClearable(true);
         return DateTimeKit.field("Search logs between", DateTimeKit.icon("search-shape", "indigo"), picker,
                 FIELD_WIDTH, DateTimeKit.text("level:error  service:checkout", "hint"));
     }
