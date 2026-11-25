@@ -96,7 +96,9 @@ import io.github.leewyatt.rxcontrols.RXSegmentedProgressBar;
 import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
 import io.github.leewyatt.rxcontrols.RXSelectionBox;
 import io.github.leewyatt.rxcontrols.RXSidebar;
+import io.github.leewyatt.rxcontrols.RXSidebarCaption;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
+import io.github.leewyatt.rxcontrols.RXSidebarSeparator;
 import io.github.leewyatt.rxcontrols.RXSkeleton;
 import io.github.leewyatt.rxcontrols.RXSkeletonPane;
 import io.github.leewyatt.rxcontrols.RXSlider;
@@ -143,6 +145,8 @@ import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFlip;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
+import io.github.leewyatt.rxcontrols.layout.RXDashboardCard;
+import io.github.leewyatt.rxcontrols.layout.RXDashboardPane;
 import io.github.leewyatt.rxcontrols.samples.support.SampleIcons;
 import io.github.leewyatt.rxcontrols.spectrum.VisRadial;
 import java.math.BigDecimal;
@@ -152,6 +156,7 @@ import java.time.LocalTime;
 import java.time.Year;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -234,6 +239,7 @@ final class ThemeGalleryCards {
         list.add(card("RXCircularProgressIndicator", "Ring progress with centered text.", buildRXCircularProgressIndicator()));
         list.add(card("RXClipPathImageView", "Image clipped to an SVG path.", buildRXClipPathImageView()));
         list.add(card("RXCopyButton", "Copies to the clipboard and confirms with a check.", buildRXCopyButton()));
+        list.add(wide("RXDashboardPane", "Grid of cards the user drags and resizes.", buildRXDashboardPane()));
         list.add(card("RXDatePicker", "Text field with a popup calendar.", buildRXDatePicker()));
         list.add(card("RXDateRangePicker", "Start and end dates picked on two linked months.", buildRXDateRangePicker()));
         list.add(wide("RXDateRangeView", "Linked months for picking a date range.", buildRXDateRangeView()));
@@ -1238,8 +1244,11 @@ final class ThemeGalleryCards {
         RXSidebarItem dashboard = RXSidebarItem.of("Dashboard", new Circle(8, Color.web("#5b8def")));
         RXSidebarItem inbox = RXSidebarItem.of("Inbox", new Circle(8, Color.web("#3ec79b")));
         RXSidebarItem files = RXSidebarItem.of("Files", new Circle(8, Color.web("#f2a73b")));
+        RXSidebarItem projects = RXSidebarItem.of("Projects", new Circle(8, Color.web("#3fb6d3")));
+        RXSidebarItem archive = RXSidebarItem.of("Archive", new Circle(8, Color.web("#c27ad8")));
         sidebar.getTopItems().add(RXSidebarItem.of("Favorites", new Circle(8, Color.web("#e25c5c"))));
-        sidebar.getItems().addAll(dashboard, inbox, files);
+        sidebar.getItems().addAll(dashboard, inbox, new RXSidebarCaption("Workspace"), files, projects,
+                new RXSidebarSeparator(), archive);
         RXSidebarItem settings = RXSidebarItem.action("Settings", new Circle(8, Color.web("#9b8cff")), null);
         sidebar.getBottomItems().addAll(settings, RXSidebarItem.of("Help", new Circle(8, Color.web("#8a8f99"))));
         sidebar.setFooter(new Label("v1.0"));
@@ -1629,7 +1638,7 @@ final class ThemeGalleryCards {
         RXMenuList list = new RXMenuList();
         RXMenuItem delete = RXMenuItem.of("Delete");
         delete.setDanger(true);
-        list.getItems().addAll(RXMenuItem.of("New file"), RXMenuItem.of("Open…"),
+        list.getItems().addAll(RXMenuItem.header("File"), RXMenuItem.of("New file"), RXMenuItem.of("Open…"),
                 RXMenuItem.of("Save"), RXMenuItem.separator(), delete);
         list.setMaxSize(220.0, Region.USE_PREF_SIZE);
         return list;
@@ -1748,10 +1757,15 @@ final class ThemeGalleryCards {
 
     // ==================== Data views ====================
 
+    // Two collapsible sections, the second collapsed, so both disclosure states show without a click.
     private static Node buildRXListView() {
-        RXListView<String> list = new RXListView<>(FXCollections.observableArrayList(
-                "Design systems", "Accessibility", "Animation", "Data visualization",
-                "Performance", "Theming", "Layout", "Typography"));
+        List<String> design = List.of("Design systems", "Layout", "Theming", "Typography");
+        ObservableList<String> topics = FXCollections.observableArrayList(design);
+        topics.addAll("Accessibility", "Animation", "Data visualization", "Performance");
+        RXListView<String> list = new RXListView<>(topics);
+        list.setSectionKeyFactory(topic -> design.contains(topic) ? "Design" : "Engineering");
+        list.setCollapsibleSections(true);
+        list.setSectionExpanded("Engineering", false);
         list.getSelectionModel().select(1);
         list.setPrefSize(260.0, 200.0);
         list.setMaxSize(Double.MAX_VALUE, 200.0);
@@ -1759,11 +1773,16 @@ final class ThemeGalleryCards {
     }
 
     private static Node buildRXTileView() {
+        String[] sections = {"Today", "This week", "Earlier"};
         ObservableList<String> items = FXCollections.observableArrayList();
+        Map<String, String> sectionOf = new HashMap<>();
         for (int i = 1; i <= 24; i++) {
-            items.add("Tile " + i);
+            String tile = "Tile " + i;
+            items.add(tile);
+            sectionOf.put(tile, sections[(i - 1) / 8]);
         }
         RXTileView<String> tiles = new RXTileView<>(items);
+        tiles.setSectionKeyFactory(sectionOf::get);
         tiles.setCellFactory(view -> new GalleryTileCell());
         tiles.setPrefTileWidth(96.0);
         tiles.setPrefTileHeight(64.0);
@@ -1788,6 +1807,30 @@ final class ThemeGalleryCards {
         masonry.setPrefSize(600.0, 260.0);
         masonry.setMaxSize(Double.MAX_VALUE, 260.0);
         return masonry;
+    }
+
+    private static Node buildRXDashboardPane() {
+        RXDashboardPane board = new RXDashboardPane();
+        board.setColumnCount(4);
+        board.setRowHeight(72.0);
+        board.setHgap(10.0);
+        board.setVgap(10.0);
+        board.getCards().addAll(
+                dashboardCard("revenue", "Revenue", "$48.2k", 0, 0, 2, 1),
+                dashboardCard("orders", "Orders", "1,284", 2, 0, 1, 1),
+                dashboardCard("visitors", "Visitors", "9.6k", 3, 0, 1, 2),
+                dashboardCard("refunds", "Refunds", "12", 0, 1, 1, 1),
+                dashboardCard("rating", "Rating", "4.8", 1, 1, 2, 1));
+        board.setPrefWidth(600.0);
+        return board;
+    }
+
+    private static RXDashboardCard dashboardCard(String id, String title, String value, int column, int row,
+                                                 int columnSpan, int rowSpan) {
+        Label figure = new Label(value);
+        figure.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+        VBox content = new VBox(2.0, new Label(title), figure);
+        return new RXDashboardCard(id, content, column, row, columnSpan, rowSpan);
     }
 
     private static Node buildRXKanbanView() {
