@@ -150,6 +150,16 @@ final class SamplerHome extends ScrollPane {
         lifecycle.dispose();
     }
 
+    /**
+     * Returns the node a snapshot of the page renders: the whole page, including the part
+     * scrolled out of view.
+     *
+     * @return the node to snapshot
+     */
+    Node snapshotArea() {
+        return getContent();
+    }
+
     // ==================== Hero ====================
 
     private Node hero(Map<SamplerCategory, List<SamplerEntry>> byCategory, int controls, Runnable browse,

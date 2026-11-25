@@ -68,7 +68,7 @@ final class SamplerPage extends BorderPane {
     private final Button showcaseButton = launcherButton("Open showcase");
     private final StackPane body = new StackPane();
 
-    private Node examples;
+    private ScrollPane examples;
     private SamplerVariant variant;
 
     SamplerPage(SamplerEntry entry) {
@@ -138,6 +138,16 @@ final class SamplerPage extends BorderPane {
         lifecycle.dispose();
     }
 
+    /**
+     * Returns the node a snapshot of the page renders: all examples, including those
+     * scrolled out of view, or the variant on display on a page without examples.
+     *
+     * @return the node to snapshot
+     */
+    Node snapshotArea() {
+        return examples != null ? examples.getContent() : body;
+    }
+
     private Node buildVariantSwitch(SamplerEntry entry) {
         RXSegmentedControl<SamplerVariant> variants = new RXSegmentedControl<>();
         variants.getStyleClass().add("variant-switch");
@@ -169,7 +179,7 @@ final class SamplerPage extends BorderPane {
         }
     }
 
-    private Node buildExamples() {
+    private ScrollPane buildExamples() {
         boolean single = entry.variants().size() == 1;
         for (SampleCard card : samples.cards()) {
             if (!single && card.getType() != null) {

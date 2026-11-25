@@ -43,6 +43,7 @@
 }
 
 .sampler-home .home-content {
+    -fx-background-color: -home-page;
     -fx-padding: 20px 28px 40px 28px;
 }
 
