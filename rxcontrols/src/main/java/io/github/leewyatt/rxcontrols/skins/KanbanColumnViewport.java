@@ -539,6 +539,11 @@ final class KanbanColumnViewport<T> extends RXVirtualViewportBase<T, RXKanbanCar
     }
 
     @Override
+    protected double wheelMultiplier() {
+        return control.getWheelMultiplier();
+    }
+
+    @Override
     protected boolean isOwnCell(Node node) {
         return node instanceof RXKanbanCardCell;
     }

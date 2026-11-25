@@ -757,6 +757,11 @@ final class RXListViewport<T> extends RXVirtualViewportBase<T, RXListCell<T>> {
     }
 
     @Override
+    protected double wheelMultiplier() {
+        return control.getWheelMultiplier();
+    }
+
+    @Override
     protected boolean isOwnCell(Node node) {
         return node instanceof RXListCell;
     }

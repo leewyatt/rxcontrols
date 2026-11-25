@@ -452,6 +452,23 @@ public class RXDateTimeRangePickerPopupTest {
         });
     }
 
+    /**
+     * Verifies the picker forwards its wheel multiplier to the time columns in the popup.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void wheelMultiplierReachesPopupView() throws InterruptedException {
+        runOnFx(() -> {
+            RXDateTimeRangePicker picker = newShownPicker();
+            assertEquals(RXTimeView.DEFAULT_WHEEL_MULTIPLIER, picker.getWheelMultiplier());
+            picker.setWheelMultiplier(0.6);
+            picker.show();
+            RXDateTimeView view = (RXDateTimeView) findPopup().getScene().getRoot().lookup(".rx-date-time-view");
+            assertEquals(0.6, view.getWheelMultiplier());
+        });
+    }
+
     private static RXDateTimeRange novemberRange(int startDay, int endDay) {
         return RXDateTimeRange.of(LocalDate.of(2026, 11, startDay).atStartOfDay(),
                 LocalDate.of(2026, 11, endDay).atStartOfDay());

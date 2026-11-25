@@ -248,9 +248,13 @@ public class RXTileViewShowcase extends RXShowcaseApplication {
         mode.setValue(tile.getSmoothScrollMode());
         mode.valueProperty().addListener((obs, old, value) -> tile.setSmoothScrollMode(value));
 
+        Slider multiplier = createSlider(0.25, 4.0, tile.getWheelMultiplier());
+        multiplier.valueProperty().addListener((obs, old, value) -> tile.setWheelMultiplier(value.doubleValue()));
+
         return createGrid(
                 row(enabled),
-                row("Mode", mode));
+                row("Mode", mode),
+                row("Wheel multiplier", multiplier, createValueLabel(multiplier, "%.2fx")));
     }
 
     private Node scrollGrid() {

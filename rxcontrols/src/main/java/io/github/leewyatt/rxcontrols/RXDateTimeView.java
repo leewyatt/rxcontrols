@@ -2,9 +2,11 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.skins.RXDateTimeViewSkin;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.control.Skin;
@@ -475,5 +477,41 @@ public class RXDateTimeView extends RXTemporalViewBase<LocalDateTime> {
      */
     public final void setSecondStep(int value) {
         secondStep.set(value);
+    }
+
+    // ==================== Wheel Multiplier ====================
+
+    private final DoubleProperty wheelMultiplier =
+            new SimpleDoubleProperty(this, "wheelMultiplier", RXTimeView.DEFAULT_WHEEL_MULTIPLIER);
+
+    /**
+     * Multiplier applied to the distance a wheel or trackpad scroll moves a time
+     * column: {@code 2} scrolls twice as far, {@code 0.5} half as far. A change
+     * applies from the next scroll on; a column already moving keeps its distance. A
+     * non-finite value is treated as the default,
+     * {@link RXTimeView#DEFAULT_WHEEL_MULTIPLIER}.
+     *
+     * @return the wheel-multiplier property
+     */
+    public final DoubleProperty wheelMultiplierProperty() {
+        return wheelMultiplier;
+    }
+
+    /**
+     * Returns the wheel multiplier.
+     *
+     * @return the wheel multiplier
+     */
+    public final double getWheelMultiplier() {
+        return wheelMultiplier.get();
+    }
+
+    /**
+     * Sets the wheel multiplier.
+     *
+     * @param value the wheel multiplier
+     */
+    public final void setWheelMultiplier(double value) {
+        wheelMultiplier.set(value);
     }
 }

@@ -35,6 +35,7 @@ public class RXTimeRangePickerSkin
         disposer.registerBinding(view.hourStepProperty(), control.hourStepProperty());
         disposer.registerBinding(view.minuteStepProperty(), control.minuteStepProperty());
         disposer.registerBinding(view.secondStepProperty(), control.secondStepProperty());
+        disposer.registerBinding(view.wheelMultiplierProperty(), control.wheelMultiplierProperty());
         disposer.registerBinding(view.minTimeProperty(), control.minTimeProperty());
         disposer.registerBinding(view.maxTimeProperty(), control.maxTimeProperty());
         disposer.registerBinding(view.timeFilterProperty(), control.timeFilterProperty());

@@ -5,8 +5,10 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.ScrollBar;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -290,6 +292,103 @@ public class RXVirtualSmoothScrollingTest {
         });
     }
 
+    @Test
+    public void wheelMultiplierScalesWheelDistance() throws Exception {
+        onFx(() -> {
+            RXListView<String> view = list(200);
+            view.setFixedCellSize(20.0);
+            view.setSmoothScrolling(false);
+            assertEquals(RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER, view.getWheelMultiplier());
+            view.setWheelMultiplier(2.0);
+            StackPane root = host(view, 300.0, 200.0);
+            pump(root);
+
+            fireLineWheel(view.lookup(".viewport"), -3.0);
+            pump(root);
+
+            assertEquals(6, view.getVisibleRange().firstIndex(), "three lines at twice the distance");
+        });
+    }
+
+    @Test
+    public void directTouchIgnoresWheelMultiplier() throws Exception {
+        onFx(() -> {
+            RXListView<String> view = list(200);
+            view.setFixedCellSize(20.0);
+            view.setWheelMultiplier(3.0);
+            StackPane root = host(view, 300.0, 200.0);
+            pump(root);
+
+            fireWheel(view.lookup(".viewport"), -40.0, true);
+            pump(root);
+
+            assertEquals(2, view.getVisibleRange().firstIndex(), "a touch drag follows the finger");
+        });
+    }
+
+    @Test
+    public void tileAndMasonryWheelMultiplierScalesWheelDistance() throws Exception {
+        onFx(() -> {
+            int[] tileFirst = new int[2];
+            int[] masonryFirst = new int[2];
+            double[] multipliers = {1.0, 3.0};
+            for (int i = 0; i < multipliers.length; i++) {
+                RXTileView<String> tile = tile(200);
+                tile.setMaxColumns(2);
+                tile.setSmoothScrolling(false);
+                tile.setWheelMultiplier(multipliers[i]);
+                StackPane tileRoot = host(tile, 300.0, 200.0);
+                pump(tileRoot);
+                fireWheel(tile.lookup(".viewport"), -100.0);
+                pump(tileRoot);
+                tileFirst[i] = tile.getVisibleRange().firstIndex();
+
+                RXMasonryView<Integer> masonry = masonry(200);
+                masonry.setColumnCount(2);
+                masonry.setSmoothScrolling(false);
+                masonry.setWheelMultiplier(multipliers[i]);
+                StackPane masonryRoot = host(masonry, 360.0, 220.0);
+                pump(masonryRoot);
+                fireWheel(masonry.lookup(".viewport"), -100.0);
+                pump(masonryRoot);
+                masonryFirst[i] = masonry.getFirstVisibleIndex();
+            }
+            assertTrue(tileFirst[1] > tileFirst[0], "tile scrolls further at a higher multiplier");
+            assertTrue(masonryFirst[1] > masonryFirst[0], "masonry scrolls further at a higher multiplier");
+        });
+    }
+
+    @Test
+    public void kanbanWheelMultiplierScalesColumnsAndBoard() throws Exception {
+        onFx(() -> {
+            RXKanbanColumn<String> first = new RXKanbanColumn<>("A");
+            for (int i = 0; i < 200; i++) {
+                first.getCards().add("card-" + i);
+            }
+            ObservableList<RXKanbanColumn<String>> columns = FXCollections.observableArrayList(first);
+            for (String title : new String[]{"B", "C", "D", "E"}) {
+                columns.add(new RXKanbanColumn<>(title));
+            }
+            RXKanbanView<String> view = new RXKanbanView<>(columns);
+            view.setPrefCardHeight(20.0);
+            view.setCardSpacing(0.0);
+            view.setPrefColumnWidth(280.0);
+            view.setSmoothScrolling(false);
+            view.setWheelMultiplier(2.0);
+            StackPane root = host(view, 400.0, 300.0);
+            pump(root);
+
+            fireWheel(view.lookup(".viewport"), -40.0);
+            pump(root);
+            assertEquals(4, firstVisibleKanbanIndex(view), "two cards at twice the distance");
+
+            fireHorizontalWheel(view, -40.0);
+            pump(root);
+            assertEquals(80.0, horizontalScrollBar(view).getValue(), 0.5,
+                    "the board scrolls twice the distance");
+        });
+    }
+
     private static RXListView<String> list(int count) {
         ObservableList<String> items = FXCollections.observableArrayList();
         for (int i = 0; i < count; i++) {
@@ -368,6 +467,29 @@ public class RXVirtualSmoothScrollingTest {
                 null);
         target.fireEvent(event);
         return event;
+    }
+
+    private static ScrollEvent fireHorizontalWheel(Node target, double deltaX) {
+        ScrollEvent event = new ScrollEvent(ScrollEvent.SCROLL,
+                0.0, 0.0, 0.0, 0.0,
+                false, false, false, false,
+                false, false,
+                deltaX, 0.0, deltaX, 0.0,
+                ScrollEvent.HorizontalTextScrollUnits.NONE, 0.0,
+                ScrollEvent.VerticalTextScrollUnits.NONE, 0.0,
+                0,
+                null);
+        target.fireEvent(event);
+        return event;
+    }
+
+    private static ScrollBar horizontalScrollBar(Node view) {
+        for (Node node : view.lookupAll(".scroll-bar")) {
+            if (node instanceof ScrollBar bar && bar.getOrientation() == Orientation.HORIZONTAL) {
+                return bar;
+            }
+        }
+        throw new AssertionError("no horizontal scroll bar");
     }
 
     private static ScrollEvent fireLineWheel(Node target, double textDeltaY) {

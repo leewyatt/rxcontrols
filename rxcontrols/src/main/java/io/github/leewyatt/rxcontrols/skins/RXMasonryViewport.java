@@ -598,6 +598,11 @@ final class RXMasonryViewport<T> extends RXVirtualViewportBase<T, RXMasonryCell<
     }
 
     @Override
+    protected double wheelMultiplier() {
+        return control.getWheelMultiplier();
+    }
+
+    @Override
     protected boolean isOwnCell(Node node) {
         return node instanceof RXMasonryCell;
     }

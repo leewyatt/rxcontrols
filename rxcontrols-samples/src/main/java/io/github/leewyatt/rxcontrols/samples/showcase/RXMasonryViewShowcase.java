@@ -278,9 +278,13 @@ public class RXMasonryViewShowcase extends RXShowcaseApplication {
         mode.setMaxWidth(Double.MAX_VALUE);
         mode.valueProperty().addListener((obs, old, value) -> masonry.setSmoothScrollMode(value));
 
+        Slider multiplier = createSlider(0.25, 4.0, masonry.getWheelMultiplier());
+        multiplier.valueProperty().addListener((obs, old, value) -> masonry.setWheelMultiplier(value.doubleValue()));
+
         return createGrid(
                 row(enabled),
-                row("Mode", mode, new Label()));
+                row("Mode", mode, new Label()),
+                row("Wheel multiplier", multiplier, createValueLabel(multiplier, "%.2fx")));
     }
 
     private Node layoutGrid() {

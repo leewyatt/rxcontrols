@@ -416,6 +416,34 @@ public class RXTimeViewTest {
         });
     }
 
+    /**
+     * Verifies the wheel multiplier scales how far a wheel scroll moves a column.
+     *
+     * @throws InterruptedException if a wait is interrupted
+     */
+    @Test
+    public void wheelMultiplierScalesColumnScroll() throws InterruptedException {
+        AtomicReference<RXTimeView> slowRef = new AtomicReference<>();
+        AtomicReference<RXTimeView> fastRef = new AtomicReference<>();
+        PickerTestSupport.runOnFx(() -> {
+            RXTimeView slow = newView();
+            RXTimeView fast = newView();
+            assertEquals(RXTimeView.DEFAULT_WHEEL_MULTIPLIER, slow.getWheelMultiplier());
+            fast.setWheelMultiplier(4.0 * RXTimeView.DEFAULT_WHEEL_MULTIPLIER);
+            cell(slow, ".minute-column", "05").fireEvent(wheel(-40.0));
+            cell(fast, ".minute-column", "05").fireEvent(wheel(-40.0));
+            slowRef.set(slow);
+            fastRef.set(fast);
+        });
+        waitForFx(300.0);
+        PickerTestSupport.runOnFx(() -> {
+            double slow = column(slowRef.get(), ".minute-column").getVvalue();
+            double fast = column(fastRef.get(), ".minute-column").getVvalue();
+            assertTrue(slow > 0.0, "the default multiplier scrolls");
+            assertTrue(fast > 3.0 * slow, "four times the multiplier scrolls about four times as far");
+        });
+    }
+
     // ==================== Helpers ====================
 
     private static ScrollPane column(RXTimeView view, String selector) {

@@ -245,6 +245,23 @@ public class RXTimePickerPopupTest {
         });
     }
 
+    /**
+     * Verifies the picker forwards its wheel multiplier to the time columns in the popup.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void wheelMultiplierReachesPopupView() throws InterruptedException {
+        runOnFx(() -> {
+            RXTimePicker picker = newShownPicker();
+            assertEquals(RXTimeView.DEFAULT_WHEEL_MULTIPLIER, picker.getWheelMultiplier());
+            picker.setWheelMultiplier(0.6);
+            picker.show();
+            RXTimeView view = (RXTimeView) findPopup().getScene().getRoot().lookup(".rx-time-view");
+            assertEquals(0.6, view.getWheelMultiplier());
+        });
+    }
+
     private RXTimePicker newShownPicker() {
         RXTimePicker picker = new RXTimePicker();
         picker.setLocale(Locale.US);

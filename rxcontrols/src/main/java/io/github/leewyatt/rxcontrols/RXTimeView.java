@@ -2,9 +2,11 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.skins.RXTimeViewSkin;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.control.Skin;
@@ -41,6 +43,13 @@ import java.util.function.Predicate;
 public class RXTimeView extends RXTemporalViewBase<LocalTime> {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-time-view";
+
+    /**
+     * Default {@link #wheelMultiplierProperty() wheel multiplier}: a quarter of the
+     * scroll distance, as the items of a column are short and few and a full-speed
+     * wheel skips past them.
+     */
+    public static final double DEFAULT_WHEEL_MULTIPLIER = 0.25;
 
     // ==================== Constructors ====================
 
@@ -220,6 +229,42 @@ public class RXTimeView extends RXTemporalViewBase<LocalTime> {
      */
     public final void setSecondStep(int value) {
         secondStep.set(value);
+    }
+
+    // ==================== Wheel Multiplier ====================
+
+    private final DoubleProperty wheelMultiplier =
+            new SimpleDoubleProperty(this, "wheelMultiplier", DEFAULT_WHEEL_MULTIPLIER);
+
+    /**
+     * Multiplier applied to the distance a wheel or trackpad scroll moves a time
+     * column: {@code 2} scrolls twice as far, {@code 0.5} half as far. A change
+     * applies from the next scroll on; a column already moving keeps its distance. A
+     * non-finite value is treated as the default,
+     * {@link RXTimeView#DEFAULT_WHEEL_MULTIPLIER}.
+     *
+     * @return the wheel-multiplier property
+     */
+    public final DoubleProperty wheelMultiplierProperty() {
+        return wheelMultiplier;
+    }
+
+    /**
+     * Returns the wheel multiplier.
+     *
+     * @return the wheel multiplier
+     */
+    public final double getWheelMultiplier() {
+        return wheelMultiplier.get();
+    }
+
+    /**
+     * Sets the wheel multiplier.
+     *
+     * @param value the wheel multiplier
+     */
+    public final void setWheelMultiplier(double value) {
+        wheelMultiplier.set(value);
     }
 
     // ==================== Min Time ====================

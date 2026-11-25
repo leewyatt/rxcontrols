@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.internal.datetime;
 
 import io.github.leewyatt.rxcontrols.RXSmoothScrollOptions;
+import io.github.leewyatt.rxcontrols.RXTimeView;
 import io.github.leewyatt.rxcontrols.ScrollAxis;
 import io.github.leewyatt.rxcontrols.ScrollBoundaryPolicy;
 import io.github.leewyatt.rxcontrols.SmoothScrollMode;
@@ -46,8 +47,6 @@ public final class TimeColumns extends HBox {
     private static final PseudoClass PSEUDO_FOCUSED = PseudoClass.getPseudoClass("focused");
     private static final PseudoClass PSEUDO_ACTIVE = PseudoClass.getPseudoClass("active");
     private static final Duration SCROLL_DURATION = Duration.millis(160);
-    // A column's items are short and few; a full-speed wheel skips past them.
-    private static final double WHEEL_MULTIPLIER = 0.25;
     private static final int HALF_DAY = 12;
     private static final int PAGE_ITEMS = 5;
 
@@ -69,6 +68,7 @@ public final class TimeColumns extends HBox {
     private Runnable onCommit = () -> { };
     private int activeColumn;
     private boolean cursorVisible;
+    private double wheelMultiplier = RXTimeView.DEFAULT_WHEEL_MULTIPLIER;
 
     /**
      * Creates the column set.
@@ -97,6 +97,16 @@ public final class TimeColumns extends HBox {
             rebuildColumns();
         }
         refresh(false);
+    }
+
+    /**
+     * Sets the multiplier applied to wheel and trackpad scroll distances. A non-finite
+     * value uses the time views' default.
+     *
+     * @param multiplier the wheel multiplier
+     */
+    public void setWheelMultiplier(double multiplier) {
+        wheelMultiplier = multiplier;
     }
 
     /**
@@ -411,8 +421,10 @@ public final class TimeColumns extends HBox {
                 stopScroll();
                 return;
             }
+            double multiplier = Double.isFinite(wheelMultiplier)
+                    ? wheelMultiplier : RXTimeView.DEFAULT_WHEEL_MULTIPLIER;
             boolean used = wheelScroll.handleScroll(event, ScrollAxis.VERTICAL, RXSmoothScrollOptions.DEFAULT_DURATION,
-                    RXSmoothScrollOptions.DEFAULT_INTERPOLATOR, WHEEL_MULTIPLIER,
+                    RXSmoothScrollOptions.DEFAULT_INTERPOLATOR, multiplier,
                     SmoothScrollMode.MOMENTUM, ScrollBoundaryPolicy.CHAIN, false, false, true, false);
             if (used) {
                 // The wheel takes over from a scroll to the selection still running.

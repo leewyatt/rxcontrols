@@ -491,9 +491,11 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
     }
 
     private void onScroll(ScrollEvent event) {
+        // A touch drag follows the finger; only wheel and trackpad distances are scaled.
+        double multiplier = event.isDirect() ? 1.0 : wheelMultiplier();
         boolean consume = smoothScrollEngine.handleScroll(event, ScrollAxis.VERTICAL,
                 RXSmoothScrollOptions.DEFAULT_DURATION, RXSmoothScrollOptions.DEFAULT_INTERPOLATOR,
-                RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER, smoothScrollMode(), ScrollBoundaryPolicy.CHAIN,
+                multiplier, smoothScrollMode(), ScrollBoundaryPolicy.CHAIN,
                 true, false, smoothScrollingEnabled() && !event.isDirect(), true);
         if (consume) {
             event.consume();
@@ -691,6 +693,15 @@ abstract class RXVirtualViewportBase<T, C extends IndexedCell<T>> extends Region
      */
     protected SmoothScrollMode smoothScrollMode() {
         return RXSmoothScrollOptions.DEFAULT_MODE;
+    }
+
+    /**
+     * Returns the multiplier applied to wheel and trackpad scroll distances.
+     *
+     * @return the wheel multiplier
+     */
+    protected double wheelMultiplier() {
+        return RXSmoothScrollOptions.DEFAULT_WHEEL_MULTIPLIER;
     }
 
     /**

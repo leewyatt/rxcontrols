@@ -83,7 +83,10 @@ public class RXDateTimeViewSkin extends RXSkinBase<RXDateTimeView>
         updateToday();
         showDisplayedMonth();
         updateConstraints();
+        columns.setWheelMultiplier(control.getWheelMultiplier());
 
+        disposer.registerListener(control.wheelMultiplierProperty(),
+                () -> columns.setWheelMultiplier(control.getWheelMultiplier()));
         disposer.registerListener(control.valueProperty(), this::onValueChanged);
         // A change listener reads the value on every change. An invalidation listener that
         // returns early during this skin's own write-back would leave the property invalid,

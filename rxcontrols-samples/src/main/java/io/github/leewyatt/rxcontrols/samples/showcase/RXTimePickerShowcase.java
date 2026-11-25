@@ -43,7 +43,8 @@ public class RXTimePickerShowcase extends DateTimeShowcase {
                 section("Picker", pickerGrid(picker,
                         textRow("Prompt text", picker.promptTextProperty()))),
                 section("Time", timeGrid(picker.showSecondsProperty(), picker.twelveHourClockProperty(),
-                        picker.hourStepProperty(), picker.minuteStepProperty(), picker.secondStepProperty())),
+                        picker.hourStepProperty(), picker.minuteStepProperty(), picker.secondStepProperty(),
+                        picker.wheelMultiplierProperty())),
                 section("Selectable times", timeLimitGrid(picker.minTimeProperty(), picker.maxTimeProperty(),
                         picker.timeFilterProperty())),
                 section("Footer", createGrid(

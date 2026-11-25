@@ -39,6 +39,9 @@ public class RXTimeViewSkin extends RXSkinBase<RXTimeView> implements TemporalKe
         disposer.registerDisposeTask(columns::dispose);
 
         updateConstraints();
+        columns.setWheelMultiplier(control.getWheelMultiplier());
+        disposer.registerListener(control.wheelMultiplierProperty(),
+                () -> columns.setWheelMultiplier(control.getWheelMultiplier()));
         disposer.registerListener(control.valueProperty(), () -> updateValue(true));
         disposer.registerListener(control.localeProperty(), this::updateConstraints);
         disposer.registerListener(control.showSecondsProperty(), this::updateConstraints);
