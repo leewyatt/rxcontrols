@@ -1,13 +1,19 @@
 package io.github.leewyatt.rxcontrols.internal.datetime;
 
+import java.util.Objects;
+import java.util.function.Predicate;
+
 /**
  * The state of one round of editing a range endpoint by endpoint: the drafts of both
- * endpoints, the endpoint being edited, and which endpoints the round has visited,
- * changed and confirmed.
+ * endpoints, the endpoint being edited, which endpoints the round has visited, the
+ * drafts it began with, and whether the current endpoint has an edit in progress that
+ * no draft stands for.
  *
  * <p>A round starts on one endpoint. Confirming an endpoint moves on to the other one;
- * the round is complete once the other one was visited and has a draft as well.
- * Whether a draft is acceptable is the caller's decision, made before it confirms.
+ * the round is complete once the other one was visited and has an acceptable draft as
+ * well. The round may also switch to the other endpoint at any time, which keeps the
+ * drafts. Whether the current draft may be confirmed is the caller's decision, made
+ * before it confirms.
  *
  * @param <T> the endpoint value type
  */
@@ -46,11 +52,26 @@ public final class RangeConfirmFlow<T> {
 
     private static final int ENDPOINTS = 2;
 
+    private final Predicate<? super T> acceptable;
     private final Object[] drafts = new Object[ENDPOINTS];
+    private final Object[] initial = new Object[ENDPOINTS];
     private final boolean[] visited = new boolean[ENDPOINTS];
-    private final boolean[] changed = new boolean[ENDPOINTS];
     private Endpoint current;
-    private Endpoint confirmed;
+    /** The current endpoint's draft when the round moved to it. */
+    private Object arrival;
+    /** Whether the current endpoint has an edit in progress that no draft stands for. */
+    private boolean editPending;
+
+    /**
+     * Creates a flow.
+     *
+     * @param acceptable whether a draft may be committed; the other endpoint holding a
+     *                   draft it rejects keeps the round from completing, like one
+     *                   without a draft
+     */
+    public RangeConfirmFlow(Predicate<? super T> acceptable) {
+        this.acceptable = acceptable;
+    }
 
     // ==================== Round ====================
 
@@ -65,8 +86,9 @@ public final class RangeConfirmFlow<T> {
         reset();
         drafts[Endpoint.START.ordinal()] = start;
         drafts[Endpoint.END.ordinal()] = end;
-        current = first;
-        visited[first.ordinal()] = true;
+        initial[Endpoint.START.ordinal()] = start;
+        initial[Endpoint.END.ordinal()] = end;
+        moveTo(first);
     }
 
     /**
@@ -74,10 +96,10 @@ public final class RangeConfirmFlow<T> {
      */
     public void reset() {
         current = null;
-        confirmed = null;
+        arrival = null;
+        editPending = false;
         for (int i = 0; i < ENDPOINTS; i++) {
             visited[i] = false;
-            changed[i] = false;
         }
     }
 
@@ -113,8 +135,7 @@ public final class RangeConfirmFlow<T> {
     // ==================== Editing ====================
 
     /**
-     * Replaces an endpoint's draft and marks the endpoint as changed, which withdraws
-     * its confirmation. Ignored while no round is active.
+     * Replaces an endpoint's draft. Ignored while no round is active.
      *
      * @param endpoint the endpoint
      * @param value    the new draft, or {@code null}
@@ -124,17 +145,25 @@ public final class RangeConfirmFlow<T> {
             return;
         }
         drafts[endpoint.ordinal()] = value;
-        changed[endpoint.ordinal()] = true;
-        if (confirmed == endpoint) {
-            confirmed = null;
-        }
+    }
+
+    /**
+     * Records whether the current endpoint has an edit in progress that no draft stands
+     * for, such as typed text that is no acceptable endpoint. Closing commits nothing
+     * while it has; moving to another endpoint clears the record.
+     *
+     * @param pending whether such an edit is in progress
+     */
+    public void setEditPending(boolean pending) {
+        editPending = pending;
     }
 
     // ==================== Confirming ====================
 
     /**
      * Confirms the current endpoint. The round completes if the other endpoint was
-     * visited and has a draft; otherwise the other endpoint becomes the current one.
+     * visited and has an acceptable draft; otherwise the other endpoint becomes the
+     * current one.
      *
      * @return what happened
      */
@@ -142,62 +171,49 @@ public final class RangeConfirmFlow<T> {
         if (current == null || draft(current) == null) {
             return Step.IGNORED;
         }
-        confirmed = current;
         Endpoint other = current.other();
         if (isReady(other)) {
             current = null;
             return Step.COMPLETED;
         }
-        current = other;
-        visited[other.ordinal()] = true;
+        moveTo(other);
         return Step.ADVANCED;
     }
 
     /**
-     * Confirms the current endpoint without moving on, so that a later
-     * {@link #switchTo} may leave it. The round completes under the same condition as
-     * for {@link #confirm()}.
+     * Confirms the current endpoint without moving on, for a caller that leaves it by
+     * other means, such as Tab. The round completes under the same condition as for
+     * {@link #confirm()}; otherwise nothing changes.
      *
      * @return {@code true} if the round completed
      */
     public boolean confirmWeakly() {
-        if (current == null || draft(current) == null) {
+        if (current == null || draft(current) == null || !isReady(current.other())) {
             return false;
         }
-        confirmed = current;
-        if (isReady(current.other())) {
-            current = null;
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Moves the round to an endpoint. Leaving the current endpoint is only allowed
-     * right after it was confirmed.
-     *
-     * @param target the endpoint to edit
-     * @return {@code true} if {@code target} is now the current endpoint
-     */
-    public boolean switchTo(Endpoint target) {
-        if (current == null) {
-            return false;
-        }
-        if (target == current) {
-            return true;
-        }
-        if (confirmed != current) {
-            return false;
-        }
-        current = target;
-        visited[target.ordinal()] = true;
+        current = null;
         return true;
     }
 
     /**
+     * Moves the round to an endpoint, keeping both drafts. Ignored while no round is
+     * active or when {@code target} is already the current endpoint.
+     *
+     * @param target the endpoint to edit
+     */
+    public void switchTo(Endpoint target) {
+        if (current == null || target == current) {
+            return;
+        }
+        moveTo(target);
+    }
+
+    /**
      * Ends the round because its editor went away. The drafts are to be committed only
-     * if something changed, both endpoints were visited and have a draft, and the
-     * current endpoint was left as it was found.
+     * if a draft differs from the one the round began with, both endpoints were visited
+     * and have an acceptable draft, the current endpoint's draft is the one it had when
+     * the round moved to it, and no edit is pending there. Values are compared, so a
+     * draft changed and changed back is no change.
      *
      * @return {@code true} if the drafts should be committed
      */
@@ -205,14 +221,26 @@ public final class RangeConfirmFlow<T> {
         if (current == null) {
             return false;
         }
-        boolean anyChanged = changed[Endpoint.START.ordinal()] || changed[Endpoint.END.ordinal()];
-        boolean commit = anyChanged && isReady(Endpoint.START) && isReady(Endpoint.END)
-                && !changed[current.ordinal()];
+        boolean changed = isChanged(Endpoint.START) || isChanged(Endpoint.END);
+        boolean commit = changed && !editPending && Objects.equals(draft(current), arrival)
+                && isReady(Endpoint.START) && isReady(Endpoint.END);
         current = null;
         return commit;
     }
 
+    private void moveTo(Endpoint endpoint) {
+        current = endpoint;
+        arrival = drafts[endpoint.ordinal()];
+        editPending = false;
+        visited[endpoint.ordinal()] = true;
+    }
+
+    private boolean isChanged(Endpoint endpoint) {
+        return !Objects.equals(drafts[endpoint.ordinal()], initial[endpoint.ordinal()]);
+    }
+
     private boolean isReady(Endpoint endpoint) {
-        return visited[endpoint.ordinal()] && drafts[endpoint.ordinal()] != null;
+        T draft = draft(endpoint);
+        return visited[endpoint.ordinal()] && draft != null && acceptable.test(draft);
     }
 }

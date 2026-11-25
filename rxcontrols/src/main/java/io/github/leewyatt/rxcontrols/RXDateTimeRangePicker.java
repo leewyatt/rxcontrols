@@ -25,19 +25,22 @@ import java.util.function.Predicate;
  * popup {@link RXDateTimeView} that edits one endpoint at a time.
  *
  * <p>The popup opens on the endpoint of the field it was opened from, marked by the
- * bar under that field, and sits under the field of the endpoint it edits. Picking a
- * day or a time changes that endpoint's draft, which its field previews. The OK button
- * (Enter, or a double click on a time) confirms the endpoint: the popup moves on to
- * the other endpoint, or, once both endpoints have been gone through, commits the
- * range and closes. The other field cannot be entered before the current endpoint is
- * confirmed; Tab confirms the endpoint it leaves. The committed endpoints are put in
- * order, so the end may be picked before the start.
+ * bar under that field, and stays in place whichever endpoint it edits. Picking a day
+ * or a time changes that endpoint's draft, which its field previews. The OK button
+ * (Enter, or a double click on a time) confirms the endpoint: the popup goes on to the
+ * other endpoint, or, once both endpoints have been gone through, commits the range
+ * and closes; an endpoint left with a date-time outside the constraints is gone back
+ * to first. Clicking the other field switches the popup to that endpoint and keeps
+ * the draft of the one left, unless the field left holds typed text that is no
+ * acceptable endpoint. Tab confirms the endpoint it leaves. The committed endpoints
+ * are put in order, so the end may be picked before the start.
  *
  * <p>Escape discards the drafts. Closing the popup any other way commits them only
- * if a change was confirmed and the endpoint then shown was left as it was;
- * otherwise it discards them. Typed endpoints are committed together when focus
- * leaves the picker, and with Enter while the popup is closed. The endpoints are
- * local date-times without a time zone.
+ * if both endpoints have been gone through, a draft was changed, and the endpoint
+ * then shown was left as it was since the popup moved to it; otherwise it discards
+ * them. Typed endpoints are committed together when focus leaves the picker, and with
+ * Enter while the popup is closed. The endpoints are local date-times without a time
+ * zone.
  *
  * <p>See {@link RXPickerBase} for the commit, focus and constraint model. CSS: style
  * classes {@code rx-picker} and {@code rx-date-time-range-picker}; the popup hosts an

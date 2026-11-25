@@ -20,7 +20,9 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.util.StringConverter;
 
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Shared skin of the range pickers that confirm one endpoint at a time (time range,
@@ -40,7 +42,9 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
     private final TextField endEditor = new TextField();
     private final Region separator = new Region();
     private final V endpointView;
-    private final RangeConfirmFlow<E> flow = new RangeConfirmFlow<>();
+    private final RangeConfirmFlow<E> flow = new RangeConfirmFlow<>(this::isAcceptable);
+    /** The draft each field's text was last written from. */
+    private final Map<Endpoint, E> writtenDrafts = new EnumMap<>(Endpoint.class);
     private Button okButton;
     /** Set while this skin writes the view's value: such a change is no pick of the user's. */
     private boolean writingView;
@@ -176,6 +180,16 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
     }
 
     /**
+     * Returns whether the popup moves under the field of the endpoint it edits. The
+     * default does; a popup wider than both fields is better left where it opened.
+     *
+     * @return {@code true} if the popup follows the edited field
+     */
+    protected boolean popupFollowsField() {
+        return true;
+    }
+
+    /**
      * Moves the view on to the endpoint the round switched to.
      */
     protected void showEndpoint() {
@@ -236,8 +250,13 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
             TextField editor = editorOf(endpoint);
             if (isUserEdited(editor)) {
                 flow.edit(endpoint, typedDraft(endpoint, editor));
+            } else {
+                // Text typed back to what was written stands for that draft again.
+                flow.edit(endpoint, writtenDrafts.get(endpoint));
             }
         }
+        // Recorded now: leaving the picker rewrites the fields before the popup closes.
+        flow.setEditPending(hasUnusableText(editorOf(flow.current())));
         showDraft();
     }
 
@@ -261,6 +280,16 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
                 return;
             }
         }
+        if (anyUserEdited()) {
+            // Typed text stays for focus leaving the picker; a field without any drops its discarded draft.
+            R value = getSkinnable().getValue();
+            if (!isUserEdited(startEditor)) {
+                writeField(Endpoint.START, value == null ? null : startOf(value));
+            }
+            if (!isUserEdited(endEditor)) {
+                writeField(Endpoint.END, value == null ? null : endOf(value));
+            }
+        }
         super.onPopupClosed();
     }
 
@@ -273,12 +302,16 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
         if (target == flow.current()) {
             return;
         }
-        if (flow.switchTo(target)) {
-            showEndpoint();
-        } else {
-            // The endpoint being edited keeps the focus until it is confirmed.
-            editorOf(flow.current()).requestFocus();
+        TextField left = editorOf(flow.current());
+        if (hasUnusableText(left)) {
+            // Leaving would drop the typed text or leave it beside a draft it does not match.
+            markTextInvalid();
+            left.requestFocus();
+            return;
         }
+        writeDraft(flow.current());
+        flow.switchTo(target);
+        showEndpoint();
     }
 
     // ==================== Endpoints ====================
@@ -323,13 +356,17 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
         return draft != null && isAcceptable(draft) && !hasUnusableText(editorOf(flow.current()));
     }
 
-    /** Typed text that is no acceptable endpoint leaves the draft as it was; that draft must not be confirmed. */
+    /**
+     * Typed text that is no acceptable endpoint leaves the draft as it was; that draft
+     * must not be confirmed. Blank text stands for no draft and is not unusable.
+     */
     private boolean hasUnusableText(TextField editor) {
         if (!isUserEdited(editor)) {
             return false;
         }
         ParseResult<E> typed = DateTimeTexts.parse(converter(), editor.getText());
-        return typed.status() != ParseResult.Status.VALID || !isAcceptable(typed.value());
+        return typed.status() == ParseResult.Status.INVALID
+                || (typed.status() == ParseResult.Status.VALID && !isAcceptable(typed.value()));
     }
 
     /** The draft typed text stands for: none for blank text, the draft as it is for unusable text. */
@@ -447,12 +484,17 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
     }
 
     private void writeFields(E start, E end) {
-        setFieldText(startEditor, DateTimeTexts.format(converter(), start));
-        setFieldText(endEditor, DateTimeTexts.format(converter(), end));
+        writeField(Endpoint.START, start);
+        writeField(Endpoint.END, end);
     }
 
     private void writeDraft(Endpoint endpoint) {
-        setFieldText(editorOf(endpoint), DateTimeTexts.format(converter(), flow.draft(endpoint)));
+        writeField(endpoint, flow.draft(endpoint));
+    }
+
+    private void writeField(Endpoint endpoint, E draft) {
+        writtenDrafts.put(endpoint, draft);
+        setFieldText(editorOf(endpoint), DateTimeTexts.format(converter(), draft));
     }
 
     private void updateActiveField() {
@@ -462,8 +504,7 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
         boolean stepping = getSkinnable().isShowing() && flow.isActive();
         setFieldActive(startEditor, stepping ? flow.current() == Endpoint.START : startFocused);
         setFieldActive(endEditor, stepping ? flow.current() == Endpoint.END : endFocused);
-        if (stepping) {
-            // The popup sits under the field of the endpoint it edits.
+        if (stepping && popupFollowsField()) {
             alignPopupTo(editorOf(flow.current()));
         }
     }
