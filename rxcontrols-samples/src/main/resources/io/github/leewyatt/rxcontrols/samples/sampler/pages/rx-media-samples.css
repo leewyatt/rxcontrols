@@ -638,6 +638,7 @@
     -fx-font-size: 13px;
     -fx-border-color: -rx-fill;
     -fx-border-radius: 999px;
+    -fx-background-color: transparent;
     -fx-background-radius: 999px;
     -fx-text-fill: -rx-fill;
     -fx-cursor: hand;
@@ -665,6 +666,7 @@
 .example-card .rx-fill-label.menu-item {
     -fx-padding: 9px 12px;
     -fx-font-size: 13px;
+    -fx-background-color: transparent;
     -fx-background-radius: 6px;
     -fx-text-fill: -fx-text-base-color;
     -fx-cursor: hand;

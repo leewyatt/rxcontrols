@@ -29,10 +29,10 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.text;
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.NavKit.wideFrame;
 
 /**
- * The RXBreadcrumbBar page: a file browser whose long path folds into an overflow
- * menu in a narrow window, shop categories with menus of the next level, a path that
- * refuses to change while there are unsaved edits, a custom separator with a home
- * icon, and a path capped at three visible items.
+ * The RXBreadcrumbBar page: a custom separator with a home icon, shop categories with
+ * menus of the next level, a path that refuses to change while there are unsaved edits,
+ * a path capped at three visible items, and a file browser whose long path folds into
+ * an overflow menu in a narrow window.
  */
 public final class RXBreadcrumbBarSamples {
 
@@ -83,10 +83,10 @@ public final class RXBreadcrumbBarSamples {
                 List.of("Show where a page or file sits in a deep hierarchy and let the user jump back up.",
                         "For moving between pages at the same level use RXTabPane or RXSidebar."),
                 List.of(
-                        SampleCard.canvas("File browser",
-                                "Both bars show one path list; a bar that runs out of room folds middle folders into an "
-                                        + "overflow menu. The arrows (childrenFactory) list the folders next to each one.",
-                                files()),
+                        SampleCard.large("Separator and icons",
+                                "separatorFactory puts a chevron between the items; graphicFactory gives the first "
+                                        + "one a home icon.",
+                                settings()),
                         SampleCard.large("Shop categories",
                                 "branchMode CHILDREN: each arrow lists the level below, so a shopper can go "
                                         + "deeper without leaving the bar.",
@@ -95,14 +95,14 @@ public final class RXBreadcrumbBarSamples {
                                 "autoNavigate is off by default, so onNavigate decides: here it refuses to leave "
                                         + "while there are unsaved edits.",
                                 guarded()),
-                        SampleCard.large("Separator and icons",
-                                "separatorFactory puts a chevron between the items; graphicFactory gives the first "
-                                        + "one a home icon.",
-                                settings()),
                         SampleCard.large("At most three",
                                 "maxVisibleItems 3 keeps the root and the current item and folds the rest, "
                                         + "even when there is room.",
-                                capped())),
+                                capped()),
+                        SampleCard.canvas("File browser",
+                                "Both bars show one path list; a bar that runs out of room folds middle folders into an "
+                                        + "overflow menu. The arrows (childrenFactory) list the folders next to each one.",
+                                files())),
                 NavKit.STYLESHEET);
     }
 
