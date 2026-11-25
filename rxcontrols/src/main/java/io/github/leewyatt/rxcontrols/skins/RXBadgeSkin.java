@@ -33,11 +33,17 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
     // share of the side: the point of the circle nearest to the corner.
     private static final double CIRCULAR_INSET = (1.0 - Math.cos(Math.PI / 4.0)) / 2.0;
 
-    private static final Duration PULSE_DURATION = Duration.millis(1200.0);
+    // The ring spreads and fades out, then rests until the next pulse: a
+    // distinct beat rather than a glow that never settles.
+    private static final Duration PULSE_SPREAD_DURATION = Duration.millis(1000.0);
+    private static final Duration PULSE_CYCLE = Duration.millis(1500.0);
     // How far the ring grows past each side of the indicator, as a share of
     // the indicator's height: the same distance all round, whatever the width.
     private static final double PULSE_SPREAD = 0.7;
-    private static final double PULSE_OPACITY = 0.5;
+    private static final double PULSE_OPACITY = 0.75;
+    // Fast start, slow finish, while the opacity falls evenly: the ring is
+    // already wide while it is still strong.
+    private static final Interpolator PULSE_EASE = Interpolator.SPLINE(0.0, 0.0, 0.2, 1.0);
 
     private static final PseudoClass DOT_PSEUDO_CLASS = PseudoClass.getPseudoClass("dot");
 
@@ -93,9 +99,10 @@ public class RXBadgeSkin extends RXSkinBase<RXBadge> {
                 new KeyFrame(Duration.ZERO,
                         new KeyValue(pulseProgress, 0.0),
                         new KeyValue(pulse.opacityProperty(), PULSE_OPACITY)),
-                new KeyFrame(PULSE_DURATION,
-                        new KeyValue(pulseProgress, 1.0, Interpolator.EASE_OUT),
-                        new KeyValue(pulse.opacityProperty(), 0.0, Interpolator.EASE_OUT)));
+                new KeyFrame(PULSE_SPREAD_DURATION,
+                        new KeyValue(pulseProgress, 1.0, PULSE_EASE),
+                        new KeyValue(pulse.opacityProperty(), 0.0, Interpolator.LINEAR)),
+                new KeyFrame(PULSE_CYCLE));
         pulseTimeline.setCycleCount(Animation.INDEFINITE);
         disposer.registerDisposeTask(pulseTimeline::stop);
 
