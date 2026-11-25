@@ -2,11 +2,12 @@ package io.github.leewyatt.rxcontrols.internal.datetime;
 
 /**
  * The state of one round of editing a range endpoint by endpoint: the drafts of both
- * endpoints, the endpoint being edited, and which endpoints the round has visited,
- * changed and confirmed.
+ * endpoints, the endpoint being edited, which endpoints the round has visited, and
+ * what it has changed.
  *
  * <p>A round starts on one endpoint. Confirming an endpoint moves on to the other one;
- * the round is complete once the other one was visited and has a draft as well.
+ * the round is complete once the other one was visited and has a draft as well. The
+ * round may also switch to the other endpoint at any time, which keeps the drafts.
  * Whether a draft is acceptable is the caller's decision, made before it confirms.
  *
  * @param <T> the endpoint value type
@@ -48,9 +49,11 @@ public final class RangeConfirmFlow<T> {
 
     private final Object[] drafts = new Object[ENDPOINTS];
     private final boolean[] visited = new boolean[ENDPOINTS];
-    private final boolean[] changed = new boolean[ENDPOINTS];
     private Endpoint current;
-    private Endpoint confirmed;
+    /** Whether the round changed any draft. */
+    private boolean changed;
+    /** Whether the current endpoint's draft changed since the round moved to it. */
+    private boolean currentChanged;
 
     // ==================== Round ====================
 
@@ -65,8 +68,7 @@ public final class RangeConfirmFlow<T> {
         reset();
         drafts[Endpoint.START.ordinal()] = start;
         drafts[Endpoint.END.ordinal()] = end;
-        current = first;
-        visited[first.ordinal()] = true;
+        moveTo(first);
     }
 
     /**
@@ -74,10 +76,10 @@ public final class RangeConfirmFlow<T> {
      */
     public void reset() {
         current = null;
-        confirmed = null;
+        changed = false;
+        currentChanged = false;
         for (int i = 0; i < ENDPOINTS; i++) {
             visited[i] = false;
-            changed[i] = false;
         }
     }
 
@@ -113,8 +115,8 @@ public final class RangeConfirmFlow<T> {
     // ==================== Editing ====================
 
     /**
-     * Replaces an endpoint's draft and marks the endpoint as changed, which withdraws
-     * its confirmation. Ignored while no round is active.
+     * Replaces an endpoint's draft and records the change. Ignored while no round is
+     * active.
      *
      * @param endpoint the endpoint
      * @param value    the new draft, or {@code null}
@@ -124,9 +126,9 @@ public final class RangeConfirmFlow<T> {
             return;
         }
         drafts[endpoint.ordinal()] = value;
-        changed[endpoint.ordinal()] = true;
-        if (confirmed == endpoint) {
-            confirmed = null;
+        changed = true;
+        if (endpoint == current) {
+            currentChanged = true;
         }
     }
 
@@ -142,62 +144,47 @@ public final class RangeConfirmFlow<T> {
         if (current == null || draft(current) == null) {
             return Step.IGNORED;
         }
-        confirmed = current;
         Endpoint other = current.other();
         if (isReady(other)) {
             current = null;
             return Step.COMPLETED;
         }
-        current = other;
-        visited[other.ordinal()] = true;
+        moveTo(other);
         return Step.ADVANCED;
     }
 
     /**
-     * Confirms the current endpoint without moving on, so that a later
-     * {@link #switchTo} may leave it. The round completes under the same condition as
-     * for {@link #confirm()}.
+     * Confirms the current endpoint without moving on, for a caller that leaves it by
+     * other means, such as Tab. The round completes under the same condition as for
+     * {@link #confirm()}; otherwise nothing changes.
      *
      * @return {@code true} if the round completed
      */
     public boolean confirmWeakly() {
-        if (current == null || draft(current) == null) {
+        if (current == null || draft(current) == null || !isReady(current.other())) {
             return false;
         }
-        confirmed = current;
-        if (isReady(current.other())) {
-            current = null;
-            return true;
-        }
-        return false;
+        current = null;
+        return true;
     }
 
     /**
-     * Moves the round to an endpoint. Leaving the current endpoint is only allowed
-     * right after it was confirmed.
+     * Moves the round to an endpoint, keeping both drafts. Ignored while no round is
+     * active or when {@code target} is already the current endpoint.
      *
      * @param target the endpoint to edit
-     * @return {@code true} if {@code target} is now the current endpoint
      */
-    public boolean switchTo(Endpoint target) {
-        if (current == null) {
-            return false;
+    public void switchTo(Endpoint target) {
+        if (current == null || target == current) {
+            return;
         }
-        if (target == current) {
-            return true;
-        }
-        if (confirmed != current) {
-            return false;
-        }
-        current = target;
-        visited[target.ordinal()] = true;
-        return true;
+        moveTo(target);
     }
 
     /**
      * Ends the round because its editor went away. The drafts are to be committed only
      * if something changed, both endpoints were visited and have a draft, and the
-     * current endpoint was left as it was found.
+     * current endpoint was left as it was found when the round moved to it.
      *
      * @return {@code true} if the drafts should be committed
      */
@@ -205,11 +192,15 @@ public final class RangeConfirmFlow<T> {
         if (current == null) {
             return false;
         }
-        boolean anyChanged = changed[Endpoint.START.ordinal()] || changed[Endpoint.END.ordinal()];
-        boolean commit = anyChanged && isReady(Endpoint.START) && isReady(Endpoint.END)
-                && !changed[current.ordinal()];
+        boolean commit = changed && !currentChanged && isReady(Endpoint.START) && isReady(Endpoint.END);
         current = null;
         return commit;
+    }
+
+    private void moveTo(Endpoint endpoint) {
+        current = endpoint;
+        currentChanged = false;
+        visited[endpoint.ordinal()] = true;
     }
 
     private boolean isReady(Endpoint endpoint) {

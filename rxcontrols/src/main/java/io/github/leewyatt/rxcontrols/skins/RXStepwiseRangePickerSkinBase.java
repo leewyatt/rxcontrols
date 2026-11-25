@@ -273,12 +273,16 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
         if (target == flow.current()) {
             return;
         }
-        if (flow.switchTo(target)) {
-            showEndpoint();
-        } else {
-            // The endpoint being edited keeps the focus until it is confirmed.
-            editorOf(flow.current()).requestFocus();
+        TextField left = editorOf(flow.current());
+        if (hasUnusableText(left)) {
+            // Leaving would drop the typed text or leave it beside a draft it does not match.
+            markTextInvalid();
+            left.requestFocus();
+            return;
         }
+        writeDraft(flow.current());
+        flow.switchTo(target);
+        showEndpoint();
     }
 
     // ==================== Endpoints ====================
@@ -323,13 +327,17 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
         return draft != null && isAcceptable(draft) && !hasUnusableText(editorOf(flow.current()));
     }
 
-    /** Typed text that is no acceptable endpoint leaves the draft as it was; that draft must not be confirmed. */
+    /**
+     * Typed text that is no acceptable endpoint leaves the draft as it was; that draft
+     * must not be confirmed. Blank text stands for no draft and is not unusable.
+     */
     private boolean hasUnusableText(TextField editor) {
         if (!isUserEdited(editor)) {
             return false;
         }
         ParseResult<E> typed = DateTimeTexts.parse(converter(), editor.getText());
-        return typed.status() != ParseResult.Status.VALID || !isAcceptable(typed.value());
+        return typed.status() == ParseResult.Status.INVALID
+                || (typed.status() == ParseResult.Status.VALID && !isAcceptable(typed.value()));
     }
 
     /** The draft typed text stands for: none for blank text, the draft as it is for unusable text. */

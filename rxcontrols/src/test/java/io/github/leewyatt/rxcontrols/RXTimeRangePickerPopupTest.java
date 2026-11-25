@@ -241,24 +241,123 @@ public class RXTimeRangePickerPopupTest {
     }
 
     /**
-     * Verifies the other field cannot take the focus before the current endpoint is confirmed.
+     * Verifies a press on the other field moves the popup on to that endpoint, keeping the draft of the one left.
      *
      * @throws InterruptedException if the FX task is interrupted
      */
     @Test
-    public void otherFieldLockedUntilConfirmed() throws InterruptedException {
+    public void pressOnOtherFieldMovesOn() throws InterruptedException {
         runOnFx(() -> {
             RXTimeRangePicker picker = newShownPicker();
             picker.setValue(hours(10, 20));
-            editor(picker, 0).requestFocus();
-            picker.show();
+            TextField start = editor(picker, 0);
+            TextField end = editor(picker, 1);
+            double fieldDistance = end.getLayoutX() - start.getLayoutX();
+            pressMouse(start);
+            double underStart = findPopup().getAnchorX();
             Node root = findPopup().getScene().getRoot();
-            editor(picker, 1).requestFocus();
-            assertSame(editor(picker, 0), picker.getScene().getFocusOwner());
+            click(timeCell(root, ".hour-column", "05"));
+
+            pressMouse(end);
+            assertSame(end, picker.getScene().getFocusOwner());
+            assertTrue(hasPseudoClass(end, "active"));
+            assertFalse(hasPseudoClass(start, "active"));
+            assertEquals("05:00", start.getText());
+            assertTrue(hasPseudoClass(timeCell(root, ".hour-column", "20"), "selected"));
+            assertEquals(underStart + fieldDistance, findPopup().getAnchorX(), 0.5);
+            click(timeCell(root, ".hour-column", "22"));
+
+            pressMouse(start);
+            assertSame(start, picker.getScene().getFocusOwner());
+            assertTrue(hasPseudoClass(timeCell(root, ".hour-column", "05"), "selected"));
+            assertEquals("22:00", end.getText());
+            assertEquals(hours(10, 20), picker.getValue());
             ((Button) root.lookup(".ok-button")).fire();
-            assertSame(editor(picker, 1), picker.getScene().getFocusOwner());
-            editor(picker, 0).requestFocus();
-            assertSame(editor(picker, 1), picker.getScene().getFocusOwner());
+            assertFalse(picker.isShowing());
+            assertEquals(hours(5, 22), picker.getValue());
+        });
+    }
+
+    /**
+     * Verifies an endpoint without a draft can be left, and is gone back to once the other one is confirmed.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void emptyEndpointCanBeLeft() throws InterruptedException {
+        runOnFx(() -> {
+            RXTimeRangePicker picker = newShownPicker();
+            TextField start = editor(picker, 0);
+            TextField end = editor(picker, 1);
+            pressMouse(start);
+            Node root = findPopup().getScene().getRoot();
+            Button ok = (Button) root.lookup(".ok-button");
+            pressMouse(end);
+            assertSame(end, picker.getScene().getFocusOwner());
+            assertTrue(hasPseudoClass(end, "active"));
+            click(timeCell(root, ".hour-column", "17"));
+            ok.fire();
+            assertTrue(picker.isShowing());
+            assertSame(start, picker.getScene().getFocusOwner());
+            click(timeCell(root, ".hour-column", "09"));
+            ok.fire();
+            assertFalse(picker.isShowing());
+            assertEquals(hours(9, 17), picker.getValue());
+        });
+    }
+
+    /**
+     * Verifies typed text that is no acceptable endpoint keeps the field and is flagged; blank text does not.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void unusableTextKeepsField() throws InterruptedException {
+        runOnFx(() -> {
+            RXTimeRangePicker picker = newShownPicker();
+            picker.setValue(hours(10, 20));
+            TextField start = editor(picker, 0);
+            TextField end = editor(picker, 1);
+            pressMouse(start);
+            start.setText("abc");
+            pressMouse(end);
+            assertSame(start, picker.getScene().getFocusOwner());
+            assertTrue(hasPseudoClass(start, "active"));
+            assertTrue(hasPseudoClass(start, "invalid"));
+
+            start.setText("");
+            pressMouse(end);
+            assertSame(end, picker.getScene().getFocusOwner());
+            assertTrue(hasPseudoClass(end, "active"));
+        });
+    }
+
+    /**
+     * Verifies closing after a switch commits the change left behind, and discards a change to the endpoint shown.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void closingAfterSwitchCommitsChangeLeft() throws InterruptedException {
+        runOnFx(() -> {
+            RXTimeRangePicker picker = newShownPicker();
+            picker.setValue(hours(10, 20));
+            TextField start = editor(picker, 0);
+            TextField end = editor(picker, 1);
+            pressMouse(start);
+            click(timeCell(findPopup().getScene().getRoot(), ".hour-column", "05"));
+            pressMouse(end);
+            picker.hide();
+            assertEquals(hours(5, 20), picker.getValue());
+
+            pressMouse(start);
+            Node root = findPopup().getScene().getRoot();
+            click(timeCell(root, ".hour-column", "07"));
+            pressMouse(end);
+            click(timeCell(root, ".hour-column", "22"));
+            picker.hide();
+            assertEquals(hours(5, 20), picker.getValue());
+            assertEquals("20:00", end.getText());
         });
     }
 

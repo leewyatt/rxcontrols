@@ -177,24 +177,89 @@ public class RXDateTimeRangePickerPopupTest {
     }
 
     /**
-     * Verifies the other field cannot take the focus before the current endpoint is confirmed.
+     * Verifies a press on the other field moves the popup on to that endpoint, keeping the draft of the one left.
      *
      * @throws InterruptedException if the FX task is interrupted
      */
     @Test
-    public void otherFieldLockedUntilConfirmed() throws InterruptedException {
+    public void pressOnOtherFieldMovesOn() throws InterruptedException {
         runOnFx(() -> {
             RXDateTimeRangePicker picker = newShownPicker();
             picker.setValue(novemberRange(10, 20));
-            editor(picker, 0).requestFocus();
-            picker.show();
+            TextField start = editor(picker, 0);
+            TextField end = editor(picker, 1);
+            pressMouse(start);
             Node root = findPopup().getScene().getRoot();
-            editor(picker, 1).requestFocus();
-            assertSame(editor(picker, 0), picker.getScene().getFocusOwner());
+            click(dayCell(root, LocalDate.of(2026, 11, 5)));
+
+            pressMouse(end);
+            assertSame(end, picker.getScene().getFocusOwner());
+            assertTrue(hasPseudoClass(end, "active"));
+            assertFalse(hasPseudoClass(start, "active"));
+            assertEquals("11/5/2026 00:00", start.getText());
+            click(dayCell(root, LocalDate.of(2026, 11, 25)));
+
+            pressMouse(start);
+            assertSame(start, picker.getScene().getFocusOwner());
+            assertEquals("11/25/2026 00:00", end.getText());
+            assertEquals(novemberRange(10, 20), picker.getValue());
             ((Button) root.lookup(".ok-button")).fire();
-            assertSame(editor(picker, 1), picker.getScene().getFocusOwner());
-            editor(picker, 0).requestFocus();
-            assertSame(editor(picker, 1), picker.getScene().getFocusOwner());
+            assertFalse(picker.isShowing());
+            assertEquals(novemberRange(5, 25), picker.getValue());
+        });
+    }
+
+    /**
+     * Verifies an endpoint without a draft can be left, and is gone back to once the other one is confirmed.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void emptyEndpointCanBeLeft() throws InterruptedException {
+        runOnFx(() -> {
+            RXDateTimeRangePicker picker = newShownPicker();
+            TextField start = editor(picker, 0);
+            TextField end = editor(picker, 1);
+            pressMouse(start);
+            Node root = findPopup().getScene().getRoot();
+            Button ok = (Button) root.lookup(".ok-button");
+            pressMouse(end);
+            assertSame(end, picker.getScene().getFocusOwner());
+            assertTrue(hasPseudoClass(end, "active"));
+            click(dayCell(root, LocalDate.of(2026, 11, 20)));
+            ok.fire();
+            assertTrue(picker.isShowing());
+            assertSame(start, picker.getScene().getFocusOwner());
+            click(dayCell(root, LocalDate.of(2026, 11, 10)));
+            ok.fire();
+            assertFalse(picker.isShowing());
+            assertEquals(novemberRange(10, 20), picker.getValue());
+        });
+    }
+
+    /**
+     * Verifies typed text that is no acceptable endpoint keeps the field and is flagged; blank text does not.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void unusableTextKeepsField() throws InterruptedException {
+        runOnFx(() -> {
+            RXDateTimeRangePicker picker = newShownPicker();
+            picker.setValue(novemberRange(10, 20));
+            TextField start = editor(picker, 0);
+            TextField end = editor(picker, 1);
+            pressMouse(start);
+            start.setText("not a date");
+            pressMouse(end);
+            assertSame(start, picker.getScene().getFocusOwner());
+            assertTrue(hasPseudoClass(start, "active"));
+            assertTrue(hasPseudoClass(start, "invalid"));
+
+            start.setText("");
+            pressMouse(end);
+            assertSame(end, picker.getScene().getFocusOwner());
+            assertTrue(hasPseudoClass(end, "active"));
         });
     }
 

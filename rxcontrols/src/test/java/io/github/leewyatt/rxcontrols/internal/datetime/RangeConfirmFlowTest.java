@@ -56,30 +56,33 @@ public class RangeConfirmFlowTest {
     }
 
     /**
-     * Verifies the other endpoint is only left after the current one was confirmed weakly.
+     * Verifies the round moves to the other endpoint at any time, keeping the drafts, and completes on a revisit.
      */
     @Test
-    public void switchNeedsConfirmation() {
+    public void switchKeepsDrafts() {
         RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>();
         flow.begin(Endpoint.START, 3, null);
-        assertTrue(flow.switchTo(Endpoint.START));
-        assertFalse(flow.switchTo(Endpoint.END));
-        assertEquals(Endpoint.START, flow.current());
-        assertFalse(flow.confirmWeakly());
-        assertTrue(flow.switchTo(Endpoint.END));
+        flow.switchTo(Endpoint.END);
         assertEquals(Endpoint.END, flow.current());
+        assertEquals(3, flow.draft(Endpoint.START));
+        flow.edit(Endpoint.END, 7);
+        flow.switchTo(Endpoint.START);
+        assertEquals(Endpoint.START, flow.current());
+        assertEquals(Step.COMPLETED, flow.confirm());
+        assertEquals(7, flow.draft(Endpoint.END));
     }
 
     /**
-     * Verifies editing a weakly confirmed endpoint withdraws its confirmation.
+     * Verifies an endpoint left without a draft is gone back to when the other one is confirmed.
      */
     @Test
-    public void editWithdrawsConfirmation() {
+    public void switchFromEmptyEndpoint() {
         RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>();
-        flow.begin(Endpoint.START, 3, null);
-        flow.confirmWeakly();
-        flow.edit(Endpoint.START, 4);
-        assertFalse(flow.switchTo(Endpoint.END));
+        flow.begin(Endpoint.START, null, null);
+        flow.switchTo(Endpoint.END);
+        flow.edit(Endpoint.END, 7);
+        assertEquals(Step.ADVANCED, flow.confirm());
+        assertEquals(Endpoint.START, flow.current());
     }
 
     /**
@@ -109,6 +112,31 @@ public class RangeConfirmFlowTest {
         assertTrue(flow.close());
         assertFalse(flow.isActive());
         assertEquals(4, flow.draft(Endpoint.START));
+    }
+
+    /**
+     * Verifies closing commits a change left by switching, also after coming back to the changed endpoint.
+     */
+    @Test
+    public void closeCommitsChangeLeftBySwitching() {
+        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>();
+        flow.begin(Endpoint.START, 3, 7);
+        flow.edit(Endpoint.START, 4);
+        flow.switchTo(Endpoint.END);
+        assertTrue(flow.close());
+
+        flow.begin(Endpoint.START, 3, 7);
+        flow.edit(Endpoint.START, 4);
+        flow.switchTo(Endpoint.END);
+        flow.switchTo(Endpoint.START);
+        assertTrue(flow.close());
+
+        flow.begin(Endpoint.START, 3, 7);
+        flow.edit(Endpoint.START, 4);
+        flow.switchTo(Endpoint.END);
+        flow.switchTo(Endpoint.START);
+        flow.edit(Endpoint.START, 5);
+        assertFalse(flow.close());
     }
 
     /**
@@ -151,7 +179,8 @@ public class RangeConfirmFlowTest {
         assertNull(flow.current());
         flow.edit(Endpoint.START, 4);
         assertEquals(3, flow.draft(Endpoint.START));
-        assertFalse(flow.switchTo(Endpoint.END));
+        flow.switchTo(Endpoint.END);
+        assertNull(flow.current());
     }
 
     /**
