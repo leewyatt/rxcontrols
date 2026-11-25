@@ -290,6 +290,37 @@ public class RXDateTimeRangePickerPopupTest {
     }
 
     /**
+     * Verifies confirming goes back to an endpoint left with a draft outside the constraints instead of closing.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void unacceptableEndpointIsGoneBackTo() throws InterruptedException {
+        runOnFx(() -> {
+            RXDateTimeRangePicker picker = newShownPicker();
+            picker.setValue(novemberRange(10, 20));
+            picker.setMinDateTime(LocalDate.of(2026, 11, 12).atStartOfDay());
+            TextField start = editor(picker, 0);
+            TextField end = editor(picker, 1);
+            pressMouse(start);
+            Node root = findPopup().getScene().getRoot();
+            Button ok = (Button) root.lookup(".ok-button");
+            pressMouse(end);
+            click(dayCell(root, LocalDate.of(2026, 11, 25)));
+            ok.fire();
+            assertTrue(picker.isShowing());
+            assertSame(start, picker.getScene().getFocusOwner());
+            assertEquals("11/25/2026 00:00", end.getText());
+            assertTrue(ok.isDisabled());
+
+            click(dayCell(root, LocalDate.of(2026, 11, 13)));
+            ok.fire();
+            assertFalse(picker.isShowing());
+            assertEquals(novemberRange(13, 25), picker.getValue());
+        });
+    }
+
+    /**
      * Verifies a press on the end field opens the popup on the end, and confirming it goes on to the start.
      *
      * @throws InterruptedException if the FX task is interrupted

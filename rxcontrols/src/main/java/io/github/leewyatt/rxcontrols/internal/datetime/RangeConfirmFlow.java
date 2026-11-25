@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.internal.datetime;
 
 import java.util.Objects;
+import java.util.function.Predicate;
 
 /**
  * The state of one round of editing a range endpoint by endpoint: the drafts of both
@@ -8,9 +9,10 @@ import java.util.Objects;
  * the drafts it began with.
  *
  * <p>A round starts on one endpoint. Confirming an endpoint moves on to the other one;
- * the round is complete once the other one was visited and has a draft as well. The
- * round may also switch to the other endpoint at any time, which keeps the drafts.
- * Whether a draft is acceptable is the caller's decision, made before it confirms.
+ * the round is complete once the other one was visited and has an acceptable draft as
+ * well. The round may also switch to the other endpoint at any time, which keeps the
+ * drafts. Whether the current draft may be confirmed is the caller's decision, made
+ * before it confirms.
  *
  * @param <T> the endpoint value type
  */
@@ -49,12 +51,24 @@ public final class RangeConfirmFlow<T> {
 
     private static final int ENDPOINTS = 2;
 
+    private final Predicate<? super T> acceptable;
     private final Object[] drafts = new Object[ENDPOINTS];
     private final Object[] initial = new Object[ENDPOINTS];
     private final boolean[] visited = new boolean[ENDPOINTS];
     private Endpoint current;
     /** The current endpoint's draft when the round moved to it. */
     private Object arrival;
+
+    /**
+     * Creates a flow.
+     *
+     * @param acceptable whether a draft may be committed; the other endpoint holding a
+     *                   draft it rejects keeps the round from completing, like one
+     *                   without a draft
+     */
+    public RangeConfirmFlow(Predicate<? super T> acceptable) {
+        this.acceptable = acceptable;
+    }
 
     // ==================== Round ====================
 
@@ -133,7 +147,8 @@ public final class RangeConfirmFlow<T> {
 
     /**
      * Confirms the current endpoint. The round completes if the other endpoint was
-     * visited and has a draft; otherwise the other endpoint becomes the current one.
+     * visited and has an acceptable draft; otherwise the other endpoint becomes the
+     * current one.
      *
      * @return what happened
      */
@@ -181,9 +196,9 @@ public final class RangeConfirmFlow<T> {
     /**
      * Ends the round because its editor went away. The drafts are to be committed only
      * if a draft differs from the one the round began with, both endpoints were visited
-     * and have a draft, and the current endpoint's draft is the one it had when the
-     * round moved to it. Values are compared, so a draft changed and changed back is
-     * no change.
+     * and have an acceptable draft, and the current endpoint's draft is the one it had
+     * when the round moved to it. Values are compared, so a draft changed and changed
+     * back is no change.
      *
      * @return {@code true} if the drafts should be committed
      */
@@ -209,6 +224,7 @@ public final class RangeConfirmFlow<T> {
     }
 
     private boolean isReady(Endpoint endpoint) {
-        return visited[endpoint.ordinal()] && drafts[endpoint.ordinal()] != null;
+        T draft = draft(endpoint);
+        return visited[endpoint.ordinal()] && draft != null && acceptable.test(draft);
     }
 }

@@ -19,7 +19,7 @@ public class RangeConfirmFlowTest {
      */
     @Test
     public void confirmAdvancesThenCompletes() {
-        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>();
+        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>(value -> true);
         flow.begin(Endpoint.START, null, null);
         flow.edit(Endpoint.START, 3);
         assertEquals(Step.ADVANCED, flow.confirm());
@@ -36,7 +36,7 @@ public class RangeConfirmFlowTest {
      */
     @Test
     public void confirmNeedsDraft() {
-        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>();
+        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>(value -> true);
         assertEquals(Step.IGNORED, flow.confirm());
         flow.begin(Endpoint.START, null, 7);
         assertEquals(Step.IGNORED, flow.confirm());
@@ -48,7 +48,7 @@ public class RangeConfirmFlowTest {
      */
     @Test
     public void roundStartedOnEndWrapsToStart() {
-        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>();
+        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>(value -> true);
         flow.begin(Endpoint.END, 3, 7);
         assertEquals(Step.ADVANCED, flow.confirm());
         assertEquals(Endpoint.START, flow.current());
@@ -60,7 +60,7 @@ public class RangeConfirmFlowTest {
      */
     @Test
     public void switchKeepsDrafts() {
-        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>();
+        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>(value -> true);
         flow.begin(Endpoint.START, 3, null);
         flow.switchTo(Endpoint.END);
         assertEquals(Endpoint.END, flow.current());
@@ -77,7 +77,7 @@ public class RangeConfirmFlowTest {
      */
     @Test
     public void switchFromEmptyEndpoint() {
-        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>();
+        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>(value -> true);
         flow.begin(Endpoint.START, null, null);
         flow.switchTo(Endpoint.END);
         flow.edit(Endpoint.END, 7);
@@ -86,11 +86,26 @@ public class RangeConfirmFlowTest {
     }
 
     /**
+     * Verifies the other endpoint holding a draft the flow does not accept keeps the round from completing.
+     */
+    @Test
+    public void unacceptableOtherEndpointIsRevisited() {
+        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>(value -> value < 10);
+        flow.begin(Endpoint.START, 12, 7);
+        flow.switchTo(Endpoint.END);
+        assertFalse(flow.confirmWeakly());
+        flow.edit(Endpoint.END, 8);
+        assertEquals(Step.ADVANCED, flow.confirm());
+        assertEquals(Endpoint.START, flow.current());
+        assertFalse(flow.close());
+    }
+
+    /**
      * Verifies a weak confirmation completes the round once the other endpoint was visited with a draft.
      */
     @Test
     public void weakConfirmCompletesVisitedRound() {
-        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>();
+        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>(value -> true);
         flow.begin(Endpoint.START, 3, 7);
         flow.confirm();
         assertTrue(flow.confirmWeakly());
@@ -105,7 +120,7 @@ public class RangeConfirmFlowTest {
      */
     @Test
     public void closeCommitsConfirmedChange() {
-        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>();
+        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>(value -> true);
         flow.begin(Endpoint.START, 3, 7);
         flow.edit(Endpoint.START, 4);
         flow.confirm();
@@ -119,7 +134,7 @@ public class RangeConfirmFlowTest {
      */
     @Test
     public void closeCommitsChangeLeftBySwitching() {
-        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>();
+        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>(value -> true);
         flow.begin(Endpoint.START, 3, 7);
         flow.edit(Endpoint.START, 4);
         flow.switchTo(Endpoint.END);
@@ -144,7 +159,7 @@ public class RangeConfirmFlowTest {
      */
     @Test
     public void unchangedValueIsNoChange() {
-        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>();
+        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>(value -> true);
         flow.begin(Endpoint.START, 3, 7);
         flow.edit(Endpoint.END, 7);
         flow.switchTo(Endpoint.END);
@@ -169,7 +184,7 @@ public class RangeConfirmFlowTest {
      */
     @Test
     public void closeDiscardsOtherwise() {
-        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>();
+        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>(value -> true);
         assertFalse(flow.close());
 
         flow.begin(Endpoint.START, 3, 7);
@@ -197,7 +212,7 @@ public class RangeConfirmFlowTest {
      */
     @Test
     public void resetEndsRound() {
-        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>();
+        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>(value -> true);
         flow.begin(Endpoint.START, 3, 7);
         flow.reset();
         assertFalse(flow.isActive());
@@ -213,7 +228,7 @@ public class RangeConfirmFlowTest {
      */
     @Test
     public void confirmRevisitsEmptyEndpoint() {
-        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>();
+        RangeConfirmFlow<Integer> flow = new RangeConfirmFlow<>(value -> true);
         flow.begin(Endpoint.START, 3, 7);
         flow.confirm();
         flow.edit(Endpoint.START, null);

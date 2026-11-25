@@ -40,7 +40,7 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
     private final TextField endEditor = new TextField();
     private final Region separator = new Region();
     private final V endpointView;
-    private final RangeConfirmFlow<E> flow = new RangeConfirmFlow<>();
+    private final RangeConfirmFlow<E> flow = new RangeConfirmFlow<>(this::isAcceptable);
     private Button okButton;
     /** Set while this skin writes the view's value: such a change is no pick of the user's. */
     private boolean writingView;
