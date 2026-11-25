@@ -849,19 +849,6 @@
     -rx-avatar-fill: -rx-danger;
 }
 
-.example-card .live-board .avatar-more {
-    -fx-pref-width: 32px;
-    -fx-pref-height: 32px;
-    -fx-alignment: center;
-    -fx-background-color: -rx-surface-variant;
-    -fx-background-radius: 50%;
-    -fx-border-color: -rx-outline-variant;
-    -fx-border-radius: 50%;
-    -fx-font-size: 11px;
-    -fx-font-weight: bold;
-    -fx-text-fill: -rx-on-surface-secondary;
-}
-
 .example-card .live-board .metric {
     -fx-font-size: 24px;
     -fx-font-weight: bold;
@@ -904,6 +891,10 @@
 
 .example-card .live-board .primary.setting-badge {
     -fx-background-color: -rx-primary;
+}
+
+.example-card .live-board .success.setting-badge {
+    -fx-background-color: -rx-success;
 }
 
 .example-card .live-board .warning.setting-badge {

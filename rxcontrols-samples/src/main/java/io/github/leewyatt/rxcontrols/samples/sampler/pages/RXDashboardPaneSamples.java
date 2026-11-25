@@ -61,7 +61,7 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.LayoutKit.widt
  * The RXDashboardPane page: a clean board of numbered cards in a resizable frame whose column count follows its
  * width, with packing, the collision policy, adding and removing cards, and save and restore; and a live board of
  * stock, weather, room, storage, release, team and revenue cards that are pinned in place with a lock, where the
- * stock, release, weather and room cards fit what they show to their size.
+ * stock, release, team, weather and room cards fit what they show to their size.
  */
 public final class RXDashboardPaneSamples {
 
@@ -94,6 +94,10 @@ public final class RXDashboardPaneSamples {
     private static final String[] RELEASE_STEPS = {"Design", "Build", "Test", "Ship"};
     private static final String[] RELEASE_STAGES = {"Designing", "Building", "Testing", "Shipping"};
     private static final double[] WEEK_REVENUE = {0.46, 0.62, 0.38, 0.71, 0.55, 0.83, 1.0};
+    private static final String[] ON_CALL = {"AK", "MJ", "SL", "RT", "DN", "EV", "HB", "KO", "PW"};
+    private static final String[] AVATAR_TONES = {"primary", "success", "warning", "danger"};
+    // Faces a narrow on-call card shows before counting the rest.
+    private static final int NARROW_FACES = 4;
 
     private RXDashboardPaneSamples() {
     }
@@ -113,10 +117,11 @@ public final class RXDashboardPaneSamples {
                         SampleCard.canvas("Live board",
                                 "Drag a card anywhere on it; the grab cursor shows only on cards that can move, "
                                         + "the pin locks a card in place and Edit layout makes the board read-only. "
-                                        + "The quote, release, weather and room cards fit their size: on one column "
-                                        + "the quote shows just the price, the change and a small trend and the "
-                                        + "release drops its step names; on one row the weather drops its hourly "
-                                        + "forecast and the room keeps two switches of three.",
+                                        + "The quote, release, on-call, weather and room cards fit their size: on "
+                                        + "one column the quote shows just the price, the change and a small trend, "
+                                        + "the release drops its step names and the on-call card counts everyone "
+                                        + "past four; on one row the weather drops its hourly forecast and the room "
+                                        + "keeps two switches of five.",
                                 live(life)),
                         SampleCard.canvas("Numbered cards",
                                 "Drag a card, or pull its right or bottom edge: the others make room and pack upward. "
@@ -224,15 +229,23 @@ public final class RXDashboardPaneSamples {
         ReleaseTrack track = new ReleaseTrack(life, stage);
         RXDashboardCard release = card("release", "Release 3.2", "flag-icon", "primary", track.body(), stage);
         track.adaptTo(release);
-        HBox quiet = setting("moon-icon", "danger", "Do not disturb", "Until 07:00", false, true);
+        List<HBox> tallOnly = List.of(
+                setting("moon-icon", "danger", "Do not disturb", "Until 07:00", false, true),
+                setting("music-icon", "success", "Speaker", "Playing jazz", true, true),
+                setting("bolt-icon", "warning", "Smart plug", "TV  ·  86 W", true, true));
         VBox switches = new VBox(setting("bulb-icon", "warning", "Lights", "4 lamps on", true, false),
-                setting("snow-icon", "primary", "Climate", "Cooling to 22°", true, true), quiet);
+                setting("snow-icon", "primary", "Climate", "Cooling to 22°", true, true));
+        switches.getChildren().addAll(tallOnly);
         RXDashboardCard home = card("home", "Living room", "home-icon", "primary", switches);
-        followSize(home, (width, height) -> setShown(quiet, height >= TALL_CARD));
+        followSize(home, (width, height) -> {
+            for (HBox row : tallOnly) {
+                setShown(row, height >= TALL_CARD);
+            }
+        });
         board.getCards().addAll(stock, weather, home,
                 card("storage", "Storage", "storage-icon", "muted", storage()),
                 release,
-                card("team", "On call", "group-icon", "danger", team()),
+                team(),
                 card("revenue", "Revenue", "money-icon", "success", revenue()));
         board.applyLayout(LIVE);
         followWidth(board, width -> width >= 760.0 ? 4 : 2);
@@ -522,7 +535,7 @@ public final class RXDashboardPaneSamples {
     // ==================== Room ====================
 
     // A setting row: a badge in the setting's color, the setting over its state, and a switch. Switched off, the badge
-    // turns gray and the state reads Off. A card about one row tall leaves out the third row.
+    // turns gray and the state reads Off. A card about one row tall keeps only the first two rows.
     private static HBox setting(String glyph, String tone, String title, String state, boolean on, boolean ruled) {
         StackPane badge = new StackPane(icon(glyph));
         badge.getStyleClass().addAll("setting-badge", tone);
@@ -663,25 +676,43 @@ public final class RXDashboardPaneSamples {
 
     // ==================== Team ====================
 
-    private static Node team() {
+    // The people on call: a narrow card shows the first four faces and counts the others on an avatar in the theme's
+    // neutral fill, a wider one shows them all.
+    private static RXDashboardCard team() {
         HBox faces = new HBox(-8.0);
-        String[][] people = {{"AK", "primary"}, {"MJ", "success"}, {"SL", "warning"}, {"RT", "danger"}};
-        for (String[] person : people) {
-            RXAvatar avatar = new RXAvatar();
-            avatar.setText(person[0]);
-            avatar.setPrefSize(32.0, 32.0);
-            avatar.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-            avatar.getStyleClass().add(person[1]);
+        List<Node> others = new ArrayList<>();
+        for (int i = 0; i < ON_CALL.length; i++) {
+            RXAvatar avatar = avatar(ON_CALL[i]);
+            avatar.getStyleClass().add(AVATAR_TONES[i % AVATAR_TONES.length]);
             faces.getChildren().add(avatar);
+            if (i >= NARROW_FACES) {
+                others.add(avatar);
+            }
         }
-        Label more = text("+2", "avatar-more");
-        more.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXAvatar more = avatar("+" + others.size());
         faces.getChildren().add(more);
         faces.setAlignment(Pos.CENTER_LEFT);
 
         HBox status = new HBox(8.0, statusDot("success"), text("3 online  ·  1 away", "card-strong"));
         status.setAlignment(Pos.CENTER_LEFT);
-        return new VBox(10.0, faces, status, text("Handover at 18:00", "card-muted"));
+        VBox body = new VBox(10.0, faces, status, text("Handover at 18:00", "card-muted"));
+        RXDashboardCard card = card("team", "On call", "group-icon", "danger", body);
+        followSize(card, (width, height) -> {
+            boolean narrow = width < NARROW_CARD;
+            for (Node face : others) {
+                setShown(face, !narrow);
+            }
+            setShown(more, narrow);
+        });
+        return card;
+    }
+
+    private static RXAvatar avatar(String text) {
+        RXAvatar avatar = new RXAvatar();
+        avatar.setText(text);
+        avatar.setPrefSize(32.0, 32.0);
+        avatar.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        return avatar;
     }
 
     // ==================== Revenue ====================
