@@ -98,12 +98,6 @@ public class RXDateTimeRangePickerSkin
         }
     }
 
-    /** Keeps the popup in place: it spans both fields already, and moving it would shift the calendar away. */
-    @Override
-    protected boolean popupFollowsField() {
-        return false;
-    }
-
     /** Keeps the month on screen: the view would otherwise reveal the day of the endpoint it moves on to. */
     @Override
     protected void showEndpoint() {
