@@ -177,6 +177,32 @@ public class RXDateTimeRangePickerPopupTest {
     }
 
     /**
+     * Verifies the popup, wider than both fields, stays where it opened whichever endpoint it edits.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void popupStaysPut() throws InterruptedException {
+        runOnFx(() -> {
+            RXDateTimeRangePicker picker = newShownPicker();
+            picker.setValue(novemberRange(10, 20));
+            pressMouse(editor(picker, 0));
+            double opened = findPopup().getAnchorX();
+            ((Button) findPopup().getScene().getRoot().lookup(".ok-button")).fire();
+            assertTrue(hasPseudoClass(editor(picker, 1), "active"));
+            assertEquals(opened, findPopup().getAnchorX(), 0.5);
+            pressMouse(editor(picker, 0));
+            assertTrue(hasPseudoClass(editor(picker, 0), "active"));
+            assertEquals(opened, findPopup().getAnchorX(), 0.5);
+            picker.hide();
+
+            pressMouse(editor(picker, 1));
+            assertTrue(hasPseudoClass(editor(picker, 1), "active"));
+            assertEquals(opened, findPopup().getAnchorX(), 0.5);
+        });
+    }
+
+    /**
      * Verifies a press on the other field moves the popup on to that endpoint, keeping the draft of the one left.
      *
      * @throws InterruptedException if the FX task is interrupted
