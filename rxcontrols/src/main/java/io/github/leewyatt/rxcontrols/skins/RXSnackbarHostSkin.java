@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Skin for {@link RXSnackbarHost}. The host fills its overlay layer; this skin
+ * Skin for {@link RXSnackbarHost}. The host fills the pane it is in; this skin
  * positions a single bar node inside it per the host's {@code position} and
  * {@code margin}, and plays the bar's enter / exit transitions.
  *
@@ -275,7 +275,7 @@ public class RXSnackbarHostSkin extends RXSkinBase<RXSnackbarHost> {
         double availableHeight = Math.max(0.0, contentHeight - margin.getTop() - margin.getBottom());
         double widthCap = Math.min(availableWidth, effectiveMaxWidth());
         double barWidth = RXMath.clamp(bar.prefWidth(-1), bar.minWidth(-1), widthCap);
-        double barHeight = Math.min(availableHeight, bar.prefHeight(barWidth));
+        double barHeight = RXMath.clamp(bar.prefHeight(barWidth), bar.minHeight(barWidth), availableHeight);
         Pos pos = positionOrDefault();
         double barX = contentX + margin.getLeft() + alignedX(pos.getHpos(), availableWidth, barWidth);
         double barY = contentY + margin.getTop() + alignedY(pos.getVpos(), availableHeight, barHeight);
@@ -337,8 +337,9 @@ public class RXSnackbarHostSkin extends RXSkinBase<RXSnackbarHost> {
     /**
      * {@inheritDoc}
      *
-     * <p>Unbounded so the host's overlay layer (a {@code StackPane}) stretches it
-     * to fill the layer, letting the bar position itself against the scene.</p>
+     * <p>Unbounded so that a host placed in a parent such as a {@code StackPane}
+     * is stretched over the whole parent, letting the bar position itself against
+     * it.</p>
      */
     @Override
     protected double computeMaxWidth(double height, double topInset, double rightInset,

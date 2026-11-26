@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
+import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.RXSnackbarHost;
 import io.github.leewyatt.rxcontrols.RXSnackbarRequest;
 import io.github.leewyatt.rxcontrols.RXSnackbarSeverity;
@@ -28,8 +29,8 @@ import static io.github.leewyatt.rxcontrols.samples.sampler.pages.FeedbackKit.sp
 import static io.github.leewyatt.rxcontrols.samples.sampler.pages.FeedbackKit.text;
 
 /**
- * The RXSnackbarHost page: every card is a small screen with its own host installed
- * through RXSnackbars.installInto, showing undo after a delete, the four severities,
+ * The RXSnackbarHost page: every card is a small screen with an RXOverlayPane and
+ * so a host of its own, showing undo after a delete, the four severities,
  * host positions, queue and replace, a message that stays until closed and a bar with
  * custom content.
  */
@@ -76,11 +77,15 @@ public final class RXSnackbarHostSamples {
     }
 
     private static StackPane screen(Node content) {
-        StackPane screen = FeedbackKit.screen(SCREEN_WIDTH, SCREEN_HEIGHT, content);
-        RXSnackbarHost host = RXSnackbars.installInto(screen);
+        RXOverlayPane overlay = new RXOverlayPane(content);
+        RXSnackbarHost host = overlay.getOrCreateSnackbarHost();
         host.setMargin(new Insets(12.0));
         host.setSnackbarMaxWidth(SCREEN_WIDTH - 24.0);
-        return screen;
+        return FeedbackKit.screen(SCREEN_WIDTH, SCREEN_HEIGHT, overlay);
+    }
+
+    private static RXSnackbarHost hostOf(Node content) {
+        return RXOverlayPane.find(content).orElseThrow().getOrCreateSnackbarHost();
     }
 
     private static Node centered(Node... nodes) {
@@ -152,7 +157,7 @@ public final class RXSnackbarHostSamples {
         RXButton bottomCenter = plain("Bottom center");
         Node content = centered(topCenter, topRight, bottomLeft, bottomCenter);
         StackPane screen = screen(content);
-        RXSnackbarHost host = RXSnackbars.installInto(screen);
+        RXSnackbarHost host = hostOf(content);
         place(topCenter, host, Pos.TOP_CENTER);
         place(topRight, host, Pos.TOP_RIGHT);
         place(bottomLeft, host, Pos.BOTTOM_LEFT);
@@ -175,7 +180,7 @@ public final class RXSnackbarHostSamples {
         RXButton replace = plain("Send 3, replace");
         Node content = centered(queue, replace);
         StackPane screen = screen(content);
-        RXSnackbarHost host = RXSnackbars.installInto(screen);
+        RXSnackbarHost host = hostOf(content);
         host.setDefaultDuration(Duration.seconds(1.6));
         queue.setOnAction(event -> sendThree(host, RXSnackbarStrategy.QUEUE));
         replace.setOnAction(event -> sendThree(host, RXSnackbarStrategy.REPLACE));

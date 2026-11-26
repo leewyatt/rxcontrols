@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.support;
 
+import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes.ThemeChoice;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
@@ -59,12 +60,11 @@ public abstract class RXShowcaseApplication extends Application {
     @Override
     public final void start(Stage primaryStage) {
         BorderPane root = new BorderPane();
-        root.getStyleClass().add("root");
         root.setCenter(buildPreviewPane());
         root.setRight(buildControlPane(true));
         trackSceneFilters(root);
 
-        Scene scene = new Scene(root, sceneWidth(), sceneHeight());
+        Scene scene = new Scene(new RXOverlayPane(root), sceneWidth(), sceneHeight());
         scene.getStylesheets().add(shellStylesheet());
         String stylesheetPath = stylesheetPath();
         if (stylesheetPath != null) {

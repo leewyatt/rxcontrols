@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCheckBox;
 import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.RXDialogContent;
+import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.RXRadioButton;
 import io.github.leewyatt.rxcontrols.layout.RXFlowPane;
 import javafx.beans.property.BooleanProperty;
@@ -19,7 +20,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -97,9 +97,9 @@ public final class RXDialogSamples {
         workspace.getStyleClass().add("dialog-workspace");
         StackPane screen = screen(workspace, 380.0);
 
-        rename.setOnAction(event -> showRenameDialog(screen, dialogOpen, workspaceName, status));
-        changePlan.setOnAction(event -> showPlanDialog(screen, dialogOpen, currentPlan, status));
-        delete.setOnAction(event -> showDeleteDialog(screen, dialogOpen, status));
+        rename.setOnAction(event -> showRenameDialog(workspace, dialogOpen, workspaceName, status));
+        changePlan.setOnAction(event -> showPlanDialog(workspace, dialogOpen, currentPlan, status));
+        delete.setOnAction(event -> showDeleteDialog(workspace, dialogOpen, status));
         return screen;
     }
 
@@ -122,7 +122,7 @@ public final class RXDialogSamples {
         return beam;
     }
 
-    private static void showRenameDialog(Pane screen, BooleanProperty dialogOpen,
+    private static void showRenameDialog(Node owner, BooleanProperty dialogOpen,
                                          Label workspaceName, Label status) {
         TextField field = new TextField(workspaceName.getText());
         Label error = text("", "error-text");
@@ -147,11 +147,11 @@ public final class RXDialogSamples {
                 status.setText("Workspace renamed to “" + workspaceName.getText() + "”");
             }
         });
-        open(dialog, screen, dialogOpen);
+        open(dialog, owner, dialogOpen);
         field.requestFocus();
     }
 
-    private static void showPlanDialog(Pane screen, BooleanProperty dialogOpen,
+    private static void showPlanDialog(Node owner, BooleanProperty dialogOpen,
                                        Label currentPlan, Label status) {
         ToggleGroup group = new ToggleGroup();
         VBox options = new VBox(10.0);
@@ -176,10 +176,10 @@ public final class RXDialogSamples {
                 status.setText("Plan changed to " + name);
             }
         });
-        open(dialog, screen, dialogOpen);
+        open(dialog, owner, dialogOpen);
     }
 
-    private static void showDeleteDialog(Pane screen, BooleanProperty dialogOpen, Label status) {
+    private static void showDeleteDialog(Node owner, BooleanProperty dialogOpen, Label status) {
         ButtonType deleteType = new ButtonType("Delete", ButtonData.OK_DONE);
         RXDialogContent content = new RXDialogContent("Delete this workspace?",
                 "Northwind Studio and all of its files will be permanently removed. This cannot be undone.");
@@ -193,7 +193,7 @@ public final class RXDialogSamples {
         dialog.setResultConverter(type -> type);
         dialog.setOnResult(type -> status.setText(type == deleteType
                 ? "Delete requested for Northwind Studio" : "Workspace kept"));
-        open(dialog, screen, dialogOpen);
+        open(dialog, owner, dialogOpen);
     }
 
     // ==================== Playground ====================
@@ -232,15 +232,15 @@ public final class RXDialogSamples {
         canvas.getStyleClass().add("dialog-playground");
         StackPane screen = screen(canvas, 340.0);
 
-        setPreviewAction(top, DialogTransition.SLIDE_TOP, screen, dialogOpen, result,
+        setPreviewAction(top, DialogTransition.SLIDE_TOP, canvas, dialogOpen, result,
                 closeButton, scrimClose, draggable, resizable);
-        setPreviewAction(right, DialogTransition.SLIDE_RIGHT, screen, dialogOpen, result,
+        setPreviewAction(right, DialogTransition.SLIDE_RIGHT, canvas, dialogOpen, result,
                 closeButton, scrimClose, draggable, resizable);
-        setPreviewAction(bottom, DialogTransition.SLIDE_BOTTOM, screen, dialogOpen, result,
+        setPreviewAction(bottom, DialogTransition.SLIDE_BOTTOM, canvas, dialogOpen, result,
                 closeButton, scrimClose, draggable, resizable);
-        setPreviewAction(left, DialogTransition.SLIDE_LEFT, screen, dialogOpen, result,
+        setPreviewAction(left, DialogTransition.SLIDE_LEFT, canvas, dialogOpen, result,
                 closeButton, scrimClose, draggable, resizable);
-        setPreviewAction(center, DialogTransition.CENTER, screen, dialogOpen, result,
+        setPreviewAction(center, DialogTransition.CENTER, canvas, dialogOpen, result,
                 closeButton, scrimClose, draggable, resizable);
 
         return new VBox(12.0, controls, screen);
@@ -253,15 +253,15 @@ public final class RXDialogSamples {
         return button;
     }
 
-    private static void setPreviewAction(RXButton button, DialogTransition transition, Pane screen,
+    private static void setPreviewAction(RXButton button, DialogTransition transition, Node owner,
                                          BooleanProperty dialogOpen, Label result,
                                          RXCheckBox closeButton, RXCheckBox scrimClose,
                                          RXCheckBox draggable, RXCheckBox resizable) {
-        button.setOnAction(event -> showPreviewDialog(transition, screen, dialogOpen, result,
+        button.setOnAction(event -> showPreviewDialog(transition, owner, dialogOpen, result,
                 closeButton, scrimClose, draggable, resizable));
     }
 
-    private static void showPreviewDialog(DialogTransition transition, Pane screen,
+    private static void showPreviewDialog(DialogTransition transition, Node owner,
                                           BooleanProperty dialogOpen, Label result,
                                           RXCheckBox closeButton, RXCheckBox scrimClose,
                                           RXCheckBox draggable, RXCheckBox resizable) {
@@ -279,7 +279,7 @@ public final class RXDialogSamples {
         dialog.setResultConverter(type -> type);
         dialog.setOnResult(type -> result.setText(type == ButtonType.OK
                 ? "Changes published" : "No changes published"));
-        open(dialog, screen, dialogOpen);
+        open(dialog, owner, dialogOpen);
     }
 
     private static RXCheckBox option(String text, boolean selected) {
@@ -290,14 +290,15 @@ public final class RXDialogSamples {
 
     // ==================== Helpers ====================
 
+    // The overlay pane keeps the dialogs of this content inside its screen.
     private static StackPane screen(Node content, double height) {
-        return FeedbackKit.screen(720.0, height, content);
+        return FeedbackKit.screen(720.0, height, new RXOverlayPane(content));
     }
 
-    private static <R> void open(RXDialog<R> dialog, Pane screen, BooleanProperty dialogOpen) {
+    private static <R> void open(RXDialog<R> dialog, Node owner, BooleanProperty dialogOpen) {
         dialogOpen.set(true);
         dialog.setOnHidden(event -> dialogOpen.set(false));
-        dialog.showIn(screen);
+        dialog.show(owner);
     }
 
     private static RXButton trigger(RXButton button, BooleanProperty dialogOpen) {

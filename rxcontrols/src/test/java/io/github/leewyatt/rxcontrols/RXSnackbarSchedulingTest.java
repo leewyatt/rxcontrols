@@ -7,7 +7,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -23,7 +22,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -33,9 +31,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * strategy with its action protection, same-key in-place updates (displayed and
  * queued) with the fixed event order, duplicate prevention by key and by
  * message, severity style classes on the bar, the {@code -rx-snackbar-position}
- * CSS hook, and the {@code RXSnackbars} facade (nearest-enclosing-host owner
- * resolution with scene fallback, no-scope settlement, host caching, and the
- * {@code installInto} entry points).
+ * CSS hook, and the {@code RXSnackbars} facade (the host of the nearest
+ * {@link RXOverlayPane}, a host configured up front, a request from a node
+ * that is in no scene, and a pane that left its scene).
  */
 public class RXSnackbarSchedulingTest {
 
@@ -333,21 +331,21 @@ public class RXSnackbarSchedulingTest {
     // ==================== RXSnackbars facade ====================
 
     @Test
-    public void facadeResolvesAndCachesPerSceneHost() throws Exception {
+    public void facadeCreatesTheHostOfThePaneOnFirstUse() throws Exception {
         runOnFx(() -> {
-            StackPane root = new StackPane();
-            Scene scene = new Scene(root, 400.0, 300.0);
             Label owner = new Label("owner");
-            root.getChildren().add(owner);
+            RXOverlayPane pane = new RXOverlayPane(new StackPane(owner));
+            Scene scene = new Scene(pane, 400.0, 300.0);
 
             assertTrue(RXSnackbars.hostFor(owner).isEmpty(), "no host before first use");
             RXSnackbars.show(owner, "first");
             RXSnackbarHost host = RXSnackbars.hostFor(owner).orElseThrow();
             assertTrue(host.isShowing());
             assertSame(scene, host.getScene(), "the host lives in the owner's scene");
+            assertSame(pane, host.getParent(), "the host belongs to the pane");
 
             RXSnackbars.show(owner, "second");
-            assertSame(host, RXSnackbars.hostFor(owner).orElseThrow(), "one host per scene");
+            assertSame(host, RXSnackbars.hostFor(owner).orElseThrow(), "one host per pane");
         });
     }
 
@@ -368,13 +366,11 @@ public class RXSnackbarSchedulingTest {
     }
 
     @Test
-    public void facadeDismissByKeyRoutesToTheSceneHost() throws Exception {
+    public void facadeDismissByKeyRoutesToThePaneHost() throws Exception {
         runOnFx(() -> {
-            StackPane root = new StackPane();
-            new Scene(root, 400.0, 300.0);
             Label owner = new Label("owner");
-            root.getChildren().add(owner);
-            assertFalse(RXSnackbars.dismiss(owner, "job"), "no host installed yet");
+            new Scene(new RXOverlayPane(new StackPane(owner)), 400.0, 300.0);
+            assertFalse(RXSnackbars.dismiss(owner, "job"), "no host created yet");
             RXSnackbars.show(owner, RXSnackbarRequest.builder("working").key("job").build());
             assertTrue(RXSnackbars.dismiss(owner, "job"));
             assertFalse(RXSnackbars.hostFor(owner).orElseThrow().isShowing());
@@ -382,86 +378,40 @@ public class RXSnackbarSchedulingTest {
     }
 
     @Test
-    public void installIntoSceneResolvesTheFacadeHostForUpFrontConfiguration() throws Exception {
+    public void aHostConfiguredUpFrontIsTheOneTheFacadeUses() throws Exception {
         runOnFx(() -> {
-            StackPane root = new StackPane();
-            Scene scene = new Scene(root, 400.0, 300.0);
             Label owner = new Label("owner");
-            root.getChildren().add(owner);
+            RXOverlayPane pane = new RXOverlayPane(new StackPane(owner));
+            new Scene(pane, 400.0, 300.0);
 
-            RXSnackbarHost host = RXSnackbars.installInto(scene);
+            RXSnackbarHost host = pane.getOrCreateSnackbarHost();
             host.setPosition(Pos.TOP_CENTER);
-            assertSame(host, RXSnackbars.installInto(scene), "idempotent per scene");
+            assertSame(host, pane.getOrCreateSnackbarHost(), "one host per pane");
 
             RXSnackbars.show(owner, "routed");
             assertSame(host, RXSnackbars.hostFor(owner).orElseThrow(),
-                    "the facade routes to the pre-installed host");
+                    "the facade routes to the host created up front");
             assertTrue(host.isShowing());
             assertEquals(Pos.TOP_CENTER, host.getPosition(), "up-front configuration survives the first show");
         });
     }
 
     @Test
-    public void installIntoIsIdempotentPerContainerAndOwnersOutsideFallToTheSceneHost() throws Exception {
+    public void facadeRoutesToTheNearestEnclosingPane() throws Exception {
         runOnFx(() -> {
-            Pane container = new Pane();
-            RXSnackbarHost installed = RXSnackbars.installInto(container);
-            assertSame(installed, RXSnackbars.installInto(container), "idempotent per container");
-            assertSame(container, installed.getParent());
-
-            StackPane root = new StackPane(container);
-            new Scene(root, 400.0, 300.0);
-            Label owner = new Label("owner");
-            root.getChildren().add(owner);
-            RXSnackbars.show(owner, "scene level");
-            RXSnackbarHost sceneHost = RXSnackbars.hostFor(owner).orElseThrow();
-            assertNotSame(installed, sceneHost, "an owner outside the container routes to the scene host");
-
-            container.getChildren().remove(installed);
-            RXSnackbarHost reinstalled = RXSnackbars.installInto(container);
-            assertNotSame(installed, reinstalled, "a caller-removed host is not resurrected");
-            assertSame(container, reinstalled.getParent());
-        });
-    }
-
-    @Test
-    public void installIntoHostIsAnUnmanagedOverlayInAnyPane() throws Exception {
-        runOnFx(() -> {
-            VBox column = new VBox(new Label("a"), new Label("b"));
-            RXSnackbarHost host = RXSnackbars.installInto(column);
-            assertFalse(host.isManaged(), "the host must not join the container's layout flow");
-            assertEquals(0.0, host.getLayoutX());
-            assertEquals(0.0, host.getLayoutY());
-            column.resize(200.0, 150.0);
-            assertEquals(200.0, host.getWidth(), "geometry follows the container width");
-            assertEquals(150.0, host.getHeight(), "geometry follows the container height");
-
-            column.getChildren().remove(host);
-            column.resize(300.0, 250.0);
-            assertEquals(200.0, host.getWidth(), "a removed host stops following the container");
-        });
-    }
-
-    @Test
-    public void facadeRoutesToTheNearestEnclosingInstalledHost() throws Exception {
-        runOnFx(() -> {
-            StackPane root = new StackPane();
-            new Scene(root, 400.0, 300.0);
-            Pane region = new Pane();
-            Pane inner = new Pane();
             Label deepest = new Label("deepest");
-            inner.getChildren().add(deepest);
+            RXOverlayPane inner = new RXOverlayPane(deepest);
             Label inside = new Label("inside");
-            region.getChildren().addAll(inside, inner);
+            RXOverlayPane region = new RXOverlayPane(new Pane(inside, inner));
             Label sibling = new Label("sibling");
-            root.getChildren().addAll(region, sibling);
-
-            RXSnackbarHost regionHost = RXSnackbars.installInto(region);
+            RXOverlayPane root = new RXOverlayPane(new StackPane(region, sibling));
+            new Scene(root, 400.0, 300.0);
 
             RXSnackbarRequest deep = RXSnackbarRequest.builder("deep").build();
             RXSnackbars.show(inside, deep);
-            assertSame(deep, regionHost.getCurrentRequest(), "a descendant owner routes to the region host");
-            assertSame(regionHost, RXSnackbars.hostFor(inside).orElseThrow(), "hostFor resolves the same scope");
+            RXSnackbarHost regionHost = RXSnackbars.hostFor(inside).orElseThrow();
+            assertSame(region, regionHost.getParent(), "a descendant owner routes to the pane around it");
+            assertSame(deep, regionHost.getCurrentRequest());
 
             regionHost.clear();
             RXSnackbarRequest self = RXSnackbarRequest.builder("self").build();
@@ -470,71 +420,35 @@ public class RXSnackbarSchedulingTest {
 
             regionHost.clear();
             RXSnackbars.show(inside, RXSnackbarRequest.builder("keyed").key("job").build());
-            assertTrue(RXSnackbars.dismiss(inside, "job"), "dismiss resolves the same scope");
+            assertTrue(RXSnackbars.dismiss(inside, "job"), "dismiss resolves the same pane");
 
-            RXSnackbarHost innerHost = RXSnackbars.installInto(inner);
             RXSnackbarRequest nested = RXSnackbarRequest.builder("nested").build();
             RXSnackbars.show(deepest, nested);
-            assertSame(nested, innerHost.getCurrentRequest(), "the nearest enclosing host wins");
+            RXSnackbarHost innerHost = RXSnackbars.hostFor(deepest).orElseThrow();
+            assertSame(inner, innerHost.getParent(), "the nearest enclosing pane wins");
+            assertSame(nested, innerHost.getCurrentRequest());
 
             assertTrue(RXSnackbars.hostFor(sibling).isEmpty(),
-                    "scoped routing never installs the scene host");
+                    "requests in the inner panes never create the host of the outer one");
             RXSnackbars.show(sibling, "outside");
-            RXSnackbarHost sceneHost = RXSnackbars.hostFor(sibling).orElseThrow();
-            assertNotSame(regionHost, sceneHost, "owners outside any scope fall to the scene host");
+            assertSame(root, RXSnackbars.hostFor(sibling).orElseThrow().getParent(),
+                    "an owner outside the inner panes routes to the outer one");
         });
     }
 
     @Test
-    public void rootSwapReleasesTheOrphanedLayerAndHost() throws Exception {
+    public void aPaneThatLeftTheSceneIsNotKeptByIt() throws Exception {
         AtomicReference<WeakReference<RXSnackbarHost>> probe = new AtomicReference<>();
         AtomicReference<Scene> liveScene = new AtomicReference<>();
         runOnFx(() -> {
-            StackPane oldRoot = new StackPane();
-            Scene scene = new Scene(oldRoot, 400.0, 300.0);
-            liveScene.set(scene);
             Label owner = new Label("owner");
-            oldRoot.getChildren().add(owner);
-            RXSnackbars.show(owner, "about to be orphaned");
+            Scene scene = new Scene(new RXOverlayPane(new StackPane(owner)), 400.0, 300.0);
+            liveScene.set(scene);
+            RXSnackbars.show(owner, "about to leave");
             probe.set(new WeakReference<>(RXSnackbars.hostFor(owner).orElseThrow()));
-            // The old root (carrying the overlay layer) leaves the scene; the layer
-            // must uninstall itself so the still-live scene's property map does not
-            // pin the old root tree and the host.
             scene.setRoot(new StackPane());
         });
-        assertReclaimable(probe.get(), "the orphaned host must be collectable while the scene lives");
-    }
-
-    @Test
-    public void reparentedInstallIntoHostReleasesTheOldContainer() throws Exception {
-        AtomicReference<WeakReference<Pane>> probe = new AtomicReference<>();
-        AtomicReference<RXSnackbarHost> liveHost = new AtomicReference<>();
-        runOnFx(() -> {
-            Pane oldContainer = new Pane();
-            RXSnackbarHost host = RXSnackbars.installInto(oldContainer);
-            liveHost.set(host);
-            probe.set(new WeakReference<>(oldContainer));
-            // Reparent: the host stays alive in the new container; the one-shot
-            // cleanup listener must not keep pinning the old container tree.
-            new StackPane().getChildren().add(host);
-        });
-        assertReclaimable(probe.get(), "a reparented host must not pin its old container");
-    }
-
-    @Test
-    public void removedInstallIntoHostIsReleased() throws Exception {
-        AtomicReference<WeakReference<RXSnackbarHost>> probe = new AtomicReference<>();
-        AtomicReference<Pane> liveContainer = new AtomicReference<>();
-        runOnFx(() -> {
-            Pane container = new Pane();
-            liveContainer.set(container);
-            RXSnackbarHost host = RXSnackbars.installInto(container);
-            probe.set(new WeakReference<>(host));
-            // The caller owns the lifecycle: removal must evict the idempotence
-            // cache and the size bindings, not leave the container pinning the host.
-            container.getChildren().remove(host);
-        });
-        assertReclaimable(probe.get(), "a caller-removed host must be collectable while the container lives");
+        assertReclaimable(probe.get(), "the host of a pane that left must be collectable while the scene lives");
     }
 
     private static void assertReclaimable(WeakReference<?> reference, String message) throws InterruptedException {

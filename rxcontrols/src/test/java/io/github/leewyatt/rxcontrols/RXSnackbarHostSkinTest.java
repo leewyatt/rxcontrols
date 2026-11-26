@@ -3,6 +3,11 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.event.RXSnackbarEvent;
 import io.github.leewyatt.rxcontrols.skins.RXSnackbarHostSkin;
 import javafx.application.Platform;
+import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
@@ -29,9 +34,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * real skin transitions — synchronous snap paths (animated off / degenerate
  * duration), asynchronous animated paths, mid-flight reversal settling exactly
  * once, the auto-hide timer staying gated while the tree is not showing, scene
- * detach cleanup, and settling a transition orphaned by a skin swap. Animation
- * look, slide direction, hover / focus / minimize pause feel, and timer expiry in
- * a focused window are real-device checks.
+ * detach cleanup, settling a transition orphaned by a skin swap, and where the
+ * bar is placed. Animation look, slide direction, hover / focus / minimize pause
+ * feel, and timer expiry in a focused window are real-device checks.
  */
 public class RXSnackbarHostSkinTest {
 
@@ -201,7 +206,34 @@ public class RXSnackbarHostSkinTest {
         });
     }
 
+    // ==================== Bar placement ====================
+
+    /** The bar keeps the host margin from the edge it is placed at, and sits in the middle when centered. */
+    @Test
+    public void barKeepsTheMarginAtTheEdgeItIsPlacedAt() throws Exception {
+        runOnFx(() -> {
+            RXSnackbarHost host = skinnedHost();
+            host.setAnimated(false);
+            host.setMargin(new Insets(12.0));
+            host.show(RXSnackbarRequest.builder("a").build());
+
+            assertEquals(12.0, barBounds(host, Pos.TOP_CENTER).getMinY(), 0.5);
+            assertEquals(host.getHeight() - 12.0, barBounds(host, Pos.BOTTOM_CENTER).getMaxY(), 0.5);
+            assertEquals(host.getHeight() / 2.0, barBounds(host, Pos.CENTER).getCenterY(), 0.5);
+        });
+    }
+
     // ==================== Helpers ====================
+
+    private static Bounds barBounds(RXSnackbarHost host, Pos position) {
+        host.setPosition(position);
+        Parent root = host.getParent();
+        root.applyCss();
+        root.layout();
+        // Layout bounds: the bounds in the parent would include the bar's shadow.
+        Node bar = host.lookup(".snackbar");
+        return bar.localToParent(bar.getLayoutBounds());
+    }
 
     private static RXSnackbarHost skinnedHost() {
         RXSnackbarHost host = new RXSnackbarHost();

@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
+import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.RXSnackbarHost;
 import io.github.leewyatt.rxcontrols.RXSnackbarRequest;
 import io.github.leewyatt.rxcontrols.RXSnackbarSeverity;
@@ -19,7 +20,6 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -29,13 +29,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Showcase application for {@code RXSnackbarHost}.
  *
- * <p>The preview hosts a bordered sub-pane with its own snackbar host (via
- * {@code RXSnackbars.installInto}), so every host property — position, margin,
+ * <p>The preview holds a bordered {@code RXOverlayPane} with its own snackbar
+ * host, so every host property — position, margin,
  * max width, strategy, duplicate prevention, queue bound, auto-hide duration and
  * the animation pair — can be driven live from the control panel and verified
  * against boundary values. Request-side options (severity, action, close icon,
  * same-key in-place update) shape the next shown message. A separate button
- * exercises the scene-level facade path ({@code RXSnackbars.show}), and a live
+ * exercises the facade path ({@code RXSnackbars.show}) from outside that pane,
+ * which shows in the pane at the scene root, and a live
  * read-out tracks {@code showing} and the last lifecycle event.</p>
  */
 public class RXSnackbarHostShowcase extends RXShowcaseApplication {
@@ -68,11 +69,11 @@ public class RXSnackbarHostShowcase extends RXShowcaseApplication {
 
     @Override
     protected Node createPreview() {
-        StackPane snackbarArea = new StackPane();
+        RXOverlayPane snackbarArea = new RXOverlayPane();
         snackbarArea.getStyleClass().add("snackbar-area");
         snackbarArea.setMinSize(420.0, 260.0);
         snackbarArea.setMaxSize(420.0, 260.0);
-        host = RXSnackbars.installInto(snackbarArea);
+        host = snackbarArea.getOrCreateSnackbarHost();
         host.addEventHandler(RXSnackbarEvent.ANY, event -> lastEvent.set(
                 event.getEventType().getName().replace("RX_SNACKBAR_", "")
                         + (event.getReason() == null ? "" : " (" + event.getReason() + ")")));

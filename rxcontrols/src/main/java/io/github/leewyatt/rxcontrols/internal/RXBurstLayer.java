@@ -13,7 +13,6 @@ import javafx.css.converter.PaintConverter;
 import javafx.geometry.Bounds;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
-import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
@@ -28,29 +27,24 @@ import java.util.Deque;
 import java.util.List;
 
 /**
- * Per-scene overlay layer that plays bursts for {@code RXBursts}: one small
- * canvas per burst, drawn above everything else in the scene, dialogs
- * included, and never picked by the mouse.
+ * The layer of an {@code RXOverlayPane} that plays bursts for
+ * {@code RXBursts}: one small canvas per burst, drawn above everything else
+ * in the pane, dialogs included, and never picked by the mouse.
  *
- * <p>The layer is long-lived like the snackbar layer: it mounts on first use
- * and stays installed, because unmounting after every burst would re-wrap a
- * non-{@code Pane} scene root each time, taking along any dialog opened in
- * the meantime. Canvases leave the layer when their burst ends and are
- * reused. The layer clips to its own bounds so that a burst never grows the
- * window of a popup it plays in. Each frame, a burst re-reads where its
- * anchor is, so it follows a node that scrolls or moves.</p>
+ * <p>The layer is created with the first burst in a pane and stays. Canvases
+ * leave the layer when their burst ends and are reused. The layer clips to
+ * its own bounds so that a burst never grows the window of a popup it plays
+ * in. Each frame, a burst re-reads where its anchor is, so it follows a node
+ * that scrolls or moves.</p>
  *
  * <p>The layer carries the style class {@code rx-burst-layer} and resolves
  * its default color from the theme through {@code -rx-burst-color}. It is
  * not a control, so the {@code -rx-*} tokens are not declared on it; the
  * stylesheets map the color straight to each theme's accent.</p>
  */
-public final class RXBurstLayer extends RXSceneOverlayLayer {
+public final class RXBurstLayer extends StackPane {
 
-    private static final Object LAYER_KEY = new Object();
     private static final String STYLE_CLASS = "rx-burst-layer";
-    // In front of the dialog layer (-20): a burst fired from a dialog shows.
-    private static final double VIEW_ORDER = -30.0;
     // Bursts beyond this many at once cancel the oldest.
     private static final int MAX_BURSTS = 16;
     private static final Paint FALLBACK_COLOR = Color.web("#0096c9");
@@ -67,8 +61,10 @@ public final class RXBurstLayer extends RXSceneOverlayLayer {
     private final Deque<Burst> active = new ArrayDeque<>();
     private final Deque<Burst> idle = new ArrayDeque<>();
 
-    private RXBurstLayer() {
-        super(LAYER_KEY, VIEW_ORDER);
+    /**
+     * Creates an empty layer.
+     */
+    public RXBurstLayer() {
         getStyleClass().add(STYLE_CLASS);
         setMouseTransparent(true);
         Rectangle clip = new Rectangle();
@@ -85,42 +81,17 @@ public final class RXBurstLayer extends RXSceneOverlayLayer {
     /**
      * Plays one burst for an anchor node.
      *
-     * @param anchor  the node the burst follows; must be in a scene
-     * @param x       the burst center x in the anchor's coordinates, or
-     *                {@code NaN} for the center of the anchor
-     * @param y       the burst center y in the anchor's coordinates, or
-     *                {@code NaN} for the center of the anchor
-     * @param options the burst settings
+     * @param anchor    the node the burst follows; must be in this layer's scene
+     * @param x         the burst center x in the anchor's coordinates, or
+     *                  {@code NaN} for the center of the anchor
+     * @param y         the burst center y in the anchor's coordinates, or
+     *                  {@code NaN} for the center of the anchor
+     * @param options   the burst settings
+     * @param animation the burst to play, never {@code null}
+     * @param duration  how long it plays, longer than zero
      */
-    public static void play(Node anchor, double x, double y, RXBurstOptions options) {
-        Scene scene = anchor.getScene();
-        BurstAnimation animation = options.getAnimation();
-        Duration duration = BurstSettings.durationOrDefault(options.getDuration(), RXBurstOptions.DEFAULT_DURATION);
-        if (scene == null || animation == null || duration.lessThanOrEqualTo(Duration.ZERO)) {
-            return;
-        }
-        layerFor(scene).start(anchor, x, y, options, animation, duration);
-    }
-
-    private static RXBurstLayer layerFor(Scene scene) {
-        Object cached = scene.getProperties().get(LAYER_KEY);
-        if (cached instanceof RXBurstLayer layer && layer.getScene() == scene) {
-            return layer;
-        }
-        if (cached instanceof RXBurstLayer stale) {
-            // Orphaned off-scene (its mount point went away): unhook it and
-            // rebuild.
-            stale.uninstall();
-        }
-        RXBurstLayer fresh = new RXBurstLayer();
-        fresh.installInto(scene, null);
-        // Resolves -rx-burst-color now, so the very first burst has it.
-        fresh.applyCss();
-        return fresh;
-    }
-
-    private void start(Node anchor, double x, double y, RXBurstOptions options,
-                       BurstAnimation animation, Duration duration) {
+    public void play(Node anchor, double x, double y, RXBurstOptions options,
+                     BurstAnimation animation, Duration duration) {
         while (active.size() >= MAX_BURSTS) {
             finish(active.peekFirst());
         }

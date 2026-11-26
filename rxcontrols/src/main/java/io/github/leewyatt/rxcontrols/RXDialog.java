@@ -34,7 +34,6 @@ import javafx.scene.Node;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.util.Callback;
 import javafx.util.Duration;
@@ -46,11 +45,11 @@ import java.util.function.Consumer;
 
 /**
  * An in-scene, modal-by-default overlay dialog. {@code RXDialog} is not added to
- * the scene graph by the application; it is shown through {@link #show(Node)} /
- * {@link #showIn(Pane)}, which attach it — via a per-scene
- * {@link RXDialogLayer overlay layer} — over the target's scene as a centered card
- * on a dimmed scrim. Showing state is the read-only source of truth
- * {@link #showingProperty() showing}, driven by {@code show*} / {@code close*}.
+ * the scene graph by the application; it is shown through {@link #show(Node)},
+ * which puts it into the nearest {@link RXOverlayPane} above the given node, as a
+ * centered card on a dimmed scrim that covers that pane. Showing state is the
+ * read-only source of truth {@link #showingProperty() showing}, driven by
+ * {@code show*} / {@code close*}.
  *
  * <p>The card hosts the {@link #contentProperty() content} node (often an
  * {@link RXDialogContent}, or any bare {@code Node}) above an action bar the skin
@@ -497,9 +496,9 @@ public class RXDialog<R> extends Control {
     private final ObjectProperty<Node> owner = new SimpleObjectProperty<>(this, "owner");
 
     /**
-     * The node whose scene the dialog attaches to when shown. Set automatically by
-     * {@link #show(Node)}; may also be set ahead of a no-arg {@link #show()}. Not used
-     * when the dialog is shown with an explicit container via {@link #showIn(Pane)}.
+     * The node the dialog is shown for: it shows in the nearest {@link RXOverlayPane}
+     * above this node. Set automatically by {@link #show(Node)}; may also be set ahead
+     * of a no-arg {@link #show()}.
      *
      * @return the owner property
      */
@@ -531,8 +530,10 @@ public class RXDialog<R> extends Control {
 
     /**
      * Whether the dialog is modal. A modal dialog shows the dimmed, input-blocking
-     * scrim, traps focus, and steals focus on show / restores it on hide. A
-     * non-modal dialog shows no scrim and leaves the rest of the scene interactive.
+     * scrim, traps focus, and steals focus on show / restores it on hide; focus that
+     * has moved outside the dialog's {@link RXOverlayPane} by then stays where it is,
+     * unless it went into a {@code SubScene}. A non-modal dialog shows no scrim and
+     * leaves the content below it interactive.
      *
      * @return the modal property
      */
@@ -678,7 +679,7 @@ public class RXDialog<R> extends Control {
 
     // Named enableResizable, not resizable: Node.isResizable() is an existing layout-contract
     // method (Region returns true so the RXDialogLayer can stretch this control to fill the
-    // scene). Overriding it with a user-gesture flag would collapse the scrim, so the
+    // overlay pane). Overriding it with a user-gesture flag would collapse the scrim, so the
     // end-user-resize capability gets its own name.
     private final BooleanProperty enableResizable =
             new SimpleBooleanProperty(this, "enableResizable", DEFAULT_ENABLE_RESIZABLE);
@@ -731,7 +732,7 @@ public class RXDialog<R> extends Control {
     /**
      * Whether the user can move the card by dragging its top (title) band
      * ({@code false} by default). The skin clamps the card so it always stays within
-     * the scene; presses on the close (X) button or other interactive header nodes
+     * the overlay pane; presses on the close (X) button or other interactive header nodes
      * are excluded so they keep working. Only effective while the dialog is shown and
      * not animating. Turning it off cancels an in-progress drag and stops new ones,
      * but keeps the card at its current position; the position recenters only when the
@@ -766,7 +767,7 @@ public class RXDialog<R> extends Control {
     // These six properties drive the dialog card's own min / pref / max width and height
     // (the skin binds the card's size properties to them), so they bound an interactive
     // resize and set the card's initial size. They are the card's bounds, deliberately NOT
-    // the control's Region min/max (the control fills the scene to back the scrim). A value
+    // the control's Region min/max (the control fills its overlay pane to back the scrim). A value
     // of USE_COMPUTED_SIZE (-1) means "compute from content" (pref) / "no bound" (max); the
     // skin clamps with the same boundedSize contract used for layout, so an inverted
     // min > max never throws (min wins).
@@ -1259,26 +1260,27 @@ public class RXDialog<R> extends Control {
     // ==================== Show ====================
 
     /**
-     * Shows the dialog over the previously set {@link #ownerProperty() owner}'s scene
-     * (as a full-scene overlay). A no-op when already shown.
+     * Shows the dialog in the nearest {@link RXOverlayPane} above the previously set
+     * {@link #ownerProperty() owner}, covering that pane. A no-op when already shown.
      *
-     * @throws IllegalStateException if no owner is set, or the resolved owner is not in
-     *                               a scene
+     * @throws IllegalStateException if no owner is set, there is no overlay pane above
+     *                               the owner, or that pane is not in a scene
      */
     public final void show() {
         if (isShowing()) {
             return;
         }
-        doShow(null);
+        doShow();
     }
 
     /**
-     * Sets the owner and shows the dialog over the owner's scene (as a full-scene
-     * overlay). A no-op when already shown.
+     * Sets the owner and shows the dialog in the nearest {@link RXOverlayPane} above
+     * it, covering that pane. A no-op when already shown.
      *
-     * @param owner a node already in the target scene; if {@code null}, the current
-     *              owner is used instead
-     * @throws IllegalStateException if no owner resolves to a scene
+     * @param owner a node inside the target overlay pane, or the pane itself; if
+     *              {@code null}, the current owner is used instead
+     * @throws IllegalStateException if no owner is set, there is no overlay pane above
+     *                               the owner, or that pane is not in a scene
      */
     public final void show(Node owner) {
         if (isShowing()) {
@@ -1287,41 +1289,37 @@ public class RXDialog<R> extends Control {
         if (owner != null) {
             setOwner(owner);
         }
-        doShow(null);
+        doShow();
     }
 
-    /**
-     * Shows the dialog mounted into an explicit container pane, instead of as a
-     * full-scene overlay over an owner's scene root. A no-op when already shown.
-     *
-     * <p>All dialogs shown over one scene share a single overlay layer (so they stack,
-     * share a single scrim, and trap focus together), so the container is honored only
-     * by the dialog that first installs that layer. Showing a later, still overlapping
-     * dialog with a <em>different</em> container over the same scene throws rather than
-     * silently ignoring it; once the earlier dialogs close and the layer uninstalls, a
-     * fresh container is honored again.</p>
-     *
-     * @param container the pane to mount the dialog overlay into
-     * @throws IllegalStateException if {@code container} is {@code null} and not in a
-     *                               scene, or the scene already has an overlay layer
-     *                               mounted elsewhere
-     */
-    public final void showIn(Pane container) {
-        if (isShowing()) {
-            return;
-        }
-        doShow(container);
-    }
-
-    private void doShow(Pane container) {
-        // Attach to the per-scene overlay layer first, then force a CSS pass so the
-        // skin exists and observes the showing flip below (which plays the transition).
-        RXDialogLayer.attach(this, container);
+    private void doShow() {
+        // Resolve the pane before touching anything, so a failed show changes nothing.
+        // Then attach to its dialog layer and force a CSS pass so the skin exists and
+        // observes the showing flip below (which plays the transition).
+        resolveOverlayPane().ensureDialogLayer().attach(this);
         applyCss();
         // A fresh show supersedes any close still being bookkept (e.g. re-show during a
         // close transition), so the hideInProgress guard stays honest.
         clearPendingClose();
         showing.set(true);
+    }
+
+    private RXOverlayPane resolveOverlayPane() {
+        Node node = getOwner();
+        if (node == null) {
+            throw new IllegalStateException("RXDialog.show requires an owner node");
+        }
+        RXOverlayPane pane = RXOverlayPane.nearest(node, true);
+        if (pane == null) {
+            throw new IllegalStateException(node.getScene() == null
+                    ? "RXDialog.show requires an owner already attached to a Scene"
+                    : RXOverlayPane.missingPaneMessage("RXDialog.show", "owner"));
+        }
+        if (pane.getScene() == null) {
+            throw new IllegalStateException(
+                    "RXDialog.show: the RXOverlayPane above the owner node is not in a Scene");
+        }
+        return pane;
     }
 
     // ==================== Close ====================

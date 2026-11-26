@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.sampler;
 
 import atlantafx.base.theme.PrimerDark;
 import io.github.leewyatt.rxcontrols.RXBreadcrumbBar;
+import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.RXSelectionBox;
 import io.github.leewyatt.rxcontrols.RXTaskButton;
 import io.github.leewyatt.rxcontrols.RXTransitionPane;
@@ -107,7 +108,7 @@ public class RXSampler extends Application {
         root.getStyleClass().add("sampler");
         root.setLeft(nav);
 
-        Scene scene = new Scene(root, 1360, 860);
+        Scene scene = new Scene(new RXOverlayPane(root), 1360, 860);
         scene.getStylesheets().addAll(RXShowcaseApplication.shellStylesheet(),
                 RXSampler.class.getResource("rx-sampler.css").toExternalForm());
         // Some page animations of the carousel showcase rotate in 3D.

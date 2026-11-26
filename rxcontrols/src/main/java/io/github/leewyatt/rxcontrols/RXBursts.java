@@ -1,15 +1,18 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.animation.burst.BurstAnimation;
-import io.github.leewyatt.rxcontrols.internal.RXBurstLayer;
+import io.github.leewyatt.rxcontrols.internal.burst.BurstSettings;
 import javafx.scene.Node;
+import javafx.util.Duration;
 
 import java.util.Objects;
+import java.util.logging.Logger;
 
 /**
  * Plays particle bursts on any node: a plain button, a label, an image, a
  * list cell or a point in a pane. Nothing about the node changes; the burst
- * is drawn on a per-scene overlay above everything else in the scene.
+ * is drawn in the nearest {@link RXOverlayPane} above the node, on top of
+ * everything else in that pane.
  *
  * <pre>{@code
  * // Every click of an ordinary button bursts from its center.
@@ -23,19 +26,19 @@ import java.util.Objects;
  * RXBursts.play(button, RXBurstOptions.builder().animation(BurstAnimation.FIREWORKS).scale(2).build());
  * }</pre>
  *
- * <p>The overlay mounts on the first burst in a scene and stays: over a
- * {@code Pane} scene root it is an extra unmanaged child; any other root is
- * wrapped in a new root pane that leaves it where it was, as for dialogs and
- * snackbars. It is never
- * picked by the mouse. A burst follows its node if the node moves while it
- * plays, and keeps its last position if the node leaves the scene. Several
- * bursts can play at once; beyond 16 in one scene, the oldest is ended.</p>
+ * <p>The node needs an {@code RXOverlayPane} above it, usually the one
+ * wrapping the scene root. Without one nothing is played, and a warning is
+ * logged the first time. A burst stays in the window of its node: to play
+ * one in a popup window, wrap the popup's content in an overlay pane.</p>
  *
- * <p>Because the overlay is above everything, a burst from a node behind a
- * dialog's scrim draws over the scrim, and nothing clips it but the window:
- * a burst in a popup window stops at the popup's edges. Over a wrapped root,
- * closing a dialog that was opened before the overlay mounted restores the
- * root and ends the bursts still playing.</p>
+ * <p>The burst overlay is never picked by the mouse. A burst follows its
+ * node if the node moves while it plays, and keeps its last position if the
+ * node leaves the scene. Several bursts can play at once; beyond 16 in one
+ * overlay pane, the oldest is ended.</p>
+ *
+ * <p>Because the overlay is above everything in its pane, a burst from a
+ * node behind a dialog's scrim draws over the scrim, and nothing clips it
+ * but the pane.</p>
  *
  * <p>Without a color in the options, the colors derive from the theme's
  * accent color: Modena's {@code -fx-accent}, or AtlantaFX's accent with the
@@ -48,6 +51,11 @@ import java.util.Objects;
  * not in a scene plays nothing.</p>
  */
 public final class RXBursts {
+
+    private static final Logger LOGGER = Logger.getLogger(RXBursts.class.getName());
+
+    // A missing overlay pane is a setup mistake: one warning says it, not one per click.
+    private static boolean missingPaneWarned;
 
     private RXBursts() {
     }
@@ -85,7 +93,7 @@ public final class RXBursts {
     public static void play(Node anchor, RXBurstOptions options) {
         Objects.requireNonNull(anchor, "anchor");
         Objects.requireNonNull(options, "options");
-        RXBurstLayer.play(anchor, Double.NaN, Double.NaN, options);
+        playIn(anchor, Double.NaN, Double.NaN, options);
     }
 
     /**
@@ -118,6 +126,27 @@ public final class RXBursts {
         if (!Double.isFinite(x) || !Double.isFinite(y)) {
             throw new IllegalArgumentException("the burst point must be finite: " + x + ", " + y);
         }
-        RXBurstLayer.play(anchor, x, y, options);
+        playIn(anchor, x, y, options);
+    }
+
+    private static void playIn(Node anchor, double x, double y, RXBurstOptions options) {
+        BurstAnimation animation = options.getAnimation();
+        Duration duration = BurstSettings.durationOrDefault(options.getDuration(), RXBurstOptions.DEFAULT_DURATION);
+        if (anchor.getScene() == null || animation == null || duration.lessThanOrEqualTo(Duration.ZERO)) {
+            return;
+        }
+        // Not through popups: a popup is a window of its own on top of its
+        // owner, so a burst drawn in the owner's window would be behind it.
+        RXOverlayPane pane = RXOverlayPane.nearest(anchor, false);
+        if (pane == null) {
+            if (!missingPaneWarned) {
+                missingPaneWarned = true;
+                LOGGER.warning(RXOverlayPane.missingPaneMessage("RXBursts", "anchor")
+                        + " Nothing is played. A burst does not leave a popup window: wrap the"
+                        + " popup's content to play one there. This is logged once.");
+            }
+            return;
+        }
+        pane.ensureBurstLayer().play(anchor, x, y, options, animation, duration);
     }
 }

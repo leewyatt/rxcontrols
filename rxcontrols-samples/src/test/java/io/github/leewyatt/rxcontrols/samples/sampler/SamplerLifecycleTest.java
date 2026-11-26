@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.sampler;
 
+import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.RXTaskButton;
 import io.github.leewyatt.rxcontrols.RXTransitionPane;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleLifecycle;
@@ -217,7 +218,8 @@ public class SamplerLifecycleTest {
 
         RunningSampler(Stage stage) {
             this.stage = stage;
-            BorderPane root = (BorderPane) stage.getScene().getRoot();
+            RXOverlayPane overlay = (RXOverlayPane) stage.getScene().getRoot();
+            BorderPane root = (BorderPane) overlay.getContent();
             nav = (SamplerNav) root.getLeft();
             host = (RXTransitionPane) root.lookup(".page-host");
             host.setAnimated(false);

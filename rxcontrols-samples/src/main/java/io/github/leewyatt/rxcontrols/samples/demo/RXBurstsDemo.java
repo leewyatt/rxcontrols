@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXBursts;
+import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.animation.burst.BurstAnimation;
 import javafx.application.Application;
 import javafx.event.ActionEvent;
@@ -39,7 +40,7 @@ public class RXBurstsDemo extends Application {
 
         VBox root = new VBox(20.0, buttons, area);
         root.setPadding(new Insets(28.0));
-        primaryStage.setScene(new Scene(root, 520.0, 380.0));
+        primaryStage.setScene(new Scene(new RXOverlayPane(root), 520.0, 380.0));
         primaryStage.setTitle("RXBursts Demo");
         primaryStage.show();
     }

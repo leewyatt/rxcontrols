@@ -10,7 +10,6 @@ import javafx.event.EventHandler;
 import javafx.event.EventType;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
-import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -33,7 +32,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -94,7 +92,7 @@ public class RXDialogTest {
             dialog.setOnResult(delivered::set);
 
             Region owner = new Region();
-            Scene scene = new Scene(new StackPane(owner), 400, 300);
+            Scene scene = new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
             dialog.show(owner);
 
             assertTrue(dialog.isShowing(), "shown after show()");
@@ -127,7 +125,7 @@ public class RXDialogTest {
             dialog.addEventHandler(RXDialogEvent.CLOSE_REQUEST, veto);
 
             Region owner = new Region();
-            new Scene(new StackPane(owner), 400, 300);
+            new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
             dialog.show(owner);
 
             dialog.requestClose(ButtonType.OK, CloseReason.ACTION_BUTTON);
@@ -150,7 +148,7 @@ public class RXDialogTest {
             List<RXDialogEvent> events = recordEvents(dialog);
 
             Region owner = new Region();
-            new Scene(new StackPane(owner), 400, 300);
+            new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
             dialog.show(owner);
 
             // ESC / scrim / close-button dismissals carry no explicit candidate;
@@ -175,7 +173,7 @@ public class RXDialogTest {
             // No resultConverter set.
 
             Region owner = new Region();
-            new Scene(new StackPane(owner), 400, 300);
+            new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
             dialog.show(owner);
             dialog.close(ButtonType.OK);
 
@@ -189,7 +187,7 @@ public class RXDialogTest {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = newDialog(ButtonType.OK);
             Region owner = new Region();
-            new Scene(new StackPane(owner), 400, 300);
+            new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
             dialog.show(owner);
 
             dialog.setResult(ButtonType.OK);
@@ -204,7 +202,7 @@ public class RXDialogTest {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = newDialog(ButtonType.OK);
             Region owner = new Region();
-            new Scene(new StackPane(owner), 400, 300);
+            new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
 
             AtomicInteger reshows = new AtomicInteger();
             dialog.setOnResult(result -> {
@@ -225,24 +223,6 @@ public class RXDialogTest {
     }
 
     @Test
-    public void showOverNonPaneRootWrapsAndRestores() throws Exception {
-        runOnFx(() -> {
-            RXDialog<ButtonType> dialog = newDialog(ButtonType.OK);
-            Region owner = new Region();
-            Group root = new Group(owner); // a Parent that is NOT a Pane -> WRAP install
-            Scene scene = new Scene(root, 400, 300);
-
-            dialog.show(owner);
-            assertTrue(dialog.isShowing());
-            assertNotSame(root, scene.getRoot(), "a non-Pane root is wrapped while a dialog shows");
-
-            dialog.close();
-            assertFalse(dialog.isShowing());
-            assertSame(root, scene.getRoot(), "the original root is restored after the last dialog hides");
-        });
-    }
-
-    @Test
     public void reentrantCloseFromHandlerDoesNotDoubleClose() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = newDialog(ButtonType.OK);
@@ -252,7 +232,7 @@ public class RXDialogTest {
             dialog.addEventHandler(RXDialogEvent.CLOSE_REQUEST, e -> dialog.close());
 
             Region owner = new Region();
-            new Scene(new StackPane(owner), 400, 300);
+            new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
             dialog.show(owner);
             dialog.requestClose(ButtonType.OK, CloseReason.ACTION_BUTTON);
 
@@ -272,7 +252,7 @@ public class RXDialogTest {
     public void stackedModalSuppressesTheLowerScrim() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();
-            new Scene(new StackPane(owner), 400, 300);
+            new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
 
             RXDialog<ButtonType> lower = newDialog(ButtonType.OK);
             RXDialog<ButtonType> upper = newDialog(ButtonType.OK);
@@ -304,7 +284,7 @@ public class RXDialogTest {
         // scrim and this fading one flashes the scene through (the stacked-open scrim flicker).
         runOnFx(() -> {
             Region owner = new Region();
-            new Scene(new StackPane(owner), 400, 300);
+            new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
 
             // Animated (default) so a solo scrim would fade in over the open transition; the fix
             // makes the stacked scrim skip the fade.
@@ -419,7 +399,7 @@ public class RXDialogTest {
             dialog.setShowCloseButton(true);
 
             Region owner = new Region();
-            new Scene(new StackPane(owner), 400, 300);
+            new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
             dialog.show(owner);
 
             Node closeButton = dialog.lookup(".close-button");
@@ -437,35 +417,11 @@ public class RXDialogTest {
     }
 
     @Test
-    public void conflictingContainerOnAnOverlappingDialogThrows() throws Exception {
-        runOnFx(() -> {
-            StackPane paneA = new StackPane();
-            StackPane paneB = new StackPane();
-            new Scene(new StackPane(paneA, paneB), 400, 300);
-
-            RXDialog<ButtonType> first = newDialog(ButtonType.OK);
-            first.showIn(paneA); // installs the scene's single overlay layer in paneA
-
-            RXDialog<ButtonType> second = newDialog(ButtonType.OK);
-            // A still-overlapping second dialog asking for a different container cannot be
-            // honored (one overlay per scene) -> fail loudly instead of mounting into paneA.
-            assertThrows(IllegalStateException.class, () -> second.showIn(paneB));
-            assertFalse(second.isShowing(), "the rejected dialog did not open");
-
-            first.close();
-            // Once the first closes the layer uninstalls, so a fresh container is honored.
-            second.showIn(paneB);
-            assertTrue(second.isShowing(), "after the layer frees up, the container is honored");
-            second.close();
-        });
-    }
-
-    @Test
     public void actionsLayoutSelectsTheContainer() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = newDialog(ButtonType.CANCEL, ButtonType.OK);
             Region owner = new Region();
-            new Scene(new StackPane(owner), 400, 300);
+            new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
             dialog.show(owner);
 
             // BOX (default) renders a plain RXBox row in buttonTypes order (styled by CSS).
@@ -493,7 +449,7 @@ public class RXDialogTest {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = newDialog(ButtonType.OK);
             Region owner = new Region();
-            StackPane root = new StackPane(owner);
+            RXOverlayPane root = new RXOverlayPane(new StackPane(owner));
             new Scene(root, 400, 300);
             dialog.show(owner);
             root.applyCss();
@@ -508,11 +464,11 @@ public class RXDialogTest {
     }
 
     @Test
-    public void showWithoutOwnerOrContainerThrows() throws Exception {
+    public void showWithoutOwnerThrows() throws Exception {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = new RXDialog<>();
             assertThrows(IllegalStateException.class, dialog::show,
-                    "show() with no owner / container should fail clearly");
+                    "show() with no owner should fail clearly");
         });
     }
 
@@ -573,7 +529,7 @@ public class RXDialogTest {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
             dialog.setEnableDraggable(true);
-            StackPane root = showAndLayout(dialog, 800, 600);
+            Region root = showAndLayout(dialog, 800, 600);
             Region card = card(dialog);
             pressDragRelease(card, card.getWidth() / 2, 24, 300, 200);
 
@@ -814,7 +770,7 @@ public class RXDialogTest {
             fire(closeButton, MouseEvent.MOUSE_PRESSED, press.getX(), press.getY(), MouseButton.PRIMARY, true);
             fire(closeButton, MouseEvent.MOUSE_DRAGGED, press.getX() + 120, press.getY() + 120, MouseButton.NONE, true);
             fire(closeButton, MouseEvent.MOUSE_RELEASED, press.getX() + 120, press.getY() + 120, MouseButton.PRIMARY, false);
-            layoutTree((StackPane) card.getScene().getRoot(), 800, 600);
+            layoutTree((Region) card.getScene().getRoot(), 800, 600);
 
             assertEquals(x0, card.getLayoutX(), 0.5, "a press on the close button does not drag the card");
             assertTrue(dialog.isShowing(), "the excluded press-drag did not close the dialog");
@@ -834,13 +790,13 @@ public class RXDialogTest {
             Point2D press = card.localToScene(card.getWidth() / 2, 24);
             fire(card, MouseEvent.MOUSE_PRESSED, press.getX(), press.getY(), MouseButton.PRIMARY, true);
             fire(card, MouseEvent.MOUSE_DRAGGED, press.getX() + 100, press.getY(), MouseButton.NONE, true);
-            layoutTree((StackPane) card.getScene().getRoot(), 800, 600);
+            layoutTree((Region) card.getScene().getRoot(), 800, 600);
             assertEquals(x0 + 100, card.getLayoutX(), 2.0, "card follows the drag");
 
             // Disabling mid-drag cancels the gesture but keeps the current position (§3.4 #10).
             dialog.setEnableDraggable(false);
             fire(card, MouseEvent.MOUSE_DRAGGED, press.getX() + 200, press.getY(), MouseButton.NONE, true);
-            layoutTree((StackPane) card.getScene().getRoot(), 800, 600);
+            layoutTree((Region) card.getScene().getRoot(), 800, 600);
             assertEquals(x0 + 100, card.getLayoutX(), 2.0,
                     "disabling cancels further dragging and keeps the position (no recenter)");
 
@@ -861,13 +817,13 @@ public class RXDialogTest {
             Point2D press = card.localToScene(card.getWidth() - 3, card.getHeight() / 2);
             fire(card, MouseEvent.MOUSE_PRESSED, press.getX(), press.getY(), MouseButton.PRIMARY, true);
             fire(card, MouseEvent.MOUSE_DRAGGED, press.getX() + 100, press.getY(), MouseButton.NONE, true);
-            layoutTree((StackPane) card.getScene().getRoot(), 800, 600);
+            layoutTree((Region) card.getScene().getRoot(), 800, 600);
             assertEquals(w0 + 200, card.getWidth(), 2.0, "card grows during the resize (twice the drag)");
 
             // Disabling mid-resize cancels the gesture but keeps the current size (§3.4 #10).
             dialog.setEnableResizable(false);
             fire(card, MouseEvent.MOUSE_DRAGGED, press.getX() + 200, press.getY(), MouseButton.NONE, true);
-            layoutTree((StackPane) card.getScene().getRoot(), 800, 600);
+            layoutTree((Region) card.getScene().getRoot(), 800, 600);
             assertEquals(w0 + 200, card.getWidth(), 2.0,
                     "disabling cancels further resizing and keeps the size (no reset to auto)");
 
@@ -1046,7 +1002,7 @@ public class RXDialogTest {
             RXDialog<ButtonType> dialog = newDialog(ButtonType.OK);
             dialog.setModal(false);
             Region owner = new Region();
-            new Scene(new StackPane(owner), 400, 300);
+            new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
             dialog.show(owner);
 
             assertFalse(dialog.isPickOnBounds(),
@@ -1070,7 +1026,7 @@ public class RXDialogTest {
         runOnFx(() -> {
             RXDialog<ButtonType> dialog = gestureDialog();
             Region owner = new Region();
-            StackPane root = new StackPane(owner);
+            RXOverlayPane root = new RXOverlayPane(new StackPane(owner));
             new Scene(root, 400, 300);
             dialog.show(owner);
             layoutTree(root, 400, 300);
@@ -1109,16 +1065,16 @@ public class RXDialogTest {
     }
 
     // Shows the dialog over a fresh sized scene and runs a deterministic layout pass.
-    private static StackPane showAndLayout(RXDialog<?> dialog, double width, double height) {
+    private static Region showAndLayout(RXDialog<?> dialog, double width, double height) {
         Region owner = new Region();
-        StackPane root = new StackPane(owner);
+        RXOverlayPane root = new RXOverlayPane(new StackPane(owner));
         new Scene(root, width, height);
         dialog.show(owner);
         return layoutTree(root, width, height);
     }
 
     // Forces the whole scene-graph (layer, dialog control, card) to lay out at a known size.
-    private static StackPane layoutTree(StackPane root, double width, double height) {
+    private static Region layoutTree(Region root, double width, double height) {
         root.resize(width, height);
         root.applyCss();
         root.layout();

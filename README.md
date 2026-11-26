@@ -319,7 +319,7 @@ Public cell types are `RXListCell<T>`, `RXListSectionCell`, `RXTileCell<T>`, `RX
 | `RXBadge` | Count, text, or dot indicator attached to a content corner or used standalone. |
 | `RXRibbonBadge` | Folded text ribbon crossing the top start/end edge of content. |
 
-`RXBursts` is a scene-overlay facade that can play particle bursts from any node or local coordinate; `RXBurstOptions` configures a burst.
+`RXBursts` is a facade that plays particle bursts from any node or local coordinate, drawn in the nearest `RXOverlayPane` above that node; `RXBurstOptions` configures a burst.
 
 ### Navigation, disclosure, menus, and overlays
 
@@ -333,12 +333,21 @@ Public cell types are `RXListCell<T>`, `RXListSectionCell`, `RXTileCell<T>`, `RX
 | `RXMenuList` | Inline list of RXControls menu models. |
 | `RXMenuButton` | Menu invoker button. |
 | `RXDrawerPane` | Temporary in-scene side drawer over a main content slot. |
-| `RXDialog<R>` | In-scene modal overlay dialog with vetoable close and asynchronous result delivery. |
+| `RXOverlayPane` | Host for dialogs, snackbars, and bursts: one content slot with the overlay layers above it. |
+| `RXDialog<R>` | Modal dialog shown inside an `RXOverlayPane`, with vetoable close and asynchronous result delivery. |
 | `RXDialogContent` | Ready-made title/body content for `RXDialog`. |
 | `RXDialogContentBase` | Dialog-aware base Region for custom dialog content. |
 | `RXSnackbarHost` | Snackbar display, queue, replacement, and dismissal lifecycle host. |
 
 Non-Node facades in this family are `RXPopupMenu`, `RXDialogs`, and `RXSnackbars`.
+
+Dialogs, snackbars, and bursts are shown in the nearest `RXOverlayPane` above the node they are requested from, so an application wraps its scene root in one:
+
+```java
+stage.setScene(new Scene(new RXOverlayPane(root), 960, 620));
+```
+
+When the owner is in a scene with no pane above it, showing a dialog or a snackbar throws `IllegalStateException`, and a burst is not played. A pane placed around a part of the scene keeps the overlays requested from inside that part within it.
 
 ## Complete public API index
 

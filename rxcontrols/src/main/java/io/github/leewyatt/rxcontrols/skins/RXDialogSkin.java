@@ -740,10 +740,30 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     }
 
     private void restoreFocus() {
-        if (prevFocusOwner != null && prevFocusOwner.getScene() != null) {
+        // The dialog took focus for the pane it is modal for. Focus that has since moved
+        // outside that pane is where the user works now, and stays there.
+        if (prevFocusOwner != null && prevFocusOwner.getScene() != null
+                && !isOutsideCoveredPane(prevFocusOwner.getScene().getFocusOwner())) {
             prevFocusOwner.requestFocus();
         }
         prevFocusOwner = null;
+    }
+
+    // The dialog's layer fills the overlay pane, so that pane is the parent of the layer.
+    // A node counts as outside only when its parents lead to the scene root without passing
+    // the pane. A chain that ends earlier has reached the root of a sub-scene, which may
+    // sit inside the pane or the dialog itself, and focus is then given back.
+    private boolean isOutsideCoveredPane(Node node) {
+        Parent layer = getSkinnable().getParent();
+        Parent pane = layer == null ? null : layer.getParent();
+        if (node == null || pane == null) {
+            return false;
+        }
+        Node top = node;
+        while (top != pane && top.getParent() != null) {
+            top = top.getParent();
+        }
+        return top != pane && top.getScene() != null && top == top.getScene().getRoot();
     }
 
     private Node firstFocusTarget() {

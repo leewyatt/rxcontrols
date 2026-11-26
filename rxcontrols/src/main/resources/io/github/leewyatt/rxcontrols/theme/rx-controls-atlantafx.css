@@ -30,8 +30,8 @@
     -fx-background-radius: 4px;
 }
 
-/* The burst overlay has no scope ancestor in a popup or over a wrapped root,
-   so its accent mapping is unscoped here, where the bridge's author sheet
+/* The burst layer of an overlay pane in a popup has no scope ancestor, so
+   its accent mapping is unscoped here, where the bridge's author sheet
    reaches every window of the scene. */
 .rx-burst-layer {
     -rx-burst-color: -color-accent-emphasis;
