@@ -5809,6 +5809,51 @@
     -fx-shape: "M 22 0 L 24 0 L 24 2 L 2 24 L 0 24 L 0 22 Z";
 }
 
+.rx-color-view .inputs,
+.rx-color-view .inputs > .fields {
+    -fx-spacing: 4px;
+}
+
+.rx-color-view .inputs .text-field {
+    -fx-font-size: 0.916667em; /* 11 */
+}
+
+.rx-color-view .inputs .text-field:invalid {
+    -fx-text-fill: -rx-danger;
+}
+
+.rx-color-view .inputs .text-field .prefix,
+.rx-color-view .inputs .text-field .suffix {
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.rx-color-view .format-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 4px;
+    -fx-padding: 0.25em 0.333333em;
+}
+
+.rx-color-view .format-button:hover,
+.rx-color-view .format-button:focused {
+    -fx-background-color: -rx-surface-variant;
+}
+
+.rx-color-view .format-button > .content {
+    -fx-spacing: 4px;
+}
+
+.rx-color-view .format-button .text {
+    -fx-text-fill: -rx-on-surface;
+    -fx-font-size: 0.916667em; /* 11 */
+}
+
+.rx-color-view .format-button .arrow {
+    -fx-pref-width: 8px;
+    -fx-pref-height: 5px;
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-shape: "M 0 0 L 8 0 L 4 5 Z";
+}
+
 .rx-color-view:disabled {
     -fx-opacity: 0.4;
 }

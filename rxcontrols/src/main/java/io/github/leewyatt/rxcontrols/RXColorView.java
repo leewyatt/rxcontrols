@@ -9,6 +9,7 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -20,8 +21,10 @@ import java.util.function.BooleanSupplier;
 
 /**
  * A color editing panel that can be placed in any layout: a
- * saturation / brightness area, a hue slider, an opacity slider and a preview
- * of the current color. {@link RXColorPicker} shows the same panel in a popup.
+ * saturation / brightness area, a hue slider, an opacity slider, a preview of
+ * the current color, and input fields in the {@link #formatProperty() format}
+ * the user picks (hex, RGB or HSB, plus the opacity in percent).
+ * {@link RXColorPicker} shows the same panel in a popup.
  *
  * <p><b>Value.</b> {@link #valueProperty() value} is the current color, and
  * {@code null} means no color. Every user edit writes it at once, while the
@@ -42,6 +45,15 @@ import java.util.function.BooleanSupplier;
  * that ends because the view is hidden reports its action after the hide has
  * completed.
  *
+ * <p><b>Input fields.</b> A field applies its text while the user types, as
+ * soon as it is a complete value: six or eight hex digits (eight include the
+ * opacity; six keep it), or a number in range. Enter or leaving the field
+ * finishes the edit: three or four digit hex is accepted then, numbers out of
+ * range are clamped, and text that is not a value is replaced by the current
+ * one. Escape restores the current value. Up / Down step a number by 1 (10
+ * with Shift). While a field holds text that is not a value it has the
+ * {@code :invalid} pseudo-class.
+ *
  * <p><b>Bound value.</b> While the value is bound the panel takes no input.
  *
  * <p><b>Keyboard.</b> The area, the hue slider and the opacity slider are
@@ -57,7 +69,8 @@ import java.util.function.BooleanSupplier;
  * {@code .layers} ({@code .hue-layer}, {@code .saturation-layer},
  * {@code .brightness-layer}) and {@code .handle}; {@code .sliders} with
  * {@code .hue-slider} and {@code .alpha-slider}, each holding a {@code .track}
- * and a {@code .thumb}; {@code .preview}. The area and the sliders carry
+ * and a {@code .thumb}; {@code .preview}; {@code .inputs} with the
+ * {@code .format-button} and {@code .text-field}s. The area and the sliders carry
  * {@code :focus-shown} while focused from the keyboard. Use the view on the
  * JavaFX Application Thread.
  */
@@ -189,6 +202,39 @@ public class RXColorView extends Control {
      */
     public final boolean isValueChanging() {
         return valueChanging.get();
+    }
+
+    // ==================== Format ====================
+
+    private final ObjectProperty<RXColorFormat> format = new SimpleObjectProperty<>(this, "format", RXColorFormat.HEX);
+
+    /**
+     * The format of the input fields. The user switches it in the panel, which
+     * writes this property; it only changes the display. {@code null} shows hex.
+     * Defaults to {@link RXColorFormat#HEX}.
+     *
+     * @return the format property
+     */
+    public final ObjectProperty<RXColorFormat> formatProperty() {
+        return format;
+    }
+
+    /**
+     * Returns the format of the input fields.
+     *
+     * @return the format, or {@code null} for hex
+     */
+    public final RXColorFormat getFormat() {
+        return format.get();
+    }
+
+    /**
+     * Sets the format of the input fields.
+     *
+     * @param value the format, or {@code null} for hex
+     */
+    public final void setFormat(RXColorFormat value) {
+        format.set(value);
     }
 
     // ==================== Alpha Enabled ====================

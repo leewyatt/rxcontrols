@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.RXColorFormat;
 import io.github.leewyatt.rxcontrols.RXColorView;
 import io.github.leewyatt.rxcontrols.internal.color.Checkerboard;
 import io.github.leewyatt.rxcontrols.internal.color.ColorArea;
@@ -70,6 +71,7 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
     private final VBox sliders = new VBox();
     private final ColorSwatch preview = new ColorSwatch("preview");
     private final HBox sliderRow = new HBox();
+    private final ColorInputRow inputRow = new ColorInputRow(new InputHost());
 
     // ==================== State ====================
 
@@ -115,7 +117,7 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
         sliderRow.getChildren().addAll(sliders, preview);
 
         VBox.setVgrow(area, Priority.ALWAYS);
-        content.getChildren().addAll(area, sliderRow);
+        content.getChildren().addAll(area, sliderRow, inputRow.node());
 
         // Weak: setSkin drops a skin of the installed class without disposing it,
         // and nothing else may keep such a skin reachable from the view.
@@ -139,7 +141,18 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
         getChildren().setAll(content);
 
         disposer.registerListener(control.valueProperty(), live(this::onValueChanged));
-        disposer.registerListener(control.alphaEnabledProperty(), live(this::onAlphaEnabledChanged));
+        disposer.registerListener(control.alphaEnabledProperty(), live(() -> {
+            onAlphaEnabledChanged();
+            refresh();
+        }));
+        disposer.registerListener(control.formatProperty(), live(inputRow::cancelEdits));
+        // The fields' own actions (Enter) and other inner actions bubble here; only
+        // the view's completed-edit action may reach its handlers.
+        disposer.registerEventFilter(control, ActionEvent.ACTION, event -> {
+            if (event.getTarget() != control) {
+                event.consume();
+            }
+        });
         disposer.registerListener(control.disabledProperty(), live(() -> {
             if (control.isDisabled()) {
                 endInteraction();
@@ -148,6 +161,9 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
         disposer.registerListener(controlTreeShowingProperty(), live(() -> {
             if (!controlTreeShowingProperty().get()) {
                 endInteraction();
+                if (!disposed) {
+                    inputRow.cancelEdits();
+                }
             }
         }));
 
@@ -165,6 +181,7 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
         FocusShownTracker.install(area, disposer);
         FocusShownTracker.install(hueSlider, disposer);
         FocusShownTracker.install(alphaSlider, disposer);
+        inputRow.install(disposer);
         disposer.registerDisposeTask(() -> {
             area.setAccessibleStep(null);
             hueSlider.setAccessibleStep(null);
@@ -245,6 +262,17 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
         Color color = ColorMath.quantize(
                 Color.color(base.getRed(), base.getGreen(), base.getBlue(), ColorMath.clean01(opacity)));
         cursor.changeOpacity(color.getOpacity());
+        write(color);
+    }
+
+    /** Writes a whole color (a preset, a typed hex or RGB value) and moves the cursor to it. */
+    private void editTarget(Color target) {
+        Color color = target;
+        if (!getSkinnable().isAlphaEnabled()) {
+            color = Color.color(color.getRed(), color.getGreen(), color.getBlue());
+        }
+        color = ColorMath.quantize(color);
+        cursor.absorb(color);
         write(color);
     }
 
@@ -522,6 +550,76 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
         alphaSlider.setAccessibleState(percent, PERCENT, "Alpha " + percent + "%");
 
         preview.showColor(value);
+        inputRow.refresh();
+    }
+
+    // ==================== Input row host ====================
+
+    private final class InputHost implements ColorInputRow.Host {
+
+        @Override
+        public boolean editable() {
+            return RXColorViewSkin.this.editable();
+        }
+
+        @Override
+        public Color shownColor() {
+            Color value = getSkinnable().getValue();
+            return value != null ? value : cursor.toColor();
+        }
+
+        @Override
+        public HsbaCursor cursor() {
+            return cursor;
+        }
+
+        @Override
+        public RXColorFormat format() {
+            RXColorFormat format = getSkinnable().getFormat();
+            return format == null ? RXColorFormat.HEX : format;
+        }
+
+        @Override
+        public void pickFormat(RXColorFormat format) {
+            RXColorView control = getSkinnable();
+            if (!disposed && !control.formatProperty().isBound()) {
+                control.setFormat(format);
+            }
+        }
+
+        @Override
+        public boolean alphaEnabled() {
+            return getSkinnable().isAlphaEnabled();
+        }
+
+        @Override
+        public void editCursor(Runnable change) {
+            if (editable()) {
+                change.run();
+                writeCursor();
+            }
+        }
+
+        @Override
+        public void editColor(Color color) {
+            if (editable()) {
+                editTarget(color);
+            }
+        }
+
+        @Override
+        public void editOpacity(double opacity) {
+            if (editable()) {
+                RXColorViewSkin.this.editOpacity(opacity);
+            }
+        }
+
+        @Override
+        public void finishEdit() {
+            if (!disposed) {
+                commit();
+            }
+        }
     }
 
     // ==================== Layout ====================
