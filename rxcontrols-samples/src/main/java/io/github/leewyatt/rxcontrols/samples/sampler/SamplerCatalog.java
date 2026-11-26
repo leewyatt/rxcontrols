@@ -15,6 +15,8 @@ import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXCalendarView;
 import io.github.leewyatt.rxcontrols.RXCarousel;
 import io.github.leewyatt.rxcontrols.RXCascader;
+import io.github.leewyatt.rxcontrols.RXColorPicker;
+import io.github.leewyatt.rxcontrols.RXColorView;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.RXCheckBox;
 import io.github.leewyatt.rxcontrols.RXChip;
@@ -138,6 +140,8 @@ import io.github.leewyatt.rxcontrols.samples.demo.RXCopyButtonDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXDatePickerDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXDateRangePickerDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXDateRangeViewDemo;
+import io.github.leewyatt.rxcontrols.samples.demo.RXColorPickerDemo;
+import io.github.leewyatt.rxcontrols.samples.demo.RXColorViewDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXDateTimePickerDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXDateTimeRangePickerDemo;
 import io.github.leewyatt.rxcontrols.samples.demo.RXDateTimeViewDemo;
@@ -278,6 +282,7 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXQuarterRangeSamples
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXQuarterSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRadioButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRangeSliderSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXColorSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRatingSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXReactionButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRibbonBadgeSamples;
@@ -389,6 +394,8 @@ import io.github.leewyatt.rxcontrols.samples.showcase.RXQuarterRangeViewShowcase
 import io.github.leewyatt.rxcontrols.samples.showcase.RXQuarterViewShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXRadioButtonShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXRangeSliderShowcase;
+import io.github.leewyatt.rxcontrols.samples.showcase.RXColorPickerShowcase;
+import io.github.leewyatt.rxcontrols.samples.showcase.RXColorViewShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXRatingShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXReactionButtonShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXRibbonBadgeShowcase;
@@ -535,6 +542,10 @@ final class SamplerCatalog {
                 .withSamples(RXAutoCompletionSamples::create));
         list.add(single(c, RXChipInput.class, RXChipInputShowcase::new, RXChipInputDemo.class)
                 .withSamples(RXChipInputSamples::create));
+        list.add(family(c, "RXColor",
+                variant("Picker", RXColorPicker.class, RXColorPickerShowcase::new, RXColorPickerDemo.class),
+                variant("View", RXColorView.class, RXColorViewShowcase::new, RXColorViewDemo.class))
+                .withSamples(RXColorSamples::create));
 
         c = SamplerCategory.DATE_TIME;
         list.add(family(c, "RXDate",

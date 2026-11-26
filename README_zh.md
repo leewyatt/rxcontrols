@@ -218,6 +218,8 @@ Sampler 适合比较职责相近的组件、交互式验证属性、切换主题
 | `RXRangeSlider` | 带整段拖动和最小间距的 low/high 双 thumb 范围编辑器。 |
 | `RXSeekBar` | 带主进度、secondary/buffer 进度和 seeking 状态的归一化媒体进度条。 |
 | `RXRating` | 星级评分：任意小数精确绘制，输入支持整星、半星或任意小数，悬停只预览不提交。 |
+| `RXColorView` | 可嵌入的颜色面板：饱和度/亮度区、色相与透明度滑条、HEX/RGB/HSB 输入、可选清除按钮和可折叠的预设分组。 |
+| `RXColorPicker` | 色块字段，点击后在弹层中打开 `RXColorView`；编辑实时生效，每次完成的编辑触发一次 `onAction`。 |
 | `RXSelectionBox<T>` | 支持搜索和 section 的应用值选择框。 |
 | `RXDigit` | 纯展示的单个七段数码字形。 |
 
@@ -488,7 +490,7 @@ owner 在场景里而上方没有宿主时，显示 Dialog 或 Snackbar 会抛 `
 - 文本和数字字段：`RXAutoCompleteFieldSkin`、`RXMaterialPasswordFieldSkin`、`RXMaterialTextFieldSkin`、`RXPasswordFieldSkin`、`RXTextFieldSkin`。
 - 日期时间控件：`RXCalendarViewSkin`、`RXDatePickerSkin`、`RXDateRangePickerSkin`、`RXDateRangeViewSkin`、`RXDateTimePickerSkin`、`RXDateTimeRangePickerSkin`、`RXDateTimeViewSkin`、`RXMonthPickerSkin`、`RXMonthRangePickerSkin`、`RXMonthRangeViewSkin`、`RXMonthViewSkin`、`RXQuarterPickerSkin`、`RXQuarterRangePickerSkin`、`RXQuarterRangeViewSkin`、`RXQuarterViewSkin`、`RXTimePickerSkin`、`RXTimeRangePickerSkin`、`RXTimeViewSkin`、`RXWeekPickerSkin`、`RXWeekRangePickerSkin`、`RXWeekRangeViewSkin`、`RXWeekViewSkin`、`RXYearPickerSkin`、`RXYearRangePickerSkin`、`RXYearRangeViewSkin`、`RXYearViewSkin`。
 - 数据视图与 Cell：`RXCascaderSkin`、`RXCascaderViewSkin`、`RXKanbanCardCellSkin`、`RXKanbanViewSkin`、`RXListCellSkin`、`RXListSectionCellSkin`、`RXListViewSkin`、`RXMasonryViewSkin`、`RXTileViewSkin`。
-- 媒体、文本、转场与数值控件：`RXHighlightTextViewSkin`、`RXLrcLineViewSkin`、`RXLrcViewSkin`、`RXRangeSliderSkin`、`RXRatingSkin`、`RXSeekBarSkin`、`RXSegmentedProgressBarSkin`、`RXSegmentedStepIndicatorSkin`、`RXSliderSkin`、`RXTextViewSkin`、`RXTransitionPaneSkin`、`RXWaveProgressIndicatorSkin`。
+- 媒体、文本、转场与数值控件：`RXHighlightTextViewSkin`、`RXLrcLineViewSkin`、`RXLrcViewSkin`、`RXColorPickerSkin`、`RXColorViewSkin`、`RXRangeSliderSkin`、`RXRatingSkin`、`RXSeekBarSkin`、`RXSegmentedProgressBarSkin`、`RXSegmentedStepIndicatorSkin`、`RXSliderSkin`、`RXTextViewSkin`、`RXTransitionPaneSkin`、`RXWaveProgressIndicatorSkin`。
 
 ### 工具与主题集成
 

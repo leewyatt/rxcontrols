@@ -218,6 +218,8 @@ The following sections list the directly usable public UI components. Companion 
 | `RXRangeSlider` | Two-thumb low/high range editor with range dragging and minimum gap support. |
 | `RXSeekBar` | Normalized media seek bar with primary progress, secondary/buffer progress, and seeking state. |
 | `RXRating` | Star rating that draws any fraction exactly, takes whole, half or free-fraction steps, and previews on hover without committing. |
+| `RXColorView` | Embeddable color panel: saturation/brightness area, hue and opacity sliders, hex/RGB/HSB inputs, optional clear button and collapsible preset groups. |
+| `RXColorPicker` | Color swatch field that opens an `RXColorView` in a popup; edits apply live and `onAction` fires once per completed edit. |
 | `RXSelectionBox<T>` | Searchable, section-capable selection field for application values. |
 | `RXDigit` | Decorative single seven-segment numeric glyph. |
 
@@ -488,7 +490,7 @@ Package `io.github.leewyatt.rxcontrols.skins` exports the default skins so appli
 - Text and number fields: `RXAutoCompleteFieldSkin`, `RXMaterialPasswordFieldSkin`, `RXMaterialTextFieldSkin`, `RXPasswordFieldSkin`, `RXTextFieldSkin`.
 - Date/time controls: `RXCalendarViewSkin`, `RXDatePickerSkin`, `RXDateRangePickerSkin`, `RXDateRangeViewSkin`, `RXDateTimePickerSkin`, `RXDateTimeRangePickerSkin`, `RXDateTimeViewSkin`, `RXMonthPickerSkin`, `RXMonthRangePickerSkin`, `RXMonthRangeViewSkin`, `RXMonthViewSkin`, `RXQuarterPickerSkin`, `RXQuarterRangePickerSkin`, `RXQuarterRangeViewSkin`, `RXQuarterViewSkin`, `RXTimePickerSkin`, `RXTimeRangePickerSkin`, `RXTimeViewSkin`, `RXWeekPickerSkin`, `RXWeekRangePickerSkin`, `RXWeekRangeViewSkin`, `RXWeekViewSkin`, `RXYearPickerSkin`, `RXYearRangePickerSkin`, `RXYearRangeViewSkin`, `RXYearViewSkin`.
 - Data views and cells: `RXCascaderSkin`, `RXCascaderViewSkin`, `RXKanbanCardCellSkin`, `RXKanbanViewSkin`, `RXListCellSkin`, `RXListSectionCellSkin`, `RXListViewSkin`, `RXMasonryViewSkin`, `RXTileViewSkin`.
-- Media, text, transition, and value controls: `RXHighlightTextViewSkin`, `RXLrcLineViewSkin`, `RXLrcViewSkin`, `RXRangeSliderSkin`, `RXRatingSkin`, `RXSeekBarSkin`, `RXSegmentedProgressBarSkin`, `RXSegmentedStepIndicatorSkin`, `RXSliderSkin`, `RXTextViewSkin`, `RXTransitionPaneSkin`, `RXWaveProgressIndicatorSkin`.
+- Media, text, transition, and value controls: `RXHighlightTextViewSkin`, `RXLrcLineViewSkin`, `RXLrcViewSkin`, `RXColorPickerSkin`, `RXColorViewSkin`, `RXRangeSliderSkin`, `RXRatingSkin`, `RXSeekBarSkin`, `RXSegmentedProgressBarSkin`, `RXSegmentedStepIndicatorSkin`, `RXSliderSkin`, `RXTextViewSkin`, `RXTransitionPaneSkin`, `RXWaveProgressIndicatorSkin`.
 
 ### Utilities and theme integration
 
