@@ -606,9 +606,9 @@ public class RXRangeSliderTest {
     public void majorTickUnitCoercesNonPositive() {
         RXRangeSlider slider = new RXRangeSlider();
         slider.setMajorTickUnit(-5.0);
-        assertEquals(RXRangeSlider.DEFAULT_MAJOR_TICK_UNIT, slider.getMajorTickUnit(), EPSILON);
+        assertEquals(25.0, slider.getMajorTickUnit(), EPSILON);
         slider.setMajorTickUnit(0.0);
-        assertEquals(RXRangeSlider.DEFAULT_MAJOR_TICK_UNIT, slider.getMajorTickUnit(), EPSILON);
+        assertEquals(25.0, slider.getMajorTickUnit(), EPSILON);
     }
 
     /**
