@@ -321,6 +321,31 @@ public class RXOverlayPaneTest {
         });
     }
 
+    @Test
+    public void aSizeAskedForBetweenNestedContentChangesIsNotKept() throws Exception {
+        onFx(() -> {
+            Region first = new Region();
+            first.setPrefSize(70.0, 30.0);
+            Region second = new Region();
+            second.setPrefSize(140.0, 60.0);
+            RXOverlayPane pane = new RXOverlayPane(first);
+            HBox row = new HBox(pane);
+            new Scene(row, 400.0, 300.0);
+            row.layout();
+            // Away from the page that has just arrived, a look at the size, and back to it.
+            pane.getChildrenUnmodifiable().addListener((ListChangeListener<Node>) change -> {
+                pane.setContent(null);
+                pane.prefWidth(-1.0);
+                pane.setContent(second);
+            });
+
+            pane.setContent(second);
+            assertEquals(140.0, pane.prefWidth(-1.0));
+            row.layout();
+            assertEquals(140.0, second.getWidth(), "the row gives the page its width");
+        });
+    }
+
     // ==================== Size and layout ====================
 
     @Test

@@ -414,14 +414,17 @@ public class RXOverlayPane extends Region {
                     children.add(0, next);
                 }
                 currentContent = next;
+                // A size asked for while the field was behind the child list may be that
+                // of another content, and must not stay cached.
+                requestLayout();
             }
         } finally {
             updatingContent = false;
         }
     }
 
-    // The property names the new content as soon as it is in the child list, before the
-    // field follows; a size asked for by a listener of that change is then already right.
+    // While the child list changes, the field still names the old content. The property
+    // is asked first: it names the new one, unless a listener has set it again.
     private Node managedContent() {
         Node node = getContent();
         if (node == null || node.getParent() != this) {
