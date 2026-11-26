@@ -76,6 +76,22 @@ import java.util.Objects;
  * bottom edges (8 px thick by default) and in its bottom-right corner, so they never reach past the card, and
  * {@code -fx-pref-width} / {@code -fx-pref-height} change their size. The default padding keeps the content clear of
  * them; content that reaches the card's edges gets no presses under them while the card can be resized.</p>
+ *
+ * <p>In FXML, {@code column}, {@code row}, {@code columnSpan} and {@code rowSpan} are arguments of the constructor
+ * rather than properties, since the pane owns a card's position once it is added. A node that FXML builds through a
+ * constructor takes the {@code styleClass} attribute as one style class, so {@code styleClass="a, b"} adds a single
+ * class named {@code "a, b"}, and of several values written straight into a {@code <styleClass>} element only the
+ * first is kept. To give a card more than one style class in FXML, put them in one list inside the element:</p>
+ * <pre>{@code
+ * <RXDashboardCard cardId="sales" column="0" row="0">
+ *     <styleClass>
+ *         <FXCollections fx:factory="observableArrayList">
+ *             <String fx:value="accent"/>
+ *             <String fx:value="compact"/>
+ *         </FXCollections>
+ *     </styleClass>
+ * </RXDashboardCard>
+ * }</pre>
  */
 public class RXDashboardCard extends Region {
 
