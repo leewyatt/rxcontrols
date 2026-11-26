@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
 import io.github.leewyatt.rxcontrols.skins.RXRangeSliderSkin;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.event.EventType;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Bounds;
@@ -252,6 +253,33 @@ public class RXRangeSliderTest {
         slider.setValues(35.0, 65.0);
         assertEquals(35.0, slider.getLowValue(), EPSILON);
         assertEquals(65.0, slider.getHighValue(), EPSILON);
+    }
+
+    /**
+     * Verifies {@code setValues} gives the written selection when an old value is
+     * NaN or a binding left the two out of order.
+     */
+    @Test
+    public void setValuesReplacesValuesThatAreNotASelection() {
+        RXRangeSlider lowNaN = new RXRangeSlider(0.0, 100.0, 20.0, 60.0);
+        lowNaN.setLowValue(Double.NaN);
+        lowNaN.setValues(70.0, 90.0);
+        assertEquals(70.0, lowNaN.getLowValue(), EPSILON);
+        assertEquals(90.0, lowNaN.getHighValue(), EPSILON);
+
+        RXRangeSlider bothNaN = new RXRangeSlider(0.0, 100.0, 20.0, 60.0);
+        bothNaN.setMinGap(20.0);
+        bothNaN.setValues(40.0, Double.NaN);
+        bothNaN.setValues(95.0, 96.0);
+        assertEquals(80.0, bothNaN.getLowValue(), EPSILON);
+        assertEquals(100.0, bothNaN.getHighValue(), EPSILON);
+
+        RXRangeSlider released = new RXRangeSlider(0.0, 100.0, 20.0, 50.0);
+        released.lowValueProperty().bind(new SimpleDoubleProperty(90.0));
+        released.lowValueProperty().unbind();
+        released.setValues(70.0, 80.0);
+        assertEquals(70.0, released.getLowValue(), EPSILON);
+        assertEquals(80.0, released.getHighValue(), EPSILON);
     }
 
     /**

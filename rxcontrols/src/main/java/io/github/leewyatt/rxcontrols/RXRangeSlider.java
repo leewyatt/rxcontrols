@@ -537,7 +537,8 @@ public class RXRangeSlider extends Control {
      * one becomes the low value. Both are held within {@code [min, max]} and
      * {@link #minGapProperty() minGap} apart: a pair closer than the gap keeps its
      * low value and takes the high value the gap above it, or ends at the maximum
-     * when there is no room above.
+     * when there is no room above. Neither value may be bound: the call then fails
+     * as a write to the bound value does, possibly after the other one has changed.
      *
      * @param lowValue  one end of the selection
      * @param highValue the other end of the selection
@@ -548,6 +549,12 @@ public class RXRangeSlider extends Control {
         // Closer than the gap, the value written second would be the one to give way,
         // and which one that is depends on the old selection.
         high = Math.max(high, low + gap());
+        // The order below takes the old values for a selection. A pair that is not one,
+        // holding a NaN or left out of order by a binding, is first reset to the range.
+        if (!(getLowValue() <= getHighValue())) {
+            setHighValue(getMax());
+            setLowValue(getMin());
+        }
         // The value that moves away from the other one goes first, so every state in
         // between keeps its order and gap and neither write is held back.
         if (low > getLowValue()) {
