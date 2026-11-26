@@ -4,7 +4,9 @@ import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
 import io.github.leewyatt.rxcontrols.skins.RXRangeSliderSkin;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.event.EventType;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Bounds;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
@@ -25,6 +27,10 @@ import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -145,6 +151,216 @@ public class RXRangeSliderTest {
         assertEquals(40.0, range.getLowValue(), EPSILON);
         range.setMax(60.0);
         assertEquals(60.0, range.getHighValue(), EPSILON);
+    }
+
+    /**
+     * Verifies {@code setValues} reaches the given selection from below, from above
+     * and from the defaults, and takes its two arguments in either order.
+     */
+    @Test
+    public void setValuesReplacesTheSelectionFromAnywhere() {
+        RXRangeSlider up = new RXRangeSlider(0.0, 200.0, 20.0, 60.0);
+        up.setValues(80.0, 120.0);
+        assertEquals(80.0, up.getLowValue(), EPSILON);
+        assertEquals(120.0, up.getHighValue(), EPSILON);
+
+        RXRangeSlider down = new RXRangeSlider(0.0, 200.0, 80.0, 120.0);
+        down.setValues(20.0, 60.0);
+        assertEquals(20.0, down.getLowValue(), EPSILON);
+        assertEquals(60.0, down.getHighValue(), EPSILON);
+
+        RXRangeSlider wide = new RXRangeSlider();
+        wide.setMax(1000.0);
+        wide.setValues(200.0, 800.0);
+        assertEquals(200.0, wide.getLowValue(), EPSILON);
+        assertEquals(800.0, wide.getHighValue(), EPSILON);
+
+        RXRangeSlider negative = new RXRangeSlider();
+        negative.setMin(-500.0);
+        negative.setMax(-100.0);
+        negative.setValues(-400.0, -200.0);
+        assertEquals(-400.0, negative.getLowValue(), EPSILON);
+        assertEquals(-200.0, negative.getHighValue(), EPSILON);
+
+        RXRangeSlider swapped = new RXRangeSlider(0.0, 200.0, 20.0, 60.0);
+        swapped.setValues(120.0, 80.0);
+        assertEquals(80.0, swapped.getLowValue(), EPSILON);
+        assertEquals(120.0, swapped.getHighValue(), EPSILON);
+    }
+
+    /**
+     * Verifies {@code setValues} keeps both values inside the range and the gap
+     * between them.
+     */
+    @Test
+    public void setValuesHoldsTheRangeAndTheGap() {
+        RXRangeSlider bounds = new RXRangeSlider(0.0, 200.0, 20.0, 60.0);
+        bounds.setValues(-10.0, 500.0);
+        assertEquals(0.0, bounds.getLowValue(), EPSILON);
+        assertEquals(200.0, bounds.getHighValue(), EPSILON);
+
+        RXRangeSlider gapped = new RXRangeSlider(0.0, 100.0, 20.0, 60.0);
+        gapped.setMinGap(20.0);
+        gapped.setValues(70.0, 95.0);
+        assertEquals(70.0, gapped.getLowValue(), EPSILON);
+        assertEquals(95.0, gapped.getHighValue(), EPSILON);
+    }
+
+    /**
+     * Verifies a pair closer than the gap gives the same result from two different
+     * selections: the low value kept, the high value moved up to make room.
+     */
+    @Test
+    public void setValuesCloserThanTheGapIgnoresTheOldSelection() {
+        RXRangeSlider fromBelow = new RXRangeSlider(0.0, 100.0, 20.0, 45.0);
+        fromBelow.setMinGap(20.0);
+        fromBelow.setValues(50.0, 55.0);
+        assertEquals(50.0, fromBelow.getLowValue(), EPSILON);
+        assertEquals(70.0, fromBelow.getHighValue(), EPSILON);
+
+        RXRangeSlider fromAbove = new RXRangeSlider(0.0, 100.0, 70.0, 95.0);
+        fromAbove.setMinGap(20.0);
+        fromAbove.setValues(50.0, 55.0);
+        assertEquals(50.0, fromAbove.getLowValue(), EPSILON);
+        assertEquals(70.0, fromAbove.getHighValue(), EPSILON);
+
+        // No room above the low value: the pair ends against the maximum.
+        fromAbove.setValues(95.0, 96.0);
+        assertEquals(80.0, fromAbove.getLowValue(), EPSILON);
+        assertEquals(100.0, fromAbove.getHighValue(), EPSILON);
+    }
+
+    /**
+     * Verifies a NaN value is kept, as by the JavaFX slider, and gives way to the
+     * next valid value.
+     */
+    @Test
+    public void nanValueIsKeptUntilReplaced() {
+        RXRangeSlider slider = new RXRangeSlider(0.0, 100.0, 20.0, 60.0);
+        slider.setLowValue(Double.NaN);
+        assertTrue(Double.isNaN(slider.getLowValue()));
+        assertEquals(60.0, slider.getHighValue(), EPSILON);
+        slider.setLowValue(30.0);
+        assertEquals(30.0, slider.getLowValue(), EPSILON);
+
+        slider.setHighValue(Double.NaN);
+        assertTrue(Double.isNaN(slider.getHighValue()));
+        assertEquals(30.0, slider.getLowValue(), EPSILON);
+        slider.setHighValue(70.0);
+        assertEquals(70.0, slider.getHighValue(), EPSILON);
+
+        slider.setValues(40.0, Double.NaN);
+        slider.setValues(35.0, 65.0);
+        assertEquals(35.0, slider.getLowValue(), EPSILON);
+        assertEquals(65.0, slider.getHighValue(), EPSILON);
+    }
+
+    /**
+     * Verifies {@code setValues} gives the written selection when an old value is
+     * NaN or a binding left the two out of order.
+     */
+    @Test
+    public void setValuesReplacesValuesThatAreNotASelection() {
+        RXRangeSlider lowNaN = new RXRangeSlider(0.0, 100.0, 20.0, 60.0);
+        lowNaN.setLowValue(Double.NaN);
+        lowNaN.setValues(70.0, 90.0);
+        assertEquals(70.0, lowNaN.getLowValue(), EPSILON);
+        assertEquals(90.0, lowNaN.getHighValue(), EPSILON);
+
+        RXRangeSlider bothNaN = new RXRangeSlider(0.0, 100.0, 20.0, 60.0);
+        bothNaN.setMinGap(20.0);
+        bothNaN.setValues(40.0, Double.NaN);
+        bothNaN.setValues(95.0, 96.0);
+        assertEquals(80.0, bothNaN.getLowValue(), EPSILON);
+        assertEquals(100.0, bothNaN.getHighValue(), EPSILON);
+
+        RXRangeSlider released = new RXRangeSlider(0.0, 100.0, 20.0, 50.0);
+        released.lowValueProperty().bind(new SimpleDoubleProperty(90.0));
+        released.lowValueProperty().unbind();
+        released.setValues(70.0, 80.0);
+        assertEquals(70.0, released.getLowValue(), EPSILON);
+        assertEquals(80.0, released.getHighValue(), EPSILON);
+    }
+
+    /**
+     * Verifies {@code setValues} gives the written selection when released bindings
+     * left the old values closer than the gap or out of the range.
+     */
+    @Test
+    public void setValuesReplacesValuesLeftTooCloseOrOutOfRange() {
+        RXRangeSlider close = new RXRangeSlider(0.0, 100.0, 50.0, 55.0);
+        close.lowValueProperty().bind(new SimpleDoubleProperty(50.0));
+        close.highValueProperty().bind(new SimpleDoubleProperty(55.0));
+        close.setMinGap(20.0);
+        close.lowValueProperty().unbind();
+        close.highValueProperty().unbind();
+        close.setValues(45.0, 80.0);
+        assertEquals(45.0, close.getLowValue(), EPSILON);
+        assertEquals(80.0, close.getHighValue(), EPSILON);
+
+        RXRangeSlider outside = new RXRangeSlider(0.0, 100.0, 20.0, 60.0);
+        outside.highValueProperty().bind(new SimpleDoubleProperty(150.0));
+        outside.highValueProperty().unbind();
+        outside.setValues(140.0, 150.0);
+        assertEquals(100.0, outside.getLowValue(), EPSILON);
+        assertEquals(100.0, outside.getHighValue(), EPSILON);
+    }
+
+    /**
+     * Verifies {@code setValues} sends no value but the new one from a pair the
+     * slider holds exactly at a fractional gap.
+     */
+    @Test
+    public void setValuesFromAPairAtTheGapSendsOnlyTheNewValues() {
+        RXRangeSlider slider = new RXRangeSlider(0.0, 100.0, 40.0, 100.0);
+        slider.setMinGap(0.1);
+        slider.setLowValue(100.0);
+        List<Double> lows = new ArrayList<>();
+        List<Double> highs = new ArrayList<>();
+        slider.lowValueProperty().addListener((o, old, value) -> lows.add(value.doubleValue()));
+        slider.highValueProperty().addListener((o, old, value) -> highs.add(value.doubleValue()));
+        slider.setValues(50.0, 60.0);
+        assertEquals(List.of(50.0), lows);
+        assertEquals(List.of(60.0), highs);
+    }
+
+    /**
+     * Verifies the FXML forms given in the class documentation load the written
+     * selection.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void fxmlFormsFromTheDocumentationLoadTheSelection() throws Exception {
+        runOnFx(() -> {
+            RXRangeSlider plain = load("""
+                    <RXRangeSlider min="0" max="1000" lowValue="200" highValue="800"/>
+                    """);
+            assertEquals(200.0, plain.getLowValue(), EPSILON);
+            assertEquals(800.0, plain.getHighValue(), EPSILON);
+
+            StackPane root = load("""
+                    <StackPane xmlns:fx="http://javafx.com/fxml/1">
+                        <fx:define>
+                            <RXRangeSlider fx:id="priceRange" min="0" max="1000" lowValue="200" highValue="800"/>
+                        </fx:define>
+                        <fx:reference source="priceRange" prefWidth="300" styleClass="compact, accent"/>
+                    </StackPane>
+                    """);
+            RXRangeSlider referenced = (RXRangeSlider) root.getChildren().get(0);
+            assertEquals(200.0, referenced.getLowValue(), EPSILON);
+            assertEquals(800.0, referenced.getHighValue(), EPSILON);
+            assertEquals(300.0, referenced.getPrefWidth(), EPSILON);
+            assertTrue(referenced.getStyleClass().containsAll(List.of("compact", "accent")),
+                    "style classes " + referenced.getStyleClass());
+
+            RXRangeSlider withoutValues = load("""
+                    <RXRangeSlider min="0" max="1000" prefWidth="300"/>
+                    """);
+            withoutValues.setValues(200.0, 800.0);
+            assertEquals(200.0, withoutValues.getLowValue(), EPSILON);
+            assertEquals(800.0, withoutValues.getHighValue(), EPSILON);
+        });
     }
 
     /**
@@ -1444,6 +1660,19 @@ public class RXRangeSliderTest {
         region.resize(width, height);
         region.requestLayout();
         region.layout();
+    }
+
+    private static <T> T load(String body) {
+        String fxml = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <?import io.github.leewyatt.rxcontrols.RXRangeSlider?>
+                <?import javafx.scene.layout.StackPane?>
+                """ + body;
+        try {
+            return new FXMLLoader().load(new ByteArrayInputStream(fxml.getBytes(StandardCharsets.UTF_8)));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private static void runOnFx(Runnable action) throws Exception {

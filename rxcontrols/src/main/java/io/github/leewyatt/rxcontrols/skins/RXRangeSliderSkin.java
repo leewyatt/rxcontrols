@@ -436,7 +436,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
             setActiveRole(lowRole);
             updateBothFeedback();
         }
-        writePair(lowRole ? value : otherToken, lowRole ? otherToken : value);
+        control.setValues(lowRole ? value : otherToken, lowRole ? otherToken : value);
     }
 
     // With a gap the thumbs never cross. When they are drawn over each other, already
@@ -477,20 +477,6 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         return distance < low.getThumb().getWidth();
     }
 
-    // Writes an ordered pair: moving up, the high value goes first, moving down the low
-    // value does, so every intermediate state keeps its order and gap and nothing is
-    // clamped on the way.
-    private void writePair(double lowValue, double highValue) {
-        RXRangeSlider control = getSkinnable();
-        if (lowValue > control.getLowValue()) {
-            control.setHighValue(highValue);
-            control.setLowValue(lowValue);
-        } else {
-            control.setLowValue(lowValue);
-            control.setHighValue(highValue);
-        }
-    }
-
     // Ends a thumb or track gesture: snaps the dragged value, sorts it against the other
     // value and writes the final pair, and only then clears the flags, so a commit on
     // their falling edge reads the final values.
@@ -518,7 +504,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
                 setChanging(lowRole);
                 setActiveRole(lowRole);
             }
-            writePair(lowRole ? snapped : otherToken, lowRole ? otherToken : snapped);
+            control.setValues(lowRole ? snapped : otherToken, lowRole ? otherToken : snapped);
         }
         low.releaseInk();
         high.releaseInk();
@@ -639,7 +625,7 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
             newHigh = max;
             newLow = max - span;
         }
-        writePair(newLow, newHigh);
+        control.setValues(newLow, newHigh);
         event.consume();
     }
 
@@ -725,13 +711,13 @@ public class RXRangeSliderSkin extends RXSkinBase<RXRangeSlider> {
         double other = valueOf(!isLow);
         boolean lowRole = snapped < other || (snapped == other && isLow);
         if (lowRole == isLow) {
-            writePair(lowRole ? snapped : other, lowRole ? other : snapped);
+            control.setValues(lowRole ? snapped : other, lowRole ? other : snapped);
             return;
         }
         control.setLowValueChanging(true);
         control.setHighValueChanging(true);
         setActiveRole(lowRole);
-        writePair(lowRole ? snapped : other, lowRole ? other : snapped);
+        control.setValues(lowRole ? snapped : other, lowRole ? other : snapped);
         control.setLowValueChanging(false);
         control.setHighValueChanging(false);
     }
