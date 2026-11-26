@@ -16,7 +16,7 @@
  ******************************************************************************/
 .rx-accordion, .rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-badge, .rx-bar-spinner, .rx-border-beam, .rx-box, .rx-breadcrumb-bar, .rx-button,
 .rx-calendar-view, .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
-.rx-clip-path-image-view, .rx-col, .rx-color-view, .rx-content-pane, .rx-copy-button, .rx-dashboard-card, .rx-dashboard-pane, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
+.rx-clip-path-image-view, .rx-col, .rx-color-picker, .rx-color-view, .rx-content-pane, .rx-copy-button, .rx-dashboard-card, .rx-dashboard-pane, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-date-picker, .rx-date-range-picker, .rx-date-range-view, .rx-date-time-picker, .rx-date-time-range-picker, .rx-date-time-view, .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
 .rx-decimal-field, .rx-double-field, .rx-fab, .rx-highlight-text-view, .rx-hold-button,
 .rx-image-pane, .rx-image-view, .rx-integer-field,
@@ -128,6 +128,8 @@
 .rx-theme-atlantafx.rx-clip-path-image-view,
 .rx-theme-atlantafx .rx-col,
 .rx-theme-atlantafx.rx-col,
+.rx-theme-atlantafx .rx-color-picker,
+.rx-theme-atlantafx.rx-color-picker,
 .rx-theme-atlantafx .rx-color-view,
 .rx-theme-atlantafx.rx-color-view,
 .rx-theme-atlantafx .rx-content-pane,
@@ -5937,4 +5939,66 @@
 
 .rx-color-view:disabled {
     -fx-opacity: 0.4;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXColorPicker                                                               *
+ *                                                                             *
+ ******************************************************************************/
+.rx-color-picker {
+    -fx-background-color: -rx-outline, -rx-surface;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 6px, 5px;
+    -fx-padding: 4px;
+    -fx-cursor: hand;
+}
+
+.rx-color-picker:hover {
+    -fx-background-color: -rx-primary-hover, -rx-surface;
+}
+
+.rx-color-picker:focused,
+.rx-color-picker:showing {
+    -fx-background-color: -rx-focus, -rx-surface;
+}
+
+.rx-color-picker > .display {
+    -fx-spacing: 8px;
+}
+
+.rx-color-picker > .display > .text {
+    -fx-text-fill: -rx-on-surface;
+    -fx-padding: 0 4px 0 0;
+}
+
+.rx-color-picker .swatch {
+    -fx-background-color: transparent;
+    -fx-background-radius: 4px;
+}
+
+.rx-color-picker .swatch:empty {
+    -fx-background-color: white;
+}
+
+.rx-color-picker .swatch > .outline {
+    -fx-border-color: rgba(0, 0, 0, 0.12);
+    -fx-border-radius: 4px;
+}
+
+.rx-color-picker .swatch > .slash {
+    -fx-background-color: -rx-danger;
+    -fx-shape: "M 22 0 L 24 0 L 24 2 L 2 24 L 0 24 L 0 22 Z";
+}
+
+.rx-color-picker:disabled {
+    -fx-opacity: 0.4;
+}
+
+/* The popup content is the view itself; it carries the card and its shadow. */
+.rx-color-picker-popup .rx-color-view {
+    -fx-background-color: -rx-outline-variant, -rx-surface;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 8px, 7px;
+    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 16, 0.0, 0, 6);
 }

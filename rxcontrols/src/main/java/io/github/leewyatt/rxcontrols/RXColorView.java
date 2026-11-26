@@ -100,13 +100,17 @@ public class RXColorView extends Control {
         ColorViewAccess.install(
                 (view, changing) -> view.valueChanging.set(changing),
                 (view, lock) -> view.inputLock = lock,
-                view -> view.inputLock);
+                view -> view.inputLock,
+                (view, canceller) -> view.editCanceller = canceller,
+                view -> view.editCanceller);
     }
 
     // ==================== Fields ====================
 
     /** Set by a picker on the view in its popup; evaluated when an interaction starts. */
     private BooleanSupplier inputLock;
+    /** Set by the skin; drops unfinished field edits. */
+    private Runnable editCanceller;
 
     // ==================== Constructors ====================
 

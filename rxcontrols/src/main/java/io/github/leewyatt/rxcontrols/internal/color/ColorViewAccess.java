@@ -9,13 +9,16 @@ import java.util.function.Function;
 /**
  * Lets the skins, which live in another package, reach state of a color view
  * that application code must not touch: the read-only {@code valueChanging}
- * flag, and the input lock a picker puts on the view in its popup.
+ * flag, the input lock a picker puts on the view in its popup, and the hook
+ * through which the picker drops unfinished field edits before closing.
  */
 public final class ColorViewAccess {
 
     private static BiConsumer<RXColorView, Boolean> valueChangingWriter;
     private static BiConsumer<RXColorView, BooleanSupplier> inputLockWriter;
     private static Function<RXColorView, BooleanSupplier> inputLockReader;
+    private static BiConsumer<RXColorView, Runnable> editCancelWriter;
+    private static Function<RXColorView, Runnable> editCancelReader;
 
     private ColorViewAccess() {
     }
@@ -26,13 +29,43 @@ public final class ColorViewAccess {
      * @param changingWriter sets the view's {@code valueChanging} flag
      * @param lockWriter     sets the view's input lock
      * @param lockReader     returns the view's input lock, or {@code null}
+     * @param cancelWriter   sets the view's edit canceller
+     * @param cancelReader   returns the view's edit canceller, or {@code null}
      */
     public static void install(BiConsumer<RXColorView, Boolean> changingWriter,
                                BiConsumer<RXColorView, BooleanSupplier> lockWriter,
-                               Function<RXColorView, BooleanSupplier> lockReader) {
+                               Function<RXColorView, BooleanSupplier> lockReader,
+                               BiConsumer<RXColorView, Runnable> cancelWriter,
+                               Function<RXColorView, Runnable> cancelReader) {
         valueChangingWriter = changingWriter;
         inputLockWriter = lockWriter;
         inputLockReader = lockReader;
+        editCancelWriter = cancelWriter;
+        editCancelReader = cancelReader;
+    }
+
+    /**
+     * Installs what drops the view's unfinished field edits. The view's skin sets
+     * it when installed and clears it when disposed.
+     *
+     * @param view      the view
+     * @param canceller the action, or {@code null} for none
+     */
+    public static void setEditCanceller(RXColorView view, Runnable canceller) {
+        editCancelWriter.accept(view, canceller);
+    }
+
+    /**
+     * Drops the view's unfinished field edits without applying them, so closing a
+     * popup with Escape does not apply text the user abandoned.
+     *
+     * @param view the view
+     */
+    public static void cancelEdits(RXColorView view) {
+        Runnable canceller = editCancelReader.apply(view);
+        if (canceller != null) {
+            canceller.run();
+        }
     }
 
     /**

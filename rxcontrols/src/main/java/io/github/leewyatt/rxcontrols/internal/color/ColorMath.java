@@ -1,8 +1,11 @@
 package io.github.leewyatt.rxcontrols.internal.color;
 
+import io.github.leewyatt.rxcontrols.RXColorFormat;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.scene.paint.Color;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Locale;
 
 /**
@@ -251,6 +254,36 @@ public final class ColorMath {
      * @param hasOpacity whether the digits carried an opacity
      */
     public record ParsedHex(Color color, boolean hasOpacity) {
+    }
+
+    // ==================== Text ====================
+
+    /**
+     * Formats a color for display in the given format: {@code #1677FF} (with
+     * {@code , 50%} appended when translucent), {@code rgb(22, 119, 255)} /
+     * {@code rgba(22, 119, 255, 0.5)}, or {@code hsb(215, 91%, 100%)} /
+     * {@code hsba(215, 91%, 100%, 0.5)}. The opacity in the function forms has at
+     * most two decimals.
+     *
+     * @param color  the color
+     * @param format the format; {@code null} means hex
+     * @return the text
+     */
+    public static String toText(Color color, RXColorFormat format) {
+        boolean opaque = toByte(color.getOpacity()) == MAX_BYTE;
+        String opacity = BigDecimal.valueOf(color.getOpacity()).setScale(2, RoundingMode.HALF_UP)
+                .stripTrailingZeros().toPlainString();
+        if (format == RXColorFormat.RGB) {
+            String rgb = toByte(color.getRed()) + ", " + toByte(color.getGreen()) + ", " + toByte(color.getBlue());
+            return opaque ? "rgb(" + rgb + ")" : "rgba(" + rgb + ", " + opacity + ")";
+        }
+        if (format == RXColorFormat.HSB) {
+            double[] hsb = toHsb(color);
+            String text = toDegrees(hsb[0]) + ", " + toPercent(hsb[1]) + "%, " + toPercent(hsb[2]) + "%";
+            return opaque ? "hsb(" + text + ")" : "hsba(" + text + ", " + opacity + ")";
+        }
+        String hex = "#" + toHex(color, false);
+        return opaque ? hex : hex + ", " + toPercent(color.getOpacity()) + "%";
     }
 
     // ==================== Contrast ====================

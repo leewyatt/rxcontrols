@@ -198,6 +198,12 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
         FocusShownTracker.install(hueSlider, disposer);
         FocusShownTracker.install(alphaSlider, disposer);
         inputRow.install(disposer);
+        ColorViewAccess.setEditCanceller(control, () -> {
+            if (!disposed) {
+                inputRow.cancelEdits();
+            }
+        });
+        disposer.registerDisposeTask(() -> ColorViewAccess.setEditCanceller(control, null));
         presetSection.install(disposer, control.getPresets());
         disposer.registerEventHandler(clearButton, MouseEvent.MOUSE_PRESSED, event -> {
             if (event.getButton() == MouseButton.PRIMARY) {
