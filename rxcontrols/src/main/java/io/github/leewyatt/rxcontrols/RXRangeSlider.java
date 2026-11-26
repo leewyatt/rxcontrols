@@ -60,12 +60,14 @@ import java.util.List;
  * left with other values than the model: pass the pair to {@code setValues}, and
  * listen to the properties for what the user changes.</p>
  *
- * <p>In FXML, a tag with exactly the attributes {@code min}, {@code max},
- * {@code lowValue} and {@code highValue} is built by the four-argument constructor
- * and takes them in any order. With any other attribute in the same tag the values
- * are assigned one by one in no particular order and may hold each other back, and
+ * <p>In FXML, a tag that sets {@code min}, {@code max}, {@code lowValue} and
+ * {@code highValue} is built by the four-argument constructor and takes them in any
+ * order, as long as it sets no other property of the slider; {@code fx:id}, event
+ * handlers and attached properties such as {@code HBox.hgrow} may be added. With any
+ * other property in the tag, as an attribute or as an element, the values are
+ * assigned one by one in no particular order and may hold each other back, and
  * {@code styleClass} is taken as a single style class. Build the slider from the four
- * values and add the other attributes where it is used:</p>
+ * values and set the other properties where it is used:</p>
  * <pre>{@code
  * <fx:define>
  *     <RXRangeSlider fx:id="priceRange" min="0" max="1000" lowValue="200" highValue="800"/>
@@ -252,8 +254,9 @@ public class RXRangeSlider extends Control {
     /**
      * The low value, the position of the low thumb within {@code [min, max]}
      * (and at or below {@link #highValueProperty() highValue}). A value set above
-     * the high value is held at it and leaves the high value unchanged; use
-     * {@link #setValues(double, double)} to move both.
+     * the high value is held at it, or {@link #minGapProperty() minGap} below it,
+     * and leaves the high value unchanged; use {@link #setValues(double, double)}
+     * to move both.
      *
      * @return the low value property
      */
@@ -294,8 +297,9 @@ public class RXRangeSlider extends Control {
     /**
      * The high value, the position of the high thumb within {@code [min, max]}
      * (and at or above {@link #lowValueProperty() lowValue}). A value set below
-     * the low value is held at it and leaves the low value unchanged; use
-     * {@link #setValues(double, double)} to move both.
+     * the low value is held at it, or {@link #minGapProperty() minGap} above it,
+     * and leaves the low value unchanged; use {@link #setValues(double, double)}
+     * to move both.
      *
      * @return the high value property
      */
@@ -529,7 +533,9 @@ public class RXRangeSlider extends Control {
      * Sets the low and the high value in one call, with the same result wherever the
      * selection was before. The two arguments may come in either order: the smaller
      * one becomes the low value. Both are held within {@code [min, max]} and
-     * {@link #minGapProperty() minGap} apart, as when they are set one by one.
+     * {@link #minGapProperty() minGap} apart: a pair closer than the gap keeps its
+     * low value and takes the high value the gap above it, or ends at the maximum
+     * when there is no room above.
      *
      * @param lowValue  one end of the selection
      * @param highValue the other end of the selection
@@ -537,6 +543,9 @@ public class RXRangeSlider extends Control {
     public void setValues(double lowValue, double highValue) {
         double low = Math.min(lowValue, highValue);
         double high = Math.max(lowValue, highValue);
+        // Closer than the gap, the value written second would be the one to give way,
+        // and which one that is depends on the old selection.
+        high = Math.max(high, low + gap());
         // The value that moves away from the other one goes first, so every state in
         // between keeps its order and gap and neither write is held back.
         if (low > getLowValue()) {

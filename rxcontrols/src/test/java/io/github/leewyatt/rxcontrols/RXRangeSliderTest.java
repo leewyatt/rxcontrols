@@ -203,11 +203,30 @@ public class RXRangeSliderTest {
         gapped.setValues(70.0, 95.0);
         assertEquals(70.0, gapped.getLowValue(), EPSILON);
         assertEquals(95.0, gapped.getHighValue(), EPSILON);
+    }
 
-        gapped.setValues(50.0, 55.0);
-        assertTrue(gapped.getHighValue() - gapped.getLowValue() >= 20.0 - EPSILON,
-                "values " + gapped.getLowValue() + " / " + gapped.getHighValue());
-        assertTrue(gapped.getLowValue() >= 0.0 && gapped.getHighValue() <= 100.0);
+    /**
+     * Verifies a pair closer than the gap gives the same result from two different
+     * selections: the low value kept, the high value moved up to make room.
+     */
+    @Test
+    public void setValuesCloserThanTheGapIgnoresTheOldSelection() {
+        RXRangeSlider fromBelow = new RXRangeSlider(0.0, 100.0, 20.0, 45.0);
+        fromBelow.setMinGap(20.0);
+        fromBelow.setValues(50.0, 55.0);
+        assertEquals(50.0, fromBelow.getLowValue(), EPSILON);
+        assertEquals(70.0, fromBelow.getHighValue(), EPSILON);
+
+        RXRangeSlider fromAbove = new RXRangeSlider(0.0, 100.0, 70.0, 95.0);
+        fromAbove.setMinGap(20.0);
+        fromAbove.setValues(50.0, 55.0);
+        assertEquals(50.0, fromAbove.getLowValue(), EPSILON);
+        assertEquals(70.0, fromAbove.getHighValue(), EPSILON);
+
+        // No room above the low value: the pair ends against the maximum.
+        fromAbove.setValues(95.0, 96.0);
+        assertEquals(80.0, fromAbove.getLowValue(), EPSILON);
+        assertEquals(100.0, fromAbove.getHighValue(), EPSILON);
     }
 
     /**
