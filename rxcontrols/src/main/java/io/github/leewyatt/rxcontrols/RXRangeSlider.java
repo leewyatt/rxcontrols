@@ -98,25 +98,18 @@ public class RXRangeSlider extends Control {
     private static final PseudoClass VERTICAL_PSEUDO = PseudoClass.getPseudoClass("vertical");
     private static final PseudoClass HORIZONTAL_PSEUDO = PseudoClass.getPseudoClass("horizontal");
 
-    /** Default range minimum. */
-    public static final double DEFAULT_MIN = 0.0;
-    /** Default range maximum. */
-    public static final double DEFAULT_MAX = 100.0;
-    /** Default low value (a centered segment with {@link #DEFAULT_HIGH_VALUE}). */
-    public static final double DEFAULT_LOW_VALUE = 25.0;
-    /** Default high value. */
-    public static final double DEFAULT_HIGH_VALUE = 75.0;
-    /** Default keyboard block increment. */
-    public static final double DEFAULT_BLOCK_INCREMENT = 10.0;
-    /** Default major tick unit. */
-    public static final double DEFAULT_MAJOR_TICK_UNIT = 25.0;
-    /** Default minor tick count between two major ticks. */
-    public static final int DEFAULT_MINOR_TICK_COUNT = 3;
+    private static final double DEFAULT_MIN = 0.0;
+    private static final double DEFAULT_MAX = 100.0;
+    private static final double DEFAULT_LOW_VALUE = DEFAULT_MIN;
+    private static final double DEFAULT_HIGH_VALUE = DEFAULT_MAX;
+    private static final double DEFAULT_BLOCK_INCREMENT = 10.0;
+    private static final double DEFAULT_MAJOR_TICK_UNIT = 25.0;
+    private static final int DEFAULT_MINOR_TICK_COUNT = 3;
 
     // ==================== Constructors ====================
 
     /**
-     * Creates a range slider over {@code 0..100} selecting {@code 25..75}.
+     * Creates a range slider over {@code 0..100} selecting the whole range.
      */
     public RXRangeSlider() {
         this(DEFAULT_MIN, DEFAULT_MAX, DEFAULT_LOW_VALUE, DEFAULT_HIGH_VALUE);
@@ -142,8 +135,8 @@ public class RXRangeSlider extends Control {
         setMin(min);
         // Park the low value at the bottom so the requested high is applied
         // against [min, max] only, then set the real low against the real high.
-        // Setting low first would clamp it to the default high (75) whenever the
-        // requested low exceeds it.
+        // Setting low first would hold it at the high value left over from the
+        // defaults whenever the requested low exceeds it.
         setLowValue(getMin());
         setHighValue(highValue);
         setLowValue(lowValue);
@@ -650,7 +643,7 @@ public class RXRangeSlider extends Control {
             };
 
     /**
-     * The keyboard step. Initial value is {@link #DEFAULT_BLOCK_INCREMENT}.
+     * The keyboard step. Initial value is {@code 10}.
      *
      * @return the block increment property
      */
@@ -707,9 +700,8 @@ public class RXRangeSlider extends Control {
             };
 
     /**
-     * The spacing between major ticks. Initial value is
-     * {@link #DEFAULT_MAJOR_TICK_UNIT}; a non-positive value is coerced to the
-     * default.
+     * The spacing between major ticks. Initial value is {@code 25}; a non-positive
+     * value is coerced to {@code 25}.
      *
      * @return the major tick unit property
      */
@@ -757,7 +749,7 @@ public class RXRangeSlider extends Control {
 
     /**
      * The number of minor ticks between two major ticks. Initial value is
-     * {@link #DEFAULT_MINOR_TICK_COUNT}; a negative value is treated as
+     * {@code 3}; a negative value is treated as
      * {@code 0} at use-site.
      *
      * @return the minor tick count property

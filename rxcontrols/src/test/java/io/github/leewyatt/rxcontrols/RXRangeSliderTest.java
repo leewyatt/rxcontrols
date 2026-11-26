@@ -89,8 +89,8 @@ public class RXRangeSliderTest {
 
         assertEquals(0.0, slider.getMin(), EPSILON);
         assertEquals(100.0, slider.getMax(), EPSILON);
-        assertEquals(25.0, slider.getLowValue(), EPSILON);
-        assertEquals(75.0, slider.getHighValue(), EPSILON);
+        assertEquals(0.0, slider.getLowValue(), EPSILON);
+        assertEquals(100.0, slider.getHighValue(), EPSILON);
         assertFalse(slider.isLowValueChanging());
         assertFalse(slider.isHighValueChanging());
         assertEquals(RXSliderIndicatorDisplay.DRAGGING, slider.getIndicatorDisplay());
@@ -108,18 +108,36 @@ public class RXRangeSliderTest {
 
     /**
      * Verifies the 4-arg constructor applies the requested selection against the
-     * real {@code [min, max]} bounds, even when the requested low exceeds the
-     * default high (the constructor-order trap).
+     * real {@code [min, max]} bounds, above and below the default range.
      */
     @Test
     public void constructorAppliesSelectionAgainstRealBounds() {
-        RXRangeSlider above = new RXRangeSlider(0.0, 100.0, 80.0, 90.0);
-        assertEquals(80.0, above.getLowValue(), EPSILON);
-        assertEquals(90.0, above.getHighValue(), EPSILON);
+        RXRangeSlider above = new RXRangeSlider(0.0, 1000.0, 200.0, 800.0);
+        assertEquals(200.0, above.getLowValue(), EPSILON);
+        assertEquals(800.0, above.getHighValue(), EPSILON);
 
-        RXRangeSlider below = new RXRangeSlider(0.0, 100.0, 5.0, 20.0);
-        assertEquals(5.0, below.getLowValue(), EPSILON);
-        assertEquals(20.0, below.getHighValue(), EPSILON);
+        RXRangeSlider below = new RXRangeSlider(-500.0, -100.0, -400.0, -200.0);
+        assertEquals(-400.0, below.getLowValue(), EPSILON);
+        assertEquals(-200.0, below.getHighValue(), EPSILON);
+    }
+
+    /**
+     * Verifies two separate writes inside the default range give the written
+     * selection in either order.
+     */
+    @Test
+    public void defaultSelectionTakesTwoWritesInEitherOrder() {
+        RXRangeSlider lowFirst = new RXRangeSlider();
+        lowFirst.setLowValue(80.0);
+        lowFirst.setHighValue(90.0);
+        assertEquals(80.0, lowFirst.getLowValue(), EPSILON);
+        assertEquals(90.0, lowFirst.getHighValue(), EPSILON);
+
+        RXRangeSlider highFirst = new RXRangeSlider();
+        highFirst.setHighValue(10.0);
+        highFirst.setLowValue(5.0);
+        assertEquals(5.0, highFirst.getLowValue(), EPSILON);
+        assertEquals(10.0, highFirst.getHighValue(), EPSILON);
     }
 
     /**
@@ -129,12 +147,12 @@ public class RXRangeSliderTest {
     @Test
     public void crossClampKeepsValuesInOrder() {
         // Low cannot exceed high.
-        RXRangeSlider lowCross = new RXRangeSlider();
+        RXRangeSlider lowCross = new RXRangeSlider(0.0, 100.0, 25.0, 75.0);
         lowCross.setLowValue(80.0);
         assertEquals(75.0, lowCross.getLowValue(), EPSILON);
 
         // High cannot drop below low.
-        RXRangeSlider highCross = new RXRangeSlider();
+        RXRangeSlider highCross = new RXRangeSlider(0.0, 100.0, 25.0, 75.0);
         highCross.setHighValue(10.0);
         assertEquals(25.0, highCross.getHighValue(), EPSILON);
 
@@ -588,9 +606,9 @@ public class RXRangeSliderTest {
     public void majorTickUnitCoercesNonPositive() {
         RXRangeSlider slider = new RXRangeSlider();
         slider.setMajorTickUnit(-5.0);
-        assertEquals(RXRangeSlider.DEFAULT_MAJOR_TICK_UNIT, slider.getMajorTickUnit(), EPSILON);
+        assertEquals(25.0, slider.getMajorTickUnit(), EPSILON);
         slider.setMajorTickUnit(0.0);
-        assertEquals(RXRangeSlider.DEFAULT_MAJOR_TICK_UNIT, slider.getMajorTickUnit(), EPSILON);
+        assertEquals(25.0, slider.getMajorTickUnit(), EPSILON);
     }
 
     /**
@@ -627,7 +645,7 @@ public class RXRangeSliderTest {
      */
     @Test
     public void minGapKeepsValuesApart() {
-        RXRangeSlider slider = new RXRangeSlider();
+        RXRangeSlider slider = new RXRangeSlider(0.0, 100.0, 25.0, 75.0);
         slider.setMinGap(20.0);
 
         slider.setLowValue(70.0);
@@ -805,7 +823,7 @@ public class RXRangeSliderTest {
     @Test
     public void verticalRangeInvertsAndDrags() throws Exception {
         runOnFx(() -> {
-            RXRangeSlider slider = new RXRangeSlider();
+            RXRangeSlider slider = new RXRangeSlider(0.0, 100.0, 25.0, 75.0);
             slider.setOrientation(Orientation.VERTICAL);
             slider.setSkin(new RXRangeSliderSkin(slider));
             StackPane root = new StackPane(slider);
@@ -1605,7 +1623,7 @@ public class RXRangeSliderTest {
     }
 
     private static RXRangeSlider scened(double width, double height) {
-        RXRangeSlider slider = new RXRangeSlider();
+        RXRangeSlider slider = new RXRangeSlider(0.0, 100.0, 25.0, 75.0);
         slider.setSkin(new RXRangeSliderSkin(slider));
         StackPane root = new StackPane(slider);
         new Scene(root, width + 100.0, height + 100.0);
