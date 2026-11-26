@@ -209,6 +209,18 @@ public class ColorMathTest {
     }
 
     @Test
+    public void startingOnBlackBrightensToGrayNotTheSeedRed() {
+        HsbaCursor cursor = new HsbaCursor();
+        cursor.startAt(Color.BLACK);
+        cursor.changeBrightness(0.2);
+        assertEquals(Color.rgb(51, 51, 51), cursor.toColor());
+
+        HsbaCursor empty = new HsbaCursor();
+        empty.startAt(null);
+        assertEquals(Color.RED, empty.toColor());
+    }
+
+    @Test
     public void absorbAlwaysTakesTheOpacityAndIgnoresNull() {
         HsbaCursor cursor = new HsbaCursor();
         cursor.absorb(Color.rgb(0, 0, 0, 0.25));

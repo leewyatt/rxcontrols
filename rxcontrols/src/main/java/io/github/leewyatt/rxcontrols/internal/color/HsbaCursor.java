@@ -132,6 +132,21 @@ public final class HsbaCursor {
     }
 
     /**
+     * Places a new panel's cursor on its first color. Unlike {@link #absorb}, a
+     * black color starts with no saturation: there is no earlier color whose
+     * saturation it should keep, so brightening it gives gray, not the seed's
+     * red. {@code null} keeps the seed.
+     *
+     * @param color the first color, or {@code null}
+     */
+    public void startAt(Color color) {
+        if (color != null && ColorMath.toHsb(color)[2] == 0.0) {
+            saturation = 0.0;
+        }
+        absorb(color);
+    }
+
+    /**
      * Moves the cursor to a color. The opacity is always taken. A black color
      * only sets the brightness, keeping hue and saturation; a gray keeps the
      * hue. The black check comes first because black also has saturation 0.

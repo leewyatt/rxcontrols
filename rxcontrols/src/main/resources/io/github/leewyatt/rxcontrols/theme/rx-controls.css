@@ -16,7 +16,7 @@
  ******************************************************************************/
 .rx-accordion, .rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-badge, .rx-bar-spinner, .rx-border-beam, .rx-box, .rx-breadcrumb-bar, .rx-button,
 .rx-calendar-view, .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
-.rx-clip-path-image-view, .rx-col, .rx-content-pane, .rx-copy-button, .rx-dashboard-card, .rx-dashboard-pane, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
+.rx-clip-path-image-view, .rx-col, .rx-color-view, .rx-content-pane, .rx-copy-button, .rx-dashboard-card, .rx-dashboard-pane, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-date-picker, .rx-date-range-picker, .rx-date-range-view, .rx-date-time-picker, .rx-date-time-range-picker, .rx-date-time-view, .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
 .rx-decimal-field, .rx-double-field, .rx-fab, .rx-highlight-text-view, .rx-hold-button,
 .rx-image-pane, .rx-image-view, .rx-integer-field,
@@ -128,6 +128,8 @@
 .rx-theme-atlantafx.rx-clip-path-image-view,
 .rx-theme-atlantafx .rx-col,
 .rx-theme-atlantafx.rx-col,
+.rx-theme-atlantafx .rx-color-view,
+.rx-theme-atlantafx.rx-color-view,
 .rx-theme-atlantafx .rx-content-pane,
 .rx-theme-atlantafx.rx-content-pane,
 .rx-theme-atlantafx .rx-copy-button,
@@ -5712,4 +5714,101 @@
 .rx-accordion > .rx-titled-pane {
     -fx-background-color: transparent;
     -fx-padding: 0;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXColorView                                                                 *
+ *                                                                             *
+ ******************************************************************************/
+.rx-color-view {
+    -fx-padding: 12px;
+    -fx-background-color: -rx-surface;
+    -fx-background-radius: 8px;
+}
+
+.rx-color-view > .content {
+    -fx-spacing: 12px;
+}
+
+.rx-color-view .slider-row {
+    -fx-spacing: 12px;
+}
+
+.rx-color-view .sliders {
+    -fx-spacing: 4px;
+}
+
+.rx-color-view .area > .layers {
+    -fx-background-color: transparent;
+    -fx-background-radius: 4px;
+}
+
+.rx-color-view .area > .layers > .saturation-layer {
+    -fx-background-color: linear-gradient(to right, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0));
+}
+
+.rx-color-view .area > .layers > .brightness-layer {
+    -fx-background-color: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1));
+}
+
+/* Handle and thumbs mark focus on themselves, never with negative insets on the
+   parts: the view keeps them inside its bounds so a popup hosting it holds still. */
+.rx-color-view .area > .handle {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+    -fx-border-color: white;
+    -fx-border-width: 2px;
+    -fx-border-radius: 50%;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 3, 0.0, 0, 0);
+}
+
+.rx-color-view .hue-slider > .track {
+    -fx-background-color: linear-gradient(to right, #ff0000 0%, #ffff00 16.6667%, #00ff00 33.3333%,
+            #00ffff 50%, #0000ff 66.6667%, #ff00ff 83.3333%, #ff0000 100%);
+    -fx-background-radius: 999px;
+}
+
+.rx-color-view .alpha-slider > .track {
+    -fx-background-color: transparent;
+    -fx-background-radius: 999px;
+}
+
+.rx-color-view .hue-slider > .thumb,
+.rx-color-view .alpha-slider > .thumb {
+    -fx-pref-width: 12px;
+    -fx-pref-height: 12px;
+    -fx-border-color: white;
+    -fx-border-width: 2px;
+    -fx-border-radius: 50%;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 3, 0.0, 0, 0);
+}
+
+.rx-color-view .area:focus-shown > .handle,
+.rx-color-view .hue-slider:focus-shown > .thumb,
+.rx-color-view .alpha-slider:focus-shown > .thumb {
+    -fx-effect: dropshadow(gaussian, -rx-focus, 4, 0.6, 0, 0);
+}
+
+.rx-color-view .swatch {
+    -fx-background-color: transparent;
+    -fx-background-radius: 4px;
+}
+
+.rx-color-view .swatch:empty {
+    -fx-background-color: white;
+}
+
+.rx-color-view .swatch > .outline {
+    -fx-border-color: rgba(0, 0, 0, 0.12);
+    -fx-border-radius: 4px;
+}
+
+.rx-color-view .swatch > .slash {
+    -fx-background-color: -rx-danger;
+    -fx-shape: "M 22 0 L 24 0 L 24 2 L 2 24 L 0 24 L 0 22 Z";
+}
+
+.rx-color-view:disabled {
+    -fx-opacity: 0.4;
 }
