@@ -15,6 +15,7 @@ import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.event.ActionEvent;
 import javafx.geometry.Pos;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
@@ -54,6 +55,7 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
     // ==================== Constants ====================
 
     private static final double PREVIEW_SIZE = 28.0;
+    private static final double CLEAR_SIZE = 24.0;
     private static final double AREA_STEP = 0.01;
     private static final double AREA_PAGE = 0.10;
     private static final double HUE_STEP = 1.0;
@@ -72,6 +74,9 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
     private final ColorSwatch preview = new ColorSwatch("preview");
     private final HBox sliderRow = new HBox();
     private final ColorInputRow inputRow = new ColorInputRow(new InputHost());
+    private final HBox header = new HBox();
+    private final ColorSwatch clearButton = new ColorSwatch("clear-button");
+    private final ColorPresetSection presetSection = new ColorPresetSection(new PresetHost());
 
     // ==================== State ====================
 
@@ -116,8 +121,18 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
         sliderRow.setAlignment(Pos.CENTER_LEFT);
         sliderRow.getChildren().addAll(sliders, preview);
 
+        clearButton.setPrefSize(CLEAR_SIZE, CLEAR_SIZE);
+        clearButton.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        clearButton.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        clearButton.setFocusTraversable(true);
+        clearButton.setAccessibleRole(AccessibleRole.BUTTON);
+        clearButton.setAccessibleText("Clear color");
+        header.getStyleClass().add("header");
+        header.setAlignment(Pos.CENTER_RIGHT);
+        header.getChildren().add(clearButton);
+
         VBox.setVgrow(area, Priority.ALWAYS);
-        content.getChildren().addAll(area, sliderRow, inputRow.node());
+        content.getChildren().addAll(header, area, sliderRow, inputRow.node(), presetSection.node());
 
         // Weak: setSkin drops a skin of the installed class without disposing it,
         // and nothing else may keep such a skin reachable from the view.
@@ -146,6 +161,7 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
             refresh();
         }));
         disposer.registerListener(control.formatProperty(), live(inputRow::cancelEdits));
+        disposer.registerListener(control.clearableProperty(), live(this::updateHeader));
         // The fields' own actions (Enter) and other inner actions bubble here; only
         // the view's completed-edit action may reach its handlers.
         disposer.registerEventFilter(control, ActionEvent.ACTION, event -> {
@@ -182,6 +198,25 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
         FocusShownTracker.install(hueSlider, disposer);
         FocusShownTracker.install(alphaSlider, disposer);
         inputRow.install(disposer);
+        presetSection.install(disposer, control.getPresets());
+        disposer.registerEventHandler(clearButton, MouseEvent.MOUSE_PRESSED, event -> {
+            if (event.getButton() == MouseButton.PRIMARY) {
+                clearButton.requestFocus();
+            }
+        });
+        disposer.registerEventHandler(clearButton, MouseEvent.MOUSE_CLICKED, event -> {
+            if (event.getButton() == MouseButton.PRIMARY) {
+                event.consume();
+                discreteEdit(() -> write(null));
+            }
+        });
+        disposer.registerEventHandler(clearButton, KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.SPACE || event.getCode() == KeyCode.ENTER) {
+                event.consume();
+                discreteEdit(() -> write(null));
+            }
+        });
+        FocusShownTracker.install(clearButton, disposer);
         disposer.registerDisposeTask(() -> {
             area.setAccessibleStep(null);
             hueSlider.setAccessibleStep(null);
@@ -189,7 +224,14 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
         });
 
         onAlphaEnabledChanged();
+        updateHeader();
         refresh();
+    }
+
+    private void updateHeader() {
+        boolean clearable = getSkinnable().isClearable();
+        header.setVisible(clearable);
+        header.setManaged(clearable);
     }
 
     // A listener removed while its property is notifying still gets that notification,
@@ -282,14 +324,14 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
         editOpacity((shown + percentDelta) / PERCENT);
     }
 
-    /** Writes a user edit, opening a session if none is pending. */
+    /** Writes a user edit, opening a session if none is pending; {@code null} clears. */
     private void write(Color color) {
         RXColorView control = getSkinnable();
         if (!pending) {
             baseline = control.getValue();
             pending = true;
         }
-        if (!color.equals(control.getValue())) {
+        if (!Objects.equals(color, control.getValue())) {
             control.setValue(color);
             // A value listener may have replaced this skin.
             if (disposed) {
@@ -551,6 +593,27 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
 
         preview.showColor(value);
         inputRow.refresh();
+        presetSection.refresh();
+    }
+
+    // ==================== Preset host ====================
+
+    private final class PresetHost implements ColorPresetSection.Host {
+
+        @Override
+        public Color value() {
+            return getSkinnable().getValue();
+        }
+
+        @Override
+        public boolean alphaEnabled() {
+            return getSkinnable().isAlphaEnabled();
+        }
+
+        @Override
+        public void pick(Color color) {
+            discreteEdit(() -> editTarget(color));
+        }
     }
 
     // ==================== Input row host ====================

@@ -9,7 +9,10 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -54,6 +57,13 @@ import java.util.function.BooleanSupplier;
  * with Shift). While a field holds text that is not a value it has the
  * {@code :invalid} pseudo-class.
  *
+ * <p><b>Clearing and presets.</b> With {@link #clearableProperty() clearable}
+ * a button sets the value to {@code null}; editing afterwards brings back the
+ * color the panel showed before. {@link #getPresets() Preset groups} are shown
+ * below the inputs; clicking a swatch picks its color, and the swatches equal
+ * to the value (compared on the 8-bit grid) are marked selected. Neither
+ * closes anything: they are edits like any other.
+ *
  * <p><b>Bound value.</b> While the value is bound the panel takes no input.
  *
  * <p><b>Keyboard.</b> The area, the hue slider and the opacity slider are
@@ -70,7 +80,10 @@ import java.util.function.BooleanSupplier;
  * {@code .brightness-layer}) and {@code .handle}; {@code .sliders} with
  * {@code .hue-slider} and {@code .alpha-slider}, each holding a {@code .track}
  * and a {@code .thumb}; {@code .preview}; {@code .inputs} with the
- * {@code .format-button} and {@code .text-field}s. The area and the sliders carry
+ * {@code .format-button} and {@code .text-field}s; a {@code .header} with the
+ * {@code .clear-button}; {@code .presets} (a scroll pane) holding a
+ * {@code .group} per preset group (an {@code .rx-titled-pane} when labeled)
+ * of {@code .preset} swatches with {@code :selected}. The area and the sliders carry
  * {@code :focus-shown} while focused from the keyboard. Use the view on the
  * JavaFX Application Thread.
  */
@@ -235,6 +248,54 @@ public class RXColorView extends Control {
      */
     public final void setFormat(RXColorFormat value) {
         format.set(value);
+    }
+
+    // ==================== Clearable ====================
+
+    private final BooleanProperty clearable = new SimpleBooleanProperty(this, "clearable", false);
+
+    /**
+     * Whether a clear button is shown. Clearing sets the value to {@code null} and
+     * is an edit like any other: it fires the action and leaves the panel open.
+     * Defaults to {@code false}.
+     *
+     * @return the clearable property
+     */
+    public final BooleanProperty clearableProperty() {
+        return clearable;
+    }
+
+    /**
+     * Returns whether a clear button is shown.
+     *
+     * @return {@code true} if the clear button is shown
+     */
+    public final boolean isClearable() {
+        return clearable.get();
+    }
+
+    /**
+     * Sets whether a clear button is shown.
+     *
+     * @param value {@code true} to show the clear button
+     */
+    public final void setClearable(boolean value) {
+        clearable.set(value);
+    }
+
+    // ==================== Presets ====================
+
+    private final ObservableList<RXColorPresetGroup> presets = FXCollections.observableArrayList();
+
+    /**
+     * The preset groups shown below the inputs, in order; empty (the default)
+     * shows none. {@code null} elements are skipped. To share groups between
+     * views, add the same instances or bind the lists' content.
+     *
+     * @return the modifiable list of preset groups
+     */
+    public final ObservableList<RXColorPresetGroup> getPresets() {
+        return presets;
     }
 
     // ==================== Alpha Enabled ====================

@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.internal.color;
 
 import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
@@ -20,13 +21,15 @@ import javafx.scene.paint.Color;
  * while empty, and an {@code .outline} child on top draws the frame from CSS.
  * Pseudo-classes: {@code :empty} for no color, {@code :bright} when a mark
  * drawn on the color must be dark, {@code :translucent} when what shows
- * through decides the contrast.
+ * through decides the contrast, {@code :selected} when its owner marks it.
+ * Assistive technologies read the color as hex digits.
  */
 public final class ColorSwatch extends Region {
 
     private static final PseudoClass EMPTY = PseudoClass.getPseudoClass("empty");
     private static final PseudoClass BRIGHT = PseudoClass.getPseudoClass("bright");
     private static final PseudoClass TRANSLUCENT = PseudoClass.getPseudoClass("translucent");
+    private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
 
     private final Region sample = new Region();
     private final Region slash = new Region();
@@ -34,6 +37,7 @@ public final class ColorSwatch extends Region {
 
     private Color color;
     private CornerRadii sampleRadii;
+    private boolean selected;
 
     /**
      * Creates an empty swatch.
@@ -75,6 +79,28 @@ public final class ColorSwatch extends Region {
     }
 
     /**
+     * Returns whether the swatch is marked selected.
+     *
+     * @return {@code true} if selected
+     */
+    public boolean isSelected() {
+        return selected;
+    }
+
+    /**
+     * Marks the swatch selected or not.
+     *
+     * @param value whether the swatch is selected
+     */
+    public void markSelected(boolean value) {
+        if (selected != value) {
+            selected = value;
+            pseudoClassStateChanged(SELECTED, value);
+            notifyAccessibleAttributeChanged(AccessibleAttribute.SELECTED);
+        }
+    }
+
+    /**
      * Adds a decoration above the outline, such as a check mark. It is laid out
      * at its preferred size in the center.
      *
@@ -93,6 +119,7 @@ public final class ColorSwatch extends Region {
         pseudoClassStateChanged(TRANSLUCENT, value != null && ColorMath.isTranslucent(value));
         slash.setVisible(value == null);
         paintSample();
+        notifyAccessibleAttributeChanged(AccessibleAttribute.TEXT);
     }
 
     private void paintSample() {
@@ -112,6 +139,18 @@ public final class ColorSwatch extends Region {
             return CornerRadii.EMPTY;
         }
         return background.getFills().get(0).getRadii();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Object queryAccessibleAttribute(AccessibleAttribute attribute, Object... parameters) {
+        if (attribute == AccessibleAttribute.TEXT && getAccessibleText() == null) {
+            return color == null ? "No color" : "#" + ColorMath.toHex(color, color.getOpacity() < 1.0);
+        }
+        if (attribute == AccessibleAttribute.SELECTED) {
+            return selected;
+        }
+        return super.queryAccessibleAttribute(attribute, parameters);
     }
 
     @Override
