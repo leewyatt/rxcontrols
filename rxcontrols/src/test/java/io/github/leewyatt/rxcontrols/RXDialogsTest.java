@@ -51,7 +51,7 @@ public class RXDialogsTest {
     public void confirmOffersCancelAndOkAndCompletesWithTheChoice() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();
-            Scene scene = new Scene(new StackPane(owner), 400, 300);
+            Scene scene = new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
 
             CompletableFuture<ButtonType> result = RXDialogs.confirm(owner, "Delete?", "Cannot be undone.");
             RXDialog<?> dialog = shownDialog(scene);
@@ -73,7 +73,7 @@ public class RXDialogsTest {
     public void messageFactoriesUseOneOkButtonAndTheTypeStyleClass() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();
-            Scene scene = new Scene(new StackPane(owner), 400, 300);
+            Scene scene = new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
 
             RXDialogs.error(owner, "Upload failed", "Network unreachable.");
             RXDialog<?> dialog = shownDialog(scene);
@@ -90,7 +90,7 @@ public class RXDialogsTest {
     public void messageFactoriesAcceptCustomActionButtons() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();
-            Scene scene = new Scene(new StackPane(owner), 400, 300);
+            Scene scene = new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
 
             ButtonType report = new ButtonType("Report");
             CompletableFuture<ButtonType> result =
@@ -111,7 +111,7 @@ public class RXDialogsTest {
     public void confirmDismissalYieldsTheCancelButton() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();
-            Scene scene = new Scene(new StackPane(owner), 400, 300);
+            Scene scene = new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
 
             CompletableFuture<ButtonType> result = RXDialogs.confirm(owner, "Delete?", "Cannot be undone.");
             RXDialog<?> dialog = shownDialog(scene);
@@ -128,7 +128,7 @@ public class RXDialogsTest {
     public void messageDismissalNeverActivatesAnAffirmativeButton() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();
-            Scene scene = new Scene(new StackPane(owner), 400, 300);
+            Scene scene = new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
 
             ButtonType report = new ButtonType("Report");
             CompletableFuture<ButtonType> result =
@@ -148,7 +148,7 @@ public class RXDialogsTest {
     public void inputReturnsTheFieldTextOnOk() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();
-            Scene scene = new Scene(new StackPane(owner), 400, 300);
+            Scene scene = new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
 
             CompletableFuture<String> result = RXDialogs.input(owner, "Rename", "New name:", "old-name");
             RXDialog<?> dialog = shownDialog(scene);
@@ -164,7 +164,7 @@ public class RXDialogsTest {
     public void inputYieldsNullOnCancel() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();
-            Scene scene = new Scene(new StackPane(owner), 400, 300);
+            Scene scene = new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
 
             CompletableFuture<String> result = RXDialogs.input(owner, "Rename", "New name:", "old-name");
             RXDialog<?> dialog = shownDialog(scene);
@@ -181,7 +181,7 @@ public class RXDialogsTest {
     public void choiceReturnsTheSelectionOnOk() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();
-            Scene scene = new Scene(new StackPane(owner), 400, 300);
+            Scene scene = new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
 
             CompletableFuture<String> result = RXDialogs.choice(owner, "Size", "Pick a size:",
                     "Medium", "Small", "Medium", "Large");
@@ -197,7 +197,7 @@ public class RXDialogsTest {
     public void choiceYieldsNullOnCancel() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();
-            Scene scene = new Scene(new StackPane(owner), 400, 300);
+            Scene scene = new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
 
             CompletableFuture<String> result = RXDialogs.choice(owner, "Size", "Pick a size:",
                     "Medium", "Small", "Medium", "Large");
@@ -214,7 +214,7 @@ public class RXDialogsTest {
     public void busyIgnoresEscAndScrimAndCloseHidesIt() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();
-            Scene scene = new Scene(new StackPane(owner), 400, 300);
+            Scene scene = new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
 
             RXDialogs.Busy busy = RXDialogs.busy(owner, "Loading…");
             RXDialog<?> dialog = shownDialog(scene);
@@ -233,7 +233,7 @@ public class RXDialogsTest {
     public void validWhenVetoesTheAffirmativeButtonUntilValid() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();
-            Scene scene = new Scene(new StackPane(owner), 400, 300);
+            Scene scene = new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
 
             BooleanProperty valid = new SimpleBooleanProperty(false);
             CompletableFuture<ButtonType> result = RXDialogs.create(owner)
@@ -259,7 +259,7 @@ public class RXDialogsTest {
     public void validWhenStillAllowsEscWhileInvalid() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();
-            Scene scene = new Scene(new StackPane(owner), 400, 300);
+            Scene scene = new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
 
             BooleanProperty valid = new SimpleBooleanProperty(false);
             CompletableFuture<ButtonType> result = RXDialogs.create(owner)
@@ -278,7 +278,7 @@ public class RXDialogsTest {
     public void builderHonoursBehaviourOverrides() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();
-            Scene scene = new Scene(new StackPane(owner), 400, 300);
+            Scene scene = new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
 
             RXDialogs.create(owner).title("T").message("M")
                     .modal(false).closeOnEsc(false).draggable(true).resizable(true).show();
@@ -298,7 +298,7 @@ public class RXDialogsTest {
     public void builderAppliesActionsLayoutAndCloseButton() throws Exception {
         runOnFx(() -> {
             Region owner = new Region();
-            Scene scene = new Scene(new StackPane(owner), 400, 300);
+            Scene scene = new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
 
             // Extra knobs configured by chaining — no new factory overload needed.
             RXDialogs.create(owner).type(RXDialogs.Type.INFORMATION).title("T").message("M")

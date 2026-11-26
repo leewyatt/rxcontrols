@@ -85,7 +85,7 @@ public final class RXDialogs {
      * pass button types to offer extra actions — the future reports which was clicked
      * (compare it against your own {@link ButtonType} instances).
      *
-     * @param owner   a node in the target scene (the dialog attaches over its scene)
+     * @param owner   a node inside the target overlay pane (the dialog covers that pane)
      * @param title   the heading text
      * @param message the body text
      * @param buttons the buttons to offer; empty for a single OK
@@ -100,7 +100,7 @@ public final class RXDialogs {
      * Shows a warning message. With no {@code buttons} a single OK is used; pass
      * button types to offer extra actions.
      *
-     * @param owner   a node in the target scene
+     * @param owner   a node inside the target overlay pane
      * @param title   the heading text
      * @param message the body text
      * @param buttons the buttons to offer; empty for a single OK
@@ -115,7 +115,7 @@ public final class RXDialogs {
      * Shows an error message. With no {@code buttons} a single OK is used; pass button
      * types to offer extra actions (for example an OK plus a "Retry" or "Report").
      *
-     * @param owner   a node in the target scene
+     * @param owner   a node inside the target overlay pane
      * @param title   the heading text
      * @param message the body text
      * @param buttons the buttons to offer; empty for a single OK
@@ -129,7 +129,7 @@ public final class RXDialogs {
     /**
      * Shows a confirmation question with Cancel and OK buttons.
      *
-     * @param owner   a node in the target scene
+     * @param owner   a node inside the target overlay pane
      * @param title   the heading text
      * @param message the body text
      * @return a future completed with the chosen button (or the dismiss result)
@@ -141,7 +141,7 @@ public final class RXDialogs {
     /**
      * Shows a confirmation question with an explicit button set.
      *
-     * @param owner   a node in the target scene
+     * @param owner   a node inside the target overlay pane
      * @param title   the heading text
      * @param message the body text
      * @param buttons the buttons to offer
@@ -155,7 +155,7 @@ public final class RXDialogs {
     /**
      * Shows a single-line text-input dialog with Cancel and OK buttons.
      *
-     * @param owner       a node in the target scene
+     * @param owner       a node inside the target overlay pane
      * @param title       the heading text
      * @param message     a prompt shown above the field, or {@code null}
      * @param initialText the field's initial text (selected for quick replacement), or {@code null}
@@ -193,7 +193,7 @@ public final class RXDialogs {
      * pre-selected, plus Cancel and OK. The selection-input sibling of {@link #input}, mirroring
      * the native {@code ChoiceDialog}.
      *
-     * @param owner         a node in the target scene
+     * @param owner         a node inside the target overlay pane
      * @param title         the heading text
      * @param message       a prompt shown above the chooser, or {@code null}
      * @param defaultChoice the initially selected choice, or {@code null}
@@ -232,7 +232,7 @@ public final class RXDialogs {
     /**
      * Shows a single-choice dialog with the choices given inline.
      *
-     * @param owner         a node in the target scene
+     * @param owner         a node inside the target overlay pane
      * @param title         the heading text
      * @param message       a prompt shown above the chooser, or {@code null}
      * @param defaultChoice the initially selected choice, or {@code null}
@@ -251,7 +251,7 @@ public final class RXDialogs {
      * handle to close it when the work finishes. The dialog ignores ESC and scrim
      * clicks, so it stays up until {@link Busy#close()} is called.
      *
-     * @param owner   a node in the target scene
+     * @param owner   a node inside the target overlay pane
      * @param message a label under the spinner, or {@code null}
      * @return a handle whose {@link Busy#close()} dismisses the dialog
      */
@@ -277,7 +277,7 @@ public final class RXDialogs {
      * Shows a busy dialog that closes itself when {@code task} completes (normally
      * or exceptionally). The dialog is closed on the JavaFX application thread.
      *
-     * @param owner   a node in the target scene
+     * @param owner   a node inside the target overlay pane
      * @param message a label under the spinner, or {@code null}
      * @param task    the work whose completion dismisses the dialog
      * @return the busy handle (already wired to {@code task}; may also be closed manually)
@@ -294,7 +294,7 @@ public final class RXDialogs {
      * Starts a fluent build for cases the one-line factories do not cover (custom
      * content, button sets, modality, validity gating).
      *
-     * @param owner a node in the target scene
+     * @param owner a node inside the target overlay pane
      * @return a new builder
      */
     public static Builder create(Node owner) {

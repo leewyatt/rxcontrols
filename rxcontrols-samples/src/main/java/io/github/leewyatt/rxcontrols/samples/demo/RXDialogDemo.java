@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.RXDialogContent;
+import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.DialogTransition;
 
 import javafx.application.Application;
@@ -56,7 +57,7 @@ public class RXDialogDemo extends Application {
         root.setAlignment(Pos.CENTER);
         root.setPadding(new Insets(40.0));
 
-        primaryStage.setScene(new Scene(root, 760.0, 480.0));
+        primaryStage.setScene(new Scene(new RXOverlayPane(root), 760.0, 480.0));
         primaryStage.setTitle("RXDialog Demo");
         primaryStage.show();
     }

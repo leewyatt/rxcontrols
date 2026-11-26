@@ -24,7 +24,7 @@
 .rx-masonry-pane, .rx-masonry-view, .rx-month-picker, .rx-month-range-picker, .rx-month-range-view, .rx-month-view,
 .rx-material-decimal-field, .rx-material-double-field, .rx-material-integer-field,
 .rx-material-long-field, .rx-material-text-field, .rx-material-password-field,
-.rx-password-field, .rx-placeholder, .rx-quarter-picker, .rx-quarter-range-picker, .rx-quarter-range-view, .rx-quarter-view,
+.rx-overlay-pane, .rx-password-field, .rx-placeholder, .rx-quarter-picker, .rx-quarter-range-picker, .rx-quarter-range-view, .rx-quarter-view,
 .rx-radio-button, .rx-radio-toggle-button, .rx-rating,
 .rx-reaction-button, .rx-ribbon-badge, .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-selection-box, .rx-sidebar, .rx-snackbar-host, .rx-speed-dial,
@@ -216,6 +216,8 @@
 .rx-theme-atlantafx.rx-material-text-field,
 .rx-theme-atlantafx .rx-material-password-field,
 .rx-theme-atlantafx.rx-material-password-field,
+.rx-theme-atlantafx .rx-overlay-pane,
+.rx-theme-atlantafx.rx-overlay-pane,
 .rx-theme-atlantafx .rx-password-field,
 .rx-theme-atlantafx.rx-password-field,
 .rx-theme-atlantafx .rx-placeholder,
@@ -4407,12 +4409,12 @@
 
 /*******************************************************************************
  *                                                                             *
- * RXBursts (scene burst overlay)                                              *
+ * RXBursts (burst layer)                                                      *
  *                                                                             *
  ******************************************************************************/
-/* The overlay is not a control, so the -rx-* tokens are not declared on it;
+/* The layer is not a control, so the -rx-* tokens are not declared on it;
    it maps straight to Modena's accent. The AtlantaFX mapping lives in
-   rx-controls-atlantafx.css: the overlay of a popup or a wrapped root sits
+   rx-controls-atlantafx.css: the layer of an overlay pane in a popup sits
    outside the scoped root. */
 .rx-burst-layer {
     -rx-burst-color: -fx-accent;

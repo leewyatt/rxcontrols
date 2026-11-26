@@ -14,7 +14,6 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.SubScene;
 import javafx.scene.canvas.Canvas;
-import javafx.scene.control.Button;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
@@ -38,16 +37,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link RXBursts} and its scene overlay: where bursts are centered,
- * several at once and the cap, the long-lived overlay, a wrapped scene root
- * (focus, a dialog opened meanwhile), following a moving node, clipping, scene
- * loss, a detached or scaled anchor, the theme color, a node in a sub-scene
- * and a node in a popup window. The two window tests are tagged {@code "ui"}.
+ * Tests for {@link RXBursts} and the burst layer of an {@link RXOverlayPane}:
+ * where bursts are centered, several at once and the cap, the long-lived
+ * layer, a wrapped {@code Group} root, following a moving node, clipping,
+ * scene loss, a detached or scaled anchor, the theme color, a node in a
+ * sub-scene and a node in a popup window. The two window tests are tagged
+ * {@code "ui"}.
  */
 public class RXBurstsTest {
 
@@ -154,7 +153,7 @@ public class RXBurstsTest {
             Scene scene = sceneWith(new Pane(box));
             RXBursts.play(box, (BurstAnimation) null);
             RXBursts.play(box, RXBurstOptions.builder().duration(Duration.ZERO).build());
-            assertNull(burstLayer(scene), "no overlay mounts for a burst that plays nothing");
+            assertNull(burstLayer(scene), "no layer is created for a burst that plays nothing");
 
             assertThrows(NullPointerException.class, () -> RXBursts.play(null));
             assertThrows(IllegalArgumentException.class, () -> RXBursts.playAt(box, Double.NaN, 0.0));
@@ -214,13 +213,12 @@ public class RXBurstsTest {
             RXBursts.play(box, LONG);
             RXBursts.play(box, LONG);
             Parent layer = burstLayer(scene);
-            scene.setRoot(new Pane());
-            assertTrue(layer.getChildrenUnmodifiable().isEmpty(), "the orphaned overlay holds no canvas");
-
             Region again = sized(new Region(), 40.0, 40.0);
-            ((Pane) scene.getRoot()).getChildren().add(again);
+            scene.setRoot(new RXOverlayPane(new Pane(again)));
+            assertTrue(layer.getChildrenUnmodifiable().isEmpty(), "the layer that left the scene holds no canvas");
+
             RXBursts.play(again, LONG);
-            assertEquals(1, canvases(scene).size(), "a fresh overlay mounts in the new root");
+            assertEquals(1, canvases(scene).size(), "the pane of the new root plays its own bursts");
         });
     }
 
@@ -242,59 +240,13 @@ public class RXBurstsTest {
 
     @Test
     @Tag("ui")
-    public void aWrappedRootKeepsItsFocusPlaceAndADialogOpenedMeanwhile() throws Exception {
-        AtomicReference<Scene> scene = new AtomicReference<>();
-        AtomicReference<Button> button = new AtomicReference<>();
-        AtomicReference<RXDialog<Void>> dialog = new AtomicReference<>();
-        AtomicReference<Stage> stage = new AtomicReference<>();
-        AtomicReference<Point2D> place = new AtomicReference<>();
-        onFx(() -> {
-            button.set(new Button("Go"));
-            button.get().relocate(40.0, 30.0);
-            Group root = new Group(button.get());
-            scene.set(new Scene(root, 300.0, 200.0));
-            stage.set(new Stage());
-            stage.get().setScene(scene.get());
-            stage.get().show();
-            button.get().requestFocus();
-        });
-        try {
-        waitUntil(() -> scene.get().getFocusOwner() == button.get());
-        onFx(() -> {
-            place.set(button.get().localToScene(0.0, 0.0));
-            RXBursts.play(button.get(), SHORT);
-            assertTrue(scene.get().getRoot() instanceof Pane, "a Group root is wrapped");
-        });
-        // Past a pulse, when the scene re-checks a focus owner that moved.
-        waitPulses(3);
-        onFx(() -> {
-            assertSame(button.get(), scene.get().getFocusOwner(), "wrapping the root keeps the focus");
-            assertEquals(place.get(), button.get().localToScene(0.0, 0.0), "wrapping does not move the content");
-            // A modal dialog takes the focus itself; it must outlive the burst.
-            dialog.set(new RXDialog<>());
-            dialog.get().show(button.get());
-            RXBursts.play(button.get(), SHORT);
-        });
-        waitUntil(() -> canvases(scene.get()).isEmpty());
-        onFx(() -> {
-            assertTrue(dialog.get().isShowing());
-            assertSame(scene.get(), dialog.get().getScene(), "the dialog survives the burst's end");
-            dialog.get().close();
-        });
-        } finally {
-            onFx(() -> stage.get().hide());
-        }
-    }
-
-    @Test
-    @Tag("ui")
     public void aRootWrappedBeforeShowingKeepsTheWindowSize() throws Exception {
         AtomicReference<Stage> stage = new AtomicReference<>();
         try {
             onFx(() -> {
                 Region box = sized(new Region(), 120.0, 80.0);
                 box.relocate(10.0, 10.0);
-                Scene scene = new Scene(new Group(box));
+                Scene scene = new Scene(new RXOverlayPane(new Group(box)));
                 RXBursts.play(box, LONG);
                 stage.set(new Stage());
                 stage.get().setScene(scene);
@@ -338,7 +290,7 @@ public class RXBurstsTest {
             stage.get().show();
             Region box = sized(new Region(), 30.0, 30.0);
             popup.set(new Popup());
-            popup.get().getContent().add(box);
+            popup.get().getContent().add(new RXOverlayPane(box));
             popup.get().show(stage.get());
             size.set(new double[]{popup.get().getWidth(), popup.get().getHeight()});
             RXBursts.play(box, RXBurstOptions.builder().duration(Duration.seconds(5.0)).scale(4.0).build());
@@ -360,9 +312,10 @@ public class RXBurstsTest {
     // ==================== Helpers ====================
 
     private static Scene sceneWith(Pane root) {
-        Scene scene = new Scene(root, 400.0, 300.0);
-        root.applyCss();
-        root.layout();
+        RXOverlayPane pane = new RXOverlayPane(root);
+        Scene scene = new Scene(pane, 400.0, 300.0);
+        pane.applyCss();
+        pane.layout();
         return scene;
     }
 

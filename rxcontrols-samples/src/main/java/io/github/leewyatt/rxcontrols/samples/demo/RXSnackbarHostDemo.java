@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
+import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.RXSnackbarRequest;
 import io.github.leewyatt.rxcontrols.RXSnackbars;
 import javafx.application.Application;
@@ -47,7 +48,7 @@ public class RXSnackbarHostDemo extends Application {
 
         VBox root = new VBox(14.0, new HBox(10.0, saveButton, deleteButton), statusLabel);
         root.setAlignment(Pos.CENTER);
-        primaryStage.setScene(new Scene(root, 520.0, 360.0));
+        primaryStage.setScene(new Scene(new RXOverlayPane(root), 520.0, 360.0));
         primaryStage.setTitle("RXSnackbarHost Demo");
         primaryStage.show();
     }

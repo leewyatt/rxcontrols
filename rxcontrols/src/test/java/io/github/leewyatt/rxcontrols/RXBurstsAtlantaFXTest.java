@@ -72,7 +72,7 @@ public class RXBurstsAtlantaFXTest {
                 Region box = new Region();
                 box.setPrefSize(40.0, 40.0);
                 stage.set(new Stage());
-                stage.get().setScene(new Scene(new Pane(box), 300.0, 200.0));
+                stage.get().setScene(new Scene(new RXOverlayPane(new Pane(box)), 300.0, 200.0));
                 RXAtlantaFXThemeBridge.install(stage.get().getScene());
                 stage.get().show();
                 RXBursts.play(box, LONG);
@@ -81,7 +81,7 @@ public class RXBurstsAtlantaFXTest {
                 Region inPopup = new Region();
                 inPopup.setPrefSize(30.0, 30.0);
                 popup.set(new Popup());
-                popup.get().getContent().add(inPopup);
+                popup.get().getContent().add(new RXOverlayPane(inPopup));
                 popup.get().show(stage.get());
                 RXBursts.play(inPopup, LONG);
                 assertEquals(ACCENT, burstColor(popup.get().getScene()), "in a popup");

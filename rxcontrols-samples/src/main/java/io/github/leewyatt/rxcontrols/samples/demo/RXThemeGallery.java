@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
+import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.layout.RXMasonryPane;
 import io.github.leewyatt.rxcontrols.samples.demo.ThemeGalleryCards.NamedControl;
@@ -55,7 +56,7 @@ public class RXThemeGallery extends Application {
         root.getStyleClass().add("gallery-root");
         root.setCenter(scroll);
 
-        Scene scene = new Scene(root, 1280, 860);
+        Scene scene = new Scene(new RXOverlayPane(root), 1280, 860);
         scene.getStylesheets().add(getClass().getResource("rx-theme-gallery.css").toExternalForm());
         root.setTop(buildToolbar());
 

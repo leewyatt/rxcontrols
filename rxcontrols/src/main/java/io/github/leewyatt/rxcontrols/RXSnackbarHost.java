@@ -50,10 +50,10 @@ import java.util.function.BiConsumer;
 /**
  * An in-scene host that displays Material-style snackbars — short, non-modal,
  * auto-hiding notices — one at a time. Applications normally never add this
- * control to the scene graph themselves: the {@code RXSnackbars} facade resolves
- * a per-scene host lazily and injects it through an overlay layer, so showing a
- * message is a single call. A host can also be used directly (for example
- * mounted into a specific pane).
+ * control to the scene graph themselves: the {@code RXSnackbars} facade uses the
+ * host of the nearest {@link RXOverlayPane}, so showing a message is a single
+ * call. A host can also be used directly (for example placed in a specific
+ * pane).
  *
  * <p>Requests are immutable {@link RXSnackbarRequest} values. While a snackbar is
  * displayed, new requests wait in a bounded FIFO queue (see

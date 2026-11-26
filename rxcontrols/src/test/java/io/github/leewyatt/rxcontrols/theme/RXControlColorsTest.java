@@ -19,6 +19,7 @@ import io.github.leewyatt.rxcontrols.RXKanbanColumn;
 import io.github.leewyatt.rxcontrols.RXKanbanView;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
+import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.RXRangeSlider;
 import io.github.leewyatt.rxcontrols.RXRating;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
@@ -797,8 +798,7 @@ public class RXControlColorsTest {
         runOnFx(() -> {
             Application.setUserAgentStylesheet(userAgentStylesheet);
             Region owner = new Region();
-            StackPane root = new StackPane(owner);
-            Scene scene = new Scene(root, 400, 300);
+            Scene scene = new Scene(new RXOverlayPane(new StackPane(owner)), 400, 300);
             themer.accept(scene);
             RXDialog<ButtonType> dialog = new RXDialog<>();
             dialog.setAnimated(false);
