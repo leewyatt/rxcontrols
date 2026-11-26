@@ -265,7 +265,11 @@ public class RXOverlayPane extends Region {
             // The field is set before the node is added, so a listener that
             // asks again while it is being added gets this same host.
             snackbarHost = new RXSnackbarHost();
-            addOverlay(snackbarHost, getChildren().indexOf(currentContent) + 1);
+            // Placed by the overlays above it: the content may be anywhere in
+            // the child list once the application has moved it to the front.
+            Node above = dialogLayer != null ? dialogLayer : burstLayer;
+            ObservableList<Node> children = getChildren();
+            addOverlay(snackbarHost, above == null ? children.size() : children.indexOf(above));
         }
         return snackbarHost;
     }

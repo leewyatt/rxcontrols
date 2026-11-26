@@ -107,6 +107,30 @@ public class RXOverlayPaneTest {
     }
 
     @Test
+    public void aSnackbarHostCreatedAfterTheContentMovedToFrontStaysBelowTheOtherOverlays() throws Exception {
+        onFx(() -> {
+            Button owner = new Button("owner");
+            StackPane content = new StackPane(owner);
+            RXOverlayPane pane = new RXOverlayPane(content);
+            new Scene(pane, 400.0, 300.0);
+            dialog().show(owner);
+            content.toFront();
+            RXSnackbars.show(owner, "saved");
+            assertEquals(List.of("RXSnackbarHost", "RXDialogLayer", "StackPane"), kinds(pane));
+
+            Button burstOwner = new Button("owner");
+            StackPane burstContent = new StackPane(burstOwner);
+            RXOverlayPane burstPane = new RXOverlayPane(burstContent);
+            new Scene(burstPane, 400.0, 300.0);
+            RXBursts.play(burstOwner, LONG);
+            burstContent.toFront();
+            RXSnackbars.show(burstOwner, "saved");
+            assertEquals(List.of("RXSnackbarHost", "RXBurstLayer", "StackPane"), kinds(burstPane),
+                    "and below the bursts when no dialog was shown");
+        });
+    }
+
+    @Test
     public void aViewOrderOnTheContentDoesNotLiftItOverAnOpenDialog() throws Exception {
         onFx(() -> {
             Button owner = new Button("owner");
