@@ -102,10 +102,10 @@ public class RXRangeSlider extends Control {
     public static final double DEFAULT_MIN = 0.0;
     /** Default range maximum. */
     public static final double DEFAULT_MAX = 100.0;
-    /** Default low value (a centered segment with {@link #DEFAULT_HIGH_VALUE}). */
-    public static final double DEFAULT_LOW_VALUE = 25.0;
-    /** Default high value. */
-    public static final double DEFAULT_HIGH_VALUE = 75.0;
+    /** Default low value: the range minimum, so the default selection is the whole range. */
+    public static final double DEFAULT_LOW_VALUE = DEFAULT_MIN;
+    /** Default high value: the range maximum. */
+    public static final double DEFAULT_HIGH_VALUE = DEFAULT_MAX;
     /** Default keyboard block increment. */
     public static final double DEFAULT_BLOCK_INCREMENT = 10.0;
     /** Default major tick unit. */
@@ -116,7 +116,7 @@ public class RXRangeSlider extends Control {
     // ==================== Constructors ====================
 
     /**
-     * Creates a range slider over {@code 0..100} selecting {@code 25..75}.
+     * Creates a range slider over {@code 0..100} selecting the whole range.
      */
     public RXRangeSlider() {
         this(DEFAULT_MIN, DEFAULT_MAX, DEFAULT_LOW_VALUE, DEFAULT_HIGH_VALUE);
@@ -142,8 +142,8 @@ public class RXRangeSlider extends Control {
         setMin(min);
         // Park the low value at the bottom so the requested high is applied
         // against [min, max] only, then set the real low against the real high.
-        // Setting low first would clamp it to the default high (75) whenever the
-        // requested low exceeds it.
+        // Setting low first would hold it at the high value left over from the
+        // defaults whenever the requested low exceeds it.
         setLowValue(getMin());
         setHighValue(highValue);
         setLowValue(lowValue);

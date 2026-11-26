@@ -89,8 +89,8 @@ public class RXRangeSliderTest {
 
         assertEquals(0.0, slider.getMin(), EPSILON);
         assertEquals(100.0, slider.getMax(), EPSILON);
-        assertEquals(25.0, slider.getLowValue(), EPSILON);
-        assertEquals(75.0, slider.getHighValue(), EPSILON);
+        assertEquals(0.0, slider.getLowValue(), EPSILON);
+        assertEquals(100.0, slider.getHighValue(), EPSILON);
         assertFalse(slider.isLowValueChanging());
         assertFalse(slider.isHighValueChanging());
         assertEquals(RXSliderIndicatorDisplay.DRAGGING, slider.getIndicatorDisplay());
@@ -123,18 +123,37 @@ public class RXRangeSliderTest {
     }
 
     /**
+     * Verifies two separate writes inside the default range give the written
+     * selection in either order.
+     */
+    @Test
+    public void defaultSelectionTakesTwoWritesInEitherOrder() {
+        RXRangeSlider lowFirst = new RXRangeSlider();
+        lowFirst.setLowValue(80.0);
+        lowFirst.setHighValue(90.0);
+        assertEquals(80.0, lowFirst.getLowValue(), EPSILON);
+        assertEquals(90.0, lowFirst.getHighValue(), EPSILON);
+
+        RXRangeSlider highFirst = new RXRangeSlider();
+        highFirst.setHighValue(10.0);
+        highFirst.setLowValue(5.0);
+        assertEquals(5.0, highFirst.getLowValue(), EPSILON);
+        assertEquals(10.0, highFirst.getHighValue(), EPSILON);
+    }
+
+    /**
      * Verifies the values clamp to {@code [min, max]} and never cross over, and
      * that moving min / max re-clamps both.
      */
     @Test
     public void crossClampKeepsValuesInOrder() {
         // Low cannot exceed high.
-        RXRangeSlider lowCross = new RXRangeSlider();
+        RXRangeSlider lowCross = new RXRangeSlider(0.0, 100.0, 25.0, 75.0);
         lowCross.setLowValue(80.0);
         assertEquals(75.0, lowCross.getLowValue(), EPSILON);
 
         // High cannot drop below low.
-        RXRangeSlider highCross = new RXRangeSlider();
+        RXRangeSlider highCross = new RXRangeSlider(0.0, 100.0, 25.0, 75.0);
         highCross.setHighValue(10.0);
         assertEquals(25.0, highCross.getHighValue(), EPSILON);
 
@@ -627,7 +646,7 @@ public class RXRangeSliderTest {
      */
     @Test
     public void minGapKeepsValuesApart() {
-        RXRangeSlider slider = new RXRangeSlider();
+        RXRangeSlider slider = new RXRangeSlider(0.0, 100.0, 25.0, 75.0);
         slider.setMinGap(20.0);
 
         slider.setLowValue(70.0);
@@ -805,7 +824,7 @@ public class RXRangeSliderTest {
     @Test
     public void verticalRangeInvertsAndDrags() throws Exception {
         runOnFx(() -> {
-            RXRangeSlider slider = new RXRangeSlider();
+            RXRangeSlider slider = new RXRangeSlider(0.0, 100.0, 25.0, 75.0);
             slider.setOrientation(Orientation.VERTICAL);
             slider.setSkin(new RXRangeSliderSkin(slider));
             StackPane root = new StackPane(slider);
@@ -1605,7 +1624,7 @@ public class RXRangeSliderTest {
     }
 
     private static RXRangeSlider scened(double width, double height) {
-        RXRangeSlider slider = new RXRangeSlider();
+        RXRangeSlider slider = new RXRangeSlider(0.0, 100.0, 25.0, 75.0);
         slider.setSkin(new RXRangeSliderSkin(slider));
         StackPane root = new StackPane(slider);
         new Scene(root, width + 100.0, height + 100.0);
