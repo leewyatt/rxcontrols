@@ -2,10 +2,12 @@ package io.github.leewyatt.rxcontrols.internal.popup;
 
 import io.github.leewyatt.rxcontrols.RXPlacement;
 import javafx.application.Platform;
+import javafx.geometry.Bounds;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.PopupControl;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -317,6 +319,104 @@ public class RXPopupSupportTest {
                 + popupRef.get().getAnchorX() + ", " + popupRef.get().getAnchorY() + ")");
     }
 
+    @Test
+    @Tag("ui")
+    public void preferAnchorWidthShrinksWithContent() throws InterruptedException {
+        AtomicReference<PopupControl> popupRef = new AtomicReference<>();
+        AtomicReference<Region> contentRef = new AtomicReference<>();
+        runOnFx(() -> {
+            Region anchor = newShownAnchor(200);
+            Region content = sizedContent(400, 100);
+            contentRef.set(content);
+            newTestSupport(content).show(anchor);
+            popupRef.set(findTestPopup());
+            assertNotNull(popupRef.get(), "popup window should be present");
+        });
+        waitForFxCondition(() -> Math.abs(popupRef.get().getWidth() - 400) <= 1.0,
+                () -> "precondition: popup window at the content width, got " + popupRef.get().getWidth());
+        runOnFx(() -> contentRef.get().setPrefWidth(250));
+        waitForFxCondition(() -> Math.abs(popupRef.get().getWidth() - 250) <= 1.0,
+                () -> "the popup window must shrink with the content, got " + popupRef.get().getWidth());
+    }
+
+    @Test
+    @Tag("ui")
+    public void cappedHeightShrinksWithContent() throws InterruptedException {
+        AtomicReference<PopupControl> popupRef = new AtomicReference<>();
+        AtomicReference<Region> contentRef = new AtomicReference<>();
+        runOnFx(() -> {
+            Rectangle2D screen = Screen.getPrimary().getVisualBounds();
+            Region anchor = newShownAnchor(200);
+            stage.setY(screen.getMinY() + screen.getHeight() / 2 - 45);
+            Region content = sizedContent(200, screen.getHeight() * 2);
+            contentRef.set(content);
+            RXPopupSupport support = newTestSupport(content);
+            support.setWidthMode(RXPopupWidthMode.PREF_CONTENT);
+            support.show(anchor);
+            popupRef.set(findTestPopup());
+            assertNotNull(popupRef.get(), "popup window should be present");
+        });
+        waitForFxCondition(() -> popupRef.get().getHeight() < Screen.getPrimary().getVisualBounds().getHeight(),
+                () -> "precondition: the popup window is capped, got " + popupRef.get().getHeight());
+        runOnFx(() -> contentRef.get().setPrefHeight(120));
+        waitForFxCondition(() -> Math.abs(popupRef.get().getHeight() - 120) <= 1.0,
+                () -> "a capped popup window must shrink with the content, got " + popupRef.get().getHeight());
+    }
+
+    @Test
+    @Tag("ui")
+    public void endAlignedContentBelowItsPrefWidthKeepsVisibleEdgeOnAnchor() throws InterruptedException {
+        AtomicReference<Region> anchorRef = new AtomicReference<>();
+        AtomicReference<Region> contentRef = new AtomicReference<>();
+        runOnFx(() -> {
+            Region anchor = sizedContent(200, 30);
+            anchor.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+            stage = new Stage();
+            stage.setScene(new Scene(new StackPane(anchor), 500, 100));
+            Rectangle2D screen = Screen.getPrimary().getVisualBounds();
+            stage.setX(screen.getMinX() + 400);
+            stage.setY(screen.getMinY() + 60);
+            stage.show();
+            Region content = sizedContent(400, 80);
+            content.setMaxWidth(240);
+            RXPopupSupport support = newTestSupport(content);
+            support.setPlacement(RXPlacement.BOTTOM_END);
+            support.show(anchor);
+            anchorRef.set(anchor);
+            contentRef.set(content);
+        });
+        // The window edge can line up while the content sits centered inside a
+        // wider window, so the check is on the content's own bounds.
+        waitForFxCondition(() -> Math.abs(screenBounds(contentRef.get()).getMaxX()
+                        - screenBounds(anchorRef.get()).getMaxX()) <= 1.5,
+                () -> "the visible content's end edge must align with the anchor's, off by "
+                        + (screenBounds(contentRef.get()).getMaxX() - screenBounds(anchorRef.get()).getMaxX()));
+    }
+
+    @Test
+    @Tag("ui")
+    public void flippedContentBelowItsPrefHeightKeepsVisibleEdgeOnAnchor() throws InterruptedException {
+        AtomicReference<Region> anchorRef = new AtomicReference<>();
+        AtomicReference<Region> contentRef = new AtomicReference<>();
+        runOnFx(() -> {
+            Region anchor = newShownAnchor(200);
+            Rectangle2D screen = Screen.getPrimary().getVisualBounds();
+            // Too little room below the anchor: the popup opens above.
+            stage.setY(screen.getMaxY() - 200);
+            Region content = sizedContent(200, 2000);
+            content.setMaxHeight(240);
+            RXPopupSupport support = newTestSupport(content);
+            support.setWidthMode(RXPopupWidthMode.PREF_CONTENT);
+            support.show(anchor);
+            anchorRef.set(anchor);
+            contentRef.set(content);
+        });
+        waitForFxCondition(() -> Math.abs(screenBounds(anchorRef.get()).getMinY()
+                        - screenBounds(contentRef.get()).getMaxY()) <= 1.5,
+                () -> "the visible content's bottom edge must sit on the anchor's top, off by "
+                        + (screenBounds(anchorRef.get()).getMinY() - screenBounds(contentRef.get()).getMaxY()));
+    }
+
     // ==================== Window-level lifecycle ====================
 
     @Test
@@ -432,7 +532,54 @@ public class RXPopupSupportTest {
                         + popupRef.get().getAnchorX() + " expected ~" + (beforeX.get() + 40));
     }
 
+    @Test
+    @Tag("ui")
+    public void popupFollowsRepeatedAnchorAndAncestorMoves() throws InterruptedException {
+        AtomicReference<PopupControl> popupRef = new AtomicReference<>();
+        AtomicReference<Region> anchorRef = new AtomicReference<>();
+        AtomicReference<Pane> holderRef = new AtomicReference<>();
+        AtomicReference<Double> startX = new AtomicReference<>();
+        runOnFx(() -> {
+            Region anchor = sizedContent(120, 30);
+            anchor.relocate(10, 10);
+            Pane holder = new Pane(anchor);
+            holder.relocate(20, 20);
+            stage = new Stage();
+            stage.setScene(new Scene(new Pane(holder), 400, 200));
+            Rectangle2D screen = Screen.getPrimary().getVisualBounds();
+            stage.setX(screen.getMinX() + 60);
+            stage.setY(screen.getMinY() + 60);
+            stage.show();
+            RXPopupSupport support = newTestSupport(sizedContent(150, 80));
+            support.setWidthMode(RXPopupWidthMode.PREF_CONTENT);
+            support.show(anchor);
+            popupRef.set(findTestPopup());
+            assertNotNull(popupRef.get(), "popup window should be present");
+            startX.set(popupRef.get().getAnchorX());
+            anchorRef.set(anchor);
+            holderRef.set(holder);
+        });
+        // The anchor's bounds / transform properties are deliberately never read
+        // here: a read would re-validate them and hide a missed notification.
+        moveAndExpectShift(() -> anchorRef.get().setTranslateX(30), popupRef, startX.get(), 30);
+        moveAndExpectShift(() -> anchorRef.get().setTranslateX(60), popupRef, startX.get(), 60);
+        moveAndExpectShift(() -> holderRef.get().setTranslateX(40), popupRef, startX.get(), 100);
+        moveAndExpectShift(() -> holderRef.get().setTranslateX(80), popupRef, startX.get(), 140);
+    }
+
     // ==================== Helpers ====================
+
+    private static void moveAndExpectShift(Runnable move, AtomicReference<PopupControl> popupRef,
+                                           double startX, double expectedShift) throws InterruptedException {
+        runOnFx(move);
+        waitForFxCondition(() -> Math.abs(popupRef.get().getAnchorX() - (startX + expectedShift)) <= 1.5,
+                () -> "the popup must follow the anchor by " + expectedShift + ", got "
+                        + (popupRef.get().getAnchorX() - startX));
+    }
+
+    private static Bounds screenBounds(Region node) {
+        return node.localToScreen(node.getLayoutBounds());
+    }
 
     private RXPopupSupport newTestSupport(Region content) {
         RXPopupSupport support = new RXPopupSupport(content);

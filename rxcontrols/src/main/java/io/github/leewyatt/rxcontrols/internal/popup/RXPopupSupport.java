@@ -54,7 +54,11 @@ import java.util.Objects;
  * ({@code PopupControl}'s own min/pref/max properties have no layout consumer),
  * so the resolved width and max-height are applied to an internal shell pane
  * wrapped around the content — never to the content itself, whose min/pref/max
- * stay under user / CSS control.
+ * stay under user / CSS control. Apart from the fixed width of
+ * {@link RXPopupWidthMode#MATCH_ANCHOR_WIDTH}, the shell gets only bounds (a
+ * minimum width, a maximum height), so the window follows the content's size as
+ * it grows and shrinks. Positioning measures the content's preferred size
+ * bounded by its own min/max — the size the shell actually gives it.
  *
  * <h2>Content bounds contract</h2>
  * {@code PopupWindow} natively tracks the scene root's {@code boundsInLocal}:
@@ -515,9 +519,15 @@ public final class RXPopupSupport {
         // ancestor-driven moves). Window x/y/size are tracked separately at show time.
         // Screen-point mode anchors to a fixed point, so the follow-listeners are
         // skipped (the point does not move with the owner).
+        // Both properties are lazy: they notify only while valid and become valid
+        // again only when read. Nothing else reads them (reconfigure uses
+        // localToScreen), so an invalidation listener would fire once and then go
+        // silent; a change listener reads the new value on every invalidation.
         if (!pointMode) {
-            anchorDisposer.registerListener(newAnchor.boundsInParentProperty(), this::requestReposition);
-            anchorDisposer.registerListener(newAnchor.localToSceneTransformProperty(), this::requestReposition);
+            anchorDisposer.registerListener(newAnchor.boundsInParentProperty(),
+                    (obs, oldValue, newValue) -> requestReposition());
+            anchorDisposer.registerListener(newAnchor.localToSceneTransformProperty(),
+                    (obs, oldValue, newValue) -> requestReposition());
         }
         // Auto-close when the anchor leaves the scene / its window hides. Explicit
         // ownership (new + dispose), not the shared RXTreeShowingProperty.of(node).
@@ -572,11 +582,15 @@ public final class RXPopupSupport {
         }
         Screen screen = screenFor(anchorScreen);
         Rectangle2D visual = screen.getVisualBounds();
-        double naturalW = content.prefWidth(-1);
+        // Measure the size the shell will actually give the content (its pref bounded
+        // by its own min / max, as StackPane does), so the visible content, not just
+        // the window, lands on the anchor when the content's max is below its pref.
+        double naturalW = bounded(content.minWidth(-1), content.prefWidth(-1), content.maxWidth(-1));
         // Measure height at the width the popup will actually take, so width-dependent
         // (wrapping) content still yields a correct flip / max-height decision.
         double resolvedWidth = RXPopupGeometry.resolveWidth(widthMode, anchorScreen.getWidth(), naturalW);
-        double naturalH = content.prefHeight(resolvedWidth);
+        double naturalH = bounded(content.minHeight(resolvedWidth), content.prefHeight(resolvedWidth),
+                content.maxHeight(resolvedWidth));
         boolean rtl = anchor.getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT;
         RXPopupGeometry.Result result = RXPopupGeometry.resolve(
                 anchorScreen.getMinX(), anchorScreen.getMinY(),
@@ -585,11 +599,12 @@ public final class RXPopupSupport {
                 visual.getMinX(), visual.getMinY(), visual.getMaxX(), visual.getMaxY(),
                 placement, widthMode, offsetX, offsetY, rtl,
                 screen.getOutputScaleX(), screen.getOutputScaleY());
-        applyWidth(result.width);
-        // The height cap flows through the shell's pref height; the window follows
-        // it. RXPopupGeometry.USE_COMPUTED_SIZE == Region.USE_COMPUTED_SIZE (-1),
-        // so an uncapped result clears the override.
-        shell.setPrefHeight(result.maxHeight);
+        applyWidth(result.width, anchorScreen.getWidth());
+        // The cap is a bound, not a fixed size: the window follows the shell's
+        // computed pref height, bounded by this max, so it shrinks again when the
+        // content does. RXPopupGeometry.USE_COMPUTED_SIZE == Region.USE_COMPUTED_SIZE
+        // (-1), so an uncapped result clears the bound.
+        shell.setMaxHeight(result.maxHeight);
         popup.setAnchorX(result.anchorX);
         popup.setAnchorY(result.anchorY);
         openAbove.set(placement.isVertical() && !result.after);
@@ -597,7 +612,11 @@ public final class RXPopupSupport {
         pivotY.set(result.pivotY);
     }
 
-    private void applyWidth(double width) {
+    private static double bounded(double min, double pref, double max) {
+        return Math.min(Math.max(pref, min), Math.max(min, max));
+    }
+
+    private void applyWidth(double width, double anchorWidth) {
         switch (widthMode) {
             case MATCH_ANCHOR_WIDTH:
                 shell.setMinWidth(width);
@@ -605,10 +624,11 @@ public final class RXPopupSupport {
                 shell.setMaxWidth(width);
                 break;
             case PREFER_ANCHOR_WIDTH:
-                // width already = max(anchorWidth, contentPref); a min floor is
-                // enough (the popup root's pref computation bounds the shell's
-                // pref by its min, so the floor reaches the window size).
-                shell.setMinWidth(width);
+                // Floor at the anchor width, not at the resolved width: a floor at
+                // max(anchor, content) would hold the window wide after the content
+                // shrinks. The popup root's pref computation bounds the shell's pref
+                // by its min, so the floor reaches the window size.
+                shell.setMinWidth(anchorWidth);
                 shell.setPrefWidth(Region.USE_COMPUTED_SIZE);
                 shell.setMaxWidth(Region.USE_COMPUTED_SIZE);
                 break;
