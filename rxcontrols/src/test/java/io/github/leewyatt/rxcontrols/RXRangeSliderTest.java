@@ -283,6 +283,48 @@ public class RXRangeSliderTest {
     }
 
     /**
+     * Verifies {@code setValues} gives the written selection when released bindings
+     * left the old values closer than the gap or out of the range.
+     */
+    @Test
+    public void setValuesReplacesValuesLeftTooCloseOrOutOfRange() {
+        RXRangeSlider close = new RXRangeSlider(0.0, 100.0, 50.0, 55.0);
+        close.lowValueProperty().bind(new SimpleDoubleProperty(50.0));
+        close.highValueProperty().bind(new SimpleDoubleProperty(55.0));
+        close.setMinGap(20.0);
+        close.lowValueProperty().unbind();
+        close.highValueProperty().unbind();
+        close.setValues(45.0, 80.0);
+        assertEquals(45.0, close.getLowValue(), EPSILON);
+        assertEquals(80.0, close.getHighValue(), EPSILON);
+
+        RXRangeSlider outside = new RXRangeSlider(0.0, 100.0, 20.0, 60.0);
+        outside.highValueProperty().bind(new SimpleDoubleProperty(150.0));
+        outside.highValueProperty().unbind();
+        outside.setValues(140.0, 150.0);
+        assertEquals(100.0, outside.getLowValue(), EPSILON);
+        assertEquals(100.0, outside.getHighValue(), EPSILON);
+    }
+
+    /**
+     * Verifies {@code setValues} sends no value but the new one from a pair the
+     * slider holds exactly at a fractional gap.
+     */
+    @Test
+    public void setValuesFromAPairAtTheGapSendsOnlyTheNewValues() {
+        RXRangeSlider slider = new RXRangeSlider(0.0, 100.0, 40.0, 100.0);
+        slider.setMinGap(0.1);
+        slider.setLowValue(100.0);
+        List<Double> lows = new ArrayList<>();
+        List<Double> highs = new ArrayList<>();
+        slider.lowValueProperty().addListener((o, old, value) -> lows.add(value.doubleValue()));
+        slider.highValueProperty().addListener((o, old, value) -> highs.add(value.doubleValue()));
+        slider.setValues(50.0, 60.0);
+        assertEquals(List.of(50.0), lows);
+        assertEquals(List.of(60.0), highs);
+    }
+
+    /**
      * Verifies the FXML forms given in the class documentation load the written
      * selection.
      *

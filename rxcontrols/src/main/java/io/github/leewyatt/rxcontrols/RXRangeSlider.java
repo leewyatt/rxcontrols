@@ -532,8 +532,8 @@ public class RXRangeSlider extends Control {
     }
 
     /**
-     * Sets the low and the high value in one call, with the same result wherever the
-     * selection was before. The two arguments may come in either order: the smaller
+     * Sets the low and the high value in one call, with the same result whatever the
+     * two values were before. The two arguments may come in either order: the smaller
      * one becomes the low value. Both are held within {@code [min, max]} and
      * {@link #minGapProperty() minGap} apart: a pair closer than the gap keeps its
      * low value and takes the high value the gap above it, or ends at the maximum
@@ -544,14 +544,21 @@ public class RXRangeSlider extends Control {
      * @param highValue the other end of the selection
      */
     public void setValues(double lowValue, double highValue) {
+        double gap = gap();
         double low = Math.min(lowValue, highValue);
         double high = Math.max(lowValue, highValue);
         // Closer than the gap, the value written second would be the one to give way,
         // and which one that is depends on the old selection.
-        high = Math.max(high, low + gap());
-        // The order below takes the old values for a selection. A pair that is not one,
-        // holding a NaN or left out of order by a binding, is first reset to the range.
-        if (!(getLowValue() <= getHighValue())) {
+        high = Math.max(high, low + gap);
+        // The order below takes the old values for a selection the slider would keep.
+        // A pair that is not one, a NaN or what a released binding left out of order,
+        // closer than the gap or out of the range, is first reset to the whole range.
+        // Either end may be the one that keeps the gap, each tested the way its own
+        // correction computes the limit: a pair held exactly at the gap always passes.
+        double oldLow = getLowValue();
+        double oldHigh = getHighValue();
+        boolean apart = oldLow <= oldHigh - gap || oldHigh >= oldLow + gap;
+        if (!apart || oldLow < getMin() || oldHigh > getMax()) {
             setHighValue(getMax());
             setLowValue(getMin());
         }
