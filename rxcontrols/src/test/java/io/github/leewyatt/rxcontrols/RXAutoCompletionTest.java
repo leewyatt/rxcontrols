@@ -4,9 +4,18 @@ import io.github.leewyatt.rxcontrols.event.RXAutoCompleteEvent;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.geometry.Rectangle2D;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.VBox;
+import javafx.stage.Screen;
+import javafx.stage.Stage;
 import javafx.util.StringConverter;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -26,13 +35,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Headless tests for the {@link RXAutoCompletion} binding facade: the bind /
- * unbind / dispose registry lifecycle (via public behavior only), the three bind
+ * Tests for the {@link RXAutoCompletion} binding facade: the bind / unbind /
+ * dispose registry lifecycle (via public behavior only), the three bind
  * overloads' list semantics, the guard contracts (NPE / IAE), configuration
- * defaults, the event-handler property wiring, and {@link
- * RXAutoCompletion#acceptAll()}. The interactive dropdown (show / filter /
- * keyboard / commit write-back) needs a focused field in a showing window and is
- * left to real-machine checks.
+ * defaults, the event-handler property wiring, {@link
+ * RXAutoCompletion#acceptAll()}, and Escape containment of an open dropdown
+ * (tagged {@code "ui"}). The rest of the interactive dropdown (filter / keyboard
+ * navigation / commit write-back) is left to real-machine checks.
  */
 public class RXAutoCompletionTest {
 
@@ -52,6 +61,9 @@ public class RXAutoCompletionTest {
         if (!latch.await(5, TimeUnit.SECONDS)) {
             throw new AssertionError("JavaFX toolkit did not start");
         }
+        // The window-level test hides its stage; with the default implicit exit,
+        // hiding the last window would shut the toolkit down for the fork.
+        Platform.setImplicitExit(false);
     }
 
     // ==================== Registry lifecycle ====================
@@ -323,6 +335,50 @@ public class RXAutoCompletionTest {
             assertNull(received.get(),
                     "a disposed handle never attaches handlers to the field again");
         });
+    }
+
+    // ==================== Dropdown keyboard ====================
+
+    @Test
+    @Tag("ui")
+    public void escapeClosesOnlyTheDropdownNotTheCancelButton() throws InterruptedException {
+        runOnFx(() -> {
+            FocusableField field = new FocusableField();
+            RXAutoCompletion<String> completion = RXAutoCompletion.bind(field, List.of("apple", "apricot"));
+            Button cancel = new Button("Cancel");
+            cancel.setCancelButton(true);
+            AtomicInteger cancelled = new AtomicInteger();
+            cancel.setOnAction(e -> cancelled.incrementAndGet());
+            Stage stage = new Stage();
+            stage.setScene(new Scene(new VBox(8, field, cancel), 300, 160));
+            Rectangle2D screen = Screen.getPrimary().getVisualBounds();
+            stage.setX(screen.getMinX() + 60);
+            stage.setY(screen.getMinY() + 60);
+            stage.show();
+            try {
+                field.focusInPlace();
+                completion.showSuggestions();
+                assertTrue(completion.isPopupShowing(), "precondition: the dropdown is open");
+
+                field.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ESCAPE,
+                        false, false, false, false));
+                assertFalse(completion.isPopupShowing(), "Escape closes the dropdown");
+                assertEquals(0, cancelled.get(), "Escape must not also reach the cancel button");
+            } finally {
+                completion.dispose();
+                stage.hide();
+            }
+        });
+    }
+
+    // Node focus needs OS window focus, which a test JVM may not get; the dropdown
+    // only opens for a focused field, so the test field sets its focus directly.
+    private static final class FocusableField extends TextField {
+
+        private void focusInPlace() {
+            requestFocus();
+            setFocused(true);
+        }
     }
 
     private static void runOnFx(Runnable action) throws InterruptedException {

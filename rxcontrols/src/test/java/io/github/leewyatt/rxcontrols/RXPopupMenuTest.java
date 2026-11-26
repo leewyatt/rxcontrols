@@ -479,6 +479,59 @@ public class RXPopupMenuTest {
 
     @Test
     @Tag("ui")
+    public void ownerHiddenClosesAsOwnerDetached() throws InterruptedException {
+        runOnFx(() -> {
+            Region anchor = shownAnchor();
+            RXPopupMenu menu = quietMenu("A", "B");
+            AtomicReference<CloseReason> reason = new AtomicReference<>();
+            menu.setOnHidden(e -> reason.set(e.getReason()));
+            menu.show(anchor);
+            assertTrue(menu.isShowing(), "precondition: showing");
+            anchor.setVisible(false);
+            assertFalse(menu.isShowing());
+            assertSame(CloseReason.OWNER_DETACHED, reason.get());
+        });
+    }
+
+    @Test
+    @Tag("ui")
+    public void popupShrinksWhenItemsAreRemovedWhileShowing() throws InterruptedException {
+        AtomicReference<RXPopupMenu> menuRef = new AtomicReference<>();
+        runOnFx(() -> {
+            Region anchor = shownAnchor();
+            RXPopupMenu menu = quietMenu();
+            for (int i = 0; i < 100; i++) {
+                menu.getItems().add(RXMenuItem.of("Item " + i));
+            }
+            menu.show(anchor);
+            assertTrue(menu.isShowing(), "precondition: showing");
+            menuRef.set(menu);
+        });
+        // Let the long list lay out (and cap) before shrinking it.
+        Thread.sleep(250);
+        runOnFx(() -> menuRef.get().getItems().remove(2, 100));
+        long deadline = System.currentTimeMillis() + 5000L;
+        AtomicReference<double[]> sizes = new AtomicReference<>();
+        while (System.currentTimeMillis() < deadline) {
+            runOnFx(() -> {
+                RXMenuList list = menuRef.get().getMenuList();
+                sizes.set(new double[]{list.getHeight(), list.prefHeight(-1)});
+            });
+            if (Math.abs(sizes.get()[0] - sizes.get()[1]) <= 1.0) {
+                break;
+            }
+            Thread.sleep(25L);
+        }
+        try {
+            assertEquals(sizes.get()[1], sizes.get()[0], 1.0,
+                    "after removing items the menu list must shrink to its preferred height");
+        } finally {
+            runOnFx(() -> menuRef.get().hide());
+        }
+    }
+
+    @Test
+    @Tag("ui")
     public void restorableCloseReasonsReturnFocusToInvoker() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();

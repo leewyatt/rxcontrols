@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.event.RXMenuEvent;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
 import io.github.leewyatt.rxcontrols.skins.RXMenuListSkin;
+import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -63,21 +64,22 @@ public class RXPopupMenu {
      * Why an {@link RXPopupMenu} closed. All values are produced:
      * {@link #ACTION} / {@link #ESCAPE} / {@link #TAB} / {@link #PROGRAMMATIC}
      * from their explicit paths, {@link #OUTSIDE} vs {@link #OWNER_DETACHED}
-     * distinguished on auto-hide by whether the invoker is still realized, and
-     * {@link #ACCELERATOR} when a registered accelerator activates an item.
+     * distinguished on auto-hide by whether the invoker is still showing (in the
+     * scene, visible, in a showing window), and {@link #ACCELERATOR} when a
+     * registered accelerator activates an item.
      */
     public enum CloseReason {
         /** A command item was activated (close-then-fire). */
         ACTION,
         /** The Escape key was pressed. */
         ESCAPE,
-        /** Outside interaction auto-hid the menu while the invoker was still realized. */
+        /** Outside interaction auto-hid the menu while the invoker was still showing. */
         OUTSIDE,
         /** The Tab key was pressed. */
         TAB,
         /** A programmatic {@link RXPopupMenu#hide()} call. */
         PROGRAMMATIC,
-        /** The owner left the scene / its window hid. */
+        /** The owner left the scene, was hidden (it or an ancestor), or its window hid. */
         OWNER_DETACHED,
         /** A registered accelerator activated an item. */
         ACCELERATOR
@@ -261,6 +263,13 @@ public class RXPopupMenu {
      * Shows the menu at a screen point owned by {@code owner} (a context menu). A
      * no-op under the same conditions as {@link #show(Node, RXPlacement)}.
      *
+     * <p>A mouse press on {@code owner} or any of its descendants does not close
+     * the menu; presses elsewhere do. This matches JavaFX
+     * {@code ContextMenu.show(Node, double, double)}. When the owner is a large
+     * area (a canvas, a list), a click elsewhere inside it leaves the menu open;
+     * pass a smaller owner, or hide the menu from the area's own press handler,
+     * if that is not wanted.
+     *
      * @param owner   the node whose window hosts the menu and receives restored focus
      * @param screenX the anchor x in screen coordinates
      * @param screenY the anchor y in screen coordinates
@@ -353,13 +362,15 @@ public class RXPopupMenu {
             return;
         }
         // No explicit reason means the support auto-hid: distinguish the owner
-        // leaving the scene / its window hiding (OWNER_DETACHED) from an ordinary
-        // outside interaction (OUTSIDE) by whether the invoker is still realized.
+        // leaving the scene / being hidden / its window hiding (OWNER_DETACHED) from
+        // an ordinary outside interaction (OUTSIDE) by whether the invoker is still
+        // tree-showing; a hidden owner is still realized, so realized is not enough.
         CloseReason reason;
         if (pendingReason != null) {
             reason = pendingReason;
         } else {
-            reason = isRealized(invoker) ? CloseReason.OUTSIDE : CloseReason.OWNER_DETACHED;
+            reason = RXTreeShowingProperty.isTreeShowing(invoker)
+                    ? CloseReason.OUTSIDE : CloseReason.OWNER_DETACHED;
         }
         pendingReason = null;
         shownFired = false;
