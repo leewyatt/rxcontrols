@@ -187,6 +187,20 @@ public class RXColorPickerPopupTest {
         });
     }
 
+    @Test
+    public void openingMovesTheFocusToTheArea() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            open();
+        });
+        runOnFx(() -> {
+            RXColorView view = popupView();
+            Node focused = view.getScene().getFocusOwner();
+            assertNotNull(focused);
+            assertTrue(focused.getStyleClass().contains("area"), String.valueOf(focused));
+        });
+    }
+
     // ==================== Value sync ====================
 
     @Test

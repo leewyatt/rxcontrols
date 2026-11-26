@@ -95,6 +95,8 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
     private KeyCode keyCode;
 
     private final InvalidationListener skinListener = observable -> activate();
+    private final InvalidationListener focusOwnerListener = observable -> forwardFocus();
+    private Scene observedScene;
 
     // ==================== Constructor ====================
 
@@ -162,6 +164,18 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
         }));
         disposer.registerListener(control.formatProperty(), live(inputRow::cancelEdits));
         disposer.registerListener(control.clearableProperty(), live(this::updateHeader));
+        // The view is not a Tab stop; focus requested on it (a picker opening its
+        // popup) goes to the area, where the arrow keys work at once. The scene's
+        // focus owner is watched, not focused: a popup of an inactive window gets a
+        // focus owner without ever being focused.
+        disposer.registerListener(control.sceneProperty(), live(this::observeScene));
+        disposer.registerDisposeTask(() -> {
+            if (observedScene != null) {
+                observedScene.focusOwnerProperty().removeListener(focusOwnerListener);
+                observedScene = null;
+            }
+        });
+        observeScene();
         // The fields' own actions (Enter) and other inner actions bubble here; only
         // the view's completed-edit action may reach its handlers.
         disposer.registerEventFilter(control, ActionEvent.ACTION, event -> {
@@ -232,6 +246,27 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
         onAlphaEnabledChanged();
         updateHeader();
         refresh();
+    }
+
+    private void observeScene() {
+        Scene scene = getSkinnable().getScene();
+        if (scene == observedScene) {
+            return;
+        }
+        if (observedScene != null) {
+            observedScene.focusOwnerProperty().removeListener(focusOwnerListener);
+        }
+        observedScene = scene;
+        if (scene != null) {
+            scene.focusOwnerProperty().addListener(focusOwnerListener);
+            forwardFocus();
+        }
+    }
+
+    private void forwardFocus() {
+        if (!disposed && observedScene != null && observedScene.getFocusOwner() == getSkinnable()) {
+            area.requestFocus();
+        }
     }
 
     private void updateHeader() {
