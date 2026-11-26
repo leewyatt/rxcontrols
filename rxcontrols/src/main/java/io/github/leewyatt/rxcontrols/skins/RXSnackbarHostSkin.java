@@ -275,7 +275,7 @@ public class RXSnackbarHostSkin extends RXSkinBase<RXSnackbarHost> {
         double availableHeight = Math.max(0.0, contentHeight - margin.getTop() - margin.getBottom());
         double widthCap = Math.min(availableWidth, effectiveMaxWidth());
         double barWidth = RXMath.clamp(bar.prefWidth(-1), bar.minWidth(-1), widthCap);
-        double barHeight = Math.min(availableHeight, bar.prefHeight(barWidth));
+        double barHeight = RXMath.clamp(bar.prefHeight(barWidth), bar.minHeight(barWidth), availableHeight);
         Pos pos = positionOrDefault();
         double barX = contentX + margin.getLeft() + alignedX(pos.getHpos(), availableWidth, barWidth);
         double barY = contentY + margin.getTop() + alignedY(pos.getVpos(), availableHeight, barHeight);
