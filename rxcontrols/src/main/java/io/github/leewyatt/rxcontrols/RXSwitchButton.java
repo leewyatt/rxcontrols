@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXSwitchButtonSkin;
 import javafx.animation.Interpolator;
-import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.BooleanPropertyBase;
 import javafx.beans.property.ObjectProperty;
@@ -100,7 +99,7 @@ public class RXSwitchButton extends ButtonBase {
      *
      * @param text the text caption, or {@code null}
      */
-    public RXSwitchButton(@NamedArg("text") String text) {
+    public RXSwitchButton(String text) {
         this(text, null);
     }
 
@@ -110,7 +109,7 @@ public class RXSwitchButton extends ButtonBase {
      * @param text    the text caption, or {@code null}
      * @param graphic the graphic node, or {@code null}
      */
-    public RXSwitchButton(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
+    public RXSwitchButton(String text, Node graphic) {
         getStyleClass().setAll(DEFAULT_STYLE_CLASS);
         setText(text);
         setGraphic(graphic);

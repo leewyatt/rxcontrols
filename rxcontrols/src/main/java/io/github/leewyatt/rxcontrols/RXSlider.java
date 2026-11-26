@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXSliderSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.css.CssMetaData;
@@ -82,9 +81,7 @@ public class RXSlider extends Slider {
      * @param max   the range maximum
      * @param value the initial value
      */
-    public RXSlider(@NamedArg("min") double min,
-                    @NamedArg("max") double max,
-                    @NamedArg("value") double value) {
+    public RXSlider(double min, double max, double value) {
         super(min, max, value);
         getStyleClass().setAll(DEFAULT_STYLE_CLASS);
     }

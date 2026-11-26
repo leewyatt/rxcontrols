@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXCheckBoxSkin;
 import javafx.animation.Interpolator;
-import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
@@ -100,7 +99,7 @@ public class RXCheckBox extends CheckBox {
      *
      * @param text the text caption, or {@code null}
      */
-    public RXCheckBox(@NamedArg("text") String text) {
+    public RXCheckBox(String text) {
         this(text, null);
     }
 
@@ -110,7 +109,7 @@ public class RXCheckBox extends CheckBox {
      * @param text    the text caption, or {@code null}
      * @param graphic the graphic node, or {@code null}
      */
-    public RXCheckBox(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
+    public RXCheckBox(String text, Node graphic) {
         // Replace the inherited "check-box" style class so modena does not also match.
         getStyleClass().setAll(DEFAULT_STYLE_CLASS);
         setText(text);

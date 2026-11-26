@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import javafx.beans.NamedArg;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 
@@ -38,7 +37,7 @@ public class RXRadioToggleButton extends RXToggleButton {
      *
      * @param text the text caption, or {@code null}
      */
-    public RXRadioToggleButton(@NamedArg("text") String text) {
+    public RXRadioToggleButton(String text) {
         super(text);
         initialize();
     }
@@ -49,7 +48,7 @@ public class RXRadioToggleButton extends RXToggleButton {
      * @param text    the text caption, or {@code null}
      * @param graphic the graphic node, or {@code null}
      */
-    public RXRadioToggleButton(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
+    public RXRadioToggleButton(String text, Node graphic) {
         super(text, graphic);
         initialize();
     }

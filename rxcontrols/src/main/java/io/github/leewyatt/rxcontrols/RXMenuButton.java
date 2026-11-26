@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXMenuButtonSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -68,7 +67,7 @@ public class RXMenuButton extends ButtonBase {
      *
      * @param text the text caption, or {@code null}
      */
-    public RXMenuButton(@NamedArg("text") String text) {
+    public RXMenuButton(String text) {
         super(text, null);
         initialize();
     }
@@ -79,7 +78,7 @@ public class RXMenuButton extends ButtonBase {
      * @param text    the text caption, or {@code null}
      * @param graphic the graphic node, or {@code null}
      */
-    public RXMenuButton(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
+    public RXMenuButton(String text, Node graphic) {
         super(text, graphic);
         initialize();
     }

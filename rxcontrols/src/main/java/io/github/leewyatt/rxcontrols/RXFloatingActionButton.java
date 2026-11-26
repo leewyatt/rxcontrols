@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.skins.RXFloatingActionButtonSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
@@ -47,7 +46,7 @@ public class RXFloatingActionButton extends RXButton {
      *
      * @param graphic the graphic node, or {@code null}
      */
-    public RXFloatingActionButton(@NamedArg("graphic") Node graphic) {
+    public RXFloatingActionButton(Node graphic) {
         super(null, graphic);
         initialize();
     }
@@ -60,8 +59,7 @@ public class RXFloatingActionButton extends RXButton {
      * @param text    the text caption, or {@code null}
      * @param graphic the graphic node, or {@code null}
      */
-    public RXFloatingActionButton(@NamedArg("text") String text,
-                                  @NamedArg("graphic") Node graphic) {
+    public RXFloatingActionButton(String text, Node graphic) {
         super(text, graphic);
         initialize();
     }

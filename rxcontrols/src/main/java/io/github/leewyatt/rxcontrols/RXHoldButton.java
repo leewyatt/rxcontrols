@@ -6,7 +6,6 @@ import io.github.leewyatt.rxcontrols.internal.FeedbackSignals;
 import io.github.leewyatt.rxcontrols.internal.KeywordConverter;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXHoldButtonSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -154,7 +153,7 @@ public class RXHoldButton extends ButtonBase {
      *
      * @param text the text caption, or {@code null}
      */
-    public RXHoldButton(@NamedArg("text") String text) {
+    public RXHoldButton(String text) {
         super(text);
         initialize();
     }
@@ -165,7 +164,7 @@ public class RXHoldButton extends ButtonBase {
      * @param text    the text caption, or {@code null}
      * @param graphic the graphic node, or {@code null}
      */
-    public RXHoldButton(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
+    public RXHoldButton(String text, Node graphic) {
         super(text, graphic);
         initialize();
     }

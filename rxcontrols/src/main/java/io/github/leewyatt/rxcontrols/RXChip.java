@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.event.RXChipEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXChipSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.BooleanPropertyBase;
 import javafx.beans.property.DoubleProperty;
@@ -77,7 +76,7 @@ public class RXChip extends ButtonBase {
      *
      * @param text the text caption, or {@code null}
      */
-    public RXChip(@NamedArg("text") String text) {
+    public RXChip(String text) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setFocusTraversable(true);
         setText(text);
@@ -90,7 +89,7 @@ public class RXChip extends ButtonBase {
      * @param text    the text caption, or {@code null}
      * @param graphic the leading graphic node, or {@code null}
      */
-    public RXChip(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
+    public RXChip(String text, Node graphic) {
         this(text);
         setGraphic(graphic);
     }

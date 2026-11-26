@@ -5,7 +5,6 @@ import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.internal.transition.ContentBias;
 import io.github.leewyatt.rxcontrols.skins.RXDualPaneSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
@@ -86,8 +85,7 @@ public class RXDualPane extends Control {
      * @param second the second face, may be {@code null}
      */
     @SuppressWarnings("unchecked")
-    public RXDualPane(@NamedArg("firstContent") Node first,
-                      @NamedArg("secondContent") Node second) {
+    public RXDualPane(Node first, Node second) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         // Display-only container: initialize focusTraversable to false with a
         // null StyleOrigin so CSS can still override it, mirroring Label and

@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXDigitSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -81,7 +80,7 @@ public class RXDigit extends Control {
      * @param digit the digit to display; values outside {@code [0, 9]} are
      *              clamped when rendered
      */
-    public RXDigit(@NamedArg("digit") int digit) {
+    public RXDigit(int digit) {
         this();
         setDigit(digit);
     }

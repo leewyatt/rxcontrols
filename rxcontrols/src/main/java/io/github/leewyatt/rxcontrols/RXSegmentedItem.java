@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -50,7 +49,7 @@ public class RXSegmentedItem<T> {
      * @param value application value, may be {@code null}
      * @param text  segment text, may be {@code null}
      */
-    public RXSegmentedItem(@NamedArg("value") T value, @NamedArg("text") String text) {
+    public RXSegmentedItem(T value, String text) {
         setValue(value);
         setText(text);
     }

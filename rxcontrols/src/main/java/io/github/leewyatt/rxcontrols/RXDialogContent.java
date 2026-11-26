@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 
-import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -73,8 +72,7 @@ public class RXDialogContent extends RXDialogContentBase {
      * @param headerText  the header text, or {@code null}
      * @param contentText the body text, or {@code null}
      */
-    public RXDialogContent(@NamedArg("headerText") String headerText,
-                          @NamedArg("contentText") String contentText) {
+    public RXDialogContent(String headerText, String contentText) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
 
         container.getStyleClass().add("container");

@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.internal.RatingAccess;
 import io.github.leewyatt.rxcontrols.skins.RXRatingSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.BooleanPropertyBase;
 import javafx.beans.property.DoubleProperty;
@@ -128,7 +127,7 @@ public class RXRating extends Control {
      *
      * @param value the initial value, or {@code null} for not rated
      */
-    public RXRating(@NamedArg("value") Double value) {
+    public RXRating(Double value) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setAccessibleRole(AccessibleRole.SLIDER);
         setValue(value);

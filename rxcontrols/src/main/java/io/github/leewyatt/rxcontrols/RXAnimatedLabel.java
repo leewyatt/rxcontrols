@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
-import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
@@ -60,7 +59,7 @@ public abstract class RXAnimatedLabel extends Label {
      *
      * @param text the text caption, or {@code null}
      */
-    protected RXAnimatedLabel(@NamedArg("text") String text) {
+    protected RXAnimatedLabel(String text) {
         super(text);
         initialize();
     }
@@ -71,7 +70,7 @@ public abstract class RXAnimatedLabel extends Label {
      * @param text    the text caption, or {@code null}
      * @param graphic the graphic node, or {@code null}
      */
-    protected RXAnimatedLabel(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
+    protected RXAnimatedLabel(String text, Node graphic) {
         super(text, graphic);
         initialize();
     }
