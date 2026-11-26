@@ -319,7 +319,7 @@ View 可以直接嵌入页面；对应 Picker 会增加文本字段、解析、�
 | `RXBadge` | 附着于内容角落或独立使用的 count、text、dot indicator。 |
 | `RXRibbonBadge` | 横跨内容顶部 START/END 侧的折角文字缎带。 |
 
-`RXBursts` 是一个 Scene overlay facade，可以从任意节点或局部坐标播放粒子爆发；`RXBurstOptions` 用于完整配置。
+`RXBursts` 是一个 facade，可以从任意节点或局部坐标播放粒子爆发，画在该节点上方最近的 `RXOverlayPane` 里；`RXBurstOptions` 用于完整配置。
 
 ### 导航、折叠、菜单与覆盖层
 
@@ -333,12 +333,21 @@ View 可以直接嵌入页面；对应 Picker 会增加文本字段、解析、�
 | `RXMenuList` | 内联展示 RXControls 菜单模型。 |
 | `RXMenuButton` | 菜单触发按钮。 |
 | `RXDrawerPane` | 覆盖在主内容之上的临时场景内侧边抽屉。 |
-| `RXDialog<R>` | 带可拒绝关闭和异步结果回调的场景内模态 Dialog。 |
+| `RXOverlayPane` | Dialog、Snackbar 和粒子爆发的宿主：一个内容槽，覆盖层叠在内容上方。 |
+| `RXDialog<R>` | 显示在 `RXOverlayPane` 里的模态 Dialog，带可拒绝关闭和异步结果回调。 |
 | `RXDialogContent` | `RXDialog` 常用的标题/正文内容。 |
 | `RXDialogContentBase` | 自定义 Dialog 内容使用的 dialog-aware Region 基类。 |
 | `RXSnackbarHost` | 管理 Snackbar 展示、队列、替换和 dismissal 生命周期。 |
 
 这个家族中的非 Node facade 包括 `RXPopupMenu`、`RXDialogs` 和 `RXSnackbars`。
+
+Dialog、Snackbar 和粒子爆发都显示在发起请求的节点上方最近的 `RXOverlayPane` 里，所以应用需要把场景根包进一个：
+
+```java
+stage.setScene(new Scene(new RXOverlayPane(root), 960, 620));
+```
+
+owner 在场景里而上方没有宿主时，显示 Dialog 或 Snackbar 会抛 `IllegalStateException`，粒子爆发不播放。把 `RXOverlayPane` 包在场景的某一块内容外面，从那块内容里发起的覆盖层就只显示在这一块里。
 
 ## 完整公开 API 索引
 
