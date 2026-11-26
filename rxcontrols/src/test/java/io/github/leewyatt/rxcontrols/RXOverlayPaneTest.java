@@ -869,6 +869,25 @@ public class RXOverlayPaneTest {
         });
     }
 
+    @Test
+    public void focusInASubSceneOfTheDialogGoesBackWhereItCameFrom() throws Exception {
+        onFx(() -> {
+            Button owner = new Button("owner");
+            RXOverlayPane pane = new RXOverlayPane(new VBox(new Button("other"), owner));
+            Scene scene = new Scene(pane, 400.0, 300.0);
+            owner.requestFocus();
+            Button inSubScene = new Button("in a sub-scene");
+            RXDialog<ButtonType> dialog = dialog();
+            dialog.setContent(new SubScene(new StackPane(inSubScene), 200.0, 60.0));
+            dialog.show(owner);
+            inSubScene.requestFocus();
+            assertSame(inSubScene, scene.getFocusOwner());
+
+            dialog.close();
+            assertSame(owner, scene.getFocusOwner());
+        });
+    }
+
     // ==================== FXML ====================
 
     @Test

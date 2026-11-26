@@ -531,8 +531,9 @@ public class RXDialog<R> extends Control {
     /**
      * Whether the dialog is modal. A modal dialog shows the dimmed, input-blocking
      * scrim, traps focus, and steals focus on show / restores it on hide; focus that
-     * has moved outside the dialog's {@link RXOverlayPane} by then stays where it is. A
-     * non-modal dialog shows no scrim and leaves the content below it interactive.
+     * has moved outside the dialog's {@link RXOverlayPane} by then stays where it is,
+     * unless it went into a {@code SubScene}. A non-modal dialog shows no scrim and
+     * leaves the content below it interactive.
      *
      * @return the modal property
      */

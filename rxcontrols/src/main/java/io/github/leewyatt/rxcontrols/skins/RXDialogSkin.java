@@ -750,18 +750,20 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     }
 
     // The dialog's layer fills the overlay pane, so that pane is the parent of the layer.
+    // A node counts as outside only when its parents lead to the scene root without passing
+    // the pane. A chain that ends earlier has reached the root of a sub-scene, which may
+    // sit inside the pane or the dialog itself, and focus is then given back.
     private boolean isOutsideCoveredPane(Node node) {
         Parent layer = getSkinnable().getParent();
         Parent pane = layer == null ? null : layer.getParent();
         if (node == null || pane == null) {
             return false;
         }
-        for (Node ancestor = node; ancestor != null; ancestor = ancestor.getParent()) {
-            if (ancestor == pane) {
-                return false;
-            }
+        Node top = node;
+        while (top != pane && top.getParent() != null) {
+            top = top.getParent();
         }
-        return true;
+        return top != pane && top.getScene() != null && top == top.getScene().getRoot();
     }
 
     private Node firstFocusTarget() {
