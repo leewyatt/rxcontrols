@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.internal.RXDialogLayer;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.collections.ListChangeListener;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -251,6 +252,72 @@ public class RXOverlayPaneTest {
             pane.setContent(new Label("next"));
             assertEquals(List.of("Label", "RXSnackbarHost", "RXDialogLayer"), kinds(pane));
             assertTrue(dialog.isShowing());
+        });
+    }
+
+    @Test
+    public void aContentSetWhileAnotherIsOnItsWayIsTheOneThatStays() throws Exception {
+        onFx(() -> {
+            Button owner = new Button("owner");
+            RXOverlayPane pane = new RXOverlayPane(new StackPane(owner));
+            new Scene(pane, 400.0, 300.0);
+            RXDialog<ButtonType> dialog = dialog();
+            dialog.show(owner);
+
+            // A page that sends to another one as soon as it enters the scene.
+            VBox login = new VBox(new Label("log in"));
+            Pane guarded = new Pane();
+            guarded.sceneProperty().addListener((obs, old, scene) -> {
+                if (scene != null) {
+                    pane.setContent(login);
+                }
+            });
+            pane.setContent(guarded);
+            assertSame(login, pane.getContent());
+            assertEquals(List.of("VBox", "RXDialogLayer"), kinds(pane));
+            assertNull(guarded.getParent());
+            assertTrue(dialog.isShowing());
+
+            // A page that sends somewhere else than was asked for, as it leaves.
+            Label last = new Label("last");
+            login.parentProperty().addListener((obs, old, parent) -> {
+                if (parent == null) {
+                    pane.setContent(last);
+                }
+            });
+            pane.setContent(new Label("asked for"));
+            assertSame(last, pane.getContent());
+            assertEquals(List.of("Label", "RXDialogLayer"), kinds(pane));
+            assertSame(pane, last.getParent());
+
+            // A page that clears the content again when the pane takes it.
+            Region page = new Region();
+            page.parentProperty().addListener((obs, old, parent) -> {
+                if (parent == pane) {
+                    pane.setContent(null);
+                }
+            });
+            pane.setContent(page);
+            assertNull(pane.getContent());
+            assertEquals(List.of("RXDialogLayer"), kinds(pane));
+        });
+    }
+
+    @Test
+    public void aSizeAskedForWhileTheContentChangesIsThatOfTheNewContent() throws Exception {
+        onFx(() -> {
+            Region first = new Region();
+            first.setPrefSize(70.0, 30.0);
+            Region second = new Region();
+            second.setPrefSize(140.0, 60.0);
+            RXOverlayPane pane = new RXOverlayPane(first);
+            double[] seen = new double[1];
+            pane.getChildrenUnmodifiable().addListener(
+                    (ListChangeListener<Node>) change -> seen[0] = pane.prefWidth(-1.0));
+
+            pane.setContent(second);
+            assertEquals(140.0, seen[0], "asked for from a listener of the child list");
+            assertEquals(140.0, pane.prefWidth(-1.0), "and afterwards");
         });
     }
 

@@ -68,6 +68,7 @@ public class RXOverlayPane extends Region {
     // ==================== Internal State ====================
 
     private Node currentContent;
+    private boolean updatingContent;
     private RXSnackbarHost snackbarHost;
     private RXDialogLayer dialogLayer;
     private RXBurstLayer burstLayer;
@@ -112,6 +113,9 @@ public class RXOverlayPane extends Region {
     /**
      * The node shown below the overlays, usually the application's root
      * layout. May be {@code null}. Replacing it does not touch the overlays.
+     * A value set from a listener that runs while the pane takes or releases
+     * its content is applied once that change is complete, so the new node is
+     * not in the pane yet when the call returns.
      *
      * @return the content property
      */
@@ -387,27 +391,42 @@ public class RXOverlayPane extends Region {
 
     // ==================== Helpers ====================
 
+    // A listener may set the content again while the child list is changing. That call
+    // returns at once, and the loop applies the newest value when the change it
+    // interrupted is complete, so the child list is never changed from inside its own
+    // change.
     private void updateContent() {
-        Node next = getContent();
-        if (currentContent == next) {
+        if (updatingContent) {
             return;
         }
-        ObservableList<Node> children = getChildren();
-        int index = currentContent == null ? -1 : children.indexOf(currentContent);
-        if (next == null) {
-            if (index >= 0) {
-                children.remove(index);
+        updatingContent = true;
+        try {
+            for (Node next = getContent(); currentContent != next; next = getContent()) {
+                ObservableList<Node> children = getChildren();
+                int index = currentContent == null ? -1 : children.indexOf(currentContent);
+                if (next == null) {
+                    if (index >= 0) {
+                        children.remove(index);
+                    }
+                } else if (index >= 0) {
+                    children.set(index, next);
+                } else {
+                    children.add(0, next);
+                }
+                currentContent = next;
             }
-        } else if (index >= 0) {
-            children.set(index, next);
-        } else {
-            children.add(0, next);
+        } finally {
+            updatingContent = false;
         }
-        currentContent = next;
     }
 
+    // The property names the new content as soon as it is in the child list, before the
+    // field follows; a size asked for by a listener of that change is then already right.
     private Node managedContent() {
-        Node node = currentContent;
+        Node node = getContent();
+        if (node == null || node.getParent() != this) {
+            node = currentContent;
+        }
         return node == null || node.getParent() != this || !node.isManaged() ? null : node;
     }
 
