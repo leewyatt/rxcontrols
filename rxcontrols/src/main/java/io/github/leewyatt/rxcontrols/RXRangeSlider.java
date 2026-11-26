@@ -479,14 +479,16 @@ public class RXRangeSlider extends Control {
     }
 
     private void adjustLowValues() {
-        if (lowValue.isBound()) {
+        // A NaN is left as it is: written back it would count as a change every time.
+        if (lowValue.isBound() || Double.isNaN(getLowValue())) {
             return;
         }
         setLowValue(SliderGeometry.clampLow(getLowValue(), getMin(), getMax(), getHighValue(), gap()));
     }
 
     private void adjustHighValues() {
-        if (highValue.isBound()) {
+        // A NaN is left as it is: written back it would count as a change every time.
+        if (highValue.isBound() || Double.isNaN(getHighValue())) {
             return;
         }
         setHighValue(SliderGeometry.clampHigh(getHighValue(), getMin(), getMax(), getLowValue(), gap()));

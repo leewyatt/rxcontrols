@@ -230,6 +230,31 @@ public class RXRangeSliderTest {
     }
 
     /**
+     * Verifies a NaN value is kept, as by the JavaFX slider, and gives way to the
+     * next valid value.
+     */
+    @Test
+    public void nanValueIsKeptUntilReplaced() {
+        RXRangeSlider slider = new RXRangeSlider(0.0, 100.0, 20.0, 60.0);
+        slider.setLowValue(Double.NaN);
+        assertTrue(Double.isNaN(slider.getLowValue()));
+        assertEquals(60.0, slider.getHighValue(), EPSILON);
+        slider.setLowValue(30.0);
+        assertEquals(30.0, slider.getLowValue(), EPSILON);
+
+        slider.setHighValue(Double.NaN);
+        assertTrue(Double.isNaN(slider.getHighValue()));
+        assertEquals(30.0, slider.getLowValue(), EPSILON);
+        slider.setHighValue(70.0);
+        assertEquals(70.0, slider.getHighValue(), EPSILON);
+
+        slider.setValues(40.0, Double.NaN);
+        slider.setValues(35.0, 65.0);
+        assertEquals(35.0, slider.getLowValue(), EPSILON);
+        assertEquals(65.0, slider.getHighValue(), EPSILON);
+    }
+
+    /**
      * Verifies the FXML forms given in the class documentation load the written
      * selection.
      *
