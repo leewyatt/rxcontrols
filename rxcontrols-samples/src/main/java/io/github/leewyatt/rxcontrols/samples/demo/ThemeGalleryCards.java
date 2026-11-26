@@ -381,7 +381,7 @@ final class ThemeGalleryCards {
     }
 
     private static Node buildRXAvatar() {
-        Image image = new Image(ThemeGalleryCards.class.getResource("/scenery/1.png").toExternalForm(), true);
+        Image image = new Image(ThemeGalleryCards.class.getResource("/images/scenery/1.png").toExternalForm(), true);
         RXAvatar avatar = new RXAvatar(image);
         avatar.setText("LW");
         avatar.setShapeType(ShapeType.CIRCLE);
@@ -743,7 +743,7 @@ final class ThemeGalleryCards {
     }
 
     private static Node buildRXClipPathImageView() {
-        Image image = new Image(ThemeGalleryCards.class.getResource("/scenery/1.png").toExternalForm());
+        Image image = new Image(ThemeGalleryCards.class.getResource("/images/scenery/1.png").toExternalForm());
         RXClipPathImageView view = new RXClipPathImageView(image);
         view.setClipSvg(RXClipPathImageView.SHAPE_SHIELD);
         view.setPrefSize(260, 180);
@@ -921,7 +921,7 @@ final class ThemeGalleryCards {
     }
 
     private static Node buildRXImagePane() {
-        Image image = new Image(ThemeGalleryCards.class.getResource("/scenery/1.png").toExternalForm());
+        Image image = new Image(ThemeGalleryCards.class.getResource("/images/scenery/1.png").toExternalForm());
         RXImagePane pane = new RXImagePane(image);
         pane.setImageFit(ImageFit.COVER);
         pane.setImageRadius(16.0);
@@ -946,7 +946,7 @@ final class ThemeGalleryCards {
 
     private static Node buildRXImageView() {
         Image image = new Image(
-                ThemeGalleryCards.class.getResource("/scenery/1.png").toExternalForm(),
+                ThemeGalleryCards.class.getResource("/images/scenery/1.png").toExternalForm(),
                 true);
         RXImageView imageView = new RXImageView(image);
         imageView.setImageFit(ImageFit.COVER);

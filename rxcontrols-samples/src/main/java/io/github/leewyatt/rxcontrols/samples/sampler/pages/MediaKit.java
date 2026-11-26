@@ -22,10 +22,10 @@ final class MediaKit {
             MediaKit.class.getResource("rx-media-samples.css").toExternalForm();
 
     /** A portrait of a person in a pink kimono under cherry blossoms. */
-    static final String PORTRAIT = "/image/avatar.png";
+    static final String PORTRAIT = "/images/avatar.png";
 
     /** A cheerful cartoon dog wearing a bandana. */
-    static final String SHIBA = "/image/shiba.png";
+    static final String SHIBA = "/images/shiba.png";
 
     /** The song the lyric pages pretend to play. */
     static final String SONG_TITLE = "Paper Boats";

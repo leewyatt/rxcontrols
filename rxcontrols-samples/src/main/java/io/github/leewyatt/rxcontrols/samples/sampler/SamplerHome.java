@@ -391,7 +391,7 @@ final class SamplerHome extends ScrollPane {
     // ==================== Author ====================
 
     private Node author() {
-        RXAvatar avatar = new RXAvatar(HomeKit.image("/image/avatar.png"));
+        RXAvatar avatar = new RXAvatar(HomeKit.image("/images/avatar.png"));
         avatar.setPrefSize(64.0, 64.0);
         avatar.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         avatar.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);

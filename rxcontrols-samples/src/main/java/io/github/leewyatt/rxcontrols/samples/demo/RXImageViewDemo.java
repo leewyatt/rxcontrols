@@ -45,7 +45,7 @@ public class RXImageViewDemo extends Application {
     }
 
     private Node createHero() {
-        RXImageView imageView = new RXImageView(image("/scenery/4.png"));
+        RXImageView imageView = new RXImageView(image("/images/scenery/4.png"));
         imageView.setImageRadius(22.0);
         imageView.setPrefSize(860.0, 310.0);
         imageView.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
@@ -73,11 +73,11 @@ public class RXImageViewDemo extends Application {
     private Node createCards() {
         HBox row = new HBox(18.0,
                 createCard("Inset crop", "Image padding leaves room for card chrome.",
-                        "/scenery/1.png", new Insets(14.0), 16.0),
+                        "/images/scenery/1.png", new Insets(14.0), 16.0),
                 createCard("Bleed crop", "Negative insets let imagery extend past the content box.",
-                        "/scenery/3.png", new Insets(-16.0), 16.0),
+                        "/images/scenery/3.png", new Insets(-16.0), 16.0),
                 createCard("Soft tile", "The radius remains stable while the image scales.",
-                        "/scenery/2.png", Insets.EMPTY, 28.0));
+                        "/images/scenery/2.png", Insets.EMPTY, 28.0));
         row.getStyleClass().add("card-row");
         return row;
     }

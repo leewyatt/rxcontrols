@@ -41,7 +41,7 @@ final class SampleImages {
      * @return the shared image
      */
     static Image scenery(int number) {
-        return image("/scenery/" + number + ".png");
+        return image("/images/scenery/" + number + ".png");
     }
 
     /**

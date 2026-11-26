@@ -102,7 +102,7 @@ public final class RXReactionButtonSamples {
     }
 
     private static Node textPost() {
-        RXAvatar avatar = new RXAvatar(SampleImages.image("/image/avatar.png"));
+        RXAvatar avatar = new RXAvatar(SampleImages.image("/images/avatar.png"));
         avatar.setPrefSize(40.0, 40.0);
         Label name = new Label("Lee Wyatt");
         name.getStyleClass().add("post-title");

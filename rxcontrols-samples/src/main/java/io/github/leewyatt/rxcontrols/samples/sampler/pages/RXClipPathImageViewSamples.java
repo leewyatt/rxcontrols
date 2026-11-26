@@ -56,7 +56,7 @@ public final class RXClipPathImageViewSamples {
                         SampleCard.medium("Custom paths",
                                 "Any SVG path in a 0 to 100 box works: a speech bubble and a ticket with notches.",
                                 custom(SPEECH_BUBBLE, PORTRAIT, "Speech bubble"),
-                                custom(TICKET, "/scenery/2.png", "Ticket")),
+                                custom(TICKET, "/images/scenery/2.png", "Ticket")),
                         SampleCard.medium("Wide boxes",
                                 "The path stretches to the view's box, so a wave-edged banner fills any width.",
                                 banner())),

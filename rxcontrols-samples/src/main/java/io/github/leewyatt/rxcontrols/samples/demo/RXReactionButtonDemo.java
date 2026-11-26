@@ -43,7 +43,7 @@ public class RXReactionButtonDemo extends Application {
         bookmark.setAccessibleText("Bookmark");
 
         RXImageView photo = new RXImageView(new Image(
-                getClass().getResource("/scenery/1.png").toExternalForm(), true));
+                getClass().getResource("/images/scenery/1.png").toExternalForm(), true));
         photo.setPrefSize(360.0, 240.0);
         // A double click likes the post; liking twice only plays the burst again.
         photo.setOnMouseClicked(event -> {

@@ -152,7 +152,7 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
                 },
                 buildRichCard()));
 
-        Image image = new Image(getClass().getResource("/scenery/1.png").toExternalForm());
+        Image image = new Image(getClass().getResource("/images/scenery/1.png").toExternalForm());
         ImageView imageView = new ImageView(image);
         imageView.setFitWidth(300.0);
         imageView.setPreserveRatio(true);

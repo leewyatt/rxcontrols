@@ -30,7 +30,7 @@ public class RXImagePaneDemo extends Application {
      */
     @Override
     public void start(Stage primaryStage) {
-        RXImagePane imagePane = new RXImagePane(image("/scenery/4.png"));
+        RXImagePane imagePane = new RXImagePane(image("/images/scenery/4.png"));
         imagePane.getStyleClass().add("destination-pane");
         imagePane.setImageRadius(24.0);
         imagePane.setPrefSize(720.0, 420.0);

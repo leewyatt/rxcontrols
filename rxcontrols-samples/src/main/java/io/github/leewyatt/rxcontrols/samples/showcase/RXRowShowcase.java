@@ -415,7 +415,7 @@ public class RXRowShowcase extends RXShowcaseApplication {
     }
 
     private Node createImageView() {
-        Image image = new Image(getClass().getResource("/scenery/2.png").toExternalForm(), true);
+        Image image = new Image(getClass().getResource("/images/scenery/2.png").toExternalForm(), true);
         RXImageView imageView = new RXImageView(image);
         imageView.setPrefSize(200.0, 110.0);
         imageView.setImageRadius(8.0);

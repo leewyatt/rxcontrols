@@ -22,7 +22,7 @@ public class RXAvatarDemo extends Application {
     public void start(Stage primaryStage) {
         RXAvatar avatar = new RXAvatar();
         // avatar.setText("LW");
-        avatar.setImage(new Image(RXAvatarDemo.class.getResource("/scenery/2.png").toExternalForm()));
+        avatar.setImage(new Image(RXAvatarDemo.class.getResource("/images/scenery/2.png").toExternalForm()));
         avatar.setPrefSize(120.0, 120.0);
 
         StackPane root = new StackPane(avatar);

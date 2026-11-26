@@ -240,10 +240,10 @@ public class RXAvatarShowcase extends RXShowcaseApplication {
     private enum AvatarImage {
 
         NONE("None", null),
-        IMAGE_1("Image 1", "/scenery/1.png"),
-        IMAGE_2("Image 2", "/scenery/2.png"),
-        IMAGE_3("Image 3", "/scenery/3.png"),
-        IMAGE_4("Image 4", "/scenery/4.png");
+        IMAGE_1("Image 1", "/images/scenery/1.png"),
+        IMAGE_2("Image 2", "/images/scenery/2.png"),
+        IMAGE_3("Image 3", "/images/scenery/3.png"),
+        IMAGE_4("Image 4", "/images/scenery/4.png");
 
         private final String label;
         private final String resourcePath;

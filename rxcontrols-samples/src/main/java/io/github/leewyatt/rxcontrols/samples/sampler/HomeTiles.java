@@ -236,7 +236,7 @@ final class HomeTiles {
         double[] ratios = {1.3, 0.75, 1.0, 1.45, 0.8, 1.15, 0.7, 1.25, 0.95, 1.4, 0.85, 1.1};
         List<Image> images = new ArrayList<>();
         for (int i = 1; i <= 4; i++) {
-            images.add(HomeKit.image("/scenery/" + i + ".png"));
+            images.add(HomeKit.image("/images/scenery/" + i + ".png"));
         }
         ObservableList<Photo> photos = FXCollections.observableArrayList();
         for (int i = 0; i < 24; i++) {

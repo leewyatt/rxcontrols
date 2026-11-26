@@ -39,7 +39,7 @@ public class RXCopyButtonDemo extends Application {
 
         // 2: Copy image
         // Any clipboard format works: here an image, pasted as a picture.
-        Image image = new Image(RXCopyButtonDemo.class.getResource("/scenery/1.png").toExternalForm());
+        Image image = new Image(RXCopyButtonDemo.class.getResource("/images/scenery/1.png").toExternalForm());
         ImageView imageView = new ImageView(image);
         imageView.setFitWidth(400.0);
         imageView.setPreserveRatio(true);
