@@ -93,6 +93,10 @@ public final class RXSuggestionPopup<T> {
 
         support = new RXPopupSupport(listView);
         support.setPopupStyleClass(POPUP_STYLE_CLASS);
+        // The popup's own Escape close does not consume the key, so it would go on
+        // to a dialog's cancel button. Escape is left to the host editor's key
+        // filter, which closes the popup and consumes the event.
+        support.setHideOnEscape(false);
 
         disposer.registerListener(support.showingProperty(), this::onShowingChanged);
         // The entrance pivot follows the resolved side; both fire after playEntrance
