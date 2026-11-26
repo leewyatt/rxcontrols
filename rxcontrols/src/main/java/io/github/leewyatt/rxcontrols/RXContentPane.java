@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import javafx.beans.DefaultProperty;
-import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
@@ -46,6 +45,7 @@ public class RXContentPane extends Region {
     // ==================== Internal State ====================
 
     private Node currentContent;
+    private boolean updatingContent;
 
     // ==================== Constructors ====================
 
@@ -61,7 +61,7 @@ public class RXContentPane extends Region {
      *
      * @param content the content node, or {@code null}
      */
-    public RXContentPane(@NamedArg("content") Node content) {
+    public RXContentPane(Node content) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setContent(content);
     }
@@ -85,7 +85,12 @@ public class RXContentPane extends Region {
             };
 
     /**
-     * Node displayed by this pane. May be {@code null}.
+     * Node displayed by this pane. May be {@code null}. A node that another
+     * parent has taken is no longer measured or laid out by this pane, though
+     * the property, which may be bound, still names it. A value set from a
+     * listener that runs while the pane takes or releases its content is
+     * applied once that change is complete, so the new node is not in the
+     * pane yet when the call returns.
      *
      * @return the content property
      */
@@ -230,44 +235,70 @@ public class RXContentPane extends Region {
         double right = snappedRightInset();
         double top = snappedTopInset();
         double bottom = snappedBottomInset();
-        boolean valid = width > 0.0 && height > 0.0
-                && Double.isFinite(width) && Double.isFinite(height);
 
         Node node = managedContent();
         if (node == null) {
             return;
         }
 
-        double contentW = valid ? Math.max(0.0, width - left - right) : 0.0;
-        double contentH = valid ? Math.max(0.0, height - top - bottom) : 0.0;
+        // Each axis on its own: a pane collapsed on one axis still gives the other.
+        // The area may be negative when the padding is larger than the pane, which
+        // keeps the content on the same point of the pane while it shrinks.
+        double contentW = Double.isFinite(width) ? width - left - right : 0.0;
+        double contentH = Double.isFinite(height) ? height - top - bottom : 0.0;
         Pos align = getAlignment();
         if (align == null) {
             align = DEFAULT_ALIGNMENT;
         }
-        double baselineOffset = align.getVpos() == VPos.BASELINE ? node.getBaselineOffset() : 0.0;
+        double baselineOffset = align.getVpos() == VPos.BASELINE
+                ? areaBaselineOffset(node, width, contentH) : 0.0;
         layoutInArea(node, left, top, contentW, contentH, baselineOffset,
                 align.getHpos(), align.getVpos());
     }
 
     // ==================== Helpers ====================
 
+    // A listener may set the content again while the child list is changing. That call
+    // returns at once, and the loop applies the newest value when the change it
+    // interrupted is complete, so the child list is never changed from inside its own
+    // change.
     private void updateContent() {
-        Node next = getContent();
-        if (currentContent == next) {
+        if (updatingContent) {
             return;
         }
-        currentContent = next;
-        if (next == null) {
-            getChildren().clear();
-        } else {
-            getChildren().setAll(next);
+        updatingContent = true;
+        try {
+            for (Node next = getContent(); currentContent != next; next = getContent()) {
+                currentContent = next;
+                if (next == null) {
+                    getChildren().clear();
+                } else {
+                    getChildren().setAll(next);
+                }
+                requestLayout();
+            }
+        } finally {
+            updatingContent = false;
         }
-        requestLayout();
     }
 
+    // The field names the node this pane put into its child list, also while a listener
+    // has already set the property again. A node that another parent has taken since,
+    // or that the child list rejected, is not this pane's to measure or lay out.
     private Node managedContent() {
-        Node node = getContent();
-        return node == null || !node.isManaged() ? null : node;
+        Node node = currentContent;
+        return node == null || node.getParent() != this || !node.isManaged() ? null : node;
+    }
+
+    // The baseline of the area for a single node, as a StackPane computes it: the node's
+    // own baseline, or, for a resizable node that has none, the height the area gives it.
+    private static double areaBaselineOffset(Node node, double width, double areaHeight) {
+        double offset = node.getBaselineOffset();
+        if (offset != BASELINE_OFFSET_SAME_AS_HEIGHT) {
+            return Math.max(0.0, offset);
+        }
+        double alt = node.getContentBias() == Orientation.HORIZONTAL ? width : -1.0;
+        return Math.max(0.0, boundedSize(node.minHeight(alt), areaHeight, node.maxHeight(alt)));
     }
 
     private double childMinWidth(Node node, double height) {
