@@ -61,8 +61,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * content slot, how the pane measures and lays out its content, the lookup
  * from a node (nested panes, sub-scenes, popup windows), what dialogs,
  * snackbars and bursts do without a pane, a pane that leaves its scene and
- * returns while dialogs are open or closing, several panes in one scene, and
- * FXML. The four popup tests are tagged {@code "ui"}: they show windows.
+ * returns while dialogs are open or closing, several panes in one scene,
+ * where focus goes when a dialog closes, and FXML. The four popup tests are
+ * tagged {@code "ui"}: they show windows.
  */
 public class RXOverlayPaneTest {
 
@@ -823,6 +824,51 @@ public class RXOverlayPaneTest {
         });
     }
 
+    // ==================== Focus after a dialog closes ====================
+
+    @Test
+    public void aClosingDialogLeavesFocusThatMovedOutsideItsPane() throws Exception {
+        onFx(() -> {
+            Button left = new Button("left");
+            Button right = new Button("right");
+            RXOverlayPane leftPane = new RXOverlayPane(new StackPane(left));
+            RXOverlayPane rightPane = new RXOverlayPane(new StackPane(right));
+            Scene scene = new Scene(new HBox(leftPane, rightPane), 400.0, 300.0);
+
+            left.requestFocus();
+            RXDialog<ButtonType> dialog = dialog();
+            dialog.show(left);
+            assertSame(dialog, dialogAround(scene.getFocusOwner()), "a modal dialog takes focus");
+            right.requestFocus();
+            dialog.close();
+            assertSame(right, scene.getFocusOwner());
+
+            left.requestFocus();
+            dialog.show(left);
+            dialog.close();
+            assertSame(left, scene.getFocusOwner(), "focus still in the dialog goes back where it came from");
+        });
+    }
+
+    @Test
+    public void closingStackedDialogsTogetherReturnsFocusToWhereItCameFrom() throws Exception {
+        onFx(() -> {
+            Button owner = new Button("owner");
+            RXOverlayPane pane = new RXOverlayPane(new VBox(new Button("other"), owner));
+            Scene scene = new Scene(pane, 400.0, 300.0);
+            owner.requestFocus();
+            RXDialog<ButtonType> below = dialog();
+            RXDialog<ButtonType> above = dialog();
+            below.show(owner);
+            above.show(owner);
+            assertSame(above, dialogAround(scene.getFocusOwner()));
+
+            below.close();
+            above.close();
+            assertSame(owner, scene.getFocusOwner());
+        });
+    }
+
     // ==================== FXML ====================
 
     @Test
@@ -884,6 +930,15 @@ public class RXOverlayPaneTest {
         dialog.setAnimated(false);
         dialog.getButtonTypes().setAll(ButtonType.OK);
         return dialog;
+    }
+
+    private static RXDialog<?> dialogAround(Node node) {
+        for (Node ancestor = node; ancestor != null; ancestor = ancestor.getParent()) {
+            if (ancestor instanceof RXDialog<?> dialog) {
+                return dialog;
+            }
+        }
+        return null;
     }
 
     private static List<String> kinds(Parent parent) {
