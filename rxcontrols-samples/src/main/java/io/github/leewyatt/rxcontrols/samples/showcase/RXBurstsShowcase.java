@@ -62,7 +62,7 @@ public class RXBurstsShowcase extends RXShowcaseApplication {
 
     @Override
     protected String subtitle() {
-        return "Bursts on any node, from a scene overlay";
+        return "Bursts on any node, from the overlay pane around it";
     }
 
     @Override

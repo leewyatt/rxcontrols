@@ -60,7 +60,7 @@ public final class RXBurstsSamples {
      */
     public static SampleContent create() {
         return new SampleContent(
-                "A utility that plays a short particle burst from any node or point, drawn above the whole scene without changing the node.",
+                "A utility that plays a short particle burst from any node or point, drawn over the RXOverlayPane that contains it without changing the node.",
                 List.of("Celebrate small moments: a like, a saved item, a finished order, a top rating.",
                         "For a like button with its own count and states use RXReactionButton."),
                 List.of(

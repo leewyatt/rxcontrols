@@ -95,8 +95,8 @@ public class RXDialogShowcase extends RXShowcaseApplication {
         return box;
     }
 
-    // Pops four independent dialogs over the same scene, ~450ms apart, to show stacking: they
-    // share the per-scene overlay (one merged scrim, focus trapped in the top one), the cards
+    // Pops four independent dialogs in the same overlay pane, ~450ms apart, to show stacking: they
+    // share its dialog layer (one merged scrim, focus trapped in the top one), the cards
     // nest (decreasing width), and closing / dragging the top reveals the one below.
     private void showStackedDialogs(Node owner) {
         int count = 4;
