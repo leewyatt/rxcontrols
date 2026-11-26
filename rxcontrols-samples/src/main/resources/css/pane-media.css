@@ -1,9 +1,0 @@
-#open-btn:pressed {
-    -fx-background-color: #3a4199;
-}
-.rx-seek-bar {
-    -rx-thumb-fill: #ffffff;
-}
-.spectrum {
-    -fx-border-width: 0px;
-}

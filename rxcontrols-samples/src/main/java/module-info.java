@@ -3,7 +3,6 @@ open module rxcontrols.samples {
 
     requires javafx.controls;
     requires javafx.fxml;
-    requires javafx.web;
     requires javafx.media;
     requires javafx.swing;
     requires java.desktop;
@@ -13,7 +12,6 @@ open module rxcontrols.samples {
 
     exports io.github.leewyatt.rxcontrols.samples.demo.carousel;
 
-    exports io.github.leewyatt.rxcontrols.samples;
     exports io.github.leewyatt.rxcontrols.samples.sampler;
     exports io.github.leewyatt.rxcontrols.samples.showcase;
     exports io.github.leewyatt.rxcontrols.samples.support;

@@ -2,6 +2,8 @@ package io.github.leewyatt.rxcontrols.samples.sampler;
 
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
+import io.github.leewyatt.rxcontrols.samples.demo.RXSpeedDialDemo;
+import io.github.leewyatt.rxcontrols.samples.showcase.RXSpeedDialShowcase;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.application.Platform;
 import javafx.scene.Node;
@@ -67,6 +69,13 @@ public class SamplerSmokeTest {
         assertTrue(week.matches("weekrangeview"));
         assertTrue(week.matches("date"));
         assertFalse(week.matches("monthpicker"));
+    }
+
+    /** The standalone Speed Dial demo and playground both ship their stylesheets. */
+    @Test
+    public void speedDialSampleStylesheetsArePackaged() {
+        assertNotNull(RXSpeedDialDemo.class.getResource("rx-speed-dial-demo.css"));
+        assertNotNull(RXSpeedDialShowcase.class.getResource("rx-speed-dial-showcase.css"));
     }
 
     /** The current entry selects its page and opens its group; picking a page sets the current entry. */
