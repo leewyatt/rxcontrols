@@ -108,18 +108,17 @@ public class RXRangeSliderTest {
 
     /**
      * Verifies the 4-arg constructor applies the requested selection against the
-     * real {@code [min, max]} bounds, even when the requested low exceeds the
-     * default high (the constructor-order trap).
+     * real {@code [min, max]} bounds, above and below the default range.
      */
     @Test
     public void constructorAppliesSelectionAgainstRealBounds() {
-        RXRangeSlider above = new RXRangeSlider(0.0, 100.0, 80.0, 90.0);
-        assertEquals(80.0, above.getLowValue(), EPSILON);
-        assertEquals(90.0, above.getHighValue(), EPSILON);
+        RXRangeSlider above = new RXRangeSlider(0.0, 1000.0, 200.0, 800.0);
+        assertEquals(200.0, above.getLowValue(), EPSILON);
+        assertEquals(800.0, above.getHighValue(), EPSILON);
 
-        RXRangeSlider below = new RXRangeSlider(0.0, 100.0, 5.0, 20.0);
-        assertEquals(5.0, below.getLowValue(), EPSILON);
-        assertEquals(20.0, below.getHighValue(), EPSILON);
+        RXRangeSlider below = new RXRangeSlider(-500.0, -100.0, -400.0, -200.0);
+        assertEquals(-400.0, below.getLowValue(), EPSILON);
+        assertEquals(-200.0, below.getHighValue(), EPSILON);
     }
 
     /**
