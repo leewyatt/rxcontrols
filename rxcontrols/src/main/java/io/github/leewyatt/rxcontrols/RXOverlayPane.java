@@ -37,12 +37,13 @@ import java.util.Set;
  * node fills the pane, whatever its maximum size, and a node that is not
  * resizable, such as a {@code Group}, keeps its size and position. The pane
  * measures like its content, and reaches the far edge of a node that is not
- * resizable, so wrapping a scene root does not change the size of its window.
- * The overlays cover the whole pane, above the content and in a fixed order:
- * snackbars, then dialogs, then bursts. Each is created
- * the first time it is used. They are not public children of the pane; a page
- * is replaced with {@link #setContent(Node)}, which leaves open dialogs and
- * snackbars as they are.</p>
+ * resizable, so wrapping a scene root that is not translated or otherwise
+ * transformed does not change the size of its window. The overlays cover the
+ * whole pane, above the content and in a fixed order: snackbars, then
+ * dialogs, then bursts. Each is created the first time it is used. They are
+ * not public children of the pane; a page is replaced with
+ * {@link #setContent(Node)}, which leaves open dialogs and snackbars as they
+ * are.</p>
  *
  * <p>A pane can sit anywhere in a scene, and panes can be nested: a pane
  * around a part of the window keeps what is requested from inside it within
