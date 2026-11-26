@@ -8,6 +8,7 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.event.Event;
 import javafx.event.EventType;
@@ -35,6 +36,10 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -46,6 +51,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -104,6 +110,22 @@ public class RXTitledPaneTest {
             List<Node> children = pane.getChildrenUnmodifiable();
             assertTrue(children.indexOf(pane.lookup(".header")) < children.indexOf(pane.lookup(".body")),
                     "header must precede body so forward Tab reaches the body after the title");
+        });
+    }
+
+    @Test
+    public void fxmlFillsTextAndContent() throws Exception {
+        runOnFx(() -> {
+            for (String body : List.of("<Region/>", "<content><Region/></content>")) {
+                RXTitledPane pane = load("""
+                        <?xml version="1.0" encoding="UTF-8"?>
+                        <?import io.github.leewyatt.rxcontrols.RXTitledPane?>
+                        <?import javafx.scene.layout.Region?>
+                        <RXTitledPane xmlns="http://javafx.com/javafx/17" text="Title">%s</RXTitledPane>
+                        """.formatted(body));
+                assertEquals("Title", pane.getText(), body);
+                assertInstanceOf(Region.class, pane.getContent(), body);
+            }
         });
     }
 
@@ -691,6 +713,14 @@ public class RXTitledPaneTest {
                 stageRef.get().close();
             }
         });
+    }
+
+    private static RXTitledPane load(String fxml) {
+        try {
+            return new FXMLLoader().load(new ByteArrayInputStream(fxml.getBytes(StandardCharsets.UTF_8)));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private static void runOnFx(Runnable action) throws Exception {

@@ -10,6 +10,7 @@ import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.css.Styleable;
 import javafx.event.Event;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -26,6 +27,11 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -35,6 +41,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -512,6 +519,22 @@ public class RXBadgeTest {
 
     // ==================== Content ====================
 
+    /** Verifies FXML fills the content from a child element and from an explicit content element. */
+    @Test
+    public void fxmlFillsTheContent() throws Exception {
+        runOnFx(() -> {
+            for (String body : List.of("<Region/>", "<content><Region/></content>")) {
+                RXBadge badge = load("""
+                        <?xml version="1.0" encoding="UTF-8"?>
+                        <?import io.github.leewyatt.rxcontrols.RXBadge?>
+                        <?import javafx.scene.layout.Region?>
+                        <RXBadge xmlns="http://javafx.com/javafx/17">%s</RXBadge>
+                        """.formatted(body));
+                assertInstanceOf(Region.class, badge.getContent(), body);
+            }
+        });
+    }
+
     /** Verifies replacing, clearing and re-parenting the content keeps a single owner. */
     @Test
     public void contentIsReplacedClearedAndTakenFromAnotherParent() throws Exception {
@@ -734,6 +757,14 @@ public class RXBadgeTest {
     @SuppressWarnings("unchecked")
     private static boolean settable(CssMetaData<? extends Styleable, ?> metaData, RXBadge badge) {
         return ((CssMetaData<RXBadge, ?>) metaData).isSettable(badge);
+    }
+
+    private static RXBadge load(String fxml) {
+        try {
+            return new FXMLLoader().load(new ByteArrayInputStream(fxml.getBytes(StandardCharsets.UTF_8)));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private static void runOnFx(Runnable action) throws Exception {

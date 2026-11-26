@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
-import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.css.Styleable;
@@ -57,7 +56,7 @@ public abstract class RXAnimatedButton extends RXButton {
      *
      * @param text the text caption, or {@code null}
      */
-    protected RXAnimatedButton(@NamedArg("text") String text) {
+    protected RXAnimatedButton(String text) {
         super(text);
         initialize();
     }
@@ -68,7 +67,7 @@ public abstract class RXAnimatedButton extends RXButton {
      * @param text    the text caption, or {@code null}
      * @param graphic the graphic node, or {@code null}
      */
-    protected RXAnimatedButton(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
+    protected RXAnimatedButton(String text, Node graphic) {
         super(text, graphic);
         initialize();
     }

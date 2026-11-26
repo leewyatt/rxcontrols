@@ -4,7 +4,6 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.internal.transition.ContentBias;
 import io.github.leewyatt.rxcontrols.skins.RXTransitionButtonSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
@@ -57,7 +56,7 @@ public class RXTransitionButton extends RXAnimatedButton {
      *
      * @param text the text caption, or {@code null}
      */
-    public RXTransitionButton(@NamedArg("text") String text) {
+    public RXTransitionButton(String text) {
         super(text);
         init();
     }
@@ -68,7 +67,7 @@ public class RXTransitionButton extends RXAnimatedButton {
      * @param text    the text caption, or {@code null}
      * @param graphic the graphic node, or {@code null}
      */
-    public RXTransitionButton(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
+    public RXTransitionButton(String text, Node graphic) {
         super(text, graphic);
         init();
     }

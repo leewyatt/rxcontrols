@@ -4,7 +4,6 @@ import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXTitledPaneSkin;
 import javafx.animation.Interpolator;
 import javafx.beans.DefaultProperty;
-import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.BooleanPropertyBase;
 import javafx.beans.property.ObjectProperty;
@@ -134,7 +133,7 @@ public class RXTitledPane extends Control {
      * @param content the body content, or {@code null}
      */
     @SuppressWarnings("unchecked")
-    public RXTitledPane(@NamedArg("text") String text, @NamedArg("content") Node content) {
+    public RXTitledPane(String text, Node content) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         // The title inside the skin is the focus stop; the pane itself only forwards
         // requestFocus() to it, so it must not be a traversal stop of its own.

@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXDotPulseSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -140,7 +139,7 @@ public class RXDotPulse extends Control {
      * @param animationMode the initial animation mode; {@code null} falls back
      *                      to {@link #DEFAULT_ANIMATION_MODE}
      */
-    public RXDotPulse(@NamedArg("animationMode") AnimationMode animationMode) {
+    public RXDotPulse(AnimationMode animationMode) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setAnimationMode(animationMode == null ? DEFAULT_ANIMATION_MODE : animationMode);
     }

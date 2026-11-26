@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols;
 
-import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
@@ -72,7 +71,7 @@ public class RXCascaderItem<T> {
      *
      * @param value application value
      */
-    public RXCascaderItem(@NamedArg("value") T value) {
+    public RXCascaderItem(T value) {
         setValue(value);
         children.addListener((ListChangeListener<RXCascaderItem<T>>) change -> {
             while (change.next()) {

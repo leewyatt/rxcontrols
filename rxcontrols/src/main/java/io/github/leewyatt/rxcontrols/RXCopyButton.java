@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.internal.FeedbackSignals;
 import io.github.leewyatt.rxcontrols.skins.RXCopyButtonSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -139,7 +138,7 @@ public class RXCopyButton extends RXButton {
      *
      * @param text the text caption, or {@code null}
      */
-    public RXCopyButton(@NamedArg("text") String text) {
+    public RXCopyButton(String text) {
         super(text);
         initialize();
     }
@@ -150,7 +149,7 @@ public class RXCopyButton extends RXButton {
      * @param text    the text caption, or {@code null}
      * @param graphic the graphic node, or {@code null}
      */
-    public RXCopyButton(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
+    public RXCopyButton(String text, Node graphic) {
         super(text, graphic);
         initialize();
     }

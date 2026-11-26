@@ -5,7 +5,6 @@ import io.github.leewyatt.rxcontrols.internal.CoercedStyleableProperty;
 import io.github.leewyatt.rxcontrols.internal.CornerRadiiCoercion;
 import io.github.leewyatt.rxcontrols.internal.KeywordConverter;
 import io.github.leewyatt.rxcontrols.skins.RXFillButtonSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
@@ -68,7 +67,7 @@ public class RXFillButton extends RXAnimatedButton {
      *
      * @param text the text caption, or {@code null}
      */
-    public RXFillButton(@NamedArg("text") String text) {
+    public RXFillButton(String text) {
         super(text);
         initialize();
     }
@@ -79,7 +78,7 @@ public class RXFillButton extends RXAnimatedButton {
      * @param text    the text caption, or {@code null}
      * @param graphic the graphic node, or {@code null}
      */
-    public RXFillButton(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
+    public RXFillButton(String text, Node graphic) {
         super(text, graphic);
         initialize();
     }

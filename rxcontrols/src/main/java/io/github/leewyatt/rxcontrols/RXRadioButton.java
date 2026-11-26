@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXRadioButtonSkin;
 import javafx.animation.Interpolator;
-import javafx.beans.NamedArg;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
@@ -107,7 +106,7 @@ public class RXRadioButton extends RadioButton {
      *
      * @param text the text caption, or {@code null}
      */
-    public RXRadioButton(@NamedArg("text") String text) {
+    public RXRadioButton(String text) {
         this(text, null);
     }
 
@@ -117,7 +116,7 @@ public class RXRadioButton extends RadioButton {
      * @param text    the text caption, or {@code null}
      * @param graphic the graphic node, or {@code null}
      */
-    public RXRadioButton(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
+    public RXRadioButton(String text, Node graphic) {
         // Replace the inherited "radio-button" style class so modena does not also
         // match (this control self-draws the .radio sub-structure).
         getStyleClass().setAll(DEFAULT_STYLE_CLASS);

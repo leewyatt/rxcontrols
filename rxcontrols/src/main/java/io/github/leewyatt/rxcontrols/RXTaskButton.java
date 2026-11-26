@@ -8,7 +8,6 @@ import io.github.leewyatt.rxcontrols.skins.RXTaskButtonSkin;
 import javafx.animation.Animation;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
-import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -311,7 +310,7 @@ public class RXTaskButton extends RXButton {
      *
      * @param text the text caption, or {@code null}
      */
-    public RXTaskButton(@NamedArg("text") String text) {
+    public RXTaskButton(String text) {
         super(text);
         initialize();
     }
@@ -322,7 +321,7 @@ public class RXTaskButton extends RXButton {
      * @param text    the text caption, or {@code null}
      * @param graphic the graphic node, or {@code null}
      */
-    public RXTaskButton(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
+    public RXTaskButton(String text, Node graphic) {
         super(text, graphic);
         initialize();
     }

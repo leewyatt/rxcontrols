@@ -4,7 +4,6 @@ import io.github.leewyatt.rxcontrols.event.RXSegmentInteractionEvent;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXSegmentedStepIndicatorSkin;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
-import javafx.beans.NamedArg;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -110,7 +109,7 @@ public class RXSegmentedStepIndicator extends Control {
      *
      * @param stepCount initial step count
      */
-    public RXSegmentedStepIndicator(@NamedArg("stepCount") int stepCount) {
+    public RXSegmentedStepIndicator(int stepCount) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setStepCount(stepCount);
         updateEmptyPseudoClass();

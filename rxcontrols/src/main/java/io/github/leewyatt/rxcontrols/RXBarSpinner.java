@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXBarSpinnerSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -158,7 +157,7 @@ public class RXBarSpinner extends Control {
      * @param animationMode the initial animation mode; {@code null} falls back
      *                      to {@link #DEFAULT_ANIMATION_MODE}
      */
-    public RXBarSpinner(@NamedArg("animationMode") AnimationMode animationMode) {
+    public RXBarSpinner(AnimationMode animationMode) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setAnimationMode(animationMode == null ? DEFAULT_ANIMATION_MODE : animationMode);
     }

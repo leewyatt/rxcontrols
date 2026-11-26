@@ -7,6 +7,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.event.Event;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.scene.Scene;
@@ -20,6 +21,11 @@ import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +35,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -319,6 +326,23 @@ public class RXRibbonBadgeTest {
 
     // ==================== Content and lifecycle ====================
 
+    /** Verifies FXML fills the text and, from a child element or an explicit content element, the content. */
+    @Test
+    public void fxmlFillsTextAndContent() throws Exception {
+        runOnFx(() -> {
+            for (String body : List.of("<Region/>", "<content><Region/></content>")) {
+                RXRibbonBadge badge = load("""
+                        <?xml version="1.0" encoding="UTF-8"?>
+                        <?import io.github.leewyatt.rxcontrols.RXRibbonBadge?>
+                        <?import javafx.scene.layout.Region?>
+                        <RXRibbonBadge xmlns="http://javafx.com/javafx/17" text="Sale">%s</RXRibbonBadge>
+                        """.formatted(body));
+                assertEquals("Sale", badge.getText(), body);
+                assertInstanceOf(Region.class, badge.getContent(), body);
+            }
+        });
+    }
+
     /** Verifies replacing and clearing the content keeps a single owner, and removing the skin releases it. */
     @Test
     public void contentIsReplacedClearedAndReleased() throws Exception {
@@ -420,6 +444,14 @@ public class RXRibbonBadgeTest {
         assertEquals(prefH, badge.prefHeight(-1.0), EPSILON, "pref height");
         assertEquals(maxW, badge.maxWidth(-1.0), EPSILON, "max width");
         assertEquals(maxH, badge.maxHeight(-1.0), EPSILON, "max height");
+    }
+
+    private static RXRibbonBadge load(String fxml) {
+        try {
+            return new FXMLLoader().load(new ByteArrayInputStream(fxml.getBytes(StandardCharsets.UTF_8)));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private static void runOnFx(Runnable action) throws Exception {

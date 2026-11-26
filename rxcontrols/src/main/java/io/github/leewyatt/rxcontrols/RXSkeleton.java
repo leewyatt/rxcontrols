@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXSkeletonSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -183,7 +182,7 @@ public class RXSkeleton extends Control {
      *                {@link #DEFAULT_VARIANT default} and leaves the property
      *                settable from CSS
      */
-    public RXSkeleton(@NamedArg("variant") Variant variant) {
+    public RXSkeleton(Variant variant) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         // Only stamp the USER style origin for an explicit choice; calling
         // the setter with the default would block -rx-variant from the

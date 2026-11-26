@@ -917,9 +917,8 @@ public class RXCheckBoxTest {
     // The following are verified on a real machine, not headlessly: the hover /
     // focus / pressed halo feel and fade timing and focus-ring visibility; the mark
     // scale-in / scale-out and check <-> dash shape swap; the press-ink colour and
-    // fade against the box; the dark and AtlantaFX (light/dark) theme palettes; the
-    // right-to-left mirror (box flips to the trailing edge, the mark stays upright);
-    // and FXML / SceneBuilder loading through the @NamedArg constructors.
+    // fade against the box; the dark and AtlantaFX (light/dark) theme palettes; and
+    // the right-to-left mirror (box flips to the trailing edge, the mark stays upright).
 
     // ==================== Helpers ====================
 

@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXSegmentedProgressBarSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
@@ -125,7 +124,7 @@ public class RXSegmentedProgressBar extends ProgressIndicator {
      *
      * @param progress initial progress in {@code [0,1]}, or {@code -1} for indeterminate
      */
-    public RXSegmentedProgressBar(@NamedArg("progress") double progress) {
+    public RXSegmentedProgressBar(double progress) {
         super(progress);
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         progressProperty().addListener(obs -> updateCompletedPseudoClass());

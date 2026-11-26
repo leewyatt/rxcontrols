@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.skins.RXBorderBeamSkin;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -35,6 +36,10 @@ import javafx.util.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -45,6 +50,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -713,6 +719,22 @@ public class RXBorderBeamTest {
 
     // ==================== Content and Skin ====================
 
+    /** Verifies FXML fills the content from a child element and from an explicit content element. */
+    @Test
+    public void fxmlFillsTheContent() throws Exception {
+        runOnFx(() -> {
+            for (String body : List.of("<Region/>", "<content><Region/></content>")) {
+                RXBorderBeam beam = load("""
+                        <?xml version="1.0" encoding="UTF-8"?>
+                        <?import io.github.leewyatt.rxcontrols.RXBorderBeam?>
+                        <?import javafx.scene.layout.Region?>
+                        <RXBorderBeam xmlns="http://javafx.com/javafx/17">%s</RXBorderBeam>
+                        """.formatted(body));
+                assertInstanceOf(Region.class, beam.getContent(), body);
+            }
+        });
+    }
+
     /** Verifies replacing the content moves the band to the new content and drops the old one. */
     @Test
     public void contentCanBeReplaced() throws Exception {
@@ -848,6 +870,14 @@ public class RXBorderBeamTest {
             }
         }
         return moves;
+    }
+
+    private static RXBorderBeam load(String fxml) {
+        try {
+            return new FXMLLoader().load(new ByteArrayInputStream(fxml.getBytes(StandardCharsets.UTF_8)));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private static void runOnFx(Runnable action) throws Exception {

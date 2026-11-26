@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXSeekBarSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.DoublePropertyBase;
@@ -58,7 +57,7 @@ public class RXSeekBar extends Control {
      * @param progress initial primary progress, visually clamped to
      *                 {@code [0,1]} by the skin
      */
-    public RXSeekBar(@NamedArg("progress") double progress) {
+    public RXSeekBar(double progress) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         setAccessibleRole(AccessibleRole.SLIDER);
         setProgress(progress);

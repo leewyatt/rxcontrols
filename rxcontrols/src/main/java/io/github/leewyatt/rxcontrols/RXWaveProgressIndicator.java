@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXWaveProgressIndicatorSkin;
 import io.github.leewyatt.rxcontrols.utils.RXFormat;
-import javafx.beans.NamedArg;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -138,7 +137,7 @@ public class RXWaveProgressIndicator extends ProgressIndicator {
      *
      * @param progress initial progress in {@code [0,1]}, or {@code -1} for indeterminate
      */
-    public RXWaveProgressIndicator(@NamedArg("progress") double progress) {
+    public RXWaveProgressIndicator(double progress) {
         super(progress);
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         progressProperty().addListener(obs -> updateProgressPseudoClasses());

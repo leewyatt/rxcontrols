@@ -4,7 +4,6 @@ import io.github.leewyatt.rxcontrols.animation.burst.BurstAnimation;
 import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import io.github.leewyatt.rxcontrols.internal.KeywordConverter;
 import io.github.leewyatt.rxcontrols.skins.RXReactionButtonSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -93,7 +92,7 @@ public class RXReactionButton extends RXToggleButton {
      *
      * @param text the text caption, or {@code null}
      */
-    public RXReactionButton(@NamedArg("text") String text) {
+    public RXReactionButton(String text) {
         this(text, createDefaultIcon());
     }
 
@@ -105,7 +104,7 @@ public class RXReactionButton extends RXToggleButton {
      * @param graphic the graphic the burst comes from, or {@code null} to
      *                burst from the button's center
      */
-    public RXReactionButton(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
+    public RXReactionButton(String text, Node graphic) {
         super(text, graphic);
         getStyleClass().add(DEFAULT_STYLE_CLASS);
     }

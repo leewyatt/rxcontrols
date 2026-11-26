@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
 import io.github.leewyatt.rxcontrols.internal.KeywordConverter;
 import io.github.leewyatt.rxcontrols.skins.RXLineLabelSkin;
-import javafx.beans.NamedArg;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.css.CssMetaData;
@@ -76,7 +75,7 @@ public class RXLineLabel extends RXAnimatedLabel {
      *
      * @param text the text caption, or {@code null}
      */
-    public RXLineLabel(@NamedArg("text") String text) {
+    public RXLineLabel(String text) {
         super(text);
         initialize();
     }
@@ -87,7 +86,7 @@ public class RXLineLabel extends RXAnimatedLabel {
      * @param text    the text caption, or {@code null}
      * @param graphic the graphic node, or {@code null}
      */
-    public RXLineLabel(@NamedArg("text") String text, @NamedArg("graphic") Node graphic) {
+    public RXLineLabel(String text, Node graphic) {
         super(text, graphic);
         initialize();
     }
