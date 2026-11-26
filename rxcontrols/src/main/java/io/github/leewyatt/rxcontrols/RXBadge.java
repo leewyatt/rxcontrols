@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXBadgeSkin;
 import javafx.beans.DefaultProperty;
-import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.IntegerProperty;
@@ -157,7 +156,7 @@ public class RXBadge extends Control {
      * @param content the content node, or {@code null}
      */
     @SuppressWarnings("unchecked")
-    public RXBadge(@NamedArg("content") Node content) {
+    public RXBadge(Node content) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
         // A null style origin leaves -fx-focus-traversable settable from CSS.
         ((StyleableProperty<Boolean>) focusTraversableProperty()).applyStyle(null, Boolean.FALSE);

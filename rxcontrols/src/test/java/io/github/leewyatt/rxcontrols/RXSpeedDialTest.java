@@ -6,7 +6,6 @@ import io.github.leewyatt.rxcontrols.RXSpeedDial.LabelMode;
 import io.github.leewyatt.rxcontrols.RXSpeedDial.OpenTrigger;
 import io.github.leewyatt.rxcontrols.event.RXSpeedDialEvent;
 import io.github.leewyatt.rxcontrols.skins.RXSpeedDialSkin;
-import javafx.beans.DefaultProperty;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
@@ -14,6 +13,7 @@ import javafx.css.Styleable;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.event.EventType;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.scene.AccessibleAttribute;
@@ -38,6 +38,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -47,6 +51,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -145,14 +150,29 @@ public class RXSpeedDialTest {
     }
 
     /**
-     * Verifies FXML metadata exposes actions as the default child collection.
+     * Verifies FXML fills the actions from child elements and from an explicit
+     * actions element, next to the icon.
      */
     @Test
-    public void defaultPropertyTargetsActionsForFxml() {
-        DefaultProperty defaultProperty = RXSpeedDial.class.getAnnotation(DefaultProperty.class);
-
-        assertNotNull(defaultProperty);
-        assertEquals("actions", defaultProperty.value());
+    public void fxmlFillsIconAndActions() throws Exception {
+        runOnFx(() -> {
+            String actions = "<RXSpeedDialAction text=\"Copy\"/><RXSpeedDialAction text=\"Paste\"/>";
+            for (String body : List.of(actions, "<actions>" + actions + "</actions>")) {
+                RXSpeedDial dial = load("""
+                        <?xml version="1.0" encoding="UTF-8"?>
+                        <?import io.github.leewyatt.rxcontrols.RXSpeedDial?>
+                        <?import io.github.leewyatt.rxcontrols.RXSpeedDialAction?>
+                        <?import javafx.scene.layout.Region?>
+                        <RXSpeedDial xmlns="http://javafx.com/javafx/17">
+                            <icon><Region/></icon>
+                            %s
+                        </RXSpeedDial>
+                        """.formatted(body));
+                assertInstanceOf(Region.class, dial.getIcon(), body);
+                assertEquals(List.of("Copy", "Paste"),
+                        dial.getActions().stream().map(RXSpeedDialAction::getText).toList(), body);
+            }
+        });
     }
 
     /**
@@ -2220,6 +2240,14 @@ public class RXSpeedDialTest {
 
     private static double layoutVerticalGap(Region top, Region bottom) {
         return bottom.getLayoutY() - (top.getLayoutY() + top.getHeight());
+    }
+
+    private static RXSpeedDial load(String fxml) {
+        try {
+            return new FXMLLoader().load(new ByteArrayInputStream(fxml.getBytes(StandardCharsets.UTF_8)));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private static void runOnFx(Runnable action) throws Exception {

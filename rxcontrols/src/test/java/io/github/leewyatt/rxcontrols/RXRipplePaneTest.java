@@ -5,10 +5,10 @@ import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
 import javafx.application.Platform;
-import javafx.beans.DefaultProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.EventType;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -36,8 +36,12 @@ import javafx.scene.shape.Shape;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -46,6 +50,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -695,12 +700,23 @@ public class RXRipplePaneTest {
     }
 
     /**
-     * Verifies the FXML default property is the content slot.
+     * Verifies FXML fills the content slot from a child element and from an
+     * explicit content element.
      */
     @Test
-    public void defaultPropertyIsContent() {
-        DefaultProperty annotation = RXRipplePane.class.getAnnotation(DefaultProperty.class);
-        assertEquals("content", annotation.value());
+    public void fxmlFillsTheContentSlot() throws Exception {
+        runOnFx(() -> {
+            for (String body : List.of("<Region/>", "<content><Region/></content>")) {
+                RXRipplePane pane = load("""
+                        <?xml version="1.0" encoding="UTF-8"?>
+                        <?import io.github.leewyatt.rxcontrols.RXRipplePane?>
+                        <?import javafx.scene.layout.Region?>
+                        <RXRipplePane xmlns="http://javafx.com/javafx/17">%s</RXRipplePane>
+                        """.formatted(body));
+                assertTrue(pane.getChildrenUnmodifiable().contains(pane.getContent()), body);
+                assertInstanceOf(Region.class, pane.getContent(), body);
+            }
+        });
     }
 
     /**
@@ -1146,6 +1162,14 @@ public class RXRipplePaneTest {
         region.resize(width, height);
         region.requestLayout();
         region.layout();
+    }
+
+    private static RXRipplePane load(String fxml) {
+        try {
+            return new FXMLLoader().load(new ByteArrayInputStream(fxml.getBytes(StandardCharsets.UTF_8)));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private static void runOnFx(ThrowingRunnable action) throws Exception {

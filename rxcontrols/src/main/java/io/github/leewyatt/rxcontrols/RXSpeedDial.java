@@ -4,7 +4,6 @@ import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.event.RXSpeedDialEvent;
 import io.github.leewyatt.rxcontrols.skins.RXSpeedDialSkin;
 import javafx.beans.DefaultProperty;
-import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectPropertyBase;
@@ -92,7 +91,7 @@ public class RXSpeedDial extends Control {
      *
      * @param icon the main FAB icon, or {@code null}
      */
-    public RXSpeedDial(@NamedArg("icon") Node icon) {
+    public RXSpeedDial(Node icon) {
         initialize();
         setIcon(icon);
     }
@@ -103,8 +102,7 @@ public class RXSpeedDial extends Control {
      * @param icon    the main FAB icon, or {@code null}
      * @param actions initial actions to append, or {@code null}
      */
-    public RXSpeedDial(@NamedArg("icon") Node icon,
-                       @NamedArg("actions") RXSpeedDialAction... actions) {
+    public RXSpeedDial(Node icon, RXSpeedDialAction... actions) {
         initialize();
         setIcon(icon);
         if (actions != null) {

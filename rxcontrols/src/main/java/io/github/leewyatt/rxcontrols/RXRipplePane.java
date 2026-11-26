@@ -5,7 +5,6 @@ import io.github.leewyatt.rxcontrols.internal.CornerRadiiCoercion;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import javafx.beans.DefaultProperty;
-import javafx.beans.NamedArg;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -134,7 +133,7 @@ public class RXRipplePane extends Region {
      *
      * @param content the content node, or {@code null}
      */
-    public RXRipplePane(@NamedArg("content") Node content) {
+    public RXRipplePane(Node content) {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
 
         ripple = new RippleDecoration(this, rippleEnabledProperty(),
