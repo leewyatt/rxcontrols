@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.skins.RXRangeSliderSkin;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.event.EventType;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Bounds;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
@@ -25,6 +26,10 @@ import javafx.scene.layout.StackPane;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -145,6 +150,103 @@ public class RXRangeSliderTest {
         assertEquals(40.0, range.getLowValue(), EPSILON);
         range.setMax(60.0);
         assertEquals(60.0, range.getHighValue(), EPSILON);
+    }
+
+    /**
+     * Verifies {@code setValues} reaches the given selection from below, from above
+     * and from the defaults, and takes its two arguments in either order.
+     */
+    @Test
+    public void setValuesReplacesTheSelectionFromAnywhere() {
+        RXRangeSlider up = new RXRangeSlider(0.0, 200.0, 20.0, 60.0);
+        up.setValues(80.0, 120.0);
+        assertEquals(80.0, up.getLowValue(), EPSILON);
+        assertEquals(120.0, up.getHighValue(), EPSILON);
+
+        RXRangeSlider down = new RXRangeSlider(0.0, 200.0, 80.0, 120.0);
+        down.setValues(20.0, 60.0);
+        assertEquals(20.0, down.getLowValue(), EPSILON);
+        assertEquals(60.0, down.getHighValue(), EPSILON);
+
+        RXRangeSlider wide = new RXRangeSlider();
+        wide.setMax(1000.0);
+        wide.setValues(200.0, 800.0);
+        assertEquals(200.0, wide.getLowValue(), EPSILON);
+        assertEquals(800.0, wide.getHighValue(), EPSILON);
+
+        RXRangeSlider negative = new RXRangeSlider();
+        negative.setMin(-500.0);
+        negative.setMax(-100.0);
+        negative.setValues(-400.0, -200.0);
+        assertEquals(-400.0, negative.getLowValue(), EPSILON);
+        assertEquals(-200.0, negative.getHighValue(), EPSILON);
+
+        RXRangeSlider swapped = new RXRangeSlider(0.0, 200.0, 20.0, 60.0);
+        swapped.setValues(120.0, 80.0);
+        assertEquals(80.0, swapped.getLowValue(), EPSILON);
+        assertEquals(120.0, swapped.getHighValue(), EPSILON);
+    }
+
+    /**
+     * Verifies {@code setValues} keeps both values inside the range and the gap
+     * between them.
+     */
+    @Test
+    public void setValuesHoldsTheRangeAndTheGap() {
+        RXRangeSlider bounds = new RXRangeSlider(0.0, 200.0, 20.0, 60.0);
+        bounds.setValues(-10.0, 500.0);
+        assertEquals(0.0, bounds.getLowValue(), EPSILON);
+        assertEquals(200.0, bounds.getHighValue(), EPSILON);
+
+        RXRangeSlider gapped = new RXRangeSlider(0.0, 100.0, 20.0, 60.0);
+        gapped.setMinGap(20.0);
+        gapped.setValues(70.0, 95.0);
+        assertEquals(70.0, gapped.getLowValue(), EPSILON);
+        assertEquals(95.0, gapped.getHighValue(), EPSILON);
+
+        gapped.setValues(50.0, 55.0);
+        assertTrue(gapped.getHighValue() - gapped.getLowValue() >= 20.0 - EPSILON,
+                "values " + gapped.getLowValue() + " / " + gapped.getHighValue());
+        assertTrue(gapped.getLowValue() >= 0.0 && gapped.getHighValue() <= 100.0);
+    }
+
+    /**
+     * Verifies the FXML forms given in the class documentation load the written
+     * selection.
+     *
+     * @throws Exception if the FX action fails
+     */
+    @Test
+    public void fxmlFormsFromTheDocumentationLoadTheSelection() throws Exception {
+        runOnFx(() -> {
+            RXRangeSlider plain = load("""
+                    <RXRangeSlider min="0" max="1000" lowValue="200" highValue="800"/>
+                    """);
+            assertEquals(200.0, plain.getLowValue(), EPSILON);
+            assertEquals(800.0, plain.getHighValue(), EPSILON);
+
+            StackPane root = load("""
+                    <StackPane xmlns:fx="http://javafx.com/fxml/1">
+                        <fx:define>
+                            <RXRangeSlider fx:id="priceRange" min="0" max="1000" lowValue="200" highValue="800"/>
+                        </fx:define>
+                        <fx:reference source="priceRange" prefWidth="300" styleClass="compact, accent"/>
+                    </StackPane>
+                    """);
+            RXRangeSlider referenced = (RXRangeSlider) root.getChildren().get(0);
+            assertEquals(200.0, referenced.getLowValue(), EPSILON);
+            assertEquals(800.0, referenced.getHighValue(), EPSILON);
+            assertEquals(300.0, referenced.getPrefWidth(), EPSILON);
+            assertTrue(referenced.getStyleClass().containsAll(List.of("compact", "accent")),
+                    "style classes " + referenced.getStyleClass());
+
+            RXRangeSlider withoutValues = load("""
+                    <RXRangeSlider min="0" max="1000" prefWidth="300"/>
+                    """);
+            withoutValues.setValues(200.0, 800.0);
+            assertEquals(200.0, withoutValues.getLowValue(), EPSILON);
+            assertEquals(800.0, withoutValues.getHighValue(), EPSILON);
+        });
     }
 
     /**
@@ -1444,6 +1546,19 @@ public class RXRangeSliderTest {
         region.resize(width, height);
         region.requestLayout();
         region.layout();
+    }
+
+    private static <T> T load(String body) {
+        String fxml = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <?import io.github.leewyatt.rxcontrols.RXRangeSlider?>
+                <?import javafx.scene.layout.StackPane?>
+                """ + body;
+        try {
+            return new FXMLLoader().load(new ByteArrayInputStream(fxml.getBytes(StandardCharsets.UTF_8)));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private static void runOnFx(Runnable action) throws Exception {

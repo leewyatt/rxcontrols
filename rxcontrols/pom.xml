@@ -64,6 +64,7 @@
                     <argLine>
                         --add-exports javafx.graphics/com.sun.javafx.util=ALL-UNNAMED
                         --add-exports javafx.base/com.sun.javafx.reflect=ALL-UNNAMED
+                        --add-exports javafx.base/com.sun.javafx.beans=ALL-UNNAMED
                     </argLine>
                 </configuration>
             </plugin>

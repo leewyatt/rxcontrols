@@ -51,6 +51,30 @@ import java.util.List;
  * becomes the high (or low) thumb and takes focus. With a gap the thumbs stop at
  * it instead.</p>
  *
+ * <p>A value written through its property is held back by the other one: a low value
+ * set above the high value stops there, and the high value stays where it is. Two
+ * separate writes therefore depend on their order. To replace the whole selection
+ * call {@link #setValues(double, double)}, which gives the same result wherever the
+ * selection was before. For the same reason a model that replaces both ends at once
+ * should not be bound bidirectionally to the two properties, as the slider can be
+ * left with other values than the model: pass the pair to {@code setValues}, and
+ * listen to the properties for what the user changes.</p>
+ *
+ * <p>In FXML, a tag with exactly the attributes {@code min}, {@code max},
+ * {@code lowValue} and {@code highValue} is built by the four-argument constructor
+ * and takes them in any order. With any other attribute in the same tag the values
+ * are assigned one by one in no particular order and may hold each other back, and
+ * {@code styleClass} is taken as a single style class. Build the slider from the four
+ * values and add the other attributes where it is used:</p>
+ * <pre>{@code
+ * <fx:define>
+ *     <RXRangeSlider fx:id="priceRange" min="0" max="1000" lowValue="200" highValue="800"/>
+ * </fx:define>
+ * <fx:reference source="priceRange" prefWidth="300" styleClass="compact, accent"/>
+ * }</pre>
+ * <p>or leave the two values out of the FXML and call {@code setValues} from the
+ * controller.</p>
+ *
  * <p>The {@code lowValueChanging} / {@code highValueChanging} flags are {@code true}
  * while their value takes part in an ongoing change: the dragged value's flag, plus
  * the other one once the other value joins the same drag (by crossing, or by taking
@@ -227,7 +251,9 @@ public class RXRangeSlider extends Control {
 
     /**
      * The low value, the position of the low thumb within {@code [min, max]}
-     * (and at or below {@link #highValueProperty() highValue}).
+     * (and at or below {@link #highValueProperty() highValue}). A value set above
+     * the high value is held at it and leaves the high value unchanged; use
+     * {@link #setValues(double, double)} to move both.
      *
      * @return the low value property
      */
@@ -267,7 +293,9 @@ public class RXRangeSlider extends Control {
 
     /**
      * The high value, the position of the high thumb within {@code [min, max]}
-     * (and at or above {@link #lowValueProperty() lowValue}).
+     * (and at or above {@link #lowValueProperty() lowValue}). A value set below
+     * the low value is held at it and leaves the low value unchanged; use
+     * {@link #setValues(double, double)} to move both.
      *
      * @return the high value property
      */
@@ -495,6 +523,29 @@ public class RXRangeSlider extends Control {
         }
         setHighValue(SliderGeometry.snap(newValue, getMin(), getMax(),
                 getMajorTickUnit(), getMinorTickCount(), isSnapToTicks()));
+    }
+
+    /**
+     * Sets the low and the high value in one call, with the same result wherever the
+     * selection was before. The two arguments may come in either order: the smaller
+     * one becomes the low value. Both are held within {@code [min, max]} and
+     * {@link #minGapProperty() minGap} apart, as when they are set one by one.
+     *
+     * @param lowValue  one end of the selection
+     * @param highValue the other end of the selection
+     */
+    public void setValues(double lowValue, double highValue) {
+        double low = Math.min(lowValue, highValue);
+        double high = Math.max(lowValue, highValue);
+        // The value that moves away from the other one goes first, so every state in
+        // between keeps its order and gap and neither write is held back.
+        if (low > getLowValue()) {
+            setHighValue(high);
+            setLowValue(low);
+        } else {
+            setLowValue(low);
+            setHighValue(high);
+        }
     }
 
     // ==================== Orientation ====================
