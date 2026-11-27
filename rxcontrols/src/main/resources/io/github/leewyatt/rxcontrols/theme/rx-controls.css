@@ -6381,6 +6381,8 @@
     -fx-background-radius: 3px, 2px;
 }
 
+/* As AtlantaFX's own buttons, a focused chip shows an accent outline, also after a
+   click. */
 .rx-theme-atlantafx .rx-chip:focused,
 .rx-theme-atlantafx.rx-chip:focused,
 .rx-theme-atlantafx .rx-chip:selectable:selected:focused,
@@ -6388,13 +6390,6 @@
     -fx-background-color: -rx-focus-fill;
     -fx-background-insets: 0;
     -fx-background-radius: 999px;
-    -fx-border-color: -rx-outline;
-}
-
-.rx-theme-atlantafx .rx-chip:focus-shown,
-.rx-theme-atlantafx.rx-chip:focus-shown,
-.rx-theme-atlantafx .rx-chip:selectable:selected:focus-shown,
-.rx-theme-atlantafx.rx-chip:selectable:selected:focus-shown {
     -fx-border-color: -rx-focus;
 }
 

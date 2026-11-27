@@ -1295,6 +1295,30 @@ public class RXControlColorsTest {
     }
 
     @Test
+    public void chipShowsFocusAfterAClickUnderAtlantaFx() throws Exception {
+        for (Theme theme : List.of(new PrimerLight(), new PrimerDark())) {
+            Map<String, String> colors = new LinkedHashMap<>();
+            runOnFx(() -> {
+                Application.setUserAgentStylesheet(theme.getUserAgentStylesheet());
+                Region textField = new RXTextField();
+                focusedLayers(textField, null, RXAtlantaFXThemeBridge::install);
+                colors.put("accent", ThemeColorSamples.hex(textField.getBackground().getFills().get(0).getFill()));
+                RXChip chip = new RXChip("Chip");
+                Scene scene = new Scene(new StackPane(chip), 200, 100);
+                RXAtlantaFXThemeBridge.install(scene);
+                scene.getRoot().applyCss();
+                colors.put("resting", ThemeColorSamples.hex(chip.getBorder().getStrokes().get(0).getTopStroke()));
+                // Focus from a click: :focused without :focus-shown.
+                chip.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), true);
+                scene.getRoot().applyCss();
+                colors.put("clicked", ThemeColorSamples.hex(chip.getBorder().getStrokes().get(0).getTopStroke()));
+            });
+            assertEquals(colors.get("accent"), colors.get("clicked"), "clicked chip outline under " + theme.getName());
+            assertNotEquals(colors.get("resting"), colors.get("clicked"), "clicked chip shows focus under " + theme.getName());
+        }
+    }
+
+    @Test
     public void chipInputFocusMatchesTheAtlantaFxTextField() throws Exception {
         for (Theme theme : List.of(new PrimerLight(), new PrimerDark())) {
             Map<String, String> field = new LinkedHashMap<>();
