@@ -1066,18 +1066,22 @@ public class RXControlColorsTest {
     // ==================== Popup menus ====================
 
     @Test
-    public void popupMenusFollowModenasContextMenu() throws Exception {
+    public void popupMenusFollowTheThemesContextMenu() throws Exception {
         assertPopupMenu("default Modena", Application.STYLESHEET_MODENA, scene -> { }, true);
         assertPopupMenu("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette, true);
         assertPopupMenu("Primer Light", new PrimerLight().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install,
+                false);
+        assertPopupMenu("Primer Dark", new PrimerDark().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install,
                 false);
     }
 
     private static void assertPopupMenu(String host, String userAgentStylesheet, Consumer<Scene> themer,
             boolean modena) throws Exception {
+        // AtlantaFX's own menu item highlight: base-1 on a light theme, base-7 on a dark one.
+        String atlantaBar = "ladder(-color-bg-default, -color-base-7 49%, -color-base-1 50%)";
         Map<String, String> expected = resolve(userAgentStylesheet, themer, modena
                 ? List.of("-fx-selection-bar", "-fx-focused-text-base-color")
-                : List.of("-rx-selection"));
+                : List.of(atlantaBar, "-color-fg-default"));
         Map<String, String> menu = new LinkedHashMap<>();
         runOnFx(() -> {
             Application.setUserAgentStylesheet(userAgentStylesheet);
@@ -1106,9 +1110,12 @@ public class RXControlColorsTest {
             assertEquals(String.valueOf(Region.USE_COMPUTED_SIZE), menu.get("minWidth"), name + " minimum width");
             assertEquals("false", menu.get("ripple"), name + " ripple");
         } else {
-            assertEquals(expected.get("-rx-selection"), menu.get("bar"), name + " Material selection");
-            assertEquals("4.0", menu.get("radius"), name + " rounded selection");
-            assertEquals("112.0", menu.get("minWidth"), name + " Material minimum width");
+            // AtlantaFX's context menu: a rounded neutral highlight, unchanged text, no
+            // minimum; the ripple stays.
+            assertEquals(expected.get(atlantaBar), menu.get("bar"), name + " neutral highlight");
+            assertEquals(expected.get("-color-fg-default"), menu.get("text"), name + " text");
+            assertEquals("5.0", menu.get("radius"), name + " rounded highlight");
+            assertEquals(String.valueOf(Region.USE_COMPUTED_SIZE), menu.get("minWidth"), name + " minimum width");
             assertEquals("true", menu.get("ripple"), name + " ripple");
         }
     }

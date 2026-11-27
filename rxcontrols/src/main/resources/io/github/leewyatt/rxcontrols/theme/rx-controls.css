@@ -3990,64 +3990,63 @@
     -fx-background-color: -rx-danger;
 }
 
-/* AtlantaFX: the Material menu, with its 112px minimum so a menu of short labels does
-   not hug its text on the trailing side. */
+/* AtlantaFX: its own context menu instead (5px around the rows, rounded rows with a
+   neutral highlight, muted check marks), keeping the ripple. The resting rows carry a
+   transparent rounded fill so the ripple and its press overlay take the same corners
+   as the highlight. */
 .rx-theme-atlantafx .rx-menu-popup .rx-menu-list {
-    -fx-min-width: 112;
-    -fx-padding: 4 0 4 0;
+    -fx-padding: 4px;
     -rx-ripple-enabled: true;
     -rx-ripple-state-overlay-enabled: true;
 }
 
-.rx-theme-atlantafx .rx-menu-popup .rx-menu-list:dense {
-    -fx-padding: 2 0 2 0;
-}
-
 .rx-theme-atlantafx .rx-menu-popup .rx-menu-item {
-    -fx-padding: 8 12 8 12;
-    -fx-min-height: 32;
-    -fx-background-radius: 4;
+    -fx-padding: 8px 12px 8px 12px;
+    -fx-spacing: 1em;
+    -fx-background-color: transparent;
+    -fx-background-radius: 5px;
 }
 
 .rx-theme-atlantafx .rx-menu-popup .rx-menu-list:dense .rx-menu-item {
-    -fx-padding: 4 12 4 12;
-    -fx-min-height: 28;
-    -fx-background-radius: 4;
+    -fx-padding: 4px 12px 4px 12px;
+    -fx-background-radius: 5px;
 }
 
 .rx-theme-atlantafx .rx-menu-popup .rx-menu-item:focused {
-    -fx-background-color: -rx-selection;
+    -fx-background-color: ladder(-color-bg-default, -color-base-7 49%, -color-base-1 50%);
 }
 
-.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:focused > .label {
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item > .trailing,
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:focused > .label,
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:focused > .trailing {
     -fx-text-fill: -rx-on-surface;
 }
 
-.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:focused > .trailing {
-    -fx-text-fill: -rx-on-surface-secondary;
-}
-
-.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:danger:focused > .label {
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:danger > .trailing,
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:danger:focused > .label,
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:danger:focused > .trailing {
     -fx-text-fill: -rx-danger;
 }
 
-.rx-theme-atlantafx .rx-menu-popup .rx-menu-item > .leading > .checkmark {
-    -fx-min-width: 14;
-    -fx-min-height: 14;
-    -fx-pref-width: 14;
-    -fx-pref-height: 14;
-    -fx-background-color: -rx-on-surface;
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item > .leading {
+    -fx-min-width: 0.75em;
+    -fx-pref-width: 0.75em;
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item > .leading > .checkmark,
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item > .leading > .radiomark {
+    -fx-min-width: 0.75em;
+    -fx-min-height: 0.75em;
+    -fx-pref-width: 0.75em;
+    -fx-pref-height: 0.75em;
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-background-radius: 0;
     -fx-shape: "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
 }
 
-.rx-theme-atlantafx .rx-menu-popup .rx-menu-item > .leading > .radiomark {
-    -fx-min-width: 8;
-    -fx-min-height: 8;
-    -fx-pref-width: 8;
-    -fx-pref-height: 8;
-    -fx-background-color: -rx-primary;
-    -fx-background-radius: 50%;
-    -fx-shape: null;
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:focused > .leading > .checkmark,
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:focused > .leading > .radiomark {
+    -fx-background-color: -rx-on-surface;
 }
 
 .rx-theme-atlantafx .rx-menu-popup .rx-menu-item:danger > .leading > .checkmark {
