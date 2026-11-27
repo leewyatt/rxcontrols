@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXKanbanColumn;
 import io.github.leewyatt.rxcontrols.RXKanbanView;
 import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -110,7 +111,7 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
 
         Region dot = new Region();
         dot.getStyleClass().addAll("status-dot", statusDotClass(column));
-        dot.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(dot);
 
         Label title = new Label();
         title.getStyleClass().add("title");

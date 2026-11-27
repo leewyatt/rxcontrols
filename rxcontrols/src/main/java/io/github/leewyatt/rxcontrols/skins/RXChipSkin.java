@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXChip;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.scene.control.skin.LabeledSkinBase;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -72,12 +73,12 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
         super(control);
 
         closeIcon.getStyleClass().add("close-icon");
-        closeIcon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(closeIcon);
         closeIcon.setMouseTransparent(true);
         closeButton.getStyleClass().add("close-button");
         closeButton.getChildren().setAll(closeIcon);
         check.getStyleClass().add("check");
-        check.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(check);
         check.setMouseTransparent(true);
         updateCheckVisibility();
 

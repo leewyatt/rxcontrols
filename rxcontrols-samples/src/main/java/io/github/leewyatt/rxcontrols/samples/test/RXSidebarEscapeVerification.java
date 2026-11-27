@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebar.FlyoutTrigger;
 import io.github.leewyatt.rxcontrols.RXSidebar.Mode;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -98,6 +99,7 @@ public class RXSidebarEscapeVerification extends Application {
     private static Region icon(String shape) {
         Region icon = new Region();
         icon.getStyleClass().add("graphic");
+        RXSizing.lockToPrefSize(icon);
         icon.setStyle("-fx-shape: \"" + shape + "\"; -fx-background-color: -fx-text-base-color;");
         return icon;
     }

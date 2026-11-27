@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.lrc.LrcParser;
 import io.github.leewyatt.rxcontrols.samples.demo.RXLrcViewDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -236,7 +237,7 @@ public class RXLrcViewShowcase extends RXShowcaseApplication {
     private Button createPlayButton() {
         Region icon = new Region();
         icon.getStyleClass().add("icon");
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(icon);
 
         Button button = new Button("Play", icon);
         button.getStyleClass().add("play-button");

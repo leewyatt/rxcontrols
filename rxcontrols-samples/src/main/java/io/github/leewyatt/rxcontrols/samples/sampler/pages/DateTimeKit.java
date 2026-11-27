@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
+
 import javafx.beans.Observable;
 import javafx.beans.binding.Bindings;
 import javafx.css.PseudoClass;
@@ -47,7 +49,7 @@ final class DateTimeKit {
     static Region icon(String shape, String color) {
         Region icon = new Region();
         icon.getStyleClass().addAll("symbol", shape, color);
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(icon);
         return icon;
     }
 

@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.layout.RXCol;
 import io.github.leewyatt.rxcontrols.layout.RXColSpec;
 import io.github.leewyatt.rxcontrols.layout.RXRow;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -106,7 +107,7 @@ public final class RXRowSamples {
     private static RXCol stat(String name, String value, String change, String color) {
         Region dot = new Region();
         dot.getStyleClass().addAll("stat-dot", color);
-        dot.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(dot);
         HBox top = new HBox(8.0, dot, text(name, "muted"), spacer(), text(change, "trend",
                 change.startsWith("-") ? "down" : "up"));
         top.setAlignment(Pos.CENTER_LEFT);
@@ -153,8 +154,7 @@ public final class RXRowSamples {
     private static Node alert(String message, String color) {
         Region dot = new Region();
         dot.getStyleClass().addAll("stat-dot", color);
-        dot.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        dot.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(dot);
         HBox row = new HBox(8.0, dot, wrapped(message, "copy"));
         row.setAlignment(Pos.CENTER_LEFT);
         return row;

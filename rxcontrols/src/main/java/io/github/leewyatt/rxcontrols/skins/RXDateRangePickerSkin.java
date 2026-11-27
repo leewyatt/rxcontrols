@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeTexts;
 import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeTexts.ParseResult;
 import io.github.leewyatt.rxcontrols.internal.datetime.RangeAnchorSource;
 import io.github.leewyatt.rxcontrols.internal.datetime.TemporalRules;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.scene.control.Skin;
@@ -44,7 +45,7 @@ public class RXDateRangePickerSkin extends RXPickerSkinBase<RXDateRange, RXDateR
         startEditor.setPrefColumnCount(FIELD_COLUMNS);
         endEditor.setPrefColumnCount(FIELD_COLUMNS);
         separator.getStyleClass().add("separator");
-        separator.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(separator);
         separator.setMouseTransparent(true);
         disposer.registerBinding(rangeView.monthCountProperty(), control.monthCountProperty());
         disposer.registerBinding(startEditor.promptTextProperty(), control.startPromptTextProperty());

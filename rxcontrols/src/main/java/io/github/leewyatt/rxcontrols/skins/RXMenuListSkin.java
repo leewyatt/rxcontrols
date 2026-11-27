@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXMenuList;
 import io.github.leewyatt.rxcontrols.RXMenuSeparator;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.css.PseudoClass;
@@ -746,9 +747,7 @@ public class RXMenuListSkin extends RXSkinBase<RXMenuList> {
             indicatorMark = new Region();
             indicatorMark.getStyleClass().add(indicatorStyleClass(item));
             indicatorMark.setMouseTransparent(true);
-            // Clamp to the CSS pref size so the StackPane cannot stretch the shape
-            // into an oversized blob (the icon anti-stretch convention).
-            indicatorMark.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+            RXSizing.lockToPrefSize(indicatorMark);
             leading.getChildren().add(indicatorMark);
             return leading;
         }

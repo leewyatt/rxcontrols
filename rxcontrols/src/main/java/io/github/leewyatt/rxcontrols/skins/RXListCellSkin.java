@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXListCell;
 import io.github.leewyatt.rxcontrols.RXListSelectionVisualMode;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.geometry.HPos;
@@ -80,7 +81,7 @@ public class RXListCellSkin<T> extends RippleCellSkinBase<RXListCell<T>> {
         checkBox.setMouseTransparent(true);
         checkBox.setAllowIndeterminate(false);
         checkmark.getStyleClass().add("checkmark");
-        checkmark.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(checkmark);
         checkmark.setMouseTransparent(true);
         disposer.registerBinding(checkBox.selectedProperty(), cell.selectedProperty());
 

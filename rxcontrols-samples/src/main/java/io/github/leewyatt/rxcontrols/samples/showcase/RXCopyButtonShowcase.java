@@ -16,6 +16,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimWhipPan;
 import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -430,7 +431,7 @@ public class RXCopyButtonShowcase extends RXShowcaseApplication {
     private static Region createStar() {
         Region star = new Region();
         star.getStyleClass().add("star-icon");
-        star.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(star);
         return star;
     }
 

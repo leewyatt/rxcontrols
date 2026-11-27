@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.layout.RXDashboardLayout;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardPane;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardPane.CollisionPolicy;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -261,7 +262,7 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
     private static Region symbol(String styleClass) {
         Region symbol = new Region();
         symbol.getStyleClass().addAll("hint-symbol", styleClass);
-        symbol.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(symbol);
         return symbol;
     }
 

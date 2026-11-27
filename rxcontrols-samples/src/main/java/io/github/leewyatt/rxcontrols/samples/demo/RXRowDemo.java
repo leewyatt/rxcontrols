@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXImageView;
 import io.github.leewyatt.rxcontrols.layout.RXColSpec;
 import io.github.leewyatt.rxcontrols.layout.RXCol;
 import io.github.leewyatt.rxcontrols.layout.RXRow;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -251,6 +252,7 @@ public class RXRowDemo extends Application {
     private Node plantRow(String plant, String detail, String status, String type) {
         Region dot = new Region();
         dot.getStyleClass().addAll("plant-dot", type + "-dot");
+        RXSizing.lockToPrefSize(dot);
 
         Label plantLabel = label(plant, "plant-title");
         Label detailLabel = label(detail, "plant-detail");
@@ -297,8 +299,7 @@ public class RXRowDemo extends Application {
 
     private Region fixedIcon(String baseStyleClass, String iconStyleClass) {
         Region icon = new Region();
-        icon.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(icon);
         icon.getStyleClass().addAll(baseStyleClass, iconStyleClass);
         return icon;
     }

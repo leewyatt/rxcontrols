@@ -149,6 +149,7 @@ import io.github.leewyatt.rxcontrols.layout.RXDashboardCard;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardPane;
 import io.github.leewyatt.rxcontrols.samples.support.SampleIcons;
 import io.github.leewyatt.rxcontrols.spectrum.VisRadial;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDate;
@@ -1379,7 +1380,7 @@ final class ThemeGalleryCards {
     private static Region slotGlyph(String glyphClass) {
         Region glyph = new Region();
         glyph.getStyleClass().addAll("glyph", glyphClass);
-        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(glyph);
         glyph.setMouseTransparent(true);
         return glyph;
     }

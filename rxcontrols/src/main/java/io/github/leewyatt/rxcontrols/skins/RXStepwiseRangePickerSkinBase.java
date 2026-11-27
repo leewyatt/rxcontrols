@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeTexts.ParseResult
 import io.github.leewyatt.rxcontrols.internal.datetime.RangeConfirmFlow;
 import io.github.leewyatt.rxcontrols.internal.datetime.RangeConfirmFlow.Endpoint;
 import io.github.leewyatt.rxcontrols.internal.datetime.RangeConfirmFlow.Step;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.Observable;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.Node;
@@ -59,7 +60,7 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
         startEditor.setPrefColumnCount(fieldColumns);
         endEditor.setPrefColumnCount(fieldColumns);
         separator.getStyleClass().add("separator");
-        separator.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(separator);
         separator.setMouseTransparent(true);
         disposer.registerBinding(view.localeProperty(), control.localeProperty());
         disposer.registerBinding(view.clockProperty(), control.clockProperty());

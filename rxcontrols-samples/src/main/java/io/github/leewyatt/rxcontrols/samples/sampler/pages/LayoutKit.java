@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
@@ -55,7 +56,7 @@ final class LayoutKit {
         Region icon = new Region();
         icon.getStyleClass().addAll("symbol", styleClass);
         icon.getStyleClass().addAll(more);
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(icon);
         return icon;
     }
 

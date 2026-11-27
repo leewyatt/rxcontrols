@@ -9,6 +9,7 @@ import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSidebarSeparator;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.animation.Interpolator;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
@@ -361,8 +362,7 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
     private static Node tip(String text) {
         Region dot = new Region();
         dot.getStyleClass().add("dot");
-        dot.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        dot.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(dot);
         Label label = new Label(text);
         label.setWrapText(true);
         HBox row = new HBox(10.0, dot, label);
@@ -389,7 +389,7 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
     private static Region glyph(String name) {
         Region region = new Region();
         region.getStyleClass().addAll("glyph", name);
-        region.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(region);
         region.setMouseTransparent(true);
         return region;
     }
@@ -397,7 +397,7 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
     private static Region icon(String name) {
         Region region = new Region();
         region.getStyleClass().addAll("graphic", name);
-        region.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(region);
         region.setMouseTransparent(true);
         return region;
     }

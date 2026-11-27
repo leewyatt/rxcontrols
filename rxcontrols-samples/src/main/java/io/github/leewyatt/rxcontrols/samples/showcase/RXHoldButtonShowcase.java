@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
 import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.collections.SetChangeListener;
 import javafx.css.PseudoClass;
 import javafx.geometry.NodeOrientation;
@@ -319,7 +320,7 @@ public class RXHoldButtonShowcase extends RXShowcaseApplication {
     private static Region icon(String styleClass) {
         Region icon = new Region();
         icon.getStyleClass().addAll("showcase-icon", styleClass);
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(icon);
         return icon;
     }
 

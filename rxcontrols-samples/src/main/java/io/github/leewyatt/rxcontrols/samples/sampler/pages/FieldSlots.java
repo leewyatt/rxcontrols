@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
+
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.Labeled;
@@ -20,7 +22,7 @@ final class FieldSlots {
     static Region glyph(String styleClass) {
         Region glyph = new Region();
         glyph.getStyleClass().addAll("glyph", styleClass);
-        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(glyph);
         return glyph;
     }
 

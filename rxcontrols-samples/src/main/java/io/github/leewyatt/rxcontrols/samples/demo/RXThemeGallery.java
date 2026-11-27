@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.layout.RXMasonryPane;
 import io.github.leewyatt.rxcontrols.samples.demo.ThemeGalleryCards.NamedControl;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes.ThemeChoice;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -95,7 +96,7 @@ public class RXThemeGallery extends Application {
     private static Button clearButton(RXTextField field) {
         Region glyph = new Region();
         glyph.getStyleClass().addAll("glyph", "clear-glyph");
-        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(glyph);
         glyph.setMouseTransparent(true);
 
         Button clear = new Button();

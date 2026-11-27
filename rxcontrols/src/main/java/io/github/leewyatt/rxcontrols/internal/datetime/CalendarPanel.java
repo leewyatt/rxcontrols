@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.internal.datetime;
 
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
+
 import javafx.css.PseudoClass;
 import javafx.event.EventTarget;
 import javafx.geometry.NodeOrientation;
@@ -986,7 +988,7 @@ public final class CalendarPanel extends HBox {
     private static StackPane navButton(String styleClass, Runnable action) {
         Region arrow = new Region();
         arrow.getStyleClass().add("arrow");
-        arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(arrow);
         arrow.setMouseTransparent(true);
         StackPane button = new StackPane(arrow);
         button.getStyleClass().addAll("nav-button", styleClass);

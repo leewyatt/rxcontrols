@@ -12,6 +12,7 @@ import io.github.leewyatt.rxcontrols.internal.SidebarVisibility;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -1691,7 +1692,7 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             disclosure.getStyleClass().add("disclosure");
             Region arrow = new Region();
             arrow.getStyleClass().add("arrow");
-            arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+            RXSizing.lockToPrefSize(arrow);
             disclosure.getChildren().add(arrow);
             disclosure.setMouseTransparent(true);
             setShown(trailingSlot, false);

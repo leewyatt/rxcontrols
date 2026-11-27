@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXListSectionCell;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.geometry.HPos;
 import javafx.geometry.VPos;
 import javafx.scene.control.skin.CellSkinBase;
@@ -33,7 +34,7 @@ public class RXListSectionCellSkin extends CellSkinBase<RXListSectionCell> {
         super(cell);
         Region arrow = new Region();
         arrow.getStyleClass().add("arrow");
-        arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(arrow);
         disclosure.getStyleClass().add("disclosure");
         disclosure.getChildren().add(arrow);
         disclosure.setMouseTransparent(true);

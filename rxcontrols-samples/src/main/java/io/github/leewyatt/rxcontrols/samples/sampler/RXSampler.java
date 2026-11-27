@@ -14,6 +14,7 @@ import io.github.leewyatt.rxcontrols.samples.support.PageAnimationPresets;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes.ThemeChoice;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -257,7 +258,7 @@ public class RXSampler extends Application {
     private static Region glyph(String styleClass) {
         Region glyph = new Region();
         glyph.getStyleClass().addAll("glyph", styleClass);
-        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(glyph);
         glyph.setMouseTransparent(true);
         return glyph;
     }

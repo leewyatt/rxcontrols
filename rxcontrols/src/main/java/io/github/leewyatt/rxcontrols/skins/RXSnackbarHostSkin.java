@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.RXSnackbarHost;
 import io.github.leewyatt.rxcontrols.RXSnackbarRequest;
 import io.github.leewyatt.rxcontrols.RXSnackbarSeverity;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
@@ -241,7 +242,7 @@ public class RXSnackbarHostSkin extends RXSkinBase<RXSnackbarHost> {
     private StackPane createCloseButton() {
         Region icon = new Region();
         icon.getStyleClass().add("icon");
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(icon);
         icon.setMouseTransparent(true);
         StackPane button = new StackPane(icon);
         button.getStyleClass().add("close-button");

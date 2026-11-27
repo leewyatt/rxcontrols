@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.event.RXBreadcrumbEvent;
 import io.github.leewyatt.rxcontrols.samples.demo.RXBreadcrumbBarDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.samples.support.SampleIcons;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.animation.PauseTransition;
 import javafx.beans.InvalidationListener;
 import javafx.geometry.NodeOrientation;
@@ -356,7 +357,7 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
     private static Node separatorShape(String styleClass) {
         Region shape = new Region();
         shape.getStyleClass().addAll("separator-shape", styleClass);
-        shape.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(shape);
         return shape;
     }
 

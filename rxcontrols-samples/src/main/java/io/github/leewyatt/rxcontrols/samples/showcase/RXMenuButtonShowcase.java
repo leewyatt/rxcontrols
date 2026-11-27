@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.RXPlacement;
 import io.github.leewyatt.rxcontrols.RXPopupMenu;
 import io.github.leewyatt.rxcontrols.samples.demo.RXMenuButtonDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -297,6 +298,7 @@ public class RXMenuButtonShowcase extends RXShowcaseApplication {
     private static Region icon(String svgPath) {
         Region region = new Region();
         region.getStyleClass().add("menu-icon");
+        RXSizing.lockToPrefSize(region);
         region.setStyle("-fx-shape: \"" + svgPath + "\";");
         return region;
     }

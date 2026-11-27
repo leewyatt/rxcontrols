@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
 import io.github.leewyatt.rxcontrols.layout.RXCol;
 import io.github.leewyatt.rxcontrols.layout.RXColSpec;
 import io.github.leewyatt.rxcontrols.layout.RXRow;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.scene.Node;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
@@ -59,8 +60,7 @@ final class HomeKit {
         Region glyph = new Region();
         glyph.getStyleClass().add("glyph");
         glyph.getStyleClass().addAll(styleClasses);
-        glyph.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(glyph);
         glyph.setMouseTransparent(true);
         return glyph;
     }

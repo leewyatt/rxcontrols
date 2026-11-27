@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
 import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -110,7 +111,7 @@ public class RXCheckBoxSkin extends LabeledSkinBase<RXCheckBox> {
 
         box.getStyleClass().add("box");
         mark.getStyleClass().add("mark");
-        mark.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(mark);
         mark.setMouseTransparent(true);
         // Opt the check / dash mark out of the RTL auto-mirror (as CheckBoxSkin does
         // for its mark) so it stays upright in right-to-left layouts.

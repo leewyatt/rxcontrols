@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.animation.fill.FillAnimZigzag;
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
 import io.github.leewyatt.rxcontrols.AnimationTrigger;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -179,7 +180,7 @@ public class RXFillButtonShowcase extends RXShowcaseApplication {
             if (newV) {
                 Region icon = new Region();
                 icon.getStyleClass().add("rocket-icon");
-                icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+                RXSizing.lockToPrefSize(icon);
                 button.setGraphic(icon);
             } else {
                 button.setGraphic(null);

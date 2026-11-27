@@ -9,6 +9,7 @@ import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
@@ -288,7 +289,7 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     private StackPane createCloseButton() {
         Region icon = new Region();
         icon.getStyleClass().add("icon");
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(icon);
         icon.setMouseTransparent(true);
         StackPane button = new StackPane(icon);
         button.getStyleClass().add("close-button");

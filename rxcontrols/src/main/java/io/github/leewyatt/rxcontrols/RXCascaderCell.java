@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.CascaderText;
 import io.github.leewyatt.rxcontrols.skins.RXCascaderCellSkin;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
@@ -204,14 +205,14 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         // align, shown only on the selected leaf. Mutually exclusive with the
         // multiple-mode check box on the same side.
         selectedCheck.getStyleClass().add("selected-check");
-        selectedCheck.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(selectedCheck);
         selectedCheck.setMouseTransparent(true);
         content.getStyleClass().add("content");
         arrow.getStyleClass().add("arrow");
-        arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(arrow);
         arrow.setMouseTransparent(true);
         loadingGlyph.getStyleClass().add("loading");
-        loadingGlyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(loadingGlyph);
         loadingGlyph.setMouseTransparent(true);
         HBox.setHgrow(content, Priority.ALWAYS);
         content.setMaxWidth(Double.MAX_VALUE);

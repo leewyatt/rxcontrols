@@ -16,6 +16,7 @@ import io.github.leewyatt.rxcontrols.internal.PixelGrid;
 import io.github.leewyatt.rxcontrols.internal.smooth.RXSmoothScrollEngine;
 import io.github.leewyatt.rxcontrols.internal.smooth.RXSmoothScrollable;
 import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -1005,7 +1006,7 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         Region arrow = new Region();
         arrow.getStyleClass().add("arrow");
         arrow.setMouseTransparent(true);
-        arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(arrow);
         button.setGraphic(arrow);
         button.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
         // Not a focus stop (the tablist keeps a single focus site); positioned manually.
@@ -1567,7 +1568,7 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
             label.setWrapText(true);
             closeGraphic.getStyleClass().add("graphic");
             closeGraphic.setMouseTransparent(true);
-            closeGraphic.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+            RXSizing.lockToPrefSize(closeGraphic);
             closeButton.getStyleClass().add("close-button");
             closeButton.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
             closeButton.setGraphic(closeGraphic);

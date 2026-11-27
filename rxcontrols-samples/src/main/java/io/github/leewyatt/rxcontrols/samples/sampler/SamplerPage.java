@@ -10,6 +10,7 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleGallery;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleLifecycle;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -222,7 +223,7 @@ final class SamplerPage extends BorderPane {
         for (String line : lines) {
             Region bullet = new Region();
             bullet.getStyleClass().add("bullet");
-            bullet.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+            RXSizing.lockToPrefSize(bullet);
             Label text = new Label(line);
             text.setWrapText(true);
             text.setMinHeight(Region.USE_PREF_SIZE);
@@ -302,7 +303,7 @@ final class SamplerPage extends BorderPane {
     private static Button launcherButton(String text) {
         Region glyph = new Region();
         glyph.getStyleClass().add("open-glyph");
-        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(glyph);
         Button button = new Button(text, glyph);
         button.getStyleClass().add("demo-button");
         button.setMinWidth(Region.USE_PREF_SIZE);

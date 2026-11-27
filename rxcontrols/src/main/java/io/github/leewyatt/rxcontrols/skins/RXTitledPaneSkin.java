@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXRipplePane;
 import io.github.leewyatt.rxcontrols.RXTitledPane;
 import io.github.leewyatt.rxcontrols.RXTitledPane.IndicatorPosition;
 import io.github.leewyatt.rxcontrols.RXTitledPane.ToggleTrigger;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -135,7 +136,7 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
         super(control);
 
         indicator.getStyleClass().add("indicator");
-        indicator.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(indicator);
         indicator.setMouseTransparent(true);
         indicatorButton.getStyleClass().add("indicator-button");
         indicatorButton.getChildren().add(indicator);

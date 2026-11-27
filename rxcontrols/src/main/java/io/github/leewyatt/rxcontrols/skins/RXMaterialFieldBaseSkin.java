@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
+
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -277,7 +279,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         // container is laid out by the base (via the effectiveTrailing relay), not
         // added to getChildren() here.
         clearGraphic.getStyleClass().add(GRAPHIC_CLASS);
-        clearGraphic.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(clearGraphic);
         clearGraphic.setMouseTransparent(true);
         clearButton.getStyleClass().add(CLEAR_BUTTON_CLASS);
         clearButton.setOpacity(0.0);

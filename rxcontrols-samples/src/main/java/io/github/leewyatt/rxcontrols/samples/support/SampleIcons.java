@@ -1,5 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.support;
 
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
+
 import javafx.scene.layout.Region;
 
 /**
@@ -43,7 +45,7 @@ public final class SampleIcons {
     public static Region icon(String shape, double size, String fill) {
         Region icon = new Region();
         icon.setPrefSize(size, size);
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(icon);
         icon.setStyle("-fx-shape: \"" + shape + "\"; -fx-background-color: " + fill + ";");
         return icon;
     }

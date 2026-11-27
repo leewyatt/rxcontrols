@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXRating;
 import io.github.leewyatt.rxcontrols.internal.RatingAccess;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.utils.RXMouse;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.css.PseudoClass;
@@ -647,9 +648,9 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
             // The rating itself takes every pointer event, in the gaps as on the icons.
             node.setMouseTransparent(true);
             empty.getStyleClass().add("empty");
-            empty.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+            RXSizing.lockToPrefSize(empty);
             filled.getStyleClass().add("filled");
-            filled.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+            RXSizing.lockToPrefSize(filled);
             filled.setClip(clip);
         }
 

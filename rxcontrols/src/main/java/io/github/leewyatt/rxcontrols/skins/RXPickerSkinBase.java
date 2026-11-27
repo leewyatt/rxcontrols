@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeTexts.ParseResult
 import io.github.leewyatt.rxcontrols.internal.datetime.TemporalKeyTarget;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.InvalidationListener;
 import javafx.beans.value.ObservableValue;
 import javafx.css.PseudoClass;
@@ -113,11 +114,11 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
 
         leadingWrapper.getStyleClass().add("leading-wrapper");
         icon.getStyleClass().add("icon");
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(icon);
         icon.setMouseTransparent(true);
         Region clearGraphic = new Region();
         clearGraphic.getStyleClass().add("graphic");
-        clearGraphic.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(clearGraphic);
         clearGraphic.setMouseTransparent(true);
         clearButton.getStyleClass().add("clear-button");
         clearButton.getChildren().add(clearGraphic);

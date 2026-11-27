@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.RXPopupMenu;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.internal.color.ColorMath;
 import io.github.leewyatt.rxcontrols.internal.color.HsbaCursor;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.css.PseudoClass;
 import javafx.geometry.Pos;
 import javafx.scene.AccessibleRole;
@@ -128,7 +129,7 @@ final class ColorInputRow extends HBox {
         formatText.setMouseTransparent(true);
         Region arrow = new Region();
         arrow.getStyleClass().add("arrow");
-        arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(arrow);
         arrow.setMouseTransparent(true);
         HBox formatContent = new HBox(formatText, arrow);
         formatContent.getStyleClass().add("content");

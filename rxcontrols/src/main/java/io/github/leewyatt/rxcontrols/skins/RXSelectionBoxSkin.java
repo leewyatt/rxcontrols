@@ -9,6 +9,7 @@ import io.github.leewyatt.rxcontrols.RXListSelectionVisualMode;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
@@ -183,9 +184,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         HBox.setHgrow(summaryLabel, Priority.ALWAYS);
 
         arrow.getStyleClass().add("arrow");
-        // Min as well as max: a long summary must shorten the text, not squeeze the arrow.
-        arrow.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(arrow);
         arrow.setMouseTransparent(true);
         arrowButton.getStyleClass().add("arrow-button");
         arrowButton.setMouseTransparent(true);
@@ -199,7 +198,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
 
         Region searchIcon = new Region();
         searchIcon.getStyleClass().add("search-icon");
-        searchIcon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(searchIcon);
         searchIcon.setMouseTransparent(true);
         searchField.getStyleClass().add("search-field");
         searchField.setLeading(searchIcon);
@@ -936,6 +935,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
             this.filtered = filtered;
 
             check.getStyleClass().add("check");
+            RXSizing.lockToPrefSize(check);
             check.setMouseTransparent(true);
             indicator.getStyleClass().add("select-box");
             indicator.setMouseTransparent(true);

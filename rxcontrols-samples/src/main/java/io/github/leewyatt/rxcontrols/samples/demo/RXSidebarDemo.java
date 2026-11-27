@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebarCaption;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXTextField;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
@@ -69,7 +70,7 @@ public class RXSidebarDemo extends Application {
         Region icon = new Region();
         icon.setStyle("-fx-shape: \"" + shape + "\"; -fx-background-color: -fx-text-base-color;"
                 + " -fx-pref-width: 16; -fx-pref-height: 16;");
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(icon);
         return icon;
     }
 

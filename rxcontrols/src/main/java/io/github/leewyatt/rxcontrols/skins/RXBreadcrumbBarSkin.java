@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.RXPopupMenu;
 import io.github.leewyatt.rxcontrols.event.RXBreadcrumbEvent;
 import io.github.leewyatt.rxcontrols.internal.BreadcrumbFitter;
 import io.github.leewyatt.rxcontrols.internal.FeedbackSignals;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -280,7 +281,7 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         if (content == null) {
             Region icon = new Region();
             icon.getStyleClass().add("icon");
-            icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+            RXSizing.lockToPrefSize(icon);
             content = icon;
         }
         StackPane separator = new StackPane(content);
@@ -901,7 +902,7 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         private MenuTrigger(String styleClass, String iconStyleClass) {
             Region icon = new Region();
             icon.getStyleClass().add(iconStyleClass);
-            icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+            RXSizing.lockToPrefSize(icon);
             icon.setMouseTransparent(true);
             setGraphic(icon);
             getStyleClass().setAll(styleClass);

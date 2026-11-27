@@ -8,6 +8,7 @@ import io.github.leewyatt.rxcontrols.internal.ripple.ArmedRippleTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Platform;
 import javafx.geometry.Point2D;
 import javafx.scene.control.ToggleGroup;
@@ -66,7 +67,7 @@ public class RXMenuButtonSkin extends LabeledSkinBase<RXMenuButton> {
         rippleTrigger.installPlayRipple(disposer);
 
         arrow.getStyleClass().add("arrow");
-        arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(arrow);
         arrow.setMouseTransparent(true);
 
         syncItems();

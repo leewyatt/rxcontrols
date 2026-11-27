@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.RXCascaderPath;
 import io.github.leewyatt.rxcontrols.internal.CascaderText;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
@@ -109,16 +110,13 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         textLabel.setMaxWidth(Double.MAX_VALUE);
 
         clearGraphic.getStyleClass().add("graphic");
-        // Min as well as max: a long path must shorten the text, not squeeze the icons.
-        clearGraphic.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        clearGraphic.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(clearGraphic);
         clearGraphic.setMouseTransparent(true);
         clearButton.getStyleClass().add("clear-button");
         clearButton.getChildren().add(clearGraphic);
 
         arrow.getStyleClass().add("arrow");
-        arrow.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(arrow);
         arrow.setMouseTransparent(true);
         arrowButton.getStyleClass().add("arrow-button");
         arrowButton.getChildren().add(arrow);

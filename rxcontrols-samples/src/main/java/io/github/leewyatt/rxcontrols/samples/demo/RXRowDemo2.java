@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXImageView;
 import io.github.leewyatt.rxcontrols.layout.RXColSpec;
 import io.github.leewyatt.rxcontrols.layout.RXCol;
 import io.github.leewyatt.rxcontrols.layout.RXRow;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -207,6 +208,7 @@ public class RXRowDemo2 extends Application {
     private Node createFeatureCard(String title, String text) {
         Region icon = new Region();
         icon.getStyleClass().add("feature-icon");
+        RXSizing.lockToPrefSize(icon);
 
         Label titleLabel = label(title, "feature-title");
         Label textLabel = label(text, "feature-copy");
@@ -249,6 +251,7 @@ public class RXRowDemo2 extends Application {
     private Node activityItem(String title, String detail) {
         Region dot = new Region();
         dot.getStyleClass().add("activity-dot");
+        RXSizing.lockToPrefSize(dot);
 
         Label titleLabel = label(title, "activity-title");
         Label detailLabel = label(detail, "activity-detail");

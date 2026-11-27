@@ -10,6 +10,7 @@ import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
 import io.github.leewyatt.rxcontrols.internal.transition.TransitionPages;
 import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.animation.PauseTransition;
 import javafx.css.PseudoClass;
@@ -539,7 +540,7 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
             getStyleClass().add(styleClass);
 
             indicator.getStyleClass().add("indicator");
-            indicator.setMaxSize(USE_PREF_SIZE, USE_PREF_SIZE);
+            RXSizing.lockToPrefSize(indicator);
             indicator.setMouseTransparent(true);
             // Neither shape has a direction: in a right-to-left button the
             // indicator moves to the other side but is not drawn mirrored.

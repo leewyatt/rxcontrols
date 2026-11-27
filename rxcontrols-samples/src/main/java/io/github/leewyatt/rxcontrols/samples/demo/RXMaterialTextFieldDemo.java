@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.RXMaterialTextField;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -73,7 +74,7 @@ public class RXMaterialTextFieldDemo extends Application {
         Region region = new Region();
         region.setStyle("-fx-background-color: -rx-on-surface-secondary; -fx-shape: \"" + shape + "\";"
                 + " -fx-pref-width: 18px; -fx-pref-height: 18px;");
-        region.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(region);
         return region;
     }
 

@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXMaterialPasswordField;
 import io.github.leewyatt.rxcontrols.internal.PasswordMaskSupport;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.scene.Node;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
@@ -53,7 +54,7 @@ public class RXMaterialPasswordFieldSkin extends RXMaterialFieldBaseSkin {
                 control.showClearButtonProperty());
 
         revealGraphic.getStyleClass().add(GRAPHIC_CLASS);
-        revealGraphic.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(revealGraphic);
         revealGraphic.setMouseTransparent(true);
         revealButton.getStyleClass().add(REVEAL_BUTTON_CLASS);
 

@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.carousel;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.css.PseudoClass;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -145,6 +146,7 @@ public class DefaultNavigator implements CarouselNavigator {
         if (compactBox == null) {
             Region prevArrow = new Region();
             prevArrow.getStyleClass().add("arrow");
+            RXSizing.lockToPrefSize(prevArrow);
 
             Button prevBtn = new Button();
             prevBtn.setGraphic(prevArrow);
@@ -157,6 +159,7 @@ public class DefaultNavigator implements CarouselNavigator {
 
             Region nextArrow = new Region();
             nextArrow.getStyleClass().add("arrow");
+            RXSizing.lockToPrefSize(nextArrow);
 
             Button nextBtn = new Button();
             nextBtn.setGraphic(nextArrow);

@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.RXPlaceholder;
 import io.github.leewyatt.rxcontrols.RXStatePane;
 import io.github.leewyatt.rxcontrols.RXStatePane.State;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -247,7 +248,7 @@ public class RXStatePaneSkin extends RXSkinBase<RXStatePane> {
     private static Region defaultIcon(String styleClass) {
         Region icon = new Region();
         icon.getStyleClass().add(styleClass);
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(icon);
         return icon;
     }
 

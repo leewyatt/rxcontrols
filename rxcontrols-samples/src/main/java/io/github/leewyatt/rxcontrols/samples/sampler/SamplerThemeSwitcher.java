@@ -12,6 +12,7 @@ import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes.ThemeChoice;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Application;
 import javafx.css.PseudoClass;
 import javafx.geometry.Bounds;
@@ -342,8 +343,7 @@ final class SamplerThemeSwitcher extends HBox {
     private static Region glyph(String styleClass) {
         Region glyph = new Region();
         glyph.getStyleClass().addAll("glyph", styleClass);
-        glyph.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(glyph);
         glyph.setMouseTransparent(true);
         return glyph;
     }

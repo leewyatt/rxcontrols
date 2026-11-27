@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXMenuList;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Application;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Insets;
@@ -189,7 +190,7 @@ public class RXMenuMixedItemsVerification extends Application {
     private static Region icon(String shape) {
         Region icon = new Region();
         icon.setPrefSize(16.0, 16.0);
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(icon);
         // A fixed gray: native popups under AtlantaFX cannot resolve Modena's text color lookups.
         icon.setStyle("-fx-shape: \"" + shape + "\"; -fx-background-color: gray;");
         return icon;

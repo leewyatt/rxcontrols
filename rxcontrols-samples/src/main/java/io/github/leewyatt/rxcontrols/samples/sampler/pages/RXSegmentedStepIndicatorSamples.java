@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
 import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator.TitleSide;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -293,7 +294,7 @@ public final class RXSegmentedStepIndicatorSamples {
     private static Region stepMark() {
         Region mark = new Region();
         mark.getStyleClass().add("step-mark");
-        mark.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(mark);
         return mark;
     }
 

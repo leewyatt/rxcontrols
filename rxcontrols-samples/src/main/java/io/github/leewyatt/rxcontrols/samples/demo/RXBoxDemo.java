@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
 import io.github.leewyatt.rxcontrols.layout.RXBox;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 
 import javafx.application.Application;
 import javafx.geometry.Insets;
@@ -79,6 +80,7 @@ public class RXBoxDemo extends Application {
     private Region createTaskRow() {
         Region icon = new Region();
         icon.getStyleClass().add("task-icon");
+        RXSizing.lockToPrefSize(icon);
 
         Label title = label("Quarterly report.pdf", "task-title");
         Label detail = label("12 MB ready to share", "task-detail");

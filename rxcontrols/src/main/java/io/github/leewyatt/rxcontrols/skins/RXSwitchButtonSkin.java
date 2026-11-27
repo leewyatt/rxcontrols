@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -131,7 +132,7 @@ public class RXSwitchButtonSkin extends LabeledSkinBase<RXSwitchButton> {
         thumb.getStyleClass().add("thumb");
         thumb.setManaged(false);
         thumbIcon.getStyleClass().add("icon");
-        thumbIcon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        RXSizing.lockToPrefSize(thumbIcon);
         thumbIcon.setMouseTransparent(true);
         // Opt the directional check glyph out of the RTL auto-mirror (as CheckBoxSkin
         // does for its mark) so the check stays upright in right-to-left layouts.
