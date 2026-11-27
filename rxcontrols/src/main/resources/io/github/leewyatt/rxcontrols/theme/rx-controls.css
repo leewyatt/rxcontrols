@@ -4842,12 +4842,16 @@
     -fx-background-color: transparent;
     -fx-background-insets: 0;
     -fx-background-radius: 2 2 0 0;
-    -fx-border-color: transparent transparent
-    ladder(-fx-control-inner-background,
-    derive(-fx-control-inner-background, 25%) 45%,
-    derive(-fx-control-inner-background, -16%) 46%) transparent;
     -fx-border-width: 0 0 1px 0;
     -fx-padding: 0.416667em 0.666667em; /* 5 8 */
+}
+
+/* The same divider sets the search field and the action buttons off from the list. */
+.rx-selection-box-popup .search-field,
+.rx-selection-box-popup .actions-box {
+    -fx-border-color: ladder(-fx-control-inner-background,
+    derive(-fx-control-inner-background, 25%) 45%,
+    derive(-fx-control-inner-background, -16%) 46%);
 }
 
 .rx-selection-box-popup .search-field:focused {
@@ -4924,10 +4928,12 @@
     -fx-background-color: -rx-on-primary;
 }
 
+/* Inset from the card edges as the rows' text is. */
 .rx-selection-box-popup .actions-box {
     -fx-alignment: center-right;
     -fx-spacing: 0.5em; /* 6 */
-    -fx-padding: 0.25em 0 0 0;
+    -fx-border-width: 1px 0 0 0;
+    -fx-padding: 0.666667em; /* 8 */
 }
 
 /*******************************************************************************
