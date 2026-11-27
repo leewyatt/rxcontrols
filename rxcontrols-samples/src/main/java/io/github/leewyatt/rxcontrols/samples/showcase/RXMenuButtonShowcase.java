@@ -5,10 +5,7 @@ import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXMenuList;
 import io.github.leewyatt.rxcontrols.RXPlacement;
 import io.github.leewyatt.rxcontrols.RXPopupMenu;
-import io.github.leewyatt.rxcontrols.samples.demo.RXMenuButtonDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
-import javafx.animation.Interpolator;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -23,12 +20,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.util.Duration;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -36,8 +30,7 @@ import java.util.function.Consumer;
  *
  * <p>The preview hosts four targets driven from one shared item spec: an
  * {@link RXMenuButton} whose own popup honours {@code placement}; a plain-button
- * anchored {@link RXPopupMenu} that exercises entrance animation, initial focus,
- * and offset; a live always-open {@link RXMenuList} panel that exercises dense /
+ * anchored {@link RXPopupMenu} that exercises initial focus and offset; a live always-open {@link RXMenuList} panel that exercises dense /
  * ripple / disabled-items-focusable / wrap-around and every item variant at a
  * glance; and an {@link RXMenuButton} card wired with
  * {@link RXMenuButton#installContextMenu} for right-click. The right pane toggles
@@ -49,8 +42,6 @@ public class RXMenuButtonShowcase extends RXShowcaseApplication {
     private static final String FILE = "M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm7 1.5L18.5 9H13z";
     private static final String FOLDER = "M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8z";
     private static final String TRASH = "M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z";
-
-    private final Map<String, Interpolator> interpolators = new LinkedHashMap<>();
 
     private RXMenuButton menuButton;
     private RXPopupMenu popup;
@@ -129,7 +120,6 @@ public class RXMenuButtonShowcase extends RXShowcaseApplication {
                 section("Placement", buildPlacementGrid()),
                 section("Content", buildContentGrid()),
                 section("Behavior", buildBehaviorGrid()),
-                section("Animation", buildAnimationGrid()),
                 section("Ripple", buildRippleGrid()));
     }
 
@@ -194,38 +184,6 @@ public class RXMenuButtonShowcase extends RXShowcaseApplication {
         });
 
         return createGrid(row(dense), row(selectedFocus), row(disabledFocusable), row(wrap));
-    }
-
-    private Node buildAnimationGrid() {
-        CheckBox animated = new CheckBox("animated");
-        animated.setSelected(popup.getMenuList().isAnimated());
-        animated.selectedProperty().addListener((obs, old, v) -> popup.getMenuList().setAnimated(v));
-
-        Slider duration = createSlider(0.0, 600.0, popup.getMenuList().getAnimationDuration().toMillis());
-        popup.getMenuList().animationDurationProperty().bind(Bindings.createObjectBinding(
-                () -> Duration.millis(duration.getValue()), duration.valueProperty()));
-        Label durationValue = createValueLabel(duration, "%.0f ms");
-
-        interpolators.put("EASE_OUT", Interpolator.EASE_OUT);
-        interpolators.put("EASE_BOTH", Interpolator.EASE_BOTH);
-        interpolators.put("EASE_IN", Interpolator.EASE_IN);
-        interpolators.put("LINEAR", Interpolator.LINEAR);
-        ComboBox<String> interpolator = new ComboBox<>();
-        interpolator.getItems().setAll(interpolators.keySet());
-        interpolator.setValue("EASE_OUT");
-        interpolator.setMaxWidth(Double.MAX_VALUE);
-        interpolator.valueProperty().addListener((obs, old, value) ->
-                popup.getMenuList().setAnimationInterpolator(interpolators.get(value)));
-
-        Label note = new Label("Entrance animation plays when the popup opens.");
-        note.getStyleClass().add("note-label");
-        note.setWrapText(true);
-
-        return createGrid(
-                row(animated),
-                row("Duration", duration, durationValue),
-                row("Easing", interpolator),
-                row(note));
     }
 
     private Node buildRippleGrid() {

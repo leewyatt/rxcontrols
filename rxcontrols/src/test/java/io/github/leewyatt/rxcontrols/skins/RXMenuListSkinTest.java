@@ -520,7 +520,6 @@ public class RXMenuListSkinTest {
     public void keyboardNavigationScrollsFocusedCellIntoView() throws Exception {
         runOnFx(() -> {
             RXMenuList list = new RXMenuList();
-            list.setAnimated(false);
             for (int i = 0; i < 20; i++) {
                 list.getItems().add(RXMenuItem.of("Item " + i));
             }
