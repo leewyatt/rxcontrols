@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
-import io.github.leewyatt.rxcontrols.internal.RXImageRenderer;
+import io.github.leewyatt.rxcontrols.internal.FittedImageView;
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -67,7 +67,7 @@ public class RXImageView extends Region {
 
     // ==================== Internal State ====================
 
-    private final RXImageRenderer imageRenderer;
+    private final FittedImageView imageView;
 
     // ==================== Constructors ====================
 
@@ -77,8 +77,8 @@ public class RXImageView extends Region {
     public RXImageView() {
         getStyleClass().add(DEFAULT_STYLE_CLASS);
 
-        imageRenderer = new RXImageRenderer(this::requestLayout);
-        getChildren().add(imageRenderer.getImageView());
+        imageView = new FittedImageView(this::requestLayout);
+        getChildren().add(imageView);
     }
 
     /**
@@ -118,7 +118,7 @@ public class RXImageView extends Region {
     private final ObjectProperty<Image> image = new SimpleObjectProperty<>(this, "image") {
         @Override
         protected void invalidated() {
-            imageRenderer.setImage(get());
+            imageView.setImage(get());
         }
     };
 
@@ -339,7 +339,7 @@ public class RXImageView extends Region {
         double contentH = getHeight() - top - bottom;
         if (contentW <= 0.0 || contentH <= 0.0
                 || !Double.isFinite(contentW) || !Double.isFinite(contentH)) {
-            imageRenderer.reset();
+            imageView.reset();
             return;
         }
 
@@ -355,11 +355,11 @@ public class RXImageView extends Region {
         double areaH = contentH - imageTop - imageBottom;
         if (areaW <= 0.0 || areaH <= 0.0
                 || !Double.isFinite(areaW) || !Double.isFinite(areaH)) {
-            imageRenderer.reset();
+            imageView.reset();
             return;
         }
 
-        imageRenderer.layout(areaX, areaY, areaW, areaH,
+        imageView.layoutIn(areaX, areaY, areaW, areaH,
                 imageFitOrDefault(), imageRadiusOrDefault());
     }
 

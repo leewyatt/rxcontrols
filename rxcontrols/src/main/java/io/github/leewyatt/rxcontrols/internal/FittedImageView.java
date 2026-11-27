@@ -11,17 +11,17 @@ import javafx.scene.shape.Rectangle;
 import java.util.Objects;
 
 /**
- * Internal image renderer shared by image-based RXControls.
+ * The image view shared by image-based RXControls: an unmanaged
+ * {@link ImageView} that its host fits into an area by an {@link ImageFit}, with
+ * rounded corners, and that asks the host for a layout when its image changes,
+ * finishes loading, changes size or fails.
  */
-public final class RXImageRenderer {
+public final class FittedImageView extends ImageView {
 
     // ==================== Internal State ====================
 
     private final Runnable layoutRequester;
-    private final ImageView imageView;
-    private final Rectangle clipRect;
-
-    private Image trackedImage;
+    private final Rectangle clipRect = new Rectangle();
 
     private final InvalidationListener imageSizeListener;
     private final WeakInvalidationListener weakImageSizeListener;
@@ -29,61 +29,32 @@ public final class RXImageRenderer {
     // ==================== Constructors ====================
 
     /**
-     * Creates a renderer that requests layout through the given callback when
-     * the image source changes size or error state.
+     * Creates an image view that requests layout through the given callback when
+     * its image is replaced or changes size or error state.
      *
      * @param layoutRequester the layout callback
      * @throws NullPointerException if {@code layoutRequester} is {@code null}
      */
-    public RXImageRenderer(Runnable layoutRequester) {
+    public FittedImageView(Runnable layoutRequester) {
         this.layoutRequester = Objects.requireNonNull(layoutRequester, "layoutRequester cannot be null");
-
-        imageView = new ImageView();
-        imageView.setManaged(false);
-        imageView.setSmooth(true);
-        imageView.setPreserveRatio(false);
-
-        clipRect = new Rectangle();
+        setManaged(false);
+        setSmooth(true);
+        setPreserveRatio(false);
         clipRect.setManaged(false);
 
         imageSizeListener = obs -> this.layoutRequester.run();
         weakImageSizeListener = new WeakInvalidationListener(imageSizeListener);
-    }
-
-    // ==================== Image View ====================
-
-    /**
-     * Returns the internal JavaFX image view node.
-     *
-     * @return the image view node
-     */
-    public ImageView getImageView() {
-        return imageView;
-    }
-
-    // ==================== Image ====================
-
-    /**
-     * Sets the image rendered by this renderer.
-     *
-     * @param image the image, or {@code null}
-     */
-    public void setImage(Image image) {
-        Image oldImage = trackedImage;
-        if (oldImage == image) {
-            return;
-        }
-        unbindImageSize(oldImage);
-        trackedImage = image;
-        bindImageSize(image);
-        imageView.setImage(image);
-        layoutRequester.run();
+        imageProperty().addListener((obs, oldImage, newImage) -> {
+            unbindImageSize(oldImage);
+            bindImageSize(newImage);
+            this.layoutRequester.run();
+        });
     }
 
     // ==================== Layout ====================
 
     /**
-     * Lays out the current image inside the given allocation area.
+     * Fits the current image into the given allocation area.
      *
      * @param x           the allocation x position
      * @param y           the allocation y position
@@ -93,8 +64,8 @@ public final class RXImageRenderer {
      * @param imageRadius the fixed-pixel image corner radius
      * @throws NullPointerException if {@code imageFit} is {@code null}
      */
-    public void layout(double x, double y, double width, double height,
-                       ImageFit imageFit, double imageRadius) {
+    public void layoutIn(double x, double y, double width, double height,
+                         ImageFit imageFit, double imageRadius) {
         ImageFit fit = Objects.requireNonNull(imageFit, "imageFit cannot be null");
         if (width <= 0.0 || height <= 0.0
                 || !Double.isFinite(width) || !Double.isFinite(height)) {
@@ -102,7 +73,7 @@ public final class RXImageRenderer {
             return;
         }
 
-        Image image = imageView.getImage();
+        Image image = getImage();
         if (!isDrawableImage(image)) {
             reset();
             return;
@@ -126,14 +97,14 @@ public final class RXImageRenderer {
      * Resets the rendered image to a deterministic empty state.
      */
     public void reset() {
-        imageView.setVisible(false);
-        imageView.setViewport(null);
-        imageView.setFitWidth(0.0);
-        imageView.setFitHeight(0.0);
-        imageView.setPreserveRatio(false);
-        imageView.relocate(0.0, 0.0);
+        setVisible(false);
+        setViewport(null);
+        setFitWidth(0.0);
+        setFitHeight(0.0);
+        setPreserveRatio(false);
+        relocate(0.0, 0.0);
         resetClip();
-        imageView.setClip(null);
+        setClip(null);
     }
 
     private void layoutCover(Image image, double x, double y,
@@ -146,7 +117,7 @@ public final class RXImageRenderer {
         double viewportX = (imageW - viewportW) / 2.0;
         double viewportY = (imageH - viewportH) / 2.0;
 
-        imageView.setViewport(new Rectangle2D(viewportX, viewportY, viewportW, viewportH));
+        setViewport(new Rectangle2D(viewportX, viewportY, viewportW, viewportH));
         applyImageViewLayout(x, y, width, height, imageRadius);
     }
 
@@ -160,27 +131,27 @@ public final class RXImageRenderer {
         double drawX = x + (width - drawW) / 2.0;
         double drawY = y + (height - drawH) / 2.0;
 
-        imageView.setViewport(null);
+        setViewport(null);
         applyImageViewLayout(drawX, drawY, drawW, drawH, imageRadius);
     }
 
     private void layoutStretch(double x, double y,
                                double width, double height, double imageRadius) {
-        imageView.setViewport(null);
+        setViewport(null);
         applyImageViewLayout(x, y, width, height, imageRadius);
     }
 
     private void applyImageViewLayout(double x, double y,
                                       double width, double height, double imageRadius) {
-        imageView.setVisible(true);
-        imageView.setPreserveRatio(false);
-        imageView.setFitWidth(width);
-        imageView.setFitHeight(height);
-        imageView.relocate(x, y);
+        setVisible(true);
+        setPreserveRatio(false);
+        setFitWidth(width);
+        setFitHeight(height);
+        relocate(x, y);
 
         if (imageRadius <= 0.0) {
             resetClip();
-            imageView.setClip(null);
+            setClip(null);
             return;
         }
 
@@ -191,7 +162,7 @@ public final class RXImageRenderer {
         clipRect.setHeight(height);
         clipRect.setArcWidth(Math.min(arc, width));
         clipRect.setArcHeight(Math.min(arc, height));
-        imageView.setClip(clipRect);
+        setClip(clipRect);
     }
 
     private void resetClip() {
