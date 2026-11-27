@@ -5829,6 +5829,24 @@
     -fx-text-fill: -rx-on-surface-secondary;
 }
 
+/* The symbol sits where a plain field's text starts (modena's 0.583em inner
+   padding) and close to the value it belongs to. */
+.rx-color-view .inputs .text-field > .leading-wrapper {
+    -fx-padding: 0 0 0 0.583333em;
+}
+
+.rx-color-view .inputs .text-field > .trailing-wrapper {
+    -fx-padding: 0 0.583333em 0 0;
+}
+
+.rx-color-view .inputs .text-field:has-leading {
+    -rx-text-padding: 0 0 0 0.25em;
+}
+
+.rx-color-view .inputs .text-field:has-trailing {
+    -rx-text-padding: 0 0.25em 0 0;
+}
+
 .rx-color-view .format-button {
     -fx-background-color: transparent;
     -fx-background-radius: 4px;
