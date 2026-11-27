@@ -8,14 +8,13 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 
 import java.util.List;
 
 /**
- * The RXColor page: a brand color field with presets and a copy button that
- * saves on each completed edit, an optional highlight color that can be cleared,
+ * The RXColor page: a brand color field with presets and a copy button, an
+ * optional highlight color that can be cleared,
  * an inline opaque text color editor in RGB with a clear button, and RXColorView
  * as an inline editor.
  */
@@ -37,7 +36,7 @@ public final class RXColorSamples {
                         "Edits write the value live; save in onAction, which fires once per completed edit."),
                 List.of(
                         SampleCard.medium("Brand color",
-                                "Brand presets, the hex text and a copy button on the trigger; the label shows the last saved color.",
+                                "Brand presets, the hex text and a copy button on the trigger.",
                                 brand()).forType(RXColorPicker.class),
                         SampleCard.medium("Optional highlight",
                                 "clearable adds a clear button; no color shows a slashed swatch and the prompt text.",
@@ -59,10 +58,7 @@ public final class RXColorSamples {
         picker.setAccessibleText("Brand color");
         picker.getPresets().add(new RXColorPresetGroup("Brand", Color.web("#1769AA"), Color.web("#F57C00"),
                 Color.web("#2E7D32"), Color.web("#C62828"), Color.web("#6A1B9A")));
-        Label saved = new Label("Saved: #1769AA");
-        picker.setOnAction(event -> saved.setText(picker.getValue() == null ? "Saved: none"
-                : "Saved: " + picker.getValue()));
-        return column(row("Brand", picker), saved);
+        return row("Brand", picker);
     }
 
     private static Node highlight() {
@@ -93,9 +89,5 @@ public final class RXColorSamples {
         HBox row = new HBox(12.0, new Label(label), control);
         row.setAlignment(Pos.CENTER_LEFT);
         return row;
-    }
-
-    private static VBox column(Node... nodes) {
-        return new VBox(12.0, nodes);
     }
 }
