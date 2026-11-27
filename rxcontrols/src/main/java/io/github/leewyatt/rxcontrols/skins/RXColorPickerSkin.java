@@ -19,7 +19,6 @@ import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
-import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
@@ -186,7 +185,7 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
 
         popupSupport.setOnHidden(this::onPopupHidden);
         // On the whole picker, so its padding, the gaps and a hidden copy button's
-        // space open the popup too; only the copy button keeps its clicks.
+        // space open the popup too. The copy button's skin consumes its own clicks.
         disposer.registerEventHandler(control, MouseEvent.MOUSE_CLICKED, this::onPickerClicked);
         disposer.registerEventHandler(control, KeyEvent.KEY_PRESSED, this::onPickerKey);
         disposer.registerEventFilter(view, KeyEvent.KEY_PRESSED, this::onPopupKeyFilter);
@@ -432,7 +431,7 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
 
     private void onPickerClicked(MouseEvent event) {
         RXColorPicker control = getSkinnable();
-        if (event.getButton() != MouseButton.PRIMARY || control.isDisabled() || isInCopyButton(event)) {
+        if (event.getButton() != MouseButton.PRIMARY || control.isDisabled()) {
             return;
         }
         event.consume();
@@ -442,16 +441,6 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         } else if (!suppressReopen) {
             control.show();
         }
-    }
-
-    private boolean isInCopyButton(MouseEvent event) {
-        Object target = event.getTarget();
-        for (Node node = target instanceof Node ? (Node) target : null; node != null; node = node.getParent()) {
-            if (node == copyButton) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private void onPickerKey(KeyEvent event) {
