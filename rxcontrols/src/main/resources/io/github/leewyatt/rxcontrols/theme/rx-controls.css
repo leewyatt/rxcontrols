@@ -403,24 +403,6 @@
 
 /*******************************************************************************
  *                                                                             *
- * RXIcon                                                                      *
- *                                                                             *
- * Placed before every component section: a component's own icon rule of the   *
- * same specificity comes later and wins. An icon is not a token root, so it   *
- * reads Modena's text color, or the AtlantaFX foreground under the bridge     *
- * (AtlantaFX does not define the Modena text colors itself).                  *
- *                                                                             *
- ******************************************************************************/
-.rx-icon {
-    -fx-background-color: -fx-text-base-color;
-}
-
-.rx-theme-atlantafx .rx-icon {
-    -fx-background-color: -color-fg-default;
-}
-
-/*******************************************************************************
- *                                                                             *
  * Ripple / state-overlay primitives                                           *
  *                                                                             *
  ******************************************************************************/

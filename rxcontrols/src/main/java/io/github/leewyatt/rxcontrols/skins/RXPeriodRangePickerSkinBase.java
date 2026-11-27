@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXPickerBase;
 import io.github.leewyatt.rxcontrols.RXTemporalViewBase;
 import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeTexts;
@@ -8,6 +7,7 @@ import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeTexts.ParseResult
 import io.github.leewyatt.rxcontrols.internal.datetime.PeriodRangeType;
 import io.github.leewyatt.rxcontrols.internal.datetime.RangeAnchorSource;
 import io.github.leewyatt.rxcontrols.internal.datetime.TemporalRules;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.property.ReadOnlyObjectProperty;
@@ -16,6 +16,7 @@ import javafx.scene.control.Skin;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Region;
 import javafx.util.StringConverter;
 
 import java.time.LocalDate;
@@ -39,7 +40,7 @@ abstract class RXPeriodRangePickerSkinBase<P extends Comparable<? super P>, R, C
     private final PeriodRangeType<P, R> type;
     private final TextField startEditor = new TextField();
     private final TextField endEditor = new TextField();
-    private final RXIcon separator = new RXIcon();
+    private final Region separator = new Region();
     private final V view;
     private final InvalidationListener anchorListener = observable -> onAnchorChanged();
     private ReadOnlyObjectProperty<LocalDate> observedAnchor;
@@ -59,6 +60,7 @@ abstract class RXPeriodRangePickerSkinBase<P extends Comparable<? super P>, R, C
         startEditor.setPrefColumnCount(FIELD_COLUMNS);
         endEditor.setPrefColumnCount(FIELD_COLUMNS);
         separator.getStyleClass().add("separator");
+        RXSizing.lockToPrefSize(separator);
         separator.setMouseTransparent(true);
         disposer.registerBinding(view.localeProperty(), control.localeProperty());
         disposer.registerBinding(view.clockProperty(), control.clockProperty());

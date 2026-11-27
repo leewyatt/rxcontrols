@@ -1,12 +1,12 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXPickerBase;
 import io.github.leewyatt.rxcontrols.RXTemporalViewBase;
 import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeTexts.ParseResult;
 import io.github.leewyatt.rxcontrols.internal.datetime.TemporalKeyTarget;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.InvalidationListener;
 import javafx.beans.value.ObservableValue;
 import javafx.css.PseudoClass;
@@ -60,7 +60,7 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
 
     private final StackPane leadingWrapper = new StackPane();
     private final StackPane suffix = new StackPane();
-    private final RXIcon icon = new RXIcon();
+    private final Region icon = new Region();
     private final StackPane clearButton = new StackPane();
     private final VBox popupContent = new VBox();
     private final HBox footer = new HBox();
@@ -114,9 +114,11 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
 
         leadingWrapper.getStyleClass().add("leading-wrapper");
         icon.getStyleClass().add("icon");
+        RXSizing.lockToPrefSize(icon);
         icon.setMouseTransparent(true);
-        RXIcon clearGraphic = new RXIcon();
+        Region clearGraphic = new Region();
         clearGraphic.getStyleClass().add("graphic");
+        RXSizing.lockToPrefSize(clearGraphic);
         clearGraphic.setMouseTransparent(true);
         clearButton.getStyleClass().add("clear-button");
         clearButton.getChildren().add(clearGraphic);

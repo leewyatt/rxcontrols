@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXSwitchButton;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleBehavior;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
@@ -8,6 +7,7 @@ import io.github.leewyatt.rxcontrols.internal.ripple.StateLayer;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -26,6 +26,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
 import javafx.scene.layout.Background;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
@@ -76,7 +77,7 @@ public class RXSwitchButtonSkin extends LabeledSkinBase<RXSwitchButton> {
     private final StateLayer stateLayer = new StateLayer();
     private final RippleLayer rippleLayer = new RippleLayer();
     private final StackPane thumb = new StackPane();
-    private final RXIcon thumbIcon = new RXIcon();
+    private final Region thumbIcon = new Region();
 
     /** Ripple ink colour; follows the halo's CSS-resolved {@code -rx-state-overlay-color}. */
     private final ObjectProperty<Paint> rippleFill = new SimpleObjectProperty<>(this, "rippleFill", null);
@@ -131,6 +132,7 @@ public class RXSwitchButtonSkin extends LabeledSkinBase<RXSwitchButton> {
         thumb.getStyleClass().add("thumb");
         thumb.setManaged(false);
         thumbIcon.getStyleClass().add("icon");
+        RXSizing.lockToPrefSize(thumbIcon);
         thumbIcon.setMouseTransparent(true);
         // Opt the directional check glyph out of the RTL auto-mirror (as CheckBoxSkin
         // does for its mark) so the check stays upright in right-to-left layouts.

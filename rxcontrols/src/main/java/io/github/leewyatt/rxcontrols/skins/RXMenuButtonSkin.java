@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXMenuButton;
 import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXPopupMenu;
@@ -9,6 +8,7 @@ import io.github.leewyatt.rxcontrols.internal.ripple.ArmedRippleTrigger;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Platform;
 import javafx.geometry.Point2D;
 import javafx.scene.control.ToggleGroup;
@@ -17,6 +17,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Region;
 
 /**
  * Skin for {@link RXMenuButton}: the {@link LabeledSkinBase} text / graphic layout
@@ -41,7 +42,7 @@ public class RXMenuButtonSkin extends LabeledSkinBase<RXMenuButton> {
     private final SkinDisposer disposer = new SkinDisposer();
     private final RippleDecoration ripple;
     private final ArmedRippleTrigger rippleTrigger;
-    private final RXIcon arrow = new RXIcon();
+    private final Region arrow = new Region();
     private final RXPopupMenu popupMenu = new RXPopupMenu();
     private final MenuAcceleratorSupport accelerators;
 
@@ -66,6 +67,7 @@ public class RXMenuButtonSkin extends LabeledSkinBase<RXMenuButton> {
         rippleTrigger.installPlayRipple(disposer);
 
         arrow.getStyleClass().add("arrow");
+        RXSizing.lockToPrefSize(arrow);
         arrow.setMouseTransparent(true);
 
         syncItems();

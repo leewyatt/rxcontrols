@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXPickerBase;
 import io.github.leewyatt.rxcontrols.RXTemporalViewBase;
 import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeTexts;
@@ -8,6 +7,7 @@ import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeTexts.ParseResult
 import io.github.leewyatt.rxcontrols.internal.datetime.RangeConfirmFlow;
 import io.github.leewyatt.rxcontrols.internal.datetime.RangeConfirmFlow.Endpoint;
 import io.github.leewyatt.rxcontrols.internal.datetime.RangeConfirmFlow.Step;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.Observable;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.Node;
@@ -18,6 +18,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Region;
 import javafx.util.StringConverter;
 
 import java.util.List;
@@ -38,7 +39,7 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
 
     private final TextField startEditor = new TextField();
     private final TextField endEditor = new TextField();
-    private final RXIcon separator = new RXIcon();
+    private final Region separator = new Region();
     private final V endpointView;
     private final RangeConfirmFlow<E> flow = new RangeConfirmFlow<>();
     private Button okButton;
@@ -59,6 +60,7 @@ abstract class RXStepwiseRangePickerSkinBase<E, R, C extends RXPickerBase<R>, V 
         startEditor.setPrefColumnCount(fieldColumns);
         endEditor.setPrefColumnCount(fieldColumns);
         separator.getStyleClass().add("separator");
+        RXSizing.lockToPrefSize(separator);
         separator.setMouseTransparent(true);
         disposer.registerBinding(view.localeProperty(), control.localeProperty());
         disposer.registerBinding(view.clockProperty(), control.clockProperty());

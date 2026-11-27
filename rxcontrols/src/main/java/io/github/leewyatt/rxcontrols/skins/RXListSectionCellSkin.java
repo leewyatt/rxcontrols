@@ -1,10 +1,11 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXListSectionCell;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.geometry.HPos;
 import javafx.geometry.VPos;
 import javafx.scene.control.skin.CellSkinBase;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 
 /**
@@ -12,7 +13,7 @@ import javafx.scene.layout.StackPane;
  * (Labeled text + graphic) plus, while the header is
  * {@link RXListSectionCell#isCollapsible() collapsible}, a leading disclosure arrow
  * ({@code .disclosure > .arrow}) that shifts the label content right. The arrow is a
- * shape-backed {@link RXIcon}; its look and its expanded / collapsed orientation are
+ * shape-backed {@link Region}; its look and its expanded / collapsed orientation are
  * CSS-driven through the cell's {@code :expanded} / {@code :collapsed}
  * pseudo-classes. It is display-only — the whole header row is the toggle, handled
  * by the list view's skin — so it is mouse-transparent. An arrow hidden through CSS
@@ -31,8 +32,9 @@ public class RXListSectionCellSkin extends CellSkinBase<RXListSectionCell> {
      */
     public RXListSectionCellSkin(RXListSectionCell cell) {
         super(cell);
-        RXIcon arrow = new RXIcon();
+        Region arrow = new Region();
         arrow.getStyleClass().add("arrow");
+        RXSizing.lockToPrefSize(arrow);
         disclosure.getStyleClass().add("disclosure");
         disclosure.getChildren().add(arrow);
         disclosure.setMouseTransparent(true);

@@ -1,10 +1,10 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXRating;
 import io.github.leewyatt.rxcontrols.internal.RatingAccess;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import io.github.leewyatt.rxcontrols.utils.RXMouse;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.css.PseudoClass;
@@ -18,6 +18,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 
@@ -636,8 +637,8 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
     /** One icon: the empty shape with the clipped filled shape above it. */
     private static final class Item {
 
-        private final RXIcon empty = new RXIcon();
-        private final RXIcon filled = new RXIcon();
+        private final Region empty = new Region();
+        private final Region filled = new Region();
         private final Rectangle clip = new Rectangle();
         private final StackPane node = new StackPane(empty, filled);
 
@@ -647,7 +648,9 @@ public class RXRatingSkin extends RXSkinBase<RXRating> {
             // The rating itself takes every pointer event, in the gaps as on the icons.
             node.setMouseTransparent(true);
             empty.getStyleClass().add("empty");
+            RXSizing.lockToPrefSize(empty);
             filled.getStyleClass().add("filled");
+            RXSizing.lockToPrefSize(filled);
             filled.setClip(clip);
         }
 

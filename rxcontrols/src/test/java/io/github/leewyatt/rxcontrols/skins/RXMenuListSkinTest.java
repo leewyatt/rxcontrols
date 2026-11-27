@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXMenuHeader;
 import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXMenuList;
@@ -35,7 +34,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -575,10 +573,11 @@ public class RXMenuListSkinTest {
             List<Node> cells = cellsOf(list);
 
             assertNotNull(cells.get(0).lookup(".leading"), "selectable item has a leading slot");
-            Node mark = cells.get(0).lookup(".checkmark");
+            Region mark = (Region) cells.get(0).lookup(".checkmark");
             assertNotNull(mark, "checkbox item has a checkmark");
-            // A fixed box, so the StackPane cannot stretch the shape into a blob.
-            assertInstanceOf(RXIcon.class, mark, "checkmark is a fixed-size icon");
+            // Clamped to pref so the StackPane cannot stretch the shape into a blob.
+            assertEquals(Region.USE_PREF_SIZE, mark.getMaxWidth(), "checkmark is size-clamped");
+            assertEquals(Region.USE_PREF_SIZE, mark.getMaxHeight());
             assertNull(cells.get(1).lookup(".leading"), "plain item has no leading slot");
         });
     }

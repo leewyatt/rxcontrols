@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.CascaderText;
 import io.github.leewyatt.rxcontrols.skins.RXCascaderCellSkin;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
@@ -34,6 +35,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Paint;
 import javafx.util.Duration;
@@ -145,11 +147,11 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
     private final RXCascaderView<T> view;
     private final HBox container = new HBox();
     private final CheckBox checkBox = new CheckBox();
-    private final RXIcon selectedCheck = new RXIcon();
+    private final Region selectedCheck = new Region();
     private final StackPane content = new StackPane();
     private final Label textLabel = new Label();
-    private final RXIcon arrow = new RXIcon();
-    private final RXIcon loadingGlyph = new RXIcon();
+    private final Region arrow = new Region();
+    private final Region loadingGlyph = new Region();
 
     /** True only when this cell is in a visible chain on a showing window. */
     private final ReadOnlyBooleanProperty treeShowing = RXTreeShowingProperty.of(this);
@@ -203,11 +205,14 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         // align, shown only on the selected leaf. Mutually exclusive with the
         // multiple-mode check box on the same side.
         selectedCheck.getStyleClass().add("selected-check");
+        RXSizing.lockToPrefSize(selectedCheck);
         selectedCheck.setMouseTransparent(true);
         content.getStyleClass().add("content");
         arrow.getStyleClass().add("arrow");
+        RXSizing.lockToPrefSize(arrow);
         arrow.setMouseTransparent(true);
         loadingGlyph.getStyleClass().add("loading");
+        RXSizing.lockToPrefSize(loadingGlyph);
         loadingGlyph.setMouseTransparent(true);
         HBox.setHgrow(content, Priority.ALWAYS);
         content.setMaxWidth(Double.MAX_VALUE);

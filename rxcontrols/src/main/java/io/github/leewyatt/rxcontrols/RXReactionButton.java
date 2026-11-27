@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.animation.burst.BurstAnimation;
 import io.github.leewyatt.rxcontrols.event.RXAnimationEvent;
 import io.github.leewyatt.rxcontrols.internal.KeywordConverter;
 import io.github.leewyatt.rxcontrols.skins.RXReactionButtonSkin;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -110,8 +111,9 @@ public class RXReactionButton extends RXToggleButton {
     }
 
     private static Region createDefaultIcon() {
-        RXIcon icon = new RXIcon();
+        Region icon = new Region();
         icon.getStyleClass().add(ICON_STYLE_CLASS);
+        RXSizing.lockToPrefSize(icon);
         return icon;
     }
 

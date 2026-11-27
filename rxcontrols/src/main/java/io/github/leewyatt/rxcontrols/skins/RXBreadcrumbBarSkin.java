@@ -2,12 +2,12 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXBreadcrumbBar;
 import io.github.leewyatt.rxcontrols.RXBreadcrumbBar.BranchMode;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXPopupMenu;
 import io.github.leewyatt.rxcontrols.event.RXBreadcrumbEvent;
 import io.github.leewyatt.rxcontrols.internal.BreadcrumbFitter;
 import io.github.leewyatt.rxcontrols.internal.FeedbackSignals;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -25,6 +25,7 @@ import javafx.scene.control.Labeled;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
@@ -278,8 +279,9 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         Supplier<Node> factory = getSkinnable().getSeparatorFactory();
         Node content = factory == null ? null : factory.get();
         if (content == null) {
-            RXIcon icon = new RXIcon();
+            Region icon = new Region();
             icon.getStyleClass().add("icon");
+            RXSizing.lockToPrefSize(icon);
             content = icon;
         }
         StackPane separator = new StackPane(content);
@@ -898,8 +900,9 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
     private static final class MenuTrigger extends Button {
 
         private MenuTrigger(String styleClass, String iconStyleClass) {
-            RXIcon icon = new RXIcon();
+            Region icon = new Region();
             icon.getStyleClass().add(iconStyleClass);
+            RXSizing.lockToPrefSize(icon);
             icon.setMouseTransparent(true);
             setGraphic(icon);
             getStyleClass().setAll(styleClass);

@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
+
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -119,7 +120,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
     // Internal trailing container = [userTrailing] [clearButton]; fed to the base
     // as the effective-trailing node so user and built-in affordances coexist.
     private final HBox builtinTrailing = new HBox();
-    private final RXIcon clearGraphic = new RXIcon();
+    private final Region clearGraphic = new Region();
     private final StackPane clearButton = new StackPane(clearGraphic);
     // Reused for the clear-button fade; its duration is set per play (effectiveDuration).
     private final FadeTransition clearFade = new FadeTransition(Duration.ONE, clearButton);
@@ -278,6 +279,7 @@ public class RXMaterialFieldBaseSkin extends RXFieldBaseSkin {
         // container is laid out by the base (via the effectiveTrailing relay), not
         // added to getChildren() here.
         clearGraphic.getStyleClass().add(GRAPHIC_CLASS);
+        RXSizing.lockToPrefSize(clearGraphic);
         clearGraphic.setMouseTransparent(true);
         clearButton.getStyleClass().add(CLEAR_BUTTON_CLASS);
         clearButton.setOpacity(0.0);

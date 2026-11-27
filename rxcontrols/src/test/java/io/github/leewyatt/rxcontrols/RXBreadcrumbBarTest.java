@@ -352,7 +352,7 @@ public class RXBreadcrumbBarTest {
     public void separatorFactorySuppliesOneNodePerSeparator() throws InterruptedException {
         runOnFx(() -> {
             RXBreadcrumbBar<String> bar = show(new RXBreadcrumbBar<>("A", "B", "C"), 800);
-            assertEquals(List.of(RXIcon.class, RXIcon.class), separatorContentTypes(bar));
+            assertEquals(List.of(Region.class, Region.class), separatorContentTypes(bar));
 
             List<Node> made = new ArrayList<>();
             bar.setSeparatorFactory(() -> {
@@ -372,11 +372,11 @@ public class RXBreadcrumbBarTest {
 
             bar.setSeparatorFactory(() -> null);
             layout(bar, 800);
-            assertEquals(List.of(RXIcon.class, RXIcon.class, RXIcon.class), separatorContentTypes(bar));
+            assertEquals(List.of(Region.class, Region.class, Region.class), separatorContentTypes(bar));
 
             bar.setSeparatorFactory(null);
             layout(bar, 800);
-            assertEquals(List.of(RXIcon.class, RXIcon.class, RXIcon.class), separatorContentTypes(bar));
+            assertEquals(List.of(Region.class, Region.class, Region.class), separatorContentTypes(bar));
         });
     }
 

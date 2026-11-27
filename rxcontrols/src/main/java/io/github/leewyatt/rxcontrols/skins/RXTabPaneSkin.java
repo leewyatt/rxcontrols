@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXButton;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXRipplePane;
 import io.github.leewyatt.rxcontrols.RXSmoothScrollOptions;
 import io.github.leewyatt.rxcontrols.RXTab;
@@ -17,6 +16,7 @@ import io.github.leewyatt.rxcontrols.internal.PixelGrid;
 import io.github.leewyatt.rxcontrols.internal.smooth.RXSmoothScrollEngine;
 import io.github.leewyatt.rxcontrols.internal.smooth.RXSmoothScrollable;
 import io.github.leewyatt.rxcontrols.internal.transition.PageTransitionEngine;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -1003,9 +1003,10 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         RXButton button = new RXButton();
         button.getStyleClass().add("scroll-button");
         button.pseudoClassStateChanged(leftSide ? LEFT_PSEUDO : RIGHT_PSEUDO, true);
-        RXIcon arrow = new RXIcon();
+        Region arrow = new Region();
         arrow.getStyleClass().add("arrow");
         arrow.setMouseTransparent(true);
+        RXSizing.lockToPrefSize(arrow);
         button.setGraphic(arrow);
         button.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
         // Not a focus stop (the tablist keeps a single focus site); positioned manually.
@@ -1539,7 +1540,7 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
         private final Label label = new Label();
         private final HBox cellBox = new HBox();
         private final RXButton closeButton = new RXButton();
-        private final RXIcon closeGraphic = new RXIcon();
+        private final Region closeGraphic = new Region();
         private final SkinDisposer cellDisposer = new SkinDisposer();
         private final EventHandler<MouseEvent> pressHandler;
 
@@ -1567,6 +1568,7 @@ public class RXTabPaneSkin extends RXSkinBase<RXTabPane> {
             label.setWrapText(true);
             closeGraphic.getStyleClass().add("graphic");
             closeGraphic.setMouseTransparent(true);
+            RXSizing.lockToPrefSize(closeGraphic);
             closeButton.getStyleClass().add("close-button");
             closeButton.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
             closeButton.setGraphic(closeGraphic);

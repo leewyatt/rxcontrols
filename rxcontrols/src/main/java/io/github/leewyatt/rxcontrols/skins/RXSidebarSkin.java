@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXPlacement;
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebar.FlyoutTrigger;
@@ -13,6 +12,7 @@ import io.github.leewyatt.rxcontrols.internal.SidebarVisibility;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
@@ -1690,8 +1690,9 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             label.setMinWidth(0.0);
             trailingSlot.getStyleClass().add("trailing");
             disclosure.getStyleClass().add("disclosure");
-            RXIcon arrow = new RXIcon();
+            Region arrow = new Region();
             arrow.getStyleClass().add("arrow");
+            RXSizing.lockToPrefSize(arrow);
             disclosure.getChildren().add(arrow);
             disclosure.setMouseTransparent(true);
             setShown(trailingSlot, false);

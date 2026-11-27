@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols.internal.feedback;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import javafx.application.Platform;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Pos;
@@ -20,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -62,8 +60,10 @@ public class IndicatorFaceTest {
         assertEquals(List.of("caption"), face.getCaption().getStyleClass());
         assertFalse(face.getCaption().isMnemonicParsing());
 
-        RXIcon indicator = assertInstanceOf(RXIcon.class, face.getIndicator());
-        assertEquals(List.of("rx-icon", "indicator"), indicator.getStyleClass());
+        Region indicator = (Region) face.getIndicator();
+        assertEquals(List.of("indicator"), indicator.getStyleClass());
+        assertEquals(Region.USE_PREF_SIZE, indicator.getMaxWidth());
+        assertEquals(Region.USE_PREF_SIZE, indicator.getMaxHeight());
         assertTrue(indicator.isMouseTransparent());
         assertEquals(NodeOrientation.LEFT_TO_RIGHT, indicator.getNodeOrientation());
     }

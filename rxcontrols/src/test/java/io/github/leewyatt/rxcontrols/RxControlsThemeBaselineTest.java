@@ -71,14 +71,6 @@ public class RxControlsThemeBaselineTest {
      */
     private static final Set<String> NON_CONTROL_ROOTS = Set.of("rx-popup");
 
-    /**
-     * Style classes of public leaf nodes that are not token roots. An icon sits
-     * inside controls; declaring the tokens on it would make its own UA
-     * declarations win over an author override on the enclosing control, so it
-     * takes its colors from the control around it and from Modena.
-     */
-    private static final Set<String> LEAF_NODES = Set.of("rx-icon");
-
     /** Matches a class selector {@code .rx-...} in the baseline selector list. */
     private static final Pattern ROOT_SELECTOR_PATTERN =
             Pattern.compile("\\.(rx-[a-z0-9-]+)");
@@ -289,9 +281,6 @@ public class RxControlsThemeBaselineTest {
                 // Cell — that always co-occurs with a concrete subclass root already
                 // in the baseline. They cannot be instantiated alone and are never
                 // the sole token receiver, so they are not independent control roots.
-                continue;
-            }
-            if (LEAF_NODES.contains(matcher.group(1))) {
                 continue;
             }
             roots.put(matcher.group(1), className);

@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXButton;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXListCell;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXSelectionBox;
@@ -10,6 +9,7 @@ import io.github.leewyatt.rxcontrols.RXListSelectionVisualMode;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
@@ -86,7 +86,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
     private final StackPane graphicHolder = new StackPane();
     private final Label summaryLabel = new Label();
     private final StackPane arrowButton = new StackPane();
-    private final RXIcon arrow = new RXIcon();
+    private final Region arrow = new Region();
     private final RippleDecoration ripple;
 
     // ==================== Popup nodes ====================
@@ -184,6 +184,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         HBox.setHgrow(summaryLabel, Priority.ALWAYS);
 
         arrow.getStyleClass().add("arrow");
+        RXSizing.lockToPrefSize(arrow);
         arrow.setMouseTransparent(true);
         arrowButton.getStyleClass().add("arrow-button");
         arrowButton.setMouseTransparent(true);
@@ -195,8 +196,9 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
     private void buildPopup(RXSelectionBox<T> control) {
         popupBody.getStyleClass().add("popup-content");
 
-        RXIcon searchIcon = new RXIcon();
+        Region searchIcon = new Region();
         searchIcon.getStyleClass().add("search-icon");
+        RXSizing.lockToPrefSize(searchIcon);
         searchIcon.setMouseTransparent(true);
         searchField.getStyleClass().add("search-field");
         searchField.setLeading(searchIcon);
@@ -925,7 +927,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         private final RXSelectionBox<T> box;
         private final FilteredList<T> filtered;
         private final StackPane indicator = new StackPane();
-        private final RXIcon check = new RXIcon();
+        private final Region check = new Region();
         private final InvalidationListener refresher = obs -> refreshIndicator();
 
         SelectionCell(RXSelectionBox<T> box, FilteredList<T> filtered) {
@@ -933,6 +935,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
             this.filtered = filtered;
 
             check.getStyleClass().add("check");
+            RXSizing.lockToPrefSize(check);
             check.setMouseTransparent(true);
             indicator.getStyleClass().add("select-box");
             indicator.setMouseTransparent(true);

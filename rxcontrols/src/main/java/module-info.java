@@ -1,7 +1,6 @@
 module rxcontrols {
     requires javafx.controls;
     requires java.logging;
-    requires java.xml;
 
     exports io.github.leewyatt.rxcontrols;
     exports io.github.leewyatt.rxcontrols.animation.burst;
@@ -16,6 +15,4 @@ module rxcontrols {
     exports io.github.leewyatt.rxcontrols.spectrum;
     exports io.github.leewyatt.rxcontrols.theme;
     exports io.github.leewyatt.rxcontrols.utils;
-
-    uses io.github.leewyatt.rxcontrols.RXIconPack;
 }

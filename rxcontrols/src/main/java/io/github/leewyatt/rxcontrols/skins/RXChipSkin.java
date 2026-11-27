@@ -1,14 +1,15 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXChip;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import io.github.leewyatt.rxcontrols.utils.RXMouse;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.scene.control.skin.LabeledSkinBase;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 
 /**
@@ -45,8 +46,8 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
     private final SkinDisposer disposer = new SkinDisposer();
 
     private final StackPane closeButton = new StackPane();
-    private final RXIcon closeIcon = new RXIcon();
-    private final RXIcon check = new RXIcon();
+    private final Region closeIcon = new Region();
+    private final Region check = new Region();
     private final RippleDecoration ripple;
 
     /** True while armed via the keyboard; gates the mouse path and arms focus-loss disarm. */
@@ -72,10 +73,12 @@ public class RXChipSkin extends LabeledSkinBase<RXChip> {
         super(control);
 
         closeIcon.getStyleClass().add("close-icon");
+        RXSizing.lockToPrefSize(closeIcon);
         closeIcon.setMouseTransparent(true);
         closeButton.getStyleClass().add("close-button");
         closeButton.getChildren().setAll(closeIcon);
         check.getStyleClass().add("check");
+        RXSizing.lockToPrefSize(check);
         check.setMouseTransparent(true);
         updateCheckVisibility();
 

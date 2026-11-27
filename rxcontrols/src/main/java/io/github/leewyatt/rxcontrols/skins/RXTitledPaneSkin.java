@@ -1,10 +1,10 @@
 package io.github.leewyatt.rxcontrols.skins;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXRipplePane;
 import io.github.leewyatt.rxcontrols.RXTitledPane;
 import io.github.leewyatt.rxcontrols.RXTitledPane.IndicatorPosition;
 import io.github.leewyatt.rxcontrols.RXTitledPane.ToggleTrigger;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -101,7 +101,7 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
     private final StackPane titleSlot = new StackPane();
     private final StackPane trailingSlot = new StackPane();
     private final StackPane indicatorButton = new StackPane();
-    private final RXIcon indicator = new RXIcon();
+    private final Region indicator = new Region();
     private final Label label = new Label();
     private final BodyRegion body = new BodyRegion();
     private final Rectangle bodyClip = new Rectangle();
@@ -136,6 +136,7 @@ public class RXTitledPaneSkin extends RXSkinBase<RXTitledPane> {
         super(control);
 
         indicator.getStyleClass().add("indicator");
+        RXSizing.lockToPrefSize(indicator);
         indicator.setMouseTransparent(true);
         indicatorButton.getStyleClass().add("indicator-button");
         indicatorButton.getChildren().add(indicator);

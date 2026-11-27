@@ -4,10 +4,10 @@ import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.internal.CascaderText;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
@@ -21,6 +21,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import java.util.function.Function;
 
@@ -55,9 +56,9 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
     private final HBox display = new HBox();
     private final Label textLabel = new Label();
     private final StackPane clearButton = new StackPane();
-    private final RXIcon clearGraphic = new RXIcon();
+    private final Region clearGraphic = new Region();
     private final StackPane arrowButton = new StackPane();
-    private final RXIcon arrow = new RXIcon();
+    private final Region arrow = new Region();
 
     // ==================== State ====================
 
@@ -109,11 +110,13 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         textLabel.setMaxWidth(Double.MAX_VALUE);
 
         clearGraphic.getStyleClass().add("graphic");
+        RXSizing.lockToPrefSize(clearGraphic);
         clearGraphic.setMouseTransparent(true);
         clearButton.getStyleClass().add("clear-button");
         clearButton.getChildren().add(clearGraphic);
 
         arrow.getStyleClass().add("arrow");
+        RXSizing.lockToPrefSize(arrow);
         arrow.setMouseTransparent(true);
         arrowButton.getStyleClass().add("arrow-button");
         arrowButton.getChildren().add(arrow);
