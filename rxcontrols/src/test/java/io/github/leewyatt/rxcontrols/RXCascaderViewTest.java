@@ -938,11 +938,15 @@ public class RXCascaderViewTest {
     public void loadStateTransitions() throws InterruptedException {
         RXCascaderView<String> panel = new RXCascaderView<>();
         RXCascaderItem<String> branch = item("branch");
+        // Both attempts are held open: this test runs off the FX thread, so a retry
+        // that completed at once would reach LOADED through Platform.runLater at a
+        // moment the test does not control, racing the LOADING check below.
         CompletableFuture<List<RXCascaderItem<String>>> first = new CompletableFuture<>();
+        CompletableFuture<List<RXCascaderItem<String>>> retry = new CompletableFuture<>();
         int[] calls = {0};
         panel.setChildrenLoader(it -> {
             calls[0]++;
-            return calls[0] == 1 ? first : CompletableFuture.completedFuture(List.of(leaf("c1")));
+            return calls[0] == 1 ? first : retry;
         });
         panel.getRootItems().add(branch);
 
@@ -957,6 +961,7 @@ public class RXCascaderViewTest {
 
         panel.expand(branch);
         assertEquals(LoadState.LOADING, branch.getLoadState(), "retry re-enters LOADING from FAILED");
+        retry.complete(List.of(leaf("c1")));
         waitForFxCondition(() -> branch.getLoadState() == LoadState.LOADED);
         assertEquals(LoadState.LOADED, branch.getLoadState(), "a successful load is LOADED");
         assertEquals(1, branch.getChildren().size());
