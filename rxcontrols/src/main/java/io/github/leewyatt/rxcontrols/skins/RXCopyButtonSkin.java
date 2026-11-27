@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXCopyButton;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionDirection;
 import io.github.leewyatt.rxcontrols.internal.FeedbackSignals;
@@ -531,7 +532,7 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
     private static final class Face extends Region {
 
         private final RXCopyButton button;
-        private final Region indicator = new Region();
+        private final RXIcon indicator = new RXIcon();
         private final Label caption = new Label();
 
         Face(RXCopyButton button, String styleClass) {
@@ -539,7 +540,6 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
             getStyleClass().add(styleClass);
 
             indicator.getStyleClass().add("indicator");
-            indicator.setMaxSize(USE_PREF_SIZE, USE_PREF_SIZE);
             indicator.setMouseTransparent(true);
             // Neither shape has a direction: in a right-to-left button the
             // indicator moves to the other side but is not drawn mirrored.

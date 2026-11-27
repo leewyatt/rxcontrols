@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.DisplayMode;
 import io.github.leewyatt.rxcontrols.RXCarousel;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.animation.page.AnimNone;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.TransitionContext;
@@ -184,12 +185,12 @@ public class RXCarouselSkin extends RXSkinBase<RXCarousel> {
         contentPane.setClip(contentClip);
 
         // Navigation arrows
-        prevArrow = new Region();
+        prevArrow = new RXIcon();
         prevArrow.getStyleClass().add("arrow");
         prevButton = new StackPane(prevArrow);
         prevButton.getStyleClass().add("prev-button");
 
-        nextArrow = new Region();
+        nextArrow = new RXIcon();
         nextArrow.getStyleClass().add("arrow");
         nextButton = new StackPane(nextArrow);
         nextButton.getStyleClass().add("next-button");

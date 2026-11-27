@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXColorFormat;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXPopupMenu;
 import io.github.leewyatt.rxcontrols.RXTextField;
@@ -18,7 +19,6 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 
@@ -126,9 +126,8 @@ final class ColorInputRow extends HBox {
 
         formatText.getStyleClass().add("text");
         formatText.setMouseTransparent(true);
-        Region arrow = new Region();
+        RXIcon arrow = new RXIcon();
         arrow.getStyleClass().add("arrow");
-        arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         arrow.setMouseTransparent(true);
         HBox formatContent = new HBox(formatText, arrow);
         formatContent.getStyleClass().add("content");

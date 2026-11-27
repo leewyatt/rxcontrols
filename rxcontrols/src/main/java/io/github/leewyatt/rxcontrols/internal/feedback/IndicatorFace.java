@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal.feedback;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import javafx.geometry.HPos;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
@@ -55,9 +56,8 @@ public final class IndicatorFace extends Region {
      * @return a new shape indicator
      */
     public static Region createShapeIndicator() {
-        Region shape = new Region();
+        RXIcon shape = new RXIcon();
         shape.getStyleClass().add(INDICATOR_STYLE_CLASS);
-        shape.setMaxSize(USE_PREF_SIZE, USE_PREF_SIZE);
         shape.setMouseTransparent(true);
         // The built-in shapes have no direction: in a right-to-left button
         // the indicator moves to the other side but is not drawn mirrored.

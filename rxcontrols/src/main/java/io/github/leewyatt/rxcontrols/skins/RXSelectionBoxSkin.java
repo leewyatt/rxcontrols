@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXButton;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXListCell;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXSelectionBox;
@@ -85,7 +86,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
     private final StackPane graphicHolder = new StackPane();
     private final Label summaryLabel = new Label();
     private final StackPane arrowButton = new StackPane();
-    private final Region arrow = new Region();
+    private final RXIcon arrow = new RXIcon();
     private final RippleDecoration ripple;
 
     // ==================== Popup nodes ====================
@@ -183,9 +184,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         HBox.setHgrow(summaryLabel, Priority.ALWAYS);
 
         arrow.getStyleClass().add("arrow");
-        // Min as well as max: a long summary must shorten the text, not squeeze the arrow.
-        arrow.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         arrow.setMouseTransparent(true);
         arrowButton.getStyleClass().add("arrow-button");
         arrowButton.setMouseTransparent(true);
@@ -197,9 +195,8 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
     private void buildPopup(RXSelectionBox<T> control) {
         popupBody.getStyleClass().add("popup-content");
 
-        Region searchIcon = new Region();
+        RXIcon searchIcon = new RXIcon();
         searchIcon.getStyleClass().add("search-icon");
-        searchIcon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         searchIcon.setMouseTransparent(true);
         searchField.getStyleClass().add("search-field");
         searchField.setLeading(searchIcon);
@@ -928,7 +925,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         private final RXSelectionBox<T> box;
         private final FilteredList<T> filtered;
         private final StackPane indicator = new StackPane();
-        private final Region check = new Region();
+        private final RXIcon check = new RXIcon();
         private final InvalidationListener refresher = obs -> refreshIndicator();
 
         SelectionCell(RXSelectionBox<T> box, FilteredList<T> filtered) {

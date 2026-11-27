@@ -34,7 +34,6 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Paint;
 import javafx.util.Duration;
@@ -146,11 +145,11 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
     private final RXCascaderView<T> view;
     private final HBox container = new HBox();
     private final CheckBox checkBox = new CheckBox();
-    private final Region selectedCheck = new Region();
+    private final RXIcon selectedCheck = new RXIcon();
     private final StackPane content = new StackPane();
     private final Label textLabel = new Label();
-    private final Region arrow = new Region();
-    private final Region loadingGlyph = new Region();
+    private final RXIcon arrow = new RXIcon();
+    private final RXIcon loadingGlyph = new RXIcon();
 
     /** True only when this cell is in a visible chain on a showing window. */
     private final ReadOnlyBooleanProperty treeShowing = RXTreeShowingProperty.of(this);
@@ -204,14 +203,11 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         // align, shown only on the selected leaf. Mutually exclusive with the
         // multiple-mode check box on the same side.
         selectedCheck.getStyleClass().add("selected-check");
-        selectedCheck.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         selectedCheck.setMouseTransparent(true);
         content.getStyleClass().add("content");
         arrow.getStyleClass().add("arrow");
-        arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         arrow.setMouseTransparent(true);
         loadingGlyph.getStyleClass().add("loading");
-        loadingGlyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         loadingGlyph.setMouseTransparent(true);
         HBox.setHgrow(content, Priority.ALWAYS);
         content.setMaxWidth(Double.MAX_VALUE);

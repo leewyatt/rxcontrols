@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXListCell;
 import io.github.leewyatt.rxcontrols.RXListSelectionVisualMode;
 import io.github.leewyatt.rxcontrols.RXListView;
@@ -13,7 +14,6 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.skin.CellSkinBase;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 
 /**
@@ -43,7 +43,7 @@ public class RXListCellSkin<T> extends RippleCellSkinBase<RXListCell<T>> {
 
     private final StackPane selectionSlot = new StackPane();
     private final CheckBox checkBox = new CheckBox();
-    private final Region checkmark = new Region();
+    private final RXIcon checkmark = new RXIcon();
 
     // The effective visual mode depends on view.selectionVisualMode and the selection
     // model's selectionMode (AUTO resolution); both owners outlive this cell (the
@@ -80,7 +80,6 @@ public class RXListCellSkin<T> extends RippleCellSkinBase<RXListCell<T>> {
         checkBox.setMouseTransparent(true);
         checkBox.setAllowIndeterminate(false);
         checkmark.getStyleClass().add("checkmark");
-        checkmark.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         checkmark.setMouseTransparent(true);
         disposer.registerBinding(checkBox.selectedProperty(), cell.selectedProperty());
 

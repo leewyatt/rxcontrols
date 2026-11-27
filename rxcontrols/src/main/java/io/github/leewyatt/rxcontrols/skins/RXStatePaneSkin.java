@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXBackdrop;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXPlaceholder;
 import io.github.leewyatt.rxcontrols.RXStatePane;
 import io.github.leewyatt.rxcontrols.RXStatePane.State;
@@ -245,9 +246,8 @@ public class RXStatePaneSkin extends RXSkinBase<RXStatePane> {
 
     // Shape, color and size come from CSS under the pane's base layer.
     private static Region defaultIcon(String styleClass) {
-        Region icon = new Region();
+        RXIcon icon = new RXIcon();
         icon.getStyleClass().add(styleClass);
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return icon;
     }
 

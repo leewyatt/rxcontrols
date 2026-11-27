@@ -110,9 +110,8 @@ public class RXReactionButton extends RXToggleButton {
     }
 
     private static Region createDefaultIcon() {
-        Region icon = new Region();
+        RXIcon icon = new RXIcon();
         icon.getStyleClass().add(ICON_STYLE_CLASS);
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return icon;
     }
 

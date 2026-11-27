@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXDateRange;
 import io.github.leewyatt.rxcontrols.RXDateRangePicker;
 import io.github.leewyatt.rxcontrols.RXDateRangeView;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeTexts;
 import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeTexts.ParseResult;
 import io.github.leewyatt.rxcontrols.internal.datetime.RangeAnchorSource;
@@ -13,7 +14,6 @@ import javafx.scene.control.Skin;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.Region;
 import javafx.util.StringConverter;
 
 import java.time.LocalDate;
@@ -29,7 +29,7 @@ public class RXDateRangePickerSkin extends RXPickerSkinBase<RXDateRange, RXDateR
 
     private final TextField startEditor = new TextField();
     private final TextField endEditor = new TextField();
-    private final Region separator = new Region();
+    private final RXIcon separator = new RXIcon();
     private final RXDateRangeView rangeView = new RXDateRangeView();
     private final InvalidationListener anchorListener = observable -> onAnchorChanged();
     private ReadOnlyObjectProperty<LocalDate> observedAnchor;
@@ -44,7 +44,6 @@ public class RXDateRangePickerSkin extends RXPickerSkinBase<RXDateRange, RXDateR
         startEditor.setPrefColumnCount(FIELD_COLUMNS);
         endEditor.setPrefColumnCount(FIELD_COLUMNS);
         separator.getStyleClass().add("separator");
-        separator.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         separator.setMouseTransparent(true);
         disposer.registerBinding(rangeView.monthCountProperty(), control.monthCountProperty());
         disposer.registerBinding(startEditor.promptTextProperty(), control.startPromptTextProperty());

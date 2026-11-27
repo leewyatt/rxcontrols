@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.DialogTransition;
 import io.github.leewyatt.rxcontrols.RXBackdrop;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXDialog;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
@@ -286,9 +287,8 @@ public class RXDialogSkin extends RXSkinBase<RXDialog<?>> {
     // dialog through the vetoable gate (reason CLOSE_BUTTON); it is excluded from the drag band
     // (isInteractiveTarget) so a press on it never starts a move.
     private StackPane createCloseButton() {
-        Region icon = new Region();
+        RXIcon icon = new RXIcon();
         icon.getStyleClass().add("icon");
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         icon.setMouseTransparent(true);
         StackPane button = new StackPane(icon);
         button.getStyleClass().add("close-button");

@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXSnackbarHost.DismissReason;
 import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXSnackbarHost;
@@ -239,9 +240,8 @@ public class RXSnackbarHostSkin extends RXSkinBase<RXSnackbarHost> {
     // focusable, button-like node — for a persistent bar with no action it is the
     // keyboard user's only way out.
     private StackPane createCloseButton() {
-        Region icon = new Region();
+        RXIcon icon = new RXIcon();
         icon.getStyleClass().add("icon");
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         icon.setMouseTransparent(true);
         StackPane button = new StackPane(icon);
         button.getStyleClass().add("close-button");

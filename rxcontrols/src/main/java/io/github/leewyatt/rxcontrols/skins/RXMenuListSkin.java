@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXMenuHeader;
 import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXMenuList;
@@ -485,7 +486,7 @@ public class RXMenuListSkin extends RXSkinBase<RXMenuList> {
         private final SkinDisposer itemDisposer = new SkinDisposer();
         private Node graphicNode;
         private Region leading;
-        private Region indicatorMark;
+        private RXIcon indicatorMark;
         private double laidOutSelectionColumn = -1;
         private double laidOutGraphicColumn = -1;
 
@@ -743,12 +744,9 @@ public class RXMenuListSkin extends RXSkinBase<RXMenuList> {
             leading.getStyleClass().add("leading");
             leading.setMouseTransparent(true);
             leading.setFocusTraversable(false);
-            indicatorMark = new Region();
+            indicatorMark = new RXIcon();
             indicatorMark.getStyleClass().add(indicatorStyleClass(item));
             indicatorMark.setMouseTransparent(true);
-            // Clamp to the CSS pref size so the StackPane cannot stretch the shape
-            // into an oversized blob (the icon anti-stretch convention).
-            indicatorMark.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
             leading.getChildren().add(indicatorMark);
             return leading;
         }

@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.skins;
 import io.github.leewyatt.rxcontrols.RXAvatar;
 import io.github.leewyatt.rxcontrols.RXAvatar.DisplayState;
 import io.github.leewyatt.rxcontrols.RXAvatar.ShapeType;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Group;
@@ -10,7 +11,6 @@ import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
@@ -36,7 +36,7 @@ public class RXAvatarSkin extends RXSkinBase<RXAvatar> {
     private final StackPane textWrapper;
     private final Label textLabel;
     private final StackPane defaultIconWrapper;
-    private final Region defaultIcon;
+    private final RXIcon defaultIcon;
     private final Rectangle ring;
 
     // Only one node is visible at a time, so a single pair of clip shapes suffices.
@@ -70,10 +70,8 @@ public class RXAvatarSkin extends RXSkinBase<RXAvatar> {
         textWrapper = new StackPane(textLabel);
         textWrapper.getStyleClass().add("text-wrapper");
 
-        defaultIcon = new Region();
+        defaultIcon = new RXIcon();
         defaultIcon.getStyleClass().add("default-icon");
-        defaultIcon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        defaultIcon.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         defaultIconWrapper = new StackPane(defaultIcon);
         defaultIconWrapper.getStyleClass().add("default-icon-wrapper");
 

@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXPickerBase;
 import io.github.leewyatt.rxcontrols.RXTemporalViewBase;
 import io.github.leewyatt.rxcontrols.internal.datetime.DateTimeTexts.ParseResult;
@@ -59,7 +60,7 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
 
     private final StackPane leadingWrapper = new StackPane();
     private final StackPane suffix = new StackPane();
-    private final Region icon = new Region();
+    private final RXIcon icon = new RXIcon();
     private final StackPane clearButton = new StackPane();
     private final VBox popupContent = new VBox();
     private final HBox footer = new HBox();
@@ -113,11 +114,9 @@ abstract class RXPickerSkinBase<T, C extends RXPickerBase<T>> extends RXSkinBase
 
         leadingWrapper.getStyleClass().add("leading-wrapper");
         icon.getStyleClass().add("icon");
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         icon.setMouseTransparent(true);
-        Region clearGraphic = new Region();
+        RXIcon clearGraphic = new RXIcon();
         clearGraphic.getStyleClass().add("graphic");
-        clearGraphic.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         clearGraphic.setMouseTransparent(true);
         clearButton.getStyleClass().add("clear-button");
         clearButton.getChildren().add(clearGraphic);

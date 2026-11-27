@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXColorPresetGroup;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXTitledPane;
 import io.github.leewyatt.rxcontrols.internal.color.ColorMath;
 import io.github.leewyatt.rxcontrols.internal.color.ColorSwatch;
@@ -258,7 +259,7 @@ final class ColorPresetSection extends ScrollPane {
                 swatch.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
                 swatch.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
                 swatch.setAccessibleRole(AccessibleRole.TOGGLE_BUTTON);
-                Region check = new Region();
+                RXIcon check = new RXIcon();
                 check.getStyleClass().add("check");
                 swatch.addDecoration(check);
                 swatch.showColor(color);

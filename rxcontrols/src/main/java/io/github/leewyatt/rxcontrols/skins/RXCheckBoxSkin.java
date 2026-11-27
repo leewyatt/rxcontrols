@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXCheckBox;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXRipplePane;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleBehavior;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
@@ -22,7 +23,6 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
@@ -76,7 +76,7 @@ public class RXCheckBoxSkin extends LabeledSkinBase<RXCheckBox> {
     private final StateLayer stateLayer = new StateLayer();
     private final RippleLayer rippleLayer = new RippleLayer();
     private final StackPane box = new StackPane();
-    private final Region mark = new Region();
+    private final RXIcon mark = new RXIcon();
 
     /** Ripple ink colour; follows the halo's CSS-resolved {@code -rx-state-overlay-color}. */
     private final ObjectProperty<Paint> rippleFill = new SimpleObjectProperty<>(this, "rippleFill", null);
@@ -110,7 +110,6 @@ public class RXCheckBoxSkin extends LabeledSkinBase<RXCheckBox> {
 
         box.getStyleClass().add("box");
         mark.getStyleClass().add("mark");
-        mark.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         mark.setMouseTransparent(true);
         // Opt the check / dash mark out of the RTL auto-mirror (as CheckBoxSkin does
         // for its mark) so it stays upright in right-to-left layouts.

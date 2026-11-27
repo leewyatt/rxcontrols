@@ -2511,10 +2511,8 @@
 
 .rx-carousel > .prev-button > .arrow,
 .rx-carousel > .next-button > .arrow {
-    -fx-min-width: 10;
-    -fx-min-height: 10;
-    -fx-max-width: 10;
-    -fx-max-height: 10;
+    -fx-pref-width: 10;
+    -fx-pref-height: 10;
     -fx-background-color: white;
 }
 
@@ -2611,10 +2609,8 @@
 .carousel-navigator > .compact-navigator > .prev-button > .arrow,
 .carousel-navigator > .compact-navigator > .next-button > .arrow {
     -fx-background-color: white;
-    -fx-min-width: 6;
-    -fx-min-height: 6;
-    -fx-max-width: 6;
-    -fx-max-height: 6;
+    -fx-pref-width: 6;
+    -fx-pref-height: 6;
 }
 
 .carousel-navigator > .compact-navigator > .prev-button > .arrow {
@@ -3924,8 +3920,6 @@
     -fx-alignment: CENTER;
 }
 .rx-menu-item > .leading > .checkmark {
-    -fx-min-width: 14;
-    -fx-min-height: 14;
     -fx-pref-width: 14;
     -fx-pref-height: 14;
     -fx-background-color: -rx-on-surface;
@@ -3933,8 +3927,6 @@
     -fx-opacity: 0;
 }
 .rx-menu-item > .leading > .radiomark {
-    -fx-min-width: 8;
-    -fx-min-height: 8;
     -fx-pref-width: 8;
     -fx-pref-height: 8;
     -fx-background-color: -rx-primary;
@@ -4003,8 +3995,6 @@
 
 .rx-menu-popup .rx-menu-item > .leading > .checkmark,
 .rx-menu-popup .rx-menu-item > .leading > .radiomark {
-    -fx-min-width: 10;
-    -fx-min-height: 10;
     -fx-pref-width: 10;
     -fx-pref-height: 10;
     -fx-background-color: -fx-mark-color;
@@ -4068,8 +4058,6 @@
 
 .rx-theme-atlantafx .rx-menu-popup .rx-menu-item > .leading > .checkmark,
 .rx-theme-atlantafx .rx-menu-popup .rx-menu-item > .leading > .radiomark {
-    -fx-min-width: 0.75em;
-    -fx-min-height: 0.75em;
     -fx-pref-width: 0.75em;
     -fx-pref-height: 0.75em;
     -fx-background-color: -rx-on-surface-secondary;

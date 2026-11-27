@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.skins;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXPlacement;
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebar.FlyoutTrigger;
@@ -1689,9 +1690,8 @@ public class RXSidebarSkin extends RXSkinBase<RXSidebar> {
             label.setMinWidth(0.0);
             trailingSlot.getStyleClass().add("trailing");
             disclosure.getStyleClass().add("disclosure");
-            Region arrow = new Region();
+            RXIcon arrow = new RXIcon();
             arrow.getStyleClass().add("arrow");
-            arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
             disclosure.getChildren().add(arrow);
             disclosure.setMouseTransparent(true);
             setShown(trailingSlot, false);

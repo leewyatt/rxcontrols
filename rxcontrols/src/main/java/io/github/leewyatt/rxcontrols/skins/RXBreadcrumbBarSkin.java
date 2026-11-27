@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXBreadcrumbBar;
 import io.github.leewyatt.rxcontrols.RXBreadcrumbBar.BranchMode;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXPopupMenu;
 import io.github.leewyatt.rxcontrols.event.RXBreadcrumbEvent;
@@ -24,7 +25,6 @@ import javafx.scene.control.Labeled;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
@@ -278,9 +278,8 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
         Supplier<Node> factory = getSkinnable().getSeparatorFactory();
         Node content = factory == null ? null : factory.get();
         if (content == null) {
-            Region icon = new Region();
+            RXIcon icon = new RXIcon();
             icon.getStyleClass().add("icon");
-            icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
             content = icon;
         }
         StackPane separator = new StackPane(content);
@@ -899,9 +898,8 @@ public class RXBreadcrumbBarSkin<T> extends RXSkinBase<RXBreadcrumbBar<T>> {
     private static final class MenuTrigger extends Button {
 
         private MenuTrigger(String styleClass, String iconStyleClass) {
-            Region icon = new Region();
+            RXIcon icon = new RXIcon();
             icon.getStyleClass().add(iconStyleClass);
-            icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
             icon.setMouseTransparent(true);
             setGraphic(icon);
             getStyleClass().setAll(styleClass);
