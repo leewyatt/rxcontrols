@@ -56,6 +56,9 @@ import java.util.function.Predicate;
  * the suggestion popup. This control owns the model and the commit decision, so
  * {@link #commitInput()} and the {@code :error} state work without a skin attached.</p>
  *
+ * <p>The default skin sets the {@code :focus-within} pseudo-class while the editor or
+ * one of the chips holds the focus, so the field can show focus like a text field.</p>
+ *
  * @param <T> the chip item type
  */
 public class RXChipInput<T> extends Control {

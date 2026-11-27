@@ -586,8 +586,10 @@ public class RXCascaderViewSkinTest {
             inPopup.showFocus();
             relayout(scene);
 
-            assertFalse(inline.getBorder().getStrokes().isEmpty(), "the inline view shows its focus ring");
-            assertTrue(inPopup.getBorder() == null || inPopup.getBorder().getStrokes().isEmpty(),
+            assertEquals(-1.4, inline.getBackground().getFills().get(0).getInsets().getTop(), 1e-9,
+                    "the inline view shows the container focus ring");
+            assertTrue(inPopup.getBackground() == null && (inPopup.getBorder() == null
+                            || inPopup.getBorder().getStrokes().isEmpty()),
                     "the popup view holds the popup scene's focus, but the field already shows it");
         });
     }

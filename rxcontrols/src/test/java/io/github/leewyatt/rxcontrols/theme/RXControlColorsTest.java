@@ -9,17 +9,26 @@ import atlantafx.base.theme.PrimerDark;
 import atlantafx.base.theme.PrimerLight;
 import atlantafx.base.theme.Theme;
 import io.github.leewyatt.rxcontrols.RXAvatar;
+import io.github.leewyatt.rxcontrols.RXCalendarView;
 import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
+import io.github.leewyatt.rxcontrols.RXChip;
+import io.github.leewyatt.rxcontrols.RXChipInput;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
+import io.github.leewyatt.rxcontrols.RXColorPicker;
 import io.github.leewyatt.rxcontrols.RXColorView;
+import io.github.leewyatt.rxcontrols.RXDatePicker;
 import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
+import io.github.leewyatt.rxcontrols.RXFillButton;
+import io.github.leewyatt.rxcontrols.RXHoldButton;
 import io.github.leewyatt.rxcontrols.RXKanbanColumn;
 import io.github.leewyatt.rxcontrols.RXKanbanView;
+import io.github.leewyatt.rxcontrols.RXLineButton;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
+import io.github.leewyatt.rxcontrols.RXMenuButton;
 import io.github.leewyatt.rxcontrols.RXMenuList;
 import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.RXRangeSlider;
@@ -27,11 +36,15 @@ import io.github.leewyatt.rxcontrols.RXRating;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
+import io.github.leewyatt.rxcontrols.RXSelectionBox;
 import io.github.leewyatt.rxcontrols.RXSlider;
 import io.github.leewyatt.rxcontrols.RXSpeedDial;
 import io.github.leewyatt.rxcontrols.RXSpeedDialAction;
+import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.RXTileView;
+import io.github.leewyatt.rxcontrols.RXTimeView;
 import io.github.leewyatt.rxcontrols.RXWaveProgressIndicator;
+import io.github.leewyatt.rxcontrols.RXYearRangeView;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import javafx.application.Application;
@@ -977,6 +990,139 @@ public class RXControlColorsTest {
     private static <T extends Region> T styled(T region, String styleClass) {
         region.getStyleClass().add(styleClass);
         return region;
+    }
+
+    // ==================== Focus rings ====================
+
+    /** A focus ring member: how to build it, which node draws the ring, and its recipe. */
+    private record FocusMember(String name, Supplier<Region> control, String part, String recipe) {
+    }
+
+    private static List<FocusMember> focusMembers() {
+        return List.of(
+                new FocusMember("date picker", RXDatePicker::new, null, "field"),
+                new FocusMember("cascader", RXCascader::new, ".display", "field"),
+                new FocusMember("selection box", RXSelectionBox::new, ".display", "field"),
+                new FocusMember("chip input", RXChipInput::new, null, "field"),
+                new FocusMember("menu button", () -> new RXMenuButton("Menu"), null, "button"),
+                new FocusMember("color picker", RXColorPicker::new, null, "button"),
+                new FocusMember("hold button", () -> new RXHoldButton("Hold"), null, "button"),
+                new FocusMember("chip", () -> new RXChip("Chip"), null, "button"),
+                new FocusMember("selected chip", () -> {
+                    RXChip chip = new RXChip("Chip");
+                    chip.setSelectable(true);
+                    chip.setSelected(true);
+                    return chip;
+                }, null, "button"),
+                new FocusMember("fill button", () -> new RXFillButton("Fill"), null, "stroke"),
+                new FocusMember("line button", () -> new RXLineButton("Line"), null, "stroke"),
+                new FocusMember("list view", RXListView::new, null, "container"),
+                new FocusMember("tile view", RXTileView::new, null, "container"),
+                new FocusMember("masonry view", RXMasonryView::new, null, "container"),
+                new FocusMember("cascader view", RXCascaderView::new, null, "container"),
+                new FocusMember("calendar view", RXCalendarView::new, null, "container"),
+                new FocusMember("time view", RXTimeView::new, null, "container"),
+                new FocusMember("year range view", RXYearRangeView::new, null, "container"));
+    }
+
+    @Test
+    public void focusRingsFollowModenasRecipes() throws Exception {
+        assertFocusRecipes("default Modena", scene -> { });
+        assertFocusRecipes("dark palette", RXControlColorsTest::darkPalette);
+    }
+
+    private static void assertFocusRecipes(String host, Consumer<Scene> themer) throws Exception {
+        Map<String, String> expected = resolve(Application.STYLESHEET_MODENA, themer,
+                List.of("-fx-focus-color", "-fx-faint-focus-color"));
+        String focus = expected.get("-fx-focus-color");
+        String faint = expected.get("-fx-faint-focus-color");
+        Map<String, String> field = new LinkedHashMap<>();
+        Map<String, Map<String, String>> rings = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
+            // The reference field: Modena's own text field ring, layer for layer.
+            field.putAll(focusedLayers(new RXTextField(), null, themer));
+            for (FocusMember member : focusMembers()) {
+                rings.put(member.name(), focusedLayers(member.control().get(), member.part(), themer));
+            }
+        });
+        for (FocusMember member : focusMembers()) {
+            Map<String, String> ring = rings.get(member.name());
+            String name = member.name() + " under " + host;
+            switch (member.recipe()) {
+                case "field":
+                    assertEquals(field.get("fills"), ring.get("fills"), name + " draws the text field ring");
+                    break;
+                case "button":
+                    assertEquals(focus + "@-0.2 _ " + faint + "@-1.4 _", ring.get("ring"), name + " draws the button ring");
+                    break;
+                case "stroke":
+                    assertTrue(ring.get("strokes").startsWith(faint + " " + focus), name + " draws the ring as strokes");
+                    break;
+                default:
+                    assertEquals(faint + "@-1.4 " + focus + "@-0.3 _", ring.get("ring"), name + " draws the container ring");
+                    break;
+            }
+        }
+    }
+
+    @Test
+    public void chipInputFocusMatchesTheAtlantaFxTextField() throws Exception {
+        for (Theme theme : List.of(new PrimerLight(), new PrimerDark())) {
+            Map<String, String> field = new LinkedHashMap<>();
+            Map<String, String> chipInput = new LinkedHashMap<>();
+            runOnFx(() -> {
+                Application.setUserAgentStylesheet(theme.getUserAgentStylesheet());
+                Consumer<Scene> bridge = RXAtlantaFXThemeBridge::install;
+                Region textField = new RXTextField();
+                focusedLayers(textField, null, bridge);
+                field.put("edge", ThemeColorSamples.hex(textField.getBackground().getFills().get(0).getFill()));
+                Region input = new RXChipInput<String>();
+                chipInput.putAll(focusedLayers(input, null, bridge));
+                chipInput.put("edge", ThemeColorSamples.hex(input.getBorder().getStrokes().get(0).getTopStroke()));
+            });
+            // An AtlantaFX text field shows focus as an accent outline, with no halo.
+            assertEquals(field.get("edge"), chipInput.get("edge"), "chip input focus outline under " + theme.getName());
+            assertEquals("_", chipInput.get("ring"), "chip input draws no halo under " + theme.getName());
+        }
+    }
+
+    // The focused pseudo-class is set directly: a test window does not get the
+    // system focus, and :focus-within / :focus-shown follow the same state.
+    private static Map<String, String> focusedLayers(Region control, String part, Consumer<Scene> themer) {
+        Scene scene = new Scene(new StackPane(control), 400, 400);
+        themer.accept(scene);
+        // Skins first: a skin sets its own focus state from the real focus when it starts.
+        scene.getRoot().applyCss();
+        for (String pseudoClass : List.of("focused", "focus-within", "focus-shown")) {
+            control.pseudoClassStateChanged(PseudoClass.getPseudoClass(pseudoClass), true);
+        }
+        scene.getRoot().applyCss();
+        Region node = part == null ? control : (Region) control.lookup(part);
+        node.applyCss();
+        Map<String, String> layers = new LinkedHashMap<>();
+        StringBuilder fills = new StringBuilder();
+        StringBuilder ring = new StringBuilder();
+        List<BackgroundFill> backgroundFills = node.getBackground().getFills();
+        for (int i = 0; i < backgroundFills.size(); i++) {
+            BackgroundFill fill = backgroundFills.get(i);
+            String color = fill.getFill() instanceof Color ? ThemeColorSamples.hex(fill.getFill()) : "_";
+            double inset = fill.getInsets().getTop();
+            fills.append(fill.getFill()).append('@').append(inset).append(" r").append(fill.getRadii()
+                    .getTopLeftHorizontalRadius()).append(' ');
+            // The ring layers are the ones outside the body; the rest is the member's own fill.
+            ring.append(inset < 0 ? color + "@" + inset : "_").append(i < backgroundFills.size() - 1 ? " " : "");
+        }
+        layers.put("fills", fills.toString());
+        layers.put("ring", ring.toString().replaceAll("(_ )+_", "_").replaceAll("_ _", "_"));
+        StringBuilder strokes = new StringBuilder();
+        if (node.getBorder() != null) {
+            for (BorderStroke stroke : node.getBorder().getStrokes()) {
+                strokes.append(ThemeColorSamples.hex(stroke.getTopStroke())).append(' ');
+            }
+        }
+        layers.put("strokes", strokes.toString().trim());
+        return layers;
     }
 
     private static void assertDialogCard(String host, String userAgentStylesheet, Consumer<Scene> themer,
