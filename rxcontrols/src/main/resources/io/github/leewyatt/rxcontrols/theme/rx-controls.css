@@ -2179,7 +2179,8 @@
 .rx-cascader-popup .rx-cascader-view,
 .rx-cascader-popup .rx-cascader-view:focused {
     -fx-background-radius: 3;
-    -fx-border-color: -fx-box-border;
+    /* -fx-box-border can be black on a dark host and vanish against the window. */
+    -fx-border-color: ladder(-rx-surface, -rx-outline 45%, -fx-box-border 46%);
     -fx-border-radius: 3;
     -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 8);
 }
@@ -2201,7 +2202,12 @@
  * that content box.                                                           *
  *                                                                             *
  ******************************************************************************/
+/* A shadow barely shows on a dark host, so there the list is a lighter surface inside
+   a full outline, as a dialog card; a light host keeps the list's own frame. The list
+   never takes focus here, so its focused frame does not apply. */
 .rx-suggestion-popup .rx-list-view {
+    -fx-background-color: ladder(-rx-surface, -rx-outline 45%, -fx-box-border 46%),
+        ladder(-rx-surface, -rx-surface-variant 45%, -rx-surface 46%);
     -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 8);
 }
 
@@ -3281,10 +3287,11 @@
     -fx-background-color: -fx-hover-base;
 }
 
-/* The outline layer is what sets the flyout off in a dark theme, where a
-   shadow does not show against the page. */
+/* A shadow does not show against the page in a dark theme, so there the flyout is
+   a lighter surface inside a full outline, as a dialog card. */
 .rx-sidebar-flyout {
-    -fx-background-color: -rx-outline-variant, -rx-surface;
+    -fx-background-color: ladder(-rx-surface, -rx-outline 45%, -rx-outline-variant 46%),
+        ladder(-rx-surface, -rx-surface-variant 45%, -rx-surface 46%);
     -fx-background-insets: 0, 1;
     -fx-background-radius: 8, 7;
     -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 4);
@@ -4001,6 +4008,10 @@
    trailing side. Popup only; an inline .rx-menu-list keeps its content width. */
 .rx-menu-popup .rx-menu-list {
     -fx-min-width: 112;
+    /* A shadow barely shows on a dark host, so there the menu is a lighter surface
+       inside a full outline, as a dialog card; a light host keeps the inline look. */
+    -fx-background-color: ladder(-rx-surface, -rx-outline 45%, -rx-outline-variant 46%),
+        ladder(-rx-surface, -rx-surface-variant 45%, -rx-surface 46%);
 }
 /* The max-height scroll wrapper is transparent so the menu surface shows through;
    no border / inset / padding of its own. */
@@ -4685,10 +4696,13 @@
     -fx-rotate: 180;
 }
 
+/* On a dark host the darkened text-box border barely shows against the window, so
+   the frame takes -rx-outline there. The fill stays: the list viewport and the check
+   boxes are painted with the same inner background. */
 .rx-selection-box-popup .popup-content {
     -fx-background-color: -fx-control-inner-background;
     -fx-background-radius: 3;
-    -fx-border-color: derive(-fx-text-box-border, -18%);
+    -fx-border-color: ladder(-rx-surface, -rx-outline 45%, derive(-fx-text-box-border, -18%) 46%);
     -fx-border-width: 1px;
     -fx-border-radius: 3;
     -fx-padding: 1px;
@@ -5442,8 +5456,11 @@
     -fx-background-color: derive(-fx-text-base-color, 20%);
 }
 
+/* On a dark host -fx-box-border can be black, which vanishes against the window, so
+   the frame takes -rx-outline there. The fill stays: the hosted views mark hover with
+   -rx-surface-variant, which a raised fill would hide. */
 .rx-picker-popup .container {
-    -fx-background-color: -fx-box-border, -fx-control-inner-background;
+    -fx-background-color: ladder(-rx-surface, -rx-outline 45%, -fx-box-border 46%), -fx-control-inner-background;
     -fx-background-insets: 0, 1;
     -fx-background-radius: 3, 2;
     -fx-padding: 1;
