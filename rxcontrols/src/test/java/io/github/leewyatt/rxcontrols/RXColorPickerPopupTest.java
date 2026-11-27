@@ -209,6 +209,21 @@ public class RXColorPickerPopupTest {
         });
     }
 
+    @Test
+    public void clicksAnywhereButTheCopyButtonOpenThePopup() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            picker.setCopyButtonVisible(true);
+            picker.getParent().layout();
+            click(picker.lookup(".copy-button"));
+            assertFalse(picker.isShowing());
+            click(picker);
+            assertTrue(picker.isShowing());
+            click(picker);
+            assertFalse(picker.isShowing());
+        });
+    }
+
     private static KeyEvent copyKey() {
         boolean mac = System.getProperty("os.name", "").toLowerCase().startsWith("mac");
         return new KeyEvent(KeyEvent.KEY_PRESSED, "c", "c", KeyCode.C, false, !mac, false, mac);
