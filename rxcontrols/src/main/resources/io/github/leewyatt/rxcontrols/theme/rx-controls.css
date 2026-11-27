@@ -2257,6 +2257,12 @@
     -fx-font-weight: bold;
 }
 
+.rx-cascader-cell {
+    -rx-ripple-fill: -rx-state-overlay-color;
+    -rx-ripple-opacity: 0.18;
+    -rx-ripple-state-overlay-enabled: false;
+}
+
 .rx-cascader-cell:disabled {
     -fx-opacity: 0.55;
 }
