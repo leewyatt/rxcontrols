@@ -10,6 +10,7 @@ import javafx.scene.AccessibleAttribute;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.util.StringConverter;
 import org.junit.jupiter.api.BeforeAll;
@@ -377,6 +378,22 @@ public class RXSelectionBoxTest {
 
         box.executeAccessibleAction(AccessibleAction.COLLAPSE);
         assertFalse(box.isShowing());
+    }
+
+    @Test
+    public void longSummaryDoesNotSqueezeTheArrow() throws Exception {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = new RXSelectionBox<>(FXCollections.observableArrayList(
+                    "A very long item that will never fit in a narrow selection box"));
+            box.getSelectionModel().select(0);
+            box.setPrefWidth(90.0);
+            attach(box);
+
+            Region arrow = (Region) box.lookup(".arrow-button > .arrow");
+            assertEquals(arrow.snapSizeX(arrow.prefWidth(-1)), arrow.getWidth(), 1e-6,
+                    "a long summary shortens the text, not the arrow");
+            assertEquals(arrow.snapSizeY(arrow.prefHeight(-1)), arrow.getHeight(), 1e-6);
+        });
     }
 
     // ==================== Helpers ====================
