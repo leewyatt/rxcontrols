@@ -80,7 +80,7 @@ public class RXDualPaneSkin extends RXSkinBase<RXDualPane> {
      */
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
-        pages.layout(x, y, w, h);
+        pages.resizeRelocate(x, y, w, h);
     }
 
     /**
@@ -159,8 +159,7 @@ public class RXDualPaneSkin extends RXSkinBase<RXDualPane> {
         if (offset == Node.BASELINE_OFFSET_SAME_AS_HEIGHT) {
             return Node.BASELINE_OFFSET_SAME_AS_HEIGHT;
         }
-        StackPane contentPane = pages.getContentPane();
-        return contentPane.getLayoutBounds().getMinY() + contentPane.getLayoutY()
+        return pages.getLayoutBounds().getMinY() + pages.getLayoutY()
                 + page.getLayoutBounds().getMinY() + page.getLayoutY() + offset;
     }
 
@@ -197,7 +196,7 @@ public class RXDualPaneSkin extends RXSkinBase<RXDualPane> {
             return;
         }
         activated = true;
-        getChildren().add(pages.getContentPane());
+        getChildren().add(pages);
         setPageContent(pages.getPageA(), control.getFirstContent());
         setPageContent(pages.getPageB(), control.getSecondContent());
         if (control.isShowingSecond()) {
@@ -437,6 +436,6 @@ public class RXDualPaneSkin extends RXSkinBase<RXDualPane> {
         pages.getPageA().getChildren().clear();
         pages.getPageB().getChildren().clear();
         control.setTransitioning(false);
-        getChildren().remove(pages.getContentPane());
+        getChildren().remove(pages);
     }
 }

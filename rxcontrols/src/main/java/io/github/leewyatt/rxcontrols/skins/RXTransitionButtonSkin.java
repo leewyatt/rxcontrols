@@ -121,7 +121,7 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
                 button::getRippleOpacity, null, button.rippleCornerRadiusProperty());
         rippleTrigger = new ArmedRippleTrigger(button, ripple,
                 button::isRippleEnabled, button::isRippleCentered);
-        getChildren().addAll(ripple.getLayer(), pages.getContentPane());
+        getChildren().addAll(ripple.getLayer(), pages);
 
         // Registered before the bindings, so it runs after they are released:
         // the alternate content and the button's graphic belong to the
@@ -243,7 +243,7 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         if (ripple != null) {
             ripple.layout(getSkinnable().getWidth(), getSkinnable().getHeight());
         }
-        pages.layout(x, y, w, h);
+        pages.resizeRelocate(x, y, w, h);
     }
 
     /**
@@ -576,6 +576,6 @@ public class RXTransitionButtonSkin extends RXSkinBase<RXTransitionButton> {
         button.setTransitioning(false);
         ripple.dispose();
         pages.dispose(button.getAnimation());
-        getChildren().removeAll(ripple.getLayer(), pages.getContentPane());
+        getChildren().removeAll(ripple.getLayer(), pages);
     }
 }

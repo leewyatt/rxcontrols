@@ -79,7 +79,7 @@ public class RXTransitionLabelSkin extends RXSkinBase<RXTransitionLabel> {
      */
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
-        pages.layout(x, y, w, h);
+        pages.resizeRelocate(x, y, w, h);
     }
 
     /**
@@ -155,7 +155,7 @@ public class RXTransitionLabelSkin extends RXSkinBase<RXTransitionLabel> {
             return;
         }
         activated = true;
-        getChildren().add(pages.getContentPane());
+        getChildren().add(pages);
         currentLabel().setText(safeText(control.getText()));
         applyAlignment();
 
@@ -309,6 +309,6 @@ public class RXTransitionLabelSkin extends RXSkinBase<RXTransitionLabel> {
         }
         pages.dispose(control.getAnimation());
         control.setTransitioning(false);
-        getChildren().remove(pages.getContentPane());
+        getChildren().remove(pages);
     }
 }

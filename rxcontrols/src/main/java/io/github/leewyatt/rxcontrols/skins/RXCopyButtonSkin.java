@@ -94,7 +94,7 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
         copiedFace = new Face(button, "copied-face");
         pages.getPageA().getChildren().add(normalFace);
         pages.getPageB().getChildren().add(copiedFace);
-        getChildren().addAll(ripple.getLayer(), pages.getContentPane());
+        getChildren().addAll(ripple.getLayer(), pages);
 
         // Registered first, so it runs last: by then the result listener and
         // the timer are gone and nothing can swap the face again.
@@ -106,7 +106,7 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
             pages.dispose(button.getAnimation());
             // Only this skin's nodes: a replacement skin may already have
             // added its own children to the control.
-            getChildren().removeAll(ripple.getLayer(), pages.getContentPane());
+            getChildren().removeAll(ripple.getLayer(), pages);
         });
 
         bindCaptions(button);
@@ -216,7 +216,7 @@ public class RXCopyButtonSkin extends RXSkinBase<RXCopyButton> {
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
         ripple.layout(getSkinnable().getWidth(), getSkinnable().getHeight());
-        pages.layout(x, y, w, h);
+        pages.resizeRelocate(x, y, w, h);
     }
 
     /**

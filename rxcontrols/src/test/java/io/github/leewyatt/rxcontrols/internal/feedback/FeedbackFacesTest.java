@@ -76,7 +76,7 @@ public class FeedbackFacesTest {
         assertNotSame(idle.getParent(), pending.getParent());
         assertSame(pending.getParent(), succeeded.getParent());
         assertSame(pending.getParent(), failed.getParent());
-        assertEquals(2, faces.getContentPane().getChildren().size());
+        assertEquals(2, faces.getChildren().size());
     }
 
     @Test
@@ -217,8 +217,8 @@ public class FeedbackFacesTest {
             assertEquals(1, animation.disposeCalls);
             assertSame(idle, faces.getCurrentFace());
             assertTrue(idle.isVisible());
-            assertTrue(faces.getContentPane().getChildren().isEmpty());
-            assertNull(faces.getContentPane().getClip());
+            assertTrue(faces.getChildren().isEmpty());
+            assertNull(faces.getClip());
         });
     }
 
@@ -242,7 +242,7 @@ public class FeedbackFacesTest {
                 Region fourth = face(20.0, 8.0);
                 List<Node> all = List.of(first, second, third, fourth);
                 FeedbackFaces surface = new FeedbackFaces(first, second, third, fourth);
-                StackPane root = new StackPane(surface.getContentPane());
+                StackPane root = new StackPane(surface);
                 new Scene(root, 200.0, 100.0);
                 root.applyCss();
                 root.layout();
@@ -266,7 +266,7 @@ public class FeedbackFacesTest {
                 assertEquals(1.0, page.getScaleY(), preset);
                 assertEquals(0.0, page.getRotate(), preset);
                 assertNull(page.getEffect(), preset);
-                assertEquals(2, surface.getContentPane().getChildren().size(), preset);
+                assertEquals(2, surface.getChildren().size(), preset);
                 assertEquals(60.0, surface.prefWidth(-1), preset);
                 surface.dispose(animation);
             }

@@ -86,7 +86,7 @@ public class RXTaskButtonSkin extends RXSkinBase<RXTaskButton> {
         succeededFace = new IndicatorFace(button, "succeeded-face");
         failedFace = new IndicatorFace(button, "failed-face");
         faces = new FeedbackFaces(idleFace, pendingFace, succeededFace, failedFace);
-        getChildren().addAll(ripple.getLayer(), faces.getContentPane());
+        getChildren().addAll(ripple.getLayer(), faces);
 
         // Registered first, so it runs last: by then the state listener is
         // gone and nothing can swap the face again.
@@ -94,7 +94,7 @@ public class RXTaskButtonSkin extends RXSkinBase<RXTaskButton> {
             faces.dispose(button.getAnimation());
             // Only this skin's nodes: a replacement skin may already have
             // added its own children to the control.
-            getChildren().removeAll(ripple.getLayer(), faces.getContentPane());
+            getChildren().removeAll(ripple.getLayer(), faces);
         });
 
         // The idle face shows the button's own text and graphic. Each other
@@ -223,7 +223,7 @@ public class RXTaskButtonSkin extends RXSkinBase<RXTaskButton> {
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
         ripple.layout(getSkinnable().getWidth(), getSkinnable().getHeight());
-        faces.layout(x, y, w, h);
+        faces.resizeRelocate(x, y, w, h);
     }
 
     /**
