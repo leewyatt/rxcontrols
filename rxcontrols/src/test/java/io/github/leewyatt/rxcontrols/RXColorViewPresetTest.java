@@ -8,6 +8,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
@@ -33,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests the clear button and preset groups of {@link RXColorView}: clearing to
  * {@code null}, picking swatches with the pointer and the keyboard, selection
  * marks compared on the 8-bit grid, groups with and without headers, kept
- * expanded state, and the immutable {@link RXColorPresetGroup}.
+ * expanded state, wrapping without widening the view, and the immutable {@link RXColorPresetGroup}.
  */
 public class RXColorViewPresetTest {
 
@@ -82,6 +83,42 @@ public class RXColorViewPresetTest {
 
     private static void key(Node node, KeyCode code) {
         node.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, false, false, false, false));
+    }
+
+    // ==================== Layout ====================
+
+    @Test
+    public void presetsWrapWithoutWideningTheView() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorView());
+            double plainWidth = view.prefWidth(-1);
+            double plainGap = bottomGapBelow(view.lookup(".inputs"));
+            Region area = (Region) view.lookup(".area");
+            double plainAreaHeight = area.getHeight();
+
+            // Twenty swatches wrap to a few rows, well below the section's scrolling height.
+            Color[] colors = new Color[20];
+            for (int i = 0; i < colors.length; i++) {
+                colors[i] = Color.gray(i / 20.0);
+            }
+            view.getPresets().setAll(new RXColorPresetGroup("Grays", colors));
+            layout();
+            assertEquals(plainWidth, view.prefWidth(-1), 0.0);
+
+            Node last = swatches().get(colors.length - 1);
+            double gap = bottomGapBelow(last);
+            assertTrue(last.getBoundsInParent().getMinY() > 0.0, "the swatches wrap");
+            assertTrue(gap >= plainGap, "the last row is shown");
+            assertTrue(gap < plainGap + last.getLayoutBounds().getHeight(), "no blank space below the last row");
+            assertEquals(plainAreaHeight, area.getHeight(), 0.0, "the panel is not taller than the rows need");
+        });
+    }
+
+    // Sizes the view to its preferred size and returns the space below the node.
+    private double bottomGapBelow(Node node) {
+        view.resize(view.prefWidth(-1), view.prefHeight(-1));
+        view.layout();
+        return view.getHeight() - view.sceneToLocal(node.localToScene(node.getLayoutBounds())).getMaxY();
     }
 
     // ==================== Clear ====================

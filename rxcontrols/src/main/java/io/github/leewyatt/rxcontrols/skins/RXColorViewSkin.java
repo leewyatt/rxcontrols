@@ -758,7 +758,10 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset, double bottomInset,
                                        double leftInset) {
-        return Math.max(topInset, overhang()) + content.prefHeight(-1) + Math.max(bottomInset, overhang());
+        // The preset swatches wrap, so their height depends on the width they get.
+        double contentWidth = width < 0.0 ? content.prefWidth(-1)
+                : Math.max(0.0, width - Math.max(leftInset, overhang()) - Math.max(rightInset, overhang()));
+        return Math.max(topInset, overhang()) + content.prefHeight(contentWidth) + Math.max(bottomInset, overhang());
     }
 
     @Override

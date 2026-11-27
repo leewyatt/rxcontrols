@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.internal.color.ColorMath;
 import io.github.leewyatt.rxcontrols.internal.color.ColorSwatch;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
+import javafx.geometry.Orientation;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
 import javafx.scene.control.ScrollPane;
@@ -60,7 +61,15 @@ final class ColorPresetSection {
     // ==================== Nodes ====================
 
     private final Host host;
-    private final ScrollPane scroll = new ScrollPane();
+    // Fitted to its width with no horizontal bar, so its height depends on its width;
+    // ScrollPane does not say so itself, and parents would ask for its height at the
+    // FlowPane's default wrap length instead of the width it gets.
+    private final ScrollPane scroll = new ScrollPane() {
+        @Override
+        public Orientation getContentBias() {
+            return Orientation.HORIZONTAL;
+        }
+    };
     private final VBox groupsBox = new VBox();
     private final Map<RXColorPresetGroup, GroupNode> cache = new IdentityHashMap<>();
     private final List<GroupNode> shown = new ArrayList<>();
@@ -75,6 +84,9 @@ final class ColorPresetSection {
         scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scroll.setFocusTraversable(false);
         scroll.setMaxHeight(MAX_HEIGHT);
+        // The swatches wrap to the width the panel gives them and never widen it: a
+        // horizontal FlowPane asks for at least its prefWrapLength (400 by default).
+        scroll.setPrefWidth(0.0);
         scroll.setVisible(false);
         scroll.setManaged(false);
     }
