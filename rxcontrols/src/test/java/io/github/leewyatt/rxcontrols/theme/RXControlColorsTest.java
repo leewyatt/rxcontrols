@@ -1029,6 +1029,10 @@ public class RXControlColorsTest {
             controls.put("date picker", new RXDatePicker());
             controls.put("date range picker", new RXDateRangePicker());
             controls.put("menu button", new RXMenuButton("Menu"));
+            controls.put("chip input", new RXChipInput<String>());
+            RXChipInput<String> chipInput = new RXChipInput<>();
+            chipInput.getChips().addAll("Apple", "Pear");
+            controls.put("chip input with chips", chipInput);
             VBox root = new VBox();
             root.getChildren().addAll(controls.values());
             Scene scene = new Scene(root, 600, 400);
@@ -1041,6 +1045,10 @@ public class RXControlColorsTest {
         }
         assertEquals(heights.get("native menu button"), heights.get("menu button"), 0.0,
                 "menu button height under " + host);
+        // The chip input may stand taller than a text field, but a chip must not change it.
+        assertEquals(heights.get("chip input"), heights.get("chip input with chips"), 0.0,
+                "chip input height with chips under " + host);
+        assertTrue(heights.get("chip input") >= heights.get("text field"), "chip input height under " + host);
     }
 
     private static void assertPickerHeight(String host, String userAgentStylesheet, Consumer<Scene> themer)
@@ -1299,7 +1307,7 @@ public class RXControlColorsTest {
                 field.put("edge", ThemeColorSamples.hex(textField.getBackground().getFills().get(0).getFill()));
                 Region input = new RXChipInput<String>();
                 chipInput.putAll(focusedLayers(input, null, bridge));
-                chipInput.put("edge", ThemeColorSamples.hex(input.getBorder().getStrokes().get(0).getTopStroke()));
+                chipInput.put("edge", ThemeColorSamples.hex(input.getBackground().getFills().get(0).getFill()));
             });
             // An AtlantaFX text field shows focus as an accent outline, with no halo.
             assertEquals(field.get("edge"), chipInput.get("edge"), "chip input focus outline under " + theme.getName());

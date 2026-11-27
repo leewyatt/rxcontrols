@@ -1828,41 +1828,59 @@
  *                                                                             *
  ******************************************************************************/
 
+/* Modena's text field frame (.text-input), drawn as background layers so it takes no
+   space. The input has no vertical padding: every row is one line tall, the editor's
+   height, which leaves 4px above and below a compact chip, so the input keeps its
+   height when the first chip arrives. The editor's left padding completes the text
+   field's 0.583em text inset. */
 .rx-chip-input {
-    /* The white text-input surface (not the grey app surface), so chips read against
-       it — follows Modena's inner background by default, bg-default in AtlantaFX. */
-    -fx-background-color: -fx-control-inner-background;
-    -fx-background-radius: 4px;
-    -fx-border-color: -rx-outline;
-    -fx-border-width: 1px;
-    -fx-border-radius: 4px;
-    -fx-padding: 0.25em 0.5em;
-}
-
-/* Highlight the input while its suggestion dropdown is open (JavaFX 17 has no
-   :focus-within, so this mirrors the popup state instead). Placed before :error so
-   the error border wins at equal specificity when both states are active. */
-.rx-chip-input:popup-showing {
-    -fx-border-color: -rx-primary;
+    -fx-background-color: linear-gradient(to bottom, derive(-fx-text-box-border, -10%), -fx-text-box-border),
+        linear-gradient(from 0px 0px to 0px 5px, derive(-fx-control-inner-background, -9%), -fx-control-inner-background);
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
+    -fx-padding: 0 0.25em;
 }
 
 .rx-chip-input:error,
 .rx-chip-input:error:focus-within,
 .rx-chip-input:error:popup-showing {
-    -fx-border-color: -rx-danger;
+    -fx-background-color: -rx-danger, -fx-control-inner-background;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
 }
 
 /* .content (the chip-flow pane) and .editor are descendants because a maxRows input
    nests them inside a scroll pane; the direct-child form would miss that structure. */
-.rx-chip-input .content {
-    -fx-padding: 0.25em 0;
-}
-
 .rx-chip-input .editor {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
-    -fx-padding: 0.2em 0;
+    -fx-padding: 0.538462em 0 0.538462em 0.333333em; /* 7 0 7 4 */
     -fx-text-fill: -rx-on-surface;
+}
+
+/* Chips in the input are compact: the input's own text in a slim capsule. */
+.rx-chip-input .content > .rx-chip {
+    -fx-padding: 0.153846em 0.615385em; /* 2 8 */
+}
+
+/* AtlantaFX: its text field outline, radius and 8px 12px padding; its taller text
+   field already leaves 4px around a compact chip. */
+.rx-theme-atlantafx .rx-chip-input,
+.rx-theme-atlantafx.rx-chip-input {
+    -fx-background-color: -rx-outline, -fx-control-inner-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 4px, 3px;
+    -fx-padding: 0 4px;
+}
+
+.rx-theme-atlantafx .rx-chip-input .editor,
+.rx-theme-atlantafx.rx-chip-input .editor {
+    -fx-padding: 8px 0 8px 8px;
+}
+
+.rx-theme-atlantafx .rx-chip-input .content > .rx-chip,
+.rx-theme-atlantafx.rx-chip-input .content > .rx-chip {
+    -fx-padding: 3px 10px;
 }
 
 /* The optional maxRows scroll wrapper stays transparent so only the input's own
@@ -6224,12 +6242,6 @@
     -fx-background-radius: 3, 2, 4, 0;
 }
 
-/* The ring replaces the resting outline; its width stays, so nothing moves. */
-.rx-chip-input:focus-within,
-.rx-chip-input:popup-showing {
-    -fx-border-color: transparent;
-}
-
 .rx-hold-button:focused,
 .rx-chip:focused,
 .rx-chip:selectable:selected:focused {
@@ -6325,25 +6337,20 @@
 }
 
 /* AtlantaFX: each member keeps the focus look it had before the recipes; the chip
-   input, which had none, takes the accent outline of an AtlantaFX text field. */
+   input, which had none, takes the accent outline of an AtlantaFX text field, and
+   keeps its error outline over it. */
 .rx-theme-atlantafx .rx-chip-input:focus-within,
 .rx-theme-atlantafx.rx-chip-input:focus-within,
 .rx-theme-atlantafx .rx-chip-input:popup-showing,
 .rx-theme-atlantafx.rx-chip-input:popup-showing {
-    -fx-background-color: -fx-control-inner-background;
-    -fx-background-insets: 0;
-    -fx-background-radius: 4px;
-    -fx-border-color: -rx-focus;
-}
-
-.rx-theme-atlantafx .rx-chip-input:popup-showing,
-.rx-theme-atlantafx.rx-chip-input:popup-showing {
-    -fx-border-color: -rx-primary;
+    -fx-background-color: -rx-focus, -fx-control-inner-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 4px, 3px;
 }
 
 .rx-theme-atlantafx .rx-chip-input:error,
 .rx-theme-atlantafx.rx-chip-input:error {
-    -fx-border-color: -rx-danger;
+    -fx-background-color: -rx-danger, -fx-control-inner-background;
 }
 
 .rx-theme-atlantafx .rx-menu-button:focused,
