@@ -13,6 +13,7 @@ import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
+import io.github.leewyatt.rxcontrols.RXColorView;
 import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
 import io.github.leewyatt.rxcontrols.RXKanbanColumn;
@@ -786,6 +787,48 @@ public class RXControlColorsTest {
         if (dark) {
             assertNotEquals(expected.get("-rx-surface"), action.get("fill"), "action fill differs from the surface under " + host);
             assertNotEquals(expected.get("-rx-outline"), action.get("ring top"), "action ring is lit from the top under " + host);
+        }
+    }
+
+    @Test
+    public void colorPickerPopupIsARaisedSurfaceOnDarkHosts() throws Exception {
+        assertColorPopupCard("default Modena", Application.STYLESHEET_MODENA, scene -> { }, false);
+        assertColorPopupCard("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette, true);
+        assertColorPopupCard("Primer Light", new PrimerLight().getUserAgentStylesheet(),
+                RXAtlantaFXThemeBridge::install, false);
+        assertColorPopupCard("Primer Dark", new PrimerDark().getUserAgentStylesheet(),
+                RXAtlantaFXThemeBridge::install, true);
+    }
+
+    private static void assertColorPopupCard(String host, String userAgentStylesheet, Consumer<Scene> themer,
+            boolean dark) throws Exception {
+        Map<String, String> expected = resolve(userAgentStylesheet, themer,
+                List.of("-rx-surface", "-rx-surface-variant", "-rx-outline", "-rx-outline-variant"));
+        Map<String, String> card = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(userAgentStylesheet);
+            RXColorView view = new RXColorView();
+            // The popup's root carries the popup style class; a stand-in is enough for CSS.
+            StackPane popupRoot = new StackPane(view);
+            popupRoot.getStyleClass().add("rx-color-picker-popup");
+            Scene scene = new Scene(new StackPane(popupRoot), 400, 500);
+            themer.accept(scene);
+            scene.getRoot().applyCss();
+            List<BackgroundFill> fills = view.getBackground().getFills();
+            card.put("edge", ThemeColorSamples.hex(fills.get(0).getFill()));
+            card.put("surface", ThemeColorSamples.hex(fills.get(fills.size() - 1).getFill()));
+        });
+        if (dark) {
+            // A shadow barely shows on a dark host: the card is lighter than the window
+            // and fully outlined, as a dialog card.
+            assertEquals(expected.get("-rx-surface-variant"), card.get("surface"), "popup card surface under " + host);
+            assertTrue(relativeLuminance(Color.web(card.get("surface")))
+                    > relativeLuminance(Color.web(expected.get("-rx-surface"))),
+                    "popup card is lighter than the window under " + host);
+            assertEquals(expected.get("-rx-outline"), card.get("edge"), "popup card edge under " + host);
+        } else {
+            assertEquals(expected.get("-rx-surface"), card.get("surface"), "popup card surface under " + host);
+            assertEquals(expected.get("-rx-outline-variant"), card.get("edge"), "popup card edge under " + host);
         }
     }
 

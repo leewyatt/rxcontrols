@@ -5855,7 +5855,8 @@
 
 .rx-color-view .format-button:hover,
 .rx-color-view .format-button:focused {
-    -fx-background-color: -rx-surface-variant;
+    /* One step above the raised popup card on a dark host. */
+    -fx-background-color: ladder(-rx-surface, derive(-rx-surface-variant, 15%) 45%, -rx-surface-variant 46%);
 }
 
 .rx-color-view .format-button > .content {
@@ -6035,8 +6036,12 @@
 }
 
 /* The popup content is the view itself; it carries the card and its shadow. */
+/* A shadow barely shows on a dark host, so there the card is a lighter surface inside a
+   full outline, as a dialog card; on a light host it keeps the window surface and a soft
+   edge. */
 .rx-color-picker-popup .rx-color-view {
-    -fx-background-color: -rx-outline-variant, -rx-surface;
+    -fx-background-color: ladder(-rx-surface, -rx-outline 45%, -rx-outline-variant 46%),
+        ladder(-rx-surface, -rx-surface-variant 45%, -rx-surface 46%);
     -fx-background-insets: 0, 1px;
     -fx-background-radius: 8px, 7px;
     -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 16, 0.0, 0, 6);
