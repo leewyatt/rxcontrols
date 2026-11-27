@@ -61,7 +61,6 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
     // ==================== Constants ====================
 
     private static final double POPUP_GAP = 4.0;
-    private static final double SWATCH_SIZE = 24.0;
     private static final double COPY_BUTTON_GAP = 4.0;
     private static final KeyCombination COPY_KEY = new KeyCodeCombination(KeyCode.C, KeyCombination.SHORTCUT_DOWN);
     /** Keys a popup must not let through to the picker or a dialog. */
@@ -72,9 +71,32 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
     // ==================== Nodes ====================
 
     private final HBox display = new HBox();
-    private final ColorSwatch swatch = new ColorSwatch("color");
+    // The swatch and the copy button are one line of the trigger text tall: a text field
+    // is its padding plus one line of its text, so with the picker padded as the theme's
+    // text field it is exactly as tall, whatever the font and platform.
+    private final ColorSwatch swatch = new ColorSwatch("color") {
+        @Override
+        protected double computePrefWidth(double height) {
+            return lineSize();
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            return lineSize();
+        }
+    };
     private final ValueText text = new ValueText();
-    private final RXCopyButton copyButton = new RXCopyButton();
+    private final RXCopyButton copyButton = new RXCopyButton() {
+        @Override
+        protected double computePrefWidth(double height) {
+            return lineSize();
+        }
+
+        @Override
+        protected double computePrefHeight(double width) {
+            return lineSize();
+        }
+    };
     private final RXColorView view = new RXColorView();
     private final RXPopupSupport popupSupport;
 
@@ -106,16 +128,14 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         super(control);
         display.getStyleClass().add("display");
         display.setAlignment(Pos.CENTER_LEFT);
-        swatch.setPrefSize(SWATCH_SIZE, SWATCH_SIZE);
         swatch.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         swatch.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         text.getStyleClass().add("text");
         text.setMinWidth(Region.USE_PREF_SIZE);
         display.getChildren().addAll(swatch, text);
         copyButton.getStyleClass().add("copy-button");
-        // Square and as tall as the swatch: an empty caption would otherwise make it
-        // a line of text high but only an icon wide.
-        copyButton.setPrefSize(SWATCH_SIZE, SWATCH_SIZE);
+        // Square and as tall as the swatch: an empty caption would otherwise make it a
+        // line of text high but only an icon wide.
         copyButton.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         copyButton.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         copyButton.setCopiedText(null);
@@ -174,6 +194,10 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         disposer.registerListener(control.promptTextProperty(), live(this::updateDisplay));
         disposer.registerListener(control.alphaEnabledProperty(), live(this::updateDisplay));
         disposer.registerListener(control.copyButtonVisibleProperty(), live(this::updateDisplay));
+        disposer.registerListener(text.fontProperty(), live(() -> {
+            swatch.requestLayout();
+            copyButton.requestLayout();
+        }));
         // Copying is not an edit: the button's action must not reach the picker's handlers.
         disposer.registerEventHandler(copyButton, ActionEvent.ACTION, Event::consume);
         disposer.registerListener(control.showingProperty(), live(this::syncPopup));
@@ -269,6 +293,10 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
             text.setText(value == null ? control.getPromptText() : ColorMath.toText(value, format));
             text.reserve(format, control.isAlphaEnabled(), control.getPromptText());
         }
+    }
+
+    private double lineSize() {
+        return text.snapSizeY(text.prefHeight(-1));
     }
 
     private ClipboardContent copyContent() {

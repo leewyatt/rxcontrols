@@ -58,8 +58,10 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Control;
 import javafx.scene.control.Labeled;
+import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.BorderStroke;
@@ -990,6 +992,74 @@ public class RXControlColorsTest {
     private static <T extends Region> T styled(T region, String styleClass) {
         region.getStyleClass().add(styleClass);
         return region;
+    }
+
+    // ==================== Field heights ====================
+
+    @Test
+    public void colorPickerIsAsTallAsATextField() throws Exception {
+        assertPickerHeight("default Modena", Application.STYLESHEET_MODENA, scene -> { });
+        assertPickerHeight("Primer Light", new PrimerLight().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install);
+        assertPickerHeight("Primer Dark", new PrimerDark().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install);
+    }
+
+    private static void assertPickerHeight(String host, String userAgentStylesheet, Consumer<Scene> themer)
+            throws Exception {
+        Map<String, Double> heights = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(userAgentStylesheet);
+            TextField field = new TextField("Text");
+            RXColorPicker plain = new RXColorPicker();
+            RXColorPicker full = new RXColorPicker();
+            full.setShowText(true);
+            full.setCopyButtonVisible(true);
+            VBox root = new VBox(field, plain, full);
+            Scene scene = new Scene(root, 400, 300);
+            themer.accept(scene);
+            root.applyCss();
+            heights.put("field", field.prefHeight(-1));
+            heights.put("plain", plain.prefHeight(-1));
+            heights.put("full", full.prefHeight(-1));
+        });
+        assertEquals(heights.get("field"), heights.get("plain"), 0.0, "swatch-only picker height under " + host);
+        assertEquals(heights.get("field"), heights.get("full"), 0.0, "picker with text and copy button under " + host);
+    }
+
+    @Test
+    public void colorPickerFrameMatchesModenasColorPicker() throws Exception {
+        assertModenaPickerFrame("default Modena", scene -> { });
+        assertModenaPickerFrame("dark palette", RXControlColorsTest::darkPalette);
+    }
+
+    private static void assertModenaPickerFrame(String host, Consumer<Scene> themer) throws Exception {
+        Map<String, String> ours = new LinkedHashMap<>();
+        Map<String, String> theirs = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
+            ours.putAll(frameStates(new RXColorPicker(), themer));
+            theirs.putAll(frameStates(new ColorPicker(), themer));
+        });
+        theirs.forEach((state, frame) -> assertEquals(frame, ours.get(state), state + " frame under " + host));
+    }
+
+    private static Map<String, String> frameStates(Region picker, Consumer<Scene> themer) {
+        Scene scene = new Scene(new StackPane(picker), 300, 200);
+        themer.accept(scene);
+        scene.getRoot().applyCss();
+        Map<String, String> states = new LinkedHashMap<>();
+        for (String state : List.of("idle", "hover", "showing", "focused")) {
+            for (String other : List.of("hover", "showing", "focused")) {
+                picker.pseudoClassStateChanged(PseudoClass.getPseudoClass(other), other.equals(state));
+            }
+            scene.getRoot().applyCss();
+            StringBuilder frame = new StringBuilder();
+            for (BackgroundFill fill : picker.getBackground().getFills()) {
+                frame.append(fill.getFill()).append(" @").append(fill.getInsets()).append(" r")
+                        .append(fill.getRadii().getTopLeftHorizontalRadius()).append("; ");
+            }
+            states.put(state, frame.toString());
+        }
+        return states;
     }
 
     // ==================== Focus rings ====================

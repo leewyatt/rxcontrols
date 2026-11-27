@@ -24,7 +24,7 @@ import javafx.scene.paint.Color;
  * through decides the contrast, {@code :selected} when its owner marks it.
  * Assistive technologies read the color as hex digits.
  */
-public final class ColorSwatch extends Region {
+public class ColorSwatch extends Region {
 
     private static final PseudoClass EMPTY = PseudoClass.getPseudoClass("empty");
     private static final PseudoClass BRIGHT = PseudoClass.getPseudoClass("bright");

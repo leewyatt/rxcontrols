@@ -5855,17 +5855,25 @@
  * RXColorPicker                                                               *
  *                                                                             *
  ******************************************************************************/
+/* Modena's own color picker frame (.combo-box-base), layer for layer, so the two sit
+   side by side as one family; it lightens on hover and takes the pressed color while
+   the popup is open. */
 .rx-color-picker {
-    -rx-focus-fill: -rx-surface;
-    -fx-background-color: -rx-outline, -rx-surface;
-    -fx-background-insets: 0, 1px;
-    -fx-background-radius: 3px, 2px;
-    -fx-padding: 4px;
+    -fx-background-color: -fx-shadow-highlight-color, -fx-outer-border, -fx-inner-border, -fx-body-color;
+    -fx-background-insets: 0 0 -1 0, 0, 1, 2;
+    -fx-background-radius: 3px, 3px, 2px, 1px;
+    /* Modena's text field padding: the swatch is one line of text, so the picker is as
+       tall as a text field. */
+    -fx-padding: 0.333333em;
     -fx-cursor: hand;
 }
 
 .rx-color-picker:hover {
-    -fx-background-color: -rx-primary-hover, -rx-surface;
+    -fx-color: -fx-hover-base;
+}
+
+.rx-color-picker:showing {
+    -fx-color: -fx-pressed-base;
 }
 
 .rx-color-picker > .display {
@@ -5873,25 +5881,27 @@
 }
 
 .rx-color-picker > .display > .text {
-    -fx-text-fill: -rx-on-surface;
+    -fx-text-fill: -fx-text-base-color;
     -fx-padding: 0 4px 0 0;
 }
 
-.rx-color-picker .swatch {
+/* Child paths: the popup's view descends from the picker in the cascade, and its
+   swatches keep their own corners. */
+.rx-color-picker > .display > .swatch {
     -fx-background-color: transparent;
     -fx-background-radius: 2px;
 }
 
-.rx-color-picker .swatch:empty {
+.rx-color-picker > .display > .swatch:empty {
     -fx-background-color: white;
 }
 
-.rx-color-picker .swatch > .outline {
+.rx-color-picker > .display > .swatch > .outline {
     -fx-border-color: rgba(0, 0, 0, 0.12);
     -fx-border-radius: 2px;
 }
 
-.rx-color-picker .swatch > .slash {
+.rx-color-picker > .display > .swatch > .slash {
     -fx-background-color: -rx-danger;
     -fx-shape: "M 22 0 L 24 0 L 24 2 L 2 24 L 0 24 L 0 22 Z";
 }
@@ -5912,6 +5922,18 @@
     -fx-background-color: -rx-on-surface-secondary;
 }
 
+/* The button is one line of text tall, so the icons follow the font as well: 14px
+   and the check's 2px / 0.25px insets at the default 13px. */
+.rx-color-picker > .copy-button .copy-face > .indicator,
+.rx-color-picker > .copy-button .copied-face > .indicator {
+    -fx-pref-width: 1.076923em;
+    -fx-pref-height: 1.076923em;
+}
+
+.rx-color-picker > .copy-button .copied-face > .indicator {
+    -fx-background-insets: 0.153846em 0.019231em 0.153846em 0.019231em;
+}
+
 .rx-color-picker:disabled {
     -fx-opacity: 0.4;
 }
@@ -5921,7 +5943,20 @@
     -fx-opacity: 1;
 }
 
-/* The popup content is the view itself; it carries the card and its shadow. */
+/* AtlantaFX: the flat outlined surface of its fields, padded as its text field (8px
+   top and bottom). */
+.rx-theme-atlantafx .rx-color-picker,
+.rx-theme-atlantafx.rx-color-picker {
+    -fx-background-color: -rx-outline, -rx-surface;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 3px, 2px;
+    -fx-padding: 8px 6px;
+}
+
+.rx-theme-atlantafx .rx-color-picker > .display > .text,
+.rx-theme-atlantafx.rx-color-picker > .display > .text {
+    -fx-text-fill: -rx-on-surface;
+}
 
 /*******************************************************************************
  *                                                                             *
@@ -5996,8 +6031,6 @@
 }
 
 .rx-menu-button:focused,
-.rx-color-picker:focused,
-.rx-color-picker:showing,
 .rx-hold-button:focused,
 .rx-chip:focused,
 .rx-chip:selectable:selected:focused {
@@ -6010,9 +6043,13 @@
     -fx-background-radius: 4, 3, 5, 2;
 }
 
-.rx-color-picker:focused,
-.rx-color-picker:showing {
-    -fx-background-radius: 3, 2, 4, 1;
+/* A member with Modena's own button body takes Modena's button ring unchanged. While
+   its popup is open the picker's window has lost the focus, so, as Modena's own
+   picker, it shows only the pressed body. */
+.rx-color-picker:focused {
+    -fx-background-color: -fx-focus-color, -fx-inner-border, -fx-body-color, -fx-faint-focus-color, -fx-body-color;
+    -fx-background-insets: -0.2, 1, 2, -1.4, 2.6;
+    -fx-background-radius: 3, 2, 1, 4, 1;
 }
 
 .rx-chip:focused,

@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.skins.RXColorPickerSkin;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.event.EventType;
 import javafx.geometry.Point2D;
@@ -227,6 +228,42 @@ public class RXColorPickerPopupTest {
     private static KeyEvent copyKey() {
         boolean mac = System.getProperty("os.name", "").toLowerCase().startsWith("mac");
         return new KeyEvent(KeyEvent.KEY_PRESSED, "c", "c", KeyCode.C, false, !mac, false, mac);
+    }
+
+    @Test
+    public void triggerRulesStayOutOfThePopup() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            open();
+            RXColorView view = popupView();
+            Region preview = (Region) view.lookup(".preview");
+            Region trigger = (Region) picker.lookup(".display > .swatch");
+            // The popup's view descends from the picker in the cascade; the trigger's
+            // swatch size and corners must not reach the view's own swatches.
+            assertEquals(4.0, preview.getBackground().getFills().get(0).getRadii().getTopLeftHorizontalRadius(), 0.0);
+            assertTrue(preview.getHeight() != trigger.getHeight() || preview.getWidth() != trigger.getWidth());
+        });
+    }
+
+    @Test
+    public void swatchCopyButtonAndIconFollowTheFont() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            picker.setCopyButtonVisible(true);
+            for (double fontSize : new double[]{10.0, 26.0}) {
+                picker.setStyle("-fx-font-size: " + fontSize + "px;");
+                picker.getParent().applyCss();
+                picker.getParent().layout();
+                Region swatch = (Region) picker.lookup(".display > .swatch");
+                Region button = (Region) picker.lookup(".copy-button");
+                Region icon = (Region) button.lookup(".copy-face > .indicator");
+                Region text = (Region) picker.lookup(".display > .text");
+                assertEquals(text.prefHeight(-1), swatch.getHeight(), 1.0, "the swatch is a line of text at " + fontSize);
+                assertEquals(swatch.getHeight(), button.getHeight(), 0.0, "the copy button matches the swatch at " + fontSize);
+                assertEquals(fontSize * 14.0 / 13.0, icon.prefWidth(-1), 0.5, "the icon follows the font at " + fontSize);
+                assertTrue(icon.prefHeight(-1) <= button.getHeight(), "the icon fits the button at " + fontSize);
+            }
+        });
     }
 
     // ==================== Opening and closing ====================
