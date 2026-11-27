@@ -1,11 +1,11 @@
 package io.github.leewyatt.rxcontrols.samples.test;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXMenuButton;
 import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXMenuList;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Application;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Insets;
@@ -25,6 +25,7 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -186,9 +187,10 @@ public class RXMenuMixedItemsVerification extends Application {
         return label;
     }
 
-    private static RXIcon icon(String shape) {
-        RXIcon icon = new RXIcon();
+    private static Region icon(String shape) {
+        Region icon = new Region();
         icon.setPrefSize(16.0, 16.0);
+        RXSizing.lockToPrefSize(icon);
         // A fixed gray: native popups under AtlantaFX cannot resolve Modena's text color lookups.
         icon.setStyle("-fx-shape: \"" + shape + "\"; -fx-background-color: gray;");
         return icon;

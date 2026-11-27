@@ -1,6 +1,8 @@
 package io.github.leewyatt.rxcontrols.samples.support;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
+
+import javafx.scene.layout.Region;
 
 /**
  * Shape-backed icons shared by the samples, for example as an {@code RXPlaceholder} graphic.
@@ -40,9 +42,10 @@ public final class SampleIcons {
      * @param fill  a CSS paint, such as a color or a looked-up color
      * @return the icon region
      */
-    public static RXIcon icon(String shape, double size, String fill) {
-        RXIcon icon = new RXIcon();
+    public static Region icon(String shape, double size, String fill) {
+        Region icon = new Region();
         icon.setPrefSize(size, size);
+        RXSizing.lockToPrefSize(icon);
         icon.setStyle("-fx-shape: \"" + shape + "\"; -fx-background-color: " + fill + ";");
         return icon;
     }

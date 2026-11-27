@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXHoldButton;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.animation.fill.FillAnimation;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFlip;
@@ -9,6 +8,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
 import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.collections.SetChangeListener;
 import javafx.css.PseudoClass;
 import javafx.geometry.NodeOrientation;
@@ -317,9 +317,10 @@ public class RXHoldButtonShowcase extends RXShowcaseApplication {
         return box;
     }
 
-    private static RXIcon icon(String styleClass) {
-        RXIcon icon = new RXIcon();
+    private static Region icon(String styleClass) {
+        Region icon = new Region();
         icon.getStyleClass().addAll("showcase-icon", styleClass);
+        RXSizing.lockToPrefSize(icon);
         return icon;
     }
 

@@ -1,12 +1,12 @@
 package io.github.leewyatt.rxcontrols.samples.sampler;
 
 import io.github.leewyatt.rxcontrols.RXButton;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
 import io.github.leewyatt.rxcontrols.layout.RXCol;
 import io.github.leewyatt.rxcontrols.layout.RXColSpec;
 import io.github.leewyatt.rxcontrols.layout.RXRow;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.scene.Node;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
@@ -56,10 +56,11 @@ final class HomeKit {
         return label;
     }
 
-    static RXIcon glyph(String... styleClasses) {
-        RXIcon glyph = new RXIcon();
+    static Region glyph(String... styleClasses) {
+        Region glyph = new Region();
         glyph.getStyleClass().add("glyph");
         glyph.getStyleClass().addAll(styleClasses);
+        RXSizing.lockToPrefSize(glyph);
         glyph.setMouseTransparent(true);
         return glyph;
     }

@@ -1,10 +1,10 @@
 package io.github.leewyatt.rxcontrols.samples.sampler;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSidebarItemBase;
 import io.github.leewyatt.rxcontrols.RXTextField;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.Pos;
@@ -124,8 +124,9 @@ final class SamplerNav extends RXSidebar {
         HBox.setHgrow(brandSpacer, Priority.ALWAYS);
         hideInRail(brandSpacer);
 
-        RXIcon menu = new RXIcon();
+        Region menu = new Region();
         menu.getStyleClass().addAll("glyph", "menu-glyph");
+        RXSizing.lockToPrefSize(menu);
         menu.setMouseTransparent(true);
         collapse.getStyleClass().add("collapse-button");
         collapse.setGraphic(menu);
@@ -137,12 +138,14 @@ final class SamplerNav extends RXSidebar {
         brand.getStyleClass().add("brand");
         brand.setAlignment(Pos.CENTER_LEFT);
 
-        RXIcon glyph = new RXIcon();
+        Region glyph = new Region();
         glyph.getStyleClass().add("search-glyph");
+        RXSizing.lockToPrefSize(glyph);
         glyph.setMouseTransparent(true);
 
-        RXIcon clearGlyph = new RXIcon();
+        Region clearGlyph = new Region();
         clearGlyph.getStyleClass().add("clear-glyph");
+        RXSizing.lockToPrefSize(clearGlyph);
         clearGlyph.setMouseTransparent(true);
         Button clear = new Button();
         clear.getStyleClass().add("clear-button");
@@ -215,9 +218,10 @@ final class SamplerNav extends RXSidebar {
         return path;
     }
 
-    private static RXIcon glyph(SamplerCategory category) {
-        RXIcon glyph = new RXIcon();
+    private static Region glyph(SamplerCategory category) {
+        Region glyph = new Region();
         glyph.getStyleClass().add("graphic");
+        RXSizing.lockToPrefSize(glyph);
         glyph.setShape(glyphShape(category));
         return glyph;
     }

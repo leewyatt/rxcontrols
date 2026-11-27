@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXTab;
 import io.github.leewyatt.rxcontrols.RXTabEvent;
 import io.github.leewyatt.rxcontrols.RXTabPane;
@@ -15,6 +14,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimGallery;
 import io.github.leewyatt.rxcontrols.animation.page.AnimSlide;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
 import javafx.scene.Node;
@@ -393,10 +393,11 @@ public class RXTabPaneShowcase extends RXShowcaseApplication {
         return tab;
     }
 
-    private RXIcon dot(String color) {
-        RXIcon dot = new RXIcon();
+    private Region dot(String color) {
+        Region dot = new Region();
         dot.setStyle("-fx-background-color: " + color + "; -fx-background-radius: 999;"
                 + " -fx-min-width: 14; -fx-min-height: 14; -fx-pref-width: 14; -fx-pref-height: 14;");
+        RXSizing.lockToPrefSize(dot);
         dot.setMouseTransparent(true);
         return dot;
     }

@@ -5,7 +5,6 @@ import io.github.leewyatt.rxcontrols.RXDialogContent;
 import io.github.leewyatt.rxcontrols.RXDialogs;
 import io.github.leewyatt.rxcontrols.DialogActionsLayout;
 import io.github.leewyatt.rxcontrols.DialogTransition;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.event.RXDialogEvent;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.animation.KeyFrame;
@@ -286,11 +285,13 @@ public class RXDialogShowcase extends RXShowcaseApplication {
     }
 
     // A 24px info glyph for the "Show graphic" toggle, so the heading's leading graphic slot
-    // is visible. Built as an RXIcon, tinted via a token.
-    private RXIcon demoGraphic() {
-        RXIcon icon = new RXIcon();
+    // is visible. Built as a shape-filled Region (the project's icon idiom), tinted via a token.
+    private Region demoGraphic() {
+        Region icon = new Region();
         int size = 12;
+        icon.setMinSize(size, size);
         icon.setPrefSize(size, size);
+        icon.setMaxSize(size, size);
         icon.setStyle("-fx-background-color: -rx-primary;"
                 + " -fx-shape: \"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1"
                 + " 15h-2v-6h2v6zm0-8h-2V7h2v2z\";");

@@ -1,10 +1,10 @@
 package io.github.leewyatt.rxcontrols.samples.test;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebar.FlyoutTrigger;
 import io.github.leewyatt.rxcontrols.RXSidebar.Mode;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -18,6 +18,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -95,9 +96,10 @@ public class RXSidebarEscapeVerification extends Application {
         log.scrollTo(log.getItems().size() - 1);
     }
 
-    private static RXIcon icon(String shape) {
-        RXIcon icon = new RXIcon();
+    private static Region icon(String shape) {
+        Region icon = new Region();
         icon.getStyleClass().add("graphic");
+        RXSizing.lockToPrefSize(icon);
         icon.setStyle("-fx-shape: \"" + shape + "\"; -fx-background-color: -fx-text-base-color;");
         return icon;
     }

@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols.samples.sampler;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.RXTextView;
@@ -11,6 +10,7 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleGallery;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleLifecycle;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -221,8 +221,9 @@ final class SamplerPage extends BorderPane {
         heading.getStyleClass().add("heading");
         VBox box = new VBox(4.0, heading);
         for (String line : lines) {
-            RXIcon bullet = new RXIcon();
+            Region bullet = new Region();
             bullet.getStyleClass().add("bullet");
+            RXSizing.lockToPrefSize(bullet);
             Label text = new Label(line);
             text.setWrapText(true);
             text.setMinHeight(Region.USE_PREF_SIZE);
@@ -300,8 +301,9 @@ final class SamplerPage extends BorderPane {
     // ==================== Launchers ====================
 
     private static Button launcherButton(String text) {
-        RXIcon glyph = new RXIcon();
+        Region glyph = new Region();
         glyph.getStyleClass().add("open-glyph");
+        RXSizing.lockToPrefSize(glyph);
         Button button = new Button(text, glyph);
         button.getStyleClass().add("demo-button");
         button.setMinWidth(Region.USE_PREF_SIZE);

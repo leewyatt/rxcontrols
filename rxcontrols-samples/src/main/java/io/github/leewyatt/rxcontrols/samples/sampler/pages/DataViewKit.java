@@ -1,7 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXButton;
-import io.github.leewyatt.rxcontrols.RXIcon;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
@@ -34,9 +34,10 @@ final class DataViewKit {
     private DataViewKit() {
     }
 
-    static RXIcon icon(String styleClass) {
-        RXIcon icon = new RXIcon();
+    static Region icon(String styleClass) {
+        Region icon = new Region();
         icon.getStyleClass().addAll("symbol", styleClass);
+        RXSizing.lockToPrefSize(icon);
         return icon;
     }
 

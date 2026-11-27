@@ -1,12 +1,12 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.layout.RXMasonryPane;
 import io.github.leewyatt.rxcontrols.samples.demo.ThemeGalleryCards.NamedControl;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes.ThemeChoice;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -94,8 +94,9 @@ public class RXThemeGallery extends Application {
     // Shown only while there is text to clear; it stays laid out, so the
     // field's text area does not shift as it appears.
     private static Button clearButton(RXTextField field) {
-        RXIcon glyph = new RXIcon();
+        Region glyph = new Region();
         glyph.getStyleClass().addAll("glyph", "clear-glyph");
+        RXSizing.lockToPrefSize(glyph);
         glyph.setMouseTransparent(true);
 
         Button clear = new Button();

@@ -5,12 +5,12 @@ import io.github.leewyatt.rxcontrols.RXCascaderCell;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderPath;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.util.StringConverter;
 
 import java.util.List;
@@ -159,9 +159,11 @@ final class CascaderShowcaseSupport {
 
         DotCell(RXCascaderView<T> view) {
             super(view);
-            RXIcon dot = new RXIcon();
+            Region dot = new Region();
             dot.getStyleClass().add("demo-cell-dot");
+            dot.setMinSize(8.0, 8.0);
             dot.setPrefSize(8.0, 8.0);
+            dot.setMaxSize(8.0, 8.0);
             label = new Label();
             box = new HBox(8.0, dot, label);
             box.setAlignment(Pos.CENTER_LEFT);

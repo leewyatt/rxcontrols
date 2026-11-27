@@ -6,7 +6,6 @@ import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXChip;
 import io.github.leewyatt.rxcontrols.RXChipSet;
 import io.github.leewyatt.rxcontrols.RXCopyButton;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.RXSmoothScrollSupport;
@@ -17,6 +16,7 @@ import io.github.leewyatt.rxcontrols.layout.RXColSpec;
 import io.github.leewyatt.rxcontrols.layout.RXRow;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.SampleLifecycle;
 import io.github.leewyatt.rxcontrols.samples.support.PageAnimationPresets;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -283,9 +283,10 @@ final class SamplerHome extends ScrollPane {
     }
 
     private Button categoryCard(SamplerCategory category, List<SamplerEntry> list) {
-        RXIcon glyph = new RXIcon();
+        Region glyph = new Region();
         glyph.getStyleClass().add("category-glyph");
         glyph.setShape(SamplerNav.glyphShape(category));
+        RXSizing.lockToPrefSize(glyph);
         StackPane badge = new StackPane(glyph);
         badge.getStyleClass().add("glyph-badge");
         badge.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);

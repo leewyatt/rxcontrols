@@ -1,10 +1,10 @@
 package io.github.leewyatt.rxcontrols.samples.demo.carousel;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXImagePane;
 import io.github.leewyatt.rxcontrols.DisplayMode;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.ScaleTransition;
@@ -175,8 +175,9 @@ public class CarouselAppDemo extends Application {
     }
 
     private ToggleButton createNavButton(String text, String iconStyleClass, ToggleGroup group) {
-        RXIcon icon = new RXIcon();
+        Region icon = new Region();
         icon.getStyleClass().add(iconStyleClass);
+        RXSizing.lockToPrefSize(icon);
 
         Label label = new Label(text);
 
@@ -313,8 +314,9 @@ public class CarouselAppDemo extends Application {
 
     private BorderPane createFeatureSubPage(String name, String desc,
                                             String iconStyleClass) {
-        RXIcon iconRegion = new RXIcon();
+        Region iconRegion = new Region();
         iconRegion.getStyleClass().addAll("feature-icon", iconStyleClass);
+        RXSizing.lockToPrefSize(iconRegion);
 
         Label title = new Label(name);
         title.getStyleClass().add("feature-title");

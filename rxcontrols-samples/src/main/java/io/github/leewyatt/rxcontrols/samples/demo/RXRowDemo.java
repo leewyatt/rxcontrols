@@ -1,10 +1,10 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXImageView;
 import io.github.leewyatt.rxcontrols.layout.RXColSpec;
 import io.github.leewyatt.rxcontrols.layout.RXCol;
 import io.github.leewyatt.rxcontrols.layout.RXRow;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -250,8 +250,9 @@ public class RXRowDemo extends Application {
     }
 
     private Node plantRow(String plant, String detail, String status, String type) {
-        RXIcon dot = new RXIcon();
+        Region dot = new Region();
         dot.getStyleClass().addAll("plant-dot", type + "-dot");
+        RXSizing.lockToPrefSize(dot);
 
         Label plantLabel = label(plant, "plant-title");
         Label detailLabel = label(detail, "plant-detail");
@@ -296,8 +297,9 @@ public class RXRowDemo extends Application {
         return card;
     }
 
-    private RXIcon fixedIcon(String baseStyleClass, String iconStyleClass) {
-        RXIcon icon = new RXIcon();
+    private Region fixedIcon(String baseStyleClass, String iconStyleClass) {
+        Region icon = new Region();
+        RXSizing.lockToPrefSize(icon);
         icon.getStyleClass().addAll(baseStyleClass, iconStyleClass);
         return icon;
     }

@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXBarSpinner;
 import io.github.leewyatt.rxcontrols.RXDotPulse;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXTaskButton;
 import io.github.leewyatt.rxcontrols.animation.page.AnimBlinds;
 import io.github.leewyatt.rxcontrols.animation.page.AnimCube;
@@ -16,6 +15,7 @@ import io.github.leewyatt.rxcontrols.animation.page.AnimSqueeze;
 import io.github.leewyatt.rxcontrols.animation.page.AnimZoom;
 import io.github.leewyatt.rxcontrols.animation.page.PageAnimation;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
@@ -366,9 +366,10 @@ public class RXTaskButtonShowcase extends RXShowcaseApplication {
         return indicator;
     }
 
-    private static RXIcon createStar() {
-        RXIcon star = new RXIcon();
+    private static Region createStar() {
+        Region star = new Region();
         star.getStyleClass().add("star-icon");
+        RXSizing.lockToPrefSize(star);
         return star;
     }
 

@@ -1,14 +1,15 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXMaterialPasswordField;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -181,9 +182,10 @@ public class RXMaterialPasswordFieldShowcase extends RXShowcaseApplication {
 
     // ==================== Helpers ====================
 
-    private static RXIcon icon(String styleClass) {
-        RXIcon region = new RXIcon();
+    private static Region icon(String styleClass) {
+        Region region = new Region();
         region.getStyleClass().add(styleClass);
+        RXSizing.lockToPrefSize(region);
         return region;
     }
 

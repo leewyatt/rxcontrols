@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
+
 import javafx.beans.Observable;
 import javafx.beans.binding.Bindings;
 import javafx.css.PseudoClass;
@@ -45,9 +46,10 @@ final class DateTimeKit {
     private DateTimeKit() {
     }
 
-    static RXIcon icon(String shape, String color) {
-        RXIcon icon = new RXIcon();
+    static Region icon(String shape, String color) {
+        Region icon = new Region();
         icon.getStyleClass().addAll("symbol", shape, color);
+        RXSizing.lockToPrefSize(icon);
         return icon;
     }
 

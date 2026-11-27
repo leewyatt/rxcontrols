@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXFloatingActionButton;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXSpeedDial;
 import io.github.leewyatt.rxcontrols.RXSpeedDialAction;
 import io.github.leewyatt.rxcontrols.samples.demo.RXSpeedDialDemo;
@@ -22,6 +21,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
@@ -335,11 +335,13 @@ public class RXSpeedDialShowcase extends RXShowcaseApplication {
         return box;
     }
 
-    private static RXIcon icon(String shape) {
-        RXIcon icon = new RXIcon();
+    private static Region icon(String shape) {
+        Region icon = new Region();
         icon.getStyleClass().add("icon");
         icon.setStyle("-fx-shape: \"" + shape + "\";");
+        icon.setMinSize(18.0, 18.0);
         icon.setPrefSize(18.0, 18.0);
+        icon.setMaxSize(18.0, 18.0);
         return icon;
     }
 

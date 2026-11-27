@@ -2,10 +2,10 @@ package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXDecimalField;
 import io.github.leewyatt.rxcontrols.RXDoubleField;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXIntegerField;
 import io.github.leewyatt.rxcontrols.RXLongField;
 import io.github.leewyatt.rxcontrols.RXTextField;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -68,8 +68,9 @@ public final class NumberFieldSamples {
 
     private static Node longField() {
         RXLongField field = new RXLongField(8_589_934_592L);
-        RXIcon glyph = new RXIcon();
+        Region glyph = new Region();
         glyph.getStyleClass().addAll("glyph", "storage-glyph");
+        RXSizing.lockToPrefSize(glyph);
         field.setLeading(glyph);
         field.setTrailing(FieldSlots.unit("bytes"));
         return sized(field);

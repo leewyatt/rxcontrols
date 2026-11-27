@@ -3,7 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 import io.github.leewyatt.rxcontrols.RXChip;
 import io.github.leewyatt.rxcontrols.RXChipInput;
 import io.github.leewyatt.rxcontrols.RXChipInput.CustomInputPolicy;
-import io.github.leewyatt.rxcontrols.RXIcon;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.binding.Bindings;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -92,8 +92,9 @@ public final class RXChipInputSamples {
         input.setCustomInputPolicy(CustomInputPolicy.STRICT);
         input.getSuggestions().setAll(LABELS);
         input.setChipFactory(label -> {
-            RXIcon dot = new RXIcon();
+            Region dot = new Region();
             dot.getStyleClass().addAll("label-dot", label);
+            RXSizing.lockToPrefSize(dot);
             RXChip chip = new RXChip(label, dot);
             chip.setRemovable(true);
             return chip;

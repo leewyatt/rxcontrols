@@ -1,13 +1,13 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXButton;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXMenuButton;
 import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpoint;
 import io.github.leewyatt.rxcontrols.layout.RXBreakpointProfile;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
@@ -52,10 +52,11 @@ final class LayoutKit {
     private LayoutKit() {
     }
 
-    static RXIcon icon(String styleClass, String... more) {
-        RXIcon icon = new RXIcon();
+    static Region icon(String styleClass, String... more) {
+        Region icon = new Region();
         icon.getStyleClass().addAll("symbol", styleClass);
         icon.getStyleClass().addAll(more);
+        RXSizing.lockToPrefSize(icon);
         return icon;
     }
 

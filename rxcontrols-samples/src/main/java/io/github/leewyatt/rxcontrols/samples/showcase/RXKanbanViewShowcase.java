@@ -1,11 +1,11 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.ItemsJustify;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXKanbanColumn;
 import io.github.leewyatt.rxcontrols.RXKanbanView;
 import io.github.leewyatt.rxcontrols.SmoothScrollMode;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -109,8 +109,9 @@ public class RXKanbanViewShowcase extends RXShowcaseApplication {
         HBox header = new HBox();
         header.setAlignment(Pos.CENTER_LEFT);
 
-        RXIcon dot = new RXIcon();
+        Region dot = new Region();
         dot.getStyleClass().addAll("status-dot", statusDotClass(column));
+        RXSizing.lockToPrefSize(dot);
 
         Label title = new Label();
         title.getStyleClass().add("title");

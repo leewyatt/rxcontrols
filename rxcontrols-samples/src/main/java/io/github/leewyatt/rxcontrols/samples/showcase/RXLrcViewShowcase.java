@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXLrcView;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
 import io.github.leewyatt.rxcontrols.lrc.LrcDocument;
@@ -9,6 +8,7 @@ import io.github.leewyatt.rxcontrols.lrc.LrcParser;
 import io.github.leewyatt.rxcontrols.samples.demo.RXLrcViewDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.utils.RXMath;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -235,8 +235,9 @@ public class RXLrcViewShowcase extends RXShowcaseApplication {
     }
 
     private Button createPlayButton() {
-        RXIcon icon = new RXIcon();
+        Region icon = new Region();
         icon.getStyleClass().add("icon");
+        RXSizing.lockToPrefSize(icon);
 
         Button button = new Button("Play", icon);
         button.getStyleClass().add("play-button");

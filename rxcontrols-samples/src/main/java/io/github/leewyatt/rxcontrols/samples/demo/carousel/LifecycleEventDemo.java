@@ -1,9 +1,9 @@
 package io.github.leewyatt.rxcontrols.samples.demo.carousel;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.carousel.RXPageLifecycleEvent;
 import io.github.leewyatt.rxcontrols.animation.page.AnimWipe;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;
@@ -128,8 +128,9 @@ public class LifecycleEventDemo extends Application {
         subtitle.setOpacity(0);
 
         // Status indicator: Label with a Region graphic as the dot
-        RXIcon dot = new RXIcon();
+        Region dot = new Region();
         dot.getStyleClass().add("status-dot");
+        RXSizing.lockToPrefSize(dot);
 
         Label statusLabel = new Label("INIT", dot);
         statusLabel.setId(STATUS_ID_PREFIX + index);

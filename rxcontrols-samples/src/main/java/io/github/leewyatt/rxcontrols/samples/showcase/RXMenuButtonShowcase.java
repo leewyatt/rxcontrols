@@ -1,6 +1,5 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXMenuButton;
 import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXMenuList;
@@ -8,6 +7,7 @@ import io.github.leewyatt.rxcontrols.RXPlacement;
 import io.github.leewyatt.rxcontrols.RXPopupMenu;
 import io.github.leewyatt.rxcontrols.samples.demo.RXMenuButtonDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -295,9 +295,10 @@ public class RXMenuButtonShowcase extends RXShowcaseApplication {
         return item;
     }
 
-    private static RXIcon icon(String svgPath) {
-        RXIcon region = new RXIcon();
+    private static Region icon(String svgPath) {
+        Region region = new Region();
         region.getStyleClass().add("menu-icon");
+        RXSizing.lockToPrefSize(region);
         region.setStyle("-fx-shape: \"" + svgPath + "\";");
         return region;
     }

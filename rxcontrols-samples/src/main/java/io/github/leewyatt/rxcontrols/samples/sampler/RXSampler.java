@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols.samples.sampler;
 
 import atlantafx.base.theme.PrimerDark;
 import io.github.leewyatt.rxcontrols.RXBreadcrumbBar;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.RXSelectionBox;
 import io.github.leewyatt.rxcontrols.RXTaskButton;
@@ -15,6 +14,7 @@ import io.github.leewyatt.rxcontrols.samples.support.PageAnimationPresets;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes.ThemeChoice;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -255,9 +255,10 @@ public class RXSampler extends Application {
         return pager;
     }
 
-    private static RXIcon glyph(String styleClass) {
-        RXIcon glyph = new RXIcon();
+    private static Region glyph(String styleClass) {
+        Region glyph = new Region();
         glyph.getStyleClass().addAll("glyph", styleClass);
+        RXSizing.lockToPrefSize(glyph);
         glyph.setMouseTransparent(true);
         return glyph;
     }

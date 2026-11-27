@@ -8,11 +8,11 @@ import atlantafx.base.theme.NordLight;
 import atlantafx.base.theme.PrimerDark;
 import atlantafx.base.theme.PrimerLight;
 import io.github.leewyatt.rxcontrols.RXBadge;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes.ThemeChoice;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Application;
 import javafx.css.PseudoClass;
 import javafx.geometry.Bounds;
@@ -340,9 +340,10 @@ final class SamplerThemeSwitcher extends HBox {
         return item;
     }
 
-    private static RXIcon glyph(String styleClass) {
-        RXIcon glyph = new RXIcon();
+    private static Region glyph(String styleClass) {
+        Region glyph = new Region();
         glyph.getStyleClass().addAll("glyph", styleClass);
+        RXSizing.lockToPrefSize(glyph);
         glyph.setMouseTransparent(true);
         return glyph;
     }

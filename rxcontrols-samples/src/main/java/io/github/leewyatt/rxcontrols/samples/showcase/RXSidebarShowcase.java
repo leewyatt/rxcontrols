@@ -1,7 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXDialogs;
-import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebar.FlyoutTrigger;
 import io.github.leewyatt.rxcontrols.RXSidebar.Mode;
@@ -10,6 +9,7 @@ import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSidebarSeparator;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.animation.Interpolator;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
@@ -26,6 +26,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
@@ -359,8 +360,9 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
     }
 
     private static Node tip(String text) {
-        RXIcon dot = new RXIcon();
+        Region dot = new Region();
         dot.getStyleClass().add("dot");
+        RXSizing.lockToPrefSize(dot);
         Label label = new Label(text);
         label.setWrapText(true);
         HBox row = new HBox(10.0, dot, label);
@@ -384,16 +386,18 @@ public class RXSidebarShowcase extends RXShowcaseApplication {
         return clear;
     }
 
-    private static RXIcon glyph(String name) {
-        RXIcon region = new RXIcon();
+    private static Region glyph(String name) {
+        Region region = new Region();
         region.getStyleClass().addAll("glyph", name);
+        RXSizing.lockToPrefSize(region);
         region.setMouseTransparent(true);
         return region;
     }
 
-    private static RXIcon icon(String name) {
-        RXIcon region = new RXIcon();
+    private static Region icon(String name) {
+        Region region = new Region();
         region.getStyleClass().addAll("graphic", name);
+        RXSizing.lockToPrefSize(region);
         region.setMouseTransparent(true);
         return region;
     }
