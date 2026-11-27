@@ -782,35 +782,6 @@ public class RXChipInput<T> extends Control {
         hideOnSelect.set(value);
     }
 
-    private final BooleanProperty animated = new SimpleBooleanProperty(this, "animated", true);
-
-    /**
-     * Whether the suggestion popup animates its entrance. Default {@code true}.
-     *
-     * @return the animated property
-     */
-    public final BooleanProperty animatedProperty() {
-        return animated;
-    }
-
-    /**
-     * Returns whether the popup is animated.
-     *
-     * @return whether the popup is animated
-     */
-    public final boolean isAnimated() {
-        return animated.get();
-    }
-
-    /**
-     * Sets whether the popup is animated.
-     *
-     * @param value {@code true} to animate the popup entrance
-     */
-    public final void setAnimated(boolean value) {
-        animated.set(value);
-    }
-
     private final ReadOnlyBooleanWrapper popupShowing =
             new ReadOnlyBooleanWrapper(this, "popupShowing", false) {
                 @Override

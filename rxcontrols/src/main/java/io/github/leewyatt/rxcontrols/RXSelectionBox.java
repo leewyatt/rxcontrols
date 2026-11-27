@@ -661,39 +661,6 @@ public class RXSelectionBox<T> extends Control {
         autoHideOnSelection.set(value);
     }
 
-    // ==================== Animation Enabled ====================
-
-    private final BooleanProperty animationEnabled = new SimpleBooleanProperty(this, "animationEnabled", false);
-
-    /**
-     * Whether the popup plays a short scale-and-fade entrance animation when
-     * shown. Defaults to {@code false}, so the popup appears at once like a
-     * native combo box.
-     *
-     * @return the animation-enabled property
-     */
-    public final BooleanProperty animationEnabledProperty() {
-        return animationEnabled;
-    }
-
-    /**
-     * Returns whether the entrance animation is enabled.
-     *
-     * @return whether the entrance animation is enabled
-     */
-    public final boolean isAnimationEnabled() {
-        return animationEnabled.get();
-    }
-
-    /**
-     * Sets whether the entrance animation is enabled.
-     *
-     * @param value {@code true} to enable the entrance animation
-     */
-    public final void setAnimationEnabled(boolean value) {
-        animationEnabled.set(value);
-    }
-
     // ==================== Max Visible Rows ====================
 
     private final IntegerProperty maxVisibleRows =

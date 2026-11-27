@@ -121,7 +121,6 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
         popup.setCellFactory(control.getSuggestionCellFactory());
         popup.setMaxVisibleRows(control.getVisibleRowCount());
         popup.setHideOnSelect(control.isHideOnSelect());
-        popup.setAnimated(control.isAnimated());
         popup.setOffset(0, POPUP_GAP);
         // Anchor to the editor (which rides the caret row) at content width, so the
         // list opens next to what is being typed rather than under the whole field.
@@ -149,8 +148,6 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
                 () -> popup.setMaxVisibleRows(control.getVisibleRowCount()));
         disposer.registerListener(control.hideOnSelectProperty(),
                 () -> popup.setHideOnSelect(control.isHideOnSelect()));
-        disposer.registerListener(control.animatedProperty(),
-                () -> popup.setAnimated(control.isAnimated()));
         disposer.registerListener(popup.showingProperty(),
                 () -> control.setPopupShowing(popup.isShowing()));
         disposer.registerListener(popup.getFilteredSuggestions(), this::onFilteredSuggestionsChanged);

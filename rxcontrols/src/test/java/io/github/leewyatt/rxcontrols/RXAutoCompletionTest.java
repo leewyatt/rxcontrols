@@ -238,7 +238,6 @@ public class RXAutoCompletionTest {
             assertNull(completion.getOnAutoCompleted(), "no completion observer by default");
             assertEquals(RXAutoCompletion.DEFAULT_VISIBLE_ROW_COUNT, completion.getVisibleRowCount(),
                     "default visible rows matches the popup default");
-            assertTrue(completion.isAnimated(), "animated by default");
             assertFalse(completion.isPopupShowing(), "popupShowing defaults to false");
         });
     }

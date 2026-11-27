@@ -5,7 +5,6 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
-import javafx.css.Styleable;
 import javafx.scene.AccessibleAction;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Scene;
@@ -70,7 +69,6 @@ public class RXSelectionBoxTest {
         assertTrue(box.isSearchable());
         assertTrue(box.isAutoHideOnSelection());
         assertTrue(box.isClearSearchOnHide());
-        assertFalse(box.isAnimationEnabled());
         assertFalse(box.isReadOnly());
         assertEquals(8, box.getMaxVisibleRows());
         assertNotNull(box.getSelectionModel());

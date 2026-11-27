@@ -163,18 +163,6 @@ public final class AutoCompletionSupport<T> {
         popup.setMaxVisibleRows(value);
     }
 
-    /**
-     * Sets whether the dropdown plays its entrance animation.
-     *
-     * @param value the animated flag
-     */
-    public void setAnimated(boolean value) {
-        if (disposed) {
-            return;
-        }
-        popup.setAnimated(value);
-    }
-
     // ==================== State + entry points ====================
 
     /**

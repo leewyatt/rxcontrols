@@ -19,8 +19,7 @@ import java.util.List;
  * Showcase application for {@link RXSelectionBox}.
  *
  * <p>Exposes the selection mode (single / multiple), the searchable popup,
- * the built-in Clear / Select All actions, {@code maxVisibleRows}, the entrance
- * animation toggle, and the {@code readOnly} / {@code disabled} states over a
+ * the built-in Clear / Select All actions, {@code maxVisibleRows}, and the {@code readOnly} / {@code disabled} states over a
  * virtualized list of items.</p>
  */
 public class RXSelectionBoxShowcase extends RXShowcaseApplication {
@@ -139,12 +138,8 @@ public class RXSelectionBoxShowcase extends RXShowcaseApplication {
                 () -> (int) Math.round(rows.getValue()), rows.valueProperty()));
         Label rowsValue = createValueLabel(rows, "%.0f");
 
-        CheckBox animated = new CheckBox("animationEnabled");
-        animated.selectedProperty().bindBidirectional(selectionBox.animationEnabledProperty());
-
         return createGrid(
-                row("Max rows", rows, rowsValue),
-                row(animated));
+                row("Max rows", rows, rowsValue));
     }
 
     private Node buildStateGrid() {

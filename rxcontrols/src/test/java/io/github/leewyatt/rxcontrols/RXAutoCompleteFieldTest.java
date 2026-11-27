@@ -109,7 +109,6 @@ public class RXAutoCompleteFieldTest {
             assertNull(field.getOnAutoCompleted(), "no completion observer by default");
             assertEquals(RXAutoCompleteField.DEFAULT_VISIBLE_ROW_COUNT, field.getVisibleRowCount(),
                     "default visible rows matches the popup default");
-            assertTrue(field.isAnimated(), "animated by default");
             assertTrue(field.getStyleClass().contains("rx-auto-complete-field"),
                     "carries its own style class");
             assertTrue(field.getStyleClass().contains("rx-text-field"),

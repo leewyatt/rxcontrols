@@ -41,7 +41,6 @@ public class RXAutoCompleteFieldSkin extends RXTextFieldSkin {
         support.setConverter(control.getConverter());
         support.setCellFactory(control.getSuggestionCellFactory());
         support.setMaxVisibleRows(control.getVisibleRowCount());
-        support.setAnimated(control.isAnimated());
 
         disposer.registerListener(control.filterFactoryProperty(), support::requestRefilter);
         disposer.registerListener(control.converterProperty(),
@@ -50,8 +49,6 @@ public class RXAutoCompleteFieldSkin extends RXTextFieldSkin {
                 () -> support.setCellFactory(control.getSuggestionCellFactory()));
         disposer.registerListener(control.visibleRowCountProperty(),
                 () -> support.setMaxVisibleRows(control.getVisibleRowCount()));
-        disposer.registerListener(control.animatedProperty(),
-                () -> support.setAnimated(control.isAnimated()));
         disposer.registerListener(support.popupShowingProperty(),
                 () -> control.setPopupShowing(support.isPopupShowing()));
         disposer.registerDisposeTask(support::dispose);

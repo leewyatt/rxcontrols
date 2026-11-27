@@ -3,7 +3,6 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.RXAutoCompleteField;
 import io.github.leewyatt.rxcontrols.RXListCell;
 import io.github.leewyatt.rxcontrols.RXListView;
-import io.github.leewyatt.rxcontrols.samples.demo.RXAutoCompleteFieldDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
@@ -29,8 +28,8 @@ import java.util.function.Predicate;
  * Showcase application for {@link RXAutoCompleteField}.
  *
  * <p>Exercises the local suggestion field: swappable dataset, filter strategy
- * ({@code filterFactory}), the number of visible dropdown rows, the entrance
- * animation toggle, converter and custom suggestion-cell-factory rendering, and a
+ * ({@code filterFactory}), the number of visible dropdown rows, the
+ * converter and custom suggestion-cell-factory rendering, and a
  * live readout driven by the {@code onAutoCompleted} event (the default completion
  * handler stays in place).
  *
@@ -189,9 +188,6 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
                 field.setVisibleRowCount((int) Math.round(newV.doubleValue())));
         Label rowsValue = createValueLabel(rows, "%.0f");
 
-        CheckBox animated = new CheckBox("Entrance animation");
-        animated.selectedProperty().bindBidirectional(field.animatedProperty());
-
         CheckBox upperCase = new CheckBox("Upper-case rows (converter)");
         upperCase.selectedProperty().addListener((obs, was, on) ->
                 field.setConverter(Boolean.TRUE.equals(on) ? UPPER_CASE_CONVERTER : null));
@@ -202,7 +198,6 @@ public class RXAutoCompleteFieldShowcase extends RXShowcaseApplication {
 
         return createGrid(
                 row("Visible rows", rows, rowsValue),
-                row(animated),
                 row(upperCase),
                 row(customCells));
     }
