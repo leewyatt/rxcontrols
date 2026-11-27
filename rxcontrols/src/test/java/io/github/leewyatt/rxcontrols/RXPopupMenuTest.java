@@ -593,17 +593,18 @@ public class RXPopupMenuTest {
 
     // ==================== Layout ====================
 
-    /** A menu of short labels opens at the 112px minimum and still lines up with the anchor's trailing edge. */
+    /** A menu of short labels hugs its text, as a Modena context menu, and lines up with the anchor's trailing edge. */
     @Test
     @Tag("ui")
-    public void shortMenuOpensAtMinimumWidthAndStaysEndAligned() throws InterruptedException {
+    public void shortMenuHugsItsTextAndStaysEndAligned() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
             RXPopupMenu menu = menuOf("A");
             menu.show(anchor, RXPlacement.BOTTOM_END);
             RXMenuList list = menu.getMenuList();
 
-            assertEquals(112.0, list.getWidth(), 0.5);
+            assertEquals(list.prefWidth(-1), list.getWidth(), 0.5);
+            assertTrue(list.getWidth() < 112.0, "no Material minimum under Modena");
             // The popup card around the list lines up with the anchor.
             Region card = (Region) list.getParent();
             assertEquals(anchor.localToScreen(anchor.getLayoutBounds()).getMaxX(),

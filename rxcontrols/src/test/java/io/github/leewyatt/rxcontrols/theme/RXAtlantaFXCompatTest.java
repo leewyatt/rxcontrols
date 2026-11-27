@@ -73,12 +73,21 @@ public class RXAtlantaFXCompatTest {
     private static final Pattern DEFAULT_STYLE_CLASS =
             Pattern.compile("DEFAULT_STYLE_CLASS\\s*=\\s*\"(rx-[a-z0-9-]+)\"");
 
+    // The color picker frame and the popup menu rows copy Modena's own controls; under the
+    // bridge every rule reading these is overridden, and supplying them in the compat block
+    // would recolor plain JavaFX controls placed inside RX containers.
+    private static final String MODENA_ONLY = "read only by Modena rules the AtlantaFX scope overrides";
+
     /**
      * Component-rule references allowed without a compat entry, each with the reason
-     * every reference point sees a local declaration. Empty: no component rule declares
-     * a Modena palette token of its own.
+     * no reference is resolved under the bridge.
      */
-    private static final Map<String, String> EXCEPTIONS = Map.of();
+    private static final Map<String, String> EXCEPTIONS = Map.of(
+            "-fx-outer-border", MODENA_ONLY,
+            "-fx-shadow-highlight-color", MODENA_ONLY,
+            "-fx-mark-color", MODENA_ONLY,
+            "-fx-focused-mark-color", MODENA_ONLY,
+            "-fx-focused-text-base-color", MODENA_ONLY);
 
     /** Held strongly: the log manager keeps loggers weakly, and a fresh one would drop the handler. */
     private static final Logger CSS_LOGGER = Logger.getLogger("javafx.css");

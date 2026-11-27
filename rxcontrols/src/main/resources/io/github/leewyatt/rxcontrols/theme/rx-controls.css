@@ -3944,10 +3944,114 @@
 .rx-menu-popup {
     -fx-background-color: transparent;
 }
-/* Material's 112px menu minimum: a menu of short labels does not hug its text on the
-   trailing side. Popup only; an inline .rx-menu-list keeps its content width. */
+/* Popup menus are Modena's own context menu: compact rows, no minimum width, a square
+   selection bar with the focused text and mark colors, its check mark for check and
+   radio items, and no ripple. AtlantaFX keeps the Material menu (the rules after these).
+   Popup only; an inline .rx-menu-list keeps its own look. */
 .rx-menu-popup .rx-menu-list {
+    -fx-padding: 0.333333em 0.083333em;
+    -rx-ripple-enabled: false;
+    -rx-ripple-state-overlay-enabled: false;
+}
+
+.rx-menu-popup .rx-menu-item,
+.rx-menu-popup .rx-menu-list:dense .rx-menu-item {
+    -fx-padding: 0.333333em 0.41777em;
+    -fx-min-height: -1;
+    -fx-background-radius: 0;
+}
+
+.rx-menu-popup .rx-menu-item:focused {
+    -fx-background-color: -fx-selection-bar;
+}
+
+.rx-menu-popup .rx-menu-item:focused > .label,
+.rx-menu-popup .rx-menu-item:focused > .trailing {
+    -fx-text-fill: -fx-focused-text-base-color;
+}
+
+.rx-menu-popup .rx-menu-item > .leading > .checkmark,
+.rx-menu-popup .rx-menu-item > .leading > .radiomark {
+    -fx-min-width: 10;
+    -fx-min-height: 10;
+    -fx-pref-width: 10;
+    -fx-pref-height: 10;
+    -fx-background-color: -fx-mark-color;
+    -fx-background-radius: 0;
+    -fx-shape: "M0,5H2L4,8L8,0H10L5,10H3Z";
+}
+
+.rx-menu-popup .rx-menu-item:focused > .leading > .checkmark,
+.rx-menu-popup .rx-menu-item:focused > .leading > .radiomark {
+    -fx-background-color: -fx-focused-mark-color;
+}
+
+.rx-menu-popup .rx-menu-item:danger > .leading > .checkmark {
+    -fx-background-color: -rx-danger;
+}
+
+/* AtlantaFX: the Material menu, with its 112px minimum so a menu of short labels does
+   not hug its text on the trailing side. */
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-list {
     -fx-min-width: 112;
+    -fx-padding: 4 0 4 0;
+    -rx-ripple-enabled: true;
+    -rx-ripple-state-overlay-enabled: true;
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-list:dense {
+    -fx-padding: 2 0 2 0;
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item {
+    -fx-padding: 8 12 8 12;
+    -fx-min-height: 32;
+    -fx-background-radius: 4;
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-list:dense .rx-menu-item {
+    -fx-padding: 4 12 4 12;
+    -fx-min-height: 28;
+    -fx-background-radius: 4;
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:focused {
+    -fx-background-color: -rx-selection;
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:focused > .label {
+    -fx-text-fill: -rx-on-surface;
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:focused > .trailing {
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:danger:focused > .label {
+    -fx-text-fill: -rx-danger;
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item > .leading > .checkmark {
+    -fx-min-width: 14;
+    -fx-min-height: 14;
+    -fx-pref-width: 14;
+    -fx-pref-height: 14;
+    -fx-background-color: -rx-on-surface;
+    -fx-shape: "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item > .leading > .radiomark {
+    -fx-min-width: 8;
+    -fx-min-height: 8;
+    -fx-pref-width: 8;
+    -fx-pref-height: 8;
+    -fx-background-color: -rx-primary;
+    -fx-background-radius: 50%;
+    -fx-shape: null;
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:danger > .leading > .checkmark {
+    -fx-background-color: -rx-danger;
 }
 /* The max-height scroll wrapper is transparent so the menu surface shows through;
    no border / inset / padding of its own. */

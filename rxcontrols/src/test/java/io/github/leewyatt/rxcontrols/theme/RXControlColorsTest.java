@@ -29,6 +29,7 @@ import io.github.leewyatt.rxcontrols.RXLineButton;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
 import io.github.leewyatt.rxcontrols.RXMenuButton;
+import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXMenuList;
 import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.RXRangeSlider;
@@ -1060,6 +1061,56 @@ public class RXControlColorsTest {
             states.put(state, frame.toString());
         }
         return states;
+    }
+
+    // ==================== Popup menus ====================
+
+    @Test
+    public void popupMenusFollowModenasContextMenu() throws Exception {
+        assertPopupMenu("default Modena", Application.STYLESHEET_MODENA, scene -> { }, true);
+        assertPopupMenu("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette, true);
+        assertPopupMenu("Primer Light", new PrimerLight().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install,
+                false);
+    }
+
+    private static void assertPopupMenu(String host, String userAgentStylesheet, Consumer<Scene> themer,
+            boolean modena) throws Exception {
+        Map<String, String> expected = resolve(userAgentStylesheet, themer, modena
+                ? List.of("-fx-selection-bar", "-fx-focused-text-base-color")
+                : List.of("-rx-selection"));
+        Map<String, String> menu = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(userAgentStylesheet);
+            RXMenuList list = new RXMenuList();
+            list.getItems().addAll(RXMenuItem.of("HEX"), RXMenuItem.of("RGB"));
+            StackPane popup = styled(new StackPane(list), "rx-menu-popup");
+            Scene scene = new Scene(new StackPane(popup), 300, 300);
+            themer.accept(scene);
+            scene.getRoot().applyCss();
+            Region item = (Region) list.lookup(".rx-menu-item");
+            item.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), true);
+            scene.getRoot().applyCss();
+            BackgroundFill bar = item.getBackground().getFills().get(0);
+            menu.put("bar", ThemeColorSamples.hex(bar.getFill()));
+            menu.put("radius", String.valueOf(bar.getRadii().getTopLeftHorizontalRadius()));
+            menu.put("text", ThemeColorSamples.hex(((Labeled) item.lookup(".label")).getTextFill()));
+            menu.put("minWidth", String.valueOf(list.getMinWidth()));
+            menu.put("ripple", String.valueOf(list.isRippleEnabled()));
+        });
+        String name = "popup menu under " + host;
+        if (modena) {
+            // Modena's context menu: a square selection bar, focused text, no minimum, no ripple.
+            assertEquals(expected.get("-fx-selection-bar"), menu.get("bar"), name + " selection bar");
+            assertEquals(expected.get("-fx-focused-text-base-color"), menu.get("text"), name + " focused text");
+            assertEquals("0.0", menu.get("radius"), name + " square bar");
+            assertEquals(String.valueOf(Region.USE_COMPUTED_SIZE), menu.get("minWidth"), name + " minimum width");
+            assertEquals("false", menu.get("ripple"), name + " ripple");
+        } else {
+            assertEquals(expected.get("-rx-selection"), menu.get("bar"), name + " Material selection");
+            assertEquals("4.0", menu.get("radius"), name + " rounded selection");
+            assertEquals("112.0", menu.get("minWidth"), name + " Material minimum width");
+            assertEquals("true", menu.get("ripple"), name + " ripple");
+        }
     }
 
     // ==================== Focus rings ====================
