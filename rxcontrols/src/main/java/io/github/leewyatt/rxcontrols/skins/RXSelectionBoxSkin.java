@@ -558,36 +558,45 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         if (control == null) {
             return insets;
         }
-        int count = filtered.size();
-        int rows = count == 0 ? 1 : Math.min(count, Math.max(1, control.getVisibleRowCount()));
         double cellSize = popupList.getFixedCellSize();
         if (!(cellSize > 0.0)) {
             cellSize = RXListView.DEFAULT_FIXED_CELL_SIZE;
         }
-        return rows * cellSize + sectionHeaderExtent(control, rows) + insets;
+        if (filtered.isEmpty()) {
+            // One row of room for the empty placeholder.
+            return cellSize + insets;
+        }
+        return visibleRowsExtent(control, cellSize) + insets;
     }
 
     /**
-     * Extra vertical extent contributed by section headers within the first
-     * {@code rows} data rows, so the popup does not clip its content (or show a
-     * premature scrollbar) when a {@code sectionKeyFactory} is set.
+     * Height of the first {@code visibleRowCount} rows. A section header counts as
+     * a row, as the native combo box counts every row it shows, so headers never
+     * make the popup taller than the row count.
      */
-    private double sectionHeaderExtent(RXSelectionBox<T> control, int rows) {
-        Callback<T, Object> keyFactory = control.getSectionKeyFactory();
-        if (keyFactory == null || !popupList.isShowSectionHeaders()) {
-            return 0.0;
-        }
-        int headers = 0;
+    private double visibleRowsExtent(RXSelectionBox<T> control, double cellSize) {
+        int maxRows = Math.max(1, control.getVisibleRowCount());
+        Callback<T, Object> keyFactory = popupList.isShowSectionHeaders() ? control.getSectionKeyFactory() : null;
+        double extent = 0.0;
+        int rows = 0;
         Object previousKey = null;
-        int limit = Math.min(rows, filtered.size());
-        for (int i = 0; i < limit; i++) {
-            Object key = keyFactory.call(filtered.get(i));
-            if (i == 0 || !Objects.equals(key, previousKey)) {
-                headers++;
+        for (int i = 0; i < filtered.size() && rows < maxRows; i++) {
+            if (keyFactory != null) {
+                Object key = keyFactory.call(filtered.get(i));
+                if (i == 0 || !Objects.equals(key, previousKey)) {
+                    // Spacing goes before every section but the first.
+                    extent += (i == 0 ? 0.0 : popupList.getSectionSpacing()) + popupList.getSectionHeaderHeight();
+                    rows++;
+                    if (rows == maxRows) {
+                        break;
+                    }
+                }
+                previousKey = key;
             }
-            previousKey = key;
+            extent += cellSize;
+            rows++;
         }
-        return headers * (popupList.getSectionHeaderHeight() + popupList.getSectionSpacing());
+        return extent;
     }
 
     // ==================== Popup show / hide ====================

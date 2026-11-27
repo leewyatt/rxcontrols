@@ -614,6 +614,20 @@ public class RXSelectionBoxPopupTest {
         });
     }
 
+    @Test
+    public void sectionHeadersCountAsVisibleRows() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("a1", "a2", "a3", "b1", "b2");
+            box.setVisibleRowCount(3);
+            box.setSectionKeyFactory(item -> item.substring(0, 1));
+            box.show();
+            RXListView<?> list = popupList();
+            assertEquals(list.getSectionHeaderHeight() + 2 * list.getFixedCellSize()
+                            + list.snappedTopInset() + list.snappedBottomInset(), list.getHeight(), 1e-6,
+                    "three rows are the 'a' header and two items, not three items plus their header");
+        });
+    }
+
     private RXSelectionBox<String> newShownBox(String... items) {
         RXSelectionBox<String> box = new RXSelectionBox<>(FXCollections.observableArrayList(items));
         stage = new Stage();
