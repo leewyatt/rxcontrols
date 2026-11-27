@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.skins;
 
 import io.github.leewyatt.rxcontrols.RXColorFormat;
 import io.github.leewyatt.rxcontrols.RXColorPicker;
+import io.github.leewyatt.rxcontrols.RXCopyButton;
 import io.github.leewyatt.rxcontrols.RXColorView;
 import io.github.leewyatt.rxcontrols.internal.color.ColorMath;
 import io.github.leewyatt.rxcontrols.internal.color.ColorSwatch;
@@ -13,10 +14,16 @@ import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
+import javafx.event.Event;
+import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.control.Label;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -55,6 +62,8 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
 
     private static final double POPUP_GAP = 4.0;
     private static final double SWATCH_SIZE = 24.0;
+    private static final double COPY_BUTTON_GAP = 4.0;
+    private static final KeyCombination COPY_KEY = new KeyCodeCombination(KeyCode.C, KeyCombination.SHORTCUT_DOWN);
     /** Keys a popup must not let through to the picker or a dialog. */
     private static final Set<KeyCode> POPUP_KEYS = EnumSet.of(KeyCode.ENTER, KeyCode.SPACE, KeyCode.F4,
             KeyCode.UP, KeyCode.DOWN, KeyCode.LEFT, KeyCode.RIGHT, KeyCode.PAGE_UP, KeyCode.PAGE_DOWN,
@@ -65,6 +74,7 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
     private final HBox display = new HBox();
     private final ColorSwatch swatch = new ColorSwatch("color");
     private final ValueText text = new ValueText();
+    private final RXCopyButton copyButton = new RXCopyButton();
     private final RXColorView view = new RXColorView();
     private final RXPopupSupport popupSupport;
 
@@ -102,6 +112,11 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         text.getStyleClass().add("text");
         text.setMinWidth(Region.USE_PREF_SIZE);
         display.getChildren().addAll(swatch, text);
+        copyButton.getStyleClass().add("copy-button");
+        copyButton.setCopiedText(null);
+        copyButton.setFocusTraversable(false);
+        copyButton.setAccessibleText("Copy color");
+        copyButton.setContentFactory(this::copyContent);
 
         popupSupport = new RXPopupSupport(view);
         popupSupport.setPopupStyleClass("rx-color-picker-popup");
@@ -130,7 +145,7 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
             return;
         }
         activated = true;
-        getChildren().setAll(display);
+        getChildren().setAll(display, copyButton);
 
         // Configuration flows down; value and format are synced both ways.
         disposer.registerBinding(view.alphaEnabledProperty(), control.alphaEnabledProperty());
@@ -153,6 +168,9 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         disposer.registerListener(control.showTextProperty(), live(this::updateDisplay));
         disposer.registerListener(control.promptTextProperty(), live(this::updateDisplay));
         disposer.registerListener(control.alphaEnabledProperty(), live(this::updateDisplay));
+        disposer.registerListener(control.copyButtonVisibleProperty(), live(this::updateDisplay));
+        // Copying is not an edit: the button's action must not reach the picker's handlers.
+        disposer.registerEventHandler(copyButton, ActionEvent.ACTION, Event::consume);
         disposer.registerListener(control.showingProperty(), live(this::syncPopup));
         disposer.registerListener(control.disabledProperty(), live(() -> {
             if (control.isDisabled()) {
@@ -231,6 +249,10 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         RXColorPicker control = getSkinnable();
         Color value = control.getValue();
         swatch.showColor(value);
+        boolean copyVisible = control.isCopyButtonVisible();
+        copyButton.setVisible(copyVisible);
+        copyButton.setManaged(copyVisible);
+        copyButton.setDisable(value == null);
         boolean showText = control.isShowText();
         text.setVisible(showText);
         text.setManaged(showText);
@@ -239,6 +261,12 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
             text.setText(value == null ? control.getPromptText() : ColorMath.toText(value, format));
             text.reserve(format, control.isAlphaEnabled(), control.getPromptText());
         }
+    }
+
+    private ClipboardContent copyContent() {
+        RXColorPicker control = getSkinnable();
+        Color value = control == null ? null : control.getValue();
+        return RXCopyButton.textContent(value == null ? null : ColorMath.toText(value, control.getFormat()));
     }
 
     /**
@@ -412,6 +440,13 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         if (control.isDisabled()) {
             return;
         }
+        if (COPY_KEY.match(event)) {
+            if (copyButton.isManaged() && !copyButton.isDisabled()) {
+                event.consume();
+                copyButton.fire();
+            }
+            return;
+        }
         KeyCode code = event.getCode();
         if (!control.isShowing()) {
             // Enter is left to bubble, so an enclosing form's default button still sees it.
@@ -451,19 +486,33 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
 
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
-        display.resizeRelocate(x, y, w, h);
+        if (!copyButton.isManaged()) {
+            display.resizeRelocate(x, y, w, h);
+            return;
+        }
+        double buttonWidth = snapSizeX(copyButton.prefWidth(-1));
+        display.resizeRelocate(x, y, Math.max(0.0, w - COPY_BUTTON_GAP - buttonWidth), h);
+        layoutInArea(copyButton, x + w - buttonWidth, y, buttonWidth, h, 0.0, HPos.CENTER, VPos.CENTER);
     }
 
     @Override
     protected double computePrefWidth(double height, double topInset, double rightInset, double bottomInset,
                                       double leftInset) {
-        return leftInset + display.prefWidth(-1) + rightInset;
+        double width = display.prefWidth(-1);
+        if (copyButton.isManaged()) {
+            width += COPY_BUTTON_GAP + snapSizeX(copyButton.prefWidth(-1));
+        }
+        return leftInset + width + rightInset;
     }
 
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset, double bottomInset,
                                        double leftInset) {
-        return topInset + display.prefHeight(-1) + bottomInset;
+        double height = display.prefHeight(-1);
+        if (copyButton.isManaged()) {
+            height = Math.max(height, copyButton.prefHeight(-1));
+        }
+        return topInset + height + bottomInset;
     }
 
     @Override

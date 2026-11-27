@@ -5991,8 +5991,29 @@
     -fx-shape: "M 22 0 L 24 0 L 24 2 L 2 24 L 0 24 L 0 22 Z";
 }
 
+.rx-color-picker > .copy-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4px;
+    -fx-padding: 3px;
+}
+
+.rx-color-picker > .copy-button:hover,
+.rx-color-picker > .copy-button:armed {
+    -fx-background-color: -rx-surface-variant;
+}
+
+.rx-color-picker > .copy-button .copy-face > .indicator {
+    -fx-background-color: -rx-on-surface-secondary;
+}
+
 .rx-color-picker:disabled {
     -fx-opacity: 0.4;
+}
+
+/* The picker already fades as a whole; the copy button it disables must not fade twice. */
+.rx-color-picker:disabled > .copy-button {
+    -fx-opacity: 1;
 }
 
 /* The popup content is the view itself; it carries the card and its shadow. */

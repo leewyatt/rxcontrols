@@ -44,11 +44,14 @@ import javafx.scene.paint.Color;
  * <p><b>Keyboard.</b> On the picker, Space, Down, Alt+Down and F4 open the
  * popup; Enter is left to the form's default button. While the popup is open,
  * Escape, F4 and Alt+Up close it and return the focus to the picker. Focus
- * moves into the popup when it opens; Tab cycles inside it.
+ * moves into the popup when it opens; Tab cycles inside it. With the
+ * {@link #copyButtonVisibleProperty() copy button} shown, Shortcut+C copies
+ * the color as text.
  *
  * <p>CSS: style class {@code rx-color-picker}, pseudo-classes {@code :showing}
  * and {@code :empty}; the {@code .display} holds the {@code .swatch} and the
- * {@code .text}. The popup has style class {@code rx-color-picker-popup} and
+ * {@code .text}, followed by the {@code .copy-button} (an
+ * {@link RXCopyButton}). The popup has style class {@code rx-color-picker-popup} and
  * hosts an {@code .rx-color-view}; style it with
  * {@code .rx-color-picker-popup .rx-color-view}. Use the picker on the JavaFX
  * Application Thread.
@@ -299,6 +302,43 @@ public class RXColorPicker extends Control {
      */
     public final void setShowText(boolean value) {
         showText.set(value);
+    }
+
+    // ==================== Copy Button Visible ====================
+
+    private final BooleanProperty copyButtonVisible =
+            new SimpleBooleanProperty(this, "copyButtonVisible", false);
+
+    /**
+     * Whether a copy button after the swatch is shown. It copies the color as
+     * text in the {@link #formatProperty() format}, the same text
+     * {@link #showTextProperty() showText} displays, and is disabled for no
+     * color. While it is shown, Shortcut+C (Ctrl+C, or Cmd+C on macOS) on the
+     * picker copies as well; the button itself takes no keyboard focus.
+     * Copying fires no action. Defaults to {@code false}.
+     *
+     * @return the copy-button-visible property
+     */
+    public final BooleanProperty copyButtonVisibleProperty() {
+        return copyButtonVisible;
+    }
+
+    /**
+     * Returns whether the copy button is shown.
+     *
+     * @return {@code true} if the copy button is shown
+     */
+    public final boolean isCopyButtonVisible() {
+        return copyButtonVisible.get();
+    }
+
+    /**
+     * Sets whether the copy button is shown.
+     *
+     * @param value {@code true} to show the copy button
+     */
+    public final void setCopyButtonVisible(boolean value) {
+        copyButtonVisible.set(value);
     }
 
     // ==================== Prompt Text ====================

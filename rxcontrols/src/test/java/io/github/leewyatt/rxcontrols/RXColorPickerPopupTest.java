@@ -166,6 +166,45 @@ public class RXColorPickerPopupTest {
         });
     }
 
+    // ==================== Copy button ====================
+
+    // The system clipboard is never written: the content is read from the factory,
+    // and actions are fired only at a disabled button, which copies nothing.
+    @Test
+    public void theCopyButtonCopiesTheFormatTextAndNeverActs() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker(Color.rgb(22, 119, 255, 128 / 255.0)));
+            RXCopyButton button = (RXCopyButton) picker.lookup(".copy-button");
+            assertFalse(button.isVisible());
+            assertFalse(button.isManaged());
+            double hiddenWidth = picker.prefWidth(-1);
+            KeyEvent copyKey = copyKey();
+            picker.fireEvent(copyKey);
+
+            picker.setCopyButtonVisible(true);
+            picker.applyCss();
+            assertTrue(button.isVisible());
+            assertTrue(button.isManaged());
+            assertFalse(button.isFocusTraversable());
+            assertTrue(picker.prefWidth(-1) > hiddenWidth);
+            assertEquals("#1677FF80", button.getContentFactory().get().getString());
+            picker.setFormat(RXColorFormat.RGB);
+            assertEquals("rgba(22, 119, 255, 0.5)", button.getContentFactory().get().getString());
+
+            picker.setValue(null);
+            assertTrue(button.isDisabled());
+            button.fireEvent(new ActionEvent());
+            picker.fireEvent(copyKey());
+            assertEquals(0, actions.get());
+            assertFalse(picker.isShowing());
+        });
+    }
+
+    private static KeyEvent copyKey() {
+        boolean mac = System.getProperty("os.name", "").toLowerCase().startsWith("mac");
+        return new KeyEvent(KeyEvent.KEY_PRESSED, "c", "c", KeyCode.C, false, !mac, false, mac);
+    }
+
     // ==================== Opening and closing ====================
 
     @Test

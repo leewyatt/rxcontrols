@@ -15,8 +15,8 @@ import javafx.scene.shape.Rectangle;
 import java.util.List;
 
 /**
- * The RXColor page: a brand color field with presets that saves on each
- * completed edit, an optional highlight color that can be cleared, an opaque
+ * The RXColor page: a brand color field with presets and a copy button that
+ * saves on each completed edit, an optional highlight color that can be cleared, an opaque
  * text color in RGB, and RXColorView as an inline editor recoloring a card.
  */
 public final class RXColorSamples {
@@ -37,7 +37,7 @@ public final class RXColorSamples {
                         "Edits write the value live; save in onAction, which fires once per completed edit."),
                 List.of(
                         SampleCard.medium("Brand color",
-                                "Brand presets and the hex text on the trigger; the label shows the last saved color.",
+                                "Brand presets, the hex text and a copy button on the trigger; the label shows the last saved color.",
                                 brand()).forType(RXColorPicker.class),
                         SampleCard.medium("Optional highlight",
                                 "clearable adds a clear button; no color shows a slashed swatch and the prompt text.",
@@ -54,6 +54,7 @@ public final class RXColorSamples {
     private static Node brand() {
         RXColorPicker picker = new RXColorPicker(Color.web("#1769AA"));
         picker.setShowText(true);
+        picker.setCopyButtonVisible(true);
         picker.setAccessibleText("Brand color");
         picker.getPresets().add(new RXColorPresetGroup("Brand", Color.web("#1769AA"), Color.web("#F57C00"),
                 Color.web("#2E7D32"), Color.web("#C62828"), Color.web("#6A1B9A")));

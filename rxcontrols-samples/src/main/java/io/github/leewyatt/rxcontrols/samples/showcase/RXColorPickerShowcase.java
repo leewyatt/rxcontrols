@@ -7,6 +7,7 @@ import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
@@ -19,7 +20,7 @@ import java.util.List;
  * popup is showing and how often {@code onAction} fired, so edits in the popup
  * can be seen to write the value live and act once each. The control panel
  * sets the value from code (no action), binds it (the popup takes no input),
- * and switches the trigger text, the prompt text, the format, opacity editing,
+ * and switches the trigger text, the copy button, the prompt text, the format, opacity editing,
  * the clear button, the presets and the disabled state. For the smallest
  * working example see {@link RXColorPickerDemo}.
  */
@@ -49,6 +50,7 @@ public class RXColorPickerShowcase extends RXShowcaseApplication {
     protected Node createPreview() {
         picker.getPresets().setAll(ColorShowcaseSupport.PRESETS);
         picker.setShowText(true);
+        picker.setCopyButtonVisible(true);
         picker.setClearable(true);
         picker.setPromptText("No color");
 
@@ -62,7 +64,10 @@ public class RXColorPickerShowcase extends RXShowcaseApplication {
         actionLabel.setText("onAction fired: 0");
         picker.setOnAction(event -> actionLabel.setText("onAction fired: " + ++actions));
 
-        VBox box = new VBox(12.0, picker, valueLabel, showingLabel, actionLabel);
+        ColorPicker nativePicker = new ColorPicker();
+        nativePicker.valueProperty().bindBidirectional(picker.valueProperty());
+
+        VBox box = new VBox(12.0, picker,nativePicker, valueLabel, showingLabel, actionLabel);
         box.setAlignment(Pos.CENTER);
         return box;
     }
@@ -79,6 +84,7 @@ public class RXColorPickerShowcase extends RXShowcaseApplication {
                         row(ColorShowcaseSupport.bindSwitch(picker.valueProperty())))),
                 section("Trigger", createGrid(
                         row(ColorShowcaseSupport.check("Show text", picker.showTextProperty())),
+                        row(ColorShowcaseSupport.check("Copy button", picker.copyButtonVisibleProperty())),
                         row("Prompt text", prompt))),
                 section("Popup", createGrid(
                         row("Format", ColorShowcaseSupport.formatBox(picker.formatProperty())),
