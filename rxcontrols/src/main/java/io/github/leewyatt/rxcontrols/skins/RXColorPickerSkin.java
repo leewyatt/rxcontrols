@@ -13,6 +13,7 @@ import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
 import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
@@ -22,6 +23,8 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 
 import java.util.EnumSet;
 import java.util.Objects;
@@ -61,7 +64,7 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
 
     private final HBox display = new HBox();
     private final ColorSwatch swatch = new ColorSwatch("color");
-    private final Label text = new Label();
+    private final ValueText text = new ValueText();
     private final RXColorView view = new RXColorView();
     private final RXPopupSupport popupSupport;
 
@@ -149,6 +152,7 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
 
         disposer.registerListener(control.showTextProperty(), live(this::updateDisplay));
         disposer.registerListener(control.promptTextProperty(), live(this::updateDisplay));
+        disposer.registerListener(control.alphaEnabledProperty(), live(this::updateDisplay));
         disposer.registerListener(control.showingProperty(), live(this::syncPopup));
         disposer.registerListener(control.disabledProperty(), live(() -> {
             if (control.isDisabled()) {
@@ -233,6 +237,91 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         if (showText) {
             RXColorFormat format = control.getFormat();
             text.setText(value == null ? control.getPromptText() : ColorMath.toText(value, format));
+            text.reserve(format, control.isAlphaEnabled(), control.getPromptText());
+        }
+    }
+
+    /**
+     * The trigger text, at least as wide as the widest text the format can show
+     * (and the prompt text), so editing the value does not resize the picker and
+     * move it, and its popup, around.
+     */
+    private static final class ValueText extends Label {
+
+        private static final String HEX_DIGITS = "0123456789ABCDEF";
+
+        private final Text probe = new Text();
+        private RXColorFormat format;
+        private boolean alpha;
+        private String prompt;
+        private Font measuredFont;
+        private double reservedWidth;
+
+        void reserve(RXColorFormat format, boolean alpha, String prompt) {
+            if (format == this.format && alpha == this.alpha && Objects.equals(prompt, this.prompt)) {
+                return;
+            }
+            this.format = format;
+            this.alpha = alpha;
+            this.prompt = prompt;
+            measuredFont = null;
+            requestLayout();
+        }
+
+        @Override
+        protected double computePrefWidth(double height) {
+            double pref = super.computePrefWidth(height);
+            if (!Objects.equals(getFont(), measuredFont)) {
+                measuredFont = getFont();
+                reservedWidth = measureReserved();
+            }
+            Insets padding = getLabelPadding();
+            double reserved = snappedLeftInset() + padding.getLeft() + reservedWidth + padding.getRight()
+                    + snappedRightInset();
+            return Math.max(pref, snapSizeX(reserved));
+        }
+
+        // Builds the longest text of the format from the widest glyphs of the font:
+        // proportional fonts give hex letters, and often digits, different widths.
+        private double measureReserved() {
+            String d = widest("0123456789");
+            String ddd = d + d + d;
+            String sample;
+            if (format == RXColorFormat.RGB) {
+                String rgb = ddd + ", " + ddd + ", " + ddd;
+                sample = alpha ? "rgba(" + rgb + ", 0." + d + d + ")" : "rgb(" + rgb + ")";
+            } else if (format == RXColorFormat.HSB) {
+                String hsb = ddd + ", " + ddd + "%, " + ddd + "%";
+                sample = alpha ? "hsba(" + hsb + ", 0." + d + d + ")" : "hsb(" + hsb + ")";
+            } else {
+                String h = widest(HEX_DIGITS);
+                sample = "#" + h + h + h + h + h + h + (alpha ? ", " + ddd + "%" : "");
+            }
+            double width = measure(sample);
+            if (prompt != null && !prompt.isEmpty()) {
+                width = Math.max(width, measure(prompt));
+            }
+            return Math.ceil(width);
+        }
+
+        private String widest(String glyphs) {
+            String widest = glyphs.substring(0, 1);
+            double max = 0.0;
+            for (int i = 0; i < glyphs.length(); i++) {
+                String glyph = glyphs.substring(i, i + 1);
+                double width = measure(glyph);
+                if (width > max) {
+                    max = width;
+                    widest = glyph;
+                }
+            }
+            return widest;
+        }
+
+        private double measure(String value) {
+            probe.setFont(getFont());
+            probe.setText(value);
+            return probe.getLayoutBounds().getWidth();
         }
     }
 

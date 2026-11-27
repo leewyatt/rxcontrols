@@ -3,10 +3,12 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.skins.RXColorPickerSkin;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.ActionEvent;
+import javafx.event.EventType;
 import javafx.geometry.Point2D;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
 import javafx.scene.control.PopupControl;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
@@ -99,7 +101,7 @@ public class RXColorPickerPopupTest {
                 false, false, false, false, false, false, false, true, false, false, null));
     }
 
-    private static void mouse(Region region, javafx.event.EventType<MouseEvent> type, double fx, double fy) {
+    private static void mouse(Region region, EventType<MouseEvent> type, double fx, double fy) {
         Point2D scene = region.localToScene(fx * region.getWidth(), fy * region.getHeight());
         region.fireEvent(new MouseEvent(type, scene.getX(), scene.getY(), scene.getX(), scene.getY(),
                 MouseButton.PRIMARY, 1, false, false, false, false, type != MouseEvent.MOUSE_RELEASED,
@@ -126,14 +128,41 @@ public class RXColorPickerPopupTest {
             assertFalse(picker.lookup(".text").isVisible());
             picker.setShowText(true);
             picker.setValue(Color.rgb(22, 119, 255, 128 / 255.0));
-            assertEquals("#1677FF, 50%", ((javafx.scene.control.Label) picker.lookup(".text")).getText());
+            assertEquals("#1677FF, 50%", ((Label) picker.lookup(".text")).getText());
             picker.setFormat(RXColorFormat.RGB);
-            assertEquals("rgba(22, 119, 255, 0.5)", ((javafx.scene.control.Label) picker.lookup(".text")).getText());
+            assertEquals("rgba(22, 119, 255, 0.5)", ((Label) picker.lookup(".text")).getText());
             picker.setPromptText("No color");
             picker.setValue(null);
             assertTrue(hasPseudoClass(picker, "empty"));
-            assertEquals("No color", ((javafx.scene.control.Label) picker.lookup(".text")).getText());
+            assertEquals("No color", ((Label) picker.lookup(".text")).getText());
             assertEquals("No color", picker.queryAccessibleAttribute(AccessibleAttribute.TEXT));
+        });
+    }
+
+    @Test
+    public void theTriggerKeepsItsWidthWhileTheValueChanges() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            picker.setShowText(true);
+            picker.setPromptText("None");
+            List<Color> values = List.of(Color.WHITE, Color.BLACK, Color.web("#1677FF"), Color.web("#DDDDDD"),
+                    Color.web("#111111"), Color.rgb(22, 119, 255, 128 / 255.0), Color.rgb(0, 0, 0, 0.01));
+            for (RXColorFormat format : RXColorFormat.values()) {
+                picker.setFormat(format);
+                Double width = null;
+                for (Color value : values) {
+                    picker.setValue(value);
+                    picker.applyCss();
+                    double pref = picker.prefWidth(-1);
+                    if (width == null) {
+                        width = pref;
+                    }
+                    assertEquals(width, pref, 0.0, format + " " + value);
+                }
+                picker.setValue(null);
+                picker.applyCss();
+                assertEquals(width, picker.prefWidth(-1), 0.0, format + " prompt");
+            }
         });
     }
 
