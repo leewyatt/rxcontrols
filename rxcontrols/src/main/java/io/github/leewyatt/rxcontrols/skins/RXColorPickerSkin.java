@@ -9,6 +9,7 @@ import io.github.leewyatt.rxcontrols.internal.color.ColorSwatch;
 import io.github.leewyatt.rxcontrols.internal.color.ColorViewAccess;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
+import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
@@ -17,6 +18,7 @@ import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
+import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.control.Label;
@@ -99,6 +101,8 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
     };
     private final RXColorView view = new RXColorView();
     private final RXPopupSupport popupSupport;
+    // Created on activation: it registers handlers on the picker.
+    private RippleDecoration ripple;
 
     // ==================== State ====================
 
@@ -170,7 +174,11 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
             return;
         }
         activated = true;
-        getChildren().setAll(display, copyButton);
+        ripple = new RippleDecoration(control, control.rippleEnabledProperty(),
+                control.stateOverlayEnabledProperty(), control.rippleFillProperty(),
+                control::getRippleOpacity, null, null);
+        ripple.getLayer().setManaged(false);
+        getChildren().setAll(ripple.getLayer(), display, copyButton);
 
         // Configuration flows down; value and format are synced both ways.
         disposer.registerBinding(view.alphaEnabledProperty(), control.alphaEnabledProperty());
@@ -211,6 +219,9 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         // On the whole picker, so its padding, the gaps and a hidden copy button's
         // space open the popup too. The copy button's skin consumes its own clicks.
         disposer.registerEventHandler(control, MouseEvent.MOUSE_CLICKED, this::onPickerClicked);
+        // The copy button consumes its own presses too, so it keeps its own feedback.
+        disposer.registerEventHandler(control, MouseEvent.MOUSE_PRESSED, this::onPickerPressed);
+        disposer.registerEventHandler(control, MouseEvent.MOUSE_RELEASED, event -> ripple.release());
         disposer.registerEventHandler(control, KeyEvent.KEY_PRESSED, this::onPickerKey);
         disposer.registerEventFilter(view, KeyEvent.KEY_PRESSED, this::onPopupKeyFilter);
         disposer.registerEventHandler(view, KeyEvent.KEY_PRESSED, this::onPopupKey);
@@ -471,6 +482,24 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         }
     }
 
+    private void onPickerPressed(MouseEvent event) {
+        RXColorPicker control = getSkinnable();
+        if (event.getButton() != MouseButton.PRIMARY || !control.isRippleEnabled() || control.isDisabled()) {
+            return;
+        }
+        Point2D local = control.sceneToLocal(event.getSceneX(), event.getSceneY());
+        ripple.press(local.getX(), local.getY(), false);
+    }
+
+    private void pressRippleCentered() {
+        RXColorPicker control = getSkinnable();
+        if (!control.isRippleEnabled() || control.isDisabled()) {
+            return;
+        }
+        ripple.press(0.0, 0.0, true);
+        ripple.release();
+    }
+
     private void onPickerKey(KeyEvent event) {
         RXColorPicker control = getSkinnable();
         if (control.isDisabled()) {
@@ -490,6 +519,7 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
                     || (code == KeyCode.UP && event.isAltDown())) {
                 event.consume();
                 control.show();
+                pressRippleCentered();
             }
             return;
         }
@@ -522,6 +552,9 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
 
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
+        if (ripple != null) {
+            ripple.layout(getSkinnable().getWidth(), getSkinnable().getHeight());
+        }
         if (!copyButton.isManaged()) {
             display.resizeRelocate(x, y, w, h);
             return;
@@ -568,5 +601,9 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
     @Override
     protected void disposeSkin() {
         disposed = true;
+        if (ripple != null) {
+            ripple.dispose();
+            getChildren().remove(ripple.getLayer());
+        }
     }
 }

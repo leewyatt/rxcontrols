@@ -1,7 +1,9 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.skins.RXColorPickerSkin;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.event.EventType;
@@ -264,6 +266,57 @@ public class RXColorPickerPopupTest {
                 assertEquals(fontSize * 14.0 / 13.0, icon.prefWidth(-1), 0.5, "the icon follows the font at " + fontSize);
                 assertTrue(icon.prefHeight(-1) <= button.getHeight(), "the icon fits the button at " + fontSize);
             }
+        });
+    }
+
+    // ==================== Ripple ====================
+
+    @Test
+    public void rippleStyleablesAreExposedAndStyledAsTheSelectionBox() throws InterruptedException {
+        runOnFx(() -> {
+            List<String> names = RXColorPicker.getClassCssMetaData().stream().map(CssMetaData::getProperty).toList();
+            assertTrue(names.containsAll(List.of("-rx-ripple-fill", "-rx-ripple-opacity", "-rx-ripple-enabled",
+                    "-rx-ripple-state-overlay-enabled")));
+            show(new RXColorPicker());
+            assertTrue(picker.isRippleEnabled());
+            assertFalse(picker.isStateOverlayEnabled(), "hover is the frame's own lightening");
+            assertEquals(0.12, picker.getRippleOpacity(), 1e-9);
+        });
+    }
+
+    @Test
+    public void aPressOnThePickerPlaysARippleButNotOnTheCopyButton() throws InterruptedException {
+        runOnFx(() -> {
+            RXColorPicker colorPicker = new RXColorPicker(Color.web("#1e88e5"));
+            colorPicker.setCopyButtonVisible(true);
+            show(colorPicker);
+            RippleLayer layer = (RippleLayer) picker.getChildrenUnmodifiable().get(0);
+            int idle = layer.getChildrenUnmodifiable().size();
+
+            mouse((Region) picker.lookup(".copy-button"), MouseEvent.MOUSE_PRESSED, 0.5, 0.5);
+            assertEquals(idle, layer.getChildrenUnmodifiable().size(), "the copy button has its own feedback");
+
+            mouse((Region) picker.lookup(".display"), MouseEvent.MOUSE_PRESSED, 0.5, 0.5);
+            assertTrue(layer.getChildrenUnmodifiable().size() > idle, "a press on the field plays a ripple");
+        });
+    }
+
+    @Test
+    public void openingFromTheKeyboardPlaysARippleUnlessTurnedOff() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            RippleLayer layer = (RippleLayer) picker.getChildrenUnmodifiable().get(0);
+            int idle = layer.getChildrenUnmodifiable().size();
+            picker.setRippleEnabled(false);
+            key(picker, KeyCode.SPACE, false);
+            assertTrue(picker.isShowing());
+            assertEquals(idle, layer.getChildrenUnmodifiable().size(), "a turned-off ripple stays off");
+
+            key(picker, KeyCode.ESCAPE, false);
+            picker.setRippleEnabled(true);
+            key(picker, KeyCode.SPACE, false);
+            assertTrue(picker.isShowing());
+            assertTrue(layer.getChildrenUnmodifiable().size() > idle, "opening from the keyboard plays a ripple");
         });
     }
 

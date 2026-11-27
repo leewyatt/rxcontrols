@@ -6088,6 +6088,9 @@
     /* Modena's text field padding: the swatch is one line of text, so the picker is as
        tall as a text field. */
     -fx-padding: 0.333333em;
+    -rx-ripple-fill: -rx-state-overlay-color;
+    -rx-ripple-opacity: 0.12;
+    -rx-ripple-state-overlay-enabled: false;
 }
 
 .rx-color-picker:hover {
