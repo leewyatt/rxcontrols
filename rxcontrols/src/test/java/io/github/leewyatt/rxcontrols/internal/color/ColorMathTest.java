@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal.color;
 
+import io.github.leewyatt.rxcontrols.RXColorFormat;
 import javafx.scene.paint.Color;
 import org.junit.jupiter.api.Test;
 
@@ -11,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for {@link ColorMath} and {@link HsbaCursor}: 8-bit round trips,
- * HSB conversion, hex parsing and formatting, contrast checks, and the cursor
+ * HSB conversion, hex parsing and formatting, display text, contrast checks, and the cursor
  * rules that keep hue and saturation through grays and black.
  */
 public class ColorMathTest {
@@ -150,6 +151,25 @@ public class ColorMathTest {
         assertEquals("ABC", ColorMath.hexDigits("0xABC".substring(2)));
         assertEquals("", ColorMath.hexDigits("٣٤"));
         assertEquals("", ColorMath.hexDigits(null));
+    }
+
+    // ==================== Text ====================
+
+    @Test
+    public void textUsesEachFormatAndHexAndRgbParseBack() {
+        Color opaque = Color.rgb(22, 119, 255);
+        Color translucent = Color.rgb(22, 119, 255, 128 / 255.0);
+        assertEquals("#1677FF", ColorMath.toText(opaque, RXColorFormat.HEX));
+        assertEquals("#1677FF80", ColorMath.toText(translucent, RXColorFormat.HEX));
+        assertEquals("#1677FF80", ColorMath.toText(translucent, null));
+        assertEquals("rgb(22, 119, 255)", ColorMath.toText(opaque, RXColorFormat.RGB));
+        assertEquals("rgba(22, 119, 255, 0.5)", ColorMath.toText(translucent, RXColorFormat.RGB));
+        assertEquals("hsb(215, 91%, 100%)", ColorMath.toText(opaque, RXColorFormat.HSB));
+        assertEquals("hsba(215, 91%, 100%, 0.5)", ColorMath.toText(translucent, RXColorFormat.HSB));
+        for (Color color : new Color[]{opaque, translucent}) {
+            assertEquals(color, Color.web(ColorMath.toText(color, RXColorFormat.HEX)));
+            assertTrue(ColorMath.sameOnGrid(color, Color.web(ColorMath.toText(color, RXColorFormat.RGB)), false));
+        }
     }
 
     // ==================== Contrast ====================

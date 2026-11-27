@@ -270,10 +270,12 @@ public class RXColorPicker extends Control {
 
     /**
      * Whether the trigger shows the color as text next to the swatch, in the
-     * {@link #formatProperty() format}: {@code #1677FF} (with the opacity as
-     * {@code , 50%} when translucent), {@code rgb(...)} / {@code rgba(...)} or
-     * {@code hsb(...)} / {@code hsba(...)}; the {@link #promptTextProperty() prompt
-     * text} for no color. Defaults to {@code false}.
+     * {@link #formatProperty() format}: {@code #1677FF} (with the opacity byte, as
+     * in {@code #1677FF80}, when translucent), {@code rgb(...)} / {@code rgba(...)}
+     * or {@code hsb(...)} / {@code hsba(...)}; the {@link #promptTextProperty()
+     * prompt text} for no color. The hex and RGB texts can be passed to
+     * {@code Color.web}; the HSB text is for display only. Defaults to
+     * {@code false}.
      *
      * @return the show-text property
      */

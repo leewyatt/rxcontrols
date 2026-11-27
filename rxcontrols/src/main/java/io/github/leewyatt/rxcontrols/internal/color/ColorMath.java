@@ -259,11 +259,12 @@ public final class ColorMath {
     // ==================== Text ====================
 
     /**
-     * Formats a color for display in the given format: {@code #1677FF} (with
-     * {@code , 50%} appended when translucent), {@code rgb(22, 119, 255)} /
-     * {@code rgba(22, 119, 255, 0.5)}, or {@code hsb(215, 91%, 100%)} /
-     * {@code hsba(215, 91%, 100%, 0.5)}. The opacity in the function forms has at
-     * most two decimals.
+     * Formats a color for display in the given format: {@code #1677FF} /
+     * {@code #1677FF80} (the opacity byte appended when translucent),
+     * {@code rgb(22, 119, 255)} / {@code rgba(22, 119, 255, 0.5)}, or
+     * {@code hsb(215, 91%, 100%)} / {@code hsba(215, 91%, 100%, 0.5)}. The opacity
+     * in the function forms has at most two decimals. The hex and RGB forms are
+     * accepted by {@link Color#web(String)}; the HSB forms are for display only.
      *
      * @param color  the color
      * @param format the format; {@code null} means hex
@@ -282,8 +283,7 @@ public final class ColorMath {
             String text = toDegrees(hsb[0]) + ", " + toPercent(hsb[1]) + "%, " + toPercent(hsb[2]) + "%";
             return opaque ? "hsb(" + text + ")" : "hsba(" + text + ", " + opacity + ")";
         }
-        String hex = "#" + toHex(color, false);
-        return opaque ? hex : hex + ", " + toPercent(color.getOpacity()) + "%";
+        return "#" + toHex(color, !opaque);
     }
 
     // ==================== Contrast ====================

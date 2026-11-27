@@ -128,7 +128,7 @@ public class RXColorPickerPopupTest {
             assertFalse(picker.lookup(".text").isVisible());
             picker.setShowText(true);
             picker.setValue(Color.rgb(22, 119, 255, 128 / 255.0));
-            assertEquals("#1677FF, 50%", ((Label) picker.lookup(".text")).getText());
+            assertEquals("#1677FF80", ((Label) picker.lookup(".text")).getText());
             picker.setFormat(RXColorFormat.RGB);
             assertEquals("rgba(22, 119, 255, 0.5)", ((Label) picker.lookup(".text")).getText());
             picker.setPromptText("No color");

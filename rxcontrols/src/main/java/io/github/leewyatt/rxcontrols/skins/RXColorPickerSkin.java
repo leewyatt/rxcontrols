@@ -295,7 +295,7 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
                 sample = alpha ? "hsba(" + hsb + ", 0." + d + d + ")" : "hsb(" + hsb + ")";
             } else {
                 String h = widest(HEX_DIGITS);
-                sample = "#" + h + h + h + h + h + h + (alpha ? ", " + ddd + "%" : "");
+                sample = "#" + h + h + h + h + h + h + (alpha ? h + h : "");
             }
             double width = measure(sample);
             if (prompt != null && !prompt.isEmpty()) {
