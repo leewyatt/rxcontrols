@@ -45,7 +45,14 @@ public final class RXSuggestionPopup<T> {
 
     // ==================== Content + support ====================
 
-    private final RXListView<T> listView = new RXListView<>();
+    // Sized when layout asks, as the native combo box list is, so the CSS padding,
+    // border and row height in effect at that moment are what count.
+    private final RXListView<T> listView = new RXListView<>() {
+        @Override
+        protected double computePrefHeight(double width) {
+            return listPrefHeight();
+        }
+    };
     private final RXPopupSupport support;
     private final SkinDisposer disposer = new SkinDisposer();
 
@@ -82,7 +89,7 @@ public final class RXSuggestionPopup<T> {
         support.setHideOnEscape(false);
 
         disposer.registerListener(filtered, this::onFilteredChanged);
-        disposer.registerListener(listView.insetsProperty(), this::updatePopupHeight);
+        disposer.registerListener(listView.fixedCellSizeProperty(), this::invalidatePopupHeight);
         disposer.registerEventHandler(listView, MouseEvent.MOUSE_CLICKED, this::handleListClicked);
 
         // Observe the initial suggestions list too (mirrors RXListView's constructor):
@@ -90,8 +97,6 @@ public final class RXSuggestionPopup<T> {
         // without this a getSuggestions() mutation before the first setSuggestions()
         // would not reach the backing/filtered view.
         rebindSuggestions();
-
-        updatePopupHeight();
     }
 
     // ==================== Lifecycle ====================
@@ -102,7 +107,6 @@ public final class RXSuggestionPopup<T> {
      * @param anchor the node to anchor to
      */
     public void show(Node anchor) {
-        updatePopupHeight();
         support.show(anchor);
     }
 
@@ -442,7 +446,6 @@ public final class RXSuggestionPopup<T> {
      */
     public void setFixedCellSize(double value) {
         listView.setFixedCellSize(value);
-        updatePopupHeight();
     }
 
     /**
@@ -453,7 +456,7 @@ public final class RXSuggestionPopup<T> {
      */
     public void setMaxVisibleRows(int value) {
         maxVisibleRows = value;
-        updatePopupHeight();
+        invalidatePopupHeight();
     }
 
     /**
@@ -575,7 +578,7 @@ public final class RXSuggestionPopup<T> {
         if (model != null) {
             model.clearSelection();
         }
-        updatePopupHeight();
+        invalidatePopupHeight();
     }
 
     /**
@@ -590,7 +593,11 @@ public final class RXSuggestionPopup<T> {
         }
     }
 
-    private void updatePopupHeight() {
+    private void invalidatePopupHeight() {
+        listView.requestLayout();
+    }
+
+    private double listPrefHeight() {
         int count = filtered.size();
         // Empty reserves one row of height so the placeholder-when-empty node has
         // vertical room to render (the spec's min(count,rows) formula would give 0).
@@ -599,9 +606,7 @@ public final class RXSuggestionPopup<T> {
         if (!(cell > 0.0)) {
             cell = RXListView.DEFAULT_FIXED_CELL_SIZE;
         }
-        double insets = listView.getInsets().getTop() + listView.getInsets().getBottom();
-        listView.setPrefHeight(rows * cell + insets);
-        support.requestReposition();
+        return rows * cell + listView.snappedTopInset() + listView.snappedBottomInset();
     }
 
     private void commit(T item) {

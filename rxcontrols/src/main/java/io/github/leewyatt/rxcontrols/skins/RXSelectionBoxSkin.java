@@ -93,7 +93,14 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
     private final VBox popupBody = new VBox();
     private final RXTextField searchField = new RXTextField();
     private final StackPane headerHolder = new StackPane();
-    private final RXListView<T> popupList = new RXListView<>();
+    // Sized when layout asks, as the native combo box list is, so the CSS padding,
+    // border and row height in effect at that moment are what count.
+    private final RXListView<T> popupList = new RXListView<>() {
+        @Override
+        protected double computePrefHeight(double width) {
+            return popupListPrefHeight();
+        }
+    };
     private final HBox actionsBox = new HBox();
     private final RXButton clearButton = new RXButton();
     private final RXButton selectAllButton = new RXButton();
@@ -115,7 +122,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
     private final WeakInvalidationListener weakSelectionContentListener =
             new WeakInvalidationListener(selectionContentListener);
 
-    private final ListChangeListener<T> filteredListener = change -> updatePopupHeight();
+    private final ListChangeListener<T> filteredListener = change -> invalidatePopupHeight();
     private final WeakListChangeListener<T> weakFilteredListener =
             new WeakListChangeListener<>(filteredListener);
 
@@ -233,14 +240,15 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         disposer.registerListener(control.graphicProperty(), this::updateGraphic);
         disposer.registerListener(control.popupHeaderProperty(), this::updateHeader);
         disposer.registerListener(control.popupFooterProperty(), this::updateFooter);
-        disposer.registerListener(control.maxVisibleRowsProperty(), this::updatePopupHeight);
+        disposer.registerListener(control.maxVisibleRowsProperty(), this::invalidatePopupHeight);
         disposer.registerListener(control.showClearButtonProperty(), this::updateActions);
         disposer.registerListener(control.showSelectAllButtonProperty(), this::updateActions);
         disposer.registerListener(control.disabledProperty(), this::onDisabledChanged);
-        disposer.registerListener(control.sectionKeyFactoryProperty(), this::updatePopupHeight);
-        disposer.registerListener(popupList.showSectionHeadersProperty(), this::updatePopupHeight);
-        disposer.registerListener(popupList.sectionHeaderHeightProperty(), this::updatePopupHeight);
-        disposer.registerListener(popupList.sectionSpacingProperty(), this::updatePopupHeight);
+        disposer.registerListener(control.sectionKeyFactoryProperty(), this::invalidatePopupHeight);
+        disposer.registerListener(popupList.showSectionHeadersProperty(), this::invalidatePopupHeight);
+        disposer.registerListener(popupList.sectionHeaderHeightProperty(), this::invalidatePopupHeight);
+        disposer.registerListener(popupList.sectionSpacingProperty(), this::invalidatePopupHeight);
+        disposer.registerListener(popupList.fixedCellSizeProperty(), this::invalidatePopupHeight);
 
         filtered.addListener(weakFilteredListener);
 
@@ -305,7 +313,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         } else {
             backing.setAll(source);
         }
-        updatePopupHeight();
     }
 
     /**
@@ -330,7 +337,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
                 }
             }
         }
-        updatePopupHeight();
     }
 
     // ==================== Selection model attach ====================
@@ -527,7 +533,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
             filtered.setPredicate(predicate);
         }
         resetCursorAfterFilter();
-        updatePopupHeight();
     }
 
     private void resetCursorAfterFilter() {
@@ -543,16 +548,23 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         }
     }
 
-    private void updatePopupHeight() {
+    private void invalidatePopupHeight() {
+        popupList.requestLayout();
+    }
+
+    private double popupListPrefHeight() {
+        double insets = popupList.snappedTopInset() + popupList.snappedBottomInset();
+        RXSelectionBox<T> control = getSkinnable();
+        if (control == null) {
+            return insets;
+        }
         int count = filtered.size();
-        int rows = count == 0 ? 1 : Math.min(count, Math.max(1, getSkinnable().getMaxVisibleRows()));
+        int rows = count == 0 ? 1 : Math.min(count, Math.max(1, control.getMaxVisibleRows()));
         double cellSize = popupList.getFixedCellSize();
         if (!(cellSize > 0.0)) {
             cellSize = RXListView.DEFAULT_FIXED_CELL_SIZE;
         }
-        double insets = popupList.getInsets().getTop() + popupList.getInsets().getBottom();
-        popupList.setPrefHeight(rows * cellSize + sectionHeaderExtent(rows) + insets);
-        popupSupport.requestReposition();
+        return rows * cellSize + sectionHeaderExtent(control, rows) + insets;
     }
 
     /**
@@ -560,8 +572,8 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
      * {@code rows} data rows, so the popup does not clip its content (or show a
      * premature scrollbar) when a {@code sectionKeyFactory} is set.
      */
-    private double sectionHeaderExtent(int rows) {
-        Callback<T, Object> keyFactory = getSkinnable().getSectionKeyFactory();
+    private double sectionHeaderExtent(RXSelectionBox<T> control, int rows) {
+        Callback<T, Object> keyFactory = control.getSectionKeyFactory();
         if (keyFactory == null || !popupList.isShowSectionHeaders()) {
             return 0.0;
         }
@@ -613,7 +625,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
     }
 
     private void prepareForShow() {
-        updatePopupHeight();
         MultipleSelectionModel<T> model = getSkinnable().getSelectionModel();
         MultipleSelectionModel<T> cursor = popupList.getSelectionModel();
         if (cursor == null) {
