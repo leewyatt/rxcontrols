@@ -13,6 +13,7 @@ import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes;
 import io.github.leewyatt.rxcontrols.samples.support.ShowcaseThemes.ThemeChoice;
 import javafx.application.Application;
+import javafx.css.PseudoClass;
 import javafx.geometry.Bounds;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -45,6 +46,8 @@ final class SamplerThemeSwitcher extends HBox {
 
     private static final double PREVIEW_WIDTH = 96.0;
     private static final double PREVIEW_HEIGHT = 56.0;
+    // Popups carry no theme scope class, so the panel marks Modena for its focus ring.
+    private static final PseudoClass MODENA = PseudoClass.getPseudoClass("modena");
 
     private final List<Family> families = List.of(
             new Family("Modena",
@@ -77,6 +80,7 @@ final class SamplerThemeSwitcher extends HBox {
     private final Label familyName = new Label();
     private final Button familyButton = new Button();
     private final PopupControl popup = new PopupControl();
+    private final VBox panel = new VBox();
     private final List<Button> tiles = new ArrayList<>();
 
     private ThemeChoice pending;
@@ -122,7 +126,7 @@ final class SamplerThemeSwitcher extends HBox {
         HBox header = new HBox(title, spacer, columns);
         header.getStyleClass().add("panel-header");
 
-        VBox panel = new VBox(header);
+        panel.getChildren().add(header);
         panel.getStyleClass().add("theme-panel");
         for (Family family : families) {
             Region divider = new Region();
@@ -255,6 +259,18 @@ final class SamplerThemeSwitcher extends HBox {
         Bounds bounds = localToScreen(getBoundsInLocal());
         if (bounds != null) {
             popup.show(familyButton, bounds.getMaxX(), bounds.getMaxY() + 6.0);
+            focusCurrentTile();
+        }
+    }
+
+    // Focus starts on the current theme, as a list's focus follows its selection;
+    // otherwise the first tile takes it and its ring reads as the current theme.
+    private void focusCurrentTile() {
+        for (Button tile : tiles) {
+            if (tile.getUserData() == ShowcaseThemes.getCurrent()) {
+                tile.requestFocus();
+                return;
+            }
         }
     }
 
@@ -267,6 +283,7 @@ final class SamplerThemeSwitcher extends HBox {
         syncing = true;
         try {
             familyName.setText(family.name());
+            panel.pseudoClassStateChanged(MODENA, family.name().equals("Modena"));
             mode.setValue(family.dark() != null && family.dark().choice() == current);
         } finally {
             syncing = false;

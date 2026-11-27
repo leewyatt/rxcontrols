@@ -320,8 +320,21 @@
     -fx-border-color: -fx-text-box-border;
 }
 
+/* A thin line, lighter than the current theme's check mark. Border plus padding stays
+   4px so the preview does not shift. */
 .theme-panel .theme-tile:focused {
     -fx-border-color: -fx-focus-color;
+    -fx-border-width: 1px;
+    -fx-padding: 3px;
+}
+
+/* Modena rings focus with a faint halo around the line, as its own buttons do. */
+.theme-panel:modena .theme-tile:focused {
+    -fx-border-color: -fx-faint-focus-color, -fx-focus-color;
+    -fx-border-width: 3px, 1px;
+    -fx-border-insets: 0, 1px;
+    -fx-border-radius: 9px, 8px;
+    -fx-padding: 1px;
 }
 
 .theme-panel .current-badge {
