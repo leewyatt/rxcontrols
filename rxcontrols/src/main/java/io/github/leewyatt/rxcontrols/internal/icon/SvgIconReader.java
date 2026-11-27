@@ -141,10 +141,15 @@ public final class SvgIconReader {
                 if (!style.painted()) {
                     continue;
                 }
-                String geometry = geometry(element, attributes);
+                String geometry = geometry(element, attributes).strip();
                 if (!geometry.isEmpty()) {
                     if (path.length() > 0) {
                         path.append(' ');
+                        // Each element's path starts at the origin; joined to the one
+                        // before, a relative moveto would start where that one ended.
+                        if (geometry.charAt(0) == 'm') {
+                            path.append("M0 0");
+                        }
                     }
                     path.append(geometry);
                     rules.add(style.fillRule);

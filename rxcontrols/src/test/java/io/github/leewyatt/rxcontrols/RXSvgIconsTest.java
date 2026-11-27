@@ -101,6 +101,13 @@ public class RXSvgIconsTest {
     }
 
     @Test
+    public void aRelativeMovetoStartsAtTheOriginOfItsElement() {
+        RXIconData data = RXSvgIcons.parse("t", "<svg " + NS + " viewBox=\"0 0 24 24\">"
+                + "<path d=\"m2 2h4v4H2z\"/><path d=\"m10 10h4v4h-4z\"/></svg>");
+        assertEquals("m2 2h4v4H2z M0 0m10 10h4v4h-4z", data.getPath());
+    }
+
+    @Test
     public void evenOddIsInheritedFromAGroup() {
         RXIconData data = RXSvgIcons.parse("t", "<svg " + NS + " viewBox=\"0 0 16 16\">"
                 + "<g fill-rule=\"evenodd\"><path d=\"M0 0h16v16H0z M4 4h8v8H4z\"/></g></svg>");

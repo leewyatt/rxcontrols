@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import io.github.leewyatt.rxcontrols.internal.icon.IconOutline;
 import javafx.scene.shape.FillRule;
 import javafx.scene.shape.SVGPath;
 
@@ -158,10 +159,15 @@ public final class RXIconData {
 
     /**
      * Returns the shape that draws this icon, created on first use and shared by
-     * every icon that shows this data. Its bounds are the whole view box: the path
-     * starts with two empty sub-paths at opposite corners of the view box, which
-     * draw nothing but keep the space around the icon when a region scales the
-     * shape to its size.
+     * every icon that shows this data.
+     *
+     * <p>A region scales its shape so that the shape's bounds fill the region, and
+     * those bounds cover every point of the path, curve control points included.
+     * The shape is therefore the area the path fills clipped to the view box, as
+     * SVG clips it, with curves split until their control points lie inside the
+     * view box, filled with the non-zero rule. Two empty sub-paths at opposite
+     * corners make its bounds the whole view box: they draw nothing but keep the
+     * space around the drawing.</p>
      *
      * <p>The shape is shared: do not change it or add it to a scene.</p>
      *
@@ -174,8 +180,8 @@ public final class RXIconData {
                 result = shape;
                 if (result == null) {
                     result = new SVGPath();
-                    result.setContent(anchoredPath());
-                    result.setFillRule(fillRule);
+                    result.setContent(IconOutline.of(path, fillRule, minX, minY, width, height) + corners());
+                    result.setFillRule(FillRule.NON_ZERO);
                     shape = result;
                 }
             }
@@ -183,10 +189,9 @@ public final class RXIconData {
         return result;
     }
 
-    private String anchoredPath() {
+    private String corners() {
         return "M" + format(minX) + " " + format(minY) + "h0"
-                + "M" + format(minX + width) + " " + format(minY + height) + "h0"
-                + path;
+                + "M" + format(minX + width) + " " + format(minY + height) + "h0";
     }
 
     private static String format(double value) {

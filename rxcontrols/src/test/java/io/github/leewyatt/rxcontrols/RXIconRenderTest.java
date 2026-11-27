@@ -71,6 +71,33 @@ public class RXIconRenderTest {
     }
 
     @Test
+    public void aPathStartingWithARelativeMovetoIsDrawnInPlace() throws Exception {
+        // Optimized SVG often starts with "m": SVG measures it from the origin.
+        PixelReader pixels = render(new RXIconData("render-relative", 24, 24, "m8 8h8v8H8z"), 1.0);
+        assertOpaque(pixels, 12, 12, 1.0);
+        assertTransparent(pixels, 4, 12, 1.0);
+        assertTransparent(pixels, 20, 20, 1.0);
+    }
+
+    @Test
+    public void controlPointsOutsideTheViewBoxDoNotMoveTheDrawing() throws Exception {
+        // The arch peaks at y = 1.5 although its control points lie at y = -2.
+        PixelReader pixels = render(new RXIconData("render-arch", 24, 24, "M2 12C2 -2 22 -2 22 12Z"), 1.0);
+        assertOpaque(pixels, 12, 2, 1.0);
+        assertOpaque(pixels, 12, 11, 1.0);
+        assertTransparent(pixels, 12, 13, 1.0);
+    }
+
+    @Test
+    public void drawingOutsideTheViewBoxIsClipped() throws Exception {
+        // As in SVG: the part left of x = 0 is cut off and the rest stays in place.
+        PixelReader pixels = render(new RXIconData("render-overflow", 24, 24, "M-4 8h8v8h-8z"), 1.0);
+        assertOpaque(pixels, 2, 12, 1.0);
+        assertTransparent(pixels, 5, 12, 1.0);
+        assertTransparent(pixels, 2, 18, 1.0);
+    }
+
+    @Test
     public void evenOddLeavesAHole() throws Exception {
         for (double scale : new double[]{1.0, 2.0}) {
             PixelReader evenOdd = render(new RXIconData("render-eo", 0, 0, 24, 24, RING, FillRule.EVEN_ODD), scale);
