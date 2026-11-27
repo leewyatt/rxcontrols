@@ -86,6 +86,7 @@ public class RXAtlantaFXCompatTest {
             "-fx-outer-border", MODENA_ONLY,
             "-fx-shadow-highlight-color", MODENA_ONLY,
             "-fx-mark-color", MODENA_ONLY,
+            "-fx-mark-highlight-color", MODENA_ONLY,
             "-fx-focused-mark-color", MODENA_ONLY,
             "-fx-focused-text-base-color", MODENA_ONLY);
 

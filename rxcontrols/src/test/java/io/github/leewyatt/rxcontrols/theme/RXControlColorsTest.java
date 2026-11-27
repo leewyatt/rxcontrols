@@ -19,6 +19,7 @@ import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.RXColorPicker;
 import io.github.leewyatt.rxcontrols.RXColorView;
 import io.github.leewyatt.rxcontrols.RXDatePicker;
+import io.github.leewyatt.rxcontrols.RXDateRangePicker;
 import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
 import io.github.leewyatt.rxcontrols.RXFillButton;
@@ -60,8 +61,10 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ColorPicker;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Control;
 import javafx.scene.control.Labeled;
+import javafx.scene.control.MenuButton;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.BackgroundFill;
@@ -1004,6 +1007,42 @@ public class RXControlColorsTest {
         assertPickerHeight("Primer Dark", new PrimerDark().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install);
     }
 
+    @Test
+    public void fieldControlsAreAsTallAsTheirNativeCounterparts() throws Exception {
+        assertFieldHeights("default Modena", Application.STYLESHEET_MODENA, scene -> { });
+        assertFieldHeights("Primer Light", new PrimerLight().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install);
+        assertFieldHeights("Primer Dark", new PrimerDark().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install);
+    }
+
+    private static void assertFieldHeights(String host, String userAgentStylesheet, Consumer<Scene> themer)
+            throws Exception {
+        Map<String, Double> heights = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(userAgentStylesheet);
+            Map<String, Region> controls = new LinkedHashMap<>();
+            controls.put("text field", new TextField("Text"));
+            controls.put("native menu button", new MenuButton("Menu"));
+            RXSelectionBox<String> selectionBox = new RXSelectionBox<>(FXCollections.observableArrayList("Apple"));
+            selectionBox.getSelectionModel().select(0);
+            controls.put("selection box", selectionBox);
+            controls.put("cascader", new RXCascader());
+            controls.put("date picker", new RXDatePicker());
+            controls.put("date range picker", new RXDateRangePicker());
+            controls.put("menu button", new RXMenuButton("Menu"));
+            VBox root = new VBox();
+            root.getChildren().addAll(controls.values());
+            Scene scene = new Scene(root, 600, 400);
+            themer.accept(scene);
+            root.applyCss();
+            controls.forEach((name, control) -> heights.put(name, control.prefHeight(-1)));
+        });
+        for (String field : List.of("selection box", "cascader", "date picker", "date range picker")) {
+            assertEquals(heights.get("text field"), heights.get(field), 0.0, field + " height under " + host);
+        }
+        assertEquals(heights.get("native menu button"), heights.get("menu button"), 0.0,
+                "menu button height under " + host);
+    }
+
     private static void assertPickerHeight(String host, String userAgentStylesheet, Consumer<Scene> themer)
             throws Exception {
         Map<String, Double> heights = new LinkedHashMap<>();
@@ -1037,24 +1076,74 @@ public class RXControlColorsTest {
         Map<String, String> theirs = new LinkedHashMap<>();
         runOnFx(() -> {
             Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
-            ours.putAll(frameStates(new RXColorPicker(), themer));
-            theirs.putAll(frameStates(new ColorPicker(), themer));
+            ours.putAll(frameStates(new RXColorPicker(), null, PICKER_STATES, themer));
+            theirs.putAll(frameStates(new ColorPicker(), null, PICKER_STATES, themer));
         });
         theirs.forEach((state, frame) -> assertEquals(frame, ours.get(state), state + " frame under " + host));
     }
 
-    private static Map<String, String> frameStates(Region picker, Consumer<Scene> themer) {
-        Scene scene = new Scene(new StackPane(picker), 300, 200);
+    private static final List<String> PICKER_STATES = List.of("idle", "hover", "showing", "focused");
+
+    @Test
+    public void selectionBoxFrameMatchesModenasComboBox() throws Exception {
+        for (Consumer<Scene> themer : List.<Consumer<Scene>>of(scene -> { }, RXControlColorsTest::darkPalette)) {
+            Map<String, String> ours = new LinkedHashMap<>();
+            Map<String, String> theirs = new LinkedHashMap<>();
+            runOnFx(() -> {
+                Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
+                ours.putAll(frameStates(new RXSelectionBox<String>(), ".display", PICKER_STATES, themer));
+                theirs.putAll(frameStates(new ComboBox<String>(), null, PICKER_STATES, themer));
+            });
+            theirs.forEach((state, frame) -> assertEquals(frame, ours.get(state), state + " selection box frame"));
+        }
+    }
+
+    @Test
+    public void menuButtonFrameMatchesModenasMenuButton() throws Exception {
+        List<String> states = List.of("idle", "hover", "armed", "focused");
+        for (Consumer<Scene> themer : List.<Consumer<Scene>>of(scene -> { }, RXControlColorsTest::darkPalette)) {
+            Map<String, String> ours = new LinkedHashMap<>();
+            Map<String, String> theirs = new LinkedHashMap<>();
+            runOnFx(() -> {
+                Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
+                ours.putAll(frameStates(new RXMenuButton("Menu"), null, states, themer));
+                theirs.putAll(frameStates(new MenuButton("Menu"), null, states, themer));
+            });
+            theirs.forEach((state, frame) -> assertEquals(frame, ours.get(state), state + " menu button frame"));
+        }
+    }
+
+    @Test
+    public void menuButtonFrameMatchesAtlantaFxsMenuButton() throws Exception {
+        List<String> states = List.of("idle", "hover", "armed", "focused");
+        for (Theme theme : List.of(new PrimerLight(), new PrimerDark())) {
+            Map<String, String> ours = new LinkedHashMap<>();
+            Map<String, String> theirs = new LinkedHashMap<>();
+            runOnFx(() -> {
+                Application.setUserAgentStylesheet(theme.getUserAgentStylesheet());
+                ours.putAll(frameStates(new RXMenuButton("Menu"), null, states, RXAtlantaFXThemeBridge::install));
+                theirs.putAll(frameStates(new MenuButton("Menu"), null, states, RXAtlantaFXThemeBridge::install));
+            });
+            theirs.forEach((state, frame) -> assertEquals(frame, ours.get(state),
+                    state + " menu button frame under " + theme.getName()));
+        }
+    }
+
+    // Each state is forced alone; the frame is the background of the painted node.
+    private static Map<String, String> frameStates(Region control, String part, List<String> stateNames,
+                                                   Consumer<Scene> themer) {
+        Scene scene = new Scene(new StackPane(control), 300, 200);
         themer.accept(scene);
         scene.getRoot().applyCss();
+        Region painted = part == null ? control : (Region) control.lookup(part);
         Map<String, String> states = new LinkedHashMap<>();
-        for (String state : List.of("idle", "hover", "showing", "focused")) {
-            for (String other : List.of("hover", "showing", "focused")) {
-                picker.pseudoClassStateChanged(PseudoClass.getPseudoClass(other), other.equals(state));
+        for (String state : stateNames) {
+            for (String other : stateNames) {
+                control.pseudoClassStateChanged(PseudoClass.getPseudoClass(other), other.equals(state));
             }
             scene.getRoot().applyCss();
             StringBuilder frame = new StringBuilder();
-            for (BackgroundFill fill : picker.getBackground().getFills()) {
+            for (BackgroundFill fill : painted.getBackground().getFills()) {
                 frame.append(fill.getFill()).append(" @").append(fill.getInsets()).append(" r")
                         .append(fill.getRadii().getTopLeftHorizontalRadius()).append("; ");
             }
@@ -1133,7 +1222,7 @@ public class RXControlColorsTest {
         return List.of(
                 new FocusMember("date picker", RXDatePicker::new, null, "field"),
                 new FocusMember("cascader", RXCascader::new, ".display", "field"),
-                new FocusMember("selection box", RXSelectionBox::new, ".display", "field"),
+                new FocusMember("selection box", RXSelectionBox::new, ".display", "button"),
                 new FocusMember("chip input", RXChipInput::new, null, "field"),
                 new FocusMember("menu button", () -> new RXMenuButton("Menu"), null, "button"),
                 new FocusMember("color picker", RXColorPicker::new, null, "button"),

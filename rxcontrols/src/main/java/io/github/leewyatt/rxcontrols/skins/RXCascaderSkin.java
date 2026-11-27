@@ -47,7 +47,6 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
     // ==================== Constants ====================
 
     private static final double DEFAULT_PREF_WIDTH = 220.0;
-    private static final double DEFAULT_PREF_HEIGHT = 34.0;
     private static final PseudoClass EMPTY = PseudoClass.getPseudoClass("empty");
     private static final PseudoClass SHOWING = PseudoClass.getPseudoClass("showing");
 
@@ -455,7 +454,7 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset,
                                        double bottomInset, double leftInset) {
-        return topInset + Math.max(DEFAULT_PREF_HEIGHT, display.prefHeight(width)) + bottomInset;
+        return topInset + display.prefHeight(width) + bottomInset;
     }
 
     @Override
