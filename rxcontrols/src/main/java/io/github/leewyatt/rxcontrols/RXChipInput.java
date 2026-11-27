@@ -53,7 +53,9 @@ import java.util.function.Predicate;
  * <p>A {@link Control}; its skin owns a custom chip-flow-editor layout (the editor
  * fills the remainder of the current row and wraps to a fresh row when the remainder
  * drops below {@code -rx-editor-min-width}), the index-aligned chip-node mapping and
- * the suggestion popup. This control owns the model and the commit decision, so
+ * the suggestion popup. Every row is one line tall, the editor's height, and the
+ * default stylesheet draws the chips compact enough to fit in it, so the input keeps
+ * its height when the first chip is added. This control owns the model and the commit decision, so
  * {@link #commitInput()} and the {@code :error} state work without a skin attached.</p>
  *
  * <p>The default skin sets the {@code :focus-within} pseudo-class while the editor or
@@ -70,8 +72,14 @@ public class RXChipInput<T> extends Control {
     /** Default {@link #editorMinWidthProperty() editor min width}, in pixels. */
     public static final double DEFAULT_EDITOR_MIN_WIDTH = 60.0;
 
-    /** Default {@link #hgapProperty() horizontal} and {@link #vgapProperty() vertical} chip gap, in pixels. */
-    public static final double DEFAULT_GAP = 6.0;
+    /** Default {@link #hgapProperty() horizontal chip gap}, in pixels. */
+    public static final double DEFAULT_HGAP = 6.0;
+
+    /**
+     * Default {@link #vgapProperty() vertical gap} between rows, in pixels: none, since
+     * every row is already one text line tall and its chips are shorter.
+     */
+    public static final double DEFAULT_VGAP = 0.0;
 
     /** Default {@link #maxRowsProperty() maxRows}: unlimited. */
     public static final int DEFAULT_MAX_ROWS = -1;
@@ -531,10 +539,10 @@ public class RXChipInput<T> extends Control {
     // ==================== Chip gaps (styleable) ====================
 
     private final DoubleProperty hgap = new SimpleStyleableDoubleProperty(
-            StyleableProperties.HGAP, this, "hgap", DEFAULT_GAP);
+            StyleableProperties.HGAP, this, "hgap", DEFAULT_HGAP);
 
     private final DoubleProperty vgap = new SimpleStyleableDoubleProperty(
-            StyleableProperties.VGAP, this, "vgap", DEFAULT_GAP);
+            StyleableProperties.VGAP, this, "vgap", DEFAULT_VGAP);
 
     /**
      * The horizontal gap between chips (and between a chip and the editor caret), in
@@ -567,9 +575,10 @@ public class RXChipInput<T> extends Control {
     }
 
     /**
-     * The vertical gap between wrapped chip rows, in pixels. Settable from CSS via
-     * {@code -rx-vgap}. Negative values are not rejected here; the layout clamps the
-     * rendered gap to zero.
+     * The vertical gap between wrapped chip rows, in pixels. Every row is at least one
+     * text line tall (the editor's height), so chips in neighboring rows are already
+     * apart with no gap. Settable from CSS via {@code -rx-vgap}. Negative values are not
+     * rejected here; the layout clamps the rendered gap to zero.
      *
      * @return the vertical-gap property
      */
@@ -1082,7 +1091,7 @@ public class RXChipInput<T> extends Control {
                 };
 
         private static final CssMetaData<RXChipInput<?>, Number> HGAP =
-                new CssMetaData<>("-rx-hgap", SizeConverter.getInstance(), DEFAULT_GAP) {
+                new CssMetaData<>("-rx-hgap", SizeConverter.getInstance(), DEFAULT_HGAP) {
                     @Override
                     public boolean isSettable(RXChipInput<?> input) {
                         return !input.hgap.isBound();
@@ -1096,7 +1105,7 @@ public class RXChipInput<T> extends Control {
                 };
 
         private static final CssMetaData<RXChipInput<?>, Number> VGAP =
-                new CssMetaData<>("-rx-vgap", SizeConverter.getInstance(), DEFAULT_GAP) {
+                new CssMetaData<>("-rx-vgap", SizeConverter.getInstance(), DEFAULT_VGAP) {
                     @Override
                     public boolean isSettable(RXChipInput<?> input) {
                         return !input.vgap.isBound();

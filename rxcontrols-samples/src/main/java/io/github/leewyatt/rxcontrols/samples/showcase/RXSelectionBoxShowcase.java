@@ -19,7 +19,7 @@ import java.util.List;
  * Showcase application for {@link RXSelectionBox}.
  *
  * <p>Exposes the selection mode (single / multiple), the searchable popup,
- * the built-in Clear / Select All actions, {@code maxVisibleRows}, and the {@code readOnly} / {@code disabled} states over a
+ * the built-in Clear / Select All actions, {@code visibleRowCount}, and the {@code readOnly} / {@code disabled} states over a
  * virtualized list of items.</p>
  */
 public class RXSelectionBoxShowcase extends RXShowcaseApplication {
@@ -133,13 +133,13 @@ public class RXSelectionBoxShowcase extends RXShowcaseApplication {
     }
 
     private Node buildPopupGrid() {
-        Slider rows = createSlider(2.0, 15.0, selectionBox.getMaxVisibleRows());
-        selectionBox.maxVisibleRowsProperty().bind(Bindings.createIntegerBinding(
+        Slider rows = createSlider(2.0, 15.0, selectionBox.getVisibleRowCount());
+        selectionBox.visibleRowCountProperty().bind(Bindings.createIntegerBinding(
                 () -> (int) Math.round(rows.getValue()), rows.valueProperty()));
         Label rowsValue = createValueLabel(rows, "%.0f");
 
         return createGrid(
-                row("Max rows", rows, rowsValue));
+                row("Visible rows", rows, rowsValue));
     }
 
     private Node buildStateGrid() {

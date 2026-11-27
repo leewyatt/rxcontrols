@@ -3,9 +3,20 @@ package io.github.leewyatt.rxcontrols.internal.popup;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.PopupControl;
+import javafx.scene.layout.StackPane;
+import javafx.stage.Stage;
+import javafx.stage.Window;
+import io.github.leewyatt.rxcontrols.RXListView;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -18,9 +29,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Headless tests for the data model, filtered-view stability, keyboard bridge,
- * and height computation of {@link RXSuggestionPopup}. None require a shown
- * window; the visual show / animation paths are left to real-machine checks.
+ * Tests for the data model, filtered-view stability, keyboard bridge, and list
+ * height of {@link RXSuggestionPopup}. Only the height tests show a window (tagged
+ * {@code "ui"}, so a headless CI can exclude them); the visual show / animation
+ * paths are left to real-machine checks.
  */
 public class RXSuggestionPopupTest {
 
@@ -40,6 +52,8 @@ public class RXSuggestionPopupTest {
         if (!latch.await(5, TimeUnit.SECONDS)) {
             throw new AssertionError("JavaFX toolkit did not start");
         }
+        // The height tests close their stages; closing the last one must not end the toolkit.
+        Platform.setImplicitExit(false);
     }
 
     @Test
@@ -231,6 +245,93 @@ public class RXSuggestionPopupTest {
             popup.dispose();
             assertFalse(popup.isShowing());
         });
+    }
+
+    @Test
+    @Tag("ui")
+    public void firstShowSizesTheListForItsCssPadding() throws InterruptedException {
+        runOnFx(() -> {
+            RXSuggestionPopup<String> popup = new RXSuggestionPopup<>();
+            popup.setSuggestions(FXCollections.observableArrayList("a", "b", "c"));
+            Stage stage = shownStage(".rx-suggestion-popup .rx-list-view { -fx-padding: 10 0; }");
+            try {
+                popup.show(stage.getScene().getRoot().getChildrenUnmodifiable().get(0));
+                RXListView<?> list = popupList();
+                assertEquals(20.0, list.snappedTopInset() + list.snappedBottomInset(),
+                        "precondition: the stylesheet padding applies");
+                assertEquals(3 * list.getFixedCellSize() + 20.0, list.getHeight(), 1e-6,
+                        "the first show counts the list's CSS padding");
+            } finally {
+                popup.dispose();
+                stage.hide();
+            }
+        });
+    }
+
+    @Test
+    @Tag("ui")
+    public void listFollowsARowHeightSetInCss() throws InterruptedException {
+        runOnFx(() -> {
+            RXSuggestionPopup<String> popup = new RXSuggestionPopup<>();
+            popup.setSuggestions(FXCollections.observableArrayList("a", "b", "c"));
+            Stage stage = shownStage(".rx-suggestion-popup .rx-list-view { -rx-fixed-cell-size: 40; }");
+            try {
+                for (int open = 0; open < 2; open++) {
+                    popup.show(stage.getScene().getRoot().getChildrenUnmodifiable().get(0));
+                    RXListView<?> list = popupList();
+                    assertEquals(40.0, list.getFixedCellSize(), "precondition: the stylesheet row height applies");
+                    assertEquals(3 * 40.0 + list.snappedTopInset() + list.snappedBottomInset(), list.getHeight(),
+                            1e-6, "show " + open + " sizes the list for three 40px rows");
+                    popup.hide();
+                }
+            } finally {
+                popup.dispose();
+                stage.hide();
+            }
+        });
+    }
+
+    @Test
+    @Tag("ui")
+    public void listKeepsAHeightSetInCssWhileFiltering() throws InterruptedException {
+        runOnFx(() -> {
+            RXSuggestionPopup<String> popup = new RXSuggestionPopup<>();
+            popup.setSuggestions(FXCollections.observableArrayList("apple", "banana", "cherry"));
+            Stage stage = shownStage(".rx-suggestion-popup .rx-list-view { -fx-pref-height: 150; }");
+            try {
+                popup.show(stage.getScene().getRoot().getChildrenUnmodifiable().get(0));
+                assertEquals(150.0, popupList().getHeight(), 1e-6, "the stylesheet height applies on show");
+                popup.setFilterPredicate(s -> s.contains("an"));
+                assertEquals(150.0, popupList().getHeight(), 1e-6,
+                        "filtering does not override the stylesheet height");
+            } finally {
+                popup.dispose();
+                stage.hide();
+            }
+        });
+    }
+
+    private static Stage shownStage(String css) {
+        Stage stage = new Stage();
+        Scene scene = new Scene(new StackPane(new Button("anchor")), 320, 220);
+        scene.getStylesheets().add("data:text/css;base64,"
+                + Base64.getEncoder().encodeToString(css.getBytes(StandardCharsets.UTF_8)));
+        stage.setScene(scene);
+        stage.show();
+        return stage;
+    }
+
+    private static RXListView<?> popupList() {
+        for (Window window : Window.getWindows()) {
+            if (window instanceof PopupControl
+                    && ((PopupControl) window).getStyleClass().contains("rx-suggestion-popup")) {
+                Parent root = window.getScene().getRoot();
+                root.applyCss();
+                root.layout();
+                return (RXListView<?>) root.lookup(".rx-list-view");
+            }
+        }
+        throw new AssertionError("suggestion popup window not found");
     }
 
     private static void runOnFx(Runnable action) throws InterruptedException {

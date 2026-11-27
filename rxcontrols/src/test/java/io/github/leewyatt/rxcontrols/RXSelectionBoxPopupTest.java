@@ -26,7 +26,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
@@ -531,11 +533,11 @@ public class RXSelectionBoxPopupTest {
             box.show();
             RXListView<?> list = popupList();
             assertNotNull(list);
-            double before = list.getPrefHeight();
+            double before = list.getHeight();
 
             box.setSectionKeyFactory(item -> item.substring(0, 1));
 
-            assertTrue(list.getPrefHeight() > before,
+            assertTrue(popupList().getHeight() > before,
                     "section headers add height, so the open popup must grow to fit them");
         });
     }
@@ -570,6 +572,74 @@ public class RXSelectionBoxPopupTest {
 
     // ==================== Helpers ====================
 
+    @Test
+    public void firstOpenSizesTheListForItsPadding() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("a", "b", "c");
+            box.show();
+            RXListView<?> list = popupList();
+            assertNotNull(list, "popup list should exist");
+            double padding = list.snappedTopInset() + list.snappedBottomInset();
+            assertTrue(padding > 0.0, "precondition: the stylesheet pads the popup list");
+            assertEquals(3 * list.getFixedCellSize() + padding, list.getHeight(), 1e-6,
+                    "the first open counts the list's CSS padding, so three rows need no scroll bar");
+        });
+    }
+
+    @Test
+    public void popupListFollowsARowHeightSetInCss() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("a", "b", "c");
+            addStylesheet(box, ".rx-selection-box-popup .rx-list-view { -rx-fixed-cell-size: 40; }");
+            for (int open = 0; open < 2; open++) {
+                box.show();
+                RXListView<?> list = popupList();
+                assertEquals(40.0, list.getFixedCellSize(), "precondition: the stylesheet row height applies");
+                assertEquals(3 * 40.0 + list.snappedTopInset() + list.snappedBottomInset(), list.getHeight(), 1e-6,
+                        "open " + open + " sizes the list for three 40px rows");
+                box.hide();
+            }
+        });
+    }
+
+    @Test
+    public void popupListKeepsAHeightSetInCssWhileFiltering() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("apple", "banana", "cherry");
+            addStylesheet(box, ".rx-selection-box-popup .rx-list-view { -fx-pref-height: 150; }");
+            box.show();
+            assertEquals(150.0, popupList().getHeight(), 1e-6, "the stylesheet height applies on open");
+            box.setSearchText("an");
+            assertEquals(150.0, popupList().getHeight(), 1e-6, "filtering does not override the stylesheet height");
+        });
+    }
+
+    @Test
+    public void sectionHeadersCountAsVisibleRows() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("a1", "a2", "a3", "b1", "b2");
+            box.setVisibleRowCount(3);
+            box.setSectionKeyFactory(item -> item.substring(0, 1));
+            box.show();
+            RXListView<?> list = popupList();
+            assertEquals(list.getSectionHeaderHeight() + 2 * list.getFixedCellSize()
+                            + list.snappedTopInset() + list.snappedBottomInset(), list.getHeight(), 1e-6,
+                    "three rows are the 'a' header and two items, not three items plus their header");
+        });
+    }
+
+    @Test
+    public void displayKeepsTheDefaultCursorAsTheNativeComboBoxDoes() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("a", "b");
+            Node display = box.lookup(".display");
+            assertNull(display.getCursor(), "an editable box sets no cursor");
+            box.setReadOnly(true);
+            box.applyCss();
+            assertNull(display.getCursor(), "a read-only box sets no cursor");
+        });
+    }
+
     private RXSelectionBox<String> newShownBox(String... items) {
         RXSelectionBox<String> box = new RXSelectionBox<>(FXCollections.observableArrayList(items));
         stage = new Stage();
@@ -579,6 +649,11 @@ public class RXSelectionBoxPopupTest {
         box.layout();
         box.requestFocus();
         return box;
+    }
+
+    private static void addStylesheet(RXSelectionBox<?> box, String css) {
+        box.getScene().getStylesheets().add("data:text/css;base64,"
+                + Base64.getEncoder().encodeToString(css.getBytes(StandardCharsets.UTF_8)));
     }
 
     private static TextInputControl popupSearchField() {

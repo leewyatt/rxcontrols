@@ -1828,41 +1828,59 @@
  *                                                                             *
  ******************************************************************************/
 
+/* Modena's text field frame (.text-input), drawn as background layers so it takes no
+   space. The input has no vertical padding: every row is one line tall, the editor's
+   height, which leaves 4px above and below a compact chip, so the input keeps its
+   height when the first chip arrives. The editor's left padding completes the text
+   field's 0.583em text inset. */
 .rx-chip-input {
-    /* The white text-input surface (not the grey app surface), so chips read against
-       it — follows Modena's inner background by default, bg-default in AtlantaFX. */
-    -fx-background-color: -fx-control-inner-background;
-    -fx-background-radius: 4px;
-    -fx-border-color: -rx-outline;
-    -fx-border-width: 1px;
-    -fx-border-radius: 4px;
-    -fx-padding: 0.25em 0.5em;
-}
-
-/* Highlight the input while its suggestion dropdown is open (JavaFX 17 has no
-   :focus-within, so this mirrors the popup state instead). Placed before :error so
-   the error border wins at equal specificity when both states are active. */
-.rx-chip-input:popup-showing {
-    -fx-border-color: -rx-primary;
+    -fx-background-color: linear-gradient(to bottom, derive(-fx-text-box-border, -10%), -fx-text-box-border),
+        linear-gradient(from 0px 0px to 0px 5px, derive(-fx-control-inner-background, -9%), -fx-control-inner-background);
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
+    -fx-padding: 0 0.25em;
 }
 
 .rx-chip-input:error,
 .rx-chip-input:error:focus-within,
 .rx-chip-input:error:popup-showing {
-    -fx-border-color: -rx-danger;
+    -fx-background-color: -rx-danger, -fx-control-inner-background;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
 }
 
 /* .content (the chip-flow pane) and .editor are descendants because a maxRows input
    nests them inside a scroll pane; the direct-child form would miss that structure. */
-.rx-chip-input .content {
-    -fx-padding: 0.25em 0;
-}
-
 .rx-chip-input .editor {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
-    -fx-padding: 0.2em 0;
+    -fx-padding: 0.538462em 0 0.538462em 0.333333em; /* 7 0 7 4 */
     -fx-text-fill: -rx-on-surface;
+}
+
+/* Chips in the input are compact: the input's own text in a slim capsule. */
+.rx-chip-input .content > .rx-chip {
+    -fx-padding: 0.153846em 0.615385em; /* 2 8 */
+}
+
+/* AtlantaFX: its text field outline, radius and 8px 12px padding; its taller text
+   field already leaves 4px around a compact chip. */
+.rx-theme-atlantafx .rx-chip-input,
+.rx-theme-atlantafx.rx-chip-input {
+    -fx-background-color: -rx-outline, -fx-control-inner-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 4px, 3px;
+    -fx-padding: 0 4px;
+}
+
+.rx-theme-atlantafx .rx-chip-input .editor,
+.rx-theme-atlantafx.rx-chip-input .editor {
+    -fx-padding: 8px 0 8px 8px;
+}
+
+.rx-theme-atlantafx .rx-chip-input .content > .rx-chip,
+.rx-theme-atlantafx.rx-chip-input .content > .rx-chip {
+    -fx-padding: 3px 10px;
 }
 
 /* The optional maxRows scroll wrapper stays transparent so only the input's own
@@ -2091,6 +2109,13 @@
     -fx-spacing: 0.5em; /* 6 */
 }
 
+/* AtlantaFX text inputs are padded 8px 12px; the cascader matches them so it is as
+   tall as a text field. */
+.rx-theme-atlantafx .rx-cascader > .display,
+.rx-theme-atlantafx.rx-cascader > .display {
+    -fx-padding: 8px 12px;
+}
+
 .rx-theme-atlantafx .rx-cascader:focused > .display,
 .rx-theme-atlantafx.rx-cascader:focused > .display,
 .rx-theme-atlantafx .rx-cascader:showing > .display,
@@ -2121,7 +2146,6 @@
 .rx-cascader > .display > .arrow-button {
     -fx-alignment: center;
     -fx-padding: 0.333333em; /* 4 */
-    -fx-cursor: hand;
     -fx-background-color: transparent;
 }
 
@@ -4152,42 +4176,72 @@
  * RXMenuButton                                                                *
  *                                                                             *
  ******************************************************************************/
-/* Extends ButtonBase directly (no modena .button chrome), so the outlined
-   trigger shell is defined in full here. Hover / press feedback comes from the
-   skin's ripple + state overlay; :focused adds a ring, :showing an accent. */
+/* Modena's own menu button (.menu-button), layer for layer and padded as its label,
+   so it is as tall as a button: lighter on hover, the pressed color while armed or
+   open. The body already answers hover, so the ripple runs without its overlay. */
 .rx-menu-button {
-    -rx-focus-fill: -rx-surface;
-    -fx-background-color: -rx-outline, -rx-surface;
-    -fx-background-insets: 0, 1;
-    -fx-background-radius: 4, 3;
-    -fx-padding: 8 12 8 12;
+    -fx-background-color: -fx-shadow-highlight-color, -fx-outer-border, -fx-inner-border, -fx-body-color;
+    -fx-background-insets: 0 0 -1 0, 0, 1, 2;
+    -fx-background-radius: 3px, 3px, 2px, 1px;
+    -fx-padding: 0.333333em 0.666667em; /* 4 8 */
     -fx-alignment: CENTER_LEFT;
-    -fx-text-fill: -rx-on-surface;
+    -fx-text-fill: -fx-text-base-color;
     -rx-ripple-fill: -rx-state-overlay-color;
     -rx-ripple-opacity: 0.18;
     -rx-ripple-enabled: true;
-    -rx-ripple-state-overlay-enabled: true;
+    -rx-ripple-state-overlay-enabled: false;
 }
+
+.rx-menu-button:hover {
+    -fx-color: -fx-hover-base;
+}
+
+.rx-menu-button:armed,
+.rx-menu-button:showing {
+    -fx-color: -fx-pressed-base;
+}
+
 .rx-menu-button > .arrow {
-    -fx-background-color: -rx-on-surface-secondary;
-    -fx-shape: "M7 10 L12 15 L17 10 Z";
-    -fx-pref-width: 12;
-    -fx-pref-height: 6;
+    -fx-background-color: -fx-mark-highlight-color, -fx-mark-color;
+    -fx-background-insets: 0 0 -1 0, 0;
+    -fx-pref-width: 0.666667em; /* 8 */
+    -fx-pref-height: 0.333333em; /* 4 */
+    -fx-shape: "M 0 0 h 7 l -3.5 4 z";
 }
-/* The tint is translucent in some themes; the surface under it keeps the solid
-   accent ring from showing through, which would hide the accent arrow. */
-.rx-menu-button:showing,
-.rx-menu-button:showing:focused {
-    -fx-background-color: -rx-primary, -rx-surface, -rx-primary-bg;
-    -fx-background-insets: 0, 1, 1;
-    -fx-background-radius: 4, 3, 3;
-}
+
 .rx-menu-button:showing > .arrow {
-    -fx-background-color: -rx-primary;
     -fx-rotate: 180;
 }
+
 .rx-menu-button:disabled {
     -fx-opacity: 0.4;
+}
+
+/* AtlantaFX: its menu button, a subtle body in the field outline, padded 8px 12px.
+   Its hover color is a step up from the default background in light themes and a
+   step down in dark ones. */
+.rx-theme-atlantafx .rx-menu-button,
+.rx-theme-atlantafx.rx-menu-button {
+    -fx-background-color: -color-border-default, -color-bg-subtle;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 4px, 3px;
+    -fx-padding: 8px 12px;
+    -fx-text-fill: -color-fg-default;
+}
+
+.rx-theme-atlantafx .rx-menu-button:hover,
+.rx-theme-atlantafx.rx-menu-button:hover {
+    -fx-background-color: -color-border-default, ladder(-color-bg-default, -color-base-6 49%, -color-base-1 50%);
+    -fx-opacity: 0.9;
+}
+
+.rx-theme-atlantafx .rx-menu-button > .arrow,
+.rx-theme-atlantafx.rx-menu-button > .arrow {
+    -fx-background-color: -color-fg-default;
+    -fx-background-insets: 0;
+    -fx-pref-width: 10px;
+    -fx-pref-height: 5px;
+    -fx-shape: "M7 10l5 5 5-5z";
 }
 
 /*******************************************************************************
@@ -4671,31 +4725,45 @@
 .rx-selection-box {
     -rx-ripple-fill: -rx-state-overlay-color;
     -rx-ripple-opacity: 0.12;
+    -rx-ripple-state-overlay-enabled: false;
+}
+
+/* Modena's combo box frame (.combo-box-base), layer for layer, on the display: it
+   lightens on hover and takes the pressed color while the popup is open, and is padded
+   as a text field, so the box is as tall as one. The body already answers hover, so the
+   ripple runs without its overlay. */
+.rx-selection-box:hover {
+    -fx-color: -fx-hover-base;
+}
+
+.rx-selection-box:showing {
+    -fx-color: -fx-pressed-base;
 }
 
 .rx-selection-box > .display {
     -fx-alignment: center-left;
-    -fx-background-color: -rx-outline, -fx-control-inner-background;
-    -fx-background-insets: 0, 1;
-    -fx-background-radius: 3, 2;
-    -fx-padding: 0.5em 0.5em 0.5em 0.833em; /* 6 6 6 10 */
+    -fx-background-color: -fx-shadow-highlight-color, -fx-outer-border, -fx-inner-border, -fx-body-color;
+    -fx-background-insets: 0 0 -1 0, 0, 1, 2;
+    -fx-background-radius: 3px, 3px, 2px, 1px;
+    -fx-padding: 0.333333em 0.333333em 0.333333em 0.666667em; /* 4 4 4 8 */
     -fx-spacing: 0.5em; /* 6 */
-    -fx-cursor: hand;
-}
-
-.rx-theme-atlantafx .rx-selection-box:focused > .display,
-.rx-theme-atlantafx .rx-selection-box:showing > .display {
-    -fx-background-color: -fx-focus-color, -fx-control-inner-background;
-    -fx-background-insets: 0, 1;
-    -fx-background-radius: 3, 2;
 }
 
 .rx-selection-box:readonly > .display {
     -fx-opacity: 0.75;
 }
 
+.rx-selection-box:disabled {
+    -fx-opacity: 0.4;
+}
+
+/* The box already fades as a whole; Modena's disabled label must not fade it twice. */
+.rx-selection-box:disabled > .display > .summary {
+    -fx-opacity: 1;
+}
+
 .rx-selection-box > .display > .summary {
-    -fx-text-fill: -rx-on-surface;
+    -fx-text-fill: -fx-text-base-color;
     -fx-text-overrun: ellipsis;
 }
 
@@ -4710,14 +4778,57 @@
 }
 
 .rx-selection-box > .display > .arrow-button > .arrow {
-    -fx-background-color: -rx-on-surface-secondary;
+    -fx-background-color: -fx-mark-highlight-color, -fx-mark-color;
+    -fx-background-insets: 0 0 -1 0, 0;
     -fx-pref-width: 0.666667em; /* 8 */
-    -fx-pref-height: 0.416667em; /* 5 */
-    -fx-shape: "M 0 0 L 8 0 L 4 5 Z";
+    -fx-pref-height: 0.333333em; /* 4 */
+    -fx-shape: "M 0 0 h 7 l -3.5 4 z";
 }
 
 .rx-selection-box:showing > .display > .arrow-button > .arrow {
     -fx-rotate: 180;
+}
+
+/* AtlantaFX: the flat outlined field of its combo box, padded as its text field
+   (8px 12px), with its muted drop-down arrow 12px from the edge and the text. */
+.rx-theme-atlantafx .rx-selection-box > .display,
+.rx-theme-atlantafx.rx-selection-box > .display {
+    -fx-background-color: -rx-outline, -rx-surface;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 3px, 2px;
+    -fx-padding: 8px 12px;
+    -fx-spacing: 12px;
+}
+
+/* Open, it keeps the accent edge of its focus (the focused look is with the focus
+   rings at the end of the file). */
+.rx-theme-atlantafx .rx-selection-box:showing > .display,
+.rx-theme-atlantafx.rx-selection-box:showing > .display {
+    -fx-background-color: -rx-focus, -rx-surface;
+}
+
+.rx-theme-atlantafx .rx-selection-box > .display > .summary,
+.rx-theme-atlantafx.rx-selection-box > .display > .summary {
+    -fx-text-fill: -rx-on-surface;
+}
+
+.rx-theme-atlantafx .rx-selection-box:empty > .display > .summary,
+.rx-theme-atlantafx.rx-selection-box:empty > .display > .summary {
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+.rx-theme-atlantafx .rx-selection-box > .display > .arrow-button,
+.rx-theme-atlantafx.rx-selection-box > .display > .arrow-button {
+    -fx-padding: 0 0 0 12px;
+}
+
+.rx-theme-atlantafx .rx-selection-box > .display > .arrow-button > .arrow,
+.rx-theme-atlantafx.rx-selection-box > .display > .arrow-button > .arrow {
+    -fx-background-color: -color-fg-muted;
+    -fx-background-insets: 0;
+    -fx-pref-width: 10px;
+    -fx-pref-height: 5px;
+    -fx-shape: "M7 10l5 5 5-5z";
 }
 
 .rx-selection-box-popup .popup-content {
@@ -4729,12 +4840,16 @@
     -fx-background-color: transparent;
     -fx-background-insets: 0;
     -fx-background-radius: 2 2 0 0;
-    -fx-border-color: transparent transparent
-    ladder(-fx-control-inner-background,
-    derive(-fx-control-inner-background, 25%) 45%,
-    derive(-fx-control-inner-background, -16%) 46%) transparent;
     -fx-border-width: 0 0 1px 0;
     -fx-padding: 0.416667em 0.666667em; /* 5 8 */
+}
+
+/* The same divider sets the search field and the action buttons off from the list. */
+.rx-selection-box-popup .search-field,
+.rx-selection-box-popup .actions-box {
+    -fx-border-color: ladder(-fx-control-inner-background,
+    derive(-fx-control-inner-background, 25%) 45%,
+    derive(-fx-control-inner-background, -16%) 46%);
 }
 
 .rx-selection-box-popup .search-field:focused {
@@ -4811,10 +4926,12 @@
     -fx-background-color: -rx-on-primary;
 }
 
+/* Inset from the card edges as the rows' text is. */
 .rx-selection-box-popup .actions-box {
     -fx-alignment: center-right;
     -fx-spacing: 0.5em; /* 6 */
-    -fx-padding: 0.25em 0 0 0;
+    -fx-border-width: 1px 0 0 0;
+    -fx-padding: 0.666667em; /* 8 */
 }
 
 /*******************************************************************************
@@ -5396,10 +5513,11 @@
 }
 
 /* AtlantaFX text inputs are taller (8px x 12px padding); match them so pickers line
-   up with plain text fields in AtlantaFX forms. */
+   up with plain text fields in AtlantaFX forms. Pixels, as AtlantaFX's own: its
+   14px font would scale em padding past them. */
 .rx-theme-atlantafx .rx-picker > .text-field,
 .rx-theme-atlantafx.rx-picker > .text-field {
-    -fx-padding: 0.666667em 0 0.666667em 1em;
+    -fx-padding: 8px 0 8px 12px;
 }
 
 .rx-picker > .leading-wrapper {
@@ -5408,7 +5526,7 @@
 
 .rx-theme-atlantafx .rx-picker > .leading-wrapper,
 .rx-theme-atlantafx.rx-picker > .leading-wrapper {
-    -fx-padding: 0 0 0 1em;
+    -fx-padding: 0 0 0 12px;
 }
 
 /* Range pickers underline the field being edited: 2px, clear of the 1px frame. */
@@ -5428,7 +5546,6 @@
 .rx-picker > .suffix {
     -fx-padding: 0 0.583em 0 0.416667em;
     -fx-background-color: transparent;
-    -fx-cursor: hand;
 }
 
 .rx-picker > .suffix > .icon {
@@ -5971,7 +6088,6 @@
     /* Modena's text field padding: the swatch is one line of text, so the picker is as
        tall as a text field. */
     -fx-padding: 0.333333em;
-    -fx-cursor: hand;
 }
 
 .rx-color-picker:hover {
@@ -6120,8 +6236,6 @@
 .rx-picker:showing,
 .rx-cascader:focused > .display,
 .rx-cascader:showing > .display,
-.rx-selection-box:focused > .display,
-.rx-selection-box:showing > .display,
 .rx-chip-input:focus-within,
 .rx-chip-input:popup-showing {
     -fx-background-color: -fx-focus-color, -fx-control-inner-background, -fx-faint-focus-color,
@@ -6130,13 +6244,6 @@
     -fx-background-radius: 3, 2, 4, 0;
 }
 
-/* The ring replaces the resting outline; its width stays, so nothing moves. */
-.rx-chip-input:focus-within,
-.rx-chip-input:popup-showing {
-    -fx-border-color: transparent;
-}
-
-.rx-menu-button:focused,
 .rx-hold-button:focused,
 .rx-chip:focused,
 .rx-chip:selectable:selected:focused {
@@ -6144,15 +6251,16 @@
     -fx-background-insets: -0.2, 1, -1.4, 2.6;
 }
 
-.rx-menu-button:focused,
 .rx-hold-button:focused {
     -fx-background-radius: 4, 3, 5, 2;
 }
 
-/* A member with Modena's own button body takes Modena's button ring unchanged. While
-   its popup is open the picker's window has lost the focus, so, as Modena's own
-   picker, it shows only the pressed body. */
-.rx-color-picker:focused {
+/* Members with Modena's own button body take Modena's button ring unchanged. While
+   a popup is open its owner's window has lost the focus, so, as Modena's own
+   controls, they show only the pressed body. */
+.rx-color-picker:focused,
+.rx-selection-box:focused > .display,
+.rx-menu-button:focused {
     -fx-background-color: -fx-focus-color, -fx-inner-border, -fx-body-color, -fx-faint-focus-color, -fx-body-color;
     -fx-background-insets: -0.2, 1, 2, -1.4, 2.6;
     -fx-background-radius: 3, 2, 1, 4, 1;
@@ -6231,39 +6339,39 @@
 }
 
 /* AtlantaFX: each member keeps the focus look it had before the recipes; the chip
-   input, which had none, takes the accent outline of an AtlantaFX text field. */
+   input, which had none, takes the accent outline of an AtlantaFX text field, and
+   keeps its error outline over it. */
 .rx-theme-atlantafx .rx-chip-input:focus-within,
 .rx-theme-atlantafx.rx-chip-input:focus-within,
 .rx-theme-atlantafx .rx-chip-input:popup-showing,
 .rx-theme-atlantafx.rx-chip-input:popup-showing {
-    -fx-background-color: -fx-control-inner-background;
-    -fx-background-insets: 0;
-    -fx-background-radius: 4px;
-    -fx-border-color: -rx-focus;
-}
-
-.rx-theme-atlantafx .rx-chip-input:popup-showing,
-.rx-theme-atlantafx.rx-chip-input:popup-showing {
-    -fx-border-color: -rx-primary;
+    -fx-background-color: -rx-focus, -fx-control-inner-background;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 4px, 3px;
 }
 
 .rx-theme-atlantafx .rx-chip-input:error,
 .rx-theme-atlantafx.rx-chip-input:error {
-    -fx-border-color: -rx-danger;
+    -fx-background-color: -rx-danger, -fx-control-inner-background;
 }
 
 .rx-theme-atlantafx .rx-menu-button:focused,
 .rx-theme-atlantafx.rx-menu-button:focused {
-    -fx-background-color: -rx-focus, -rx-outline, -rx-surface;
-    -fx-background-insets: -1.4, 0, 1;
-    -fx-background-radius: 5, 4, 3;
+    -fx-background-color: -color-accent-emphasis, -color-bg-subtle;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 4px, 3px;
 }
 
-.rx-theme-atlantafx .rx-menu-button:showing:focused,
-.rx-theme-atlantafx.rx-menu-button:showing:focused {
-    -fx-background-color: -rx-primary, -rx-surface, -rx-primary-bg;
-    -fx-background-insets: 0, 1, 1;
-    -fx-background-radius: 4, 3, 3;
+.rx-theme-atlantafx .rx-menu-button:armed,
+.rx-theme-atlantafx.rx-menu-button:armed {
+    -fx-background-color: transparent, -color-bg-subtle;
+}
+
+.rx-theme-atlantafx .rx-selection-box:focused > .display,
+.rx-theme-atlantafx.rx-selection-box:focused > .display {
+    -fx-background-color: -rx-focus, -rx-surface;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 3px, 2px;
 }
 
 .rx-theme-atlantafx .rx-color-picker:focused,
@@ -6275,6 +6383,8 @@
     -fx-background-radius: 3px, 2px;
 }
 
+/* As AtlantaFX's own buttons, a focused chip shows an accent outline, also after a
+   click. */
 .rx-theme-atlantafx .rx-chip:focused,
 .rx-theme-atlantafx.rx-chip:focused,
 .rx-theme-atlantafx .rx-chip:selectable:selected:focused,
@@ -6282,13 +6392,6 @@
     -fx-background-color: -rx-focus-fill;
     -fx-background-insets: 0;
     -fx-background-radius: 999px;
-    -fx-border-color: -rx-outline;
-}
-
-.rx-theme-atlantafx .rx-chip:focus-shown,
-.rx-theme-atlantafx.rx-chip:focus-shown,
-.rx-theme-atlantafx .rx-chip:selectable:selected:focus-shown,
-.rx-theme-atlantafx.rx-chip:selectable:selected:focus-shown {
     -fx-border-color: -rx-focus;
 }
 

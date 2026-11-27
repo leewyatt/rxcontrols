@@ -79,8 +79,8 @@ public class RXChipInputTest {
             assertTrue(input.isEditable());
             assertEquals(RXChipInput.DEFAULT_EDITOR_MIN_WIDTH, input.getEditorMinWidth());
             assertEquals(RXChipInput.DEFAULT_MAX_ROWS, input.getMaxRows());
-            assertEquals(RXChipInput.DEFAULT_GAP, input.getHgap());
-            assertEquals(RXChipInput.DEFAULT_GAP, input.getVgap());
+            assertEquals(RXChipInput.DEFAULT_HGAP, input.getHgap());
+            assertEquals(RXChipInput.DEFAULT_VGAP, input.getVgap());
             assertFalse(input.isAutoSelectFirstSuggestion());
             assertTrue(input.getChips().isEmpty());
             assertSame(Orientation.HORIZONTAL, input.getContentBias());
@@ -375,6 +375,26 @@ public class RXChipInputTest {
             double wide = input.prefHeight(2000.0);
             double narrow = input.prefHeight(80.0);
             assertTrue(narrow > wide, "wrapping into more rows grows the height");
+        });
+    }
+
+    /**
+     * Verifies every wrapped row is one text line tall, chip rows included, so the
+     * input grows by whole lines: an empty input is one line.
+     *
+     * @throws Exception if the FX-thread assertion fails
+     */
+    @Test
+    public void everyWrappedRowIsOneTextLineTall() throws Exception {
+        runOnFx(() -> {
+            RXChipInput<String> empty = attach(new RXChipInput<>());
+            RXChipInput<String> input = attach(new RXChipInput<>());
+            input.getChips().addAll("chip-0", "chip-1", "chip-2");
+            input.applyCss();
+            input.layout();
+            double line = empty.prefHeight(-1);
+            // Narrow enough for one chip per row; the editor takes a fourth row.
+            assertEquals(4 * line, input.prefHeight(80.0), 0.0);
         });
     }
 

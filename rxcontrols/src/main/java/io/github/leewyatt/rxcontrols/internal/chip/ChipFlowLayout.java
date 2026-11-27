@@ -129,9 +129,11 @@ public final class ChipFlowLayout extends Region {
         return rows;
     }
 
+    // Every row is at least one editor line tall, so a row of chips lines up with the
+    // text row and keeps its distance from the frame.
     private double rowHeight(int start, int end) {
         List<Node> items = getChildren();
-        double h = 0;
+        double h = itemHeight(editor);
         for (int i = start; i < end; i++) {
             h = Math.max(h, itemHeight(items.get(i)));
         }
@@ -165,7 +167,7 @@ public final class ChipFlowLayout extends Region {
                     w = Math.max(w, contentWidth - (x - left));
                 }
                 double iy = y + (rh - h) / 2.0;
-                node.resizeRelocate(x, iy, w, h);
+                node.resizeRelocate(snapPositionX(x), snapPositionY(iy), w, h);
                 x += w + hgap;
             }
             y += rh + vgap;

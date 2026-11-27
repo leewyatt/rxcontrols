@@ -41,17 +41,24 @@ public final class RXSuggestionPopup<T> {
     // ==================== Constants ====================
 
     private static final String POPUP_STYLE_CLASS = "rx-suggestion-popup";
-    private static final int DEFAULT_MAX_VISIBLE_ROWS = 8;
+    private static final int DEFAULT_VISIBLE_ROW_COUNT = 8;
 
     // ==================== Content + support ====================
 
-    private final RXListView<T> listView = new RXListView<>();
+    // Sized when layout asks, as the native combo box list is, so the CSS padding,
+    // border and row height in effect at that moment are what count.
+    private final RXListView<T> listView = new RXListView<>() {
+        @Override
+        protected double computePrefHeight(double width) {
+            return listPrefHeight();
+        }
+    };
     private final RXPopupSupport support;
     private final SkinDisposer disposer = new SkinDisposer();
 
     // ==================== Config ====================
 
-    private int maxVisibleRows = DEFAULT_MAX_VISIBLE_ROWS;
+    private int visibleRowCount = DEFAULT_VISIBLE_ROW_COUNT;
     private boolean hideOnSelect = true;
     private Consumer<T> onSuggestionSelected;
     // Marks items that are shown but not selectable (e.g. already-chosen chips when
@@ -82,7 +89,7 @@ public final class RXSuggestionPopup<T> {
         support.setHideOnEscape(false);
 
         disposer.registerListener(filtered, this::onFilteredChanged);
-        disposer.registerListener(listView.insetsProperty(), this::updatePopupHeight);
+        disposer.registerListener(listView.fixedCellSizeProperty(), this::invalidatePopupHeight);
         disposer.registerEventHandler(listView, MouseEvent.MOUSE_CLICKED, this::handleListClicked);
 
         // Observe the initial suggestions list too (mirrors RXListView's constructor):
@@ -90,8 +97,6 @@ public final class RXSuggestionPopup<T> {
         // without this a getSuggestions() mutation before the first setSuggestions()
         // would not reach the backing/filtered view.
         rebindSuggestions();
-
-        updatePopupHeight();
     }
 
     // ==================== Lifecycle ====================
@@ -102,7 +107,6 @@ public final class RXSuggestionPopup<T> {
      * @param anchor the node to anchor to
      */
     public void show(Node anchor) {
-        updatePopupHeight();
         support.show(anchor);
     }
 
@@ -442,27 +446,26 @@ public final class RXSuggestionPopup<T> {
      */
     public void setFixedCellSize(double value) {
         listView.setFixedCellSize(value);
-        updatePopupHeight();
     }
 
     /**
      * Sets the maximum number of rows shown before the list scrolls. Values below 1
      * are rendered as 1.
      *
-     * @param value the maximum visible rows
+     * @param value the visible row count
      */
-    public void setMaxVisibleRows(int value) {
-        maxVisibleRows = value;
-        updatePopupHeight();
+    public void setVisibleRowCount(int value) {
+        visibleRowCount = value;
+        invalidatePopupHeight();
     }
 
     /**
      * Returns the maximum number of visible rows.
      *
-     * @return the maximum visible rows
+     * @return the visible row count
      */
-    public int getMaxVisibleRows() {
-        return maxVisibleRows;
+    public int getVisibleRowCount() {
+        return visibleRowCount;
     }
 
     // ==================== Behavior config ====================
@@ -575,7 +578,7 @@ public final class RXSuggestionPopup<T> {
         if (model != null) {
             model.clearSelection();
         }
-        updatePopupHeight();
+        invalidatePopupHeight();
     }
 
     /**
@@ -590,18 +593,20 @@ public final class RXSuggestionPopup<T> {
         }
     }
 
-    private void updatePopupHeight() {
+    private void invalidatePopupHeight() {
+        listView.requestLayout();
+    }
+
+    private double listPrefHeight() {
         int count = filtered.size();
         // Empty reserves one row of height so the placeholder-when-empty node has
         // vertical room to render (the spec's min(count,rows) formula would give 0).
-        int rows = (count == 0) ? 1 : Math.min(count, Math.max(1, maxVisibleRows));
+        int rows = (count == 0) ? 1 : Math.min(count, Math.max(1, visibleRowCount));
         double cell = listView.getFixedCellSize();
         if (!(cell > 0.0)) {
             cell = RXListView.DEFAULT_FIXED_CELL_SIZE;
         }
-        double insets = listView.getInsets().getTop() + listView.getInsets().getBottom();
-        listView.setPrefHeight(rows * cell + insets);
-        support.requestReposition();
+        return rows * cell + listView.snappedTopInset() + listView.snappedBottomInset();
     }
 
     private void commit(T item) {

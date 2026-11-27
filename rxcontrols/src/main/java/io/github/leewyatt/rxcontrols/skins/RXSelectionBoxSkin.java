@@ -93,7 +93,14 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
     private final VBox popupBody = new VBox();
     private final RXTextField searchField = new RXTextField();
     private final StackPane headerHolder = new StackPane();
-    private final RXListView<T> popupList = new RXListView<>();
+    // Sized when layout asks, as the native combo box list is, so the CSS padding,
+    // border and row height in effect at that moment are what count.
+    private final RXListView<T> popupList = new RXListView<>() {
+        @Override
+        protected double computePrefHeight(double width) {
+            return popupListPrefHeight();
+        }
+    };
     private final HBox actionsBox = new HBox();
     private final RXButton clearButton = new RXButton();
     private final RXButton selectAllButton = new RXButton();
@@ -115,7 +122,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
     private final WeakInvalidationListener weakSelectionContentListener =
             new WeakInvalidationListener(selectionContentListener);
 
-    private final ListChangeListener<T> filteredListener = change -> updatePopupHeight();
+    private final ListChangeListener<T> filteredListener = change -> invalidatePopupHeight();
     private final WeakListChangeListener<T> weakFilteredListener =
             new WeakListChangeListener<>(filteredListener);
 
@@ -233,14 +240,15 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         disposer.registerListener(control.graphicProperty(), this::updateGraphic);
         disposer.registerListener(control.popupHeaderProperty(), this::updateHeader);
         disposer.registerListener(control.popupFooterProperty(), this::updateFooter);
-        disposer.registerListener(control.maxVisibleRowsProperty(), this::updatePopupHeight);
+        disposer.registerListener(control.visibleRowCountProperty(), this::invalidatePopupHeight);
         disposer.registerListener(control.showClearButtonProperty(), this::updateActions);
         disposer.registerListener(control.showSelectAllButtonProperty(), this::updateActions);
         disposer.registerListener(control.disabledProperty(), this::onDisabledChanged);
-        disposer.registerListener(control.sectionKeyFactoryProperty(), this::updatePopupHeight);
-        disposer.registerListener(popupList.showSectionHeadersProperty(), this::updatePopupHeight);
-        disposer.registerListener(popupList.sectionHeaderHeightProperty(), this::updatePopupHeight);
-        disposer.registerListener(popupList.sectionSpacingProperty(), this::updatePopupHeight);
+        disposer.registerListener(control.sectionKeyFactoryProperty(), this::invalidatePopupHeight);
+        disposer.registerListener(popupList.showSectionHeadersProperty(), this::invalidatePopupHeight);
+        disposer.registerListener(popupList.sectionHeaderHeightProperty(), this::invalidatePopupHeight);
+        disposer.registerListener(popupList.sectionSpacingProperty(), this::invalidatePopupHeight);
+        disposer.registerListener(popupList.fixedCellSizeProperty(), this::invalidatePopupHeight);
 
         filtered.addListener(weakFilteredListener);
 
@@ -305,7 +313,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         } else {
             backing.setAll(source);
         }
-        updatePopupHeight();
     }
 
     /**
@@ -330,7 +337,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
                 }
             }
         }
-        updatePopupHeight();
     }
 
     // ==================== Selection model attach ====================
@@ -527,7 +533,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
             filtered.setPredicate(predicate);
         }
         resetCursorAfterFilter();
-        updatePopupHeight();
     }
 
     private void resetCursorAfterFilter() {
@@ -543,39 +548,55 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         }
     }
 
-    private void updatePopupHeight() {
-        int count = filtered.size();
-        int rows = count == 0 ? 1 : Math.min(count, Math.max(1, getSkinnable().getMaxVisibleRows()));
+    private void invalidatePopupHeight() {
+        popupList.requestLayout();
+    }
+
+    private double popupListPrefHeight() {
+        double insets = popupList.snappedTopInset() + popupList.snappedBottomInset();
+        RXSelectionBox<T> control = getSkinnable();
+        if (control == null) {
+            return insets;
+        }
         double cellSize = popupList.getFixedCellSize();
         if (!(cellSize > 0.0)) {
             cellSize = RXListView.DEFAULT_FIXED_CELL_SIZE;
         }
-        double insets = popupList.getInsets().getTop() + popupList.getInsets().getBottom();
-        popupList.setPrefHeight(rows * cellSize + sectionHeaderExtent(rows) + insets);
-        popupSupport.requestReposition();
+        if (filtered.isEmpty()) {
+            // One row of room for the empty placeholder.
+            return cellSize + insets;
+        }
+        return visibleRowsExtent(control, cellSize) + insets;
     }
 
     /**
-     * Extra vertical extent contributed by section headers within the first
-     * {@code rows} data rows, so the popup does not clip its content (or show a
-     * premature scrollbar) when a {@code sectionKeyFactory} is set.
+     * Height of the first {@code visibleRowCount} rows. A section header counts as
+     * a row, as the native combo box counts every row it shows, so headers never
+     * make the popup taller than the row count.
      */
-    private double sectionHeaderExtent(int rows) {
-        Callback<T, Object> keyFactory = getSkinnable().getSectionKeyFactory();
-        if (keyFactory == null || !popupList.isShowSectionHeaders()) {
-            return 0.0;
-        }
-        int headers = 0;
+    private double visibleRowsExtent(RXSelectionBox<T> control, double cellSize) {
+        int maxRows = Math.max(1, control.getVisibleRowCount());
+        Callback<T, Object> keyFactory = popupList.isShowSectionHeaders() ? control.getSectionKeyFactory() : null;
+        double extent = 0.0;
+        int rows = 0;
         Object previousKey = null;
-        int limit = Math.min(rows, filtered.size());
-        for (int i = 0; i < limit; i++) {
-            Object key = keyFactory.call(filtered.get(i));
-            if (i == 0 || !Objects.equals(key, previousKey)) {
-                headers++;
+        for (int i = 0; i < filtered.size() && rows < maxRows; i++) {
+            if (keyFactory != null) {
+                Object key = keyFactory.call(filtered.get(i));
+                if (i == 0 || !Objects.equals(key, previousKey)) {
+                    // Spacing goes before every section but the first.
+                    extent += (i == 0 ? 0.0 : popupList.getSectionSpacing()) + popupList.getSectionHeaderHeight();
+                    rows++;
+                    if (rows == maxRows) {
+                        break;
+                    }
+                }
+                previousKey = key;
             }
-            previousKey = key;
+            extent += cellSize;
+            rows++;
         }
-        return headers * (popupList.getSectionHeaderHeight() + popupList.getSectionSpacing());
+        return extent;
     }
 
     // ==================== Popup show / hide ====================
@@ -613,7 +634,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
     }
 
     private void prepareForShow() {
-        updatePopupHeight();
         MultipleSelectionModel<T> model = getSkinnable().getSelectionModel();
         MultipleSelectionModel<T> cursor = popupList.getSelectionModel();
         if (cursor == null) {

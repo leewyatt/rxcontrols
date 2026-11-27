@@ -134,7 +134,7 @@ public final class RXSelectionBoxSamples {
         RXSelectionBox<String> box = sized(new RXSelectionBox<>(items));
         box.setPromptText("Find an order");
         box.setSearchPromptText("Type an order number");
-        box.setMaxVisibleRows(10);
+        box.setVisibleRowCount(10);
         return withSummary(box, "Selected: ");
     }
 
