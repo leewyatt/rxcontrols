@@ -604,8 +604,10 @@ public class RXPopupMenuTest {
             RXMenuList list = menu.getMenuList();
 
             assertEquals(112.0, list.getWidth(), 0.5);
+            // The popup card around the list lines up with the anchor.
+            Region card = (Region) list.getParent();
             assertEquals(anchor.localToScreen(anchor.getLayoutBounds()).getMaxX(),
-                    list.localToScreen(list.getLayoutBounds()).getMaxX(), 0.5);
+                    card.localToScreen(card.getLayoutBounds()).getMaxX(), 0.5);
             menu.hide();
         });
     }

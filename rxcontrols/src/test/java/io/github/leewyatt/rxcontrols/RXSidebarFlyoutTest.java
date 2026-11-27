@@ -103,8 +103,8 @@ public class RXSidebarFlyoutTest {
             assertEquals(pageRow.snappedLeftInset(), SidebarTestSupport.label(pageRow).getLayoutX(), 0.5);
             // The sidebar's row rules and color tokens reach into the flyout.
             assertTrue(pageRow.getPadding().getTop() > 0.0);
-            Region panel = (Region) pageRow.getScene().getRoot().lookup(".rx-sidebar-flyout");
-            assertNotNull(panel.getBackground());
+            Region card = (Region) pageRow.getScene().getRoot().lookup(".rx-popup");
+            assertNotNull(card.getBackground());
 
             // Focus in the window behind is somewhere else by now.
             SidebarTestSupport.node(sidebar, "item", "Other").requestFocus();

@@ -54,7 +54,11 @@ import java.util.Objects;
  * ({@code PopupControl}'s own min/pref/max properties have no layout consumer),
  * so the resolved width and max-height are applied to an internal shell pane
  * wrapped around the content — never to the content itself, whose min/pref/max
- * stay under user / CSS control. Apart from the fixed width of
+ * stay under user / CSS control. The shell also draws the popup card (style class
+ * {@code rx-popup}: fill, outline, radius, shadow) around the content, inside its
+ * padding, so every popup looks the same; the content inside should be transparent.
+ * Positioning measures the shell around the content, padding included. Apart from
+ * the fixed width of
  * {@link RXPopupWidthMode#MATCH_ANCHOR_WIDTH}, the shell gets only bounds (a
  * minimum width, a maximum height), so the window follows the content's size as
  * it grows and shrinks. Positioning measures the content's preferred size
@@ -484,11 +488,10 @@ public final class RXPopupSupport {
     // ==================== Appearance ====================
 
     /**
-     * Adds a style class to the transparent popup shell (e.g.
-     * {@code "rx-suggestion-popup"}). The shell is intentionally token-less; the
-     * content carries theming.
+     * Adds a style class to the popup window (e.g. {@code "rx-suggestion-popup"}),
+     * an ancestor of the shell and the content for per-popup styling.
      *
-     * @param styleClass the shell style class; {@code null} is ignored
+     * @param styleClass the popup style class; {@code null} is ignored
      */
     public void setPopupStyleClass(String styleClass) {
         if (styleClass != null && !popup.getStyleClass().contains(styleClass)) {
@@ -585,12 +588,16 @@ public final class RXPopupSupport {
         // Measure the size the shell will actually give the content (its pref bounded
         // by its own min / max, as StackPane does), so the visible content, not just
         // the window, lands on the anchor when the content's max is below its pref.
-        double naturalW = bounded(content.minWidth(-1), content.prefWidth(-1), content.maxWidth(-1));
+        // The shell's padding (the card edge) is part of the popup's size.
+        double insetW = shell.snappedLeftInset() + shell.snappedRightInset();
+        double insetH = shell.snappedTopInset() + shell.snappedBottomInset();
+        double naturalW = insetW + bounded(content.minWidth(-1), content.prefWidth(-1), content.maxWidth(-1));
         // Measure height at the width the popup will actually take, so width-dependent
         // (wrapping) content still yields a correct flip / max-height decision.
         double resolvedWidth = RXPopupGeometry.resolveWidth(widthMode, anchorScreen.getWidth(), naturalW);
-        double naturalH = bounded(content.minHeight(resolvedWidth), content.prefHeight(resolvedWidth),
-                content.maxHeight(resolvedWidth));
+        double contentWidth = Math.max(0.0, resolvedWidth - insetW);
+        double naturalH = insetH + bounded(content.minHeight(contentWidth), content.prefHeight(contentWidth),
+                content.maxHeight(contentWidth));
         boolean rtl = anchor.getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT;
         RXPopupGeometry.Result result = RXPopupGeometry.resolve(
                 anchorScreen.getMinX(), anchorScreen.getMinY(),
@@ -703,15 +710,18 @@ public final class RXPopupSupport {
     // ==================== Popup shell ====================
 
     /**
-     * Popup shell that supplies the RxControls stylesheet as a user-agent stylesheet,
-     * so the popup's own containers are styled without it entering the cascade at
-     * author origin — an author-origin copy would override colors the application set
-     * in code on controls inside the popup.
+     * Popup shell that draws the popup card and supplies the RxControls stylesheet as
+     * a user-agent stylesheet, so the popup's own containers are styled without it
+     * entering the cascade at author origin — an author-origin copy would override
+     * colors the application set in code on controls inside the popup.
      */
     private static final class PopupShell extends StackPane {
 
         private PopupShell(Region content) {
             super(content);
+            // Also a token root: a popup may hang off any node, one with no RX
+            // control around it to define the card's colors.
+            getStyleClass().add("rx-popup");
         }
 
         @Override

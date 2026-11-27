@@ -65,6 +65,12 @@ public class RxControlsThemeBaselineTest {
     private static final Pattern DEFAULT_STYLE_CLASS_PATTERN =
             Pattern.compile("DEFAULT_STYLE_CLASS\\s*=\\s*\"(rx-[a-z0-9-]+)\"");
 
+    /**
+     * Token roots that are not controls: the popup shell, which draws every popup
+     * card and may hang off a node with no RX control around it.
+     */
+    private static final Set<String> NON_CONTROL_ROOTS = Set.of("rx-popup");
+
     /** Matches a class selector {@code .rx-...} in the baseline selector list. */
     private static final Pattern ROOT_SELECTOR_PATTERN =
             Pattern.compile("\\.(rx-[a-z0-9-]+)");
@@ -116,6 +122,7 @@ public class RxControlsThemeBaselineTest {
         missingFromBaseline.removeAll(baseline);
         Set<String> staleInBaseline = new TreeSet<>(baseline);
         staleInBaseline.removeAll(scanned);
+        staleInBaseline.removeAll(NON_CONTROL_ROOTS);
 
         assertTrue(missingFromBaseline.isEmpty(),
                 "Control roots declared in source but absent from the rx-controls.css "

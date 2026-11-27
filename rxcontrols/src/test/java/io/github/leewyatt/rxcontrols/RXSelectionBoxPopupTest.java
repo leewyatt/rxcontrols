@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -221,13 +222,13 @@ public class RXSelectionBoxPopupTest {
             assertNotNull(popup, "popup should exist");
             Node content = popup.getScene().getRoot().lookup(".popup-content");
             assertTrue(content instanceof Region, "popup content should be a Region");
-            Region region = (Region) content;
-            region.applyCss();
-            assertNotNull(region.getBackground(), "popup content should receive its card background");
-            assertNotNull(region.getBorder(), "popup content should receive its card border");
-            assertNotNull(region.getEffect(), "popup content should receive its elevation shadow");
-            assertTrue(region.getPadding().getTop() > 0.0,
-                    "popup content should keep inner padding so the card border remains visible");
+            Region card = (Region) popup.getScene().getRoot().lookup(".rx-popup");
+            card.applyCss();
+            assertNotNull(card.getBackground(), "the popup shell draws the card background and edge");
+            assertNotNull(card.getEffect(), "the popup shell draws the elevation shadow");
+            assertTrue(card.getPadding().getTop() > 0.0,
+                    "the popup shell keeps the content inside the card edge");
+            assertNull(((Region) content).getBackground(), "the popup content draws no card of its own");
         });
     }
 

@@ -32,6 +32,7 @@ import io.github.leewyatt.rxcontrols.RXSpeedDial;
 import io.github.leewyatt.rxcontrols.RXSpeedDialAction;
 import io.github.leewyatt.rxcontrols.RXTileView;
 import io.github.leewyatt.rxcontrols.RXWaveProgressIndicator;
+import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -42,6 +43,7 @@ import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Control;
 import javafx.scene.control.Labeled;
@@ -54,8 +56,12 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Paint;
+import javafx.stage.PopupWindow;
+import javafx.stage.Stage;
+import javafx.stage.Window;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -794,49 +800,7 @@ public class RXControlColorsTest {
     }
 
     @Test
-    public void colorPickerPopupIsARaisedSurfaceOnDarkHosts() throws Exception {
-        assertColorPopupCard("default Modena", Application.STYLESHEET_MODENA, scene -> { }, false);
-        assertColorPopupCard("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette, true);
-        assertColorPopupCard("Primer Light", new PrimerLight().getUserAgentStylesheet(),
-                RXAtlantaFXThemeBridge::install, false);
-        assertColorPopupCard("Primer Dark", new PrimerDark().getUserAgentStylesheet(),
-                RXAtlantaFXThemeBridge::install, true);
-    }
-
-    private static void assertColorPopupCard(String host, String userAgentStylesheet, Consumer<Scene> themer,
-            boolean dark) throws Exception {
-        Map<String, String> expected = resolve(userAgentStylesheet, themer,
-                List.of("-rx-surface", "-rx-surface-variant", "-rx-outline", "-rx-outline-variant"));
-        Map<String, String> card = new LinkedHashMap<>();
-        runOnFx(() -> {
-            Application.setUserAgentStylesheet(userAgentStylesheet);
-            RXColorView view = new RXColorView();
-            // The popup's root carries the popup style class; a stand-in is enough for CSS.
-            StackPane popupRoot = new StackPane(view);
-            popupRoot.getStyleClass().add("rx-color-picker-popup");
-            Scene scene = new Scene(new StackPane(popupRoot), 400, 500);
-            themer.accept(scene);
-            scene.getRoot().applyCss();
-            List<BackgroundFill> fills = view.getBackground().getFills();
-            card.put("edge", ThemeColorSamples.hex(fills.get(0).getFill()));
-            card.put("surface", ThemeColorSamples.hex(fills.get(fills.size() - 1).getFill()));
-        });
-        if (dark) {
-            // A shadow barely shows on a dark host: the card is lighter than the window
-            // and fully outlined, as a dialog card.
-            assertEquals(expected.get("-rx-surface-variant"), card.get("surface"), "popup card surface under " + host);
-            assertTrue(relativeLuminance(Color.web(card.get("surface")))
-                    > relativeLuminance(Color.web(expected.get("-rx-surface"))),
-                    "popup card is lighter than the window under " + host);
-            assertEquals(expected.get("-rx-outline"), card.get("edge"), "popup card edge under " + host);
-        } else {
-            assertEquals(expected.get("-rx-surface"), card.get("surface"), "popup card surface under " + host);
-            assertEquals(expected.get("-rx-outline-variant"), card.get("edge"), "popup card edge under " + host);
-        }
-    }
-
-    @Test
-    public void popupCardsShowTheirEdgeOnDarkHosts() throws Exception {
+    public void everyPopupDrawsTheSameCardOnItsShell() throws Exception {
         assertPopupCards("default Modena", Application.STYLESHEET_MODENA, scene -> { }, false);
         assertPopupCards("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette, true);
         assertPopupCards("Primer Light", new PrimerLight().getUserAgentStylesheet(),
@@ -845,80 +809,123 @@ public class RXControlColorsTest {
                 RXAtlantaFXThemeBridge::install, true);
     }
 
-    /** A popup card under test: how to build it, and its frame and fill on a light host. */
-    private record PopupCard(String name, Supplier<Region> content, String hostClass, String popupClass,
-            boolean borderEdge, String lightEdge, String lightFill, boolean raised) {
+    /** What a popup hosts: the content node, the owner's style class and the popup's. */
+    private record PopupContent(String name, Supplier<Region> content, String ownerClass, String popupClass) {
     }
 
     private static void assertPopupCards(String host, String userAgentStylesheet, Consumer<Scene> themer,
             boolean dark) throws Exception {
-        List<PopupCard> cards = List.of(
-                new PopupCard("picker popup", () -> styled(new StackPane(), "container"), "rx-date-picker",
-                        "rx-picker-popup", false, "-fx-box-border", "-fx-control-inner-background", false),
-                new PopupCard("cascader popup", RXCascaderView::new, null, "rx-cascader-popup", true,
-                        "-fx-box-border", "-fx-control-inner-background", false),
-                new PopupCard("selection box popup", () -> styled(new VBox(), "popup-content"), "rx-selection-box",
-                        "rx-selection-box-popup", true, "derive(-fx-text-box-border, -18%)",
-                        "-fx-control-inner-background", false),
-                new PopupCard("suggestion popup", RXListView::new, null, "rx-suggestion-popup", false,
-                        "-fx-box-border", "-rx-surface", true),
-                new PopupCard("menu popup", RXMenuList::new, null, "rx-menu-popup", false, "-rx-outline-variant",
-                        "-rx-surface", true),
-                new PopupCard("sidebar flyout", () -> styled(new StackPane(), "rx-sidebar-flyout"), "rx-sidebar",
-                        null, false, "-rx-outline-variant", "-rx-surface", true));
-        List<String> expressions = new ArrayList<>(List.of("-rx-surface", "-rx-surface-variant", "-rx-outline"));
-        cards.forEach(card -> {
-            expressions.add(card.lightEdge());
-            expressions.add(card.lightFill());
-        });
-        Map<String, String> expected = resolve(userAgentStylesheet, themer, expressions);
-        for (PopupCard card : cards) {
-            Map<String, String> sample = new LinkedHashMap<>();
+        String edgeExpression = dark ? "-rx-outline" : "-rx-outline-variant";
+        String fillExpression = dark ? "-rx-surface-variant" : "-fx-control-inner-background";
+        Map<String, String> expected = resolve(userAgentStylesheet, themer,
+                List.of(edgeExpression, fillExpression, "-rx-surface", "-rx-elevation-umbra-color"));
+        List<PopupContent> contents = List.of(
+                new PopupContent("color picker", RXColorView::new, "rx-color-picker", "rx-color-picker-popup"),
+                new PopupContent("picker", () -> styled(new StackPane(), "container"), "rx-date-picker",
+                        "rx-picker-popup"),
+                new PopupContent("cascader", RXCascaderView::new, "rx-cascader", "rx-cascader-popup"),
+                new PopupContent("selection box", () -> styled(new VBox(), "popup-content"), "rx-selection-box",
+                        "rx-selection-box-popup"),
+                new PopupContent("suggestions", RXListView::new, "rx-auto-complete-field", "rx-suggestion-popup"),
+                new PopupContent("menu", RXMenuList::new, "rx-menu-button", "rx-menu-popup"),
+                new PopupContent("sidebar flyout", () -> styled(new StackPane(), "rx-sidebar-flyout"), "rx-sidebar",
+                        null));
+        for (PopupContent popup : contents) {
+            Map<String, String> card = new LinkedHashMap<>();
             runOnFx(() -> {
                 Application.setUserAgentStylesheet(userAgentStylesheet);
-                Region content = card.content().get();
-                // A popup's content reaches its owner's tokens through the owner; a host
-                // class stands in for the owner, and a popup class for the popup root.
-                StackPane popupRoot = new StackPane(content);
-                if (card.popupClass() != null) {
-                    popupRoot.getStyleClass().add(card.popupClass());
+                Region content = popup.content().get();
+                // The popup shell's place: under the popup window (its style class) and,
+                // through the window, under the owner.
+                StackPane shell = styled(new StackPane(content), "rx-popup");
+                StackPane window = new StackPane(shell);
+                if (popup.popupClass() != null) {
+                    window.getStyleClass().add(popup.popupClass());
                 }
-                StackPane owner = new StackPane(popupRoot);
-                if (card.hostClass() != null) {
-                    owner.getStyleClass().add(card.hostClass());
-                }
+                StackPane owner = styled(new StackPane(window), popup.ownerClass());
                 Scene scene = new Scene(new StackPane(owner), 400, 400);
-                if (!(content instanceof Control)) {
-                    scene.getStylesheets().add(new RXColorView().getUserAgentStylesheet());
-                }
+                scene.getStylesheets().add(new RXColorView().getUserAgentStylesheet());
                 themer.accept(scene);
                 scene.getRoot().applyCss();
-                List<BackgroundFill> fills = content.getBackground().getFills();
-                sample.put("fill", ThemeColorSamples.hex(fills.get(fills.size() - 1).getFill()));
-                sample.put("edge", card.borderEdge()
-                        ? ThemeColorSamples.hex(content.getBorder().getStrokes().get(0).getTopStroke())
-                        : ThemeColorSamples.hex(fills.get(0).getFill()));
+                List<BackgroundFill> fills = shell.getBackground().getFills();
+                card.put("layers", String.valueOf(fills.size()));
+                card.put("edge", ThemeColorSamples.hex(fills.get(0).getFill()));
+                card.put("fill", ThemeColorSamples.hex(fills.get(1).getFill()));
+                card.put("insets", fills.get(0).getInsets() + " " + fills.get(1).getInsets());
+                card.put("radii", fills.get(0).getRadii().getTopLeftHorizontalRadius() + " "
+                        + fills.get(1).getRadii().getTopLeftHorizontalRadius());
+                card.put("padding", String.valueOf(shell.getPadding()));
+                DropShadow shadow = (DropShadow) shell.getEffect();
+                card.put("shadow", shadow.getRadius() + " " + shadow.getOffsetY() + " "
+                        + ThemeColorSamples.hex(shadow.getColor()));
+                card.put("content", content.getBackground() + " " + content.getBorder() + " " + content.getEffect());
             });
-            String name = card.name() + " under " + host;
-            if (!dark) {
-                assertEquals(expected.get(card.lightEdge()), sample.get("edge"), name + " edge");
-                assertEquals(expected.get(card.lightFill()), sample.get("fill"), name + " fill");
-            } else {
-                // A shadow barely shows on a dark host: the frame takes the full outline.
-                assertEquals(expected.get("-rx-outline"), sample.get("edge"), name + " edge");
-                if (card.raised()) {
-                    assertEquals(expected.get("-rx-surface-variant"), sample.get("fill"), name + " fill");
-                    assertTrue(relativeLuminance(Color.web(sample.get("fill")))
-                            > relativeLuminance(Color.web(expected.get("-rx-surface"))), name + " is lighter than the window");
-                } else {
-                    // Hover inside these popups uses the surface variant; the fill keeps its color.
-                    assertEquals(expected.get(card.lightFill()), sample.get("fill"), name + " fill");
-                }
+            String name = popup.name() + " popup under " + host;
+            assertEquals("2", card.get("layers"), name + " card layers");
+            assertEquals(expected.get(edgeExpression), card.get("edge"), name + " card edge");
+            assertEquals(expected.get(fillExpression), card.get("fill"), name + " card fill");
+            assertEquals(new Insets(0) + " " + new Insets(1), card.get("insets"), name + " card insets");
+            assertEquals("4.0 3.0", card.get("radii"), name + " card radius");
+            assertEquals(String.valueOf(new Insets(1)), card.get("padding"), name + " card padding");
+            assertEquals("12.0 4.0 " + expected.get("-rx-elevation-umbra-color"), card.get("shadow"),
+                    name + " card shadow");
+            assertEquals("null null null", card.get("content"), name + " content draws no frame of its own");
+            if (dark) {
+                // A shadow barely shows on a dark host: the card is lighter than the window.
+                assertTrue(relativeLuminance(Color.web(card.get("fill")))
+                        > relativeLuminance(Color.web(expected.get("-rx-surface"))), name + " is lighter than the window");
             }
         }
     }
 
-    private static Region styled(Region region, String styleClass) {
+    @Test
+    @Tag("ui")
+    public void popupCardResolvesItsColorsOffAPlainAnchor() throws Exception {
+        // Hiding the test's window must not shut the toolkit down for later tests.
+        Platform.setImplicitExit(false);
+        assertPlainAnchorPopup("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette);
+        assertPlainAnchorPopup("Primer Dark", new PrimerDark().getUserAgentStylesheet(),
+                RXAtlantaFXThemeBridge::install);
+    }
+
+    private static void assertPlainAnchorPopup(String host, String userAgentStylesheet, Consumer<Scene> themer)
+            throws Exception {
+        Map<String, String> expected = resolve(userAgentStylesheet, themer, List.of("-rx-surface-variant", "-rx-outline"));
+        Map<String, String> card = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(userAgentStylesheet);
+            // A plain button: no RX control around the anchor defines the card's tokens.
+            Button anchor = new Button("Open");
+            Scene scene = new Scene(new StackPane(anchor), 300, 300);
+            themer.accept(scene);
+            Stage stage = new Stage();
+            stage.setScene(scene);
+            stage.show();
+            RXPopupSupport support = new RXPopupSupport(new Region());
+            try {
+                support.show(anchor);
+                Region shell = null;
+                for (Window window : Window.getWindows()) {
+                    if (window instanceof PopupWindow && window.isShowing()) {
+                        shell = (Region) window.getScene().getRoot().lookup(".rx-popup");
+                    }
+                }
+                assertNotNull(shell, "the popup shell is showing");
+                shell.applyCss();
+                List<BackgroundFill> fills = shell.getBackground().getFills();
+                card.put("edge", ThemeColorSamples.hex(fills.get(0).getFill()));
+                card.put("fill", ThemeColorSamples.hex(fills.get(1).getFill()));
+            } finally {
+                support.dispose();
+                stage.hide();
+            }
+        });
+        assertEquals(expected.get("-rx-outline"), card.get("edge"), "popup card edge off a plain anchor under " + host);
+        assertEquals(expected.get("-rx-surface-variant"), card.get("fill"),
+                "popup card fill off a plain anchor under " + host);
+    }
+
+    private static <T extends Region> T styled(T region, String styleClass) {
         region.getStyleClass().add(styleClass);
         return region;
     }

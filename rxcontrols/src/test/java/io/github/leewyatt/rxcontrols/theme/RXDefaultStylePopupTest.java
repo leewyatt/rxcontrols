@@ -7,6 +7,7 @@ import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.PopupControl;
+import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -110,15 +112,18 @@ public class RXDefaultStylePopupTest {
             assertNotNull(popup, "popup should be present");
             popup.getScene().getRoot().applyCss();
             popup.getScene().getRoot().layout();
+            Region card = (Region) popup.getScene().getRoot().lookup(".rx-popup");
+            assertNotNull(card, "popup card around the cascader view");
+            List<BackgroundFill> fills = card.getBackground().getFills();
+            background.set(ThemeColorSamples.hex(fills.get(fills.size() - 1).getFill()));
             Region view = (Region) popup.getScene().getRoot().lookup(".rx-cascader-view");
             assertNotNull(view, "cascader view inside the popup");
-            background.set(ThemeColorSamples.hex(view.getBackground().getFills().get(0).getFill()));
             Node column = view.lookup(".column");
             assertNotNull(column, "cascader column inside the popup");
             separator.set(ThemeColorSamples.hex(((Region) column).getBorder().getStrokes().get(0).getRightStroke()));
         });
 
-        assertEquals("#2a2c3aff", background.get(), "popup view takes the palette's inner background");
+        assertEquals("#262735ff", background.get(), "popup card takes the palette's raised surface");
         assertEquals("#4d5166ff", separator.get(), "popup column separator takes -rx-outline on the dark palette");
     }
 

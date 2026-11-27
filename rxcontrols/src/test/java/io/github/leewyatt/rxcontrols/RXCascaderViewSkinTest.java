@@ -16,7 +16,6 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
-import javafx.scene.paint.Paint;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -32,7 +31,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -580,19 +578,17 @@ public class RXCascaderViewSkinTest {
         runOnFx(() -> {
             FocusableView inline = new FocusableView();
             FocusableView inPopup = new FocusableView();
+            // The popup shell draws the card; the view it hosts draws no frame.
             StackPane popupShell = new StackPane(inPopup);
-            popupShell.getStyleClass().add("rx-cascader-popup");
+            popupShell.getStyleClass().add("rx-popup");
             Scene scene = new Scene(new StackPane(inline, popupShell), 400, 300);
             inline.showFocus();
             inPopup.showFocus();
             relayout(scene);
 
-            Paint inlineRing = inline.getBorder().getStrokes().get(0).getTopStroke();
-            Paint popupFrame = inPopup.getBorder().getStrokes().get(0).getTopStroke();
-            assertNotEquals(popupFrame, inlineRing,
+            assertFalse(inline.getBorder().getStrokes().isEmpty(), "the inline view shows its focus ring");
+            assertTrue(inPopup.getBorder() == null || inPopup.getBorder().getStrokes().isEmpty(),
                     "the popup view holds the popup scene's focus, but the field already shows it");
-            assertEquals(3.0, inPopup.getBorder().getStrokes().get(0).getRadii().getTopLeftHorizontalRadius(), 0.0,
-                    "the popup frame shares the field's 3px radius");
         });
     }
 

@@ -52,8 +52,8 @@ import javafx.scene.paint.Color;
  * and {@code :empty}; the {@code .display} holds the {@code .swatch} and the
  * {@code .text}, followed by the {@code .copy-button} (an
  * {@link RXCopyButton}). The popup has style class {@code rx-color-picker-popup} and
- * hosts an {@code .rx-color-view}; style it with
- * {@code .rx-color-picker-popup .rx-color-view}. Use the picker on the JavaFX
+ * hosts an {@code .rx-color-view} on the card every popup shares ({@code .rx-popup});
+ * style the view with {@code .rx-color-picker-popup .rx-color-view}. Use the picker on the JavaFX
  * Application Thread.
  */
 public class RXColorPicker extends Control {

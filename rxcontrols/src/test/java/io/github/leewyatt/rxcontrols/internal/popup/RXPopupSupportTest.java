@@ -242,9 +242,9 @@ public class RXPopupSupportTest {
             popupRef.set(findTestPopup());
             assertNotNull(popupRef.get(), "popup window should be present");
         });
-        waitForFxCondition(() -> Math.abs(popupRef.get().getWidth() - 300) <= 1.0,
-                () -> "MATCH_ANCHOR_WIDTH must force the popup window to the anchor width, got "
-                        + popupRef.get().getWidth());
+        waitForFxCondition(() -> Math.abs(card(popupRef.get()).getWidth() - 300) <= 1.0,
+                () -> "MATCH_ANCHOR_WIDTH must force the popup card to the anchor width, got "
+                        + card(popupRef.get()).getWidth());
     }
 
     @Test
@@ -259,9 +259,9 @@ public class RXPopupSupportTest {
             popupRef.set(findTestPopup());
             assertNotNull(popupRef.get(), "popup window should be present");
         });
-        waitForFxCondition(() -> Math.abs(popupRef.get().getWidth() - 180) <= 1.0,
-                () -> "PREF_CONTENT keeps the popup window at the content width, got "
-                        + popupRef.get().getWidth());
+        waitForFxCondition(() -> Math.abs(card(popupRef.get()).getWidth() - (180 + edgeWidth(popupRef.get()))) <= 1.0,
+                () -> "PREF_CONTENT keeps the popup card at the content width, got "
+                        + card(popupRef.get()).getWidth());
     }
 
     @Test
@@ -332,11 +332,11 @@ public class RXPopupSupportTest {
             popupRef.set(findTestPopup());
             assertNotNull(popupRef.get(), "popup window should be present");
         });
-        waitForFxCondition(() -> Math.abs(popupRef.get().getWidth() - 400) <= 1.0,
-                () -> "precondition: popup window at the content width, got " + popupRef.get().getWidth());
+        waitForFxCondition(() -> Math.abs(card(popupRef.get()).getWidth() - (400 + edgeWidth(popupRef.get()))) <= 1.0,
+                () -> "precondition: popup card at the content width, got " + card(popupRef.get()).getWidth());
         runOnFx(() -> contentRef.get().setPrefWidth(250));
-        waitForFxCondition(() -> Math.abs(popupRef.get().getWidth() - 250) <= 1.0,
-                () -> "the popup window must shrink with the content, got " + popupRef.get().getWidth());
+        waitForFxCondition(() -> Math.abs(card(popupRef.get()).getWidth() - (250 + edgeWidth(popupRef.get()))) <= 1.0,
+                () -> "the popup card must shrink with the content, got " + card(popupRef.get()).getWidth());
     }
 
     @Test
@@ -359,8 +359,8 @@ public class RXPopupSupportTest {
         waitForFxCondition(() -> popupRef.get().getHeight() < Screen.getPrimary().getVisualBounds().getHeight(),
                 () -> "precondition: the popup window is capped, got " + popupRef.get().getHeight());
         runOnFx(() -> contentRef.get().setPrefHeight(120));
-        waitForFxCondition(() -> Math.abs(popupRef.get().getHeight() - 120) <= 1.0,
-                () -> "a capped popup window must shrink with the content, got " + popupRef.get().getHeight());
+        waitForFxCondition(() -> Math.abs(card(popupRef.get()).getHeight() - (120 + edgeHeight(popupRef.get()))) <= 1.0,
+                () -> "a capped popup card must shrink with the content, got " + card(popupRef.get()).getHeight());
     }
 
     @Test
@@ -391,6 +391,38 @@ public class RXPopupSupportTest {
                         - screenBounds(anchorRef.get()).getMaxX()) <= 1.5,
                 () -> "the visible content's end edge must align with the anchor's, off by "
                         + (screenBounds(contentRef.get()).getMaxX() - screenBounds(anchorRef.get()).getMaxX()));
+    }
+
+    @Test
+    @Tag("ui")
+    public void cardEdgesLineUpWithTheAnchor() throws InterruptedException {
+        AtomicReference<Region> anchorRef = new AtomicReference<>();
+        AtomicReference<PopupControl> popupRef = new AtomicReference<>();
+        runOnFx(() -> {
+            Region anchor = sizedContent(200, 30);
+            anchor.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+            stage = new Stage();
+            stage.setScene(new Scene(new StackPane(anchor), 500, 100));
+            Rectangle2D screen = Screen.getPrimary().getVisualBounds();
+            stage.setX(screen.getMinX() + 400);
+            stage.setY(screen.getMinY() + screen.getHeight() / 2);
+            stage.show();
+            RXPopupSupport support = newTestSupport(sizedContent(120, 80));
+            support.setWidthMode(RXPopupWidthMode.PREF_CONTENT);
+            support.setPlacement(RXPlacement.TOP_END);
+            support.show(anchor);
+            anchorRef.set(anchor);
+            popupRef.set(findTestPopup());
+        });
+        // The card's edge (the shell's padding) is part of the measured size: without
+        // it an end-aligned card overhangs the anchor and one above overlaps it.
+        waitForFxCondition(() -> {
+            Bounds card = screenBounds(card(popupRef.get()));
+            Bounds anchor = screenBounds(anchorRef.get());
+            return Math.abs(card.getMaxX() - anchor.getMaxX()) <= 0.5
+                    && Math.abs(card.getMaxY() - anchor.getMinY()) <= 0.5;
+        }, () -> "the card must end on the anchor's end edge and sit right above it, got card "
+                + screenBounds(card(popupRef.get())) + " for anchor " + screenBounds(anchorRef.get()));
     }
 
     @Test
@@ -606,6 +638,22 @@ public class RXPopupSupportTest {
         root.applyCss();
         root.layout();
         return anchor;
+    }
+
+    // The shell draws the card; the window also holds its shadow, so sizes are
+    // checked on the card.
+    private static Region card(PopupControl popup) {
+        return (Region) popup.getScene().getRoot().lookup(".rx-popup");
+    }
+
+    private static double edgeWidth(PopupControl popup) {
+        Region card = card(popup);
+        return card.snappedLeftInset() + card.snappedRightInset();
+    }
+
+    private static double edgeHeight(PopupControl popup) {
+        Region card = card(popup);
+        return card.snappedTopInset() + card.snappedBottomInset();
     }
 
     private static PopupControl findTestPopup() {

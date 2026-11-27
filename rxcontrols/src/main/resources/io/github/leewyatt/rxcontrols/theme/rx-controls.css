@@ -24,7 +24,7 @@
 .rx-masonry-pane, .rx-masonry-view, .rx-month-picker, .rx-month-range-picker, .rx-month-range-view, .rx-month-view,
 .rx-material-decimal-field, .rx-material-double-field, .rx-material-integer-field,
 .rx-material-long-field, .rx-material-text-field, .rx-material-password-field,
-.rx-overlay-pane, .rx-password-field, .rx-placeholder, .rx-quarter-picker, .rx-quarter-range-picker, .rx-quarter-range-view, .rx-quarter-view,
+.rx-overlay-pane, .rx-password-field, .rx-placeholder, .rx-popup, .rx-quarter-picker, .rx-quarter-range-picker, .rx-quarter-range-view, .rx-quarter-view,
 .rx-radio-button, .rx-radio-toggle-button, .rx-rating,
 .rx-reaction-button, .rx-ribbon-badge, .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-selection-box, .rx-sidebar, .rx-snackbar-host, .rx-speed-dial,
@@ -226,6 +226,8 @@
 .rx-theme-atlantafx.rx-password-field,
 .rx-theme-atlantafx .rx-placeholder,
 .rx-theme-atlantafx.rx-placeholder,
+.rx-theme-atlantafx .rx-popup,
+.rx-theme-atlantafx.rx-popup,
 .rx-theme-atlantafx .rx-quarter-picker,
 .rx-theme-atlantafx.rx-quarter-picker,
 .rx-theme-atlantafx .rx-quarter-range-picker,
@@ -2173,20 +2175,8 @@
     -fx-border-color: -fx-focus-color;
 }
 
-/* Descendant selector: the popup wraps the view in an unstyled sizing shell, so the
-   shadow hangs on the view. The field already shows focus, so the popup keeps a plain
-   frame like a ComboBox popup. */
-.rx-cascader-popup .rx-cascader-view,
-.rx-cascader-popup .rx-cascader-view:focused {
-    -fx-background-radius: 3;
-    /* -fx-box-border can be black on a dark host and vanish against the window. */
-    -fx-border-color: ladder(-rx-surface, -rx-outline 45%, -fx-box-border 46%);
-    -fx-border-radius: 3;
-    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 8);
-}
-
-/* The columns would paint square corners over the rounded frame; the view's own
-   background already fills them. */
+/* The columns would paint square corners over the rounded card; the popup card
+   already fills them. */
 .rx-cascader-popup .rx-cascader-view > .columns > .column {
     -fx-background-color: transparent;
 }
@@ -2195,22 +2185,10 @@
  *                                                                             *
  * RXSuggestionPopup (RXAutoCompleteField)                                      *
  *                                                                             *
- * The popup bridge and RXPopupSupport's sizing shell above the content carry  *
- * no RX style classes (hence the descendant selector and no                   *
- * .rx-suggestion-popup token-baseline entry). The content is a plain          *
- * .rx-list-view, which carries its own tokens; the elevation shadow hangs on  *
- * that content box.                                                           *
+ * The content is a plain .rx-list-view inside the shared popup card (see     *
+ * "Popup card" at the end of this file); these rules style its cells.         *
  *                                                                             *
  ******************************************************************************/
-/* A shadow barely shows on a dark host, so there the list is a lighter surface inside
-   a full outline, as a dialog card; a light host keeps the list's own frame. The list
-   never takes focus here, so its focused frame does not apply. */
-.rx-suggestion-popup .rx-list-view {
-    -fx-background-color: ladder(-rx-surface, -rx-outline 45%, -fx-box-border 46%),
-        ladder(-rx-surface, -rx-surface-variant 45%, -rx-surface 46%);
-    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 8);
-}
-
 /* Options shown but not selectable (e.g. a chip input's already-chosen items when
    duplicates are off): greyed and inert. The cell is Node-disabled, so :hover never
    applies and the keyboard/mouse skip it. */
@@ -3287,14 +3265,7 @@
     -fx-background-color: -fx-hover-base;
 }
 
-/* A shadow does not show against the page in a dark theme, so there the flyout is
-   a lighter surface inside a full outline, as a dialog card. */
 .rx-sidebar-flyout {
-    -fx-background-color: ladder(-rx-surface, -rx-outline 45%, -rx-outline-variant 46%),
-        ladder(-rx-surface, -rx-surface-variant 45%, -rx-surface 46%);
-    -fx-background-insets: 0, 1;
-    -fx-background-radius: 8, 7;
-    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 4);
     -fx-padding: 5;
 }
 
@@ -3999,8 +3970,8 @@
     -fx-font-weight: bold;
     -fx-padding: 8 12 4 12;
 }
-/* Popup shell is token-less and transparent; the .rx-menu-list content box carries
-   the surface fill, border, radius and elevation (shadow on the content, not the shell). */
+/* The popup window stays transparent; the shared popup card (see "Popup card" at the
+   end of this file) draws the surface around the menu list. */
 .rx-menu-popup {
     -fx-background-color: transparent;
 }
@@ -4008,10 +3979,6 @@
    trailing side. Popup only; an inline .rx-menu-list keeps its content width. */
 .rx-menu-popup .rx-menu-list {
     -fx-min-width: 112;
-    /* A shadow barely shows on a dark host, so there the menu is a lighter surface
-       inside a full outline, as a dialog card; a light host keeps the inline look. */
-    -fx-background-color: ladder(-rx-surface, -rx-outline 45%, -rx-outline-variant 46%),
-        ladder(-rx-surface, -rx-surface-variant 45%, -rx-surface 46%);
 }
 /* The max-height scroll wrapper is transparent so the menu surface shows through;
    no border / inset / padding of its own. */
@@ -4696,18 +4663,8 @@
     -fx-rotate: 180;
 }
 
-/* On a dark host the darkened text-box border barely shows against the window, so
-   the frame takes -rx-outline there. The fill stays: the list viewport and the check
-   boxes are painted with the same inner background. */
 .rx-selection-box-popup .popup-content {
-    -fx-background-color: -fx-control-inner-background;
-    -fx-background-radius: 3;
-    -fx-border-color: ladder(-rx-surface, -rx-outline 45%, derive(-fx-text-box-border, -18%) 46%);
-    -fx-border-width: 1px;
-    -fx-border-radius: 3;
-    -fx-padding: 1px;
     -fx-spacing: 0;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 12, 0.0, 0, 6);
 }
 
 .rx-selection-box-popup .search-field {
@@ -5456,18 +5413,7 @@
     -fx-background-color: derive(-fx-text-base-color, 20%);
 }
 
-/* On a dark host -fx-box-border can be black, which vanishes against the window, so
-   the frame takes -rx-outline there. The fill stays: the hosted views mark hover with
-   -rx-surface-variant, which a raised fill would hide. */
-.rx-picker-popup .container {
-    -fx-background-color: ladder(-rx-surface, -rx-outline 45%, -fx-box-border 46%), -fx-control-inner-background;
-    -fx-background-insets: 0, 1;
-    -fx-background-radius: 3, 2;
-    -fx-padding: 1;
-    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 8);
-}
-
-/* The popup container draws the frame; the hosted view keeps only its padding. */
+/* The popup card draws the frame; the hosted view keeps only its padding. */
 .rx-picker-popup .container > .rx-calendar-view,
 .rx-picker-popup .container > .rx-calendar-view:focused,
 .rx-picker-popup .container > .rx-time-view,
@@ -6053,13 +5999,32 @@
 }
 
 /* The popup content is the view itself; it carries the card and its shadow. */
-/* A shadow barely shows on a dark host, so there the card is a lighter surface inside a
-   full outline, as a dialog card; on a light host it keeps the window surface and a soft
-   edge. */
-.rx-color-picker-popup .rx-color-view {
+
+/*******************************************************************************
+ *                                                                             *
+ * Popup card (every anchored popup: pickers, cascader, selection box,         *
+ * suggestions, menus, sidebar flyout, color picker)                           *
+ *                                                                             *
+ * The popup shell draws the one card; what it hosts is transparent. Last in   *
+ * the file so it outranks the hosted controls' own inline frames.             *
+ *                                                                             *
+ ******************************************************************************/
+/* A shadow barely shows on a dark host, so there the card is a lighter surface
+   inside a full outline, as a dialog card. */
+.rx-popup {
     -fx-background-color: ladder(-rx-surface, -rx-outline 45%, -rx-outline-variant 46%),
-        ladder(-rx-surface, -rx-surface-variant 45%, -rx-surface 46%);
-    -fx-background-insets: 0, 1px;
-    -fx-background-radius: 8px, 7px;
-    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 16, 0.0, 0, 6);
+        ladder(-rx-surface, -rx-surface-variant 45%, -fx-control-inner-background 46%);
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 4, 3;
+    -fx-padding: 1;
+    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 4);
+}
+
+.rx-popup > *,
+.rx-popup > *:focused,
+.rx-popup > .rx-cascader-view:focused,
+.rx-popup > .rx-list-view:focused {
+    -fx-background-color: null;
+    -fx-border-color: null;
+    -fx-effect: null;
 }
