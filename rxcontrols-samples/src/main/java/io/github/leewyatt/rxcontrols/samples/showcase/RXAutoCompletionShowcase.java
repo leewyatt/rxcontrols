@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.RXAutoCompletion;
 import io.github.leewyatt.rxcontrols.RXListCell;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXMaterialTextField;
+import io.github.leewyatt.rxcontrols.samples.demo.RXAutoCompletionDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;

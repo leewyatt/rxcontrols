@@ -5,6 +5,7 @@ import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXMenuList;
 import io.github.leewyatt.rxcontrols.RXPlacement;
 import io.github.leewyatt.rxcontrols.RXPopupMenu;
+import io.github.leewyatt.rxcontrols.samples.demo.RXMenuButtonDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.geometry.Pos;

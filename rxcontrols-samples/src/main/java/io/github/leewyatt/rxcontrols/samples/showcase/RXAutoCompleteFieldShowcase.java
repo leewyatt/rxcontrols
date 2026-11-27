@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 import io.github.leewyatt.rxcontrols.RXAutoCompleteField;
 import io.github.leewyatt.rxcontrols.RXListCell;
 import io.github.leewyatt.rxcontrols.RXListView;
+import io.github.leewyatt.rxcontrols.samples.demo.RXAutoCompleteFieldDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
