@@ -10,14 +10,14 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
 
 import java.util.List;
 
 /**
  * The RXColor page: a brand color field with presets and a copy button that
- * saves on each completed edit, an optional highlight color that can be cleared, an opaque
- * text color in RGB, and RXColorView as an inline editor recoloring a card.
+ * saves on each completed edit, an optional highlight color that can be cleared,
+ * an inline opaque text color editor in RGB with a clear button, and RXColorView
+ * as an inline editor.
  */
 public final class RXColorSamples {
 
@@ -43,10 +43,11 @@ public final class RXColorSamples {
                                 "clearable adds a clear button; no color shows a slashed swatch and the prompt text.",
                                 highlight()).forType(RXColorPicker.class),
                         SampleCard.medium("Opaque text color",
-                                "alphaEnabled false hides the opacity controls; the format starts in RGB.",
-                                textColor()).forType(RXColorPicker.class),
-                        SampleCard.large("Inline editor",
-                                "An RXColorView beside a card it recolors while you drag.",
+                                "alphaEnabled false hides the opacity slider; the format starts in RGB "
+                                        + "and clearable adds a clear button to the header.",
+                                textColor()).forType(RXColorView.class),
+                        SampleCard.medium("Inline editor",
+                                "RXColorView placed in the page, without a popup.",
                                 inline()).forType(RXColorView.class)),
                 null);
     }
@@ -76,23 +77,16 @@ public final class RXColorSamples {
     }
 
     private static Node textColor() {
-        RXColorPicker picker = new RXColorPicker(Color.web("#263238"));
-        picker.setAlphaEnabled(false);
-        picker.setFormat(RXColorFormat.RGB);
-        picker.setShowText(true);
-        picker.setAccessibleText("Text color");
-        return row("Text", picker);
+        RXColorView view = new RXColorView(Color.web("#263238"));
+        view.setAlphaEnabled(false);
+        view.setFormat(RXColorFormat.RGB);
+        view.setClearable(true);
+        view.setAccessibleText("Text color");
+        return view;
     }
 
     private static Node inline() {
-        RXColorView view = new RXColorView(Color.web("#F57C00"));
-        Rectangle card = new Rectangle(160.0, 100.0);
-        card.setArcWidth(16.0);
-        card.setArcHeight(16.0);
-        card.fillProperty().bind(view.valueProperty());
-        HBox box = new HBox(24.0, view, card);
-        box.setAlignment(Pos.CENTER_LEFT);
-        return box;
+        return new RXColorView(Color.web("#F57C00"));
     }
 
     private static HBox row(String label, Node control) {
