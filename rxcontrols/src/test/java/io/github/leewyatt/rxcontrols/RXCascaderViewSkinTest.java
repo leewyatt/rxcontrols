@@ -1,9 +1,13 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.RXCascaderItem.LoadState;
+import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
+import io.github.leewyatt.rxcontrols.skins.RXCascaderCellSkin;
 import javafx.application.Platform;
+import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
 import javafx.event.EventType;
+import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -31,6 +35,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -39,7 +44,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Skin-level tests for {@link io.github.leewyatt.rxcontrols.skins.RXCascaderViewSkin}:
  * per-column ordinal style classes, {@code visibleRowCount}-driven preferred
- * height, and author-CSS override of {@code -fx-fixed-cell-size}.
+ * height, author-CSS override of {@code -fx-fixed-cell-size}, and the cells'
+ * press ripple.
  */
 public class RXCascaderViewSkinTest {
 
@@ -1141,7 +1147,7 @@ public class RXCascaderViewSkinTest {
             RXCascaderItem<String> locked = item("locked");
             locked.setDisable(true);
             view.getRootItems().setAll(List.of(item("first"), locked, item("third")));
-            relayout(new Scene(new StackPane(view)));
+            relayout(new Scene(new StackPane(view), 420, 240));
 
             fireKey(view, KeyCode.DOWN);
             fireKey(view, KeyCode.DOWN);
@@ -1412,6 +1418,119 @@ public class RXCascaderViewSkinTest {
                     "no child may leak left of the view before the next layout pass, got minX="
                             + view.getBoundsInLocal().getMinX());
         });
+    }
+
+    // ==================== Cell ripple ====================
+
+    @Test
+    public void cellsRippleWithTheirOwnSkinAndStylesheetValues() throws InterruptedException {
+        runOnFx(() -> {
+            List<String> names = RXCascaderCell.getClassCssMetaData().stream().map(CssMetaData::getProperty).toList();
+            assertTrue(names.containsAll(List.of("-rx-ripple-fill", "-rx-ripple-opacity", "-rx-ripple-enabled",
+                    "-rx-ripple-state-overlay-enabled")));
+            RXCascaderItem<String> a = item("a");
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.getRootItems().setAll(List.of(a));
+            relayout(new Scene(new StackPane(view), 420, 240));
+
+            RXCascaderCell<?> cell = (RXCascaderCell<?>) filledCell((ListView<?>) view.lookup(".column0"), a);
+            assertInstanceOf(RXCascaderCellSkin.class, cell.getSkin());
+            assertTrue(cell.isRippleEnabled());
+            assertFalse(cell.isStateOverlayEnabled(), "hover and keyboard focus are the row background");
+            assertEquals(0.18, cell.getRippleOpacity(), 1e-9);
+        });
+    }
+
+    @Test
+    public void pressingARowRipplesOnTheCheckBoxToo() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderItem<String> a = item("a");
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.setSelectionMode(SelectionMode.MULTIPLE);
+            view.getRootItems().setAll(List.of(a, item("b")));
+            relayout(new Scene(new StackPane(view), 420, 240));
+            RXCascaderCell<?> cell = (RXCascaderCell<?>) filledCell((ListView<?>) view.lookup(".column0"), a);
+            RippleLayer layer = assertInstanceOf(RippleLayer.class, cell.getChildrenUnmodifiable().get(0));
+            int idle = layer.getChildrenUnmodifiable().size();
+
+            press(cell.lookup(".check-box"));
+            assertTrue(layer.getChildrenUnmodifiable().size() > idle,
+                    "the check box consumes its press, but the row still ripples");
+            assertTrue(a.isChecked(), "the check box still toggles");
+            mouse(cell.lookup(".check-box"), MouseEvent.MOUSE_RELEASED);
+
+            int afterCheckBox = layer.getChildrenUnmodifiable().size();
+            press(cell);
+            assertTrue(layer.getChildrenUnmodifiable().size() > afterCheckBox, "a press on the row ripples");
+        });
+    }
+
+    @Test
+    public void aRecycledCellDropsItsRipple() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderItem<String> a = item("a");
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.getRootItems().setAll(List.of(a, item("b")));
+            relayout(new Scene(new StackPane(view), 420, 240));
+            RXCascaderCell<?> cell = (RXCascaderCell<?>) filledCell((ListView<?>) view.lookup(".column0"), a);
+            RippleLayer layer = (RippleLayer) cell.getChildrenUnmodifiable().get(0);
+            int idle = layer.getChildrenUnmodifiable().size();
+            press(cell);
+            assertTrue(layer.getChildrenUnmodifiable().size() > idle, "precondition: the press ripples");
+
+            cell.updateIndex(1);
+            assertEquals(idle, layer.getChildrenUnmodifiable().size(), "the ripple does not follow the cell to b");
+        });
+    }
+
+    @Test
+    public void cellsKeepTheViewRowHeight() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderItem<String> a = item("a");
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.setRowHeight(40.0);
+            view.getRootItems().setAll(List.of(a));
+            relayout(new Scene(new StackPane(view), 420, 240));
+            Node cell = filledCell((ListView<?>) view.lookup(".column0"), a);
+            assertEquals(40.0, ((Region) cell).getHeight(), 1e-9);
+        });
+    }
+
+    @Test
+    public void expandingABranchKeepsTheRippleOfThePressThatOpenedIt() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderItem<String> branch = item("branch");
+            branch.getChildren().add(item("child"));
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.getRootItems().setAll(List.of(branch, item("leaf")));
+            Scene scene = new Scene(new StackPane(view), 420, 240);
+            relayout(scene);
+            ListView<?> rootColumn = (ListView<?>) view.lookup(".column0");
+            RXCascaderCell<?> cell = (RXCascaderCell<?>) filledCell(rootColumn, branch);
+            RippleLayer layer = (RippleLayer) cell.getChildrenUnmodifiable().get(0);
+            int idle = layer.getChildrenUnmodifiable().size();
+
+            press(cell);
+            mouse(cell, MouseEvent.MOUSE_RELEASED);
+            mouse(cell, MouseEvent.MOUSE_CLICKED);
+            relayout(scene);
+
+            assertEquals(2, columnCount(view), "precondition: the click opened the branch");
+            assertSame(rootColumn, view.lookup(".column0"), "precondition: the root column is kept");
+            assertTrue(layer.getChildrenUnmodifiable().size() > idle,
+                    "opening the child column must not cut the ripple short");
+        });
+    }
+
+    private static void press(Node node) {
+        mouse(node, MouseEvent.MOUSE_PRESSED);
+    }
+
+    private static void mouse(Node node, EventType<MouseEvent> type) {
+        Point2D center = node.localToScene(node.getLayoutBounds().getCenterX(), node.getLayoutBounds().getCenterY());
+        node.fireEvent(new MouseEvent(type, center.getX(), center.getY(), center.getX(), center.getY(),
+                MouseButton.PRIMARY, 1, false, false, false, false, type == MouseEvent.MOUSE_PRESSED, false, false,
+                false, false, true, null));
     }
 
     /** Fires the full primary-button gesture (press, release, click) inside the node. */

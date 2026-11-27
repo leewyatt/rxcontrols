@@ -1,30 +1,46 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.CascaderText;
+import io.github.leewyatt.rxcontrols.skins.RXCascaderCellSkin;
 import io.github.leewyatt.rxcontrols.utils.RXTreeShowingProperty;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.RotateTransition;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.collections.ListChangeListener;
 import javafx.collections.WeakListChangeListener;
+import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
+import javafx.css.Styleable;
+import javafx.css.StyleableBooleanProperty;
+import javafx.css.StyleableDoubleProperty;
+import javafx.css.StyleableObjectProperty;
+import javafx.css.StyleableProperty;
+import javafx.css.converter.BooleanConverter;
+import javafx.css.converter.PaintConverter;
+import javafx.css.converter.SizeConverter;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.SelectionMode;
+import javafx.scene.control.Skin;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Paint;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -65,6 +81,11 @@ import java.util.List;
  * why {@link #updateItem(RXCascaderItem, boolean)} is {@code final} here and the
  * supported customization surface is the content slot; cells without such chrome
  * (plain rows and cards) follow the standard idiom instead.
+ *
+ * <p>A press on the row plays a ripple, styled with {@code -rx-ripple-fill},
+ * {@code -rx-ripple-opacity}, {@code -rx-ripple-enabled} and
+ * {@code -rx-ripple-state-overlay-enabled}; the default skin is
+ * {@link RXCascaderCellSkin}.
  *
  * @param <T> application value type
  */
@@ -264,6 +285,206 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         return view;
     }
 
+    // ==================== Ripple Fill ====================
+
+    private final ObjectProperty<Paint> rippleFill =
+            new StyleableObjectProperty<>(RXRipplePane.DEFAULT_RIPPLE_FILL) {
+                @Override
+                public CssMetaData<? extends Styleable, Paint> getCssMetaData() {
+                    return StyleableProperties.RIPPLE_FILL;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXCascaderCell.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "rippleFill";
+                }
+            };
+
+    /**
+     * Fill used for the row's press ripple. Initial value is
+     * {@link RXRipplePane#DEFAULT_RIPPLE_FILL}; setting {@code null} renders no
+     * fill (transparent) per the JavaFX {@code Shape.setFill} convention.
+     *
+     * @return the ripple fill property
+     */
+    public final ObjectProperty<Paint> rippleFillProperty() {
+        return rippleFill;
+    }
+
+    /**
+     * Returns the ripple fill.
+     *
+     * @return the ripple fill, or {@code null}
+     */
+    public final Paint getRippleFill() {
+        return rippleFill.get();
+    }
+
+    /**
+     * Sets the ripple fill.
+     *
+     * @param value the ripple fill, or {@code null}
+     */
+    public final void setRippleFill(Paint value) {
+        rippleFill.set(value);
+    }
+
+    // ==================== Ripple Opacity ====================
+
+    private final DoubleProperty rippleOpacity =
+            new StyleableDoubleProperty(RXRipplePane.DEFAULT_RIPPLE_OPACITY) {
+                @Override
+                public CssMetaData<? extends Styleable, Number> getCssMetaData() {
+                    return StyleableProperties.RIPPLE_OPACITY;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXCascaderCell.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "rippleOpacity";
+                }
+            };
+
+    /**
+     * Peak opacity for the row's press ripple. Initial value is
+     * {@link RXRipplePane#DEFAULT_RIPPLE_OPACITY}.
+     *
+     * @return the ripple opacity property
+     */
+    public final DoubleProperty rippleOpacityProperty() {
+        return rippleOpacity;
+    }
+
+    /**
+     * Returns the ripple opacity.
+     *
+     * @return the ripple opacity
+     */
+    public final double getRippleOpacity() {
+        return rippleOpacity.get();
+    }
+
+    /**
+     * Sets the ripple opacity.
+     *
+     * @param value the ripple opacity
+     */
+    public final void setRippleOpacity(double value) {
+        rippleOpacity.set(value);
+    }
+
+    // ==================== Ripple Enabled ====================
+
+    private final BooleanProperty rippleEnabled =
+            new StyleableBooleanProperty(RXRipplePane.DEFAULT_RIPPLE_ENABLED) {
+                @Override
+                public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
+                    return StyleableProperties.RIPPLE_ENABLED;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXCascaderCell.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "rippleEnabled";
+                }
+            };
+
+    /**
+     * Whether pressing the row shows a ripple. Turning this off clears any running
+     * ripple.
+     *
+     * @return the ripple-enabled property
+     */
+    public final BooleanProperty rippleEnabledProperty() {
+        return rippleEnabled;
+    }
+
+    /**
+     * Returns whether the press ripple is enabled.
+     *
+     * @return whether the press ripple is enabled
+     */
+    public final boolean isRippleEnabled() {
+        return rippleEnabled.get();
+    }
+
+    /**
+     * Sets whether the press ripple is enabled.
+     *
+     * @param value {@code true} to enable the ripple
+     */
+    public final void setRippleEnabled(boolean value) {
+        rippleEnabled.set(value);
+    }
+
+    // ==================== State Overlay Enabled ====================
+
+    private final BooleanProperty stateOverlayEnabled =
+            new StyleableBooleanProperty(RXRipplePane.DEFAULT_STATE_OVERLAY_ENABLED) {
+                @Override
+                public CssMetaData<? extends Styleable, Boolean> getCssMetaData() {
+                    return StyleableProperties.RIPPLE_STATE_OVERLAY_ENABLED;
+                }
+
+                @Override
+                public Object getBean() {
+                    return RXCascaderCell.this;
+                }
+
+                @Override
+                public String getName() {
+                    return "stateOverlayEnabled";
+                }
+            };
+
+    /**
+     * Whether the low-opacity hover/press state overlay tints the row.
+     *
+     * @return the state-overlay-enabled property
+     */
+    public final BooleanProperty stateOverlayEnabledProperty() {
+        return stateOverlayEnabled;
+    }
+
+    /**
+     * Returns whether the state overlay may show.
+     *
+     * @return whether the state overlay may show
+     */
+    public final boolean isStateOverlayEnabled() {
+        return stateOverlayEnabled.get();
+    }
+
+    /**
+     * Sets whether the state overlay may show.
+     *
+     * @param value {@code true} to allow the state overlay
+     */
+    public final void setStateOverlayEnabled(boolean value) {
+        stateOverlayEnabled.set(value);
+    }
+
+    // ==================== Skin ====================
+
+    /** {@inheritDoc} */
+    @Override
+    protected Skin<?> createDefaultSkin() {
+        return new RXCascaderCellSkin<>(this);
+    }
+
     // ==================== Cell lifecycle ====================
 
     @Override
@@ -407,5 +628,97 @@ public class RXCascaderCell<T> extends ListCell<RXCascaderItem<T>> {
         pseudoClassStateChanged(LOADING, false);
         pseudoClassStateChanged(LOAD_FAILED, false);
         pseudoClassStateChanged(LEAF, false);
+    }
+
+    // ==================== CSS Metadata ====================
+
+    private static class StyleableProperties {
+
+        private static final CssMetaData<RXCascaderCell<?>, Paint> RIPPLE_FILL =
+                new CssMetaData<>("-rx-ripple-fill",
+                        PaintConverter.getInstance(), RXRipplePane.DEFAULT_RIPPLE_FILL) {
+                    @Override
+                    public boolean isSettable(RXCascaderCell<?> cell) {
+                        return !cell.rippleFill.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Paint> getStyleableProperty(RXCascaderCell<?> cell) {
+                        return (StyleableProperty<Paint>) cell.rippleFillProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXCascaderCell<?>, Number> RIPPLE_OPACITY =
+                new CssMetaData<>("-rx-ripple-opacity",
+                        SizeConverter.getInstance(), RXRipplePane.DEFAULT_RIPPLE_OPACITY) {
+                    @Override
+                    public boolean isSettable(RXCascaderCell<?> cell) {
+                        return !cell.rippleOpacity.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Number> getStyleableProperty(RXCascaderCell<?> cell) {
+                        return (StyleableProperty<Number>) cell.rippleOpacityProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXCascaderCell<?>, Boolean> RIPPLE_ENABLED =
+                new CssMetaData<>("-rx-ripple-enabled",
+                        BooleanConverter.getInstance(), RXRipplePane.DEFAULT_RIPPLE_ENABLED) {
+                    @Override
+                    public boolean isSettable(RXCascaderCell<?> cell) {
+                        return !cell.rippleEnabled.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Boolean> getStyleableProperty(RXCascaderCell<?> cell) {
+                        return (StyleableProperty<Boolean>) cell.rippleEnabledProperty();
+                    }
+                };
+
+        private static final CssMetaData<RXCascaderCell<?>, Boolean> RIPPLE_STATE_OVERLAY_ENABLED =
+                new CssMetaData<>("-rx-ripple-state-overlay-enabled",
+                        BooleanConverter.getInstance(), RXRipplePane.DEFAULT_STATE_OVERLAY_ENABLED) {
+                    @Override
+                    public boolean isSettable(RXCascaderCell<?> cell) {
+                        return !cell.stateOverlayEnabled.isBound();
+                    }
+
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public StyleableProperty<Boolean> getStyleableProperty(RXCascaderCell<?> cell) {
+                        return (StyleableProperty<Boolean>) cell.stateOverlayEnabledProperty();
+                    }
+                };
+
+        private static final List<CssMetaData<? extends Styleable, ?>> STYLEABLES;
+
+        static {
+            List<CssMetaData<? extends Styleable, ?>> styleables =
+                    new ArrayList<>(ListCell.getClassCssMetaData());
+            styleables.add(RIPPLE_FILL);
+            styleables.add(RIPPLE_OPACITY);
+            styleables.add(RIPPLE_ENABLED);
+            styleables.add(RIPPLE_STATE_OVERLAY_ENABLED);
+            STYLEABLES = Collections.unmodifiableList(styleables);
+        }
+    }
+
+    /**
+     * Returns the CSS metadata associated with this class.
+     *
+     * @return the CSS metadata list
+     */
+    public static List<CssMetaData<? extends Styleable, ?>> getClassCssMetaData() {
+        return StyleableProperties.STYLEABLES;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public List<CssMetaData<? extends Styleable, ?>> getControlCssMetaData() {
+        return getClassCssMetaData();
     }
 }

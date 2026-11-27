@@ -141,14 +141,20 @@ public class RXCascaderViewSkin<T> extends RXSkinBase<RXCascaderView<T>> {
             keep++;
         }
         boolean changed = keep < columns.size() || keep < desired.size();
+        // Only the tail leaves and joins the box: a kept column that left the scene,
+        // even for a moment, would cut short the press ripple of the row that opened
+        // the new column.
         for (int i = columns.size() - 1; i >= keep; i--) {
-            disposeColumn(columns.remove(i));
+            ListView<RXCascaderItem<T>> column = columns.remove(i);
+            columnsBox.getChildren().remove(column);
+            disposeColumn(column);
         }
         for (int i = keep; i < desired.size(); i++) {
-            columns.add(createColumn(desired.get(i)));
+            ListView<RXCascaderItem<T>> column = createColumn(desired.get(i));
+            columns.add(column);
+            columnsBox.getChildren().add(column);
         }
         restampOrdinals();
-        columnsBox.getChildren().setAll(columns);
         // Keyboard focus rows live on the column focus models (rebuilt tail
         // columns lose theirs naturally); only the active column index needs
         // clamping when the tail was rebuilt away.
