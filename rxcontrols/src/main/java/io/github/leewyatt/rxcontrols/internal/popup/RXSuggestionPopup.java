@@ -4,10 +4,6 @@ import io.github.leewyatt.rxcontrols.RXListCell;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXPlacement;
 import io.github.leewyatt.rxcontrols.skins.SkinDisposer;
-import javafx.animation.Interpolator;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.Timeline;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -20,9 +16,7 @@ import javafx.scene.Node;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.transform.Scale;
 import javafx.util.Callback;
-import javafx.util.Duration;
 import javafx.util.StringConverter;
 
 import java.util.function.Consumer;
@@ -32,8 +26,7 @@ import java.util.function.Predicate;
  * Anchored suggestion / autocomplete popup, built on {@link RXPopupSupport} and
  * an {@link RXListView} content body. Owns the suggestion data model (a swappable
  * source mirrored into a stable {@link FilteredList}), a keyboard-navigation
- * bridge driven by the host editor, mouse selection, and a light entrance
- * animation. Content-selection semantics (how a chosen item is written back) stay
+ * bridge driven by the host editor, and mouse selection. Content-selection semantics (how a chosen item is written back) stay
  * with the consumer via {@link #setOnSuggestionSelected}.
  *
  * <p>Kept internal: the first consumer is {@code RXAutoCompleteField}. Focus stays on
@@ -49,8 +42,6 @@ public final class RXSuggestionPopup<T> {
 
     private static final String POPUP_STYLE_CLASS = "rx-suggestion-popup";
     private static final int DEFAULT_MAX_VISIBLE_ROWS = 8;
-    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(180);
-    private static final double ENTRANCE_START_SCALE = 0.92;
 
     // ==================== Content + support ====================
 
@@ -62,8 +53,6 @@ public final class RXSuggestionPopup<T> {
 
     private int maxVisibleRows = DEFAULT_MAX_VISIBLE_ROWS;
     private boolean hideOnSelect = true;
-    private boolean animated = true;
-    private Duration animationDuration = DEFAULT_ANIMATION_DURATION;
     private Consumer<T> onSuggestionSelected;
     // Marks items that are shown but not selectable (e.g. already-chosen chips when
     // duplicates are off). null = nothing disabled — the RXAutoCompleteField default.
@@ -73,11 +62,6 @@ public final class RXSuggestionPopup<T> {
     // show), so Enter commits the top suggestion. Default false: the highlight starts
     // empty and only the arrow keys set it.
     private boolean autoHighlightFirst;
-
-    // ==================== Animation ====================
-
-    private final Scale entranceScale = new Scale(1, 1);
-    private Timeline entrance;
 
     // ==================== Constructor ====================
 
@@ -89,7 +73,6 @@ public final class RXSuggestionPopup<T> {
         listView.setFocusTraversable(false);
         listView.setItems(filtered);
         listView.setCellFactory(disabledAwareCellFactory());
-        listView.getTransforms().add(entranceScale);
 
         support = new RXPopupSupport(listView);
         support.setPopupStyleClass(POPUP_STYLE_CLASS);
@@ -98,16 +81,9 @@ public final class RXSuggestionPopup<T> {
         // filter, which closes the popup and consumes the event.
         support.setHideOnEscape(false);
 
-        disposer.registerListener(support.showingProperty(), this::onShowingChanged);
-        // The entrance pivot follows the resolved side; both fire after playEntrance
-        // (reconfigure runs later in the same show event, layout at the next pulse),
-        // so the pivot is corrected before the first frame paints.
-        disposer.registerListener(support.openAboveProperty(), this::updateEntrancePivot);
-        disposer.registerListener(listView.layoutBoundsProperty(), this::updateEntrancePivot);
         disposer.registerListener(filtered, this::onFilteredChanged);
         disposer.registerListener(listView.insetsProperty(), this::updatePopupHeight);
         disposer.registerEventHandler(listView, MouseEvent.MOUSE_CLICKED, this::handleListClicked);
-        disposer.registerDisposeTask(() -> listView.getTransforms().remove(entranceScale));
 
         // Observe the initial suggestions list too (mirrors RXListView's constructor):
         // a SimpleObjectProperty does not fire invalidated() for its initial value, so
@@ -173,10 +149,9 @@ public final class RXSuggestionPopup<T> {
     }
 
     /**
-     * Releases all resources (animation, listeners, the underlying popup support).
+     * Releases all resources (listeners, the underlying popup support).
      */
     public void dispose() {
-        stopEntrance();
         if (observedSuggestions != null) {
             observedSuggestions.removeListener(weakSuggestionsListener);
             observedSuggestions = null;
@@ -540,33 +515,6 @@ public final class RXSuggestionPopup<T> {
     }
 
     /**
-     * Sets whether the entrance animation plays (default {@code true}).
-     *
-     * @param value animated flag
-     */
-    public void setAnimated(boolean value) {
-        animated = value;
-    }
-
-    /**
-     * Returns whether the entrance animation plays.
-     *
-     * @return the animated flag
-     */
-    public boolean isAnimated() {
-        return animated;
-    }
-
-    /**
-     * Sets the entrance animation duration. {@code null} or non-positive disables it.
-     *
-     * @param value the duration
-     */
-    public void setAnimationDuration(Duration value) {
-        animationDuration = value;
-    }
-
-    /**
      * Sets the popup width strategy.
      *
      * @param mode the width mode
@@ -695,58 +643,5 @@ public final class RXSuggestionPopup<T> {
             node = node.getParent();
         }
         return null;
-    }
-
-    // ==================== Entrance animation ====================
-
-    private void onShowingChanged() {
-        if (support.isShowing()) {
-            playEntrance();
-        } else {
-            stopEntrance();
-        }
-    }
-
-    private void playEntrance() {
-        stopEntrance();
-        if (!animated || animationDuration == null || animationDuration.lessThanOrEqualTo(Duration.ZERO)) {
-            return;
-        }
-        // Scale-in from the anchor-adjacent edge: an unfolding dropdown. Fade runs
-        // alongside. Not replayed on re-filter (showing stays true), so it never
-        // slows typing.
-        updateEntrancePivot();
-        entranceScale.setY(ENTRANCE_START_SCALE);
-        listView.setOpacity(0.0);
-        entrance = new Timeline(
-                new KeyFrame(Duration.ZERO,
-                        new KeyValue(listView.opacityProperty(), 0.0, Interpolator.EASE_OUT),
-                        new KeyValue(entranceScale.yProperty(), ENTRANCE_START_SCALE, Interpolator.EASE_OUT)),
-                new KeyFrame(animationDuration,
-                        new KeyValue(listView.opacityProperty(), 1.0, Interpolator.EASE_OUT),
-                        new KeyValue(entranceScale.yProperty(), 1.0, Interpolator.EASE_OUT)));
-        entrance.setOnFinished(event -> resetEntranceState());
-        entrance.playFromStart();
-    }
-
-    // The unfold must grow out of the anchor-adjacent edge: below the anchor →
-    // pivot on the top edge; flipped above → pivot on the bottom edge. The bottom
-    // pivot tracks the list's layout height (the list may not be laid out yet when
-    // the entrance starts, and a mid-animation refilter can change it).
-    private void updateEntrancePivot() {
-        entranceScale.setPivotY(support.isOpenAbove() ? listView.getLayoutBounds().getHeight() : 0.0);
-    }
-
-    private void stopEntrance() {
-        if (entrance != null) {
-            entrance.stop();
-            entrance = null;
-        }
-        resetEntranceState();
-    }
-
-    private void resetEntranceState() {
-        listView.setOpacity(1.0);
-        entranceScale.setY(1.0);
     }
 }

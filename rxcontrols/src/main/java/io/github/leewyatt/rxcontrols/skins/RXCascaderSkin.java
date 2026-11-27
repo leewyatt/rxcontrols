@@ -132,7 +132,7 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
     private void initializePopupSupport() {
         // The cascader popup width follows the view's own (multi-column) width, not
         // the trigger width, so it uses PREF_CONTENT rather than the default
-        // anchor-width lower bound. The shell stays transparent and token-less.
+        // anchor-width lower bound.
         popupSupport.setPopupStyleClass("rx-cascader-popup");
         popupSupport.setWidthMode(RXPopupWidthMode.PREF_CONTENT);
         // Preserve the cascader's historical close semantics: the event that

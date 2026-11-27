@@ -8,8 +8,10 @@ import io.github.leewyatt.rxcontrols.internal.chip.ChipFlowLayout;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
 import io.github.leewyatt.rxcontrols.internal.popup.RXSuggestionPopup;
 import javafx.animation.PauseTransition;
+import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
 import javafx.collections.ListChangeListener;
+import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
 import javafx.geometry.NodeOrientation;
 import javafx.scene.Node;
@@ -51,6 +53,8 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
     private static final String SCROLL_STYLE_CLASS = "chip-scroll-pane";
     private static final Duration FILTER_DEBOUNCE = Duration.millis(150);
     private static final double POPUP_GAP = 4.0;
+    // Named after the pseudo-class JavaFX 19 sets on its own; JavaFX 17 has none.
+    private static final PseudoClass FOCUS_WITHIN = PseudoClass.getPseudoClass("focus-within");
 
     private final ChipEditor editor;
     private final ChipFlowLayout flowLayout;
@@ -68,6 +72,13 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
 
     private ScrollPane scrollPane;
     private Region currentContent;
+
+    // The field shows focus while the editor or one of its chips holds it: the scene's
+    // focus owner is tracked, and the owner's own focused state (false while the
+    // window is inactive, as for any focused control).
+    private final InvalidationListener focusWithinListener = observable -> updateFocusWithin();
+    private Scene observedScene;
+    private Node observedOwner;
 
     /**
      * Creates a skin for the given chip input.
@@ -121,7 +132,6 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
         popup.setCellFactory(control.getSuggestionCellFactory());
         popup.setMaxVisibleRows(control.getVisibleRowCount());
         popup.setHideOnSelect(control.isHideOnSelect());
-        popup.setAnimated(control.isAnimated());
         popup.setOffset(0, POPUP_GAP);
         // Anchor to the editor (which rides the caret row) at content width, so the
         // list opens next to what is being typed rather than under the whole field.
@@ -149,8 +159,6 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
                 () -> popup.setMaxVisibleRows(control.getVisibleRowCount()));
         disposer.registerListener(control.hideOnSelectProperty(),
                 () -> popup.setHideOnSelect(control.isHideOnSelect()));
-        disposer.registerListener(control.animatedProperty(),
-                () -> popup.setAnimated(control.isAnimated()));
         disposer.registerListener(popup.showingProperty(),
                 () -> control.setPopupShowing(popup.isShowing()));
         disposer.registerListener(popup.getFilteredSuggestions(), this::onFilteredSuggestionsChanged);
@@ -161,6 +169,62 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
         disposer.registerDisposeTask(() -> control.setPopupShowing(false));
 
         updateContentStructure();
+
+        disposer.registerListener(control.sceneProperty(), this::observeScene);
+        disposer.registerDisposeTask(() -> {
+            observeOwner(null);
+            if (observedScene != null) {
+                observedScene.focusOwnerProperty().removeListener(focusWithinListener);
+                observedScene = null;
+            }
+            control.pseudoClassStateChanged(FOCUS_WITHIN, false);
+        });
+        observeScene();
+    }
+
+    // ==================== Focus within ====================
+
+    private void observeScene() {
+        Scene scene = getSkinnable().getScene();
+        if (scene != observedScene) {
+            if (observedScene != null) {
+                observedScene.focusOwnerProperty().removeListener(focusWithinListener);
+            }
+            observedScene = scene;
+            if (scene != null) {
+                scene.focusOwnerProperty().addListener(focusWithinListener);
+            }
+        }
+        updateFocusWithin();
+    }
+
+    private void updateFocusWithin() {
+        RXChipInput<T> control = getSkinnable();
+        Node owner = observedScene == null ? null : observedScene.getFocusOwner();
+        observeOwner(owner);
+        boolean within = false;
+        if (owner != null && owner.isFocused()) {
+            for (Node node = owner; node != null; node = node.getParent()) {
+                if (node == control) {
+                    within = true;
+                    break;
+                }
+            }
+        }
+        control.pseudoClassStateChanged(FOCUS_WITHIN, within);
+    }
+
+    private void observeOwner(Node owner) {
+        if (owner == observedOwner) {
+            return;
+        }
+        if (observedOwner != null) {
+            observedOwner.focusedProperty().removeListener(focusWithinListener);
+        }
+        observedOwner = owner;
+        if (owner != null) {
+            owner.focusedProperty().addListener(focusWithinListener);
+        }
     }
 
     // ==================== Chip node mapping ====================

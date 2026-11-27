@@ -81,7 +81,7 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
      */
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
-        pages.layout(x, y, w, h);
+        pages.resizeRelocate(x, y, w, h);
     }
 
     /**
@@ -157,7 +157,7 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
         ledger.activate(this, this::sync);
         disposer.registerListener(control.contentProperty(),
                 (observable, oldValue, newValue) -> sync());
-        getChildren().add(pages.getContentPane());
+        getChildren().add(pages);
         takeOverPending = true;
         sync();
     }
@@ -434,7 +434,6 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
         Skin<?> installed = control.getSkin();
         boolean replaced = installed != null && installed != this;
         ObservableList<Node> children = getChildren();
-        StackPane contentPane = pages.getContentPane();
         pages.interrupt();
         // Completes the started pairs while the pages are in the pane, so the
         // events bubble to it, then removes them. Removing the skin clears the
@@ -442,8 +441,8 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
         // the pages back for the events; and a current node no skin holds
         // (this one was replaced before taking it over) joins our page.
         Runnable finish = () -> {
-            if (!children.contains(contentPane)) {
-                children.add(contentPane);
+            if (!children.contains(pages)) {
+                children.add(pages);
             }
             Node current = ledger.current();
             if (current != null && current.getParent() == null) {
@@ -456,7 +455,7 @@ public class RXTransitionPaneSkin extends RXSkinBase<RXTransitionPane> {
             pages.dispose(control.getAnimation());
             pages.getPageA().getChildren().clear();
             pages.getPageB().getChildren().clear();
-            children.remove(contentPane);
+            children.remove(pages);
         };
         if (ledger.isBusy()) {
             // A handler replaced the skin while one of the pane's events is

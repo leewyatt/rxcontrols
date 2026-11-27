@@ -358,7 +358,7 @@ public class RXMenuButtonTest {
             Skin<?> skin = button.getSkin();
             assertNotNull(skin);
             // Disposing the skin must dispose the internal RXPopupMenu (support +
-            // animations + listeners), closing the popup window it owns.
+            // listeners), closing the popup window it owns.
             skin.dispose();
             assertEquals(before, extraShowingWindows(), "disposing the skin closes the popup");
             // Detach the button so a later pulse does not lay out the now-disposed

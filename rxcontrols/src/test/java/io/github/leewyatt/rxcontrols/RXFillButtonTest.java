@@ -516,12 +516,13 @@ public class RXFillButtonTest {
     }
 
     /**
-     * Verifies focus thickens the border outward only and leaves the sweep area in place.
+     * Verifies focus draws the focus ring as border strokes ending at the resting
+     * border's inner edge, and leaves the sweep area in place.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void focusThickensTheBorderOutwardWithoutMovingTheSweepArea() throws Exception {
+    public void focusRingLeavesTheSweepAreaInPlace() throws Exception {
         runOnFx(() -> {
             RXFillButton button = withSkin(new RXFillButton("Fill"));
             StackPane root = new StackPane(button);
@@ -534,11 +535,13 @@ public class RXFillButtonTest {
             root.applyCss();
             layout(button, 100.0, 40.0);
 
-            BorderStroke stroke = button.getBorder().getStrokes().get(0);
-            assertEquals(1, button.getBorder().getStrokes().size(), "focus keeps a single border");
-            assertTrue(stroke.getWidths().getTop() > 1.0, "focus thickens the border");
-            assertEquals(1.0, stroke.getInsets().getTop() + stroke.getWidths().getTop(), EPSILON,
-                    "the border's inner edge stays put");
+            // The halo, then the sharp edge, whose inner side is the resting border's.
+            BorderStroke halo = button.getBorder().getStrokes().get(0);
+            BorderStroke edge = button.getBorder().getStrokes().get(1);
+            assertEquals(2, button.getBorder().getStrokes().size(), "focus draws the halo and the edge");
+            assertEquals(-1.4, halo.getInsets().getTop(), EPSILON, "the halo reaches outside the button");
+            assertEquals(1.0, edge.getInsets().getTop() + edge.getWidths().getTop(), EPSILON,
+                    "the edge's inner side stays at the resting border's");
             assertEquals(restingArea,
                     new Insets(fillContent(button).getLayoutY(), 0.0, 0.0, fillContent(button).getLayoutX()));
             assertEquals(98.0, fillContent(button).getWidth(), EPSILON);

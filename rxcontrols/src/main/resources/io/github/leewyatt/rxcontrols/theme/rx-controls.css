@@ -16,7 +16,7 @@
  ******************************************************************************/
 .rx-accordion, .rx-audio-spectrum, .rx-auto-complete-field, .rx-avatar, .rx-backdrop, .rx-badge, .rx-bar-spinner, .rx-border-beam, .rx-box, .rx-breadcrumb-bar, .rx-button,
 .rx-calendar-view, .rx-carousel, .rx-cascader, .rx-cascader-view, .rx-check-box, .rx-chip, .rx-chip-set, .rx-chip-input, .rx-circular-progress-indicator,
-.rx-clip-path-image-view, .rx-col, .rx-content-pane, .rx-copy-button, .rx-dashboard-card, .rx-dashboard-pane, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
+.rx-clip-path-image-view, .rx-col, .rx-color-picker, .rx-color-view, .rx-content-pane, .rx-copy-button, .rx-dashboard-card, .rx-dashboard-pane, .rx-dialog, .rx-dialog-content, .rx-digit, .rx-dot-pulse, .rx-drawer-pane,
 .rx-date-picker, .rx-date-range-picker, .rx-date-range-view, .rx-date-time-picker, .rx-date-time-range-picker, .rx-date-time-view, .rx-dual-pane, .rx-fill-button, .rx-fill-label, .rx-flow-pane,
 .rx-decimal-field, .rx-double-field, .rx-fab, .rx-highlight-text-view, .rx-hold-button,
 .rx-image-pane, .rx-image-view, .rx-integer-field,
@@ -24,7 +24,7 @@
 .rx-masonry-pane, .rx-masonry-view, .rx-month-picker, .rx-month-range-picker, .rx-month-range-view, .rx-month-view,
 .rx-material-decimal-field, .rx-material-double-field, .rx-material-integer-field,
 .rx-material-long-field, .rx-material-text-field, .rx-material-password-field,
-.rx-overlay-pane, .rx-password-field, .rx-placeholder, .rx-quarter-picker, .rx-quarter-range-picker, .rx-quarter-range-view, .rx-quarter-view,
+.rx-overlay-pane, .rx-password-field, .rx-placeholder, .rx-popup, .rx-quarter-picker, .rx-quarter-range-picker, .rx-quarter-range-view, .rx-quarter-view,
 .rx-radio-button, .rx-radio-toggle-button, .rx-rating,
 .rx-reaction-button, .rx-ribbon-badge, .rx-ripple-pane, .rx-row, .rx-seek-bar, .rx-segmented-control,
 .rx-segmented-progress-bar, .rx-segmented-step-indicator, .rx-selection-box, .rx-sidebar, .rx-snackbar-host, .rx-speed-dial,
@@ -57,6 +57,9 @@
        whether the host is light or dark. */
     -rx-surface: -fx-background;
     -rx-surface-variant: ladder(-fx-background, derive(-fx-background, 8%) 45%, #f5f5f5 46%);
+    /* A hover or band fill one step off the surface a part sits on; a popup card
+       redefines it, since on a dark host the card itself takes -rx-surface-variant. */
+    -rx-surface-step: -rx-surface-variant;
     -rx-on-surface: -fx-text-background-color;
     -rx-on-surface-secondary: ladder(-fx-background, derive(-fx-light-text-color, -32%) 45%, -fx-mid-text-color 46%);
     -rx-on-surface-disabled: ladder(-fx-background, rgba(255, 255, 255, 0.35) 45%, rgba(0, 0, 0, 0.25) 46%);
@@ -128,6 +131,10 @@
 .rx-theme-atlantafx.rx-clip-path-image-view,
 .rx-theme-atlantafx .rx-col,
 .rx-theme-atlantafx.rx-col,
+.rx-theme-atlantafx .rx-color-picker,
+.rx-theme-atlantafx.rx-color-picker,
+.rx-theme-atlantafx .rx-color-view,
+.rx-theme-atlantafx.rx-color-view,
 .rx-theme-atlantafx .rx-content-pane,
 .rx-theme-atlantafx.rx-content-pane,
 .rx-theme-atlantafx .rx-copy-button,
@@ -222,6 +229,8 @@
 .rx-theme-atlantafx.rx-password-field,
 .rx-theme-atlantafx .rx-placeholder,
 .rx-theme-atlantafx.rx-placeholder,
+.rx-theme-atlantafx .rx-popup,
+.rx-theme-atlantafx.rx-popup,
 .rx-theme-atlantafx .rx-quarter-picker,
 .rx-theme-atlantafx.rx-quarter-picker,
 .rx-theme-atlantafx .rx-quarter-range-picker,
@@ -403,7 +412,7 @@
    here on purpose: the overlay fill is set in Java from -rx-ripple-fill (USER
    origin), so a UA color would fight it. */
 .state-overlay {
-    -rx-state-overlay-hover-opacity: 0.08;
+    -rx-state-overlay-hover-opacity: 0.04;
     -rx-state-overlay-focus-opacity: 0.10;
     -rx-state-overlay-pressed-opacity: 0.125;
     -rx-state-overlay-dragged-opacity: 0.16;
@@ -727,16 +736,13 @@
     -fx-text-fill: -rx-fill;
 }
 
-/* Focus thickens the border by 0.5px outward: the inner edge stays put, so the
-   size and the sweep do not move. It replaces the inherited .button:focused
-   background ring, which would break the single-fill rule above. */
+/* The focus ring is drawn as border strokes (see "Focus rings" at the end of this
+   file): it replaces the inherited .button:focused background ring, which would
+   break the single-fill rule above. */
 .rx-fill-button:focused {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
     -fx-background-radius: 4px;
-    -fx-border-width: 1.5px;
-    -fx-border-insets: -0.5px;
-    -fx-border-radius: 4.5px;
 }
 
 .rx-fill-button:filling {
@@ -800,6 +806,7 @@
    radius. */
 .rx-hold-button {
     -rx-fill: -rx-primary;
+    -rx-focus-fill: -rx-fill;
     -fx-background-color: -rx-fill;
     -fx-background-insets: 0;
     -fx-background-radius: 4px;
@@ -810,17 +817,9 @@
 
 .rx-hold-button:hover {
     -fx-background-color: derive(-rx-fill, 8%);
+    -rx-focus-fill: derive(-rx-fill, 8%);
 }
 
-.rx-hold-button:focused {
-    -fx-background-color: -fx-faint-focus-color, -rx-focus, -rx-fill;
-    -fx-background-insets: -1.4, 0, 1px;
-    -fx-background-radius: 5.4px, 4px, 3px;
-}
-
-.rx-hold-button:focused:hover {
-    -fx-background-color: -fx-faint-focus-color, -rx-focus, derive(-rx-fill, 8%);
-}
 
 /* AtlantaFX's own accent button focus: the body darkens inside a 1px edge of
    its normal color, with no glow. */
@@ -873,8 +872,9 @@
     -fx-text-fill: -rx-on-surface;
 }
 
-/* Focus takes the line color on the text instead of the inherited .button:focused
-   background ring. */
+/* Focus takes the line color on the text, and the focus ring is drawn as border
+   strokes (see "Focus rings" at the end of this file) instead of the inherited
+   .button:focused background ring. */
 .rx-line-button:focused {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
@@ -1756,6 +1756,7 @@
    The ripple fill comes from -rx-ripple-fill; tier opacity comes from the global
    .state-overlay rule. */
 .rx-chip {
+    -rx-focus-fill: -rx-surface-variant;
     -rx-ripple-fill: -rx-state-overlay-color;
     -rx-ripple-opacity: 0.18;
     -rx-ripple-enabled: true;
@@ -1776,6 +1777,7 @@
    state readable where a theme's tint sits close to the resting surface. */
 .rx-chip:selectable:selected {
     -fx-background-color: -rx-primary-bg;
+    -rx-focus-fill: -rx-primary-bg;
 }
 
 .rx-chip > .check {
@@ -1803,12 +1805,6 @@
     -fx-background-color: -rx-on-surface;
 }
 
-/* Focus: the outline takes the focus colour at its resting width, so nothing moves
-   and nothing is drawn outside the chip. :focus-shown is set by the skin: focus,
-   unless it came from a pointer press and no key has been pressed since. */
-.rx-chip:focus-shown {
-    -fx-border-color: -rx-focus;
-}
 
 .rx-chip:disabled {
     -fx-opacity: 0.4;
@@ -1850,7 +1846,9 @@
     -fx-border-color: -rx-primary;
 }
 
-.rx-chip-input:error {
+.rx-chip-input:error,
+.rx-chip-input:error:focus-within,
+.rx-chip-input:error:popup-showing {
     -fx-border-color: -rx-danger;
 }
 
@@ -2093,16 +2091,6 @@
     -fx-spacing: 0.5em; /* 6 */
 }
 
-.rx-cascader:focused > .display,
-.rx-cascader:showing > .display {
-    -fx-background-color: -fx-focus-color,
-    -fx-control-inner-background,
-    -fx-faint-focus-color,
-    linear-gradient(from 0px 0px to 0px 5px, derive(-fx-control-inner-background, -9%), -fx-control-inner-background);
-    -fx-background-insets: -0.2, 1, -1.4, 3;
-    -fx-background-radius: 3, 2, 4, 0;
-}
-
 .rx-theme-atlantafx .rx-cascader:focused > .display,
 .rx-theme-atlantafx.rx-cascader:focused > .display,
 .rx-theme-atlantafx .rx-cascader:showing > .display,
@@ -2160,28 +2148,14 @@
 }
 
 .rx-cascader-view {
+    -rx-focus-fill: -fx-control-inner-background;
     -fx-background-color: -fx-control-inner-background;
     -fx-border-color: -fx-box-border;
     -fx-border-width: 1px;
 }
 
-.rx-cascader-view:focused {
-    -fx-border-color: -fx-focus-color;
-}
-
-/* Descendant selector: the popup wraps the view in an unstyled sizing shell, so the
-   shadow hangs on the view. The field already shows focus, so the popup keeps a plain
-   frame like a ComboBox popup. */
-.rx-cascader-popup .rx-cascader-view,
-.rx-cascader-popup .rx-cascader-view:focused {
-    -fx-background-radius: 3;
-    -fx-border-color: -fx-box-border;
-    -fx-border-radius: 3;
-    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 8);
-}
-
-/* The columns would paint square corners over the rounded frame; the view's own
-   background already fills them. */
+/* The columns would paint square corners over the rounded card; the popup card
+   already fills them. */
 .rx-cascader-popup .rx-cascader-view > .columns > .column {
     -fx-background-color: transparent;
 }
@@ -2190,17 +2164,10 @@
  *                                                                             *
  * RXSuggestionPopup (RXAutoCompleteField)                                      *
  *                                                                             *
- * The popup bridge and RXPopupSupport's sizing shell above the content carry  *
- * no RX style classes (hence the descendant selector and no                   *
- * .rx-suggestion-popup token-baseline entry). The content is a plain          *
- * .rx-list-view, which carries its own tokens; the elevation shadow hangs on  *
- * that content box.                                                           *
+ * The content is a plain .rx-list-view inside the shared popup card (see     *
+ * "Popup card" at the end of this file); these rules style its cells.         *
  *                                                                             *
  ******************************************************************************/
-.rx-suggestion-popup .rx-list-view {
-    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 8);
-}
-
 /* Options shown but not selectable (e.g. a chip input's already-chosen items when
    duplicates are off): greyed and inert. The cell is Node-disabled, so :hover never
    applies and the keyboard/mouse skip it. */
@@ -2253,7 +2220,7 @@
 .rx-theme-atlantafx.rx-cascader-view > .columns > .column .list-cell:filled:hover,
 .rx-theme-atlantafx .rx-cascader-view > .columns > .column .list-cell:filled:focused,
 .rx-theme-atlantafx.rx-cascader-view > .columns > .column .list-cell:filled:focused {
-    -fx-background-color: -rx-surface-variant;
+    -fx-background-color: -rx-surface-step;
 }
 
 /* Accent + bold text: the active
@@ -3277,13 +3244,7 @@
     -fx-background-color: -fx-hover-base;
 }
 
-/* The outline layer is what sets the flyout off in a dark theme, where a
-   shadow does not show against the page. */
 .rx-sidebar-flyout {
-    -fx-background-color: -rx-outline-variant, -rx-surface;
-    -fx-background-insets: 0, 1;
-    -fx-background-radius: 8, 7;
-    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 4);
     -fx-padding: 5;
 }
 
@@ -3639,15 +3600,10 @@
  *                                                                             *
  ******************************************************************************/
 .rx-tile-view {
+    -rx-focus-fill: -rx-surface;
     -fx-background-color: -fx-box-border, -rx-surface;
     -fx-background-insets: 0, 1;
     -fx-padding: 1;
-}
-
-.rx-tile-view:focused {
-    -fx-background-color: -fx-faint-focus-color, -fx-focus-color, -rx-surface;
-    -fx-background-insets: -1.4, -0.3, 1;
-    -fx-background-radius: 2, 0, 0;
 }
 
 /* AtlantaFX's own data views keep their plain frame when focused. */
@@ -3732,15 +3688,10 @@
  *                                                                             *
  ******************************************************************************/
 .rx-list-view {
+    -rx-focus-fill: -rx-surface;
     -fx-background-color: -fx-box-border, -rx-surface;
     -fx-background-insets: 0, 1;
     -fx-padding: 1;
-}
-
-.rx-list-view:focused {
-    -fx-background-color: -fx-faint-focus-color, -fx-focus-color, -rx-surface;
-    -fx-background-insets: -1.4, -0.3, 1;
-    -fx-background-radius: 2, 0, 0;
 }
 
 /* AtlantaFX's own ListView keeps its plain frame when focused. */
@@ -3988,15 +3939,121 @@
     -fx-font-weight: bold;
     -fx-padding: 8 12 4 12;
 }
-/* Popup shell is token-less and transparent; the .rx-menu-list content box carries
-   the surface fill, border, radius and elevation (shadow on the content, not the shell). */
+/* The popup window stays transparent; the shared popup card (see "Popup card" at the
+   end of this file) draws the surface around the menu list. */
 .rx-menu-popup {
     -fx-background-color: transparent;
 }
-/* Material's 112px menu minimum: a menu of short labels does not hug its text on the
-   trailing side. Popup only; an inline .rx-menu-list keeps its content width. */
+/* Popup menus are Modena's own context menu: compact rows, no minimum width, a square
+   selection bar with the focused text and mark colors, and its check mark for check and
+   radio items. The ripple stays; the hover / focus overlay does not, since the selection
+   bar already marks the row under the pointer. AtlantaFX follows its own context menu
+   (the rules after these). Popup only; an inline .rx-menu-list keeps its own look. */
 .rx-menu-popup .rx-menu-list {
-    -fx-min-width: 112;
+    -fx-padding: 0.333333em 0.083333em;
+    -rx-ripple-enabled: true;
+    -rx-ripple-state-overlay-enabled: false;
+}
+
+.rx-menu-popup .rx-menu-item,
+.rx-menu-popup .rx-menu-list:dense .rx-menu-item {
+    -fx-padding: 0.333333em 0.41777em;
+    -fx-min-height: -1;
+    -fx-background-radius: 0;
+}
+
+.rx-menu-popup .rx-menu-item:focused {
+    -fx-background-color: -fx-selection-bar;
+}
+
+.rx-menu-popup .rx-menu-item:focused > .label,
+.rx-menu-popup .rx-menu-item:focused > .trailing {
+    -fx-text-fill: -fx-focused-text-base-color;
+}
+
+.rx-menu-popup .rx-menu-item > .leading > .checkmark,
+.rx-menu-popup .rx-menu-item > .leading > .radiomark {
+    -fx-min-width: 10;
+    -fx-min-height: 10;
+    -fx-pref-width: 10;
+    -fx-pref-height: 10;
+    -fx-background-color: -fx-mark-color;
+    -fx-background-radius: 0;
+    -fx-shape: "M0,5H2L4,8L8,0H10L5,10H3Z";
+}
+
+.rx-menu-popup .rx-menu-item:focused > .leading > .checkmark,
+.rx-menu-popup .rx-menu-item:focused > .leading > .radiomark {
+    -fx-background-color: -fx-focused-mark-color;
+}
+
+.rx-menu-popup .rx-menu-item:danger > .leading > .checkmark {
+    -fx-background-color: -rx-danger;
+}
+
+/* The color format menu lists three-letter names; it keeps a comfortable width. */
+.rx-menu-popup .rx-menu-list.color-format-menu {
+    -fx-min-width: 4em;
+}
+
+/* AtlantaFX: its own context menu instead (5px around the rows, rounded rows with a
+   neutral highlight, muted check marks). The resting rows carry a transparent rounded
+   fill so the ripple takes the same corners as the highlight. */
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-list {
+    -fx-padding: 4px;
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item {
+    -fx-padding: 8px 12px 8px 12px;
+    -fx-spacing: 1em;
+    -fx-background-color: transparent;
+    -fx-background-radius: 5px;
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-list:dense .rx-menu-item {
+    -fx-padding: 4px 12px 4px 12px;
+    -fx-background-radius: 5px;
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:focused {
+    -fx-background-color: ladder(-color-bg-default, -color-base-7 49%, -color-base-1 50%);
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item > .trailing,
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:focused > .label,
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:focused > .trailing {
+    -fx-text-fill: -rx-on-surface;
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:danger > .trailing,
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:danger:focused > .label,
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:danger:focused > .trailing {
+    -fx-text-fill: -rx-danger;
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item > .leading {
+    -fx-min-width: 0.75em;
+    -fx-pref-width: 0.75em;
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item > .leading > .checkmark,
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item > .leading > .radiomark {
+    -fx-min-width: 0.75em;
+    -fx-min-height: 0.75em;
+    -fx-pref-width: 0.75em;
+    -fx-pref-height: 0.75em;
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-background-radius: 0;
+    -fx-shape: "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:focused > .leading > .checkmark,
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:focused > .leading > .radiomark {
+    -fx-background-color: -rx-on-surface;
+}
+
+.rx-theme-atlantafx .rx-menu-popup .rx-menu-item:danger > .leading > .checkmark {
+    -fx-background-color: -rx-danger;
 }
 /* The max-height scroll wrapper is transparent so the menu surface shows through;
    no border / inset / padding of its own. */
@@ -4099,6 +4156,7 @@
    trigger shell is defined in full here. Hover / press feedback comes from the
    skin's ripple + state overlay; :focused adds a ring, :showing an accent. */
 .rx-menu-button {
+    -rx-focus-fill: -rx-surface;
     -fx-background-color: -rx-outline, -rx-surface;
     -fx-background-insets: 0, 1;
     -fx-background-radius: 4, 3;
@@ -4116,14 +4174,10 @@
     -fx-pref-width: 12;
     -fx-pref-height: 6;
 }
-.rx-menu-button:focused {
-    -fx-background-color: -rx-focus, -rx-outline, -rx-surface;
-    -fx-background-insets: -1.4, 0, 1;
-    -fx-background-radius: 5, 4, 3;
-}
 /* The tint is translucent in some themes; the surface under it keeps the solid
    accent ring from showing through, which would hide the accent arrow. */
-.rx-menu-button:showing {
+.rx-menu-button:showing,
+.rx-menu-button:showing:focused {
     -fx-background-color: -rx-primary, -rx-surface, -rx-primary-bg;
     -fx-background-insets: 0, 1, 1;
     -fx-background-radius: 4, 3, 3;
@@ -4142,15 +4196,10 @@
  *                                                                             *
  ******************************************************************************/
 .rx-masonry-view {
+    -rx-focus-fill: -rx-surface;
     -fx-background-color: -fx-box-border, -rx-surface;
     -fx-background-insets: 0, 1;
     -fx-padding: 1;
-}
-
-.rx-masonry-view:focused {
-    -fx-background-color: -fx-faint-focus-color, -fx-focus-color, -rx-surface;
-    -fx-background-insets: -1.4, -0.3, 1;
-    -fx-background-radius: 2, 0, 0;
 }
 
 /* AtlantaFX's own data views keep their plain frame when focused. */
@@ -4634,16 +4683,6 @@
     -fx-cursor: hand;
 }
 
-.rx-selection-box:focused > .display,
-.rx-selection-box:showing > .display {
-    -fx-background-color: -fx-focus-color,
-    -fx-control-inner-background,
-    -fx-faint-focus-color,
-    -fx-control-inner-background;
-    -fx-background-insets: -0.2, 1, -1.4, 3;
-    -fx-background-radius: 3, 2, 4, 0;
-}
-
 .rx-theme-atlantafx .rx-selection-box:focused > .display,
 .rx-theme-atlantafx .rx-selection-box:showing > .display {
     -fx-background-color: -fx-focus-color, -fx-control-inner-background;
@@ -4682,14 +4721,7 @@
 }
 
 .rx-selection-box-popup .popup-content {
-    -fx-background-color: -fx-control-inner-background;
-    -fx-background-radius: 3;
-    -fx-border-color: derive(-fx-text-box-border, -18%);
-    -fx-border-width: 1px;
-    -fx-border-radius: 3;
-    -fx-padding: 1px;
     -fx-spacing: 0;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 12, 0.0, 0, 6);
 }
 
 .rx-selection-box-popup .search-field {
@@ -4722,8 +4754,7 @@
 
 .rx-selection-box-popup .rx-list-view,
 .rx-selection-box-popup .rx-list-view > .viewport {
-    -fx-background-color: -fx-control-inner-background;
-    -fx-background-radius: 0 0 2 2;
+    -fx-background-color: transparent;
 }
 
 .rx-selection-box-popup .rx-list-view {
@@ -4763,7 +4794,8 @@
 }
 
 .rx-selection-box-popup .rx-list-cell .select-box:multiple {
-    -fx-background-color: -fx-control-inner-background;
+    /* The popup card's fill, so the empty box reads as a hole in the card. */
+    -fx-background-color: ladder(-rx-surface, -rx-surface-variant 45%, -fx-control-inner-background 46%);
     -fx-border-color: -rx-outline;
     -fx-border-width: 1px;
     -fx-border-radius: 3;
@@ -4801,24 +4833,11 @@
 .rx-week-range-view,
 .rx-year-view,
 .rx-year-range-view {
+    -rx-focus-fill: -fx-control-inner-background;
     -fx-background-color: -fx-box-border, -fx-control-inner-background;
     -fx-background-insets: 0, 1;
     -fx-background-radius: 3, 2;
     -fx-padding: 0.5em 0.666667em 0.666667em 0.666667em;
-}
-
-.rx-calendar-view:focused,
-.rx-date-range-view:focused,
-.rx-date-time-view:focused,
-.rx-month-view:focused,
-.rx-month-range-view:focused,
-.rx-quarter-view:focused,
-.rx-quarter-range-view:focused,
-.rx-week-view:focused,
-.rx-week-range-view:focused,
-.rx-year-view:focused,
-.rx-year-range-view:focused {
-    -fx-background-color: -fx-focus-color, -fx-control-inner-background;
 }
 
 .rx-calendar-panel {
@@ -4954,7 +4973,7 @@
 }
 
 .rx-calendar-panel .date-cell:hover {
-    -fx-background-color: -rx-surface-variant;
+    -fx-background-color: -rx-surface-step;
 }
 
 .rx-calendar-panel .date-cell:adjacent {
@@ -4966,7 +4985,7 @@
    the band. */
 .rx-calendar-panel .date-cell:disabled {
     -fx-text-fill: -rx-on-surface-disabled;
-    -fx-background-color: -rx-surface-variant;
+    -fx-background-color: -rx-surface-step;
     -fx-background-insets: 0.166667em 0;
     -fx-background-radius: 0;
     -fx-cursor: default;
@@ -5255,7 +5274,7 @@
 }
 
 .rx-calendar-panel.week-rows .day-cell:week-hover {
-    -fx-background-color: -rx-surface-variant;
+    -fx-background-color: -rx-surface-step;
 }
 
 .rx-calendar-panel.week-rows .day-cell:in-range {
@@ -5342,16 +5361,6 @@
     -fx-background-radius: 3, 2;
 }
 
-.rx-picker:focused,
-.rx-picker:showing {
-    -fx-background-color: -fx-focus-color,
-    -fx-control-inner-background,
-    -fx-faint-focus-color,
-    linear-gradient(from 0px 0px to 0px 5px, derive(-fx-control-inner-background, -9%), -fx-control-inner-background);
-    -fx-background-insets: -0.2, 1, -1.4, 3;
-    -fx-background-radius: 3, 2, 4, 0;
-}
-
 .rx-theme-atlantafx .rx-picker:focused,
 .rx-theme-atlantafx.rx-picker:focused,
 .rx-theme-atlantafx .rx-picker:showing,
@@ -5361,7 +5370,9 @@
     -fx-background-radius: 3, 2;
 }
 
-.rx-picker:invalid {
+.rx-picker:invalid,
+.rx-picker:invalid:focused,
+.rx-picker:invalid:showing {
     -fx-background-color: -rx-danger, -fx-control-inner-background;
     -fx-background-insets: 0, 1;
     -fx-background-radius: 3, 2;
@@ -5438,15 +5449,7 @@
     -fx-background-color: derive(-fx-text-base-color, 20%);
 }
 
-.rx-picker-popup .container {
-    -fx-background-color: -fx-box-border, -fx-control-inner-background;
-    -fx-background-insets: 0, 1;
-    -fx-background-radius: 3, 2;
-    -fx-padding: 1;
-    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 8);
-}
-
-/* The popup container draws the frame; the hosted view keeps only its padding. */
+/* The popup card draws the frame; the hosted view keeps only its padding. */
 .rx-picker-popup .container > .rx-calendar-view,
 .rx-picker-popup .container > .rx-calendar-view:focused,
 .rx-picker-popup .container > .rx-time-view,
@@ -5521,14 +5524,11 @@
  *                                                                             *
  ******************************************************************************/
 .rx-time-view {
+    -rx-focus-fill: -fx-control-inner-background;
     -fx-background-color: -fx-box-border, -fx-control-inner-background;
     -fx-background-insets: 0, 1;
     -fx-background-radius: 3, 2;
     -fx-padding: 0.333333em;
-}
-
-.rx-time-view:focused {
-    -fx-background-color: -fx-focus-color, -fx-control-inner-background;
 }
 
 /* Centered when the view is wider than its columns, as in a picker popup widened
@@ -5569,7 +5569,7 @@
 }
 
 .rx-time-columns .time-cell:hover {
-    -fx-background-color: -rx-surface-variant;
+    -fx-background-color: -rx-surface-step;
 }
 
 .rx-time-columns .time-cell:selected {
@@ -5712,4 +5712,620 @@
 .rx-accordion > .rx-titled-pane {
     -fx-background-color: transparent;
     -fx-padding: 0;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXColorView                                                                 *
+ *                                                                             *
+ ******************************************************************************/
+.rx-color-view {
+    -fx-padding: 12px;
+    -fx-background-color: -rx-surface;
+    -fx-background-radius: 8px;
+}
+
+.rx-color-view > .content {
+    -fx-spacing: 12px;
+}
+
+.rx-color-view .slider-row {
+    -fx-spacing: 12px;
+}
+
+.rx-color-view .sliders {
+    -fx-spacing: 4px;
+}
+
+.rx-color-view .area > .layers {
+    -fx-background-color: transparent;
+    -fx-background-radius: 4px;
+}
+
+.rx-color-view .area > .layers > .saturation-layer {
+    -fx-background-color: linear-gradient(to right, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0));
+}
+
+.rx-color-view .area > .layers > .brightness-layer {
+    -fx-background-color: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1));
+}
+
+/* Handle and thumbs mark focus on themselves, never with negative insets on the
+   parts: the view keeps them inside its bounds so a popup hosting it holds still. */
+.rx-color-view .area > .handle {
+    -fx-pref-width: 16px;
+    -fx-pref-height: 16px;
+    -fx-border-color: white;
+    -fx-border-width: 2px;
+    -fx-border-radius: 50%;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 3, 0.0, 0, 0);
+}
+
+.rx-color-view .hue-slider > .track {
+    -fx-background-color: linear-gradient(to right, #ff0000 0%, #ffff00 16.6667%, #00ff00 33.3333%,
+            #00ffff 50%, #0000ff 66.6667%, #ff00ff 83.3333%, #ff0000 100%);
+    -fx-background-radius: 999px;
+}
+
+.rx-color-view .alpha-slider > .track {
+    -fx-background-color: transparent;
+    -fx-background-radius: 999px;
+}
+
+.rx-color-view .hue-slider > .thumb,
+.rx-color-view .alpha-slider > .thumb {
+    -fx-pref-width: 12px;
+    -fx-pref-height: 12px;
+    -fx-border-color: white;
+    -fx-border-width: 2px;
+    -fx-border-radius: 50%;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 3, 0.0, 0, 0);
+}
+
+.rx-color-view .area:focus-shown > .handle,
+.rx-color-view .hue-slider:focus-shown > .thumb,
+.rx-color-view .alpha-slider:focus-shown > .thumb {
+    -fx-effect: dropshadow(gaussian, -rx-focus, 4, 0.6, 0, 0);
+}
+
+.rx-color-view .swatch {
+    -fx-background-color: transparent;
+    -fx-background-radius: 4px;
+}
+
+.rx-color-view .swatch:empty {
+    -fx-background-color: white;
+}
+
+.rx-color-view .swatch > .outline {
+    -fx-border-color: rgba(0, 0, 0, 0.12);
+    -fx-border-radius: 4px;
+}
+
+.rx-color-view .swatch > .slash {
+    -fx-background-color: -rx-danger;
+    -fx-shape: "M 22 0 L 24 0 L 24 2 L 2 24 L 0 24 L 0 22 Z";
+}
+
+.rx-color-view .inputs,
+.rx-color-view .inputs > .fields {
+    -fx-spacing: 4px;
+}
+
+.rx-color-view .inputs .text-field {
+    -fx-font-size: 0.916667em; /* 11 */
+}
+
+.rx-color-view .inputs .text-field:invalid {
+    -fx-text-fill: -rx-danger;
+}
+
+.rx-color-view .inputs .text-field .prefix,
+.rx-color-view .inputs .text-field .suffix {
+    -fx-text-fill: -rx-on-surface-secondary;
+}
+
+/* The symbol sits where a plain field's text starts (modena's 0.583em inner
+   padding) and close to the value it belongs to. */
+.rx-color-view .inputs .text-field > .leading-wrapper {
+    -fx-padding: 0 0 0 0.583333em;
+}
+
+.rx-color-view .inputs .text-field > .trailing-wrapper {
+    -fx-padding: 0 0.583333em 0 0;
+}
+
+.rx-color-view .inputs .text-field:has-leading {
+    -rx-text-padding: 0 0 0 0.25em;
+}
+
+.rx-color-view .inputs .text-field:has-trailing {
+    -rx-text-padding: 0 0.25em 0 0;
+}
+
+.rx-color-view .format-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 4px;
+    -fx-padding: 0.25em 0.333333em;
+}
+
+.rx-color-view .format-button:hover,
+.rx-color-view .format-button:focused {
+    /* One step above the raised popup card on a dark host. */
+    -fx-background-color: ladder(-rx-surface, derive(-rx-surface-variant, 15%) 45%, -rx-surface-variant 46%);
+}
+
+.rx-color-view .format-button > .content {
+    -fx-spacing: 4px;
+}
+
+.rx-color-view .format-button .text {
+    -fx-text-fill: -rx-on-surface;
+    -fx-font-size: 0.916667em; /* 11 */
+}
+
+.rx-color-view .format-button .arrow {
+    -fx-pref-width: 8px;
+    -fx-pref-height: 5px;
+    -fx-background-color: -rx-on-surface-secondary;
+    -fx-shape: "M 0 0 L 8 0 L 4 5 Z";
+}
+
+.rx-color-view .clear-button {
+    -fx-cursor: hand;
+}
+
+.rx-color-view .clear-button:hover > .outline,
+.rx-color-view .clear-button:focus-shown > .outline {
+    -fx-border-color: -rx-focus;
+}
+
+.rx-color-view .presets {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0.666667em 0 0 0;
+    -fx-border-color: -rx-outline-variant transparent transparent transparent;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.rx-color-view .presets > .viewport {
+    -fx-background-color: transparent;
+}
+
+.rx-color-view .presets .groups {
+    -fx-spacing: 4px;
+}
+
+.rx-color-view .presets .swatches {
+    -fx-hgap: 6px;
+    -fx-vgap: 6px;
+}
+
+.rx-color-view .presets .rx-titled-pane {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.rx-color-view .presets .rx-titled-pane > .header {
+    -fx-background-color: transparent;
+    -fx-padding: 0.166667em 0;
+    -rx-ripple-enabled: false;
+}
+
+.rx-color-view .presets .rx-titled-pane > .header > .row {
+    -fx-spacing: 0.333333em;
+}
+
+.rx-color-view .presets .rx-titled-pane > .header > .row > .slot > .label {
+    -fx-text-fill: -rx-on-surface-secondary;
+    -fx-font-size: 0.916667em; /* 11 */
+}
+
+.rx-color-view .presets .rx-titled-pane > .body {
+    -fx-border-width: 0;
+    -fx-padding: 0.333333em 0 0.5em 0;
+}
+
+.rx-color-view .preset {
+    -fx-cursor: hand;
+}
+
+.rx-color-view .preset:focused > .outline {
+    -fx-border-color: -rx-focus;
+    -fx-border-width: 2px;
+}
+
+.rx-color-view .preset > .check {
+    -fx-pref-width: 12px;
+    -fx-pref-height: 9px;
+    -fx-background-color: white;
+    -fx-shape: "M 0 4.5 L 1.5 3 L 4.5 6 L 10.5 0 L 12 1.5 L 4.5 9 Z";
+    -fx-opacity: 0;
+}
+
+.rx-color-view .preset:selected > .check {
+    -fx-opacity: 1;
+}
+
+.rx-color-view .preset:bright > .check,
+.rx-color-view .preset:translucent > .check {
+    -fx-background-color: rgba(0, 0, 0, 0.6);
+}
+
+.rx-color-view:disabled {
+    -fx-opacity: 0.4;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * RXColorPicker                                                               *
+ *                                                                             *
+ ******************************************************************************/
+/* Modena's own color picker frame (.combo-box-base), layer for layer, so the two sit
+   side by side as one family; it lightens on hover and takes the pressed color while
+   the popup is open. */
+.rx-color-picker {
+    -fx-background-color: -fx-shadow-highlight-color, -fx-outer-border, -fx-inner-border, -fx-body-color;
+    -fx-background-insets: 0 0 -1 0, 0, 1, 2;
+    -fx-background-radius: 3px, 3px, 2px, 1px;
+    /* Modena's text field padding: the swatch is one line of text, so the picker is as
+       tall as a text field. */
+    -fx-padding: 0.333333em;
+    -fx-cursor: hand;
+}
+
+.rx-color-picker:hover {
+    -fx-color: -fx-hover-base;
+}
+
+.rx-color-picker:showing {
+    -fx-color: -fx-pressed-base;
+}
+
+.rx-color-picker > .display {
+    -fx-spacing: 8px;
+}
+
+.rx-color-picker > .display > .text {
+    -fx-text-fill: -fx-text-base-color;
+    -fx-padding: 0 4px 0 0;
+}
+
+/* Child paths: the popup's view descends from the picker in the cascade, and its
+   swatches keep their own corners. */
+.rx-color-picker > .display > .swatch {
+    -fx-background-color: transparent;
+    -fx-background-radius: 2px;
+}
+
+.rx-color-picker > .display > .swatch:empty {
+    -fx-background-color: white;
+}
+
+.rx-color-picker > .display > .swatch > .outline {
+    -fx-border-color: rgba(0, 0, 0, 0.12);
+    -fx-border-radius: 2px;
+}
+
+.rx-color-picker > .display > .swatch > .slash {
+    -fx-background-color: -rx-danger;
+    -fx-shape: "M 22 0 L 24 0 L 24 2 L 2 24 L 0 24 L 0 22 Z";
+}
+
+.rx-color-picker > .copy-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 2px;
+    -fx-padding: 0;
+}
+
+.rx-color-picker > .copy-button:hover,
+.rx-color-picker > .copy-button:armed {
+    -fx-background-color: -rx-surface-variant;
+}
+
+.rx-color-picker > .copy-button .copy-face > .indicator {
+    -fx-background-color: -rx-on-surface-secondary;
+}
+
+/* The button is one line of text tall, so the icons follow the font as well: 14px
+   and the check's 2px / 0.25px insets at the default 13px. */
+.rx-color-picker > .copy-button .copy-face > .indicator,
+.rx-color-picker > .copy-button .copied-face > .indicator {
+    -fx-pref-width: 1.076923em;
+    -fx-pref-height: 1.076923em;
+}
+
+.rx-color-picker > .copy-button .copied-face > .indicator {
+    -fx-background-insets: 0.153846em 0.019231em 0.153846em 0.019231em;
+}
+
+.rx-color-picker:disabled {
+    -fx-opacity: 0.4;
+}
+
+/* The picker already fades as a whole; the copy button it disables must not fade twice. */
+.rx-color-picker:disabled > .copy-button {
+    -fx-opacity: 1;
+}
+
+/* AtlantaFX: the flat outlined surface of its fields, padded as its text field (8px
+   top and bottom). */
+.rx-theme-atlantafx .rx-color-picker,
+.rx-theme-atlantafx.rx-color-picker {
+    -fx-background-color: -rx-outline, -rx-surface;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 3px, 2px;
+    -fx-padding: 8px 6px;
+}
+
+.rx-theme-atlantafx .rx-color-picker > .display > .text,
+.rx-theme-atlantafx.rx-color-picker > .display > .text {
+    -fx-text-fill: -rx-on-surface;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Popup card (every anchored popup: pickers, cascader, selection box,         *
+ * suggestions, menus, sidebar flyout, color picker)                           *
+ *                                                                             *
+ * The popup shell draws the one card; what it hosts is transparent. Last in   *
+ * the file so it outranks the hosted controls' own inline frames.             *
+ *                                                                             *
+ ******************************************************************************/
+/* A shadow barely shows on a dark host, so there the card is a lighter surface
+   inside a full outline, as a dialog card. */
+.rx-popup {
+    -fx-background-color: ladder(-rx-surface, -rx-outline 45%, -rx-outline-variant 46%),
+        ladder(-rx-surface, -rx-surface-variant 45%, -fx-control-inner-background 46%);
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 4, 3;
+    -fx-padding: 1;
+    -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 4);
+}
+
+/* Views hosted in a popup mark hover one step above the card. */
+.rx-popup .rx-calendar-view, .rx-popup .rx-date-range-view, .rx-popup .rx-date-time-view,
+.rx-popup .rx-month-view, .rx-popup .rx-month-range-view, .rx-popup .rx-quarter-view,
+.rx-popup .rx-quarter-range-view, .rx-popup .rx-week-view, .rx-popup .rx-week-range-view,
+.rx-popup .rx-year-view, .rx-popup .rx-year-range-view, .rx-popup .rx-time-view,
+.rx-popup .rx-cascader-view {
+    -rx-surface-step: ladder(-rx-surface, derive(-rx-surface-variant, 15%) 45%, -rx-surface-variant 46%);
+}
+
+.rx-popup > *,
+.rx-popup > *:focused,
+.rx-popup > .rx-cascader-view:focused,
+.rx-popup > .rx-list-view:focused {
+    -fx-background-color: null;
+    -fx-border-color: null;
+    -fx-effect: null;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Focus rings                                                                 *
+ *                                                                             *
+ * One recipe per kind, layer for layer Modena's own: fields (.text-input),    *
+ * buttons (.button) and containers (.list-view). A sharp -fx-focus-color edge *
+ * with a translucent -fx-faint-focus-color halo, which also tints a thin band *
+ * just inside the edge. A member names its body color in -rx-focus-fill; its  *
+ * corner radii stay with it. States that must win over focus (invalid,        *
+ * showing, error) list their :focused combination where they are defined.     *
+ * Last in the file, so the recipes outrank the members' resting frames. The   *
+ * AtlantaFX bridge keeps its own focus look (the rules after the recipes).    *
+ *                                                                             *
+ ******************************************************************************/
+.rx-picker:focused,
+.rx-picker:showing,
+.rx-cascader:focused > .display,
+.rx-cascader:showing > .display,
+.rx-selection-box:focused > .display,
+.rx-selection-box:showing > .display,
+.rx-chip-input:focus-within,
+.rx-chip-input:popup-showing {
+    -fx-background-color: -fx-focus-color, -fx-control-inner-background, -fx-faint-focus-color,
+        linear-gradient(from 0px 0px to 0px 5px, derive(-fx-control-inner-background, -9%), -fx-control-inner-background);
+    -fx-background-insets: -0.2, 1, -1.4, 3;
+    -fx-background-radius: 3, 2, 4, 0;
+}
+
+/* The ring replaces the resting outline; its width stays, so nothing moves. */
+.rx-chip-input:focus-within,
+.rx-chip-input:popup-showing {
+    -fx-border-color: transparent;
+}
+
+.rx-menu-button:focused,
+.rx-hold-button:focused,
+.rx-chip:focused,
+.rx-chip:selectable:selected:focused {
+    -fx-background-color: -fx-focus-color, -rx-focus-fill, -fx-faint-focus-color, -rx-focus-fill;
+    -fx-background-insets: -0.2, 1, -1.4, 2.6;
+}
+
+.rx-menu-button:focused,
+.rx-hold-button:focused {
+    -fx-background-radius: 4, 3, 5, 2;
+}
+
+/* A member with Modena's own button body takes Modena's button ring unchanged. While
+   its popup is open the picker's window has lost the focus, so, as Modena's own
+   picker, it shows only the pressed body. */
+.rx-color-picker:focused {
+    -fx-background-color: -fx-focus-color, -fx-inner-border, -fx-body-color, -fx-faint-focus-color, -fx-body-color;
+    -fx-background-insets: -0.2, 1, 2, -1.4, 2.6;
+    -fx-background-radius: 3, 2, 1, 4, 1;
+}
+
+.rx-chip:focused,
+.rx-chip:selectable:selected:focused {
+    -fx-background-radius: 999px;
+    -fx-border-color: transparent;
+}
+
+/* Transparent bodies have no fill to draw the ring under, so the same edge and halo
+   are border strokes. They end at the resting border's inner edge, so nothing moves:
+   on the line button, which has no resting border, the ring sits just outside. */
+.rx-fill-button:focused,
+.rx-line-button:focused {
+    -fx-border-color: -fx-faint-focus-color, -fx-focus-color;
+}
+
+.rx-fill-button:focused {
+    -fx-border-width: 1.4, 1.2;
+    -fx-border-insets: -1.4, -0.2;
+    -fx-border-radius: 5, 4;
+}
+
+.rx-line-button:focused {
+    -fx-border-width: 1.2, 1.2;
+    -fx-border-insets: -2.4, -1.2;
+    -fx-border-radius: 6, 5;
+}
+
+.rx-list-view:focused,
+.rx-tile-view:focused,
+.rx-masonry-view:focused,
+.rx-cascader-view:focused,
+.rx-calendar-view:focused,
+.rx-date-range-view:focused,
+.rx-date-time-view:focused,
+.rx-month-view:focused,
+.rx-month-range-view:focused,
+.rx-quarter-view:focused,
+.rx-quarter-range-view:focused,
+.rx-week-view:focused,
+.rx-week-range-view:focused,
+.rx-year-view:focused,
+.rx-year-range-view:focused,
+.rx-time-view:focused {
+    -fx-background-color: -fx-faint-focus-color, -fx-focus-color, -rx-focus-fill;
+    -fx-background-insets: -1.4, -0.3, 1;
+}
+
+.rx-list-view:focused,
+.rx-tile-view:focused,
+.rx-masonry-view:focused,
+.rx-cascader-view:focused {
+    -fx-background-radius: 2, 0, 0;
+}
+
+.rx-cascader-view:focused {
+    -fx-border-color: transparent;
+}
+
+.rx-calendar-view:focused,
+.rx-date-range-view:focused,
+.rx-date-time-view:focused,
+.rx-month-view:focused,
+.rx-month-range-view:focused,
+.rx-quarter-view:focused,
+.rx-quarter-range-view:focused,
+.rx-week-view:focused,
+.rx-week-range-view:focused,
+.rx-year-view:focused,
+.rx-year-range-view:focused,
+.rx-time-view:focused {
+    -fx-background-radius: 4, 3, 2;
+}
+
+/* AtlantaFX: each member keeps the focus look it had before the recipes; the chip
+   input, which had none, takes the accent outline of an AtlantaFX text field. */
+.rx-theme-atlantafx .rx-chip-input:focus-within,
+.rx-theme-atlantafx.rx-chip-input:focus-within,
+.rx-theme-atlantafx .rx-chip-input:popup-showing,
+.rx-theme-atlantafx.rx-chip-input:popup-showing {
+    -fx-background-color: -fx-control-inner-background;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4px;
+    -fx-border-color: -rx-focus;
+}
+
+.rx-theme-atlantafx .rx-chip-input:popup-showing,
+.rx-theme-atlantafx.rx-chip-input:popup-showing {
+    -fx-border-color: -rx-primary;
+}
+
+.rx-theme-atlantafx .rx-chip-input:error,
+.rx-theme-atlantafx.rx-chip-input:error {
+    -fx-border-color: -rx-danger;
+}
+
+.rx-theme-atlantafx .rx-menu-button:focused,
+.rx-theme-atlantafx.rx-menu-button:focused {
+    -fx-background-color: -rx-focus, -rx-outline, -rx-surface;
+    -fx-background-insets: -1.4, 0, 1;
+    -fx-background-radius: 5, 4, 3;
+}
+
+.rx-theme-atlantafx .rx-menu-button:showing:focused,
+.rx-theme-atlantafx.rx-menu-button:showing:focused {
+    -fx-background-color: -rx-primary, -rx-surface, -rx-primary-bg;
+    -fx-background-insets: 0, 1, 1;
+    -fx-background-radius: 4, 3, 3;
+}
+
+.rx-theme-atlantafx .rx-color-picker:focused,
+.rx-theme-atlantafx.rx-color-picker:focused,
+.rx-theme-atlantafx .rx-color-picker:showing,
+.rx-theme-atlantafx.rx-color-picker:showing {
+    -fx-background-color: -rx-focus, -rx-surface;
+    -fx-background-insets: 0, 1px;
+    -fx-background-radius: 3px, 2px;
+}
+
+.rx-theme-atlantafx .rx-chip:focused,
+.rx-theme-atlantafx.rx-chip:focused,
+.rx-theme-atlantafx .rx-chip:selectable:selected:focused,
+.rx-theme-atlantafx.rx-chip:selectable:selected:focused {
+    -fx-background-color: -rx-focus-fill;
+    -fx-background-insets: 0;
+    -fx-background-radius: 999px;
+    -fx-border-color: -rx-outline;
+}
+
+.rx-theme-atlantafx .rx-chip:focus-shown,
+.rx-theme-atlantafx.rx-chip:focus-shown,
+.rx-theme-atlantafx .rx-chip:selectable:selected:focus-shown,
+.rx-theme-atlantafx.rx-chip:selectable:selected:focus-shown {
+    -fx-border-color: -rx-focus;
+}
+
+.rx-theme-atlantafx .rx-fill-button:focused,
+.rx-theme-atlantafx.rx-fill-button:focused {
+    -fx-border-color: -rx-fill;
+    -fx-border-width: 1.5px;
+    -fx-border-insets: -0.5px;
+    -fx-border-radius: 4.5px;
+}
+
+.rx-theme-atlantafx .rx-line-button:focused,
+.rx-theme-atlantafx.rx-line-button:focused {
+    -fx-border-color: null;
+}
+
+.rx-theme-atlantafx .rx-cascader-view:focused,
+.rx-theme-atlantafx.rx-cascader-view:focused {
+    -fx-background-color: -fx-control-inner-background;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-border-color: -fx-focus-color;
+}
+
+.rx-theme-atlantafx .rx-calendar-view:focused, .rx-theme-atlantafx.rx-calendar-view:focused,
+.rx-theme-atlantafx .rx-date-range-view:focused, .rx-theme-atlantafx.rx-date-range-view:focused,
+.rx-theme-atlantafx .rx-date-time-view:focused, .rx-theme-atlantafx.rx-date-time-view:focused,
+.rx-theme-atlantafx .rx-month-view:focused, .rx-theme-atlantafx.rx-month-view:focused,
+.rx-theme-atlantafx .rx-month-range-view:focused, .rx-theme-atlantafx.rx-month-range-view:focused,
+.rx-theme-atlantafx .rx-quarter-view:focused, .rx-theme-atlantafx.rx-quarter-view:focused,
+.rx-theme-atlantafx .rx-quarter-range-view:focused, .rx-theme-atlantafx.rx-quarter-range-view:focused,
+.rx-theme-atlantafx .rx-week-view:focused, .rx-theme-atlantafx.rx-week-view:focused,
+.rx-theme-atlantafx .rx-week-range-view:focused, .rx-theme-atlantafx.rx-week-range-view:focused,
+.rx-theme-atlantafx .rx-year-view:focused, .rx-theme-atlantafx.rx-year-view:focused,
+.rx-theme-atlantafx .rx-year-range-view:focused, .rx-theme-atlantafx.rx-year-range-view:focused,
+.rx-theme-atlantafx .rx-time-view:focused, .rx-theme-atlantafx.rx-time-view:focused {
+    -fx-background-color: -fx-focus-color, -fx-control-inner-background;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
 }

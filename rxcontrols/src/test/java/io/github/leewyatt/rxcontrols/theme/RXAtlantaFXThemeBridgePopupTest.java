@@ -8,6 +8,7 @@ import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.PopupControl;
+import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -139,17 +141,18 @@ public class RXAtlantaFXThemeBridgePopupTest {
             popupSceneHasBridge.set(popup.getScene().getStylesheets()
                     .contains(RXAtlantaFXThemeBridge.getStylesheet()));
             border.set(cascaderViewBorder(popup));
-            background.set(cascaderViewBackground(popup));
+            background.set(popupCardFill(popup));
         });
 
         assertTrue(popupSceneHasBridge.get(),
                 "the popup scene should snapshot the owner scene's bridge stylesheet");
         assertEquals(ACCENT_EMPHASIS, border.get(),
                 "cascader view inside the popup follows AtlantaFX accent");
-        // The view background uses raw -fx-control-inner-background; the bridge's
-        // Modena compat layer must resolve it (it rendered transparent before).
+        // The popup card fill uses raw -fx-control-inner-background on a light host;
+        // the bridge's Modena compat layer must resolve it (unresolved, it renders
+        // transparent).
         assertEquals(Color.web("#ffffff"), background.get(),
-                "cascader view background resolves via the bridge's Modena compat layer");
+                "popup card fill resolves via the bridge's Modena compat layer");
     }
 
     // ==================== Helpers ====================
@@ -179,12 +182,16 @@ public class RXAtlantaFXThemeBridgePopupTest {
         return stroke instanceof Color ? (Color) stroke : null;
     }
 
-    private static Color cascaderViewBackground(PopupControl popup) {
-        Region view = cascaderView(popup);
-        if (view == null || view.getBackground() == null || view.getBackground().getFills().isEmpty()) {
+    private static Color popupCardFill(PopupControl popup) {
+        if (popup.getScene() == null || popup.getScene().getRoot() == null) {
             return null;
         }
-        Paint fill = view.getBackground().getFills().get(0).getFill();
+        Region card = (Region) popup.getScene().getRoot().lookup(".rx-popup");
+        if (card == null || card.getBackground() == null || card.getBackground().getFills().isEmpty()) {
+            return null;
+        }
+        List<BackgroundFill> fills = card.getBackground().getFills();
+        Paint fill = fills.get(fills.size() - 1).getFill();
         return fill instanceof Color ? (Color) fill : null;
     }
 

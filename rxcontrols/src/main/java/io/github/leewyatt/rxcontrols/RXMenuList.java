@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXMenuListSkin;
-import javafx.animation.Interpolator;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -19,7 +18,6 @@ import javafx.css.StyleableDoubleProperty;
 import javafx.css.StyleableObjectProperty;
 import javafx.css.StyleableProperty;
 import javafx.css.converter.BooleanConverter;
-import javafx.css.converter.DurationConverter;
 import javafx.css.converter.PaintConverter;
 import javafx.css.converter.SizeConverter;
 import javafx.event.ActionEvent;
@@ -31,7 +29,6 @@ import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.paint.Paint;
-import javafx.util.Duration;
 import javafx.util.StringConverter;
 
 import java.util.ArrayList;
@@ -63,8 +60,6 @@ import java.util.function.Supplier;
 public class RXMenuList extends Control {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-menu-list";
-    private static final Duration DEFAULT_ANIMATION_DURATION = Duration.millis(100.0);
-    private static final Interpolator DEFAULT_ANIMATION_INTERPOLATOR = Interpolator.EASE_OUT;
     private static final PseudoClass DENSE_PSEUDO_CLASS = PseudoClass.getPseudoClass("dense");
 
     /**
@@ -547,124 +542,6 @@ public class RXMenuList extends Control {
         stateOverlayEnabled.set(value);
     }
 
-    // ==================== Animated ====================
-
-    private final BooleanProperty animated = new SimpleBooleanProperty(this, "animated", false);
-
-    /**
-     * Master switch for the entrance animation played when this list is shown in a
-     * popup menu. Defaults to {@code false}, so the menu appears at once like a
-     * native menu. Has no effect on an inline list (which is never "shown").
-     * Not styleable.
-     *
-     * @return the animated property
-     */
-    public final BooleanProperty animatedProperty() {
-        return animated;
-    }
-
-    /**
-     * Returns whether the entrance animation is enabled.
-     *
-     * @return {@code true} if animated
-     */
-    public final boolean isAnimated() {
-        return animated.get();
-    }
-
-    /**
-     * Sets whether the entrance animation is enabled.
-     *
-     * @param value {@code true} to animate
-     */
-    public final void setAnimated(boolean value) {
-        animated.set(value);
-    }
-
-    // ==================== Animation Duration ====================
-
-    private final ObjectProperty<Duration> animationDuration =
-            new StyleableObjectProperty<>(DEFAULT_ANIMATION_DURATION) {
-                @Override
-                public CssMetaData<? extends Styleable, Duration> getCssMetaData() {
-                    return StyleableProperties.ANIMATION_DURATION;
-                }
-
-                @Override
-                public Object getBean() {
-                    return RXMenuList.this;
-                }
-
-                @Override
-                public String getName() {
-                    return "animationDuration";
-                }
-            };
-
-    /**
-     * Duration of the entrance animation played when the list is shown in a popup
-     * menu (V1 animates the entrance only). Initial value {@code 100ms}. A
-     * {@code null}, non-positive, unknown or indefinite value is accepted and
-     * disables animation, exactly like {@code animated=false}.
-     *
-     * @return the animation-duration property
-     */
-    public final ObjectProperty<Duration> animationDurationProperty() {
-        return animationDuration;
-    }
-
-    /**
-     * Returns the entrance-animation duration.
-     *
-     * @return the animation duration
-     */
-    public final Duration getAnimationDuration() {
-        return animationDuration.get();
-    }
-
-    /**
-     * Sets the entrance-animation duration.
-     *
-     * @param value the duration; {@code null} or any non-positive value disables animation
-     */
-    public final void setAnimationDuration(Duration value) {
-        animationDuration.set(value);
-    }
-
-    // ==================== Animation Interpolator ====================
-
-    private final ObjectProperty<Interpolator> animationInterpolator =
-            new SimpleObjectProperty<>(this, "animationInterpolator", DEFAULT_ANIMATION_INTERPOLATOR);
-
-    /**
-     * Interpolator (easing) for the entrance animation. {@code null} falls back to
-     * {@link Interpolator#EASE_OUT}. Not styleable ({@link Interpolator} has no
-     * stable CSS converter).
-     *
-     * @return the animation-interpolator property
-     */
-    public final ObjectProperty<Interpolator> animationInterpolatorProperty() {
-        return animationInterpolator;
-    }
-
-    /**
-     * Returns the animation interpolator.
-     *
-     * @return the animation interpolator
-     */
-    public final Interpolator getAnimationInterpolator() {
-        return animationInterpolator.get();
-    }
-
-    /**
-     * Sets the animation interpolator.
-     *
-     * @param value the interpolator, or {@code null} for the default
-     */
-    public final void setAnimationInterpolator(Interpolator value) {
-        animationInterpolator.set(value);
-    }
-
     // ==================== Dense ====================
 
     private final BooleanProperty dense =
@@ -828,21 +705,6 @@ public class RXMenuList extends Control {
                     }
                 };
 
-        private static final CssMetaData<RXMenuList, Duration> ANIMATION_DURATION =
-                new CssMetaData<>("-rx-animation-duration",
-                        DurationConverter.getInstance(), DEFAULT_ANIMATION_DURATION) {
-                    @Override
-                    public boolean isSettable(RXMenuList control) {
-                        return !control.animationDuration.isBound();
-                    }
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public StyleableProperty<Duration> getStyleableProperty(RXMenuList control) {
-                        return (StyleableProperty<Duration>) control.animationDurationProperty();
-                    }
-                };
-
         private static final CssMetaData<RXMenuList, Boolean> DENSE =
                 new CssMetaData<>("-rx-dense", BooleanConverter.getInstance(), Boolean.FALSE) {
                     @Override
@@ -866,7 +728,6 @@ public class RXMenuList extends Control {
             styleables.add(RIPPLE_OPACITY);
             styleables.add(RIPPLE_ENABLED);
             styleables.add(RIPPLE_STATE_OVERLAY_ENABLED);
-            styleables.add(ANIMATION_DURATION);
             styleables.add(DENSE);
             STYLEABLES = Collections.unmodifiableList(styleables);
         }

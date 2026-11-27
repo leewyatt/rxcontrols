@@ -2,7 +2,6 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
 import io.github.leewyatt.rxcontrols.skins.RXMenuListSkin;
-import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
@@ -10,7 +9,6 @@ import javafx.css.Styleable;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.AccessibleRole;
 import javafx.scene.control.ToggleGroup;
-import javafx.util.Duration;
 import javafx.util.StringConverter;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -86,9 +84,6 @@ public class RXMenuListTest {
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_OPACITY, list.getRippleOpacity(), 0.0);
         assertEquals(RXRipplePane.DEFAULT_RIPPLE_ENABLED, list.isRippleEnabled());
         assertEquals(RXRipplePane.DEFAULT_STATE_OVERLAY_ENABLED, list.isStateOverlayEnabled());
-        assertFalse(list.isAnimated());
-        assertEquals(Duration.millis(100), list.getAnimationDuration());
-        assertSame(Interpolator.EASE_OUT, list.getAnimationInterpolator());
     }
 
     /**
@@ -114,9 +109,6 @@ public class RXMenuListTest {
         list.setRippleOpacity(0.5);
         list.setRippleEnabled(false);
         list.setStateOverlayEnabled(false);
-        list.setAnimated(true);
-        list.setAnimationDuration(Duration.millis(50));
-        list.setAnimationInterpolator(Interpolator.LINEAR);
 
         assertSame(converter, list.getConverter());
         assertFalse(list.isWrapAround());
@@ -124,9 +116,6 @@ public class RXMenuListTest {
         assertEquals(0.5, list.getRippleOpacity(), 0.0);
         assertFalse(list.isRippleEnabled());
         assertFalse(list.isStateOverlayEnabled());
-        assertTrue(list.isAnimated());
-        assertEquals(Duration.millis(50), list.getAnimationDuration());
-        assertSame(Interpolator.LINEAR, list.getAnimationInterpolator());
     }
 
     /**
@@ -140,7 +129,6 @@ public class RXMenuListTest {
         assertTrue(metadata.stream().anyMatch(m -> m.getProperty().equals("-rx-ripple-enabled")));
         assertTrue(metadata.stream()
                 .anyMatch(m -> m.getProperty().equals("-rx-ripple-state-overlay-enabled")));
-        assertTrue(metadata.stream().anyMatch(m -> m.getProperty().equals("-rx-animation-duration")));
     }
 
     /**

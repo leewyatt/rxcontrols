@@ -61,7 +61,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
 
         pages.getPageA().getChildren().add(labelA);
         pages.getPageB().getChildren().add(labelB);
-        getChildren().add(pages.getContentPane());
+        getChildren().add(pages);
         installPlaceholder(control.getPlaceholder());
 
         shownDocument = control.getDocument();
@@ -81,7 +81,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
      */
     @Override
     protected void layoutChildren(double x, double y, double w, double h) {
-        pages.layout(x, y, w, h);
+        pages.resizeRelocate(x, y, w, h);
         layoutPlaceholder(x, y, Math.max(0.0, w), Math.max(0.0, h));
     }
 
@@ -251,7 +251,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
             placeholder.setVisible(empty);
             placeholder.setManaged(empty);
         }
-        pages.getContentPane().setVisible(!empty);
+        pages.setVisible(!empty);
     }
 
     private void layoutPlaceholder(double x, double y, double width, double height) {
@@ -280,7 +280,7 @@ public class RXLrcLineViewSkin extends RXSkinBase<RXLrcLineView> {
         // already added its nodes: remove only our own. The placeholder is the
         // control's node, shared by both skins: a replacement of this class
         // found it in place and did not add it again, so it stays for that one.
-        getChildren().remove(pages.getContentPane());
+        getChildren().remove(pages);
         if (control != null) {
             Node placeholder = control.getPlaceholder();
             Skin<?> replacement = control.getSkin();

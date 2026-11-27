@@ -9,27 +9,44 @@ import atlantafx.base.theme.PrimerDark;
 import atlantafx.base.theme.PrimerLight;
 import atlantafx.base.theme.Theme;
 import io.github.leewyatt.rxcontrols.RXAvatar;
+import io.github.leewyatt.rxcontrols.RXCalendarView;
 import io.github.leewyatt.rxcontrols.RXCascader;
 import io.github.leewyatt.rxcontrols.RXCascaderItem;
 import io.github.leewyatt.rxcontrols.RXCascaderView;
+import io.github.leewyatt.rxcontrols.RXChip;
+import io.github.leewyatt.rxcontrols.RXChipInput;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
+import io.github.leewyatt.rxcontrols.RXColorPicker;
+import io.github.leewyatt.rxcontrols.RXColorView;
+import io.github.leewyatt.rxcontrols.RXDatePicker;
 import io.github.leewyatt.rxcontrols.RXDialog;
 import io.github.leewyatt.rxcontrols.RXDrawerPane;
+import io.github.leewyatt.rxcontrols.RXFillButton;
+import io.github.leewyatt.rxcontrols.RXHoldButton;
 import io.github.leewyatt.rxcontrols.RXKanbanColumn;
 import io.github.leewyatt.rxcontrols.RXKanbanView;
+import io.github.leewyatt.rxcontrols.RXLineButton;
 import io.github.leewyatt.rxcontrols.RXListView;
 import io.github.leewyatt.rxcontrols.RXMasonryView;
+import io.github.leewyatt.rxcontrols.RXMenuButton;
+import io.github.leewyatt.rxcontrols.RXMenuItem;
+import io.github.leewyatt.rxcontrols.RXMenuList;
 import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.RXRangeSlider;
 import io.github.leewyatt.rxcontrols.RXRating;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
+import io.github.leewyatt.rxcontrols.RXSelectionBox;
 import io.github.leewyatt.rxcontrols.RXSlider;
 import io.github.leewyatt.rxcontrols.RXSpeedDial;
 import io.github.leewyatt.rxcontrols.RXSpeedDialAction;
+import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.RXTileView;
+import io.github.leewyatt.rxcontrols.RXTimeView;
 import io.github.leewyatt.rxcontrols.RXWaveProgressIndicator;
+import io.github.leewyatt.rxcontrols.RXYearRangeView;
+import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -40,18 +57,27 @@ import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ColorPicker;
+import javafx.scene.control.Control;
 import javafx.scene.control.Labeled;
+import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Paint;
+import javafx.stage.PopupWindow;
+import javafx.stage.Stage;
+import javafx.stage.Window;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -787,6 +813,447 @@ public class RXControlColorsTest {
             assertNotEquals(expected.get("-rx-surface"), action.get("fill"), "action fill differs from the surface under " + host);
             assertNotEquals(expected.get("-rx-outline"), action.get("ring top"), "action ring is lit from the top under " + host);
         }
+    }
+
+    @Test
+    public void everyPopupDrawsTheSameCardOnItsShell() throws Exception {
+        assertPopupCards("default Modena", Application.STYLESHEET_MODENA, scene -> { }, false);
+        assertPopupCards("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette, true);
+        assertPopupCards("Primer Light", new PrimerLight().getUserAgentStylesheet(),
+                RXAtlantaFXThemeBridge::install, false);
+        assertPopupCards("Primer Dark", new PrimerDark().getUserAgentStylesheet(),
+                RXAtlantaFXThemeBridge::install, true);
+    }
+
+    /** What a popup hosts: the content node, the owner's style class and the popup's. */
+    private record PopupContent(String name, Supplier<Region> content, String ownerClass, String popupClass) {
+    }
+
+    private static void assertPopupCards(String host, String userAgentStylesheet, Consumer<Scene> themer,
+            boolean dark) throws Exception {
+        String edgeExpression = dark ? "-rx-outline" : "-rx-outline-variant";
+        String fillExpression = dark ? "-rx-surface-variant" : "-fx-control-inner-background";
+        Map<String, String> expected = resolve(userAgentStylesheet, themer,
+                List.of(edgeExpression, fillExpression, "-rx-surface", "-rx-elevation-umbra-color"));
+        List<PopupContent> contents = List.of(
+                new PopupContent("color picker", RXColorView::new, "rx-color-picker", "rx-color-picker-popup"),
+                new PopupContent("picker", () -> styled(new StackPane(), "container"), "rx-date-picker",
+                        "rx-picker-popup"),
+                new PopupContent("cascader", RXCascaderView::new, "rx-cascader", "rx-cascader-popup"),
+                new PopupContent("selection box", () -> styled(new VBox(), "popup-content"), "rx-selection-box",
+                        "rx-selection-box-popup"),
+                new PopupContent("suggestions", RXListView::new, "rx-auto-complete-field", "rx-suggestion-popup"),
+                new PopupContent("menu", RXMenuList::new, "rx-menu-button", "rx-menu-popup"),
+                new PopupContent("sidebar flyout", () -> styled(new StackPane(), "rx-sidebar-flyout"), "rx-sidebar",
+                        null));
+        for (PopupContent popup : contents) {
+            Map<String, String> card = new LinkedHashMap<>();
+            runOnFx(() -> {
+                Application.setUserAgentStylesheet(userAgentStylesheet);
+                Region content = popup.content().get();
+                // The popup shell's place: under the popup window (its style class) and,
+                // through the window, under the owner.
+                StackPane shell = styled(new StackPane(content), "rx-popup");
+                StackPane window = new StackPane(shell);
+                if (popup.popupClass() != null) {
+                    window.getStyleClass().add(popup.popupClass());
+                }
+                StackPane owner = styled(new StackPane(window), popup.ownerClass());
+                Scene scene = new Scene(new StackPane(owner), 400, 400);
+                scene.getStylesheets().add(new RXColorView().getUserAgentStylesheet());
+                themer.accept(scene);
+                scene.getRoot().applyCss();
+                List<BackgroundFill> fills = shell.getBackground().getFills();
+                card.put("layers", String.valueOf(fills.size()));
+                card.put("edge", ThemeColorSamples.hex(fills.get(0).getFill()));
+                card.put("fill", ThemeColorSamples.hex(fills.get(1).getFill()));
+                card.put("insets", fills.get(0).getInsets() + " " + fills.get(1).getInsets());
+                card.put("radii", fills.get(0).getRadii().getTopLeftHorizontalRadius() + " "
+                        + fills.get(1).getRadii().getTopLeftHorizontalRadius());
+                card.put("padding", String.valueOf(shell.getPadding()));
+                DropShadow shadow = (DropShadow) shell.getEffect();
+                card.put("shadow", shadow.getRadius() + " " + shadow.getOffsetY() + " "
+                        + ThemeColorSamples.hex(shadow.getColor()));
+                card.put("content", content.getBackground() + " " + content.getBorder() + " " + content.getEffect());
+            });
+            String name = popup.name() + " popup under " + host;
+            assertEquals("2", card.get("layers"), name + " card layers");
+            assertEquals(expected.get(edgeExpression), card.get("edge"), name + " card edge");
+            assertEquals(expected.get(fillExpression), card.get("fill"), name + " card fill");
+            assertEquals(new Insets(0) + " " + new Insets(1), card.get("insets"), name + " card insets");
+            assertEquals("4.0 3.0", card.get("radii"), name + " card radius");
+            assertEquals(String.valueOf(new Insets(1)), card.get("padding"), name + " card padding");
+            assertEquals("12.0 4.0 " + expected.get("-rx-elevation-umbra-color"), card.get("shadow"),
+                    name + " card shadow");
+            assertEquals("null null null", card.get("content"), name + " content draws no frame of its own");
+            if (dark) {
+                // A shadow barely shows on a dark host: the card is lighter than the window.
+                assertTrue(relativeLuminance(Color.web(card.get("fill")))
+                        > relativeLuminance(Color.web(expected.get("-rx-surface"))), name + " is lighter than the window");
+            }
+        }
+    }
+
+    @Test
+    public void hoverInsideAPopupStepsOffTheCard() throws Exception {
+        assertPopupHover("default Modena", Application.STYLESHEET_MODENA, scene -> { }, false);
+        assertPopupHover("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette, true);
+        assertPopupHover("Primer Light", new PrimerLight().getUserAgentStylesheet(),
+                RXAtlantaFXThemeBridge::install, false);
+        assertPopupHover("Primer Dark", new PrimerDark().getUserAgentStylesheet(),
+                RXAtlantaFXThemeBridge::install, true);
+    }
+
+    private static void assertPopupHover(String host, String userAgentStylesheet, Consumer<Scene> themer,
+            boolean dark) throws Exception {
+        Map<String, String> expected = resolve(userAgentStylesheet, themer, List.of("-rx-surface-variant"));
+        for (String view : List.of("rx-calendar-view", "rx-time-view", "rx-cascader-view")) {
+            Map<String, String> fills = new LinkedHashMap<>();
+            runOnFx(() -> {
+                Application.setUserAgentStylesheet(userAgentStylesheet);
+                // Stand-ins for the hosted view: the style class makes them its token root.
+                Region inlineProbe = probe("-rx-surface-step");
+                Region popupProbe = probe("-rx-surface-step");
+                StackPane shell = styled(new StackPane(styled(new StackPane(popupProbe), view)), "rx-popup");
+                StackPane inline = styled(new StackPane(inlineProbe), view);
+                Scene scene = new Scene(new StackPane(inline, shell), 400, 400);
+                scene.getStylesheets().add(new RXColorView().getUserAgentStylesheet());
+                themer.accept(scene);
+                scene.getRoot().applyCss();
+                fills.put("inline", ThemeColorSamples.hex(inlineProbe.getBackground().getFills().get(0).getFill()));
+                fills.put("card", ThemeColorSamples.hex(shell.getBackground().getFills().get(1).getFill()));
+                fills.put("popup", ThemeColorSamples.hex(popupProbe.getBackground().getFills().get(0).getFill()));
+            });
+            String name = view + " under " + host;
+            assertEquals(expected.get("-rx-surface-variant"), fills.get("inline"), name + ": inline hover is unchanged");
+            if (dark) {
+                // The card itself takes the surface variant on a dark host.
+                assertTrue(relativeLuminance(Color.web(fills.get("popup")))
+                        > relativeLuminance(Color.web(fills.get("card"))), name + ": popup hover is lighter than the card");
+            } else {
+                assertEquals(expected.get("-rx-surface-variant"), fills.get("popup"), name + ": popup hover is unchanged");
+                assertNotEquals(fills.get("card"), fills.get("popup"), name + ": popup hover differs from the card");
+            }
+        }
+    }
+
+    private static Region probe(String color) {
+        Region probe = new Region();
+        probe.setStyle("-fx-background-color: " + color + ";");
+        return probe;
+    }
+
+    @Test
+    @Tag("ui")
+    public void popupCardResolvesItsColorsOffAPlainAnchor() throws Exception {
+        // Hiding the test's window must not shut the toolkit down for later tests.
+        Platform.setImplicitExit(false);
+        assertPlainAnchorPopup("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette);
+        assertPlainAnchorPopup("Primer Dark", new PrimerDark().getUserAgentStylesheet(),
+                RXAtlantaFXThemeBridge::install);
+    }
+
+    private static void assertPlainAnchorPopup(String host, String userAgentStylesheet, Consumer<Scene> themer)
+            throws Exception {
+        Map<String, String> expected = resolve(userAgentStylesheet, themer, List.of("-rx-surface-variant", "-rx-outline"));
+        Map<String, String> card = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(userAgentStylesheet);
+            // A plain button: no RX control around the anchor defines the card's tokens.
+            Button anchor = new Button("Open");
+            Scene scene = new Scene(new StackPane(anchor), 300, 300);
+            themer.accept(scene);
+            Stage stage = new Stage();
+            stage.setScene(scene);
+            stage.show();
+            RXPopupSupport support = new RXPopupSupport(new Region());
+            try {
+                support.show(anchor);
+                Region shell = null;
+                for (Window window : Window.getWindows()) {
+                    if (window instanceof PopupWindow && window.isShowing()) {
+                        shell = (Region) window.getScene().getRoot().lookup(".rx-popup");
+                    }
+                }
+                assertNotNull(shell, "the popup shell is showing");
+                shell.applyCss();
+                List<BackgroundFill> fills = shell.getBackground().getFills();
+                card.put("edge", ThemeColorSamples.hex(fills.get(0).getFill()));
+                card.put("fill", ThemeColorSamples.hex(fills.get(1).getFill()));
+            } finally {
+                support.dispose();
+                stage.hide();
+            }
+        });
+        assertEquals(expected.get("-rx-outline"), card.get("edge"), "popup card edge off a plain anchor under " + host);
+        assertEquals(expected.get("-rx-surface-variant"), card.get("fill"),
+                "popup card fill off a plain anchor under " + host);
+    }
+
+    private static <T extends Region> T styled(T region, String styleClass) {
+        region.getStyleClass().add(styleClass);
+        return region;
+    }
+
+    // ==================== Field heights ====================
+
+    @Test
+    public void colorPickerIsAsTallAsATextField() throws Exception {
+        assertPickerHeight("default Modena", Application.STYLESHEET_MODENA, scene -> { });
+        assertPickerHeight("Primer Light", new PrimerLight().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install);
+        assertPickerHeight("Primer Dark", new PrimerDark().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install);
+    }
+
+    private static void assertPickerHeight(String host, String userAgentStylesheet, Consumer<Scene> themer)
+            throws Exception {
+        Map<String, Double> heights = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(userAgentStylesheet);
+            TextField field = new TextField("Text");
+            RXColorPicker plain = new RXColorPicker();
+            RXColorPicker full = new RXColorPicker();
+            full.setShowText(true);
+            full.setCopyButtonVisible(true);
+            VBox root = new VBox(field, plain, full);
+            Scene scene = new Scene(root, 400, 300);
+            themer.accept(scene);
+            root.applyCss();
+            heights.put("field", field.prefHeight(-1));
+            heights.put("plain", plain.prefHeight(-1));
+            heights.put("full", full.prefHeight(-1));
+        });
+        assertEquals(heights.get("field"), heights.get("plain"), 0.0, "swatch-only picker height under " + host);
+        assertEquals(heights.get("field"), heights.get("full"), 0.0, "picker with text and copy button under " + host);
+    }
+
+    @Test
+    public void colorPickerFrameMatchesModenasColorPicker() throws Exception {
+        assertModenaPickerFrame("default Modena", scene -> { });
+        assertModenaPickerFrame("dark palette", RXControlColorsTest::darkPalette);
+    }
+
+    private static void assertModenaPickerFrame(String host, Consumer<Scene> themer) throws Exception {
+        Map<String, String> ours = new LinkedHashMap<>();
+        Map<String, String> theirs = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
+            ours.putAll(frameStates(new RXColorPicker(), themer));
+            theirs.putAll(frameStates(new ColorPicker(), themer));
+        });
+        theirs.forEach((state, frame) -> assertEquals(frame, ours.get(state), state + " frame under " + host));
+    }
+
+    private static Map<String, String> frameStates(Region picker, Consumer<Scene> themer) {
+        Scene scene = new Scene(new StackPane(picker), 300, 200);
+        themer.accept(scene);
+        scene.getRoot().applyCss();
+        Map<String, String> states = new LinkedHashMap<>();
+        for (String state : List.of("idle", "hover", "showing", "focused")) {
+            for (String other : List.of("hover", "showing", "focused")) {
+                picker.pseudoClassStateChanged(PseudoClass.getPseudoClass(other), other.equals(state));
+            }
+            scene.getRoot().applyCss();
+            StringBuilder frame = new StringBuilder();
+            for (BackgroundFill fill : picker.getBackground().getFills()) {
+                frame.append(fill.getFill()).append(" @").append(fill.getInsets()).append(" r")
+                        .append(fill.getRadii().getTopLeftHorizontalRadius()).append("; ");
+            }
+            states.put(state, frame.toString());
+        }
+        return states;
+    }
+
+    // ==================== Popup menus ====================
+
+    @Test
+    public void popupMenusFollowTheThemesContextMenu() throws Exception {
+        assertPopupMenu("default Modena", Application.STYLESHEET_MODENA, scene -> { }, true);
+        assertPopupMenu("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette, true);
+        assertPopupMenu("Primer Light", new PrimerLight().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install,
+                false);
+        assertPopupMenu("Primer Dark", new PrimerDark().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install,
+                false);
+    }
+
+    private static void assertPopupMenu(String host, String userAgentStylesheet, Consumer<Scene> themer,
+            boolean modena) throws Exception {
+        // AtlantaFX's own menu item highlight: base-1 on a light theme, base-7 on a dark one.
+        String atlantaBar = "ladder(-color-bg-default, -color-base-7 49%, -color-base-1 50%)";
+        Map<String, String> expected = resolve(userAgentStylesheet, themer, modena
+                ? List.of("-fx-selection-bar", "-fx-focused-text-base-color")
+                : List.of(atlantaBar, "-color-fg-default"));
+        Map<String, String> menu = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(userAgentStylesheet);
+            RXMenuList list = new RXMenuList();
+            list.getItems().addAll(RXMenuItem.of("HEX"), RXMenuItem.of("RGB"));
+            StackPane popup = styled(new StackPane(list), "rx-menu-popup");
+            Scene scene = new Scene(new StackPane(popup), 300, 300);
+            themer.accept(scene);
+            scene.getRoot().applyCss();
+            Region item = (Region) list.lookup(".rx-menu-item");
+            item.pseudoClassStateChanged(PseudoClass.getPseudoClass("focused"), true);
+            scene.getRoot().applyCss();
+            BackgroundFill bar = item.getBackground().getFills().get(0);
+            menu.put("bar", ThemeColorSamples.hex(bar.getFill()));
+            menu.put("radius", String.valueOf(bar.getRadii().getTopLeftHorizontalRadius()));
+            menu.put("text", ThemeColorSamples.hex(((Labeled) item.lookup(".label")).getTextFill()));
+            menu.put("minWidth", String.valueOf(list.getMinWidth()));
+            menu.put("ripple", String.valueOf(list.isRippleEnabled()));
+            menu.put("overlay", String.valueOf(list.isStateOverlayEnabled()));
+        });
+        String name = "popup menu under " + host;
+        if (modena) {
+            // Modena's context menu: a square selection bar, focused text, no minimum.
+            assertEquals(expected.get("-fx-selection-bar"), menu.get("bar"), name + " selection bar");
+            assertEquals(expected.get("-fx-focused-text-base-color"), menu.get("text"), name + " focused text");
+            assertEquals("0.0", menu.get("radius"), name + " square bar");
+            assertEquals(String.valueOf(Region.USE_COMPUTED_SIZE), menu.get("minWidth"), name + " minimum width");
+        } else {
+            // AtlantaFX's context menu: a rounded neutral highlight, unchanged text, no
+            // minimum.
+            assertEquals(expected.get(atlantaBar), menu.get("bar"), name + " neutral highlight");
+            assertEquals(expected.get("-color-fg-default"), menu.get("text"), name + " text");
+            assertEquals("5.0", menu.get("radius"), name + " rounded highlight");
+            assertEquals(String.valueOf(Region.USE_COMPUTED_SIZE), menu.get("minWidth"), name + " minimum width");
+        }
+        // The ripple stays; the highlight already marks the row under the pointer, so the
+        // hover / focus overlay would only darken it.
+        assertEquals("true", menu.get("ripple"), name + " ripple");
+        assertEquals("false", menu.get("overlay"), name + " hover / focus overlay");
+    }
+
+    // ==================== Focus rings ====================
+
+    /** A focus ring member: how to build it, which node draws the ring, and its recipe. */
+    private record FocusMember(String name, Supplier<Region> control, String part, String recipe) {
+    }
+
+    private static List<FocusMember> focusMembers() {
+        return List.of(
+                new FocusMember("date picker", RXDatePicker::new, null, "field"),
+                new FocusMember("cascader", RXCascader::new, ".display", "field"),
+                new FocusMember("selection box", RXSelectionBox::new, ".display", "field"),
+                new FocusMember("chip input", RXChipInput::new, null, "field"),
+                new FocusMember("menu button", () -> new RXMenuButton("Menu"), null, "button"),
+                new FocusMember("color picker", RXColorPicker::new, null, "button"),
+                new FocusMember("hold button", () -> new RXHoldButton("Hold"), null, "button"),
+                new FocusMember("chip", () -> new RXChip("Chip"), null, "button"),
+                new FocusMember("selected chip", () -> {
+                    RXChip chip = new RXChip("Chip");
+                    chip.setSelectable(true);
+                    chip.setSelected(true);
+                    return chip;
+                }, null, "button"),
+                new FocusMember("fill button", () -> new RXFillButton("Fill"), null, "stroke"),
+                new FocusMember("line button", () -> new RXLineButton("Line"), null, "stroke"),
+                new FocusMember("list view", RXListView::new, null, "container"),
+                new FocusMember("tile view", RXTileView::new, null, "container"),
+                new FocusMember("masonry view", RXMasonryView::new, null, "container"),
+                new FocusMember("cascader view", RXCascaderView::new, null, "container"),
+                new FocusMember("calendar view", RXCalendarView::new, null, "container"),
+                new FocusMember("time view", RXTimeView::new, null, "container"),
+                new FocusMember("year range view", RXYearRangeView::new, null, "container"));
+    }
+
+    @Test
+    public void focusRingsFollowModenasRecipes() throws Exception {
+        assertFocusRecipes("default Modena", scene -> { });
+        assertFocusRecipes("dark palette", RXControlColorsTest::darkPalette);
+    }
+
+    private static void assertFocusRecipes(String host, Consumer<Scene> themer) throws Exception {
+        Map<String, String> expected = resolve(Application.STYLESHEET_MODENA, themer,
+                List.of("-fx-focus-color", "-fx-faint-focus-color"));
+        String focus = expected.get("-fx-focus-color");
+        String faint = expected.get("-fx-faint-focus-color");
+        Map<String, String> field = new LinkedHashMap<>();
+        Map<String, Map<String, String>> rings = new LinkedHashMap<>();
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
+            // The reference field: Modena's own text field ring, layer for layer.
+            field.putAll(focusedLayers(new RXTextField(), null, themer));
+            for (FocusMember member : focusMembers()) {
+                rings.put(member.name(), focusedLayers(member.control().get(), member.part(), themer));
+            }
+        });
+        for (FocusMember member : focusMembers()) {
+            Map<String, String> ring = rings.get(member.name());
+            String name = member.name() + " under " + host;
+            switch (member.recipe()) {
+                case "field":
+                    assertEquals(field.get("fills"), ring.get("fills"), name + " draws the text field ring");
+                    break;
+                case "button":
+                    assertEquals(focus + "@-0.2 _ " + faint + "@-1.4 _", ring.get("ring"), name + " draws the button ring");
+                    break;
+                case "stroke":
+                    assertTrue(ring.get("strokes").startsWith(faint + " " + focus), name + " draws the ring as strokes");
+                    break;
+                default:
+                    assertEquals(faint + "@-1.4 " + focus + "@-0.3 _", ring.get("ring"), name + " draws the container ring");
+                    break;
+            }
+        }
+    }
+
+    @Test
+    public void chipInputFocusMatchesTheAtlantaFxTextField() throws Exception {
+        for (Theme theme : List.of(new PrimerLight(), new PrimerDark())) {
+            Map<String, String> field = new LinkedHashMap<>();
+            Map<String, String> chipInput = new LinkedHashMap<>();
+            runOnFx(() -> {
+                Application.setUserAgentStylesheet(theme.getUserAgentStylesheet());
+                Consumer<Scene> bridge = RXAtlantaFXThemeBridge::install;
+                Region textField = new RXTextField();
+                focusedLayers(textField, null, bridge);
+                field.put("edge", ThemeColorSamples.hex(textField.getBackground().getFills().get(0).getFill()));
+                Region input = new RXChipInput<String>();
+                chipInput.putAll(focusedLayers(input, null, bridge));
+                chipInput.put("edge", ThemeColorSamples.hex(input.getBorder().getStrokes().get(0).getTopStroke()));
+            });
+            // An AtlantaFX text field shows focus as an accent outline, with no halo.
+            assertEquals(field.get("edge"), chipInput.get("edge"), "chip input focus outline under " + theme.getName());
+            assertEquals("_", chipInput.get("ring"), "chip input draws no halo under " + theme.getName());
+        }
+    }
+
+    // The focused pseudo-class is set directly: a test window does not get the
+    // system focus, and :focus-within / :focus-shown follow the same state.
+    private static Map<String, String> focusedLayers(Region control, String part, Consumer<Scene> themer) {
+        Scene scene = new Scene(new StackPane(control), 400, 400);
+        themer.accept(scene);
+        // Skins first: a skin sets its own focus state from the real focus when it starts.
+        scene.getRoot().applyCss();
+        for (String pseudoClass : List.of("focused", "focus-within", "focus-shown")) {
+            control.pseudoClassStateChanged(PseudoClass.getPseudoClass(pseudoClass), true);
+        }
+        scene.getRoot().applyCss();
+        Region node = part == null ? control : (Region) control.lookup(part);
+        node.applyCss();
+        Map<String, String> layers = new LinkedHashMap<>();
+        StringBuilder fills = new StringBuilder();
+        StringBuilder ring = new StringBuilder();
+        List<BackgroundFill> backgroundFills = node.getBackground().getFills();
+        for (int i = 0; i < backgroundFills.size(); i++) {
+            BackgroundFill fill = backgroundFills.get(i);
+            String color = fill.getFill() instanceof Color ? ThemeColorSamples.hex(fill.getFill()) : "_";
+            double inset = fill.getInsets().getTop();
+            fills.append(fill.getFill()).append('@').append(inset).append(" r").append(fill.getRadii()
+                    .getTopLeftHorizontalRadius()).append(' ');
+            // The ring layers are the ones outside the body; the rest is the member's own fill.
+            ring.append(inset < 0 ? color + "@" + inset : "_").append(i < backgroundFills.size() - 1 ? " " : "");
+        }
+        layers.put("fills", fills.toString());
+        layers.put("ring", ring.toString().replaceAll("(_ )+_", "_").replaceAll("_ _", "_"));
+        StringBuilder strokes = new StringBuilder();
+        if (node.getBorder() != null) {
+            for (BorderStroke stroke : node.getBorder().getStrokes()) {
+                strokes.append(ThemeColorSamples.hex(stroke.getTopStroke())).append(' ');
+            }
+        }
+        layers.put("strokes", strokes.toString().trim());
+        return layers;
     }
 
     private static void assertDialogCard(String host, String userAgentStylesheet, Consumer<Scene> themer,

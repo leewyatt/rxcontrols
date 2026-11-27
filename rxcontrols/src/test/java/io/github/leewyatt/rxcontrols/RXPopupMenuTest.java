@@ -11,7 +11,6 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
-import javafx.scene.transform.Scale;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import org.junit.jupiter.api.AfterEach;
@@ -25,7 +24,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -37,14 +35,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for {@link RXPopupMenu}: the showing state machine, lifecycle callbacks,
  * the detached-owner / empty-menu guards, close-then-fire activation, the veto,
- * the precise {@link CloseReason} paths, and the entrance animation's target,
- * pivot, and reset. Pure state-machine cases run without a shown window; cases
+ * the precise {@link CloseReason} paths, and the menu's minimum width. Pure
+ * state-machine cases run without a shown window; cases
  * that need a real popup window are tagged {@code "ui"}.
  */
 public class RXPopupMenuTest {
-
-    // The pivot is a snapped geometry value compared against a laid-out node size.
-    private static final double PIVOT_EPS = 1e-6;
 
     private Stage stage;
 
@@ -161,7 +156,7 @@ public class RXPopupMenuTest {
     public void showThenHideDrivesShowingAndLifecycle() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu("Run", "Save");
+            RXPopupMenu menu = menuOf("Run", "Save");
             AtomicInteger showing = new AtomicInteger();
             AtomicInteger shown = new AtomicInteger();
             AtomicReference<CloseReason> hiddenReason = new AtomicReference<>();
@@ -185,7 +180,7 @@ public class RXPopupMenuTest {
     public void toggleShowsThenHides() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu("A", "B");
+            RXPopupMenu menu = menuOf("A", "B");
             menu.toggle(anchor);
             assertTrue(menu.isShowing(), "toggle from hidden shows");
             menu.toggle(anchor);
@@ -199,8 +194,7 @@ public class RXPopupMenuTest {
         runOnFx(() -> {
             Region anchor = shownAnchor();
             RXPopupMenu menu = new RXPopupMenu();
-            menu.getMenuList().setAnimated(false);
-            menu.getItems().addAll(RXMenuSeparator.create(), RXMenuHeader.of("Group"));
+                menu.getItems().addAll(RXMenuSeparator.create(), RXMenuHeader.of("Group"));
             AtomicInteger showing = new AtomicInteger();
             menu.setOnShowing(e -> showing.incrementAndGet());
             menu.show(anchor);
@@ -215,8 +209,7 @@ public class RXPopupMenuTest {
         runOnFx(() -> {
             Region anchor = shownAnchor();
             RXPopupMenu menu = new RXPopupMenu();
-            menu.getMenuList().setAnimated(false);
-            menu.getMenuList().setDisabledItemsFocusable(true);
+                menu.getMenuList().setDisabledItemsFocusable(true);
             RXMenuItem a = RXMenuItem.of("A");
             RXMenuItem b = RXMenuItem.of("B");
             a.setDisable(true);
@@ -234,8 +227,7 @@ public class RXPopupMenuTest {
         runOnFx(() -> {
             Region anchor = shownAnchor();
             RXPopupMenu menu = new RXPopupMenu();
-            menu.getMenuList().setAnimated(false);
-            RXMenuItem a = RXMenuItem.of("A");
+                RXMenuItem a = RXMenuItem.of("A");
             a.setDisable(true);
             menu.getItems().add(a);
             menu.show(anchor);
@@ -250,7 +242,7 @@ public class RXPopupMenuTest {
         runOnFx(() -> {
             Region anchor = shownAnchor();
             anchor.setDisable(true);
-            RXPopupMenu menu = quietMenu("A", "B");
+            RXPopupMenu menu = menuOf("A", "B");
             AtomicInteger showing = new AtomicInteger();
             menu.setOnShowing(e -> showing.incrementAndGet());
             // A realized but disabled anchor must not open the menu ("disabled owner").
@@ -265,7 +257,7 @@ public class RXPopupMenuTest {
     public void disablingOwnerWhileOpenClosesTheMenu() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu("A", "B");
+            RXPopupMenu menu = menuOf("A", "B");
             AtomicReference<CloseReason> reason = new AtomicReference<>();
             menu.setOnHidden(e -> reason.set(e.getReason()));
             menu.show(anchor);
@@ -283,7 +275,7 @@ public class RXPopupMenuTest {
     public void vetoDoesNotKeepMenuOnDisabledOwner() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu("A", "B");
+            RXPopupMenu menu = menuOf("A", "B");
             // A disabled owner is an owner-invalidation lifecycle close, not a user
             // hide(): an onHiding veto must not trap the menu on a dead owner (mirrors
             // vetoDoesNotBlockOwnerDetach).
@@ -310,7 +302,7 @@ public class RXPopupMenuTest {
             root.applyCss();
             root.layout();
 
-            RXPopupMenu menu = quietMenu("A", "B");
+            RXPopupMenu menu = menuOf("A", "B");
             menu.show(ownerA);
             // RXPopupSupport rebinds to a new anchor while showing; the disabled-owner
             // watch must move to the new owner and leave none on the old one.
@@ -329,7 +321,7 @@ public class RXPopupMenuTest {
     public void surfaceReportsVisibleAndParentMenuToAccessibility() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu("A", "B");
+            RXPopupMenu menu = menuOf("A", "B");
             RXMenuList surface = menu.getMenuList();
             // Before showing: no owner yet.
             assertNull(surface.queryAccessibleAttribute(AccessibleAttribute.PARENT_MENU),
@@ -352,7 +344,7 @@ public class RXPopupMenuTest {
     public void escapeClosesWithEscapeReason() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu("A", "B");
+            RXPopupMenu menu = menuOf("A", "B");
             AtomicReference<CloseReason> reason = new AtomicReference<>();
             menu.setOnHidden(e -> reason.set(e.getReason()));
             menu.show(anchor);
@@ -367,7 +359,7 @@ public class RXPopupMenuTest {
     public void tabClosesWithTabReason() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu("A", "B");
+            RXPopupMenu menu = menuOf("A", "B");
             AtomicReference<CloseReason> reason = new AtomicReference<>();
             menu.setOnHidden(e -> reason.set(e.getReason()));
             menu.show(anchor);
@@ -382,7 +374,7 @@ public class RXPopupMenuTest {
     public void actionActivationClosesThenFires() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu();
+            RXPopupMenu menu = menuOf();
             RXMenuItem item = RXMenuItem.of("Run");
             AtomicBoolean showingAtFire = new AtomicBoolean(true);
             AtomicInteger fired = new AtomicInteger();
@@ -408,7 +400,7 @@ public class RXPopupMenuTest {
     public void keepOpenItemFiresWithoutClosing() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu();
+            RXPopupMenu menu = menuOf();
             RXMenuItem item = RXMenuItem.of("Toggle");
             item.setKeepOpen(true);
             AtomicInteger fired = new AtomicInteger();
@@ -427,7 +419,7 @@ public class RXPopupMenuTest {
     public void actionHandlerExceptionPropagatesButCloseCompleted() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu();
+            RXPopupMenu menu = menuOf();
             RXMenuItem item = RXMenuItem.of("Boom");
             item.setOnAction(e -> {
                 throw new IllegalStateException("boom");
@@ -447,7 +439,7 @@ public class RXPopupMenuTest {
     public void onHidingVetoKeepsMenuOpen() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu("A", "B");
+            RXPopupMenu menu = menuOf("A", "B");
             menu.setOnHiding(RXMenuEvent::consume);
             AtomicInteger hidden = new AtomicInteger();
             menu.setOnHidden(e -> hidden.incrementAndGet());
@@ -464,7 +456,7 @@ public class RXPopupMenuTest {
     public void ownerDetachClosesAsOwnerDetached() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu("A", "B");
+            RXPopupMenu menu = menuOf("A", "B");
             AtomicReference<CloseReason> reason = new AtomicReference<>();
             menu.setOnHidden(e -> reason.set(e.getReason()));
             menu.show(anchor);
@@ -482,7 +474,7 @@ public class RXPopupMenuTest {
     public void ownerHiddenClosesAsOwnerDetached() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu("A", "B");
+            RXPopupMenu menu = menuOf("A", "B");
             AtomicReference<CloseReason> reason = new AtomicReference<>();
             menu.setOnHidden(e -> reason.set(e.getReason()));
             menu.show(anchor);
@@ -499,7 +491,7 @@ public class RXPopupMenuTest {
         AtomicReference<RXPopupMenu> menuRef = new AtomicReference<>();
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu();
+            RXPopupMenu menu = menuOf();
             for (int i = 0; i < 100; i++) {
                 menu.getItems().add(RXMenuItem.of("Item " + i));
             }
@@ -535,7 +527,7 @@ public class RXPopupMenuTest {
     public void restorableCloseReasonsReturnFocusToInvoker() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu("A", "B");
+            RXPopupMenu menu = menuOf("A", "B");
             // PROGRAMMATIC / ESCAPE / TAB / ACTION all return focus to the invoker;
             // move focus off the anchor before each cycle so the restore is what puts
             // it back (not a leftover).
@@ -570,7 +562,7 @@ public class RXPopupMenuTest {
     public void vetoDoesNotBlockOwnerDetach() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu("A", "B");
+            RXPopupMenu menu = menuOf("A", "B");
             // A veto guards only the explicit hide() path: auto-close from the owner
             // leaving the scene must still fire so a handler cannot trap the menu open
             // once its invoker is gone.
@@ -589,7 +581,7 @@ public class RXPopupMenuTest {
     public void disposeWhileShowingReleasesAndHides() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu("A", "B");
+            RXPopupMenu menu = menuOf("A", "B");
             menu.show(anchor);
             assertTrue(menu.isShowing(), "precondition: showing");
             menu.dispose();
@@ -599,152 +591,32 @@ public class RXPopupMenuTest {
         });
     }
 
-    // ==================== Entrance animation ====================
+    // ==================== Layout ====================
 
+    /** A menu of short labels hugs its text, as a Modena context menu, and lines up with the anchor's trailing edge. */
     @Test
     @Tag("ui")
-    public void closeSnapsTheEntranceSurfaceBackToFullyShown() throws InterruptedException {
+    public void shortMenuHugsItsTextAndStaysEndAligned() throws InterruptedException {
         runOnFx(() -> {
             Region anchor = shownAnchor();
-            RXPopupMenu menu = new RXPopupMenu();
-            menu.getItems().add(RXMenuItem.of("A"));
-            menu.show(anchor);
-            Region surface = entranceSurface(menu);
-            Scale scale = (Scale) surface.getTransforms().get(0);
-
-            // Force a mid-animation pose; closing must snap all of it back, the state
-            // every close path and the next open rely on.
-            surface.setOpacity(0.3);
-            scale.setX(0.8);
-            scale.setY(0.8);
-            menu.hide();
-
-            assertEquals(1.0, surface.getOpacity(), 0.0, "opacity restored");
-            assertEquals(1.0, scale.getX(), 0.0, "scale x restored");
-            assertEquals(1.0, scale.getY(), 0.0, "scale y restored");
-        });
-    }
-
-    @Test
-    @Tag("ui")
-    public void entranceScalesTheCardSurfaceNotTheMenuList() throws InterruptedException {
-        runOnFx(() -> {
-            Region anchor = shownAnchor();
-            RXPopupMenu menu = new RXPopupMenu();
-            menu.getMenuList().setAnimated(true);
-            menu.getItems().add(RXMenuItem.of("A"));
-            menu.show(anchor);
-
-            // The public list must stay untouched: a user may have bound its opacity
-            // or installed transforms of their own, and it is also usable inline.
-            assertTrue(menu.getMenuList().getTransforms().isEmpty(),
-                    "the entrance transform lives on the popup's own surface wrapper");
-            assertEquals(1.0, menu.getMenuList().getOpacity(), 0.0,
-                    "the entrance fade never touches the public list's opacity");
-            menu.hide();
-        });
-    }
-
-    @Test
-    @Tag("ui")
-    public void endAlignedMenuGrowsFromItsTrailingEdge() throws InterruptedException {
-        runOnFx(() -> {
-            Region anchor = shownAnchor();
-            RXPopupMenu menu = new RXPopupMenu();
-            menu.getMenuList().setAnimated(true);
-            menu.getItems().add(RXMenuItem.of("Rename"));
-            menu.show(anchor, RXPlacement.BOTTOM_END);
-            Scale scale = (Scale) entranceSurface(menu).getTransforms().get(0);
-
-            assertEquals(0.0, scale.getPivotY(), PIVOT_EPS, "opening below grows from the top edge");
-            assertEquals(entranceSurface(menu).getWidth(), scale.getPivotX(), PIVOT_EPS,
-                    "END alignment grows from the trailing edge, not the leading one");
-            menu.hide();
-        });
-    }
-
-    @Test
-    @Tag("ui")
-    public void startAlignedMenuGrowsFromItsLeadingEdge() throws InterruptedException {
-        runOnFx(() -> {
-            Region anchor = shownAnchor();
-            RXPopupMenu menu = new RXPopupMenu();
-            menu.getMenuList().setAnimated(true);
-            menu.getItems().add(RXMenuItem.of("Rename"));
-            menu.show(anchor, RXPlacement.BOTTOM_START);
-            Scale scale = (Scale) entranceSurface(menu).getTransforms().get(0);
-
-            assertEquals(0.0, scale.getPivotX(), PIVOT_EPS, "START grows from the leading edge");
-            assertEquals(0.0, scale.getPivotY(), PIVOT_EPS, "opening below grows from the top edge");
-            menu.hide();
-        });
-    }
-
-    /** A menu of short labels opens at the 112px minimum and still lines up with the anchor's trailing edge. */
-    @Test
-    @Tag("ui")
-    public void shortMenuOpensAtMinimumWidthAndStaysEndAligned() throws InterruptedException {
-        runOnFx(() -> {
-            Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu("A");
+            RXPopupMenu menu = menuOf("A");
             menu.show(anchor, RXPlacement.BOTTOM_END);
             RXMenuList list = menu.getMenuList();
 
-            assertEquals(112.0, list.getWidth(), 0.5);
+            assertEquals(list.prefWidth(-1), list.getWidth(), 0.5);
+            assertTrue(list.getWidth() < 112.0, "no Material minimum under Modena");
+            // The popup card around the list lines up with the anchor.
+            Region card = (Region) list.getParent();
             assertEquals(anchor.localToScreen(anchor.getLayoutBounds()).getMaxX(),
-                    list.localToScreen(list.getLayoutBounds()).getMaxX(), 0.5);
-            menu.hide();
-        });
-    }
-
-    @Test
-    @Tag("ui")
-    public void nullInterpolatorOpensWithoutThrowing() throws InterruptedException {
-        runOnFx(() -> {
-            Region anchor = shownAnchor();
-            RXPopupMenu menu = new RXPopupMenu();
-            menu.getMenuList().setAnimated(true);
-            menu.getMenuList().setAnimationInterpolator(null);
-            menu.getItems().add(RXMenuItem.of("A"));
-            try {
-                assertDoesNotThrow(() -> menu.show(anchor),
-                        "a null interpolator falls back instead of throwing at KeyValue");
-                assertTrue(menu.isShowing());
-            } finally {
-                // The open starts a live Timeline; close so none outlives the test.
-                menu.hide();
-            }
-        });
-    }
-
-    @Test
-    @Tag("ui")
-    public void animationDisabledLeavesTheSurfaceStatic() throws InterruptedException {
-        runOnFx(() -> {
-            Region anchor = shownAnchor();
-            RXPopupMenu menu = quietMenu("A", "B");
-            menu.show(anchor);
-            Region surface = entranceSurface(menu);
-            Scale scale = (Scale) surface.getTransforms().get(0);
-
-            assertEquals(1.0, surface.getOpacity(), 0.0, "animated=false opens fully opaque");
-            assertEquals(1.0, scale.getX(), 0.0, "animated=false opens at full scale");
-            assertEquals(1.0, scale.getY(), 0.0, "animated=false opens at full scale");
+                    card.localToScreen(card.getLayoutBounds()).getMaxX(), 0.5);
             menu.hide();
         });
     }
 
     // ==================== Helpers ====================
 
-    private static Region entranceSurface(RXPopupMenu menu) {
-        // The popup's private wrapper around the menu list: what the entrance
-        // scale and fade are applied to.
-        return (Region) menu.getMenuList().getParent();
-    }
-
-    private RXPopupMenu quietMenu(String... labels) {
+    private RXPopupMenu menuOf(String... labels) {
         RXPopupMenu menu = new RXPopupMenu();
-        menu.getMenuList().setAnimated(false);
         for (String label : labels) {
             menu.getItems().add(RXMenuItem.of(label));
         }

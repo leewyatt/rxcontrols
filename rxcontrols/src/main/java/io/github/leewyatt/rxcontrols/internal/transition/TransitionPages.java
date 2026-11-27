@@ -20,8 +20,9 @@ import javafx.util.Duration;
  * {@link #getSparePage()} as the incoming page; fixed-face hosts address
  * {@link #getPageA()}/{@link #getPageB()} directly.</p>
  *
- * <p>The owning skin adds {@link #getContentPane()} to its children, calls
- * {@link #layout} from {@code layoutChildren} and {@link #dispose} from its
+ * <p>The surface is itself the clipped content pane: the owning skin adds it to
+ * its children, places it from {@code layoutChildren} like any child, and calls
+ * {@link #dispose} from its
  * dispose chain. Mirror state belongs in the {@code onStarted} callback
  * (zero-duration animations complete synchronously inside {@code play}).</p>
  *
@@ -36,11 +37,10 @@ import javafx.util.Duration;
  * scene stylesheet, so its CSS-driven size is measured correctly before any
  * flip.</p>
  */
-public final class TransitionPages {
+public class TransitionPages extends StackPane {
 
     private static final String CONTENT_PANE_STYLE_CLASS = "content-pane";
 
-    private final StackPane contentPane = new StackPane();
     private final Rectangle clip = new Rectangle();
     private final StackPane pageA;
     private final StackPane pageB;
@@ -76,14 +76,17 @@ public final class TransitionPages {
         this.keepBothAttached = keepBothAttached;
         pageA = createPage(pageStyleClass);
         pageB = createPage(pageStyleClass);
-        contentPane.getStyleClass().add(CONTENT_PANE_STYLE_CLASS);
-        contentPane.setClip(clip);
+        getStyleClass().add(CONTENT_PANE_STYLE_CLASS);
+        // The viewport clip follows the surface's own size.
+        clip.widthProperty().bind(widthProperty());
+        clip.heightProperty().bind(heightProperty());
+        setClip(clip);
         currentPage = pageA;
         if (keepBothAttached) {
             pageB.setVisible(false);
-            contentPane.getChildren().addAll(pageA, pageB);
+            getChildren().addAll(pageA, pageB);
         } else {
-            contentPane.getChildren().add(currentPage);
+            getChildren().add(currentPage);
         }
     }
 
@@ -94,16 +97,6 @@ public final class TransitionPages {
     }
 
     // ==================== Structure ====================
-
-    /**
-     * Returns the clipped pane holding the page wrappers; the owning skin
-     * adds it to its children.
-     *
-     * @return the content pane
-     */
-    public StackPane getContentPane() {
-        return contentPane;
-    }
 
     /**
      * Returns the first page wrapper (fixed-face addressing).
@@ -144,19 +137,15 @@ public final class TransitionPages {
     // ==================== Layout ====================
 
     /**
-     * Positions the content pane and resizes its viewport clip.
+     * Resizes the surface, taking a negative size (a host whose insets exceed its
+     * size) as zero.
      *
-     * @param x      the content x
-     * @param y      the content y
-     * @param width  the content width
-     * @param height the content height
+     * @param width  the width
+     * @param height the height
      */
-    public void layout(double x, double y, double width, double height) {
-        double w = Math.max(0.0, width);
-        double h = Math.max(0.0, height);
-        contentPane.resizeRelocate(x, y, w, h);
-        clip.setWidth(w);
-        clip.setHeight(h);
+    @Override
+    public void resize(double width, double height) {
+        super.resize(Math.max(0.0, width), Math.max(0.0, height));
     }
 
     // ==================== Transitions ====================
@@ -201,8 +190,8 @@ public final class TransitionPages {
      */
     public void attachHidden(StackPane page) {
         page.setVisible(false);
-        if (!contentPane.getChildren().contains(page)) {
-            contentPane.getChildren().add(page);
+        if (!getChildren().contains(page)) {
+            getChildren().add(page);
         }
     }
 
@@ -244,9 +233,9 @@ public final class TransitionPages {
         currentPage = target;
 
         outgoing.setVisible(true);
-        if (!contentPane.getChildren().contains(target)) {
+        if (!getChildren().contains(target)) {
             target.setVisible(false);
-            contentPane.getChildren().add(target);
+            getChildren().add(target);
         }
 
         int playing = ++generation;
@@ -273,13 +262,13 @@ public final class TransitionPages {
     // actions restore visual state.
     private void hideNonCurrentPages() {
         if (keepBothAttached) {
-            for (Node child : contentPane.getChildren()) {
+            for (Node child : getChildren()) {
                 if (child != currentPage) {
                     child.setVisible(false);
                 }
             }
         } else {
-            contentPane.getChildren().removeIf(child -> child != currentPage);
+            getChildren().removeIf(child -> child != currentPage);
         }
     }
 
@@ -289,7 +278,7 @@ public final class TransitionPages {
                 outgoing, incoming,
                 0, 1, 2,
                 direction, duration,
-                contentPane,
+                this,
                 index -> index == 0 ? outgoing : incoming);
     }
 
@@ -302,7 +291,7 @@ public final class TransitionPages {
      */
     public void dispose(PageAnimation configuredAnimation) {
         engine.dispose(configuredAnimation);
-        contentPane.setClip(null);
-        contentPane.getChildren().clear();
+        setClip(null);
+        getChildren().clear();
     }
 }

@@ -69,9 +69,10 @@ public final class StateLayer extends Region {
     // ==================== Constants ====================
 
     /**
-     * Default hover tier opacity (Material state-layer hover level).
+     * Default hover tier opacity (the Material 2 hover level: a light touch, since
+     * most hosts also mark hover in their own way).
      */
-    public static final double DEFAULT_HOVER_OPACITY = 0.08;
+    public static final double DEFAULT_HOVER_OPACITY = 0.04;
 
     /**
      * Default focus tier opacity.

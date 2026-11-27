@@ -37,7 +37,7 @@ import java.util.function.Predicate;
  * text field; rebinding silently replaces), the swappable dataset, filter
  * strategies including the {@link RXAutoCompletion#acceptAll() acceptAll}
  * pre-filtered mode, converter and custom-cell rendering, visible rows, the
- * entrance animation, the programmatic {@code showSuggestions()} entry point, and
+ * programmatic {@code showSuggestions()} entry point, and
  * a readout driven by {@code popupShowing} plus the {@code onAutoCompleted}
  * event's item / completion pair.
  *
@@ -96,7 +96,6 @@ public class RXAutoCompletionShowcase extends RXShowcaseApplication {
     private Dataset dataset = Dataset.COUNTRIES;
     private FilterMode filterMode = FilterMode.CONTAINS;
     private int visibleRows;
-    private boolean animated = true;
     private boolean upperCaseConverter;
     private boolean customCells;
 
@@ -164,7 +163,6 @@ public class RXAutoCompletionShowcase extends RXShowcaseApplication {
         completion = RXAutoCompletion.bind(field, dataset.items());
         completion.setFilterFactory(filterMode.function());
         completion.setVisibleRowCount(visibleRows);
-        completion.setAnimated(animated);
         completion.setConverter(upperCaseConverter ? UPPER_CASE_CONVERTER : null);
         completion.setSuggestionCellFactory(customCells ? COLOR_DOT_CELL_FACTORY : null);
         // Observation only: the default write-back stays; the event records the commit.
@@ -266,15 +264,6 @@ public class RXAutoCompletionShowcase extends RXShowcaseApplication {
         });
         Label rowsValue = createValueLabel(rows, "%.0f");
 
-        CheckBox animatedBox = new CheckBox("Entrance animation");
-        animatedBox.setSelected(animated);
-        animatedBox.selectedProperty().addListener((obs, was, on) -> {
-            animated = Boolean.TRUE.equals(on);
-            if (completion != null) {
-                completion.setAnimated(animated);
-            }
-        });
-
         CheckBox upperCase = new CheckBox("Upper-case display text (converter)");
         upperCase.selectedProperty().addListener((obs, was, on) -> {
             upperCaseConverter = Boolean.TRUE.equals(on);
@@ -293,7 +282,6 @@ public class RXAutoCompletionShowcase extends RXShowcaseApplication {
 
         return createGrid(
                 row("Visible rows", rows, rowsValue),
-                row(animatedBox),
                 row(upperCase),
                 row(customCellsBox));
     }

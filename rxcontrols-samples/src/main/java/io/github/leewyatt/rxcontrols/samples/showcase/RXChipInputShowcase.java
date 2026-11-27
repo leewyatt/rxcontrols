@@ -129,7 +129,6 @@ public class RXChipInputShowcase extends RXShowcaseApplication {
         return createGrid(
                 row(checkBox("Hide already-chosen options", input.isFilterSelectedOptions(), input::setFilterSelectedOptions)),
                 row(checkBox("Hide popup on select", input.isHideOnSelect(), input::setHideOnSelect)),
-                row(checkBox("Animated popup", input.isAnimated(), input::setAnimated)),
                 row("Visible rows", rows, createValueLabel(rows, "%.0f")));
     }
 

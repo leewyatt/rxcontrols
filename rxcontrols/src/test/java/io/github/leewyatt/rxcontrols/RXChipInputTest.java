@@ -431,7 +431,6 @@ public class RXChipInputTest {
         assertSame(null, input.getSuggestionCellFactory());
         assertEquals(RXChipInput.DEFAULT_VISIBLE_ROW_COUNT, input.getVisibleRowCount());
         assertTrue(input.isHideOnSelect());
-        assertTrue(input.isAnimated());
         assertFalse(input.isPopupShowing());
 
         input.getSuggestions().add("apple");

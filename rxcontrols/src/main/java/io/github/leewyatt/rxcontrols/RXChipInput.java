@@ -56,6 +56,9 @@ import java.util.function.Predicate;
  * the suggestion popup. This control owns the model and the commit decision, so
  * {@link #commitInput()} and the {@code :error} state work without a skin attached.</p>
  *
+ * <p>The default skin sets the {@code :focus-within} pseudo-class while the editor or
+ * one of the chips holds the focus, so the field can show focus like a text field.</p>
+ *
  * @param <T> the chip item type
  */
 public class RXChipInput<T> extends Control {
@@ -780,35 +783,6 @@ public class RXChipInput<T> extends Control {
      */
     public final void setHideOnSelect(boolean value) {
         hideOnSelect.set(value);
-    }
-
-    private final BooleanProperty animated = new SimpleBooleanProperty(this, "animated", true);
-
-    /**
-     * Whether the suggestion popup animates its entrance. Default {@code true}.
-     *
-     * @return the animated property
-     */
-    public final BooleanProperty animatedProperty() {
-        return animated;
-    }
-
-    /**
-     * Returns whether the popup is animated.
-     *
-     * @return whether the popup is animated
-     */
-    public final boolean isAnimated() {
-        return animated.get();
-    }
-
-    /**
-     * Sets whether the popup is animated.
-     *
-     * @param value {@code true} to animate the popup entrance
-     */
-    public final void setAnimated(boolean value) {
-        animated.set(value);
     }
 
     private final ReadOnlyBooleanWrapper popupShowing =

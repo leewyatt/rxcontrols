@@ -9,10 +9,6 @@ import io.github.leewyatt.rxcontrols.RXListSelectionVisualMode;
 import io.github.leewyatt.rxcontrols.ScrollAlignment;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
-import javafx.animation.Interpolator;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
@@ -38,9 +34,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.transform.Scale;
 import javafx.util.Callback;
-import javafx.util.Duration;
 import javafx.util.StringConverter;
 
 import java.util.List;
@@ -76,10 +70,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
     private static final double DEFAULT_PREF_WIDTH = 150.0;
     private static final double POPUP_CELL_SIZE = 34.0;
     private static final double POPUP_VERTICAL_GAP = 4.0;
-    private static final Duration ENTRANCE_DURATION = Duration.millis(100);
-    private static final double ENTRANCE_START_SCALE_Y = 0.96;
-    // Starting half visible keeps the list readable from its first frame.
-    private static final double ENTRANCE_START_OPACITY = 0.5;
 
     private static final PseudoClass EMPTY = PseudoClass.getPseudoClass("empty");
     private static final PseudoClass SHOWING = PseudoClass.getPseudoClass("showing");
@@ -109,8 +99,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
     private final RXButton selectAllButton = new RXButton();
     private final StackPane footerHolder = new StackPane();
     private final RXPopupSupport popupSupport;
-    private final Scale entranceScale = new Scale(1.0, 1.0, 0.0, 0.0);
-    private Timeline entrance;
 
     // ==================== Data bridge ====================
 
@@ -199,7 +187,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
 
     private void buildPopup(RXSelectionBox<T> control) {
         popupBody.getStyleClass().add("popup-content");
-        popupBody.getTransforms().add(entranceScale);
 
         Region searchIcon = new Region();
         searchIcon.getStyleClass().add("search-icon");
@@ -600,7 +587,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
             prepareForShow();
             popupSupport.show(control);
             if (popupSupport.isShowing()) {
-                playEntrance();
                 if (control.isSearchable()) {
                     // Move focus into the editable search field so it shows a caret and
                     // takes typed input directly. The popup window legitimately holds key
@@ -612,7 +598,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
             // If focus was inside the popup (search field), hand it back to the control
             // so keyboard interaction continues; an outside auto-hide leaves it alone.
             boolean popupHadFocus = searchField.isFocused();
-            stopEntrance();
             popupSupport.hide();
             // Only a real open -> closed transition clears the query; the initial sync at
             // skin installation must keep a search text the application set beforehand.
@@ -625,41 +610,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         }
         popupWasShowing = showing;
         updatePseudoClasses();
-    }
-
-    private void playEntrance() {
-        if (entrance != null) {
-            entrance.stop();
-            entrance = null;
-        }
-        if (!getSkinnable().isAnimationEnabled()) {
-            resetEntranceState();
-            return;
-        }
-        entranceScale.setY(ENTRANCE_START_SCALE_Y);
-        popupBody.setOpacity(ENTRANCE_START_OPACITY);
-        entrance = new Timeline(
-                new KeyFrame(Duration.ZERO,
-                        new KeyValue(popupBody.opacityProperty(), ENTRANCE_START_OPACITY),
-                        new KeyValue(entranceScale.yProperty(), ENTRANCE_START_SCALE_Y)),
-                new KeyFrame(ENTRANCE_DURATION,
-                        new KeyValue(popupBody.opacityProperty(), 1.0, Interpolator.EASE_OUT),
-                        new KeyValue(entranceScale.yProperty(), 1.0, Interpolator.EASE_OUT)));
-        entrance.setOnFinished(event -> resetEntranceState());
-        entrance.playFromStart();
-    }
-
-    private void stopEntrance() {
-        if (entrance != null) {
-            entrance.stop();
-            entrance = null;
-        }
-        resetEntranceState();
-    }
-
-    private void resetEntranceState() {
-        popupBody.setOpacity(1.0);
-        entranceScale.setY(1.0);
     }
 
     private void prepareForShow() {
@@ -913,12 +863,6 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
 
     @Override
     protected void disposeSkin() {
-        // The entrance Timeline is rebuilt on each show; stop the live one by reading
-        // the field rather than registering a stale reference on the disposer.
-        if (entrance != null) {
-            entrance.stop();
-            entrance = null;
-        }
         clearButton.setOnAction(null);
         selectAllButton.setOnAction(null);
     }

@@ -3,12 +3,10 @@ package io.github.leewyatt.rxcontrols;
 import io.github.leewyatt.rxcontrols.event.RXAutoCompleteEvent;
 import io.github.leewyatt.rxcontrols.internal.popup.AutoCompletionSupport;
 import io.github.leewyatt.rxcontrols.skins.SkinDisposer;
-import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
@@ -432,43 +430,6 @@ public final class RXAutoCompletion<T> {
      */
     public void setVisibleRowCount(int value) {
         visibleRowCount.set(value);
-    }
-
-    // ==================== Animated ====================
-
-    private final BooleanProperty animated =
-            new SimpleBooleanProperty(this, "animated", true) {
-                @Override
-                protected void invalidated() {
-                    support.setAnimated(get());
-                }
-            };
-
-    /**
-     * Whether the dropdown plays its fade / scale-in entrance animation.
-     *
-     * @return the animated property
-     */
-    public BooleanProperty animatedProperty() {
-        return animated;
-    }
-
-    /**
-     * Returns whether the entrance animation is enabled.
-     *
-     * @return {@code true} if animated
-     */
-    public boolean isAnimated() {
-        return animated.get();
-    }
-
-    /**
-     * Sets whether the entrance animation is enabled.
-     *
-     * @param value {@code true} to animate
-     */
-    public void setAnimated(boolean value) {
-        animated.set(value);
     }
 
     // ==================== Popup Showing ====================

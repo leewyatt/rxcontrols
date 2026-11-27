@@ -147,7 +147,7 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
         holdingCaption.setVisible(false);
         pages.getPageA().getChildren().addAll(idleCaption, holdingCaption);
         pages.getPageB().getChildren().add(completedCaption);
-        getChildren().addAll(fillLayer, pages.getContentPane());
+        getChildren().addAll(fillLayer, pages);
 
         // Registered first, so it runs last: by then every listener is gone
         // and nothing can swap the face again.
@@ -165,7 +165,7 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
             appliedFillAnimation = null;
             // Only this skin's nodes: a replacement skin may already have
             // added its own children to the control.
-            getChildren().removeAll(fillLayer, pages.getContentPane());
+            getChildren().removeAll(fillLayer, pages);
         });
 
         bindCaptions(button);
@@ -334,7 +334,7 @@ public class RXHoldButtonSkin extends RXSkinBase<RXHoldButton> {
                 Math.max(0.0, width - insets.getLeft() - insets.getRight()),
                 Math.max(0.0, height - insets.getTop() - insets.getBottom()));
         updateFillGeometry();
-        pages.layout(x, y, w, h);
+        pages.resizeRelocate(x, y, w, h);
     }
 
     /**

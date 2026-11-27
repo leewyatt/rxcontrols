@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.event.RXChipEvent;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleLayer;
 import io.github.leewyatt.rxcontrols.skins.RXChipSkin;
 import io.github.leewyatt.rxcontrols.utils.RXOS;
+import java.util.List;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.event.EventType;
@@ -18,8 +19,10 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.PickResult;
+import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -511,27 +514,32 @@ public class RXChipTest {
     }
 
     /**
-     * Verifies the shown focus recolours the outline of a selected chip without resizing it or drawing outside it.
+     * Verifies focus draws the focus ring around a selected chip, on its selected fill,
+     * without resizing it.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void focusRecoloursTheOutlineWithoutResizing() throws Exception {
+    public void focusDrawsTheRingWithoutResizing() throws Exception {
         runOnFx(() -> {
             RXChip chip = selectableChip("Design");
             chip.setSelected(true);
             attach(chip);
-            Paint outline = chip.getBorder().getStrokes().get(0).getTopStroke();
+            Paint selectedFill = chip.getBackground().getFills().get(0).getFill();
             double restingWidth = chip.getWidth();
             double restingHeight = chip.getHeight();
             Insets restingInsets = chip.getInsets();
 
-            chip.pseudoClassStateChanged(FOCUS_SHOWN, true);
+            chip.pseudoClassStateChanged(FOCUSED, true);
             chip.applyCss();
             chip.getParent().layout();
 
-            assertNotEquals(outline, chip.getBorder().getStrokes().get(0).getTopStroke());
-            assertEquals(Insets.EMPTY, chip.getBorder().getOutsets());
+            // The ring: a sharp edge just outside the chip, its body, a halo further out.
+            List<BackgroundFill> fills = chip.getBackground().getFills();
+            assertEquals(-0.2, fills.get(0).getInsets().getTop(), 1e-9);
+            assertEquals(selectedFill, fills.get(1).getFill());
+            assertEquals(-1.4, fills.get(2).getInsets().getTop(), 1e-9);
+            assertEquals(Color.TRANSPARENT, chip.getBorder().getStrokes().get(0).getTopStroke());
             assertEquals(restingInsets, chip.getInsets());
             assertEquals(restingWidth, chip.getWidth(), 0.01);
             assertEquals(restingHeight, chip.getHeight(), 0.01);
@@ -662,20 +670,22 @@ public class RXChipTest {
     }
 
     /**
-     * Verifies focus alone, without the skin's shown-focus state, leaves the outline as it is.
+     * Verifies focus alone, without the skin's shown-focus state, shows the ring, as a
+     * Modena button does for a pointer press too.
      *
      * @throws Exception if the FX-thread assertion fails
      */
     @Test
-    public void focusWithoutShownStateKeepsTheOutline() throws Exception {
+    public void focusWithoutShownStateShowsTheRing() throws Exception {
         runOnFx(() -> {
             RXChip chip = attach(selectableChip("Design"));
-            Paint outline = chip.getBorder().getStrokes().get(0).getTopStroke();
+            Paint restingFill = chip.getBackground().getFills().get(0).getFill();
 
             chip.pseudoClassStateChanged(FOCUSED, true);
             chip.applyCss();
 
-            assertEquals(outline, chip.getBorder().getStrokes().get(0).getTopStroke());
+            assertNotEquals(restingFill, chip.getBackground().getFills().get(0).getFill());
+            assertEquals(4, chip.getBackground().getFills().size());
         });
     }
 
