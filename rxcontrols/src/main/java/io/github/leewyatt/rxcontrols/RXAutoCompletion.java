@@ -400,7 +400,7 @@ public final class RXAutoCompletion<T> {
             new SimpleIntegerProperty(this, "visibleRowCount", DEFAULT_VISIBLE_ROW_COUNT) {
                 @Override
                 protected void invalidated() {
-                    support.setMaxVisibleRows(get());
+                    support.setVisibleRowCount(get());
                 }
             };
 

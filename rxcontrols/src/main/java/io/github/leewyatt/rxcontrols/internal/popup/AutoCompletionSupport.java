@@ -154,13 +154,13 @@ public final class AutoCompletionSupport<T> {
     /**
      * Sets the maximum number of rows shown before the dropdown scrolls.
      *
-     * @param value the maximum visible rows; values below 1 are rendered as 1
+     * @param value the visible row count; values below 1 are rendered as 1
      */
-    public void setMaxVisibleRows(int value) {
+    public void setVisibleRowCount(int value) {
         if (disposed) {
             return;
         }
-        popup.setMaxVisibleRows(value);
+        popup.setVisibleRowCount(value);
     }
 
     // ==================== State + entry points ====================

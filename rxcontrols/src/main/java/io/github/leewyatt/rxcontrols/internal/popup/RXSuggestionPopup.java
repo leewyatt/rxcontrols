@@ -41,7 +41,7 @@ public final class RXSuggestionPopup<T> {
     // ==================== Constants ====================
 
     private static final String POPUP_STYLE_CLASS = "rx-suggestion-popup";
-    private static final int DEFAULT_MAX_VISIBLE_ROWS = 8;
+    private static final int DEFAULT_VISIBLE_ROW_COUNT = 8;
 
     // ==================== Content + support ====================
 
@@ -58,7 +58,7 @@ public final class RXSuggestionPopup<T> {
 
     // ==================== Config ====================
 
-    private int maxVisibleRows = DEFAULT_MAX_VISIBLE_ROWS;
+    private int visibleRowCount = DEFAULT_VISIBLE_ROW_COUNT;
     private boolean hideOnSelect = true;
     private Consumer<T> onSuggestionSelected;
     // Marks items that are shown but not selectable (e.g. already-chosen chips when
@@ -452,20 +452,20 @@ public final class RXSuggestionPopup<T> {
      * Sets the maximum number of rows shown before the list scrolls. Values below 1
      * are rendered as 1.
      *
-     * @param value the maximum visible rows
+     * @param value the visible row count
      */
-    public void setMaxVisibleRows(int value) {
-        maxVisibleRows = value;
+    public void setVisibleRowCount(int value) {
+        visibleRowCount = value;
         invalidatePopupHeight();
     }
 
     /**
      * Returns the maximum number of visible rows.
      *
-     * @return the maximum visible rows
+     * @return the visible row count
      */
-    public int getMaxVisibleRows() {
-        return maxVisibleRows;
+    public int getVisibleRowCount() {
+        return visibleRowCount;
     }
 
     // ==================== Behavior config ====================
@@ -601,7 +601,7 @@ public final class RXSuggestionPopup<T> {
         int count = filtered.size();
         // Empty reserves one row of height so the placeholder-when-empty node has
         // vertical room to render (the spec's min(count,rows) formula would give 0).
-        int rows = (count == 0) ? 1 : Math.min(count, Math.max(1, maxVisibleRows));
+        int rows = (count == 0) ? 1 : Math.min(count, Math.max(1, visibleRowCount));
         double cell = listView.getFixedCellSize();
         if (!(cell > 0.0)) {
             cell = RXListView.DEFAULT_FIXED_CELL_SIZE;

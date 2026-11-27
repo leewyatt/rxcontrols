@@ -240,7 +240,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         disposer.registerListener(control.graphicProperty(), this::updateGraphic);
         disposer.registerListener(control.popupHeaderProperty(), this::updateHeader);
         disposer.registerListener(control.popupFooterProperty(), this::updateFooter);
-        disposer.registerListener(control.maxVisibleRowsProperty(), this::invalidatePopupHeight);
+        disposer.registerListener(control.visibleRowCountProperty(), this::invalidatePopupHeight);
         disposer.registerListener(control.showClearButtonProperty(), this::updateActions);
         disposer.registerListener(control.showSelectAllButtonProperty(), this::updateActions);
         disposer.registerListener(control.disabledProperty(), this::onDisabledChanged);
@@ -559,7 +559,7 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
             return insets;
         }
         int count = filtered.size();
-        int rows = count == 0 ? 1 : Math.min(count, Math.max(1, control.getMaxVisibleRows()));
+        int rows = count == 0 ? 1 : Math.min(count, Math.max(1, control.getVisibleRowCount()));
         double cellSize = popupList.getFixedCellSize();
         if (!(cellSize > 0.0)) {
             cellSize = RXListView.DEFAULT_FIXED_CELL_SIZE;

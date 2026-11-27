@@ -130,7 +130,7 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
         popup.setSuggestions(control.getSuggestions());
         popup.setConverter(control.getConverter());
         popup.setCellFactory(control.getSuggestionCellFactory());
-        popup.setMaxVisibleRows(control.getVisibleRowCount());
+        popup.setVisibleRowCount(control.getVisibleRowCount());
         popup.setHideOnSelect(control.isHideOnSelect());
         popup.setOffset(0, POPUP_GAP);
         // Anchor to the editor (which rides the caret row) at content width, so the
@@ -156,7 +156,7 @@ public class RXChipInputSkin<T> extends RXSkinBase<RXChipInput<T>> {
         disposer.registerListener(control.suggestionCellFactoryProperty(),
                 () -> popup.setCellFactory(control.getSuggestionCellFactory()));
         disposer.registerListener(control.visibleRowCountProperty(),
-                () -> popup.setMaxVisibleRows(control.getVisibleRowCount()));
+                () -> popup.setVisibleRowCount(control.getVisibleRowCount()));
         disposer.registerListener(control.hideOnSelectProperty(),
                 () -> popup.setHideOnSelect(control.isHideOnSelect()));
         disposer.registerListener(popup.showingProperty(),

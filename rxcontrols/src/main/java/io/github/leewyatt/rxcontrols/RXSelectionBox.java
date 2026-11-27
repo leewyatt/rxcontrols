@@ -71,7 +71,8 @@ public class RXSelectionBox<T> extends Control {
 
     private static final String DEFAULT_STYLE_CLASS = "rx-selection-box";
 
-    private static final int DEFAULT_MAX_VISIBLE_ROWS = 8;
+    /** Default {@link #visibleRowCountProperty() visible row count} of the popup. */
+    public static final int DEFAULT_VISIBLE_ROW_COUNT = 8;
 
     // ==================== Constructors ====================
 
@@ -661,37 +662,38 @@ public class RXSelectionBox<T> extends Control {
         autoHideOnSelection.set(value);
     }
 
-    // ==================== Max Visible Rows ====================
+    // ==================== Visible Row Count ====================
 
-    private final IntegerProperty maxVisibleRows =
-            new SimpleIntegerProperty(this, "maxVisibleRows", DEFAULT_MAX_VISIBLE_ROWS);
+    private final IntegerProperty visibleRowCount =
+            new SimpleIntegerProperty(this, "visibleRowCount", DEFAULT_VISIBLE_ROW_COUNT);
 
     /**
-     * The maximum number of item rows shown before the popup scrolls. Values
-     * below one are treated as one at layout time.
+     * The maximum number of rows shown before the popup list scrolls. A section
+     * header counts as a row. Default {@value #DEFAULT_VISIBLE_ROW_COUNT}; values
+     * below 1 are rendered as 1.
      *
-     * @return the max-visible-rows property
+     * @return the visible-row-count property
      */
-    public final IntegerProperty maxVisibleRowsProperty() {
-        return maxVisibleRows;
+    public final IntegerProperty visibleRowCountProperty() {
+        return visibleRowCount;
     }
 
     /**
-     * Returns the maximum number of visible rows.
+     * Returns the visible row count.
      *
-     * @return the maximum number of visible rows
+     * @return the visible row count
      */
-    public final int getMaxVisibleRows() {
-        return maxVisibleRows.get();
+    public final int getVisibleRowCount() {
+        return visibleRowCount.get();
     }
 
     /**
-     * Sets the maximum number of visible rows.
+     * Sets the visible row count.
      *
-     * @param value the maximum number of visible rows
+     * @param value the visible row count
      */
-    public final void setMaxVisibleRows(int value) {
-        maxVisibleRows.set(value);
+    public final void setVisibleRowCount(int value) {
+        visibleRowCount.set(value);
     }
 
     // ==================== Popup Header ====================
