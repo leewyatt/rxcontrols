@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.demo.carousel;
 
 import io.github.leewyatt.rxcontrols.RXCarousel;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXImagePane;
 import io.github.leewyatt.rxcontrols.DisplayMode;
 import io.github.leewyatt.rxcontrols.animation.page.AnimFade;
@@ -174,7 +175,7 @@ public class CarouselAppDemo extends Application {
     }
 
     private ToggleButton createNavButton(String text, String iconStyleClass, ToggleGroup group) {
-        Region icon = new Region();
+        RXIcon icon = new RXIcon();
         icon.getStyleClass().add(iconStyleClass);
 
         Label label = new Label(text);
@@ -312,7 +313,7 @@ public class CarouselAppDemo extends Application {
 
     private BorderPane createFeatureSubPage(String name, String desc,
                                             String iconStyleClass) {
-        Region iconRegion = new Region();
+        RXIcon iconRegion = new RXIcon();
         iconRegion.getStyleClass().addAll("feature-icon", iconStyleClass);
 
         Label title = new Label(name);

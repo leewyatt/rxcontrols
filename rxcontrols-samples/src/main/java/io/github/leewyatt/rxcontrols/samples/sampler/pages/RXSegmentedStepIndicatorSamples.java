@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXButton;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator;
 import io.github.leewyatt.rxcontrols.RXSegmentedStepIndicator.TitleSide;
 import javafx.geometry.Insets;
@@ -290,10 +291,9 @@ public final class RXSegmentedStepIndicatorSamples {
     }
 
     // A title graphic whose shape and color follow the step's state through the title's pseudo-classes.
-    private static Region stepMark() {
-        Region mark = new Region();
+    private static RXIcon stepMark() {
+        RXIcon mark = new RXIcon();
         mark.getStyleClass().add("step-mark");
-        mark.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return mark;
     }
 

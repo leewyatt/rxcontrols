@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.samples.demo.RXCircularProgressIndicatorDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.beans.binding.Bindings;
@@ -94,9 +95,8 @@ public class RXCircularProgressIndicatorShowcase extends RXShowcaseApplication {
         indicator = new RXCircularProgressIndicator(0.35);
         indicator.setPrefSize(PREVIEW_SIZE, PREVIEW_SIZE);
 
-        stateIcon = new Region();
+        stateIcon = new RXIcon();
         stateIcon.getStyleClass().add("state-icon");
-        stateIcon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return indicator;
     }
 

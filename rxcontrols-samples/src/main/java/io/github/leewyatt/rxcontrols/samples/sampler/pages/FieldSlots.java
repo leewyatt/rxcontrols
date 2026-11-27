@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.Labeled;
@@ -17,10 +18,9 @@ final class FieldSlots {
     }
 
     /** A shape-backed icon; its shape and size come from the style class. */
-    static Region glyph(String styleClass) {
-        Region glyph = new Region();
+    static RXIcon glyph(String styleClass) {
+        RXIcon glyph = new RXIcon();
         glyph.getStyleClass().addAll("glyph", styleClass);
-        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return glyph;
     }
 

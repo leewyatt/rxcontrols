@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXBreadcrumbBar;
 import io.github.leewyatt.rxcontrols.RXBreadcrumbBar.BranchMode;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.event.RXBreadcrumbEvent;
 import io.github.leewyatt.rxcontrols.samples.demo.RXBreadcrumbBarDemo;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
@@ -354,9 +355,8 @@ public class RXBreadcrumbBarShowcase extends RXShowcaseApplication {
     // A shape defined in the showcase stylesheet; unlike a text glyph it is mirrored
     // under a right-to-left orientation.
     private static Node separatorShape(String styleClass) {
-        Region shape = new Region();
+        RXIcon shape = new RXIcon();
         shape.getStyleClass().addAll("separator-shape", styleClass);
-        shape.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return shape;
     }
 

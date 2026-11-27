@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXLineButton;
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimSlide;
 import io.github.leewyatt.rxcontrols.animation.line.LineAnimation;
@@ -14,7 +15,6 @@ import javafx.scene.control.ColorPicker;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
@@ -167,9 +167,8 @@ public class RXLineButtonShowcase extends RXShowcaseApplication {
         CheckBox graphicBox = new CheckBox();
         graphicBox.selectedProperty().addListener((obs, oldV, newV) -> {
             if (newV) {
-                Region icon = new Region();
+                RXIcon icon = new RXIcon();
                 icon.getStyleClass().add("rocket-icon");
-                icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
                 button.setGraphic(icon);
             } else {
                 button.setGraphic(null);

@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXImageView;
 import io.github.leewyatt.rxcontrols.layout.RXColSpec;
 import io.github.leewyatt.rxcontrols.layout.RXCol;
@@ -205,7 +206,7 @@ public class RXRowDemo2 extends Application {
     }
 
     private Node createFeatureCard(String title, String text) {
-        Region icon = new Region();
+        RXIcon icon = new RXIcon();
         icon.getStyleClass().add("feature-icon");
 
         Label titleLabel = label(title, "feature-title");
@@ -247,7 +248,7 @@ public class RXRowDemo2 extends Application {
     }
 
     private Node activityItem(String title, String detail) {
-        Region dot = new Region();
+        RXIcon dot = new RXIcon();
         dot.getStyleClass().add("activity-dot");
 
         Label titleLabel = label(title, "activity-title");

@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXButton;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
@@ -22,10 +23,9 @@ final class FeedbackKit {
     private FeedbackKit() {
     }
 
-    static Region icon(String styleClass) {
-        Region icon = new Region();
+    static RXIcon icon(String styleClass) {
+        RXIcon icon = new RXIcon();
         icon.getStyleClass().addAll("symbol", styleClass);
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return icon;
     }
 

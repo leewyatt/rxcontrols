@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebarCaption;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
@@ -11,7 +12,6 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
@@ -65,11 +65,10 @@ public class RXSidebarDemo extends Application {
         primaryStage.show();
     }
 
-    private static Region icon(String shape) {
-        Region icon = new Region();
+    private static RXIcon icon(String shape) {
+        RXIcon icon = new RXIcon();
         icon.setStyle("-fx-shape: \"" + shape + "\"; -fx-background-color: -fx-text-base-color;"
                 + " -fx-pref-width: 16; -fx-pref-height: 16;");
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return icon;
     }
 

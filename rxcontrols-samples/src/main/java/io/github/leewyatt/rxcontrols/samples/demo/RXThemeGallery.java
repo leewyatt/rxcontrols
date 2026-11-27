@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.RXTextField;
 import io.github.leewyatt.rxcontrols.layout.RXMasonryPane;
@@ -93,9 +94,8 @@ public class RXThemeGallery extends Application {
     // Shown only while there is text to clear; it stays laid out, so the
     // field's text area does not shift as it appears.
     private static Button clearButton(RXTextField field) {
-        Region glyph = new Region();
+        RXIcon glyph = new RXIcon();
         glyph.getStyleClass().addAll("glyph", "clear-glyph");
-        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         glyph.setMouseTransparent(true);
 
         Button clear = new Button();

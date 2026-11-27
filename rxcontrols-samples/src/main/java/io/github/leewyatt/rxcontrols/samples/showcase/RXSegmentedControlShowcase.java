@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
@@ -11,7 +12,6 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -247,18 +247,16 @@ public class RXSegmentedControlShowcase extends RXShowcaseApplication {
                 RXSegmentedItem.of("c", "Medium length")));
     }
 
-    private Region icon() {
-        Region icon = new Region();
+    private RXIcon icon() {
+        RXIcon icon = new RXIcon();
         icon.getStyleClass().add("seg-icon");
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         icon.setMouseTransparent(true);
         return icon;
     }
 
     private RXSegmentedItem<String> customItem(String value, String text, String color) {
-        Region dot = new Region();
+        RXIcon dot = new RXIcon();
         dot.getStyleClass().add("seg-dot");
-        dot.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         dot.setStyle("-fx-background-color: " + color + ";");
         Label label = new Label(text);
         HBox content = new HBox(6.0, dot, label);

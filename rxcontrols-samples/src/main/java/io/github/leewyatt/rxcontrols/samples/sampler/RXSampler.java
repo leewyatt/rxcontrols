@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.sampler;
 
 import atlantafx.base.theme.PrimerDark;
 import io.github.leewyatt.rxcontrols.RXBreadcrumbBar;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXOverlayPane;
 import io.github.leewyatt.rxcontrols.RXSelectionBox;
 import io.github.leewyatt.rxcontrols.RXTaskButton;
@@ -254,10 +255,9 @@ public class RXSampler extends Application {
         return pager;
     }
 
-    private static Region glyph(String styleClass) {
-        Region glyph = new Region();
+    private static RXIcon glyph(String styleClass) {
+        RXIcon glyph = new RXIcon();
         glyph.getStyleClass().addAll("glyph", styleClass);
-        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         glyph.setMouseTransparent(true);
         return glyph;
     }

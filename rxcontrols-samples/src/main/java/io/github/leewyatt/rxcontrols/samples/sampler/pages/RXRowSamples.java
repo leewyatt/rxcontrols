@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXButton;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.layout.RXCol;
 import io.github.leewyatt.rxcontrols.layout.RXColSpec;
@@ -104,9 +105,8 @@ public final class RXRowSamples {
     }
 
     private static RXCol stat(String name, String value, String change, String color) {
-        Region dot = new Region();
+        RXIcon dot = new RXIcon();
         dot.getStyleClass().addAll("stat-dot", color);
-        dot.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         HBox top = new HBox(8.0, dot, text(name, "muted"), spacer(), text(change, "trend",
                 change.startsWith("-") ? "down" : "up"));
         top.setAlignment(Pos.CENTER_LEFT);
@@ -151,10 +151,8 @@ public final class RXRowSamples {
     }
 
     private static Node alert(String message, String color) {
-        Region dot = new Region();
+        RXIcon dot = new RXIcon();
         dot.getStyleClass().addAll("stat-dot", color);
-        dot.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        dot.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         HBox row = new HBox(8.0, dot, wrapped(message, "copy"));
         row.setAlignment(Pos.CENTER_LEFT);
         return row;

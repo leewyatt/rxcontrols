@@ -1,6 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
-import javafx.scene.layout.Region;
+import io.github.leewyatt.rxcontrols.RXIcon;
 
 /**
  * Icons and the stylesheet shared by the button pages. Each icon is a shape-backed
@@ -14,10 +14,9 @@ final class ButtonIcons {
     private ButtonIcons() {
     }
 
-    static Region icon(String styleClass) {
-        Region icon = new Region();
+    static RXIcon icon(String styleClass) {
+        RXIcon icon = new RXIcon();
         icon.getStyleClass().addAll("icon", styleClass);
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return icon;
     }
 }

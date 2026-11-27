@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.sampler;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXSidebar;
 import io.github.leewyatt.rxcontrols.RXSidebarItem;
 import io.github.leewyatt.rxcontrols.RXSidebarItemBase;
@@ -123,10 +124,8 @@ final class SamplerNav extends RXSidebar {
         HBox.setHgrow(brandSpacer, Priority.ALWAYS);
         hideInRail(brandSpacer);
 
-        Region menu = new Region();
+        RXIcon menu = new RXIcon();
         menu.getStyleClass().addAll("glyph", "menu-glyph");
-        menu.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        menu.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         menu.setMouseTransparent(true);
         collapse.getStyleClass().add("collapse-button");
         collapse.setGraphic(menu);
@@ -138,14 +137,12 @@ final class SamplerNav extends RXSidebar {
         brand.getStyleClass().add("brand");
         brand.setAlignment(Pos.CENTER_LEFT);
 
-        Region glyph = new Region();
+        RXIcon glyph = new RXIcon();
         glyph.getStyleClass().add("search-glyph");
-        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         glyph.setMouseTransparent(true);
 
-        Region clearGlyph = new Region();
+        RXIcon clearGlyph = new RXIcon();
         clearGlyph.getStyleClass().add("clear-glyph");
-        clearGlyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         clearGlyph.setMouseTransparent(true);
         Button clear = new Button();
         clear.getStyleClass().add("clear-button");
@@ -218,8 +215,8 @@ final class SamplerNav extends RXSidebar {
         return path;
     }
 
-    private static Region glyph(SamplerCategory category) {
-        Region glyph = new Region();
+    private static RXIcon glyph(SamplerCategory category) {
+        RXIcon glyph = new RXIcon();
         glyph.getStyleClass().add("graphic");
         glyph.setShape(glyphShape(category));
         return glyph;

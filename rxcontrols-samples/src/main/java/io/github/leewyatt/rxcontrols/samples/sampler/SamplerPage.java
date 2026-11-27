@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.sampler;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.RXTextView;
@@ -220,9 +221,8 @@ final class SamplerPage extends BorderPane {
         heading.getStyleClass().add("heading");
         VBox box = new VBox(4.0, heading);
         for (String line : lines) {
-            Region bullet = new Region();
+            RXIcon bullet = new RXIcon();
             bullet.getStyleClass().add("bullet");
-            bullet.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
             Label text = new Label(line);
             text.setWrapText(true);
             text.setMinHeight(Region.USE_PREF_SIZE);
@@ -300,9 +300,8 @@ final class SamplerPage extends BorderPane {
     // ==================== Launchers ====================
 
     private static Button launcherButton(String text) {
-        Region glyph = new Region();
+        RXIcon glyph = new RXIcon();
         glyph.getStyleClass().add("open-glyph");
-        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         Button button = new Button(text, glyph);
         button.getStyleClass().add("demo-button");
         button.setMinWidth(Region.USE_PREF_SIZE);

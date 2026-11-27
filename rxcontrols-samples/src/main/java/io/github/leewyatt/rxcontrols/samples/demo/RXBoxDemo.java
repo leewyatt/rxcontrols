@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.layout.RXBox;
 
 import javafx.application.Application;
@@ -77,7 +78,7 @@ public class RXBoxDemo extends Application {
     }
 
     private Region createTaskRow() {
-        Region icon = new Region();
+        RXIcon icon = new RXIcon();
         icon.getStyleClass().add("task-icon");
 
         Label title = label("Quarterly report.pdf", "task-title");

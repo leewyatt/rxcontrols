@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXSpeedDial;
 import io.github.leewyatt.rxcontrols.RXSpeedDialAction;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXSpeedDialShowcase;
@@ -9,7 +10,6 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
@@ -74,13 +74,11 @@ public class RXSpeedDialDemo extends Application {
         return new RXSpeedDialAction(text, icon(shape), event -> status.setText("last action: " + text));
     }
 
-    private static Region icon(String shape) {
-        Region icon = new Region();
+    private static RXIcon icon(String shape) {
+        RXIcon icon = new RXIcon();
         icon.getStyleClass().add("icon");
         icon.setStyle("-fx-shape: \"" + shape + "\";");
-        icon.setMinSize(18.0, 18.0);
         icon.setPrefSize(18.0, 18.0);
-        icon.setMaxSize(18.0, 18.0);
         return icon;
     }
 

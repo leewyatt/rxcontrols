@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXMenuButton;
 import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXMenuList;
@@ -294,8 +295,8 @@ public class RXMenuButtonShowcase extends RXShowcaseApplication {
         return item;
     }
 
-    private static Region icon(String svgPath) {
-        Region region = new Region();
+    private static RXIcon icon(String svgPath) {
+        RXIcon region = new RXIcon();
         region.getStyleClass().add("menu-icon");
         region.setStyle("-fx-shape: \"" + svgPath + "\";");
         return region;

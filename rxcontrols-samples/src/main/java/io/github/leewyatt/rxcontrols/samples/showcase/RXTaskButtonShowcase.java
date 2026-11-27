@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols.samples.showcase;
 
 import io.github.leewyatt.rxcontrols.RXBarSpinner;
 import io.github.leewyatt.rxcontrols.RXDotPulse;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXTaskButton;
 import io.github.leewyatt.rxcontrols.animation.page.AnimBlinds;
 import io.github.leewyatt.rxcontrols.animation.page.AnimCube;
@@ -365,10 +366,9 @@ public class RXTaskButtonShowcase extends RXShowcaseApplication {
         return indicator;
     }
 
-    private static Region createStar() {
-        Region star = new Region();
+    private static RXIcon createStar() {
+        RXIcon star = new RXIcon();
         star.getStyleClass().add("star-icon");
-        star.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return star;
     }
 

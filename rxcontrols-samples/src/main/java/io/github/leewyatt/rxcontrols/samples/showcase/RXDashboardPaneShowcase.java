@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.event.RXDashboardEvent;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardCard;
 import io.github.leewyatt.rxcontrols.layout.RXDashboardLayout;
@@ -25,7 +26,6 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
@@ -258,10 +258,9 @@ public class RXDashboardPaneShowcase extends RXShowcaseApplication {
         return card;
     }
 
-    private static Region symbol(String styleClass) {
-        Region symbol = new Region();
+    private static RXIcon symbol(String styleClass) {
+        RXIcon symbol = new RXIcon();
         symbol.getStyleClass().addAll("hint-symbol", styleClass);
-        symbol.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return symbol;
     }
 

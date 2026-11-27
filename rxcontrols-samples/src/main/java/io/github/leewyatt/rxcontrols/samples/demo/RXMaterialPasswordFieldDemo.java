@@ -1,12 +1,12 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXMaterialPasswordField;
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -64,11 +64,10 @@ public class RXMaterialPasswordFieldDemo extends Application {
                     + "2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0"
                     + "-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z";
 
-    private static Region icon() {
-        Region region = new Region();
+    private static RXIcon icon() {
+        RXIcon region = new RXIcon();
         region.setStyle("-fx-background-color: -rx-on-surface-secondary; -fx-shape: \"" + LOCK_SHAPE + "\";"
                 + " -fx-pref-width: 18px; -fx-pref-height: 18px;");
-        region.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return region;
     }
 

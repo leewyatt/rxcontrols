@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXLrcLineView;
 import io.github.leewyatt.rxcontrols.RXSeekBar;
 import io.github.leewyatt.rxcontrols.animation.page.AnimBlinds;
@@ -233,9 +234,8 @@ public class RXLrcLineViewShowcase extends RXShowcaseApplication {
     }
 
     private Button createPlayButton() {
-        Region icon = new Region();
+        RXIcon icon = new RXIcon();
         icon.getStyleClass().add("icon");
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
         Button button = new Button("Play", icon);
         button.getStyleClass().add("play-button");

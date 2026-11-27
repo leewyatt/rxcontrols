@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols.samples.sampler.pages;
 
 import io.github.leewyatt.rxcontrols.RXButton;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXMenuButton;
 import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
@@ -51,11 +52,10 @@ final class LayoutKit {
     private LayoutKit() {
     }
 
-    static Region icon(String styleClass, String... more) {
-        Region icon = new Region();
+    static RXIcon icon(String styleClass, String... more) {
+        RXIcon icon = new RXIcon();
         icon.getStyleClass().addAll("symbol", styleClass);
         icon.getStyleClass().addAll(more);
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return icon;
     }
 

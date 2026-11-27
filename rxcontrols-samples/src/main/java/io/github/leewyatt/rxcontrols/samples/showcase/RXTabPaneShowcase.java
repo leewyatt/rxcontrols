@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXTab;
 import io.github.leewyatt.rxcontrols.RXTabEvent;
 import io.github.leewyatt.rxcontrols.RXTabPane;
@@ -392,11 +393,10 @@ public class RXTabPaneShowcase extends RXShowcaseApplication {
         return tab;
     }
 
-    private Region dot(String color) {
-        Region dot = new Region();
+    private RXIcon dot(String color) {
+        RXIcon dot = new RXIcon();
         dot.setStyle("-fx-background-color: " + color + "; -fx-background-radius: 999;"
                 + " -fx-min-width: 14; -fx-min-height: 14; -fx-pref-width: 14; -fx-pref-height: 14;");
-        dot.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         dot.setMouseTransparent(true);
         return dot;
     }

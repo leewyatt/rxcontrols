@@ -1,12 +1,12 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXMaterialTextField;
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -69,11 +69,10 @@ public class RXMaterialTextFieldDemo extends Application {
             "M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 "
                     + "4l-8 5-8-5V6l8 5 8-5v2z";
 
-    private static Region icon(String shape) {
-        Region region = new Region();
+    private static RXIcon icon(String shape) {
+        RXIcon region = new RXIcon();
         region.setStyle("-fx-background-color: -rx-on-surface-secondary; -fx-shape: \"" + shape + "\";"
                 + " -fx-pref-width: 18px; -fx-pref-height: 18px;");
-        region.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return region;
     }
 

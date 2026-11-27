@@ -1,10 +1,10 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXTransitionButton;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
@@ -19,9 +19,8 @@ public class RXTransitionButtonDemo extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        Region icon = new Region();
+        RXIcon icon = new RXIcon();
         icon.getStyleClass().add("download-icon");
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
         RXTransitionButton button = new RXTransitionButton("Download", icon);
         button.getStyleClass().add("download-button");

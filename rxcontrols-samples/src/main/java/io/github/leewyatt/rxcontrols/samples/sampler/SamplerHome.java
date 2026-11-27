@@ -6,6 +6,7 @@ import io.github.leewyatt.rxcontrols.RXButton;
 import io.github.leewyatt.rxcontrols.RXChip;
 import io.github.leewyatt.rxcontrols.RXChipSet;
 import io.github.leewyatt.rxcontrols.RXCopyButton;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXSegmentedControl;
 import io.github.leewyatt.rxcontrols.RXSegmentedItem;
 import io.github.leewyatt.rxcontrols.RXSmoothScrollSupport;
@@ -282,10 +283,9 @@ final class SamplerHome extends ScrollPane {
     }
 
     private Button categoryCard(SamplerCategory category, List<SamplerEntry> list) {
-        Region glyph = new Region();
+        RXIcon glyph = new RXIcon();
         glyph.getStyleClass().add("category-glyph");
         glyph.setShape(SamplerNav.glyphShape(category));
-        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         StackPane badge = new StackPane(glyph);
         badge.getStyleClass().add("glyph-badge");
         badge.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);

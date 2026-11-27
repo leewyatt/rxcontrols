@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.demo;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXMenuButton;
 import io.github.leewyatt.rxcontrols.RXMenuItem;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXMenuButtonShowcase;
@@ -9,7 +10,6 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCombination;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -101,11 +101,10 @@ public class RXMenuButtonDemo extends Application {
 
     // ==================== Icon helper ====================
 
-    private static Region icon(String svgPath) {
-        Region region = new Region();
+    private static RXIcon icon(String svgPath) {
+        RXIcon region = new RXIcon();
         region.setStyle("-fx-shape: \"" + svgPath + "\"; -fx-background-color: #486581;"
-                + " -fx-min-width: 16; -fx-min-height: 16; -fx-pref-width: 16; -fx-pref-height: 16;"
-                + " -fx-max-width: 16; -fx-max-height: 16;");
+                + " -fx-pref-width: 16; -fx-pref-height: 16;");
         return region;
     }
 

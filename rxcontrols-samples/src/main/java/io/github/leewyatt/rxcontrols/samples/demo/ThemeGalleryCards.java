@@ -47,6 +47,7 @@ import io.github.leewyatt.rxcontrols.RXFillLabel;
 import io.github.leewyatt.rxcontrols.RXFloatingActionButton;
 import io.github.leewyatt.rxcontrols.RXHighlightTextView;
 import io.github.leewyatt.rxcontrols.RXHoldButton;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXImagePane;
 import io.github.leewyatt.rxcontrols.RXImageView;
 import io.github.leewyatt.rxcontrols.RXIntegerField;
@@ -479,10 +480,8 @@ final class ThemeGalleryCards {
     }
 
     private static Node buildRXButton() {
-        Region icon = new Region();
-        icon.setMinSize(14, 14);
+        RXIcon icon = new RXIcon();
         icon.setPrefSize(14, 14);
-        icon.setMaxSize(14, 14);
         icon.setStyle("-fx-background-color: -fx-text-base-color; -fx-shape: \"M8 0 L10 6 L16 6 L11 9 L13 16 L8 12 L3 16 L5 9 L0 6 L6 6 Z\";");
         RXButton button = new RXButton("Assign incident", icon);
         button.setRippleFill(Color.web("#1e88e5"));
@@ -849,9 +848,8 @@ final class ThemeGalleryCards {
 
     private static Node buildRXFillButton() {
         RXFillButton button = new RXFillButton("Deploy to production");
-        Region icon = new Region();
-        icon.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
-        icon.setStyle("-fx-min-width: 14px; -fx-min-height: 14px; -fx-pref-width: 14px; -fx-pref-height: 14px;"
+        RXIcon icon = new RXIcon();
+        icon.setStyle("-fx-pref-width: 14px; -fx-pref-height: 14px;"
                 + " -fx-background-color: -fx-text-base-color; -fx-shape: \"M2 8 L14 8 M8 2 L8 14\";");
         button.setGraphic(icon);
         button.setFillAnimation(FillAnimation.CENTER_OUT);
@@ -1295,12 +1293,10 @@ final class ThemeGalleryCards {
         return action;
     }
 
-    private static Region fabIcon(String shape) {
-        Region icon = new Region();
+    private static RXIcon fabIcon(String shape) {
+        RXIcon icon = new RXIcon();
         icon.getStyleClass().add("icon");
-        icon.setMinSize(18.0, 18.0);
         icon.setPrefSize(18.0, 18.0);
-        icon.setMaxSize(18.0, 18.0);
         icon.setStyle("-fx-shape: \"" + shape + "\";");
         return icon;
     }
@@ -1376,10 +1372,9 @@ final class ThemeGalleryCards {
         return icon;
     }
 
-    private static Region slotGlyph(String glyphClass) {
-        Region glyph = new Region();
+    private static RXIcon slotGlyph(String glyphClass) {
+        RXIcon glyph = new RXIcon();
         glyph.getStyleClass().addAll("glyph", glyphClass);
-        glyph.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         glyph.setMouseTransparent(true);
         return glyph;
     }

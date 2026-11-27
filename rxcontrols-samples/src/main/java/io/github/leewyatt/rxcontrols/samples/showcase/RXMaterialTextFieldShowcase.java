@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.samples.showcase;
 
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXMaterialTextField;
 import io.github.leewyatt.rxcontrols.samples.support.RXShowcaseApplication;
 import javafx.geometry.Pos;
@@ -7,7 +8,6 @@ import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -176,10 +176,9 @@ public class RXMaterialTextFieldShowcase extends RXShowcaseApplication {
 
     // ==================== Helpers ====================
 
-    private static Region icon(String styleClass) {
-        Region region = new Region();
+    private static RXIcon icon(String styleClass) {
+        RXIcon region = new RXIcon();
         region.getStyleClass().add(styleClass);
-        region.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return region;
     }
 
