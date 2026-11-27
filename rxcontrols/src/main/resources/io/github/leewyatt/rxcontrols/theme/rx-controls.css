@@ -4753,6 +4753,7 @@
 
 .rx-selection-box:readonly > .display {
     -fx-opacity: 0.75;
+    -fx-cursor: default;
 }
 
 .rx-selection-box:disabled {

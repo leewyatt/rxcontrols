@@ -4,6 +4,7 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -625,6 +626,18 @@ public class RXSelectionBoxPopupTest {
             assertEquals(list.getSectionHeaderHeight() + 2 * list.getFixedCellSize()
                             + list.snappedTopInset() + list.snappedBottomInset(), list.getHeight(), 1e-6,
                     "three rows are the 'a' header and two items, not three items plus their header");
+        });
+    }
+
+    @Test
+    public void readOnlyDisplayUsesTheDefaultCursor() throws InterruptedException {
+        runOnFx(() -> {
+            RXSelectionBox<String> box = newShownBox("a", "b");
+            Node display = box.lookup(".display");
+            assertEquals(Cursor.HAND, display.getCursor(), "precondition: an editable box shows a hand");
+            box.setReadOnly(true);
+            box.applyCss();
+            assertEquals(Cursor.DEFAULT, display.getCursor(), "a read-only box does not invite a click");
         });
     }
 
