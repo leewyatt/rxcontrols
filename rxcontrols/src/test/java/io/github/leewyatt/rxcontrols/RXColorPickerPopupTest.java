@@ -187,6 +187,9 @@ public class RXColorPickerPopupTest {
             assertTrue(button.isManaged());
             assertFalse(button.isFocusTraversable());
             assertTrue(picker.prefWidth(-1) > hiddenWidth);
+            picker.getParent().layout();
+            assertTrue(button.getWidth() > 0.0);
+            assertEquals(button.getWidth(), button.getHeight(), 0.0);
             assertEquals("#1677FF80", button.getContentFactory().get().getString());
             picker.setFormat(RXColorFormat.RGB);
             assertEquals("rgba(22, 119, 255, 0.5)", button.getContentFactory().get().getString());

@@ -5949,7 +5949,7 @@
 .rx-color-picker {
     -fx-background-color: -rx-outline, -rx-surface;
     -fx-background-insets: 0, 1px;
-    -fx-background-radius: 6px, 5px;
+    -fx-background-radius: 3px, 2px;
     -fx-padding: 4px;
     -fx-cursor: hand;
 }
@@ -5974,7 +5974,7 @@
 
 .rx-color-picker .swatch {
     -fx-background-color: transparent;
-    -fx-background-radius: 4px;
+    -fx-background-radius: 2px;
 }
 
 .rx-color-picker .swatch:empty {
@@ -5983,7 +5983,7 @@
 
 .rx-color-picker .swatch > .outline {
     -fx-border-color: rgba(0, 0, 0, 0.12);
-    -fx-border-radius: 4px;
+    -fx-border-radius: 2px;
 }
 
 .rx-color-picker .swatch > .slash {
@@ -5994,8 +5994,8 @@
 .rx-color-picker > .copy-button {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
-    -fx-background-radius: 4px;
-    -fx-padding: 3px;
+    -fx-background-radius: 2px;
+    -fx-padding: 0;
 }
 
 .rx-color-picker > .copy-button:hover,

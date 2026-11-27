@@ -113,6 +113,11 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         text.setMinWidth(Region.USE_PREF_SIZE);
         display.getChildren().addAll(swatch, text);
         copyButton.getStyleClass().add("copy-button");
+        // Square and as tall as the swatch: an empty caption would otherwise make it
+        // a line of text high but only an icon wide.
+        copyButton.setPrefSize(SWATCH_SIZE, SWATCH_SIZE);
+        copyButton.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        copyButton.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         copyButton.setCopiedText(null);
         copyButton.setFocusTraversable(false);
         copyButton.setAccessibleText("Copy color");
