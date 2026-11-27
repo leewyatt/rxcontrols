@@ -57,6 +57,9 @@
        whether the host is light or dark. */
     -rx-surface: -fx-background;
     -rx-surface-variant: ladder(-fx-background, derive(-fx-background, 8%) 45%, #f5f5f5 46%);
+    /* A hover or band fill one step off the surface a part sits on; a popup card
+       redefines it, since on a dark host the card itself takes -rx-surface-variant. */
+    -rx-surface-step: -rx-surface-variant;
     -rx-on-surface: -fx-text-background-color;
     -rx-on-surface-secondary: ladder(-fx-background, derive(-fx-light-text-color, -32%) 45%, -fx-mid-text-color 46%);
     -rx-on-surface-disabled: ladder(-fx-background, rgba(255, 255, 255, 0.35) 45%, rgba(0, 0, 0, 0.25) 46%);
@@ -2241,7 +2244,7 @@
 .rx-theme-atlantafx.rx-cascader-view > .columns > .column .list-cell:filled:hover,
 .rx-theme-atlantafx .rx-cascader-view > .columns > .column .list-cell:filled:focused,
 .rx-theme-atlantafx.rx-cascader-view > .columns > .column .list-cell:filled:focused {
-    -fx-background-color: -rx-surface-variant;
+    -fx-background-color: -rx-surface-step;
 }
 
 /* Accent + bold text: the active
@@ -4697,8 +4700,7 @@
 
 .rx-selection-box-popup .rx-list-view,
 .rx-selection-box-popup .rx-list-view > .viewport {
-    -fx-background-color: -fx-control-inner-background;
-    -fx-background-radius: 0 0 2 2;
+    -fx-background-color: transparent;
 }
 
 .rx-selection-box-popup .rx-list-view {
@@ -4738,7 +4740,8 @@
 }
 
 .rx-selection-box-popup .rx-list-cell .select-box:multiple {
-    -fx-background-color: -fx-control-inner-background;
+    /* The popup card's fill, so the empty box reads as a hole in the card. */
+    -fx-background-color: ladder(-rx-surface, -rx-surface-variant 45%, -fx-control-inner-background 46%);
     -fx-border-color: -rx-outline;
     -fx-border-width: 1px;
     -fx-border-radius: 3;
@@ -4929,7 +4932,7 @@
 }
 
 .rx-calendar-panel .date-cell:hover {
-    -fx-background-color: -rx-surface-variant;
+    -fx-background-color: -rx-surface-step;
 }
 
 .rx-calendar-panel .date-cell:adjacent {
@@ -4941,7 +4944,7 @@
    the band. */
 .rx-calendar-panel .date-cell:disabled {
     -fx-text-fill: -rx-on-surface-disabled;
-    -fx-background-color: -rx-surface-variant;
+    -fx-background-color: -rx-surface-step;
     -fx-background-insets: 0.166667em 0;
     -fx-background-radius: 0;
     -fx-cursor: default;
@@ -5230,7 +5233,7 @@
 }
 
 .rx-calendar-panel.week-rows .day-cell:week-hover {
-    -fx-background-color: -rx-surface-variant;
+    -fx-background-color: -rx-surface-step;
 }
 
 .rx-calendar-panel.week-rows .day-cell:in-range {
@@ -5536,7 +5539,7 @@
 }
 
 .rx-time-columns .time-cell:hover {
-    -fx-background-color: -rx-surface-variant;
+    -fx-background-color: -rx-surface-step;
 }
 
 .rx-time-columns .time-cell:selected {
@@ -6018,6 +6021,15 @@
     -fx-background-radius: 4, 3;
     -fx-padding: 1;
     -fx-effect: dropshadow(gaussian, -rx-elevation-umbra-color, 12, 0.0, 0, 4);
+}
+
+/* Views hosted in a popup mark hover one step above the card. */
+.rx-popup .rx-calendar-view, .rx-popup .rx-date-range-view, .rx-popup .rx-date-time-view,
+.rx-popup .rx-month-view, .rx-popup .rx-month-range-view, .rx-popup .rx-quarter-view,
+.rx-popup .rx-quarter-range-view, .rx-popup .rx-week-view, .rx-popup .rx-week-range-view,
+.rx-popup .rx-year-view, .rx-popup .rx-year-range-view, .rx-popup .rx-time-view,
+.rx-popup .rx-cascader-view {
+    -rx-surface-step: ladder(-rx-surface, derive(-rx-surface-variant, 15%) 45%, -rx-surface-variant 46%);
 }
 
 .rx-popup > *,

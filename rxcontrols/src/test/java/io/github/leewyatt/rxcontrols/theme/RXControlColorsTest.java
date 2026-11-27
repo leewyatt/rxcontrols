@@ -879,6 +879,55 @@ public class RXControlColorsTest {
     }
 
     @Test
+    public void hoverInsideAPopupStepsOffTheCard() throws Exception {
+        assertPopupHover("default Modena", Application.STYLESHEET_MODENA, scene -> { }, false);
+        assertPopupHover("dark palette", Application.STYLESHEET_MODENA, RXControlColorsTest::darkPalette, true);
+        assertPopupHover("Primer Light", new PrimerLight().getUserAgentStylesheet(),
+                RXAtlantaFXThemeBridge::install, false);
+        assertPopupHover("Primer Dark", new PrimerDark().getUserAgentStylesheet(),
+                RXAtlantaFXThemeBridge::install, true);
+    }
+
+    private static void assertPopupHover(String host, String userAgentStylesheet, Consumer<Scene> themer,
+            boolean dark) throws Exception {
+        Map<String, String> expected = resolve(userAgentStylesheet, themer, List.of("-rx-surface-variant"));
+        for (String view : List.of("rx-calendar-view", "rx-time-view", "rx-cascader-view")) {
+            Map<String, String> fills = new LinkedHashMap<>();
+            runOnFx(() -> {
+                Application.setUserAgentStylesheet(userAgentStylesheet);
+                // Stand-ins for the hosted view: the style class makes them its token root.
+                Region inlineProbe = probe("-rx-surface-step");
+                Region popupProbe = probe("-rx-surface-step");
+                StackPane shell = styled(new StackPane(styled(new StackPane(popupProbe), view)), "rx-popup");
+                StackPane inline = styled(new StackPane(inlineProbe), view);
+                Scene scene = new Scene(new StackPane(inline, shell), 400, 400);
+                scene.getStylesheets().add(new RXColorView().getUserAgentStylesheet());
+                themer.accept(scene);
+                scene.getRoot().applyCss();
+                fills.put("inline", ThemeColorSamples.hex(inlineProbe.getBackground().getFills().get(0).getFill()));
+                fills.put("card", ThemeColorSamples.hex(shell.getBackground().getFills().get(1).getFill()));
+                fills.put("popup", ThemeColorSamples.hex(popupProbe.getBackground().getFills().get(0).getFill()));
+            });
+            String name = view + " under " + host;
+            assertEquals(expected.get("-rx-surface-variant"), fills.get("inline"), name + ": inline hover is unchanged");
+            if (dark) {
+                // The card itself takes the surface variant on a dark host.
+                assertTrue(relativeLuminance(Color.web(fills.get("popup")))
+                        > relativeLuminance(Color.web(fills.get("card"))), name + ": popup hover is lighter than the card");
+            } else {
+                assertEquals(expected.get("-rx-surface-variant"), fills.get("popup"), name + ": popup hover is unchanged");
+                assertNotEquals(fills.get("card"), fills.get("popup"), name + ": popup hover differs from the card");
+            }
+        }
+    }
+
+    private static Region probe(String color) {
+        Region probe = new Region();
+        probe.setStyle("-fx-background-color: " + color + ";");
+        return probe;
+    }
+
+    @Test
     @Tag("ui")
     public void popupCardResolvesItsColorsOffAPlainAnchor() throws Exception {
         // Hiding the test's window must not shut the toolkit down for later tests.
