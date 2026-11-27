@@ -37,7 +37,7 @@ import java.util.Map;
  * never overwritten by the value it produces. Fields are built once; switching
  * the format only shows another set.
  */
-final class ColorInputRow {
+final class ColorInputRow extends HBox {
 
     // ==================== Host ====================
 
@@ -107,7 +107,6 @@ final class ColorInputRow {
     // ==================== Nodes ====================
 
     private final Host host;
-    private final HBox row = new HBox();
     private final StackPane formatButton = new StackPane();
     private final Label formatText = new Label();
     private final HBox fieldBox = new HBox();
@@ -122,8 +121,8 @@ final class ColorInputRow {
 
     ColorInputRow(Host host) {
         this.host = host;
-        row.getStyleClass().add("inputs");
-        row.setAlignment(Pos.CENTER_LEFT);
+        getStyleClass().add("inputs");
+        setAlignment(Pos.CENTER_LEFT);
 
         formatText.getStyleClass().add("text");
         formatText.setMouseTransparent(true);
@@ -161,12 +160,7 @@ final class ColorInputRow {
                 fieldBox.getChildren().add(field.input);
             }
         }
-        row.getChildren().addAll(formatButton, fieldBox, fields.get(Channel.ALPHA).input);
-    }
-
-    /** Returns the row node. */
-    HBox node() {
-        return row;
+        getChildren().addAll(formatButton, fieldBox, fields.get(Channel.ALPHA).input);
     }
 
     /** Wires input; everything is released when the disposer runs. */

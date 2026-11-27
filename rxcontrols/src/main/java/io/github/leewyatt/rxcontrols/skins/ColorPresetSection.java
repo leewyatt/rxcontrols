@@ -35,7 +35,7 @@ import java.util.Map;
  * group instance stays in the list, so a group keeps its expanded state; input
  * handlers sit on the section's container, never on the rebuilt nodes.
  */
-final class ColorPresetSection {
+final class ColorPresetSection extends ScrollPane {
 
     // ==================== Host ====================
 
@@ -61,15 +61,6 @@ final class ColorPresetSection {
     // ==================== Nodes ====================
 
     private final Host host;
-    // Fitted to its width with no horizontal bar, so its height depends on its width;
-    // ScrollPane does not say so itself, and parents would ask for its height at the
-    // FlowPane's default wrap length instead of the width it gets.
-    private final ScrollPane scroll = new ScrollPane() {
-        @Override
-        public Orientation getContentBias() {
-            return Orientation.HORIZONTAL;
-        }
-    };
     private final VBox groupsBox = new VBox();
     private final Map<RXColorPresetGroup, GroupNode> cache = new IdentityHashMap<>();
     private final List<GroupNode> shown = new ArrayList<>();
@@ -77,23 +68,26 @@ final class ColorPresetSection {
     ColorPresetSection(Host host) {
         this.host = host;
         groupsBox.getStyleClass().add("groups");
-        scroll.getStyleClass().add("presets");
-        scroll.setContent(groupsBox);
-        scroll.setFitToWidth(true);
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-        scroll.setFocusTraversable(false);
-        scroll.setMaxHeight(MAX_HEIGHT);
+        getStyleClass().add("presets");
+        setContent(groupsBox);
+        setFitToWidth(true);
+        setHbarPolicy(ScrollBarPolicy.NEVER);
+        setVbarPolicy(ScrollBarPolicy.AS_NEEDED);
+        setFocusTraversable(false);
+        setMaxHeight(MAX_HEIGHT);
         // The swatches wrap to the width the panel gives them and never widen it: a
         // horizontal FlowPane asks for at least its prefWrapLength (400 by default).
-        scroll.setPrefWidth(0.0);
-        scroll.setVisible(false);
-        scroll.setManaged(false);
+        setPrefWidth(0.0);
+        setVisible(false);
+        setManaged(false);
     }
 
-    /** Returns the section node. */
-    Node node() {
-        return scroll;
+    // Fitted to its width with no horizontal bar, so its height depends on its width;
+    // ScrollPane does not say so itself, and parents would ask for its height at the
+    // FlowPane's default wrap length instead of the width it gets.
+    @Override
+    public Orientation getContentBias() {
+        return Orientation.HORIZONTAL;
     }
 
     /** Wires input and the preset list; everything is released when the disposer runs. */
@@ -136,8 +130,8 @@ final class ColorPresetSection {
         }
         groupsBox.getChildren().setAll(roots);
         boolean any = !shown.isEmpty();
-        scroll.setVisible(any);
-        scroll.setManaged(any);
+        setVisible(any);
+        setManaged(any);
         refresh();
     }
 

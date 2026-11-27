@@ -134,7 +134,7 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
         header.getChildren().add(clearButton);
 
         VBox.setVgrow(area, Priority.ALWAYS);
-        content.getChildren().addAll(header, area, sliderRow, inputRow.node(), presetSection.node());
+        content.getChildren().addAll(header, area, sliderRow, inputRow, presetSection);
 
         // Weak: setSkin drops a skin of the installed class without disposing it,
         // and nothing else may keep such a skin reachable from the view.
