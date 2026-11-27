@@ -1,0 +1,71 @@
+.pack-rows .caption {
+    -fx-text-fill: -showcase-caption-color;
+}
+
+.sized-label {
+    -fx-graphic-text-gap: 6px;
+}
+
+.sized-label.small {
+    -fx-font-size: 11px;
+}
+
+.sized-label.medium {
+    -fx-font-size: 15px;
+}
+
+.sized-label.large {
+    -fx-font-size: 22px;
+}
+
+.sized-label .rx-icon {
+    -rx-icon-size: 1.25em;
+    -fx-background-color: #2e7d32;
+}
+
+.status {
+    -fx-graphic-text-gap: 6px;
+}
+
+.status .rx-icon {
+    -rx-icon-size: 1.25em;
+}
+
+.status.success .rx-icon {
+    -fx-background-color: #2e7d32;
+}
+
+.status.warning .rx-icon {
+    -fx-background-color: #ed6c02;
+}
+
+.status.danger .rx-icon {
+    -fx-background-color: #d32f2f;
+}
+
+.path-row {
+    -fx-padding: 8px 10px;
+    -fx-background-color: -fx-control-inner-background;
+    -fx-background-radius: 6px;
+    -fx-border-color: -fx-text-box-border;
+    -fx-border-radius: 6px;
+}
+
+.path-row .rx-icon {
+    -fx-background-color: -showcase-caption-color;
+}
+
+.file-row .rx-icon {
+    -fx-background-color: #546e7a;
+}
+
+.brand-logo {
+    -rx-icon: "sample-logo";
+    -rx-icon-size: 40px;
+    -fx-background-color: #5b5bd6;
+}
+
+.brand-name {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}

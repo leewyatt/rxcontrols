@@ -1,5 +1,7 @@
 open module rxcontrols.samples {
     requires rxcontrols;
+    requires rxcontrols.icons.bootstrap;
+    requires rxcontrols.icons.material;
 
     requires javafx.controls;
     requires javafx.fxml;

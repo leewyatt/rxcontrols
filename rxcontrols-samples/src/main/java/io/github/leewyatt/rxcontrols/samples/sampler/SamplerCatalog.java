@@ -42,6 +42,7 @@ import io.github.leewyatt.rxcontrols.RXFillButton;
 import io.github.leewyatt.rxcontrols.RXFillLabel;
 import io.github.leewyatt.rxcontrols.RXHighlightTextView;
 import io.github.leewyatt.rxcontrols.RXHoldButton;
+import io.github.leewyatt.rxcontrols.RXIcon;
 import io.github.leewyatt.rxcontrols.RXImagePane;
 import io.github.leewyatt.rxcontrols.RXImageView;
 import io.github.leewyatt.rxcontrols.RXIntegerField;
@@ -283,6 +284,7 @@ import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXQuarterSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRadioButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRangeSliderSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXColorSamples;
+import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXIconSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRatingSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXReactionButtonSamples;
 import io.github.leewyatt.rxcontrols.samples.sampler.pages.RXRibbonBadgeSamples;
@@ -396,6 +398,7 @@ import io.github.leewyatt.rxcontrols.samples.showcase.RXRadioButtonShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXRangeSliderShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXColorPickerShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXColorViewShowcase;
+import io.github.leewyatt.rxcontrols.samples.showcase.RXIconShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXRatingShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXReactionButtonShowcase;
 import io.github.leewyatt.rxcontrols.samples.showcase.RXRibbonBadgeShowcase;
@@ -710,6 +713,8 @@ final class SamplerCatalog {
                 .withSamples(RXLrcLineViewSamples::create));
         list.add(single(c, RXDigit.class, RXDigitShowcase::new, RXDigitDemo.class)
                 .withSamples(RXDigitSamples::create));
+        list.add(single(c, RXIcon.class, RXIconShowcase::new, null)
+                .withSamples(RXIconSamples::create));
         list.add(single(c, RXTransitionLabel.class, RXTransitionLabelShowcase::new, null)
                 .withSamples(RXTransitionLabelSamples::create));
         list.add(single(c, RXFillLabel.class, RXFillLabelShowcase::new, null)
