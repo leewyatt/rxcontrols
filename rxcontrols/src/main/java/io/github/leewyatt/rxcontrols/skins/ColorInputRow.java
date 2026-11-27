@@ -141,6 +141,7 @@ final class ColorInputRow {
         formatButton.setAccessibleRole(AccessibleRole.MENU_BUTTON);
         formatButton.setAccessibleText("Color format");
 
+        formatMenu.getMenuList().getStyleClass().add("color-format-menu");
         ToggleGroup group = new ToggleGroup();
         for (RXColorFormat format : RXColorFormat.values()) {
             RXMenuItem item = new RXMenuItem(format.name());

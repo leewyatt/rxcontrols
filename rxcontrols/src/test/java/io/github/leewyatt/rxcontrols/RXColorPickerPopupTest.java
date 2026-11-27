@@ -19,6 +19,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import org.junit.jupiter.api.AfterEach;
@@ -517,6 +518,23 @@ public class RXColorPickerPopupTest {
             assertEquals(RXColorFormat.RGB, picker.getFormat());
             assertTrue(picker.isShowing());
             assertNotNull(popup("rx-color-picker-popup"));
+        });
+    }
+
+    @Test
+    public void theFormatMenuKeepsAComfortableWidth() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            open();
+            click(popupView().lookup(".format-button"));
+            PopupControl menu = popup("rx-menu-popup");
+            assertNotNull(menu);
+            RXMenuList list = (RXMenuList) menu.getScene().getRoot().lookup(".rx-menu-list");
+            // Three-letter rows alone would make a sliver of a menu.
+            // The menu is in the default font; its rows use a smaller one.
+            double em = Font.getDefault().getSize();
+            assertEquals(4.0 * em, list.getMinWidth(), 0.5);
+            assertTrue(list.getWidth() >= 4.0 * em - 0.5);
         });
     }
 }

@@ -1100,24 +1100,27 @@ public class RXControlColorsTest {
             menu.put("text", ThemeColorSamples.hex(((Labeled) item.lookup(".label")).getTextFill()));
             menu.put("minWidth", String.valueOf(list.getMinWidth()));
             menu.put("ripple", String.valueOf(list.isRippleEnabled()));
+            menu.put("overlay", String.valueOf(list.isStateOverlayEnabled()));
         });
         String name = "popup menu under " + host;
         if (modena) {
-            // Modena's context menu: a square selection bar, focused text, no minimum, no ripple.
+            // Modena's context menu: a square selection bar, focused text, no minimum.
             assertEquals(expected.get("-fx-selection-bar"), menu.get("bar"), name + " selection bar");
             assertEquals(expected.get("-fx-focused-text-base-color"), menu.get("text"), name + " focused text");
             assertEquals("0.0", menu.get("radius"), name + " square bar");
             assertEquals(String.valueOf(Region.USE_COMPUTED_SIZE), menu.get("minWidth"), name + " minimum width");
-            assertEquals("false", menu.get("ripple"), name + " ripple");
         } else {
             // AtlantaFX's context menu: a rounded neutral highlight, unchanged text, no
-            // minimum; the ripple stays.
+            // minimum.
             assertEquals(expected.get(atlantaBar), menu.get("bar"), name + " neutral highlight");
             assertEquals(expected.get("-color-fg-default"), menu.get("text"), name + " text");
             assertEquals("5.0", menu.get("radius"), name + " rounded highlight");
             assertEquals(String.valueOf(Region.USE_COMPUTED_SIZE), menu.get("minWidth"), name + " minimum width");
-            assertEquals("true", menu.get("ripple"), name + " ripple");
         }
+        // The ripple stays; the highlight already marks the row under the pointer, so the
+        // hover / focus overlay would only darken it.
+        assertEquals("true", menu.get("ripple"), name + " ripple");
+        assertEquals("false", menu.get("overlay"), name + " hover / focus overlay");
     }
 
     // ==================== Focus rings ====================

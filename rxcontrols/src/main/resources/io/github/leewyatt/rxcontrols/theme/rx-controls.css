@@ -412,7 +412,7 @@
    here on purpose: the overlay fill is set in Java from -rx-ripple-fill (USER
    origin), so a UA color would fight it. */
 .state-overlay {
-    -rx-state-overlay-hover-opacity: 0.08;
+    -rx-state-overlay-hover-opacity: 0.04;
     -rx-state-overlay-focus-opacity: 0.10;
     -rx-state-overlay-pressed-opacity: 0.125;
     -rx-state-overlay-dragged-opacity: 0.16;
@@ -3945,12 +3945,13 @@
     -fx-background-color: transparent;
 }
 /* Popup menus are Modena's own context menu: compact rows, no minimum width, a square
-   selection bar with the focused text and mark colors, its check mark for check and
-   radio items, and no ripple. AtlantaFX keeps the Material menu (the rules after these).
-   Popup only; an inline .rx-menu-list keeps its own look. */
+   selection bar with the focused text and mark colors, and its check mark for check and
+   radio items. The ripple stays; the hover / focus overlay does not, since the selection
+   bar already marks the row under the pointer. AtlantaFX follows its own context menu
+   (the rules after these). Popup only; an inline .rx-menu-list keeps its own look. */
 .rx-menu-popup .rx-menu-list {
     -fx-padding: 0.333333em 0.083333em;
-    -rx-ripple-enabled: false;
+    -rx-ripple-enabled: true;
     -rx-ripple-state-overlay-enabled: false;
 }
 
@@ -3990,14 +3991,16 @@
     -fx-background-color: -rx-danger;
 }
 
+/* The color format menu lists three-letter names; it keeps a comfortable width. */
+.rx-menu-popup .rx-menu-list.color-format-menu {
+    -fx-min-width: 4em;
+}
+
 /* AtlantaFX: its own context menu instead (5px around the rows, rounded rows with a
-   neutral highlight, muted check marks), keeping the ripple. The resting rows carry a
-   transparent rounded fill so the ripple and its press overlay take the same corners
-   as the highlight. */
+   neutral highlight, muted check marks). The resting rows carry a transparent rounded
+   fill so the ripple takes the same corners as the highlight. */
 .rx-theme-atlantafx .rx-menu-popup .rx-menu-list {
     -fx-padding: 4px;
-    -rx-ripple-enabled: true;
-    -rx-ripple-state-overlay-enabled: true;
 }
 
 .rx-theme-atlantafx .rx-menu-popup .rx-menu-item {
