@@ -77,6 +77,39 @@ public class RXCascaderSkinTest {
     }
 
     /**
+     * Verifies a long path in a narrow field shortens the text, not the clear and
+     * arrow icons, which keep their preferred size.
+     *
+     * @throws InterruptedException if the FX task is interrupted
+     */
+    @Test
+    public void longPathTextDoesNotSqueezeTheIcons() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascader<String> cascader = new RXCascader<>();
+            cascader.setClearable(true);
+            cascader.setPrefWidth(160.0);
+            RXCascaderItem<String> country = new RXCascaderItem<>("Canada");
+            RXCascaderItem<String> state = new RXCascaderItem<>("British Columbia");
+            RXCascaderItem<String> city = new RXCascaderItem<>("Vancouver");
+            state.getChildren().add(city);
+            country.getChildren().add(state);
+            cascader.getRootItems().add(country);
+            cascader.select(city);
+
+            Scene scene = new Scene(new StackPane(cascader));
+            scene.getRoot().applyCss();
+            scene.getRoot().layout();
+
+            for (String selector : List.of(".clear-button > .graphic", ".arrow-button > .arrow")) {
+                Region icon = (Region) cascader.lookup(selector);
+                assertEquals(icon.snapSizeX(icon.prefWidth(-1)), icon.getWidth(), 1e-6, selector + " keeps its width");
+                assertEquals(icon.snapSizeY(icon.prefHeight(-1)), icon.getHeight(), 1e-6,
+                        selector + " keeps its height");
+            }
+        });
+    }
+
+    /**
      * Verifies the cascader follows ComboBox sizing: a fill container such as
      * {@link StackPane} must not stretch the field beyond its preferred size by
      * default.

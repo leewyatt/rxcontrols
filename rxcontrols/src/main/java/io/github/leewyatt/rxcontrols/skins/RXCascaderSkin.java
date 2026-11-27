@@ -109,12 +109,15 @@ public class RXCascaderSkin<T> extends RXSkinBase<RXCascader<T>> {
         textLabel.setMaxWidth(Double.MAX_VALUE);
 
         clearGraphic.getStyleClass().add("graphic");
+        // Min as well as max: a long path must shorten the text, not squeeze the icons.
+        clearGraphic.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         clearGraphic.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         clearGraphic.setMouseTransparent(true);
         clearButton.getStyleClass().add("clear-button");
         clearButton.getChildren().add(clearGraphic);
 
         arrow.getStyleClass().add("arrow");
+        arrow.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         arrow.setMouseTransparent(true);
         arrowButton.getStyleClass().add("arrow-button");
