@@ -169,7 +169,7 @@ public class RXColorPickerPopupTest {
     // ==================== Copy button ====================
 
     // The system clipboard is never written: the content is read from the factory,
-    // and actions are fired only at a disabled button, which copies nothing.
+    // and actions are fired only with no color, when there is nothing to copy.
     @Test
     public void theCopyButtonCopiesTheFormatTextAndNeverActs() throws InterruptedException {
         runOnFx(() -> {
@@ -195,11 +195,16 @@ public class RXColorPickerPopupTest {
             assertEquals("rgba(22, 119, 255, 0.5)", button.getContentFactory().get().getString());
 
             picker.setValue(null);
-            assertTrue(button.isDisabled());
+            assertFalse(button.isVisible());
+            assertFalse(button.isManaged());
+            assertEquals(hiddenWidth, picker.prefWidth(-1), 0.0);
+            assertTrue(button.getContentFactory().get().isEmpty());
             button.fireEvent(new ActionEvent());
             picker.fireEvent(copyKey());
             assertEquals(0, actions.get());
             assertFalse(picker.isShowing());
+            picker.setValue(Color.BLACK);
+            assertTrue(button.isVisible());
         });
     }
 
