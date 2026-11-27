@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.RXResources;
+import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -51,6 +52,9 @@ public class RXIconTest {
         if (!latch.await(5, TimeUnit.SECONDS)) {
             throw new AssertionError("JavaFX toolkit did not start");
         }
+        // Modena is installed when the first control class loads; these tests may
+        // build only regions, so pin it for the -fx-* colors the icon reads.
+        Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
     }
 
     // ==================== Defaults ====================
