@@ -95,10 +95,12 @@ public class IconPackGeneratorTest {
     public void commandLineOptionsAreParsed() {
         IconPackGenerator.Options options = IconPackGenerator.Options.parse(new String[]{
                 "--svg", "in", "--prefix", "mi", "--title", "Material Icons", "--package", "a.b",
-                "--class", "C", "--java-out", "src", "--resource-out", "out.txt", "--skip-unsupported"});
+                "--class", "C", "--java-out", "src", "--resource-out", "out.txt", "--skip-unsupported",
+                "--merge-outlines"});
         assertEquals(Path.of("in"), options.svgDir());
         assertEquals("mi", options.prefix());
         assertTrue(options.skipUnsupported());
+        assertTrue(options.mergeOutlines());
         assertEquals(Path.of("src", "a", "b", "C.java"), options.javaFile());
         assertThrows(NullPointerException.class, () -> IconPackGenerator.Options.parse(new String[]{"--svg", "in"}));
         assertThrows(IllegalArgumentException.class, () -> IconPackGenerator.Options.parse(new String[]{"--svg"}));
@@ -106,7 +108,7 @@ public class IconPackGeneratorTest {
 
     private IconPackGenerator.Options options(Path svgs, boolean skip) {
         return new IconPackGenerator.Options(svgs, "tg", "Test", "test.icons", "TestIcons",
-                folder.resolve("java"), folder.resolve("out").resolve("test.txt"), "Test <fixtures>", skip);
+                folder.resolve("java"), folder.resolve("out").resolve("test.txt"), "Test <fixtures>", skip, false);
     }
 
     private static void svg(Path folder, String name, String body) throws IOException {

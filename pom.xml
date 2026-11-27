@@ -24,6 +24,7 @@
         <module>rxcontrols</module>
         <module>tools/icon-generator</module>
         <module>rxcontrols-icons-material</module>
+        <module>rxcontrols-icons-bootstrap</module>
         <module>rxcontrols-samples</module>
     </modules>
 
@@ -92,6 +93,11 @@
             <dependency>
                 <groupId>io.github.leewyatt</groupId>
                 <artifactId>rxcontrols-icons-material</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.leewyatt</groupId>
+                <artifactId>rxcontrols-icons-bootstrap</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
