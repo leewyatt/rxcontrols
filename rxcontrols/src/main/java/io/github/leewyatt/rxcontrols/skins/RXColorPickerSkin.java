@@ -254,9 +254,11 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         RXColorPicker control = getSkinnable();
         Color value = control.getValue();
         swatch.showColor(value);
-        boolean copyVisible = control.isCopyButtonVisible() && value != null;
-        copyButton.setVisible(copyVisible);
-        copyButton.setManaged(copyVisible);
+        // With no color the button only hides, keeping its space, so clearing the
+        // color does not resize the picker.
+        boolean copyEnabled = control.isCopyButtonVisible();
+        copyButton.setManaged(copyEnabled);
+        copyButton.setVisible(copyEnabled && value != null);
         boolean showText = control.isShowText();
         text.setVisible(showText);
         text.setManaged(showText);
@@ -445,7 +447,7 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
             return;
         }
         if (COPY_KEY.match(event)) {
-            if (copyButton.isManaged()) {
+            if (copyButton.isVisible()) {
                 event.consume();
                 copyButton.fire();
             }

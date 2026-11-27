@@ -313,7 +313,8 @@ public class RXColorPicker extends Control {
      * Whether a copy button after the swatch is shown. It copies the color as
      * text in the {@link #formatProperty() format}, the same text
      * {@link #showTextProperty() showText} displays; with no color there is
-     * nothing to copy and the button is hidden. While it is shown, Shortcut+C (Ctrl+C, or Cmd+C on macOS) on the
+     * nothing to copy and the button is hidden but keeps its space, so the
+     * picker does not change width. While it is shown, Shortcut+C (Ctrl+C, or Cmd+C on macOS) on the
      * picker copies as well; the button itself takes no keyboard focus.
      * Copying fires no action. Defaults to {@code false}.
      *

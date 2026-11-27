@@ -186,7 +186,8 @@ public class RXColorPickerPopupTest {
             assertTrue(button.isVisible());
             assertTrue(button.isManaged());
             assertFalse(button.isFocusTraversable());
-            assertTrue(picker.prefWidth(-1) > hiddenWidth);
+            double shownWidth = picker.prefWidth(-1);
+            assertTrue(shownWidth > hiddenWidth);
             picker.getParent().layout();
             assertTrue(button.getWidth() > 0.0);
             assertEquals(button.getWidth(), button.getHeight(), 0.0);
@@ -196,8 +197,8 @@ public class RXColorPickerPopupTest {
 
             picker.setValue(null);
             assertFalse(button.isVisible());
-            assertFalse(button.isManaged());
-            assertEquals(hiddenWidth, picker.prefWidth(-1), 0.0);
+            assertTrue(button.isManaged());
+            assertEquals(shownWidth, picker.prefWidth(-1), 0.0);
             assertTrue(button.getContentFactory().get().isEmpty());
             button.fireEvent(new ActionEvent());
             picker.fireEvent(copyKey());
