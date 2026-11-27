@@ -183,6 +183,8 @@ public class RXSelectionBoxSkin<T> extends RXSkinBase<RXSelectionBox<T>> {
         HBox.setHgrow(summaryLabel, Priority.ALWAYS);
 
         arrow.getStyleClass().add("arrow");
+        // Min as well as max: a long summary must shorten the text, not squeeze the arrow.
+        arrow.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         arrow.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         arrow.setMouseTransparent(true);
         arrowButton.getStyleClass().add("arrow-button");
