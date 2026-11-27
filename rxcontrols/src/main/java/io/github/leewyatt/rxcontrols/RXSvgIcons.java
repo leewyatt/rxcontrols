@@ -30,6 +30,11 @@ import java.util.Objects;
  * non-zero and even-odd fill rules. Document type declarations and external
  * entities are not processed.</p>
  *
+ * <p>The elements are joined, not merged: where two of them overlap, the even-odd
+ * rule, or two outlines drawn in opposite directions under the non-zero rule,
+ * leave a hole. Export such an icon as one combined path, or merge the overlapping
+ * shapes in the design tool first.</p>
+ *
  * <pre>{@code
  * RXIconData logo = RXSvgIcons.read("app-logo", Path.of("icons/logo.svg"));
  * RXIcons.register(logo);
