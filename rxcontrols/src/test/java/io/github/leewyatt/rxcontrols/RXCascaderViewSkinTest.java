@@ -1496,6 +1496,32 @@ public class RXCascaderViewSkinTest {
         });
     }
 
+    @Test
+    public void expandingABranchKeepsTheRippleOfThePressThatOpenedIt() throws InterruptedException {
+        runOnFx(() -> {
+            RXCascaderItem<String> branch = item("branch");
+            branch.getChildren().add(item("child"));
+            RXCascaderView<String> view = new RXCascaderView<>();
+            view.getRootItems().setAll(List.of(branch, item("leaf")));
+            Scene scene = new Scene(new StackPane(view), 420, 240);
+            relayout(scene);
+            ListView<?> rootColumn = (ListView<?>) view.lookup(".column0");
+            RXCascaderCell<?> cell = (RXCascaderCell<?>) filledCell(rootColumn, branch);
+            RippleLayer layer = (RippleLayer) cell.getChildrenUnmodifiable().get(0);
+            int idle = layer.getChildrenUnmodifiable().size();
+
+            press(cell);
+            mouse(cell, MouseEvent.MOUSE_RELEASED);
+            mouse(cell, MouseEvent.MOUSE_CLICKED);
+            relayout(scene);
+
+            assertEquals(2, columnCount(view), "precondition: the click opened the branch");
+            assertSame(rootColumn, view.lookup(".column0"), "precondition: the root column is kept");
+            assertTrue(layer.getChildrenUnmodifiable().size() > idle,
+                    "opening the child column must not cut the ripple short");
+        });
+    }
+
     private static void press(Node node) {
         mouse(node, MouseEvent.MOUSE_PRESSED);
     }
