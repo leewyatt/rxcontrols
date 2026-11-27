@@ -63,17 +63,53 @@ public final class SvgOutlineMerger {
      *                                  the merged outline does not draw like the original
      */
     public static RXIconData merge(String name, Path file) throws IOException {
+        Elements elements = read(file);
+        Area union = new Area();
+        for (Shape shape : elements.filled()) {
+            union.add(new Area(shape));
+        }
+        String outline = outline(union);
+        int different = different(elements, outline, Path2D.WIND_NON_ZERO);
+        if (different > MAX_DIFFERENT_PIXELS) {
+            throw new IllegalArgumentException("The merged outline differs from the original in "
+                    + different + " pixels away from the edges");
+        }
+        double[] viewBox = elements.viewBox();
+        return new RXIconData(name, viewBox[0], viewBox[1], viewBox[2], viewBox[3], outline, FillRule.NON_ZERO);
+    }
+
+    /**
+     * Tells whether icon data draws like the elements of an SVG file, each filled
+     * with its own rule. Joining elements into one path changes the drawing when
+     * they overlap: with the even-odd rule, or with opposite directions under the
+     * non-zero rule, the overlap becomes a hole.
+     *
+     * @param data the icon data read from the file
+     * @param file the SVG file
+     * @return whether the drawings match away from the edges
+     * @throws IOException              if the file cannot be read
+     * @throws IllegalArgumentException if the file has content this class does not handle
+     */
+    public static boolean drawsLikeTheFile(RXIconData data, Path file) throws IOException {
+        int rule = data.getFillRule() == FillRule.EVEN_ODD ? Path2D.WIND_EVEN_ODD : Path2D.WIND_NON_ZERO;
+        return different(read(file), data.getPath(), rule) <= MAX_DIFFERENT_PIXELS;
+    }
+
+    private record Elements(double[] viewBox, List<Shape> filled) {
+    }
+
+    private static Elements read(Path file) throws IOException {
         try (InputStream in = Files.newInputStream(file)) {
             XMLInputFactory factory = XMLInputFactory.newFactory();
             factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
             factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
-            return merge(name, factory.createXMLStreamReader(in));
+            return read(factory.createXMLStreamReader(in));
         } catch (XMLStreamException error) {
             throw new IllegalArgumentException("Not valid SVG markup: " + error.getMessage(), error);
         }
     }
 
-    private static RXIconData merge(String name, XMLStreamReader xml) throws XMLStreamException {
+    private static Elements read(XMLStreamReader xml) throws XMLStreamException {
         double[] viewBox = null;
         Deque<State> states = new ArrayDeque<>();
         List<Shape> filled = new ArrayList<>();
@@ -125,13 +161,7 @@ public final class SvgOutlineMerger {
         if (viewBox == null || filled.isEmpty()) {
             throw new IllegalArgumentException("The SVG has no filled shape");
         }
-        Area union = new Area();
-        for (Shape shape : filled) {
-            union.add(new Area(shape));
-        }
-        String outline = outline(union);
-        check(filled, outline, viewBox);
-        return new RXIconData(name, viewBox[0], viewBox[1], viewBox[2], viewBox[3], outline, FillRule.NON_ZERO);
+        return new Elements(viewBox, filled);
     }
 
     // ==================== Elements ====================
@@ -226,8 +256,10 @@ public final class SvgOutlineMerger {
         return text.equals("-0") ? "0" : text;
     }
 
-    // Draws the original elements and the merged outline and compares the pixels.
-    private static void check(List<Shape> original, String outline, double[] viewBox) {
+    // Draws the original elements and the given path and counts the pixels that differ.
+    private static int different(Elements elements, String path, int windingRule) {
+        List<Shape> original = elements.filled();
+        double[] viewBox = elements.viewBox();
         BufferedImage expected = new BufferedImage(CHECK_SIZE, CHECK_SIZE, BufferedImage.TYPE_BYTE_GRAY);
         BufferedImage actual = new BufferedImage(CHECK_SIZE, CHECK_SIZE, BufferedImage.TYPE_BYTE_GRAY);
         AffineTransform toImage = AffineTransform.getScaleInstance(CHECK_SIZE / viewBox[2], CHECK_SIZE / viewBox[3]);
@@ -235,10 +267,10 @@ public final class SvgOutlineMerger {
         Graphics2D g = graphics(expected, toImage);
         original.forEach(g::fill);
         g.dispose();
-        Path2D merged = new Path2D.Double(Path2D.WIND_NON_ZERO);
-        merged.append(SvgPathParser.parse(outline), false);
+        Path2D drawn = new Path2D.Double(windingRule);
+        drawn.append(SvgPathParser.parse(path), false);
         g = graphics(actual, toImage);
-        g.fill(merged);
+        g.fill(drawn);
         g.dispose();
         // Curves are flattened a little differently once Area has split them, so
         // pixels on an edge may differ, and a hair-thin tip may cover a pixel center
@@ -252,10 +284,7 @@ public final class SvgOutlineMerger {
                 }
             }
         }
-        if (different > MAX_DIFFERENT_PIXELS) {
-            throw new IllegalArgumentException("The merged outline differs from the original in "
-                    + different + " pixels away from the edges");
-        }
+        return different;
     }
 
     private static boolean awayFromEdges(BufferedImage image, int x, int y) {

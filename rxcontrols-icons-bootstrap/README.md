@@ -26,9 +26,10 @@ RXIcon alarm = new RXIcon(RXBootstrapIcons.ALARM);   // "bi-alarm"
 
 ## Differences from the SVG files
 
-- `RXIcon` fills one path with one fill rule. 96 icons draw some parts with the non-zero rule
-  and others with the even-odd rule (or, in one case, with a transform); the generator merges
-  the parts of each into one outline and checks that it draws like the original.
+- `RXIcon` fills one path with one fill rule. 97 icons cannot be joined into one path as they
+  are: they draw some parts with the non-zero rule and others with the even-odd rule, use a
+  transform, or repeat a part (`cc-square`). The generator merges the parts of each into one
+  outline and checks that it draws like the original.
 - `opencollective` is left out: it is a two-tone logo, and `RXIcon` has one color.
 
 ## License

@@ -93,6 +93,21 @@ public class SvgOutlineMergerTest {
     }
 
     @Test
+    public void overlappingElementsAreDetectedAndMerged() throws IOException {
+        // The same even-odd square twice: joined into one path, the copies cancel out.
+        Path file = svg("twice.svg", "<path fill-rule=\"evenodd\" d=\"M4 4h16v16H4z\"/>"
+                + "<path fill-rule=\"evenodd\" d=\"M4 4h16v16H4z\"/>");
+        RXIconData joined = RXSvgIcons.read("t", file);
+        assertFalse(SvgOutlineMerger.drawsLikeTheFile(joined, file));
+        RXIconData merged = SvgOutlineMerger.merge("t", file);
+        assertTrue(SvgOutlineMerger.drawsLikeTheFile(merged, file));
+        assertTrue(SvgPathParser.parse(merged.getPath()).contains(12, 12));
+
+        Path apart = svg("apart.svg", "<path d=\"M1 1h4v4H1z\"/><path d=\"M10 10h4v4h-4z\"/>");
+        assertTrue(SvgOutlineMerger.drawsLikeTheFile(RXSvgIcons.read("t", apart), apart));
+    }
+
+    @Test
     public void partialOpacityIsStillRejected() throws IOException {
         Path file = svg("two-tone.svg", "<path fill-opacity=\".4\" d=\"M1 1h4v4H1z\"/><path d=\"M6 6h4v4H6z\"/>");
         assertThrows(IllegalArgumentException.class, () -> SvgOutlineMerger.merge("t", file));
@@ -112,7 +127,7 @@ public class SvgOutlineMergerTest {
         IconPackGenerator.Result result = IconPackGenerator.generate(merging);
         assertEquals(List.of("mixed"), result.merged());
         assertTrue(Files.readString(folder.resolve("t.txt"), StandardCharsets.UTF_8)
-                .contains("merged into one outline because they mix fill rules or use transforms: 1"));
+                .contains("merged into one outline because they mix fill rules, use transforms or overlap: 1"));
     }
 
     private Path svg(String name, String body) throws IOException {

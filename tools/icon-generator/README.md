@@ -29,8 +29,13 @@ underscores (`ACCOUNT_CIRCLE`), with a leading underscore when the name starts w
 | `--skip-unsupported` | optional: skip files that cannot be converted |
 | `--merge-outlines` | optional: merge icons whose elements mix fill rules or use transforms |
 
+Every icon the library reads is also drawn next to the original file, each element filled with
+its own rule. Joining elements into one path changes the drawing when they overlap (with the
+even-odd rule, or in opposite directions under the non-zero rule, the overlap becomes a hole);
+such an icon is treated like an unsupported one.
+
 `--merge-outlines` handles icons the library cannot show as one path because their elements use
-different fill rules, or transforms. Each element is filled with its own rule and transform, the
+different fill rules or transforms, or overlap. Each element is filled with its own rule and transform, the
 results are united with `java.awt.geom.Area`, and the outline is written as one path with the
 non-zero rule. Both versions are drawn at 128 x 128 pixels and compared; pixels on an edge may
 differ (curves are flattened differently after the union), but more than 8 pixels away from the
