@@ -2146,7 +2146,6 @@
 .rx-cascader > .display > .arrow-button {
     -fx-alignment: center;
     -fx-padding: 0.333333em; /* 4 */
-    -fx-cursor: hand;
     -fx-background-color: transparent;
 }
 
@@ -4748,12 +4747,10 @@
     -fx-background-radius: 3px, 3px, 2px, 1px;
     -fx-padding: 0.333333em 0.333333em 0.333333em 0.666667em; /* 4 4 4 8 */
     -fx-spacing: 0.5em; /* 6 */
-    -fx-cursor: hand;
 }
 
 .rx-selection-box:readonly > .display {
     -fx-opacity: 0.75;
-    -fx-cursor: default;
 }
 
 .rx-selection-box:disabled {
@@ -5549,7 +5546,6 @@
 .rx-picker > .suffix {
     -fx-padding: 0 0.583em 0 0.416667em;
     -fx-background-color: transparent;
-    -fx-cursor: hand;
 }
 
 .rx-picker > .suffix > .icon {
@@ -6092,7 +6088,6 @@
     /* Modena's text field padding: the swatch is one line of text, so the picker is as
        tall as a text field. */
     -fx-padding: 0.333333em;
-    -fx-cursor: hand;
 }
 
 .rx-color-picker:hover {

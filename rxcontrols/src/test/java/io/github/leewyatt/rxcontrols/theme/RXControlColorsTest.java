@@ -97,6 +97,7 @@ import java.util.function.Supplier;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -1005,6 +1006,28 @@ public class RXControlColorsTest {
         assertPickerHeight("default Modena", Application.STYLESHEET_MODENA, scene -> { });
         assertPickerHeight("Primer Light", new PrimerLight().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install);
         assertPickerHeight("Primer Dark", new PrimerDark().getUserAgentStylesheet(), RXAtlantaFXThemeBridge::install);
+    }
+
+    @Test
+    public void dropDownFieldsSetNoCursorAsTheNativeComboBoxDoes() throws Exception {
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
+            RXCascader cascader = new RXCascader();
+            RXDatePicker datePicker = new RXDatePicker();
+            RXColorPicker colorPicker = new RXColorPicker();
+            VBox root = new VBox(cascader, datePicker, colorPicker);
+            new Scene(root, 600, 400);
+            root.applyCss();
+            Map<String, Node> parts = new LinkedHashMap<>();
+            parts.put("cascader clear button", cascader.lookup(".clear-button"));
+            parts.put("cascader arrow button", cascader.lookup(".arrow-button"));
+            parts.put("date picker suffix", datePicker.lookup(".suffix"));
+            parts.put("color picker", colorPicker);
+            parts.forEach((name, part) -> {
+                assertNotNull(part, name + " should exist");
+                assertNull(part.getCursor(), name + " keeps the default cursor");
+            });
+        });
     }
 
     @Test

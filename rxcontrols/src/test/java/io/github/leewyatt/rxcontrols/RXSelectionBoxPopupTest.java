@@ -4,7 +4,6 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -630,14 +629,14 @@ public class RXSelectionBoxPopupTest {
     }
 
     @Test
-    public void readOnlyDisplayUsesTheDefaultCursor() throws InterruptedException {
+    public void displayKeepsTheDefaultCursorAsTheNativeComboBoxDoes() throws InterruptedException {
         runOnFx(() -> {
             RXSelectionBox<String> box = newShownBox("a", "b");
             Node display = box.lookup(".display");
-            assertEquals(Cursor.HAND, display.getCursor(), "precondition: an editable box shows a hand");
+            assertNull(display.getCursor(), "an editable box sets no cursor");
             box.setReadOnly(true);
             box.applyCss();
-            assertEquals(Cursor.DEFAULT, display.getCursor(), "a read-only box does not invite a click");
+            assertNull(display.getCursor(), "a read-only box sets no cursor");
         });
     }
 
