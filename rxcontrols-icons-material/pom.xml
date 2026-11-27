@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.leewyatt</groupId>
+        <artifactId>rxcontrols-parent</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>rxcontrols-icons-material</artifactId>
+    <packaging>jar</packaging>
+
+    <name>rxcontrols-icons-material</name>
+    <description>Material Icons (filled) for RXIcon, by Google, under the Apache License 2.0.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.leewyatt</groupId>
+            <artifactId>rxcontrols</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+                <configuration>
+                    <!-- The tests check fill rules; the pack itself never touches JavaFX types. -->
+                    <argLine>--add-reads rxcontrols.icons.material=javafx.graphics</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
