@@ -26,14 +26,6 @@
             <artifactId>rxcontrols</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.github.leewyatt</groupId>
-            <artifactId>rxcontrols-icons-material</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.leewyatt</groupId>
-            <artifactId>rxcontrols-icons-bootstrap</artifactId>
-        </dependency>
-        <dependency>
             <groupId>io.github.mkpaz</groupId>
             <artifactId>atlantafx-base</artifactId>
         </dependency>
