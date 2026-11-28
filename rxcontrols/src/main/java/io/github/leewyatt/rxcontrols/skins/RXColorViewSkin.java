@@ -372,14 +372,13 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
             baseline = control.getValue();
             pending = true;
         }
-        if (!Objects.equals(color, control.getValue())) {
+        if (Objects.equals(color, control.getValue())) {
+            // The value stays, but the cursor may have moved (the hue on a gray).
+            refresh();
+        } else {
+            // The value listener refreshes the panel.
             control.setValue(color);
-            // A value listener may have replaced this skin.
-            if (disposed) {
-                return;
-            }
         }
-        refresh();
     }
 
     private void discreteEdit(Runnable edit) {
