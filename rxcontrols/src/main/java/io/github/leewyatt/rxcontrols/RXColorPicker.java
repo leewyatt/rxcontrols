@@ -44,9 +44,13 @@ import java.util.List;
  * {@link RXColorView} in a popup.
  *
  * <p><b>Value.</b> Edits in the popup write the {@link #valueProperty() value}
- * live, as in the view: there is no draft and nothing to confirm. Closing the
- * popup, by any route, neither commits nor reverts. {@code null} means no
- * color; it shows a slashed swatch. Defaults to {@link Color#WHITE}.
+ * live, as in the view: there is no draft and nothing to confirm, so closing
+ * the popup neither commits nor reverts what has been written. Text the user
+ * is still typing in a field and has not applied yet is the one difference
+ * between the ways to close: Escape drops it, while any other close finishes it
+ * as leaving the field does (three or four digit hex is accepted, numbers out
+ * of range are clamped, text that is not a value is dropped). {@code null}
+ * means no color; it shows a slashed swatch. Defaults to {@link Color#WHITE}.
  *
  * <p><b>Events.</b> {@link #onActionProperty() onAction} fires once for each
  * completed user edit that changed the value, with the view's rules: a drag on
