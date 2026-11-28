@@ -56,8 +56,8 @@ import java.util.List;
  * so the handler may open it again. Setting the value from code fires nothing.
  * While the value is bound the popup takes no input.
  *
- * <p><b>Keyboard.</b> On the picker, Space, Down, Alt+Down and F4 open the
- * popup; Enter is left to the form's default button. While the popup is open,
+ * <p><b>Keyboard.</b> On the picker, Space, Down, Alt+Down, Alt+Up and F4 open
+ * the popup; Enter is left to the form's default button. While the popup is open,
  * Escape, F4 and Alt+Up close it and return the focus to the picker. Focus
  * moves into the popup when it opens; Tab cycles inside it. With the
  * {@link #copyButtonVisibleProperty() copy button} shown, Shortcut+C copies
@@ -66,7 +66,8 @@ import java.util.List;
  * <p>CSS: style class {@code rx-color-picker}, pseudo-classes {@code :showing}
  * and {@code :empty}; the {@code .display} holds the {@code .swatch} and the
  * {@code .text}, followed by the {@code .copy-button} (an
- * {@link RXCopyButton}). A press on the picker plays a ripple, styled with
+ * {@link RXCopyButton}) and the {@code .arrow-button} holding the {@code .arrow}.
+ * A press on the picker plays a ripple, styled with
  * {@code -rx-ripple-fill}, {@code -rx-ripple-opacity}, {@code -rx-ripple-enabled}
  * and {@code -rx-ripple-state-overlay-enabled}. The popup has style class {@code rx-color-picker-popup} and
  * hosts an {@code .rx-color-view} on the card every popup shares ({@code .rx-popup});
@@ -357,6 +358,41 @@ public class RXColorPicker extends Control {
      */
     public final void setCopyButtonVisible(boolean value) {
         copyButtonVisible.set(value);
+    }
+
+    // ==================== Arrow Visible ====================
+
+    private final BooleanProperty arrowVisible = new SimpleBooleanProperty(this, "arrowVisible", true);
+
+    /**
+     * Whether a drop-down arrow is shown at the end of the picker, after the copy
+     * button, as on a combo box. Like the combo box's, it marks the picker as one
+     * that opens a popup and keeps pointing down while the popup is open. Hide it
+     * for a compact swatch. The whole picker opens the popup either way. Defaults to
+     * {@code true}.
+     *
+     * @return the arrow-visible property
+     */
+    public final BooleanProperty arrowVisibleProperty() {
+        return arrowVisible;
+    }
+
+    /**
+     * Returns whether the drop-down arrow is shown.
+     *
+     * @return {@code true} if the arrow is shown
+     */
+    public final boolean isArrowVisible() {
+        return arrowVisible.get();
+    }
+
+    /**
+     * Sets whether the drop-down arrow is shown.
+     *
+     * @param value {@code true} to show the arrow
+     */
+    public final void setArrowVisible(boolean value) {
+        arrowVisible.set(value);
     }
 
     // ==================== Prompt Text ====================

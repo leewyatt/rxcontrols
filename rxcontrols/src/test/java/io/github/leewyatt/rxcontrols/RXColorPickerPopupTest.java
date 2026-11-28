@@ -13,6 +13,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.PopupControl;
+import javafx.scene.control.SkinBase;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -121,6 +122,11 @@ public class RXColorPickerPopupTest {
         assertTrue(picker.isShowing());
     }
 
+    private void relayout() {
+        picker.getScene().getRoot().applyCss();
+        picker.getScene().getRoot().layout();
+    }
+
     // ==================== Defaults ====================
 
     @Test
@@ -150,7 +156,8 @@ public class RXColorPickerPopupTest {
             picker.setShowText(true);
             picker.setPromptText("None");
             List<Color> values = List.of(Color.WHITE, Color.BLACK, Color.web("#1677FF"), Color.web("#DDDDDD"),
-                    Color.web("#111111"), Color.rgb(22, 119, 255, 128 / 255.0), Color.rgb(0, 0, 0, 0.01));
+                    Color.web("#111111"), Color.rgb(22, 119, 255, 128 / 255.0), Color.rgb(0, 0, 0, 0.01),
+                    Color.rgb(200, 200, 200, 254 / 255.0), Color.rgb(200, 200, 200, 1 / 255.0));
             for (RXColorFormat format : RXColorFormat.values()) {
                 picker.setFormat(format);
                 Double width = null;
@@ -167,6 +174,64 @@ public class RXColorPickerPopupTest {
                 picker.applyCss();
                 assertEquals(width, picker.prefWidth(-1), 0.0, format + " prompt");
             }
+        });
+    }
+
+    // The copy button sits at the right edge; a shorter text must still narrow the
+    // laid-out picker, not just its preferred width.
+    @Test
+    public void thePickerNarrowsWhenItsTextGetsShorterBesideTheCopyButton() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker(Color.web("#1677FF")));
+            picker.setCopyButtonVisible(true);
+            picker.setShowText(true);
+            picker.setFormat(RXColorFormat.RGB);
+            relayout();
+            double rgbWidth = picker.getWidth();
+
+            picker.setFormat(RXColorFormat.HEX);
+            relayout();
+            assertTrue(picker.getWidth() < rgbWidth, "a shorter format narrows the picker");
+            assertEquals(picker.prefWidth(-1), picker.getWidth(), 0.0);
+
+            picker.setShowText(false);
+            relayout();
+            assertEquals(picker.prefWidth(-1), picker.getWidth(), 0.0, "without text only the swatch and the button");
+        });
+    }
+
+    // ==================== Arrow ====================
+
+    @Test
+    public void theArrowComesLastByDefaultStaysWhileOpenAndCanBeHidden() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            picker.setCopyButtonVisible(true);
+            relayout();
+            Region arrowButton = (Region) picker.lookup(".arrow-button");
+            Node arrow = arrowButton.lookup(".arrow");
+            Node copy = picker.lookup(".copy-button");
+            double end = picker.getWidth() - picker.snappedRightInset();
+            assertTrue(picker.isArrowVisible());
+            assertTrue(arrowButton.isVisible() && arrowButton.isManaged());
+            assertEquals(end, arrowButton.getBoundsInParent().getMaxX(), 0.5, "the arrow comes last");
+            assertTrue(copy.getBoundsInParent().getMaxX() < arrowButton.getBoundsInParent().getMinX(),
+                    "the copy button comes before it");
+            assertEquals(0.0, arrow.getRotate(), 0.0);
+
+            open();
+            picker.applyCss();
+            assertEquals(0.0, arrow.getRotate(), 0.0, "it keeps pointing down, as on a combo box");
+            picker.hide();
+
+            double withArrow = picker.getWidth();
+            double arrowWidth = arrowButton.prefWidth(-1);
+            picker.setArrowVisible(false);
+            relayout();
+            assertFalse(arrowButton.isVisible() || arrowButton.isManaged());
+            assertEquals(withArrow - 4.0 - arrowWidth, picker.getWidth(), 0.5, "the arrow and its gap are gone");
+            assertEquals(picker.getWidth() - picker.snappedRightInset(), copy.getBoundsInParent().getMaxX(), 0.5,
+                    "the copy button takes the end");
         });
     }
 
@@ -531,6 +596,50 @@ public class RXColorPickerPopupTest {
     }
 
     // ==================== Skin ====================
+
+    @Test
+    public void aSkinRemovedByAValueListenerStopsAfterThePopupEdit() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            picker.setClearable(true);
+            open();
+            Node clear = popupView().lookup(".clear-button");
+            picker.valueProperty().addListener((obs, old, value) -> picker.setSkin(null));
+            List<Throwable> errors = uncaughtDuring(() -> click(clear));
+            assertTrue(errors.isEmpty(), errors.toString());
+            assertNull(picker.getValue());
+        });
+    }
+
+    @Test
+    public void aSkinRemovedWhenThePopupOpensStopsBeforeItsRipple() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            picker.showingProperty().addListener((obs, was, is) -> {
+                if (is) {
+                    picker.setSkin(null);
+                }
+            });
+            List<Throwable> errors = uncaughtDuring(() -> key(picker, KeyCode.SPACE, false));
+            assertTrue(errors.isEmpty(), errors.toString());
+            assertNull(picker.getSkin());
+        });
+    }
+
+    @Test
+    public void aSkinOfAnotherClassFindsOnlyItsOwnNodes() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            picker.setCopyButtonVisible(true);
+            Label other = new Label("other");
+            picker.setSkin(new SkinBase<RXColorPicker>(picker) {
+                {
+                    getChildren().add(other);
+                }
+            });
+            assertEquals(List.of(other), picker.getChildrenUnmodifiable());
+        });
+    }
 
     @Test
     public void aReplacedSkinReopensThePopup() throws InterruptedException {

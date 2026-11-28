@@ -2167,10 +2167,6 @@
     -fx-shape: "M 0 0 L 8 0 L 4 5 Z";
 }
 
-.rx-cascader:showing > .display > .arrow-button > .arrow {
-    -fx-rotate: 180;
-}
-
 .rx-cascader-view {
     -rx-focus-fill: -fx-control-inner-background;
     -fx-background-color: -fx-control-inner-background;
@@ -4203,10 +4199,6 @@
     -fx-shape: "M 0 0 h 7 l -3.5 4 z";
 }
 
-.rx-menu-button:showing > .arrow {
-    -fx-rotate: 180;
-}
-
 .rx-menu-button:disabled {
     -fx-opacity: 0.4;
 }
@@ -4777,10 +4769,6 @@
     -fx-pref-width: 0.666667em; /* 8 */
     -fx-pref-height: 0.333333em; /* 4 */
     -fx-shape: "M 0 0 h 7 l -3.5 4 z";
-}
-
-.rx-selection-box:showing > .display > .arrow-button > .arrow {
-    -fx-rotate: 180;
 }
 
 /* AtlantaFX: the flat outlined field of its combo box, padded as its text field
@@ -5982,10 +5970,6 @@
     -fx-shape: "M 0 0 L 8 0 L 4 5 Z";
 }
 
-.rx-color-view .clear-button {
-    -fx-cursor: hand;
-}
-
 .rx-color-view .clear-button:hover > .outline,
 .rx-color-view .clear-button:focus-shown > .outline {
     -fx-border-color: -rx-focus;
@@ -6035,10 +6019,6 @@
 .rx-color-view .presets .rx-titled-pane > .body {
     -fx-border-width: 0;
     -fx-padding: 0.333333em 0 0.5em 0;
-}
-
-.rx-color-view .preset {
-    -fx-cursor: hand;
 }
 
 .rx-color-view .preset:focused > .outline {
@@ -6153,6 +6133,19 @@
     -fx-background-insets: 0.153846em 0.019231em 0.153846em 0.019231em;
 }
 
+.rx-color-picker > .arrow-button {
+    -fx-padding: 0.333333em; /* 4 */
+    -fx-background-color: transparent;
+}
+
+.rx-color-picker > .arrow-button > .arrow {
+    -fx-background-color: -fx-mark-highlight-color, -fx-mark-color;
+    -fx-background-insets: 0 0 -1 0, 0;
+    -fx-pref-width: 0.666667em; /* 8 */
+    -fx-pref-height: 0.333333em; /* 4 */
+    -fx-shape: "M 0 0 h 7 l -3.5 4 z";
+}
+
 .rx-color-picker:disabled {
     -fx-opacity: 0.4;
 }
@@ -6175,6 +6168,20 @@
 .rx-theme-atlantafx .rx-color-picker > .display > .text,
 .rx-theme-atlantafx.rx-color-picker > .display > .text {
     -fx-text-fill: -rx-on-surface;
+}
+
+.rx-theme-atlantafx .rx-color-picker > .arrow-button,
+.rx-theme-atlantafx.rx-color-picker > .arrow-button {
+    -fx-padding: 0 4px;
+}
+
+.rx-theme-atlantafx .rx-color-picker > .arrow-button > .arrow,
+.rx-theme-atlantafx.rx-color-picker > .arrow-button > .arrow {
+    -fx-background-color: -color-fg-muted;
+    -fx-background-insets: 0;
+    -fx-pref-width: 10px;
+    -fx-pref-height: 5px;
+    -fx-shape: "M7 10l5 5 5-5z";
 }
 
 /*******************************************************************************

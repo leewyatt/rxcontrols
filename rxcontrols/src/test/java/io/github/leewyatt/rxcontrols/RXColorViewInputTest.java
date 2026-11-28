@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.color.ColorMath;
 import javafx.event.ActionEvent;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.PopupControl;
 import javafx.scene.control.TextField;
@@ -17,10 +18,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.hasPseudoClass;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.runOnFx;
+import static io.github.leewyatt.rxcontrols.PickerTestSupport.uncaughtDuring;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -243,6 +246,19 @@ public class RXColorViewInputTest {
     // ==================== Actions ====================
 
     @Test
+    public void aSkinRemovedByAValueListenerLeavesTheFinishingFieldAlone() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorView());
+            TextField hex = (TextField) view.lookup(".hex-field");
+            type(hex, "abc");
+            view.valueProperty().addListener((obs, old, value) -> view.setSkin(null));
+            List<Throwable> errors = uncaughtDuring(() -> key(hex, KeyCode.ENTER, false));
+            assertTrue(errors.isEmpty(), errors.toString());
+            assertEquals(Color.web("#AABBCC"), view.getValue());
+        });
+    }
+
+    @Test
     public void aFieldsOwnActionNeverReachesTheView() throws InterruptedException {
         runOnFx(() -> {
             show(new RXColorView(Color.web("#1677ff")));
@@ -275,7 +291,7 @@ public class RXColorViewInputTest {
     public void theFormatButtonOpensAMenu() throws InterruptedException {
         runOnFx(() -> {
             show(new RXColorView());
-            javafx.scene.Node button = view.lookup(".format-button");
+            Node button = view.lookup(".format-button");
             assertNotNull(button);
             button.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, MouseButton.PRIMARY, 1,
                     false, false, false, false, false, false, false, true, false, false, null));

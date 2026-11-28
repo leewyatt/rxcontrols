@@ -7,9 +7,11 @@ import io.github.leewyatt.rxcontrols.internal.color.ColorSwatch;
 import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
+import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -29,10 +31,12 @@ import java.util.Map;
  * flow of swatches, under a collapsible {@link RXTitledPane} header when the
  * group has a label.
  *
- * <p>Each group's swatches are one Tab stop: the arrow keys move a keyboard
- * cursor (the {@code :focused} pseudo-class on a swatch, shown from the first
- * navigation key), Home / End jump to the ends, Enter / Space pick. A click
- * picks the swatch under the pointer. Group nodes are reused while the same
+ * <p>Each group's swatches are one Tab stop with a keyboard cursor (the
+ * {@code :focused} pseudo-class on a swatch). It shows on the selected swatch,
+ * or the first, when the group gets the focus other than by a click; after a
+ * click it shows from the first navigation key. The arrow keys move it, Home /
+ * End jump to the ends, Enter / Space pick. A click picks the swatch under the
+ * pointer. Group nodes are reused while the same
  * group instance stays in the list, so a group keeps its expanded state; input
  * handlers sit on the section's container, never on the rebuilt nodes.
  */
@@ -42,6 +46,9 @@ final class ColorPresetSection extends ScrollPane {
 
     /** What the section needs from the view's skin. */
     interface Host {
+
+        /** Whether the skin has been disposed. */
+        boolean disposed();
 
         /** The current value, or {@code null}. */
         Color value();
@@ -91,6 +98,13 @@ final class ColorPresetSection extends ScrollPane {
         return Orientation.HORIZONTAL;
     }
 
+    // Never takes the focus: the scroll pane's behavior requests it on every press,
+    // which would pull it off the swatch group the press has just focused, and the
+    // arrow keys would then scroll the section instead of moving the cursor.
+    @Override
+    public void requestFocus() {
+    }
+
     /** Wires input and the preset list; everything is released when the disposer runs. */
     void install(SkinDisposer disposer, ObservableList<RXColorPresetGroup> presets) {
         // Filters: a labeled group sits in a titled pane, and a skinned control
@@ -98,7 +112,13 @@ final class ColorPresetSection extends ScrollPane {
         disposer.registerEventFilter(groupsBox, MouseEvent.MOUSE_PRESSED, this::onPressed);
         disposer.registerEventFilter(groupsBox, MouseEvent.MOUSE_CLICKED, this::onClicked);
         disposer.registerEventHandler(groupsBox, KeyEvent.KEY_PRESSED, this::onKey);
-        disposer.registerListener(presets, () -> rebuild(presets));
+        // A listener removed while the list is notifying still gets that notification,
+        // so an earlier list listener that replaced the skin would reach this one after dispose.
+        disposer.registerListener(presets, () -> {
+            if (!host.disposed()) {
+                rebuild(presets);
+            }
+        });
         disposer.registerDisposeTask(() -> {
             groupsBox.getChildren().clear();
             cache.clear();
@@ -155,6 +175,7 @@ final class ColorPresetSection extends ScrollPane {
         GroupNode node = groupOf(event.getTarget());
         if (node != null && event.getButton() == MouseButton.PRIMARY && swatchOf(event.getTarget()) != null) {
             // Focus first: a field being edited finishes before the pick.
+            node.pointerFocus = true;
             node.grid.requestFocus();
         }
     }
@@ -176,20 +197,25 @@ final class ColorPresetSection extends ScrollPane {
             return;
         }
         int last = node.swatches.size() - 1;
-        int current = Math.max(0, node.cursor);
+        int current = node.cursor >= 0 ? node.cursor : node.initialIndex();
+        int columns = node.columns();
+        // The flow is mirrored right to left, so the arrows follow what the user sees.
+        int forward = node.grid.getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT ? -1 : 1;
         int next;
         switch (event.getCode()) {
             case LEFT:
-                next = current - 1;
+                next = current - forward;
                 break;
             case RIGHT:
-                next = current + 1;
+                next = current + forward;
                 break;
             case UP:
-                next = current - node.columns();
+                next = current < columns ? current : current - columns;
                 break;
             case DOWN:
-                next = current + node.columns();
+                // Stays on the last row; from the row above a shorter last row it still
+                // reaches the last swatch (clamped below).
+                next = current / columns == last / columns ? current : current + columns;
                 break;
             case HOME:
                 next = 0;
@@ -209,9 +235,10 @@ final class ColorPresetSection extends ScrollPane {
         }
         event.consume();
         if (node.cursor < 0) {
-            // The first navigation key shows the cursor where it was, or on the first swatch.
+            // The first navigation key shows the cursor before it moves it.
             next = current;
         }
+        node.pointerFocus = false;
         node.moveCursor(Math.max(0, Math.min(last, next)), true);
     }
 
@@ -246,8 +273,10 @@ final class ColorPresetSection extends ScrollPane {
         private final FlowPane grid = new FlowPane();
         private final Node root;
         private final List<ColorSwatch> swatches = new ArrayList<>();
-        /** The keyboard cursor index, or -1 while hidden. */
+        /** The keyboard cursor index, or -1 for none; it may be set and hidden. */
         private int cursor = -1;
+        /** Whether the focus came from a press on a swatch, with no key pressed since. */
+        private boolean pointerFocus;
 
         private GroupNode(RXColorPresetGroup group) {
             grid.getStyleClass().add("swatches");
@@ -268,9 +297,20 @@ final class ColorPresetSection extends ScrollPane {
             }
             grid.getChildren().addAll(swatches);
             grid.focusedProperty().addListener(observable -> {
-                if (!grid.isFocused()) {
+                if (grid.isFocused()) {
+                    // A click picks what it shows; focus from the keyboard or code needs
+                    // to show where it is, and Enter / Space then pick at once.
+                    if (!pointerFocus) {
+                        moveCursor(cursor >= 0 ? cursor : initialIndex(), true);
+                    }
+                } else {
                     moveCursor(cursor, false);
-                    cursor = -1;
+                    // A deactivated window keeps the grid as its focus owner: the cursor
+                    // and how the focus came are kept for when the window comes back.
+                    if (!isFocusOwner()) {
+                        cursor = -1;
+                        pointerFocus = false;
+                    }
                 }
             });
             String label = group.label();
@@ -285,6 +325,21 @@ final class ColorPresetSection extends ScrollPane {
                 grid.setAccessibleText(label);
                 root = pane;
             }
+        }
+
+        /** Where the cursor starts: the first selected swatch, else the first one; -1 when empty. */
+        private int initialIndex() {
+            for (int i = 0; i < swatches.size(); i++) {
+                if (swatches.get(i).isSelected()) {
+                    return i;
+                }
+            }
+            return swatches.isEmpty() ? -1 : 0;
+        }
+
+        private boolean isFocusOwner() {
+            Scene scene = grid.getScene();
+            return scene != null && scene.getFocusOwner() == grid;
         }
 
         private void moveCursor(int index, boolean visible) {

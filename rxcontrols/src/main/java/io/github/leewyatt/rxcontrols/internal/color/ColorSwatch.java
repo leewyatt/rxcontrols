@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols.internal.color;
 
+import io.github.leewyatt.rxcontrols.RXColorFormat;
 import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
 import javafx.scene.AccessibleAttribute;
@@ -145,7 +146,7 @@ public class ColorSwatch extends Region {
     @Override
     public Object queryAccessibleAttribute(AccessibleAttribute attribute, Object... parameters) {
         if (attribute == AccessibleAttribute.TEXT && getAccessibleText() == null) {
-            return color == null ? "No color" : "#" + ColorMath.toHex(color, color.getOpacity() < 1.0);
+            return color == null ? "No color" : ColorMath.toText(color, RXColorFormat.HEX);
         }
         if (attribute == AccessibleAttribute.SELECTED) {
             return selected;

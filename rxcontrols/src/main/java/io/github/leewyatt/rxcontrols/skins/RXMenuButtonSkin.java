@@ -273,8 +273,7 @@ public class RXMenuButtonSkin extends LabeledSkinBase<RXMenuButton> {
         double arrowH = snapSizeY(arrow.prefHeight(-1));
         double gap = snapSizeX(ARROW_LABEL_GAP);
         // The label fills the area minus the trailing arrow and its gap;
-        // layoutLabelInArea truncates within labelW. The arrow region is symmetric
-        // (no CSS padding), so a :showing flip rotates cleanly about its center.
+        // layoutLabelInArea truncates within labelW.
         double labelW = Math.max(0.0, w - arrowW - gap);
         layoutLabelInArea(x, y, labelW, h, getSkinnable().getAlignment());
         double arrowX = x + w - arrowW;

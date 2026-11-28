@@ -45,10 +45,11 @@ import java.util.Objects;
  * <p>All edits share one session: the first user write records the value it
  * started from, and the session ends at a commit point (pointer released, the
  * key that started a keyboard change released, a part losing focus, the view
- * hidden, disabled or bound, the skin disposed). The view's action fires when
- * a session ends on a different value. A session that ends while the view's
- * window is closing fires after the closing call has returned, so a handler
- * may reopen a popup that hosts the view.
+ * hidden, disabled or bound). The view's action fires when a session ends on a
+ * different value. A session that ends while the view's window is closing
+ * fires after the closing call has returned, so a handler may reopen a popup
+ * that hosts the view. Disposing the skin drops a pending session without an
+ * action, so no application code runs during the dispose.
  */
 public class RXColorViewSkin extends RXSkinBase<RXColorView> {
 
@@ -372,14 +373,13 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
             baseline = control.getValue();
             pending = true;
         }
-        if (!Objects.equals(color, control.getValue())) {
+        if (Objects.equals(color, control.getValue())) {
+            // The value stays, but the cursor may have moved (the hue on a gray).
+            refresh();
+        } else {
+            // The value listener refreshes the panel.
             control.setValue(color);
-            // A value listener may have replaced this skin.
-            if (disposed) {
-                return;
-            }
         }
-        refresh();
     }
 
     private void discreteEdit(Runnable edit) {
@@ -642,6 +642,11 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
     private final class PresetHost implements ColorPresetSection.Host {
 
         @Override
+        public boolean disposed() {
+            return disposed;
+        }
+
+        @Override
         public Color value() {
             return getSkinnable().getValue();
         }
@@ -660,6 +665,11 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
     // ==================== Input row host ====================
 
     private final class InputHost implements ColorInputRow.Host {
+
+        @Override
+        public boolean disposed() {
+            return disposed;
+        }
 
         @Override
         public boolean editable() {
@@ -780,13 +790,18 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
 
     @Override
     protected void disposeSkin() {
+        // Only the skin holding the gesture set the flag; one never installed must not clear it.
+        boolean ownsGesture = pointerTarget != null;
         disposed = true;
         pending = false;
         pointerTarget = null;
         keyTarget = null;
         keyCode = null;
+        // JavaFX keeps the children when the next skin is a SkinBase, which has already
+        // added its own: take out only the node this skin added.
+        getChildren().remove(content);
         RXColorView control = getSkinnable();
-        if (control.isValueChanging()) {
+        if (ownsGesture && control.isValueChanging()) {
             // Last: it runs application listeners, and nothing touches the view after.
             ColorViewAccess.setValueChanging(control, false);
         }

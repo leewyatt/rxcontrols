@@ -71,8 +71,11 @@ import java.util.function.BooleanSupplier;
  * brightness by 1% (10% with Shift), Page Up / Page Down brightness by 10%. On
  * the hue slider the arrows change the hue by 1° (15° with Shift or Page Up /
  * Page Down) and Home / End go to 0° / 360°; on the opacity slider by 1% (10%)
- * and Home / End go to 0% / 100%. The color scales run left to right in every
- * node orientation.
+ * and Home / End go to 0% / 100%. Each preset group is one Tab stop: entering
+ * it from the keyboard shows a cursor on the selected swatch (or the first),
+ * the arrow keys move it, Home / End go to the ends and Enter / Space pick.
+ * The color scales run left to right in every node orientation; the input
+ * fields and the presets follow it.
  *
  * <p>CSS: style class {@code rx-color-view}; pseudo-classes {@code :empty}
  * (no color) and {@code :alpha-disabled}. Parts: {@code .area} with

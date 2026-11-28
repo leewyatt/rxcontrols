@@ -45,6 +45,9 @@ final class ColorInputRow extends HBox {
     /** What the row needs from the view's skin. */
     interface Host {
 
+        /** Whether the skin has been disposed; an application listener can do that mid-edit. */
+        boolean disposed();
+
         /** Whether user input is accepted now. */
         boolean editable();
 
@@ -347,6 +350,10 @@ final class ColorInputRow extends HBox {
             if (editing) {
                 editing = false;
                 apply(true);
+                // A value listener may have replaced the skin.
+                if (host.disposed()) {
+                    return;
+                }
                 input.pseudoClassStateChanged(INVALID, false);
                 show();
             }
