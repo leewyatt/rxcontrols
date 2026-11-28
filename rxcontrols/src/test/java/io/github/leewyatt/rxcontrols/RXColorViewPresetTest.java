@@ -7,12 +7,14 @@ import javafx.geometry.Bounds;
 import javafx.geometry.NodeOrientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import org.junit.jupiter.api.AfterEach;
@@ -321,6 +323,27 @@ public class RXColorViewPresetTest {
             assertEquals(-1, cursorIndex(swatches), "a click shows no cursor");
             key(grid, KeyCode.RIGHT);
             assertEquals(1, cursorIndex(swatches), "the next key moves on from the clicked swatch");
+        });
+    }
+
+    @Test
+    public void aParentMeasuresTheViewAtTheWidthItGives() throws InterruptedException {
+        runOnFx(() -> {
+            view = new RXColorView();
+            Color[] colors = new Color[35];
+            for (int i = 0; i < colors.length; i++) {
+                colors[i] = Color.gray(i / 35.0);
+            }
+            view.getPresets().add(new RXColorPresetGroup(null, colors));
+            VBox box = new VBox(view, new Button("OK"));
+            stage = new Stage();
+            stage.setScene(new Scene(box, 600, 900));
+            stage.show();
+            layout();
+            double viewGrowth = view.prefHeight(178) - view.prefHeight(438);
+            assertTrue(viewGrowth > 0.0, "narrower, the swatches wrap to more rows");
+            assertEquals(viewGrowth, box.prefHeight(178) - box.prefHeight(438), 0.5,
+                    "the parent asks for the view's height at the width it gives");
         });
     }
 

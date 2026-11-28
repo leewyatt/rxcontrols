@@ -16,6 +16,7 @@ import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Orientation;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 import javafx.scene.paint.Color;
@@ -146,6 +147,17 @@ public class RXColorView extends Control {
     @Override
     protected Skin<?> createDefaultSkin() {
         return new RXColorViewSkin(this);
+    }
+
+    /**
+     * Returns {@link Orientation#HORIZONTAL}: the preset swatches wrap to the width
+     * the view gets, so its height depends on its width.
+     *
+     * @return {@link Orientation#HORIZONTAL}
+     */
+    @Override
+    public Orientation getContentBias() {
+        return Orientation.HORIZONTAL;
     }
 
     // ==================== Value ====================
