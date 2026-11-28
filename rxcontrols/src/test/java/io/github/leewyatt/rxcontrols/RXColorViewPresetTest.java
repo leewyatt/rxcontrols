@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.hasPseudoClass;
@@ -30,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Tests the clear button and preset groups of {@link RXColorView}: clearing to
@@ -282,6 +284,40 @@ public class RXColorViewPresetTest {
             key(grid, KeyCode.ENTER);
             assertEquals(Color.BLUE, view.getValue());
             assertEquals(1, actions.get());
+        });
+    }
+
+    @Test
+    public void keyboardFocusShowsTheCursorOnTheSelectedSwatchButAClickDoesNot() throws InterruptedException {
+        AtomicBoolean windowFocused = new AtomicBoolean();
+        runOnFx(() -> {
+            show(new RXColorView(Color.LIME));
+            view.getPresets().add(new RXColorPresetGroup("Brand", Color.RED, Color.LIME, Color.BLUE));
+            layout();
+            windowFocused.set(PickerTestSupport.focusWindow(stage));
+        });
+        // Node focus needs a focused window, which a test run cannot always get.
+        assumeTrue(windowFocused.get(), "the test window did not receive focus");
+        runOnFx(() -> {
+            Node grid = view.lookup(".presets .swatches");
+            List<Node> swatches = swatches();
+
+            grid.requestFocus();
+            assertTrue(grid.isFocused());
+            assertEquals(1, cursorIndex(swatches), "the cursor starts on the selected swatch");
+            key(grid, KeyCode.RIGHT);
+            key(grid, KeyCode.SPACE);
+            assertEquals(Color.BLUE, view.getValue());
+            assertEquals(1, actions.get());
+
+            view.lookup(".area").requestFocus();
+            assertEquals(-1, cursorIndex(swatches));
+            click(swatches.get(0));
+            assertTrue(grid.isFocused());
+            assertEquals(Color.RED, view.getValue());
+            assertEquals(-1, cursorIndex(swatches), "a click shows no cursor");
+            key(grid, KeyCode.RIGHT);
+            assertEquals(1, cursorIndex(swatches), "the next key moves on from the clicked swatch");
         });
     }
 
