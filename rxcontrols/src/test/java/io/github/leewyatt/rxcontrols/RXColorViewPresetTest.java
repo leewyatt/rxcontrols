@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.ActionEvent;
+import javafx.geometry.NodeOrientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
@@ -83,6 +84,20 @@ public class RXColorViewPresetTest {
 
     private static void key(Node node, KeyCode code) {
         node.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, false, false, false, false));
+    }
+
+    /** The swatch showing the keyboard cursor, or -1. */
+    private static int cursorIndex(List<Node> swatches) {
+        for (int i = 0; i < swatches.size(); i++) {
+            if (hasPseudoClass(swatches.get(i), "focused")) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static double sceneMinX(Node node) {
+        return node.localToScene(node.getBoundsInLocal()).getMinX();
     }
 
     // ==================== Layout ====================
@@ -253,6 +268,68 @@ public class RXColorViewPresetTest {
             key(grid, KeyCode.ENTER);
             assertEquals(Color.BLUE, view.getValue());
             assertEquals(1, actions.get());
+        });
+    }
+
+    @Test
+    public void theArrowKeysFollowTheMirroredFlowRightToLeft() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorView());
+            view.setNodeOrientation(NodeOrientation.RIGHT_TO_LEFT);
+            view.getPresets().add(new RXColorPresetGroup(null, Color.RED, Color.LIME, Color.BLUE));
+            layout();
+            Node grid = view.lookup(".presets .swatches");
+            List<Node> swatches = swatches();
+            key(grid, KeyCode.LEFT);
+            assertEquals(0, cursorIndex(swatches));
+            key(grid, KeyCode.LEFT);
+            assertEquals(1, cursorIndex(swatches));
+            assertTrue(sceneMinX(swatches.get(1)) < sceneMinX(swatches.get(0)), "Left moves the cursor left");
+            key(grid, KeyCode.RIGHT);
+            assertEquals(0, cursorIndex(swatches));
+        });
+    }
+
+    @Test
+    public void upAndDownStopAtTheFirstAndLastRows() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorView());
+            Color[] colors = new Color[20];
+            for (int i = 0; i < colors.length; i++) {
+                colors[i] = Color.gray(i / 20.0);
+            }
+            view.getPresets().add(new RXColorPresetGroup(null, colors));
+            layout();
+            Node grid = view.lookup(".presets .swatches");
+            List<Node> swatches = swatches();
+            int columns = 0;
+            while (columns < swatches.size()
+                    && swatches.get(columns).getLayoutY() == swatches.get(0).getLayoutY()) {
+                columns++;
+            }
+            int last = colors.length - 1;
+            assertTrue(columns > 2 && colors.length % columns != 0, "three rows, the last one shorter");
+
+            key(grid, KeyCode.RIGHT);
+            key(grid, KeyCode.RIGHT);
+            key(grid, KeyCode.RIGHT);
+            assertEquals(2, cursorIndex(swatches));
+            key(grid, KeyCode.UP);
+            assertEquals(2, cursorIndex(swatches), "the first row has nothing above it");
+            key(grid, KeyCode.DOWN);
+            assertEquals(2 + columns, cursorIndex(swatches));
+
+            key(grid, KeyCode.END);
+            key(grid, KeyCode.LEFT);
+            key(grid, KeyCode.DOWN);
+            assertEquals(last - 1, cursorIndex(swatches), "the last row has nothing below it");
+
+            int aboveTheShortRow = (last / columns) * columns - 1;
+            while (cursorIndex(swatches) > aboveTheShortRow) {
+                key(grid, KeyCode.LEFT);
+            }
+            key(grid, KeyCode.DOWN);
+            assertEquals(last, cursorIndex(swatches), "past the shorter last row Down reaches its end");
         });
     }
 

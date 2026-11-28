@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.internal.color.ColorSwatch;
 import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
+import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
@@ -177,19 +178,24 @@ final class ColorPresetSection extends ScrollPane {
         }
         int last = node.swatches.size() - 1;
         int current = Math.max(0, node.cursor);
+        int columns = node.columns();
+        // The flow is mirrored right to left, so the arrows follow what the user sees.
+        int forward = node.grid.getEffectiveNodeOrientation() == NodeOrientation.RIGHT_TO_LEFT ? -1 : 1;
         int next;
         switch (event.getCode()) {
             case LEFT:
-                next = current - 1;
+                next = current - forward;
                 break;
             case RIGHT:
-                next = current + 1;
+                next = current + forward;
                 break;
             case UP:
-                next = current - node.columns();
+                next = current < columns ? current : current - columns;
                 break;
             case DOWN:
-                next = current + node.columns();
+                // Stays on the last row; from the row above a shorter last row it still
+                // reaches the last swatch (clamped below).
+                next = current / columns == last / columns ? current : current + columns;
                 break;
             case HOME:
                 next = 0;
