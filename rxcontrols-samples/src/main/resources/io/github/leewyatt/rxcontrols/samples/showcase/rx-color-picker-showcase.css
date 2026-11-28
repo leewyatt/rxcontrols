@@ -1,0 +1,5 @@
+.hint-label {
+    -fx-opacity: 0.55;
+    -fx-font-size: 11px;
+    -fx-text-alignment: center;
+}

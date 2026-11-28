@@ -7,9 +7,10 @@ import javafx.beans.binding.Bindings;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 
@@ -18,18 +19,18 @@ import java.util.List;
 /**
  * Showcase for {@link RXColorPicker}: the picker with its value, whether the
  * popup is showing and how often {@code onAction} fired, so edits in the popup
- * can be seen to write the value live and act once each; a native
- * {@code ColorPicker} bound to the same value sits next to it for side-by-side
- * comparison. The control panel sets the value from code (no action), binds it
- * (the popup takes no input), and switches the trigger text, the copy button,
- * the drop-down arrow, the prompt text, the format, opacity editing, the clear
- * button, the presets and the disabled state. For the smallest working example see
+ * can be seen to write the value live and act once each. The control panel
+ * sets the value from code (no action), binds it (the popup takes no input),
+ * and switches the trigger text, the copy button, the drop-down arrow, the
+ * prompt text, the format, opacity editing, the clear button, the presets and
+ * the disabled state. Below a separator, three pickers keep fixed trigger
+ * setups the panel does not change: a bare swatch, a swatch with the arrow, and
+ * the text with the copy button. For the smallest working example see
  * {@link RXColorPickerDemo}.
  */
 public class RXColorPickerShowcase extends RXShowcaseApplication {
 
     private final RXColorPicker picker = new RXColorPicker(Color.web("#1677ff"));
-    private final ColorPicker nativePicker = new ColorPicker();
     private int actions;
 
     // ==================== Showcase wiring ====================
@@ -50,10 +51,14 @@ public class RXColorPickerShowcase extends RXShowcaseApplication {
     }
 
     @Override
+    protected String stylesheetPath() {
+        return getClass().getResource("rx-color-picker-showcase.css").toExternalForm();
+    }
+
+    @Override
     protected Node createPreview() {
         picker.getPresets().setAll(ColorShowcaseSupport.PRESETS);
         picker.setShowText(true);
-        picker.setCopyButtonVisible(true);
         picker.setClearable(true);
         picker.setPromptText("No color");
 
@@ -67,9 +72,8 @@ public class RXColorPickerShowcase extends RXShowcaseApplication {
         actionLabel.setText("onAction fired: 0");
         picker.setOnAction(event -> actionLabel.setText("onAction fired: " + ++actions));
 
-        nativePicker.valueProperty().bindBidirectional(picker.valueProperty());
-
-        VBox box = new VBox(12.0, picker, nativePicker, valueLabel, showingLabel, actionLabel);
+        VBox box = new VBox(12.0, picker, valueLabel, showingLabel, actionLabel, new Separator(),
+                createFixedModes());
         box.setAlignment(Pos.CENTER);
         return box;
     }
@@ -78,16 +82,12 @@ public class RXColorPickerShowcase extends RXShowcaseApplication {
     protected List<Section> createSections() {
         TextField prompt = new TextField();
         prompt.textProperty().bindBidirectional(picker.promptTextProperty());
-        CheckBox bound = ColorShowcaseSupport.bindSwitch(picker.valueProperty());
-        // The native picker writes the value back through its two-way binding, which
-        // fails while the value is bound.
-        nativePicker.disableProperty().bind(bound.selectedProperty());
         CheckBox disabled = new CheckBox("Disabled");
         disabled.selectedProperty().bindBidirectional(picker.disableProperty());
         return List.of(
                 section("Value", createGrid(
                         row("Set from code", ColorShowcaseSupport.valueButtons(picker.valueProperty())),
-                        row(bound))),
+                        row(ColorShowcaseSupport.bindSwitch(picker.valueProperty())))),
                 section("Trigger", createGrid(
                         row(ColorShowcaseSupport.check("Show text", picker.showTextProperty())),
                         row(ColorShowcaseSupport.check("Copy button", picker.copyButtonVisibleProperty())),
@@ -99,6 +99,43 @@ public class RXColorPickerShowcase extends RXShowcaseApplication {
                         row(ColorShowcaseSupport.check("Clear button", picker.clearableProperty())),
                         row(ColorShowcaseSupport.presetsSwitch(picker.getPresets())),
                         row(disabled))));
+    }
+
+    // ==================== Fixed trigger modes ====================
+
+    private static Node createFixedModes() {
+        Label note = new Label("These keep their own setup. The control pane does not change them.");
+        note.getStyleClass().add("hint-label");
+        note.setWrapText(true);
+        note.setMaxWidth(340.0);
+
+        RXColorPicker swatchOnly = new RXColorPicker(Color.web("#2E7D32"));
+        swatchOnly.setArrowVisible(false);
+
+        RXColorPicker swatchAndArrow = new RXColorPicker(Color.web("#F57C00"));
+
+        RXColorPicker textAndCopy = new RXColorPicker(Color.web("#6A1B9A"));
+        textAndCopy.setShowText(true);
+        textAndCopy.setCopyButtonVisible(true);
+        textAndCopy.setArrowVisible(false);
+
+        HBox modes = new HBox(32.0,
+                captioned(swatchOnly, "Swatch only"),
+                captioned(swatchAndArrow, "Swatch and arrow"),
+                captioned(textAndCopy, "Text and copy button"));
+        modes.setAlignment(Pos.TOP_CENTER);
+
+        VBox fixedModes = new VBox(12.0, note, modes);
+        fixedModes.setAlignment(Pos.CENTER);
+        return fixedModes;
+    }
+
+    private static Node captioned(RXColorPicker colorPicker, String caption) {
+        Label label = new Label(caption);
+        label.getStyleClass().add("hint-label");
+        VBox box = new VBox(6.0, colorPicker, label);
+        box.setAlignment(Pos.TOP_CENTER);
+        return box;
     }
 
     /**
