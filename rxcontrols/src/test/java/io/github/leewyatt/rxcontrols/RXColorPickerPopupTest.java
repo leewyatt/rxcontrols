@@ -121,6 +121,11 @@ public class RXColorPickerPopupTest {
         assertTrue(picker.isShowing());
     }
 
+    private void relayout() {
+        picker.getScene().getRoot().applyCss();
+        picker.getScene().getRoot().layout();
+    }
+
     // ==================== Defaults ====================
 
     @Test
@@ -167,6 +172,29 @@ public class RXColorPickerPopupTest {
                 picker.applyCss();
                 assertEquals(width, picker.prefWidth(-1), 0.0, format + " prompt");
             }
+        });
+    }
+
+    // The copy button sits at the right edge; a shorter text must still narrow the
+    // laid-out picker, not just its preferred width.
+    @Test
+    public void thePickerNarrowsWhenItsTextGetsShorterBesideTheCopyButton() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker(Color.web("#1677FF")));
+            picker.setCopyButtonVisible(true);
+            picker.setShowText(true);
+            picker.setFormat(RXColorFormat.RGB);
+            relayout();
+            double rgbWidth = picker.getWidth();
+
+            picker.setFormat(RXColorFormat.HEX);
+            relayout();
+            assertTrue(picker.getWidth() < rgbWidth, "a shorter format narrows the picker");
+            assertEquals(picker.prefWidth(-1), picker.getWidth(), 0.0);
+
+            picker.setShowText(false);
+            relayout();
+            assertEquals(picker.prefWidth(-1), picker.getWidth(), 0.0, "without text only the swatch and the button");
         });
     }
 

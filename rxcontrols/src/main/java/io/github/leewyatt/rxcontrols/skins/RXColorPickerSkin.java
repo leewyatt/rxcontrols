@@ -584,6 +584,19 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         return topInset + height + bottomInset;
     }
 
+    // From the content, not SkinBase's default, which measures from where the children
+    // were last laid out: the copy button sits at the right edge, so a shorter text
+    // would keep the minimum above the maximum and the picker could never narrow.
+    @Override
+    protected double computeMinWidth(double height, double topInset, double rightInset, double bottomInset,
+                                     double leftInset) {
+        double width = display.minWidth(-1);
+        if (copyButton.isManaged()) {
+            width += COPY_BUTTON_GAP + snapSizeX(copyButton.minWidth(-1));
+        }
+        return leftInset + width + rightInset;
+    }
+
     @Override
     protected double computeMaxWidth(double height, double topInset, double rightInset, double bottomInset,
                                      double leftInset) {
