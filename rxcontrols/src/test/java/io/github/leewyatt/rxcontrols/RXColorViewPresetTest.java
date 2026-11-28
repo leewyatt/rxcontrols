@@ -252,6 +252,20 @@ public class RXColorViewPresetTest {
     }
 
     @Test
+    public void clickingASwatchFocusesItsGroupNotTheSection() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorView());
+            view.getPresets().add(new RXColorPresetGroup(null, Color.RED, Color.LIME, Color.BLUE));
+            layout();
+            Node grid = view.lookup(".presets .swatches");
+            click(swatches().get(1));
+            assertSame(grid, stage.getScene().getFocusOwner(), "the press focuses the swatch group");
+            view.lookup(".presets").requestFocus();
+            assertSame(grid, stage.getScene().getFocusOwner(), "the section never takes the focus");
+        });
+    }
+
+    @Test
     public void theKeyboardMovesACursorAndPicks() throws InterruptedException {
         runOnFx(() -> {
             show(new RXColorView());

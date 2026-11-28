@@ -92,6 +92,13 @@ final class ColorPresetSection extends ScrollPane {
         return Orientation.HORIZONTAL;
     }
 
+    // Never takes the focus: the scroll pane's behavior requests it on every press,
+    // which would pull it off the swatch group the press has just focused, and the
+    // arrow keys would then scroll the section instead of moving the cursor.
+    @Override
+    public void requestFocus() {
+    }
+
     /** Wires input and the preset list; everything is released when the disposer runs. */
     void install(SkinDisposer disposer, ObservableList<RXColorPresetGroup> presets) {
         // Filters: a labeled group sits in a titled pane, and a skinned control
