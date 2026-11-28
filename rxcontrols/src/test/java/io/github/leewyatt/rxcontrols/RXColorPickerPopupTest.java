@@ -516,6 +516,33 @@ public class RXColorPickerPopupTest {
 
     // ==================== Keys ====================
 
+    // Binding to the value already there, and unbinding, send no notification.
+    @Test
+    public void aFieldFollowsTheLockAsItEngagesAndLifts() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker(Color.WHITE));
+            open();
+            TextField hex = (TextField) popupView().lookup(".hex-field");
+            picker.valueProperty().bind(new SimpleObjectProperty<>(Color.WHITE));
+            hex.selectAll();
+            typeKeys(hex, "a");
+            assertEquals("FFFFFF", hex.getText(), "a locked field takes no typing");
+
+            picker.valueProperty().bind(new SimpleObjectProperty<>(Color.RED));
+            picker.valueProperty().unbind();
+            hex.selectAll();
+            typeKeys(hex, "00ff00");
+            assertEquals(Color.LIME, picker.getValue(), "unbound, the field takes typing again");
+        });
+    }
+
+    private static void typeKeys(Node node, String text) {
+        for (char c : text.toCharArray()) {
+            node.fireEvent(new KeyEvent(KeyEvent.KEY_TYPED, String.valueOf(c), "", KeyCode.UNDEFINED,
+                    false, false, false, false));
+        }
+    }
+
     @Test
     public void bindingThePickerMidDragEndsTheGesture() throws InterruptedException {
         runOnFx(() -> {

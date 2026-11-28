@@ -273,6 +273,11 @@ final class ColorInputRow extends HBox {
             if (writing || !change.isContentChange()) {
                 return change;
             }
+            // Locked since the field last took the focus or refreshed (bound to the
+            // value it already had, which sends no notification).
+            if (!host.editable()) {
+                return null;
+            }
             String added = change.getText();
             String kept = channel == Channel.HEX ? ColorMath.hexDigits(added) : digits(added);
             int limit = channel == Channel.HEX ? HEX_MAX_DIGITS : NUMBER_MAX_DIGITS;
@@ -300,6 +305,9 @@ final class ColorInputRow extends HBox {
                 }
             });
             disposer.registerEventFilter(input, KeyEvent.KEY_PRESSED, this::onKey);
+            // Unbinding sends no notification: a field made read-only while the value
+            // was bound takes keys again as soon as it is free, ahead of its own handling.
+            disposer.registerEventFilter(input, KeyEvent.KEY_TYPED, event -> input.setEditable(host.editable()));
         }
 
         private void onTyped() {
@@ -312,6 +320,7 @@ final class ColorInputRow extends HBox {
         }
 
         private void onKey(KeyEvent event) {
+            input.setEditable(host.editable());
             KeyCode code = event.getCode();
             if (code == KeyCode.ENTER) {
                 // Not consumed: an enclosing form's default button still sees Enter.
