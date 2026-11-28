@@ -18,11 +18,13 @@ import java.util.List;
 /**
  * Showcase for {@link RXColorPicker}: the picker with its value, whether the
  * popup is showing and how often {@code onAction} fired, so edits in the popup
- * can be seen to write the value live and act once each. The control panel
- * sets the value from code (no action), binds it (the popup takes no input),
- * and switches the trigger text, the copy button, the prompt text, the format, opacity editing,
- * the clear button, the presets and the disabled state. For the smallest
- * working example see {@link RXColorPickerDemo}.
+ * can be seen to write the value live and act once each; a native
+ * {@code ColorPicker} bound to the same value sits next to it for side-by-side
+ * comparison. The control panel sets the value from code (no action), binds it
+ * (the popup takes no input), and switches the trigger text, the copy button,
+ * the prompt text, the format, opacity editing, the clear button, the presets
+ * and the disabled state. For the smallest working example see
+ * {@link RXColorPickerDemo}.
  */
 public class RXColorPickerShowcase extends RXShowcaseApplication {
 
@@ -67,7 +69,7 @@ public class RXColorPickerShowcase extends RXShowcaseApplication {
         ColorPicker nativePicker = new ColorPicker();
         nativePicker.valueProperty().bindBidirectional(picker.valueProperty());
 
-        VBox box = new VBox(12.0, picker,nativePicker, valueLabel, showingLabel, actionLabel);
+        VBox box = new VBox(12.0, picker, nativePicker, valueLabel, showingLabel, actionLabel);
         box.setAlignment(Pos.CENTER);
         return box;
     }
