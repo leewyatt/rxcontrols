@@ -45,10 +45,11 @@ import java.util.Objects;
  * <p>All edits share one session: the first user write records the value it
  * started from, and the session ends at a commit point (pointer released, the
  * key that started a keyboard change released, a part losing focus, the view
- * hidden, disabled or bound, the skin disposed). The view's action fires when
- * a session ends on a different value. A session that ends while the view's
- * window is closing fires after the closing call has returned, so a handler
- * may reopen a popup that hosts the view.
+ * hidden, disabled or bound). The view's action fires when a session ends on a
+ * different value. A session that ends while the view's window is closing
+ * fires after the closing call has returned, so a handler may reopen a popup
+ * that hosts the view. Disposing the skin drops a pending session without an
+ * action, so no application code runs during the dispose.
  */
 public class RXColorViewSkin extends RXSkinBase<RXColorView> {
 

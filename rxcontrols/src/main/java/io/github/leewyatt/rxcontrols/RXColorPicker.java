@@ -56,8 +56,8 @@ import java.util.List;
  * so the handler may open it again. Setting the value from code fires nothing.
  * While the value is bound the popup takes no input.
  *
- * <p><b>Keyboard.</b> On the picker, Space, Down, Alt+Down and F4 open the
- * popup; Enter is left to the form's default button. While the popup is open,
+ * <p><b>Keyboard.</b> On the picker, Space, Down, Alt+Down, Alt+Up and F4 open
+ * the popup; Enter is left to the form's default button. While the popup is open,
  * Escape, F4 and Alt+Up close it and return the focus to the picker. Focus
  * moves into the popup when it opens; Tab cycles inside it. With the
  * {@link #copyButtonVisibleProperty() copy button} shown, Shortcut+C copies
