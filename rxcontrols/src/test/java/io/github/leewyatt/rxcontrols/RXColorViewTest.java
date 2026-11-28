@@ -411,6 +411,23 @@ public class RXColorViewTest {
     }
 
     @Test
+    public void turningOpacityOffMidGestureWritesAnOpaqueColor() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorView(Color.web("#1677FF")));
+            view.valueChangingProperty().addListener((obs, was, is) -> {
+                if (is) {
+                    view.setAlphaEnabled(false);
+                }
+            });
+            Region alpha = part(".alpha-slider");
+            mouse(alpha, MouseEvent.MOUSE_PRESSED, 0.5, 0.5);
+            mouse(alpha, MouseEvent.MOUSE_RELEASED, 0.5, 0.5);
+            assertFalse(view.isAlphaEnabled());
+            assertEquals(1.0, view.getValue().getOpacity(), 0.0);
+        });
+    }
+
+    @Test
     public void disposingASkinThatWasNeverInstalledLeavesTheGestureAlone() throws InterruptedException {
         runOnFx(() -> {
             show(new RXColorView());

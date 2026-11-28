@@ -341,10 +341,12 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
     }
 
     private void editOpacity(double opacity) {
-        Color current = getSkinnable().getValue();
+        RXColorView control = getSkinnable();
+        Color current = control.getValue();
         Color base = current != null ? current : cursor.toExactColor();
-        Color color = ColorMath.quantize(
-                Color.color(base.getRed(), base.getGreen(), base.getBlue(), ColorMath.clean01(opacity)));
+        // A gesture on the opacity slider can outlive alphaEnabled being turned off.
+        double target = control.isAlphaEnabled() ? ColorMath.clean01(opacity) : 1.0;
+        Color color = ColorMath.quantize(Color.color(base.getRed(), base.getGreen(), base.getBlue(), target));
         cursor.changeOpacity(color.getOpacity());
         write(color);
     }
