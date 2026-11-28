@@ -7,6 +7,7 @@ import io.github.leewyatt.rxcontrols.internal.color.ColorSwatch;
 import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
+import javafx.geometry.Bounds;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Orientation;
 import javafx.scene.AccessibleRole;
@@ -240,6 +241,28 @@ final class ColorPresetSection extends ScrollPane {
         }
         node.pointerFocus = false;
         node.moveCursor(Math.max(0, Math.min(last, next)), true);
+        reveal(node.swatches.get(node.cursor));
+    }
+
+    /** Scrolls the section, if it must, so that the swatch is in view. */
+    private void reveal(Node swatch) {
+        double viewportHeight = getViewportBounds().getHeight();
+        double scrollable = groupsBox.getLayoutBounds().getHeight() - viewportHeight;
+        if (scrollable <= 0.0 || swatch.getScene() == null) {
+            return;
+        }
+        Bounds bounds = groupsBox.sceneToLocal(swatch.localToScene(swatch.getLayoutBounds()));
+        double range = getVmax() - getVmin();
+        double top = (getVvalue() - getVmin()) / range * scrollable;
+        double target = top;
+        if (bounds.getMinY() < top) {
+            target = bounds.getMinY();
+        } else if (bounds.getMaxY() > top + viewportHeight) {
+            target = bounds.getMaxY() - viewportHeight;
+        }
+        if (target != top) {
+            setVvalue(getVmin() + target / scrollable * range);
+        }
     }
 
     private GroupNode groupOf(Object target) {
@@ -268,7 +291,7 @@ final class ColorPresetSection extends ScrollPane {
 
     // ==================== Group node ====================
 
-    private static final class GroupNode {
+    private final class GroupNode {
 
         private final FlowPane grid = new FlowPane();
         private final Node root;
@@ -302,6 +325,9 @@ final class ColorPresetSection extends ScrollPane {
                     // to show where it is, and Enter / Space then pick at once.
                     if (!pointerFocus) {
                         moveCursor(cursor >= 0 ? cursor : initialIndex(), true);
+                        if (cursor >= 0) {
+                            reveal(swatches.get(cursor));
+                        }
                     }
                 } else {
                     moveCursor(cursor, false);

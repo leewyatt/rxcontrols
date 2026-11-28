@@ -3,6 +3,7 @@ package io.github.leewyatt.rxcontrols;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.ActionEvent;
+import javafx.geometry.Bounds;
 import javafx.geometry.NodeOrientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -321,6 +322,37 @@ public class RXColorViewPresetTest {
             key(grid, KeyCode.RIGHT);
             assertEquals(1, cursorIndex(swatches), "the next key moves on from the clicked swatch");
         });
+    }
+
+    @Test
+    public void theKeyboardCursorScrollsIntoView() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorView());
+            Color[] colors = new Color[180];
+            for (int i = 0; i < colors.length; i++) {
+                colors[i] = Color.gray(i / 180.0);
+            }
+            view.getPresets().add(new RXColorPresetGroup(null, colors));
+            layout();
+            Node grid = view.lookup(".presets .swatches");
+            Node viewport = view.lookup(".presets").lookup(".viewport");
+            List<Node> swatches = swatches();
+            assertFalse(within(viewport, swatches.get(colors.length - 1)), "the last swatch starts out of view");
+
+            key(grid, KeyCode.RIGHT);
+            key(grid, KeyCode.END);
+            layout();
+            assertTrue(within(viewport, swatches.get(colors.length - 1)), "End brings the last swatch into view");
+            key(grid, KeyCode.HOME);
+            layout();
+            assertTrue(within(viewport, swatches.get(0)), "Home brings the first one back");
+        });
+    }
+
+    private static boolean within(Node viewport, Node node) {
+        Bounds visible = viewport.localToScene(viewport.getLayoutBounds());
+        Bounds bounds = node.localToScene(node.getLayoutBounds());
+        return bounds.getMinY() >= visible.getMinY() - 0.5 && bounds.getMaxY() <= visible.getMaxY() + 0.5;
     }
 
     @Test
