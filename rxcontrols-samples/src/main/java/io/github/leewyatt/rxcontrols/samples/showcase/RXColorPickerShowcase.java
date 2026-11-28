@@ -29,6 +29,7 @@ import java.util.List;
 public class RXColorPickerShowcase extends RXShowcaseApplication {
 
     private final RXColorPicker picker = new RXColorPicker(Color.web("#1677ff"));
+    private final ColorPicker nativePicker = new ColorPicker();
     private int actions;
 
     // ==================== Showcase wiring ====================
@@ -66,7 +67,6 @@ public class RXColorPickerShowcase extends RXShowcaseApplication {
         actionLabel.setText("onAction fired: 0");
         picker.setOnAction(event -> actionLabel.setText("onAction fired: " + ++actions));
 
-        ColorPicker nativePicker = new ColorPicker();
         nativePicker.valueProperty().bindBidirectional(picker.valueProperty());
 
         VBox box = new VBox(12.0, picker, nativePicker, valueLabel, showingLabel, actionLabel);
@@ -78,12 +78,16 @@ public class RXColorPickerShowcase extends RXShowcaseApplication {
     protected List<Section> createSections() {
         TextField prompt = new TextField();
         prompt.textProperty().bindBidirectional(picker.promptTextProperty());
+        CheckBox bound = ColorShowcaseSupport.bindSwitch(picker.valueProperty());
+        // The native picker writes the value back through its two-way binding, which
+        // fails while the value is bound.
+        nativePicker.disableProperty().bind(bound.selectedProperty());
         CheckBox disabled = new CheckBox("Disabled");
         disabled.selectedProperty().bindBidirectional(picker.disableProperty());
         return List.of(
                 section("Value", createGrid(
                         row("Set from code", ColorShowcaseSupport.valueButtons(picker.valueProperty())),
-                        row(ColorShowcaseSupport.bindSwitch(picker.valueProperty())))),
+                        row(bound))),
                 section("Trigger", createGrid(
                         row(ColorShowcaseSupport.check("Show text", picker.showTextProperty())),
                         row(ColorShowcaseSupport.check("Copy button", picker.copyButtonVisibleProperty())),
