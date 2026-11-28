@@ -148,6 +148,8 @@ final class ColorInputRow extends HBox {
         ToggleGroup group = new ToggleGroup();
         for (RXColorFormat format : RXColorFormat.values()) {
             RXMenuItem item = new RXMenuItem(format.name());
+            // Selectable, so the menu checks the format in effect; a pick still closes it.
+            item.setSelectable(true);
             item.setToggleGroup(group);
             item.setOnAction(event -> host.pickFormat(format));
             formatItems.put(format, item);
@@ -237,6 +239,8 @@ final class ColorInputRow extends HBox {
         if (formatMenu.isShowing()) {
             formatMenu.hide();
         } else {
+            // A pick checks its item even when a bound format ignores it.
+            formatItems.get(host.format()).setSelected(true);
             formatMenu.show(formatButton);
         }
     }
