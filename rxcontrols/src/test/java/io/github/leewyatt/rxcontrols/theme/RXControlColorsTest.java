@@ -17,6 +17,7 @@ import io.github.leewyatt.rxcontrols.RXChip;
 import io.github.leewyatt.rxcontrols.RXChipInput;
 import io.github.leewyatt.rxcontrols.RXCircularProgressIndicator;
 import io.github.leewyatt.rxcontrols.RXColorPicker;
+import io.github.leewyatt.rxcontrols.RXColorPresetGroup;
 import io.github.leewyatt.rxcontrols.RXColorView;
 import io.github.leewyatt.rxcontrols.RXDatePicker;
 import io.github.leewyatt.rxcontrols.RXDateRangePicker;
@@ -1009,20 +1010,25 @@ public class RXControlColorsTest {
     }
 
     @Test
-    public void dropDownFieldsSetNoCursorAsTheNativeComboBoxDoes() throws Exception {
+    public void clickablePartsSetNoCursorAsModenaDoes() throws Exception {
         runOnFx(() -> {
             Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
             RXCascader cascader = new RXCascader();
             RXDatePicker datePicker = new RXDatePicker();
             RXColorPicker colorPicker = new RXColorPicker();
-            VBox root = new VBox(cascader, datePicker, colorPicker);
-            new Scene(root, 600, 400);
+            RXColorView colorView = new RXColorView();
+            colorView.setClearable(true);
+            colorView.getPresets().add(new RXColorPresetGroup(null, Color.RED));
+            VBox root = new VBox(cascader, datePicker, colorPicker, colorView);
+            new Scene(root, 600, 800);
             root.applyCss();
             Map<String, Node> parts = new LinkedHashMap<>();
             parts.put("cascader clear button", cascader.lookup(".clear-button"));
             parts.put("cascader arrow button", cascader.lookup(".arrow-button"));
             parts.put("date picker suffix", datePicker.lookup(".suffix"));
             parts.put("color picker", colorPicker);
+            parts.put("color view clear button", colorView.lookup(".clear-button"));
+            parts.put("color view preset", colorView.lookup(".preset"));
             parts.forEach((name, part) -> {
                 assertNotNull(part, name + " should exist");
                 assertNull(part.getCursor(), name + " keeps the default cursor");

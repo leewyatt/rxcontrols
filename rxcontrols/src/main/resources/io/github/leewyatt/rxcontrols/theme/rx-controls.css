@@ -5982,10 +5982,6 @@
     -fx-shape: "M 0 0 L 8 0 L 4 5 Z";
 }
 
-.rx-color-view .clear-button {
-    -fx-cursor: hand;
-}
-
 .rx-color-view .clear-button:hover > .outline,
 .rx-color-view .clear-button:focus-shown > .outline {
     -fx-border-color: -rx-focus;
@@ -6035,10 +6031,6 @@
 .rx-color-view .presets .rx-titled-pane > .body {
     -fx-border-width: 0;
     -fx-padding: 0.333333em 0 0.5em 0;
-}
-
-.rx-color-view .preset {
-    -fx-cursor: hand;
 }
 
 .rx-color-view .preset:focused > .outline {
