@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.color.ColorMath;
 import javafx.event.ActionEvent;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.PopupControl;
 import javafx.scene.control.TextField;
@@ -275,7 +276,7 @@ public class RXColorViewInputTest {
     public void theFormatButtonOpensAMenu() throws InterruptedException {
         runOnFx(() -> {
             show(new RXColorView());
-            javafx.scene.Node button = view.lookup(".format-button");
+            Node button = view.lookup(".format-button");
             assertNotNull(button);
             button.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, MouseButton.PRIMARY, 1,
                     false, false, false, false, false, false, false, true, false, false, null));

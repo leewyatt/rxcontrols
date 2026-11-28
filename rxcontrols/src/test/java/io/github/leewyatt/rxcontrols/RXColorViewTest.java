@@ -4,6 +4,7 @@ import io.github.leewyatt.rxcontrols.internal.color.ColorMath;
 import io.github.leewyatt.rxcontrols.internal.color.ColorViewAccess;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.ActionEvent;
+import javafx.event.EventType;
 import javafx.geometry.Bounds;
 import javafx.geometry.Point2D;
 import javafx.scene.AccessibleAttribute;
@@ -73,7 +74,7 @@ public class RXColorViewTest {
         return (Region) view.lookup(selector);
     }
 
-    private static void mouse(Node node, javafx.event.EventType<MouseEvent> type, double fx, double fy) {
+    private static void mouse(Node node, EventType<MouseEvent> type, double fx, double fy) {
         Region region = (Region) node;
         Point2D scene = node.localToScene(fx * region.getWidth(), fy * region.getHeight());
         boolean down = type != MouseEvent.MOUSE_RELEASED;
@@ -82,7 +83,7 @@ public class RXColorViewTest {
                 null));
     }
 
-    private static void key(Node node, javafx.event.EventType<KeyEvent> type, KeyCode code, boolean shift) {
+    private static void key(Node node, EventType<KeyEvent> type, KeyCode code, boolean shift) {
         node.fireEvent(new KeyEvent(type, "", "", code, shift, false, false, false));
     }
 
