@@ -42,14 +42,15 @@ import java.util.Objects;
  * equals the cursor's color leaves the cursor in place, so hue and saturation
  * survive grays and black; any other value moves the cursor.
  *
- * <p>All edits share one session: the first user write records the value it
- * started from, and the session ends at a commit point (pointer released, the
- * key that started a keyboard change released, a part losing focus, the view
- * hidden, disabled or bound). The view's action fires when a session ends on a
- * different value. A session that ends while the view's window is closing
- * fires after the closing call has returned, so a handler may reopen a popup
- * that hosts the view. Disposing the skin drops a pending session without an
- * action, so no application code runs during the dispose.
+ * <p>All edits share one session: the first user write that changes the value
+ * records the value it started from, and the session ends at a commit point
+ * (pointer released, the key that started a keyboard change released, a part
+ * losing focus, the view hidden, disabled or bound). The view's action fires
+ * when a session ends on a different value. A session that ends while the
+ * view's window is closing fires after the closing call has returned, so a
+ * handler may reopen a popup that hosts the view. Disposing the skin drops a
+ * pending session without an action, so no application code runs during the
+ * dispose.
  */
 public class RXColorViewSkin extends RXSkinBase<RXColorView> {
 
@@ -85,7 +86,7 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
     private boolean activated;
     private boolean disposed;
 
-    /** Whether a user edit has written the value since the last commit point. */
+    /** Whether a user edit has changed the value since the last commit point. */
     private boolean pending;
     /** The value the pending session started from. */
     private Color baseline;
@@ -341,10 +342,12 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
     }
 
     private void editOpacity(double opacity) {
-        Color current = getSkinnable().getValue();
+        RXColorView control = getSkinnable();
+        Color current = control.getValue();
         Color base = current != null ? current : cursor.toExactColor();
-        Color color = ColorMath.quantize(
-                Color.color(base.getRed(), base.getGreen(), base.getBlue(), ColorMath.clean01(opacity)));
+        // A gesture on the opacity slider can outlive alphaEnabled being turned off.
+        double target = control.isAlphaEnabled() ? ColorMath.clean01(opacity) : 1.0;
+        Color color = ColorMath.quantize(Color.color(base.getRed(), base.getGreen(), base.getBlue(), target));
         cursor.changeOpacity(color.getOpacity());
         write(color);
     }
@@ -366,20 +369,22 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
         editOpacity((shown + percentDelta) / PERCENT);
     }
 
-    /** Writes a user edit, opening a session if none is pending; {@code null} clears. */
+    /** Writes a user edit, opening a session if it changes the value; {@code null} clears. */
     private void write(Color color) {
         RXColorView control = getSkinnable();
+        if (Objects.equals(color, control.getValue())) {
+            // The value stays, but the cursor may have moved (the hue on a gray).
+            refresh();
+            return;
+        }
+        // Only a write that changes the value starts a session, so a gesture that
+        // changed nothing is never credited with a value set from code meanwhile.
         if (!pending) {
             baseline = control.getValue();
             pending = true;
         }
-        if (Objects.equals(color, control.getValue())) {
-            // The value stays, but the cursor may have moved (the hue on a gray).
-            refresh();
-        } else {
-            // The value listener refreshes the panel.
-            control.setValue(color);
-        }
+        // The value listener refreshes the panel.
+        control.setValue(color);
     }
 
     private void discreteEdit(Runnable edit) {
@@ -445,6 +450,12 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
         disposer.registerEventHandler(part, MouseEvent.MOUSE_DRAGGED, event -> {
             if (pointerTarget == part) {
                 event.consume();
+                // A picker's lock is no binding on this view, so nothing ends the drag
+                // when it engages: each step checks.
+                if (!editable()) {
+                    endPointer();
+                    return;
+                }
                 edit.apply(event.getX(), event.getY());
             }
         });

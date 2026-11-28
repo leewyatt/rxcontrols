@@ -1,6 +1,7 @@
 package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.color.ColorMath;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.ActionEvent;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -286,6 +288,55 @@ public class RXColorViewInputTest {
     }
 
     // ==================== Format menu ====================
+
+    @Test
+    public void theFormatMenuChecksTheFormatInEffect() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorView());
+            view.setFormat(RXColorFormat.RGB);
+            assertEquals(List.of(false, true, false), checkedFormats(openFormatMenu()));
+
+            // A bound format ignores the pick; reopened, the menu still checks the one in effect.
+            view.formatProperty().bind(new SimpleObjectProperty<>(RXColorFormat.RGB));
+            RXMenuList menu = openFormatMenu();
+            menu.activate(menu.getItems().get(2));
+            assertEquals(RXColorFormat.RGB, view.getFormat());
+            assertEquals(List.of(false, true, false), checkedFormats(openFormatMenu()));
+
+            view.formatProperty().unbind();
+            menu = openFormatMenu();
+            menu.activate(menu.getItems().get(2));
+            assertEquals(RXColorFormat.HSB, view.getFormat());
+            assertEquals(List.of(false, false, true), checkedFormats(openFormatMenu()));
+        });
+    }
+
+    private RXMenuList openFormatMenu() {
+        for (Window window : new ArrayList<>(Window.getWindows())) {
+            if (window instanceof PopupControl && ((PopupControl) window).getStyleClass().contains("rx-menu-popup")) {
+                ((PopupControl) window).hide();
+            }
+        }
+        view.lookup(".format-button").fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0,
+                MouseButton.PRIMARY, 1, false, false, false, false, false, false, false, true, false, false, null));
+        for (Window window : Window.getWindows()) {
+            if (window instanceof PopupControl && window.isShowing()
+                    && ((PopupControl) window).getStyleClass().contains("rx-menu-popup")) {
+                window.getScene().getRoot().applyCss();
+                window.getScene().getRoot().layout();
+                return (RXMenuList) window.getScene().getRoot().lookup(".rx-menu-list");
+            }
+        }
+        throw new AssertionError("the format menu did not open");
+    }
+
+    private static List<Boolean> checkedFormats(RXMenuList menu) {
+        List<Boolean> checked = new ArrayList<>();
+        for (Node cell : menu.lookupAll(".rx-menu-item")) {
+            checked.add(hasPseudoClass(cell, "checked"));
+        }
+        return checked;
+    }
 
     @Test
     public void theFormatButtonOpensAMenu() throws InterruptedException {

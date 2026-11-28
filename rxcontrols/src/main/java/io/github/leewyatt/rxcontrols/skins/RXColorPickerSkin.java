@@ -203,9 +203,9 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         disposer.registerDisposeTask(() -> ColorViewAccess.setInputLock(view, null));
         pickerToView();
         disposer.registerListener(control.valueProperty(), live(this::onPickerValueChanged));
-        disposer.registerListener(view.valueProperty(), live(this::viewToPicker));
+        disposer.registerListener(view.valueProperty(), live(this::viewValueToPicker));
         disposer.registerListener(control.formatProperty(), live(this::onPickerValueChanged));
-        disposer.registerListener(view.formatProperty(), live(this::viewToPicker));
+        disposer.registerListener(view.formatProperty(), live(this::viewFormatToPicker));
         disposer.registerEventHandler(view, ActionEvent.ACTION, event -> {
             if (!disposed && getSkinnable() != null) {
                 getSkinnable().fireEvent(new ActionEvent());
@@ -277,28 +277,45 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         }
     }
 
-    private void viewToPicker() {
+    // Each direction writes only the property that changed: copying both would put the
+    // view's stale other property over what a picker listener just set on it.
+    private void viewValueToPicker() {
+        if (syncing) {
+            return;
+        }
+        syncing = true;
+        try {
+            getSkinnable().setValue(view.getValue());
+        } finally {
+            syncing = false;
+        }
+        reconcileView();
+    }
+
+    private void viewFormatToPicker() {
         if (syncing) {
             return;
         }
         RXColorPicker control = getSkinnable();
         syncing = true;
         try {
-            control.setValue(view.getValue());
-            // A value listener may have replaced this skin, which then leaves the picker alone.
-            if (!disposed && !control.formatProperty().isBound()) {
+            if (!control.formatProperty().isBound()) {
                 control.setFormat(view.getFormat());
             }
         } finally {
             syncing = false;
         }
+        reconcileView();
+    }
+
+    // The picker wins: a bound value or format, or whatever its listeners set while
+    // the view was writing it (and could not be told), goes back to the view.
+    private void reconcileView() {
+        // A picker listener may have replaced this skin.
         if (disposed) {
             return;
         }
-        // A bound or rewritten picker value wins over the view's.
-        if (!Objects.equals(control.getValue(), view.getValue()) || control.getFormat() != view.getFormat()) {
-            pickerToView();
-        }
+        pickerToView();
         updateDisplay();
     }
 

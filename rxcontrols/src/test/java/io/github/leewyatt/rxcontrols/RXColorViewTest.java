@@ -410,6 +410,44 @@ public class RXColorViewTest {
         });
     }
 
+    // Moving the hue on white changes nothing, so the gesture made no edit to report.
+    @Test
+    public void aValueFromCodeDuringAGestureThatChangedNothingFiresNothing() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorView(Color.WHITE));
+            Region hue = part(".hue-slider");
+            mouse(hue, MouseEvent.MOUSE_PRESSED, 0.5, 0.5);
+            assertEquals(Color.WHITE, view.getValue());
+            view.setValue(Color.BLUE);
+            mouse(hue, MouseEvent.MOUSE_RELEASED, 0.5, 0.5);
+            assertEquals(0, actions.get(), "set from code");
+
+            view.setValue(Color.WHITE);
+            mouse(hue, MouseEvent.MOUSE_PRESSED, 0.5, 0.5);
+            mouse(hue, MouseEvent.MOUSE_DRAGGED, 0.6, 0.5);
+            assertEquals(Color.WHITE, view.getValue());
+            view.valueProperty().bind(new SimpleObjectProperty<>(Color.BLUE));
+            assertEquals(0, actions.get(), "bound from code");
+        });
+    }
+
+    @Test
+    public void turningOpacityOffMidGestureWritesAnOpaqueColor() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorView(Color.web("#1677FF")));
+            view.valueChangingProperty().addListener((obs, was, is) -> {
+                if (is) {
+                    view.setAlphaEnabled(false);
+                }
+            });
+            Region alpha = part(".alpha-slider");
+            mouse(alpha, MouseEvent.MOUSE_PRESSED, 0.5, 0.5);
+            mouse(alpha, MouseEvent.MOUSE_RELEASED, 0.5, 0.5);
+            assertFalse(view.isAlphaEnabled());
+            assertEquals(1.0, view.getValue().getOpacity(), 0.0);
+        });
+    }
+
     @Test
     public void disposingASkinThatWasNeverInstalledLeavesTheGestureAlone() throws InterruptedException {
         runOnFx(() -> {

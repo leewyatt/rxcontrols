@@ -55,6 +55,7 @@ public final class RXColorSamples {
         RXColorPicker picker = new RXColorPicker(Color.web("#1769AA"));
         picker.setShowText(true);
         picker.setCopyButtonVisible(true);
+        picker.setArrowVisible(false);
         picker.setAccessibleText("Brand color");
         picker.getPresets().add(new RXColorPresetGroup("Brand", Color.web("#1769AA"), Color.web("#F57C00"),
                 Color.web("#2E7D32"), Color.web("#C62828"), Color.web("#6A1B9A")));

@@ -516,6 +516,103 @@ public class RXColorPickerPopupTest {
 
     // ==================== Keys ====================
 
+    // Binding to the value already there, and unbinding, send no notification.
+    @Test
+    public void aFieldFollowsTheLockAsItEngagesAndLifts() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker(Color.WHITE));
+            open();
+            TextField hex = (TextField) popupView().lookup(".hex-field");
+            picker.valueProperty().bind(new SimpleObjectProperty<>(Color.WHITE));
+            hex.selectAll();
+            typeKeys(hex, "a");
+            assertEquals("FFFFFF", hex.getText(), "a locked field takes no typing");
+
+            picker.valueProperty().bind(new SimpleObjectProperty<>(Color.RED));
+            picker.valueProperty().unbind();
+            hex.selectAll();
+            typeKeys(hex, "00ff00");
+            assertEquals(Color.LIME, picker.getValue(), "unbound, the field takes typing again");
+        });
+    }
+
+    private static void typeKeys(Node node, String text) {
+        for (char c : text.toCharArray()) {
+            node.fireEvent(new KeyEvent(KeyEvent.KEY_TYPED, String.valueOf(c), "", KeyCode.UNDEFINED,
+                    false, false, false, false));
+        }
+    }
+
+    @Test
+    public void bindingThePickerMidDragEndsTheGesture() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker(Color.WHITE));
+            open();
+            RXColorView view = popupView();
+            Region hue = (Region) view.lookup(".hue-slider");
+            mouse(hue, MouseEvent.MOUSE_PRESSED, 0.2, 0.5);
+            Object hueBefore = hue.queryAccessibleAttribute(AccessibleAttribute.TEXT);
+            picker.valueProperty().bind(new SimpleObjectProperty<>(Color.WHITE));
+            mouse(hue, MouseEvent.MOUSE_DRAGGED, 0.8, 0.5);
+            assertEquals(hueBefore, hue.queryAccessibleAttribute(AccessibleAttribute.TEXT), "the hue holds");
+            assertFalse(view.isValueChanging());
+            mouse(hue, MouseEvent.MOUSE_RELEASED, 0.8, 0.5);
+            assertEquals(0, actions.get());
+
+            picker.valueProperty().unbind();
+            mouse(hue, MouseEvent.MOUSE_PRESSED, 0.8, 0.5);
+            assertTrue(view.isValueChanging(), "a new gesture starts once unbound");
+            mouse(hue, MouseEvent.MOUSE_RELEASED, 0.8, 0.5);
+        });
+    }
+
+    @Test
+    public void aFormatSetByAValueListenerSurvivesThePopupEdit() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            picker.setClearable(true);
+            open();
+            RXColorView view = popupView();
+            picker.valueProperty().addListener((obs, old, value) -> picker.setFormat(RXColorFormat.RGB));
+            click(view.lookup(".clear-button"));
+            assertNull(picker.getValue());
+            assertEquals(RXColorFormat.RGB, picker.getFormat());
+            assertEquals(RXColorFormat.RGB, view.getFormat());
+            assertEquals(1, actions.get());
+        });
+    }
+
+    @Test
+    public void aValueSetByAFormatListenerReachesTheView() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            open();
+            RXColorView view = popupView();
+            picker.formatProperty().addListener((obs, old, format) -> picker.setValue(Color.RED));
+            // What a pick in the popup's format menu does.
+            view.setFormat(RXColorFormat.RGB);
+            assertEquals(RXColorFormat.RGB, picker.getFormat());
+            assertEquals(Color.RED, picker.getValue());
+            assertEquals(Color.RED, view.getValue());
+        });
+    }
+
+    @Test
+    public void aValueAListenerPutsBackReachesTheViewWithoutAnAction() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker(Color.WHITE));
+            open();
+            RXColorView view = popupView();
+            picker.valueProperty().addListener((obs, old, value) -> picker.setValue(Color.WHITE));
+            Region area = (Region) view.lookup(".area");
+            mouse(area, MouseEvent.MOUSE_PRESSED, 0.5, 0.5);
+            mouse(area, MouseEvent.MOUSE_RELEASED, 0.5, 0.5);
+            assertEquals(Color.WHITE, picker.getValue());
+            assertEquals(Color.WHITE, view.getValue());
+            assertEquals(0, actions.get());
+        });
+    }
+
     @Test
     public void escapeInAFieldClosesAndDropsTheUnfinishedText() throws InterruptedException {
         runOnFx(() -> {

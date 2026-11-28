@@ -16,6 +16,7 @@ import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Orientation;
 import javafx.scene.control.Control;
 import javafx.scene.control.Skin;
 import javafx.scene.paint.Color;
@@ -45,8 +46,9 @@ import java.util.function.BooleanSupplier;
  * started fire nothing. {@link #valueChangingProperty() valueChanging} is
  * {@code true} while the pointer is pressed on the area or a slider; use it
  * only to defer expensive work during a drag, not as a commit signal. An edit
- * that ends because the view is hidden reports its action after the hide has
- * completed.
+ * that ends because the view's window closes (a popup hosting it, say) reports
+ * its action after the close has completed; one that ends because the view is
+ * hidden in a window that stays open reports it at once.
  *
  * <p><b>Input fields.</b> A field applies its text while the user types, as
  * soon as it is a complete value: six or eight hex digits (eight include the
@@ -146,6 +148,17 @@ public class RXColorView extends Control {
     @Override
     protected Skin<?> createDefaultSkin() {
         return new RXColorViewSkin(this);
+    }
+
+    /**
+     * Returns {@link Orientation#HORIZONTAL}: the preset swatches wrap to the width
+     * the view gets, so its height depends on its width.
+     *
+     * @return {@link Orientation#HORIZONTAL}
+     */
+    @Override
+    public Orientation getContentBias() {
+        return Orientation.HORIZONTAL;
     }
 
     // ==================== Value ====================
