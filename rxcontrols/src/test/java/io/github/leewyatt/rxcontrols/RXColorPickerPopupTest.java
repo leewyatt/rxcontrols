@@ -517,6 +517,53 @@ public class RXColorPickerPopupTest {
     // ==================== Keys ====================
 
     @Test
+    public void aFormatSetByAValueListenerSurvivesThePopupEdit() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            picker.setClearable(true);
+            open();
+            RXColorView view = popupView();
+            picker.valueProperty().addListener((obs, old, value) -> picker.setFormat(RXColorFormat.RGB));
+            click(view.lookup(".clear-button"));
+            assertNull(picker.getValue());
+            assertEquals(RXColorFormat.RGB, picker.getFormat());
+            assertEquals(RXColorFormat.RGB, view.getFormat());
+            assertEquals(1, actions.get());
+        });
+    }
+
+    @Test
+    public void aValueSetByAFormatListenerReachesTheView() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            open();
+            RXColorView view = popupView();
+            picker.formatProperty().addListener((obs, old, format) -> picker.setValue(Color.RED));
+            // What a pick in the popup's format menu does.
+            view.setFormat(RXColorFormat.RGB);
+            assertEquals(RXColorFormat.RGB, picker.getFormat());
+            assertEquals(Color.RED, picker.getValue());
+            assertEquals(Color.RED, view.getValue());
+        });
+    }
+
+    @Test
+    public void aValueAListenerPutsBackReachesTheViewWithoutAnAction() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker(Color.WHITE));
+            open();
+            RXColorView view = popupView();
+            picker.valueProperty().addListener((obs, old, value) -> picker.setValue(Color.WHITE));
+            Region area = (Region) view.lookup(".area");
+            mouse(area, MouseEvent.MOUSE_PRESSED, 0.5, 0.5);
+            mouse(area, MouseEvent.MOUSE_RELEASED, 0.5, 0.5);
+            assertEquals(Color.WHITE, picker.getValue());
+            assertEquals(Color.WHITE, view.getValue());
+            assertEquals(0, actions.get());
+        });
+    }
+
+    @Test
     public void escapeInAFieldClosesAndDropsTheUnfinishedText() throws InterruptedException {
         runOnFx(() -> {
             show(new RXColorPicker());
