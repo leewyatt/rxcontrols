@@ -361,13 +361,15 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         private double measureReserved() {
             String d = widest("0123456789");
             String ddd = d + d + d;
+            // The opacity takes three decimals near its ends (0.996).
+            String opacity = "0." + ddd;
             String sample;
             if (format == RXColorFormat.RGB) {
                 String rgb = ddd + ", " + ddd + ", " + ddd;
-                sample = alpha ? "rgba(" + rgb + ", 0." + d + d + ")" : "rgb(" + rgb + ")";
+                sample = alpha ? "rgba(" + rgb + ", " + opacity + ")" : "rgb(" + rgb + ")";
             } else if (format == RXColorFormat.HSB) {
                 String hsb = ddd + ", " + ddd + "%, " + ddd + "%";
-                sample = alpha ? "hsba(" + hsb + ", 0." + d + d + ")" : "hsb(" + hsb + ")";
+                sample = alpha ? "hsba(" + hsb + ", " + opacity + ")" : "hsb(" + hsb + ")";
             } else {
                 String h = widest(HEX_DIGITS);
                 sample = "#" + h + h + h + h + h + h + (alpha ? h + h : "");

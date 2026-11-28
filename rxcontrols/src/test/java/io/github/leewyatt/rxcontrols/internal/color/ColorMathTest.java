@@ -172,6 +172,25 @@ public class ColorMathTest {
         }
     }
 
+    @Test
+    public void anOpacityNearAnEndNeverReadsAsOpaqueOrClear() {
+        Color nearlyOpaque = Color.rgb(22, 119, 255, 254 / 255.0);
+        Color nearlyClear = Color.rgb(22, 119, 255, 1 / 255.0);
+        assertEquals("rgba(22, 119, 255, 0.996)", ColorMath.toText(nearlyOpaque, RXColorFormat.RGB));
+        assertEquals("rgba(22, 119, 255, 0.004)", ColorMath.toText(nearlyClear, RXColorFormat.RGB));
+        assertEquals("hsba(215, 91%, 100%, 0.996)", ColorMath.toText(nearlyOpaque, RXColorFormat.HSB));
+        for (Color color : new Color[]{nearlyOpaque, nearlyClear}) {
+            Color parsed = Color.web(ColorMath.toText(color, RXColorFormat.RGB));
+            assertEquals(ColorMath.toByte(color.getOpacity()), ColorMath.toByte(parsed.getOpacity()));
+        }
+        // The other bytes keep two decimals.
+        assertEquals("rgba(22, 119, 255, 0.99)", ColorMath.toText(Color.rgb(22, 119, 255, 252 / 255.0),
+                RXColorFormat.RGB));
+        assertEquals("rgba(22, 119, 255, 0.01)", ColorMath.toText(Color.rgb(22, 119, 255, 3 / 255.0),
+                RXColorFormat.RGB));
+        assertEquals("rgba(22, 119, 255, 0)", ColorMath.toText(Color.rgb(22, 119, 255, 0.0), RXColorFormat.RGB));
+    }
+
     // ==================== Contrast ====================
 
     @Test

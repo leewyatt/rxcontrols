@@ -155,7 +155,8 @@ public class RXColorPickerPopupTest {
             picker.setShowText(true);
             picker.setPromptText("None");
             List<Color> values = List.of(Color.WHITE, Color.BLACK, Color.web("#1677FF"), Color.web("#DDDDDD"),
-                    Color.web("#111111"), Color.rgb(22, 119, 255, 128 / 255.0), Color.rgb(0, 0, 0, 0.01));
+                    Color.web("#111111"), Color.rgb(22, 119, 255, 128 / 255.0), Color.rgb(0, 0, 0, 0.01),
+                    Color.rgb(200, 200, 200, 254 / 255.0), Color.rgb(200, 200, 200, 1 / 255.0));
             for (RXColorFormat format : RXColorFormat.values()) {
                 picker.setFormat(format);
                 Double width = null;
