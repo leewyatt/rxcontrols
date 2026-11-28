@@ -445,6 +445,12 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
         disposer.registerEventHandler(part, MouseEvent.MOUSE_DRAGGED, event -> {
             if (pointerTarget == part) {
                 event.consume();
+                // A picker's lock is no binding on this view, so nothing ends the drag
+                // when it engages: each step checks.
+                if (!editable()) {
+                    endPointer();
+                    return;
+                }
                 edit.apply(event.getX(), event.getY());
             }
         });

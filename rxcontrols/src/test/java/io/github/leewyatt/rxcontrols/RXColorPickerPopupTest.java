@@ -517,6 +517,29 @@ public class RXColorPickerPopupTest {
     // ==================== Keys ====================
 
     @Test
+    public void bindingThePickerMidDragEndsTheGesture() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker(Color.WHITE));
+            open();
+            RXColorView view = popupView();
+            Region hue = (Region) view.lookup(".hue-slider");
+            mouse(hue, MouseEvent.MOUSE_PRESSED, 0.2, 0.5);
+            Object hueBefore = hue.queryAccessibleAttribute(AccessibleAttribute.TEXT);
+            picker.valueProperty().bind(new SimpleObjectProperty<>(Color.WHITE));
+            mouse(hue, MouseEvent.MOUSE_DRAGGED, 0.8, 0.5);
+            assertEquals(hueBefore, hue.queryAccessibleAttribute(AccessibleAttribute.TEXT), "the hue holds");
+            assertFalse(view.isValueChanging());
+            mouse(hue, MouseEvent.MOUSE_RELEASED, 0.8, 0.5);
+            assertEquals(0, actions.get());
+
+            picker.valueProperty().unbind();
+            mouse(hue, MouseEvent.MOUSE_PRESSED, 0.8, 0.5);
+            assertTrue(view.isValueChanging(), "a new gesture starts once unbound");
+            mouse(hue, MouseEvent.MOUSE_RELEASED, 0.8, 0.5);
+        });
+    }
+
+    @Test
     public void aFormatSetByAValueListenerSurvivesThePopupEdit() throws InterruptedException {
         runOnFx(() -> {
             show(new RXColorPicker());
