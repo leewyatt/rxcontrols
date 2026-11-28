@@ -10,6 +10,7 @@ import io.github.leewyatt.rxcontrols.internal.color.ColorViewAccess;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupSupport;
 import io.github.leewyatt.rxcontrols.internal.popup.RXPopupWidthMode;
 import io.github.leewyatt.rxcontrols.internal.ripple.RippleDecoration;
+import io.github.leewyatt.rxcontrols.utils.RXSizing;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.WeakInvalidationListener;
@@ -21,6 +22,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCode;
@@ -31,6 +33,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
@@ -63,7 +66,8 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
     // ==================== Constants ====================
 
     private static final double POPUP_GAP = 4.0;
-    private static final double COPY_BUTTON_GAP = 4.0;
+    /** Between the display and each node after it: the copy button, then the arrow. */
+    private static final double TRAILING_GAP = 4.0;
     private static final KeyCombination COPY_KEY = new KeyCodeCombination(KeyCode.C, KeyCombination.SHORTCUT_DOWN);
     /** Keys a popup must not let through to the picker or a dialog. */
     private static final Set<KeyCode> POPUP_KEYS = EnumSet.of(KeyCode.ENTER, KeyCode.SPACE, KeyCode.F4,
@@ -99,6 +103,10 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
             return lineSize();
         }
     };
+    private final StackPane arrowButton = new StackPane();
+    private final Region arrow = new Region();
+    /** The nodes after the display, outermost first. */
+    private final Node[] trailingNodes = {arrowButton, copyButton};
     private final RXColorView view = new RXColorView();
     private final RXPopupSupport popupSupport;
     // Created on activation: it registers handlers on the picker.
@@ -146,6 +154,12 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         copyButton.setFocusTraversable(false);
         copyButton.setAccessibleText("Copy color");
         copyButton.setContentFactory(this::copyContent);
+        // Decoration only: a click on it is a click on the picker, which opens the popup.
+        arrow.getStyleClass().add("arrow");
+        RXSizing.lockToPrefSize(arrow);
+        arrowButton.getStyleClass().add("arrow-button");
+        arrowButton.setMouseTransparent(true);
+        arrowButton.getChildren().add(arrow);
 
         popupSupport = new RXPopupSupport(view);
         popupSupport.setPopupStyleClass("rx-color-picker-popup");
@@ -178,7 +192,7 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
                 control.stateOverlayEnabledProperty(), control.rippleFillProperty(),
                 control::getRippleOpacity, null, null);
         ripple.getLayer().setManaged(false);
-        getChildren().setAll(ripple.getLayer(), display, copyButton);
+        getChildren().setAll(ripple.getLayer(), display, copyButton, arrowButton);
 
         // Configuration flows down; value and format are synced both ways.
         disposer.registerBinding(view.alphaEnabledProperty(), control.alphaEnabledProperty());
@@ -202,6 +216,7 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         disposer.registerListener(control.promptTextProperty(), live(this::updateDisplay));
         disposer.registerListener(control.alphaEnabledProperty(), live(this::updateDisplay));
         disposer.registerListener(control.copyButtonVisibleProperty(), live(this::updateDisplay));
+        disposer.registerListener(control.arrowVisibleProperty(), live(this::updateDisplay));
         disposer.registerListener(text.fontProperty(), live(() -> {
             swatch.requestLayout();
             copyButton.requestLayout();
@@ -298,6 +313,9 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         boolean copyEnabled = control.isCopyButtonVisible();
         copyButton.setManaged(copyEnabled);
         copyButton.setVisible(copyEnabled && value != null);
+        boolean arrowShown = control.isArrowVisible();
+        arrowButton.setManaged(arrowShown);
+        arrowButton.setVisible(arrowShown);
         boolean showText = control.isShowText();
         text.setVisible(showText);
         text.setManaged(showText);
@@ -566,31 +584,44 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         if (ripple != null) {
             ripple.layout(getSkinnable().getWidth(), getSkinnable().getHeight());
         }
-        if (!copyButton.isManaged()) {
-            display.resizeRelocate(x, y, w, h);
-            return;
+        // From the right edge: the arrow, then the copy button; the display takes the rest.
+        double right = x + w;
+        for (Node trailing : trailingNodes) {
+            if (trailing.isManaged()) {
+                double width = snapSizeX(trailing.prefWidth(-1));
+                right -= width;
+                layoutInArea(trailing, right, y, width, h, 0.0, HPos.CENTER, VPos.CENTER);
+                right -= TRAILING_GAP;
+            }
         }
-        double buttonWidth = snapSizeX(copyButton.prefWidth(-1));
-        display.resizeRelocate(x, y, Math.max(0.0, w - COPY_BUTTON_GAP - buttonWidth), h);
-        layoutInArea(copyButton, x + w - buttonWidth, y, buttonWidth, h, 0.0, HPos.CENTER, VPos.CENTER);
+        display.resizeRelocate(x, y, Math.max(0.0, right - x), h);
+    }
+
+    /** The copy button and the arrow that are shown, each with its gap. */
+    private double trailingWidth() {
+        double width = 0.0;
+        for (Node trailing : trailingNodes) {
+            if (trailing.isManaged()) {
+                width += TRAILING_GAP + snapSizeX(trailing.prefWidth(-1));
+            }
+        }
+        return width;
     }
 
     @Override
     protected double computePrefWidth(double height, double topInset, double rightInset, double bottomInset,
                                       double leftInset) {
-        double width = display.prefWidth(-1);
-        if (copyButton.isManaged()) {
-            width += COPY_BUTTON_GAP + snapSizeX(copyButton.prefWidth(-1));
-        }
-        return leftInset + width + rightInset;
+        return leftInset + display.prefWidth(-1) + trailingWidth() + rightInset;
     }
 
     @Override
     protected double computePrefHeight(double width, double topInset, double rightInset, double bottomInset,
                                        double leftInset) {
         double height = display.prefHeight(-1);
-        if (copyButton.isManaged()) {
-            height = Math.max(height, copyButton.prefHeight(-1));
+        for (Node trailing : trailingNodes) {
+            if (trailing.isManaged()) {
+                height = Math.max(height, trailing.prefHeight(-1));
+            }
         }
         return topInset + height + bottomInset;
     }
@@ -601,11 +632,8 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
     @Override
     protected double computeMinWidth(double height, double topInset, double rightInset, double bottomInset,
                                      double leftInset) {
-        double width = display.minWidth(-1);
-        if (copyButton.isManaged()) {
-            width += COPY_BUTTON_GAP + snapSizeX(copyButton.minWidth(-1));
-        }
-        return leftInset + width + rightInset;
+        // The copy button and the arrow are locked to their preferred sizes.
+        return leftInset + display.minWidth(-1) + trailingWidth() + rightInset;
     }
 
     @Override
@@ -631,6 +659,6 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         }
         // JavaFX keeps the children when the next skin is a SkinBase, which has already
         // added its own: take out only the nodes this skin added.
-        getChildren().removeAll(display, copyButton);
+        getChildren().removeAll(display, copyButton, arrowButton);
     }
 }

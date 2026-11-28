@@ -22,8 +22,8 @@ import java.util.List;
  * {@code ColorPicker} bound to the same value sits next to it for side-by-side
  * comparison. The control panel sets the value from code (no action), binds it
  * (the popup takes no input), and switches the trigger text, the copy button,
- * the prompt text, the format, opacity editing, the clear button, the presets
- * and the disabled state. For the smallest working example see
+ * the drop-down arrow, the prompt text, the format, opacity editing, the clear
+ * button, the presets and the disabled state. For the smallest working example see
  * {@link RXColorPickerDemo}.
  */
 public class RXColorPickerShowcase extends RXShowcaseApplication {
@@ -87,6 +87,7 @@ public class RXColorPickerShowcase extends RXShowcaseApplication {
                 section("Trigger", createGrid(
                         row(ColorShowcaseSupport.check("Show text", picker.showTextProperty())),
                         row(ColorShowcaseSupport.check("Copy button", picker.copyButtonVisibleProperty())),
+                        row(ColorShowcaseSupport.check("Arrow", picker.arrowVisibleProperty())),
                         row("Prompt text", prompt))),
                 section("Popup", createGrid(
                         row("Format", ColorShowcaseSupport.formatBox(picker.formatProperty())),

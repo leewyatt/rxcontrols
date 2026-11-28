@@ -200,6 +200,43 @@ public class RXColorPickerPopupTest {
         });
     }
 
+    // ==================== Arrow ====================
+
+    @Test
+    public void theArrowComesLastByDefaultTurnsWhileOpenAndCanBeHidden() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            picker.setCopyButtonVisible(true);
+            relayout();
+            Region arrowButton = (Region) picker.lookup(".arrow-button");
+            Node arrow = arrowButton.lookup(".arrow");
+            Node copy = picker.lookup(".copy-button");
+            double end = picker.getWidth() - picker.snappedRightInset();
+            assertTrue(picker.isArrowVisible());
+            assertTrue(arrowButton.isVisible() && arrowButton.isManaged());
+            assertEquals(end, arrowButton.getBoundsInParent().getMaxX(), 0.5, "the arrow comes last");
+            assertTrue(copy.getBoundsInParent().getMaxX() < arrowButton.getBoundsInParent().getMinX(),
+                    "the copy button comes before it");
+            assertEquals(0.0, arrow.getRotate(), 0.0);
+
+            open();
+            picker.applyCss();
+            assertEquals(180.0, arrow.getRotate(), 0.0, "it turns over while the popup is open");
+            picker.hide();
+            picker.applyCss();
+            assertEquals(0.0, arrow.getRotate(), 0.0);
+
+            double withArrow = picker.getWidth();
+            double arrowWidth = arrowButton.prefWidth(-1);
+            picker.setArrowVisible(false);
+            relayout();
+            assertFalse(arrowButton.isVisible() || arrowButton.isManaged());
+            assertEquals(withArrow - 4.0 - arrowWidth, picker.getWidth(), 0.5, "the arrow and its gap are gone");
+            assertEquals(picker.getWidth() - picker.snappedRightInset(), copy.getBoundsInParent().getMaxX(), 0.5,
+                    "the copy button takes the end");
+        });
+    }
+
     // ==================== Copy button ====================
 
     // The system clipboard is never written: the content is read from the factory,
