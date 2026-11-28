@@ -2,6 +2,7 @@ package io.github.leewyatt.rxcontrols;
 
 import io.github.leewyatt.rxcontrols.internal.color.ColorMath;
 import io.github.leewyatt.rxcontrols.internal.color.ColorViewAccess;
+import io.github.leewyatt.rxcontrols.skins.RXColorViewSkin;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.ActionEvent;
 import javafx.event.EventType;
@@ -10,6 +11,8 @@ import javafx.geometry.Point2D;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
+import javafx.scene.control.SkinBase;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -404,6 +407,34 @@ public class RXColorViewTest {
             assertTrue(view.isValueChanging());
             view.setSkin(null);
             assertFalse(view.isValueChanging());
+        });
+    }
+
+    @Test
+    public void disposingASkinThatWasNeverInstalledLeavesTheGestureAlone() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorView());
+            Region area = part(".area");
+            mouse(area, MouseEvent.MOUSE_PRESSED, 0.5, 0.5);
+            new RXColorViewSkin(view).dispose();
+            assertTrue(view.isValueChanging(), "the gesture belongs to the installed skin");
+            mouse(area, MouseEvent.MOUSE_RELEASED, 0.5, 0.5);
+            assertFalse(view.isValueChanging());
+            assertEquals(1, actions.get());
+        });
+    }
+
+    @Test
+    public void aSkinOfAnotherClassFindsOnlyItsOwnNodes() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorView());
+            Label other = new Label("other");
+            view.setSkin(new SkinBase<RXColorView>(view) {
+                {
+                    getChildren().add(other);
+                }
+            });
+            assertEquals(List.of(other), view.getChildrenUnmodifiable());
         });
     }
 

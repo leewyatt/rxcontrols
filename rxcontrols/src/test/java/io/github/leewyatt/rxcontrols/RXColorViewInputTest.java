@@ -18,10 +18,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.hasPseudoClass;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.runOnFx;
+import static io.github.leewyatt.rxcontrols.PickerTestSupport.uncaughtDuring;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -242,6 +244,19 @@ public class RXColorViewInputTest {
     }
 
     // ==================== Actions ====================
+
+    @Test
+    public void aSkinRemovedByAValueListenerLeavesTheFinishingFieldAlone() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorView());
+            TextField hex = (TextField) view.lookup(".hex-field");
+            type(hex, "abc");
+            view.valueProperty().addListener((obs, old, value) -> view.setSkin(null));
+            List<Throwable> errors = uncaughtDuring(() -> key(hex, KeyCode.ENTER, false));
+            assertTrue(errors.isEmpty(), errors.toString());
+            assertEquals(Color.web("#AABBCC"), view.getValue());
+        });
+    }
 
     @Test
     public void aFieldsOwnActionNeverReachesTheView() throws InterruptedException {

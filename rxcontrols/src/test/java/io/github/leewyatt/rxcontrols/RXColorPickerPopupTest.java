@@ -13,6 +13,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.PopupControl;
+import javafx.scene.control.SkinBase;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -560,6 +561,50 @@ public class RXColorPickerPopupTest {
     }
 
     // ==================== Skin ====================
+
+    @Test
+    public void aSkinRemovedByAValueListenerStopsAfterThePopupEdit() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            picker.setClearable(true);
+            open();
+            Node clear = popupView().lookup(".clear-button");
+            picker.valueProperty().addListener((obs, old, value) -> picker.setSkin(null));
+            List<Throwable> errors = uncaughtDuring(() -> click(clear));
+            assertTrue(errors.isEmpty(), errors.toString());
+            assertNull(picker.getValue());
+        });
+    }
+
+    @Test
+    public void aSkinRemovedWhenThePopupOpensStopsBeforeItsRipple() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            picker.showingProperty().addListener((obs, was, is) -> {
+                if (is) {
+                    picker.setSkin(null);
+                }
+            });
+            List<Throwable> errors = uncaughtDuring(() -> key(picker, KeyCode.SPACE, false));
+            assertTrue(errors.isEmpty(), errors.toString());
+            assertNull(picker.getSkin());
+        });
+    }
+
+    @Test
+    public void aSkinOfAnotherClassFindsOnlyItsOwnNodes() throws InterruptedException {
+        runOnFx(() -> {
+            show(new RXColorPicker());
+            picker.setCopyButtonVisible(true);
+            Label other = new Label("other");
+            picker.setSkin(new SkinBase<RXColorPicker>(picker) {
+                {
+                    getChildren().add(other);
+                }
+            });
+            assertEquals(List.of(other), picker.getChildrenUnmodifiable());
+        });
+    }
 
     @Test
     public void aReplacedSkinReopensThePopup() throws InterruptedException {

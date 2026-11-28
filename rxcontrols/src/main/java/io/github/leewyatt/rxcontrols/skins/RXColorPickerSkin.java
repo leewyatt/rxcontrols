@@ -270,16 +270,18 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         syncing = true;
         try {
             control.setValue(view.getValue());
-            if (!control.formatProperty().isBound()) {
+            // A value listener may have replaced this skin, which then leaves the picker alone.
+            if (!disposed && !control.formatProperty().isBound()) {
                 control.setFormat(view.getFormat());
             }
         } finally {
             syncing = false;
         }
-        // A listener may have replaced this skin; a bound or rewritten picker value
-        // wins over the view's.
-        if (!disposed && (!Objects.equals(control.getValue(), view.getValue())
-                || control.getFormat() != view.getFormat())) {
+        if (disposed) {
+            return;
+        }
+        // A bound or rewritten picker value wins over the view's.
+        if (!Objects.equals(control.getValue(), view.getValue()) || control.getFormat() != view.getFormat()) {
             pickerToView();
         }
         updateDisplay();
@@ -477,6 +479,10 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
         }
         event.consume();
         control.requestFocus();
+        // A focus listener may have replaced this skin.
+        if (disposed) {
+            return;
+        }
         if (control.isShowing()) {
             control.hide();
         } else if (!suppressReopen) {
@@ -521,7 +527,10 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
                     || (code == KeyCode.UP && event.isAltDown())) {
                 event.consume();
                 control.show();
-                pressRippleCentered();
+                // A showing listener may have replaced this skin.
+                if (!disposed) {
+                    pressRippleCentered();
+                }
             }
             return;
         }
@@ -620,5 +629,8 @@ public class RXColorPickerSkin extends RXSkinBase<RXColorPicker> {
             ripple.dispose();
             getChildren().remove(ripple.getLayer());
         }
+        // JavaFX keeps the children when the next skin is a SkinBase, which has already
+        // added its own: take out only the nodes this skin added.
+        getChildren().removeAll(display, copyButton);
     }
 }

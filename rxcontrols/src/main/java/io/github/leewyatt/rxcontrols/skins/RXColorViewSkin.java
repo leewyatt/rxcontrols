@@ -642,6 +642,11 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
     private final class PresetHost implements ColorPresetSection.Host {
 
         @Override
+        public boolean disposed() {
+            return disposed;
+        }
+
+        @Override
         public Color value() {
             return getSkinnable().getValue();
         }
@@ -660,6 +665,11 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
     // ==================== Input row host ====================
 
     private final class InputHost implements ColorInputRow.Host {
+
+        @Override
+        public boolean disposed() {
+            return disposed;
+        }
 
         @Override
         public boolean editable() {
@@ -780,13 +790,18 @@ public class RXColorViewSkin extends RXSkinBase<RXColorView> {
 
     @Override
     protected void disposeSkin() {
+        // Only the skin holding the gesture set the flag; one never installed must not clear it.
+        boolean ownsGesture = pointerTarget != null;
         disposed = true;
         pending = false;
         pointerTarget = null;
         keyTarget = null;
         keyCode = null;
+        // JavaFX keeps the children when the next skin is a SkinBase, which has already
+        // added its own: take out only the node this skin added.
+        getChildren().remove(content);
         RXColorView control = getSkinnable();
-        if (control.isValueChanging()) {
+        if (ownsGesture && control.isValueChanging()) {
             // Last: it runs application listeners, and nothing touches the view after.
             ColorViewAccess.setValueChanging(control, false);
         }

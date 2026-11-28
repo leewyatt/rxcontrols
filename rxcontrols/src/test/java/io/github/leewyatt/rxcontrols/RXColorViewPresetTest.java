@@ -1,5 +1,6 @@
 package io.github.leewyatt.rxcontrols;
 
+import javafx.beans.InvalidationListener;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.ActionEvent;
 import javafx.geometry.NodeOrientation;
@@ -25,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.hasPseudoClass;
 import static io.github.leewyatt.rxcontrols.PickerTestSupport.runOnFx;
+import static io.github.leewyatt.rxcontrols.PickerTestSupport.uncaughtDuring;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -380,6 +382,19 @@ public class RXColorViewPresetTest {
             }
             key(grid, KeyCode.DOWN);
             assertEquals(last, cursorIndex(swatches), "past the shorter last row Down reaches its end");
+        });
+    }
+
+    @Test
+    public void aSkinRemovedByAnEarlierPresetListenerSkipsTheRebuild() throws InterruptedException {
+        runOnFx(() -> {
+            RXColorView colorView = new RXColorView();
+            colorView.getPresets().addListener((InvalidationListener) observable -> colorView.setSkin(null));
+            show(colorView);
+            List<Throwable> errors = uncaughtDuring(
+                    () -> view.getPresets().add(new RXColorPresetGroup(null, Color.RED)));
+            assertTrue(errors.isEmpty(), errors.toString());
+            assertNull(view.getSkin());
         });
     }
 

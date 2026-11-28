@@ -47,6 +47,9 @@ final class ColorPresetSection extends ScrollPane {
     /** What the section needs from the view's skin. */
     interface Host {
 
+        /** Whether the skin has been disposed. */
+        boolean disposed();
+
         /** The current value, or {@code null}. */
         Color value();
 
@@ -109,7 +112,13 @@ final class ColorPresetSection extends ScrollPane {
         disposer.registerEventFilter(groupsBox, MouseEvent.MOUSE_PRESSED, this::onPressed);
         disposer.registerEventFilter(groupsBox, MouseEvent.MOUSE_CLICKED, this::onClicked);
         disposer.registerEventHandler(groupsBox, KeyEvent.KEY_PRESSED, this::onKey);
-        disposer.registerListener(presets, () -> rebuild(presets));
+        // A listener removed while the list is notifying still gets that notification,
+        // so an earlier list listener that replaced the skin would reach this one after dispose.
+        disposer.registerListener(presets, () -> {
+            if (!host.disposed()) {
+                rebuild(presets);
+            }
+        });
         disposer.registerDisposeTask(() -> {
             groupsBox.getChildren().clear();
             cache.clear();
