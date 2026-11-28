@@ -203,7 +203,7 @@ public class RXColorPickerPopupTest {
     // ==================== Arrow ====================
 
     @Test
-    public void theArrowComesLastByDefaultTurnsWhileOpenAndCanBeHidden() throws InterruptedException {
+    public void theArrowComesLastByDefaultStaysWhileOpenAndCanBeHidden() throws InterruptedException {
         runOnFx(() -> {
             show(new RXColorPicker());
             picker.setCopyButtonVisible(true);
@@ -221,10 +221,8 @@ public class RXColorPickerPopupTest {
 
             open();
             picker.applyCss();
-            assertEquals(180.0, arrow.getRotate(), 0.0, "it turns over while the popup is open");
+            assertEquals(0.0, arrow.getRotate(), 0.0, "it keeps pointing down, as on a combo box");
             picker.hide();
-            picker.applyCss();
-            assertEquals(0.0, arrow.getRotate(), 0.0);
 
             double withArrow = picker.getWidth();
             double arrowWidth = arrowButton.prefWidth(-1);

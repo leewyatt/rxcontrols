@@ -2167,10 +2167,6 @@
     -fx-shape: "M 0 0 L 8 0 L 4 5 Z";
 }
 
-.rx-cascader:showing > .display > .arrow-button > .arrow {
-    -fx-rotate: 180;
-}
-
 .rx-cascader-view {
     -rx-focus-fill: -fx-control-inner-background;
     -fx-background-color: -fx-control-inner-background;
@@ -4203,10 +4199,6 @@
     -fx-shape: "M 0 0 h 7 l -3.5 4 z";
 }
 
-.rx-menu-button:showing > .arrow {
-    -fx-rotate: 180;
-}
-
 .rx-menu-button:disabled {
     -fx-opacity: 0.4;
 }
@@ -4777,10 +4769,6 @@
     -fx-pref-width: 0.666667em; /* 8 */
     -fx-pref-height: 0.333333em; /* 4 */
     -fx-shape: "M 0 0 h 7 l -3.5 4 z";
-}
-
-.rx-selection-box:showing > .display > .arrow-button > .arrow {
-    -fx-rotate: 180;
 }
 
 /* AtlantaFX: the flat outlined field of its combo box, padded as its text field
@@ -6156,10 +6144,6 @@
     -fx-pref-width: 0.666667em; /* 8 */
     -fx-pref-height: 0.333333em; /* 4 */
     -fx-shape: "M 0 0 h 7 l -3.5 4 z";
-}
-
-.rx-color-picker:showing > .arrow-button > .arrow {
-    -fx-rotate: 180;
 }
 
 .rx-color-picker:disabled {

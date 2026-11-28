@@ -366,8 +366,9 @@ public class RXColorPicker extends Control {
 
     /**
      * Whether a drop-down arrow is shown at the end of the picker, after the copy
-     * button, as on a combo box; it turns over while the popup is open. Hide it for
-     * a compact swatch. The whole picker opens the popup either way. Defaults to
+     * button, as on a combo box. Like the combo box's, it marks the picker as one
+     * that opens a popup and keeps pointing down while the popup is open. Hide it
+     * for a compact swatch. The whole picker opens the popup either way. Defaults to
      * {@code true}.
      *
      * @return the arrow-visible property

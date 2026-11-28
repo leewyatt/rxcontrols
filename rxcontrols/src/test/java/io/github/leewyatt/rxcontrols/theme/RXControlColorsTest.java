@@ -1036,6 +1036,37 @@ public class RXControlColorsTest {
         });
     }
 
+    // Drop-down arrows mark a control that opens a popup; the open state shows in the
+    // pressed frame and the popup itself. Disclosure arrows (sidebar, section headers)
+    // do turn: they show content expanding in place.
+    @Test
+    public void dropDownArrowsStayPutWhileOpenAsModenasComboBoxDoes() throws Exception {
+        runOnFx(() -> {
+            Application.setUserAgentStylesheet(Application.STYLESHEET_MODENA);
+            RXCascader cascader = new RXCascader();
+            RXSelectionBox<String> selectionBox = new RXSelectionBox<>(FXCollections.observableArrayList("Apple"));
+            RXMenuButton menuButton = new RXMenuButton("Menu");
+            RXColorPicker colorPicker = new RXColorPicker();
+            VBox root = new VBox(cascader, selectionBox, menuButton, colorPicker);
+            new Scene(root, 600, 400);
+            root.applyCss();
+            Map<String, Node> arrows = new LinkedHashMap<>();
+            arrows.put("cascader", cascader.lookup(".arrow-button").lookup(".arrow"));
+            arrows.put("selection box", selectionBox.lookup(".arrow-button").lookup(".arrow"));
+            arrows.put("menu button", menuButton.lookup(".arrow"));
+            arrows.put("color picker", colorPicker.lookup(".arrow-button").lookup(".arrow"));
+            PseudoClass showing = PseudoClass.getPseudoClass("showing");
+            for (Node control : root.getChildren()) {
+                control.pseudoClassStateChanged(showing, true);
+            }
+            root.applyCss();
+            arrows.forEach((name, arrow) -> {
+                assertNotNull(arrow, name + " should have an arrow");
+                assertEquals(0.0, arrow.getRotate(), 0.0, name + " keeps its arrow pointing down while open");
+            });
+        });
+    }
+
     @Test
     public void fieldControlsAreAsTallAsTheirNativeCounterparts() throws Exception {
         assertFieldHeights("default Modena", Application.STYLESHEET_MODENA, scene -> { });
